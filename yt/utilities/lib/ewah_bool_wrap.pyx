@@ -54,6 +54,51 @@ cdef class FileBitmasks:
         self.ewah_refn = <void **>ewah_refn
         self.ewah_coll = <void **>ewah_coll
 
+    cdef bint _iseq(self, FileBitmasks solf):
+        cdef np.int32_t ifile
+        cdef ewah_bool_array* arr1
+        cdef ewah_bool_array* arr2
+        cdef cmap[np.uint64_t, ewah_bool_array] *map1
+        cdef cmap[np.uint64_t, ewah_bool_array] *map2
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        if self.nfiles != solf.nfiles:
+            return 0
+        for ifile in range(self.nfiles): 
+            # Keys
+            arr1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
+            arr2 = (<ewah_bool_array **> solf.ewah_keys)[ifile]
+            if arr1[0] != arr2[0]:
+                return 0
+            # Refn
+            arr1 = (<ewah_bool_array **> self.ewah_refn)[ifile]
+            arr2 = (<ewah_bool_array **> solf.ewah_refn)[ifile]
+            if arr1[0] != arr2[0]:
+                return 0
+            # Map
+            map1 = (<cmap[np.uint64_t, ewah_bool_array] **> self.ewah_coll)[ifile]
+            map2 = (<cmap[np.uint64_t, ewah_bool_array] **> solf.ewah_coll)[ifile]
+            it_map1 = map1[0].begin()
+            while (it_map1 != map1[0].end()):
+                it_map2 = map2[0].find(dereference(it_map1).first)
+                if it_map2 == map2[0].end():
+                    return 0
+                if dereference(it_map1).second != dereference(it_map2).second:
+                    return 0
+                preincrement(it_map1)
+            it_map2 = map2[0].begin()
+            while (it_map2 != map2[0].end()):
+                it_map1 = map1[0].find(dereference(it_map2).first)
+                if it_map1 == map1[0].end():
+                    return 0
+                if dereference(it_map2).second != dereference(it_map1).second:
+                    return 0
+                preincrement(it_map2)
+            # Match
+            return 1
+        
+    def iseq(self, solf):
+        return self._iseq(solf)
+
     cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile):
         cdef BoolArrayCollection out = BoolArrayCollection()
         cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>self.ewah_keys
@@ -96,10 +141,16 @@ cdef class FileBitmasks:
     cdef void _find_collisions_refined(self, BoolArrayCollection coll, bint verbose = 0):
         cdef np.int32_t ifile
         cdef ewah_bool_array iarr, arr_two, arr_swap
+        cdef ewah_bool_array* coll_refn
         cdef map[np.uint64_t, ewah_bool_array] map_keys, map_refn
         cdef map[np.uint64_t, ewah_bool_array]* coll_coll
         cdef map[np.uint64_t, ewah_bool_array]* map_bitmask
-        coll_coll = (<map[np.uint64_t, ewah_bool_array]*> coll.ewah_coll)
+        coll_refn = <ewah_bool_array*> coll.ewah_refn
+        if coll_refn.numberOfOnes() == 0:
+            if verbose == 1:
+                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(0,0,0))
+            return
+        coll_coll = <map[np.uint64_t, ewah_bool_array]*> coll.ewah_coll
         for ifile in range(self.nfiles):
             map_bitmask = (<map[np.uint64_t, ewah_bool_array]**> self.ewah_coll)[ifile]
             it_mi1 = map_bitmask[0].begin()
@@ -126,7 +177,10 @@ cdef class FileBitmasks:
                 iarr = map_keys[mi1]
                 nm += iarr.numberOfOnes()
                 preincrement(it_mi1)
-            print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+            if nm == 0:
+                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,0.0))
+            else:
+                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2 = FLAG):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]

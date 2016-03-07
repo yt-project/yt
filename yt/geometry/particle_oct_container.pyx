@@ -378,8 +378,9 @@ cdef class ParticleForest:
 
     def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
                  n_ref = 64, index_order1 = None, index_order2 = None):
+        # TODO: Set limit on maximum orders?
         if index_order1 is None: index_order1 = 7
-        if index_order2 is None: index_order2 = 7
+        if index_order2 is None: index_order2 = 5
         cdef int i
         self._cached_octrees = {}
         self._last_selector = None
@@ -568,20 +569,20 @@ cdef class ParticleForest:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions(self):
+    def find_collisions(self, verbose=True):
         IF UseCythonBitmasks == 1:
-            self.bitmasks._find_collisions(self.collisions,1)
+            self.bitmasks._find_collisions(self.collisions,verbose)
         ELSE:
-            self.find_collisions_coarse()
-            self.find_collisions_refined()
+            self.find_collisions_coarse(verbose=verbose)
+            self.find_collisions_refined(verbose=verbose)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_coarse(self):
+    def find_collisions_coarse(self, verbose=True):
         IF UseCythonBitmasks == 1:
-            self.bitmasks._find_collisions_coarse(self.collisions,1)
+            self.bitmasks._find_collisions_coarse(self.collisions,verbose)
         ELSE:
             cdef int nc, nm
             cdef ewah_bool_array* coll_keys
@@ -602,23 +603,30 @@ cdef class ParticleForest:
             coll_refn[0].swap(arr_refn)
             nc = coll_refn[0].numberOfOnes()
             nm = coll_keys[0].numberOfOnes()
-            print("{: 10d}/{: 10d} collisions at coarse refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+            if verbose:
+                print("{: 10d}/{: 10d} collisions at coarse refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_refined(self):
+    def find_collisions_refined(self, verbose=True):
         IF UseCythonBitmasks == 1:
-            self.bitmasks._find_collisions_refined(self.collisions,1)
+            self.bitmasks._find_collisions_refined(self.collisions,verbose)
         ELSE:
             cdef np.int32_t nc, nm
             cdef map[np.uint64_t, ewah_bool_array].iterator it_mi1
             cdef np.int32_t ifile
             cdef BoolArrayCollection bitmask
             cdef ewah_bool_array iarr, arr_two, arr_swap
+            cdef ewah_bool_array* coll_refn
             cdef map[np.uint64_t, ewah_bool_array] map_bitmask, map_keys, map_refn
             cdef map[np.uint64_t, ewah_bool_array]* coll_coll
+            coll_refn = <ewah_bool_array*> self.collisions.ewah_refn
+            if coll_refn.numberOfOnes() == 0:
+                if verbose:
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(0,0,0))
+                return
             coll_coll = (<map[np.uint64_t, ewah_bool_array]*> self.collisions.ewah_coll)
             for ifile in range(self.nfiles):
                 bitmask = self.bitmasks[ifile]
@@ -635,18 +643,22 @@ cdef class ParticleForest:
                     preincrement(it_mi1)
             coll_coll[0] = map_refn
             # Add them up
-            nc = 0
-            nm = 0
-            it_mi1 = map_refn.begin()
-            while it_mi1 != map_refn.end():
-                mi1 = dereference(it_mi1).first
-                iarr = dereference(it_mi1).second
-                nc += iarr.numberOfOnes()
-                IF UseCythonBitmasks == 0:
-                    iarr = map_keys[mi1]
-                    nm += iarr.numberOfOnes()
-                preincrement(it_mi1)
-            print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+            if verbose:
+                nc = 0
+                nm = 0
+                it_mi1 = map_refn.begin()
+                while it_mi1 != map_refn.end():
+                    mi1 = dereference(it_mi1).first
+                    iarr = dereference(it_mi1).second
+                    nc += iarr.numberOfOnes()
+                    IF UseCythonBitmasks == 0:
+                        iarr = map_keys[mi1]
+                        nm += iarr.numberOfOnes()
+                    preincrement(it_mi1)
+                if nm == 0:
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,0))
+                else:
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     def calcsize_bitmasks(self):
         # TODO: All cython
@@ -669,6 +681,25 @@ cdef class ParticleForest:
             out += struct.calcsize('Q')
             out += len(serial_BAC)
         return out
+
+    def get_bitmasks(self):
+        return self.bitmasks
+
+    def iseq_bitmask(self, solf):
+        IF UseCythonBitmasks == 1:
+            return self.bitmasks._iseq(solf.get_bitmasks())
+        ELSE:
+            cdef BoolArrayCollection b1
+            cdef BoolArrayCollection b2
+            cdef int ifile
+            if solf.nfiles != self.nfiles:
+                return 0
+            for ifile in range(self.nfiles):
+                b1 = self.bitmasks[ifile]
+                b2 = solf.get_bitmasks()[ifile]
+                if b1 != b2:
+                    return 0
+            return 1
 
     def save_bitmasks(self,fname=None):
         # TODO: default file name

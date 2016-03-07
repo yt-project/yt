@@ -16,6 +16,7 @@ Tests for particle octree
 
 import numpy as np
 import time
+import os
 
 from yt.frontends.stream.data_structures import load_particles
 from yt.geometry.oct_container import \
@@ -27,7 +28,9 @@ from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.selection_routines import RegionSelector, AlwaysSelector
 from yt.testing import \
     assert_equal, \
-    requires_file
+    requires_file, \
+    assert_true, \
+    assert_array_equal
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import get_morton_indices
@@ -38,7 +41,8 @@ import yt.data_objects.api
 NPART = 32**3
 DLE = np.array([0.0, 0.0, 0.0])
 DRE = np.array([10.0, 10.0, 10.0])
-dx = (DRE-DLE)/(2**_ORDER_MAX)
+DW = (DRE-DLE)
+dx = DW/(2**_ORDER_MAX)
 
 def test_add_particles_random():
     np.random.seed(int(0x4d3d3d3))
@@ -163,46 +167,151 @@ class FakeRegion:
                                self.ds.domain_left_edge
         self.nfiles = nfiles
 
-    def set_edges(self, file_id):
-        self.left_edge = YTArray([file_id + 0.1, 0.0, 0.0],
+    def set_edges(self, file_id, dx = 0.1):
+        self.left_edge = YTArray([file_id + dx, 0.0, 0.0],
                                  'code_length', registry=self.ds.unit_registry)
-        self.right_edge = YTArray([file_id+1 - 0.1, self.nfiles, self.nfiles],
+        self.right_edge = YTArray([file_id+1 - dx, self.nfiles, self.nfiles],
                                   'code_length', registry=self.ds.unit_registry)
 
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))
+    dx = 0.1
+    verbose = False
     # We are going to test having 31, 127, 128 and 257 data files.
+    # for nfiles in [2, 31, 32, 33, 127, 128, 129]:
     for nfiles in [2, 31, 127, 128, 129]:
+        if verbose: print("nfiles = {}".format(nfiles))
         # Now we create particles 
         # Note: we set N to nfiles here for testing purposes.  Inside the code 
         # we set it to min(N, 256)
+        # This is equivalent to morton indexing of order min(log2(N),8)
         N = nfiles
-        reg = ParticleForest([0.0, 0.0, 0.0, 0.0],
-                              [nfiles, nfiles, nfiles],
-                              [N, N, N], nfiles)
+        order1 = int(np.ceil(np.log2(N))) # Ensures zero collisions
+        order2 = 1 # No overlap for N = nfiles
+        exact_division = (N == (1 << order1))
+        div = float(nfiles)/float(1 << order1)
+        reg = ParticleForest([0.0, 0.0, 0.0],
+                             [nfiles, nfiles, nfiles],
+                             [N, N, N], nfiles,
+                             index_order1 = order1,
+                             index_order2 = order2)
         Y, Z = np.mgrid[0.1 : nfiles - 0.1 : nfiles * 1j,
                         0.1 : nfiles - 0.1 : nfiles * 1j]
         X = 0.5 * np.ones(Y.shape, dtype="float64")
         pos = np.array([X.ravel(),Y.ravel(),Z.ravel()],
             dtype="float64").transpose()
+        # Coarse index
+        max_npart = pos.shape[0]
+        sub_mi1 = np.zeros(max_npart, "uint64")
+        sub_mi2 = np.zeros(max_npart, "uint64")
         for i in range(nfiles):
-            reg.add_data_file(pos, i)
+            reg._coarse_index_data_file(pos, i)
             pos[:,0] += 1.0
         pos[:,0] = 0.5
+        reg.find_collisions_coarse(verbose=verbose)
+        # Refined index
+        for i in range(nfiles):
+            reg._refined_index_data_file(pos, reg.masks.sum(axis=1).astype('uint8'),
+                                         sub_mi1, sub_mi2, i)
+            pos[:,0] += 1.0
+        pos[:,0] = 0.5
+        reg.find_collisions_refined(verbose=verbose)
+        # Loop over regions selecting single files
         fr = FakeRegion(nfiles)
         for i in range(nfiles):
-            fr.set_edges(i)
+            fr.set_edges(i, dx)
             selector = RegionSelector(fr)
-            df, pcount, omask = reg.identify_data_files(selector)
-            yield assert_equal, len(df), 1
-            yield assert_equal, df[0], i
+            df, gf = reg.identify_data_files(selector, ngz=1)
+            if exact_division:
+                yield assert_equal, len(df), 1, "selector {}, number of files".format(i)
+                yield assert_equal, df[0], i, "selector {}, file selected".format(i)
+                if i == 0:
+                    yield assert_equal, len(gf), 1, "selector {}, number of ghost files".format(i)
+                    yield assert_equal, gf[0], i+1, "selector {}, ghost files".format(i)
+                elif i == (nfiles - 1):
+                    yield assert_equal, len(gf), 1, "selector {}, number of ghost files".format(i)
+                    yield assert_equal, gf[0], i-1, "selector {}, ghost files".format(i)
+                else:
+                    yield assert_equal, len(gf), 2, "selector {}, number of ghost files".format(i)
+                    yield assert_equal, gf[0], i-1, "selector {}, ghost files".format(i)
+                    yield assert_equal, gf[1], i+1, "selector {}, ghost files".format(i)
+            else:
+                lf_frac = np.floor(float(fr.left_edge[0])/div)*div
+                rf_frac = np.floor(float(fr.right_edge[0])/div)*div
+                # Selected files
+                lf = int(np.floor(lf_frac) if ((lf_frac % 0.5) == 0) else np.round(lf_frac))
+                rf = int(np.floor(rf_frac) if ((rf_frac % 0.5) == 0) else np.round(rf_frac))
+                if (rf+0.5) >= (rf_frac+div): rf -= 1
+                if (lf+0.5) <= (lf_frac-div): lf += 1
+                df_ans = np.arange(max(lf,0),min(rf+1,nfiles))
+                # print df, df_ans
+                # print lf_frac, lf, rf_frac, rf, lf_frac-div, (rf_frac+div)
+                yield assert_array_equal, df, df_ans, "selector {}, file array".format(i)
+                # Ghost zones selected files
+                lf_ghost = int(max(np.floor(lf_frac - div) if (((lf_frac-div) % 0.5) == 0) else np.round(lf_frac - div),0))
+                rf_ghost = int(min(np.floor(rf_frac + div) if (((rf_frac+div) % 0.5) == 0) else np.round(rf_frac + div),nfiles-1))
+                if (rf_ghost+0.5) >= (rf_frac+2*div): rf_ghost -= 1
+                gf_ans = []
+                if lf_ghost < lf: gf_ans.append(lf_ghost)
+                if rf_ghost > rf: gf_ans.append(rf_ghost)
+                gf_ans = np.array(gf_ans)
+                yield assert_array_equal, gf, gf_ans, "selector {}, ghost file array".format(i)
             pos[:,0] += 1.0
 
-        for mask in reg.masks:
-            maxs = np.unique(mask.max(axis=-1).max(axis=-1))
-            mins = np.unique(mask.min(axis=-1).min(axis=-1))
-            yield assert_equal, maxs, mins
-            yield assert_equal, maxs, np.unique(mask)
+        # print reg.masks.shape
+        # for mask in reg.masks:
+        #     print mask.shape
+        #     maxs = np.unique(mask.max(axis=-1).max(axis=-1))
+        #     mins = np.unique(mask.min(axis=-1).min(axis=-1))
+        #     yield assert_equal, maxs, mins
+        #     yield assert_equal, maxs, np.unique(mask)
+
+def test_save_load_bitmap():
+    verbose = False
+    fname_fmt = "temp_bitmasks{}.dat"
+    i = 0
+    fname = fname_fmt.format(i)
+    while os.path.isfile(fname):
+        i += 1
+        fname = fname_fmt.format(i)
+    np.random.seed(int(0x4d3d3d3))
+    nfiles = 32
+    order1 = 2
+    order2 = 2 # Maximum collisions
+    pos = np.random.normal(0.5, scale=0.05, size=(NPART/nfiles,3)) * (DRE-DLE) + DLE
+    pos[:,0] = (DW[0]/nfiles)/2
+    for i in range(3):
+        np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
+    reg0 = ParticleForest(DLE, DRE, 3*[1<<order1], nfiles,
+                          index_order1 = order1,
+                          index_order2 = order2)
+    # Coarse index
+    for i in range(nfiles):
+        reg0._coarse_index_data_file(pos, i)
+        pos[:,0] += (DW[0]/nfiles)
+    pos[:,0] = (DW[0]/nfiles)/2
+    reg0.find_collisions_coarse(verbose=verbose)
+    # Refined index
+    max_npart = pos.shape[0]
+    sub_mi1 = np.zeros(max_npart, "uint64")
+    sub_mi2 = np.zeros(max_npart, "uint64")
+    for i in range(0,nfiles):
+        reg0._refined_index_data_file(pos, reg0.masks.sum(axis=1).astype('uint8'),
+                                      sub_mi1, sub_mi2, i)
+        pos[:,0] += (DW[0]/nfiles)
+    pos[:,0] = (DW[0]/nfiles)/2
+    reg0.find_collisions_refined(verbose=verbose)
+    # Save
+    reg0.save_bitmasks(fname)
+    # Load
+    reg1 = ParticleForest(DLE, DRE, 3*[1<<order1], nfiles,
+                          index_order1 = order1,
+                          index_order2 = order2)
+    reg1.load_bitmasks(fname)
+    # Check equality
+    yield assert_true, reg0.iseq_bitmask(reg1)
+    # Remove file
+    os.remove(fname)
 
 if __name__=="__main__":
     for i in test_add_particles_random():
@@ -215,3 +324,106 @@ def test_get_smallest_dx():
     ds = yt.load(os33)
     yield assert_equal, ds.index.get_smallest_dx(), \
         ds.domain_width / (ds.domain_dimensions*2.**(ds.index.max_level))
+
+# TODO: Change these!!!!
+bc94 = "/mnt/gv0/mturk/big_cosmo/snapdir_094/snap_lcdma_1024_094.0"
+bc94_coll = "/root/projects/bitmap/big_cosmo_bitmask_7_5_coll.dat"
+
+@requires_file(bc94)
+@requires_file(bc94_coll)
+def test_initialize_index():
+    order1 = 7
+    order2 = 5
+    ds = yt.GadgetDataset(bc94, long_ids = True)
+    ds.index._initialize_index(order1=order1, order2=order2)
+    reg1 = ds.index.regions
+    N = ds.index.ds.domain_dimensions / (1<<ds.index.ds.over_refine_factor)
+    reg0 = ParticleForest(ds.domain_left_edge, ds.domain_right_edge,
+                          N, len(ds.index.data_files), ds.over_refine_factor,
+                          ds.n_ref, index_order1=order1, index_order2=order2)
+    reg0.load_bitmasks(fname=bc94_coll)
+    yield assert_true, reg0.iseq_bitmask(reg1)
+
+# To avoid loading
+class FakeBC94DS:
+    unit_registry = UnitRegistry()
+    unit_registry.add('code_length', 1.0, dimensions.length)
+    domain_left_edge = YTArray([0.0, 0.0, 0.0], "code_length",
+                               registry=unit_registry)
+    domain_right_edge = YTArray([135.54, 135.54, 135.54], "code_length",
+                                registry=unit_registry)
+    domain_width = YTArray([135.54, 135.54, 135.54], "code_length",
+                           registry=unit_registry)
+    domain_center = YTArray([ 67.77,  67.77,  67.77], "code_length",
+                            registry=unit_registry)
+    periodicity = (True, True, True)
+    over_refine_factor = 1
+    n_ref = 64
+    nfiles = 512
+    order1 = 7
+    order2 = 5
+    domain_dimensions = np.array(3*[nfiles], dtype='int32')
+    default_fluid_type = 'gas'
+
+# class FakeBC94SphericalRegion:
+#     #from yt.geometry.selection_routines import SphereSelector
+#     from yt.geometry.selection_routines import sphere_selector
+#     def __init__(self, c, r):
+#         self.ds = FakeBC94DS()
+#         self.nfiles = self.ds.nfiles
+#         self.center = self.ds.domain_center + c*self.ds.domain_width
+#         self.radius = r*self.ds.domain_width[0]
+#         #self.selector = SphereSelector(self)
+#         self.selector = sphere_selector(self)
+
+# TODO: remove dependence on bc94 (only use bitmask)
+@requires_file(bc94)
+@requires_file(bc94_coll)
+def test_fill_masks():
+    from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
+    from yt.geometry.particle_oct_container import ParticleForestSelector
+    from yt.data_objects.selection_data_containers import YTSphere
+    ds_empty = FakeBC94DS()
+
+    order1 = 7
+    order2 = 5
+    ngz = 1
+    ds = yt.GadgetDataset(bc94, long_ids = True)
+    ds.index._initialize_index(fname=bc94_coll, order1=order1, order2=order2)
+    print "default_fluid_type",getattr(ds,"default_fluid_type")
+    N = ds_empty.domain_dimensions/(1<<ds_empty.over_refine_factor)
+    reg = ds.index.regions
+    reg0 = ParticleForest(ds_empty.domain_left_edge, ds_empty.domain_right_edge,
+                          N, ds_empty.nfiles, ds_empty.over_refine_factor,
+                          ds_empty.n_ref, index_order1=ds_empty.order1, index_order2=ds_empty.order2)
+    reg0.load_bitmasks(fname=bc94_coll)
+    tests_sph = {(0,0.9/float(1 << order1)):  8,
+                 (0,1.0/float(1 << order1)): 20,
+                 (0,1.1/float(1 << order1)): 32,
+                 (0.5/float(1 << order1),0.49/float(1 << order1)): 1,
+                 (0.5/float(1 << order1),0.50/float(1 << order1)): 4,
+                 (0.5/float(1 << order1),0.51/float(1 << order1)): 7,
+                 (0,1.9/float(1 << order1)): 64,
+                 # (0,2.0/float(1 << order1)): 76, # floating point equality...
+                 (0,2.1/float(1 << order1)): 88,
+                 (0.5/float(1 << order1),1.49/float(1 << order1)): 27,
+                 (0.5/float(1 << order1),1.50/float(1 << order1)): 30,
+                 (0.5/float(1 << order1),1.51/float(1 << order1)): 33}
+    for (c, r), nc_s in tests_sph.items():
+        mm_s = BoolArrayCollection()
+        mm_g = BoolArrayCollection()
+        mm_s0 = BoolArrayCollection()
+        mm_g0 = BoolArrayCollection()
+        center = ds.domain_center + c*ds.domain_width
+        radius = r*ds.domain_width[0]
+        sp = ds.sphere(center, radius)
+        #sp0 = FakeBC94SphericalRegion(c, r)
+        sp0 = YTSphere(center, radius, ds=ds_empty)
+        ms = ParticleForestSelector(sp.selector, reg, ngz=ngz)
+        ms0 = ParticleForestSelector(sp0.selector, reg0, ngz=ngz)
+        ms.fill_masks(mm_s, mm_g)
+        ms0.fill_masks(mm_s0, mm_g0)
+        yield assert_equal, mm_s.count_coarse(), nc_s
+        print(c,r,nc_s,mm_s.count_coarse(),"succeeded")
+        yield assert_equal, mm_s0.count_coarse(), nc_s
+        print(c,r,nc_s,mm_s0.count_coarse(),"succeeded")

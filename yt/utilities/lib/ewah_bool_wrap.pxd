@@ -6,6 +6,7 @@ cdef class FileBitmasks:
     cdef void** ewah_keys
     cdef void** ewah_refn
 
+    cdef bint _iseq(self, FileBitmasks solf)
     cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile)
     cdef void _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
     cdef void _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose=*)
