@@ -18,6 +18,7 @@ import yt.units as u
 import numpy as np
 import operator
 
+from yt.extern.six import PY2
 from yt.testing import \
     assert_equal, \
     assert_almost_equal, \
@@ -178,8 +179,13 @@ def test_division():
     index = YTIndexArray(vals, input_units=[u.km, u.g, u.s])
     row_index = index[0]
 
+    if PY2:
+        div = operator.div
+    else:
+        div = operator.truediv
+
     for operand, value in zip((index, row_index), (vals, vals[0])):
-        for operation in (np.divide, operator.div):
+        for operation in (np.divide, div):
             assert_binary_op(
                 operand, index, operation, value / vals, YTIndexArray,
                 UnitTuple(Unit(), Unit(), Unit()))
