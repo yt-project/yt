@@ -261,7 +261,7 @@ cdef void calculate_extent_perspective(ImageContainer *image,
     corners[2][7] = vc.right_edge[2]
 
     # This code was ported from
-    #   yt.visualization.volume_rendering.Perspective.project_to_plane()
+    #   yt.visualization.volume_rendering.lens.PerspectiveLens.project_to_plane()
     for i in range(3):
         cam_pos[i] = image.camera_data[0, i]
         cam_width[i] = image.camera_data[1, i]
