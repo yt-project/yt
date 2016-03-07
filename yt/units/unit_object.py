@@ -219,7 +219,7 @@ class Unit(Expr):
                     raise UnitParseError(msg)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
-            if registry is not None:
+            if registry is None:
                 registry = unit_expr.registry
             unit_expr = unit_expr.expr
         elif hasattr(unit_expr, 'units'):
@@ -780,6 +780,10 @@ class UnitTuple(tuple):
     @property
     def is_dimensionless(self):
         return all(u.is_dimensionless for u in self)
+
+    @property
+    def dimensions(self):
+        return tuple(u.dimensions for u in self)
 
     def same_dimensions_as(self, other):
         return all(u.same_dimensions_as(o) for u, o in zip(self, other))
