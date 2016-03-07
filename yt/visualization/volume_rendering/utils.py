@@ -111,7 +111,9 @@ def ensure_code_unit_params(params):
         param = params[param_name]
         if hasattr(param, 'in_units'):
             params[param_name] = param.in_units('code_length')
-    params['bounds'] = tuple(b.in_units('code_length') for b in params['bounds'])
+    bounds = params['bounds']
+    if hasattr(bounds[0], 'units'):
+        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
 
     return params
 
