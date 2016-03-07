@@ -31,7 +31,8 @@ def _sanitize_camera_property_units(value, scene):
             return _sanitize_camera_property_units(value[0], scene)
         elif isinstance(value, YTArray) and len(value) == 3:
             return scene.arr(value).in_units('unitary')
-        elif isinstance(value[0], numeric_type) and isinstance(value[1], string_types):
+        elif (len(value) == 2 and isinstance(value[0], numeric_type)
+              and isinstance(value[1], string_types)):
             return scene.arr([scene.arr(value[0], value[1]).in_units('unitary')]*3)
         if len(value) == 3:
             if all([iterable(v) for v in value]):
