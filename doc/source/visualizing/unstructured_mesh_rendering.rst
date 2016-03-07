@@ -292,7 +292,6 @@ camera position according to some opening angle:
 .. python-script::
 
     import yt
-    from yt.visualization.volume_rendering.api import Camera
 
     ds = yt.load("MOOSE_sample_data/out.e-s010")
 
@@ -326,7 +325,7 @@ with two meshes on it:
 .. python-script::
 
     import yt
-    from yt.visualization.volume_rendering.api import MeshSource, Camera, Scene
+    from yt.visualization.volume_rendering.api import MeshSource, Scene
 
     ds = yt.load("MOOSE_sample_data/out.e-s010")
 
