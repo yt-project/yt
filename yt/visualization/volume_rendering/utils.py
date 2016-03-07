@@ -107,7 +107,7 @@ def new_projection_sampler(camera, render_source):
     return sampler
 
 def ensure_code_unit_params(params):
-    for param_name in ['center', 'vp_dir', 'width']:
+    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
         param = params[param_name]
         if hasattr(param, 'in_units'):
             params[param_name] = param.in_units('code_length')
