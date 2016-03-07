@@ -53,7 +53,8 @@ def _sanitize_camera_property_units(value, scene):
         elif isinstance(value, numeric_type):
             san_value = scene.arr([value]*3, 'unitary')
         else:
-            raise RuntimeError("Temp error message2")
+            raise RuntimeError(
+                "Cannot set camera width to invalid value '%s'" % (value, ))
     return san_value
 
 
