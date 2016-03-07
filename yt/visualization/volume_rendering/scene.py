@@ -399,11 +399,10 @@ class Scene(object):
             return self._camera
 
         def fset(self, value):
-            cam = Camera(self, value.data_source, value.lens)
-            cam.width = value.width
-            cam.focus = value.focus
-            cam.position = value.position
-            self._camera = cam
+            value.width = self.arr(value.width)
+            value.focus = self.arr(value.focus)
+            value.position = self.arr(value.position)
+            self._camera = value
 
         def fdel(self):
             del self._camera
