@@ -806,19 +806,9 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
         if len(px.shape) == 1:
             zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors, 
@@ -1111,19 +1101,9 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
         if len(px.shape) == 1:
             zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
             zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors,
