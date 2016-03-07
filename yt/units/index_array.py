@@ -276,7 +276,7 @@ class YTIndexArray(YTArray):
 
         return new_array
 
-    def in_base(self):
+    def in_base(self, unit_system="cgs"):
         """
         Creates a copy of this array with the data in the equivalent base units,
         and returns it.
@@ -287,7 +287,7 @@ class YTIndexArray(YTArray):
 
         """
         return self.in_units(
-            tuple([u.get_base_equivalent() for u in self.units])
+            tuple([u.get_base_equivalent(unit_system) for u in self.units])
         )
 
     def in_cgs(self):
