@@ -28,6 +28,8 @@ from yt.utilities.lib.geometry_utils import \
     compute_morton
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
+from yt.units.index_array import \
+    YTIndexArray
 
 class IOHandlerYTNonspatialhdf5(BaseIOHandler):
     _dataset_type = "ytnonspatialhdf5"
@@ -225,7 +227,9 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for ptype in all_count:
                 if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
-                pos = data_file.ds.arr(pos, "code_length")
+                # TODO make this DTRT for non-spatial data
+                pos = YTIndexArray(pos, ("code_length",)*3,
+                                   registry=data_file.ds.unit_registry)
                 if ptype == "grid":
                     dx = f["grid"]["dx"].value.min()
                 else:
