@@ -95,10 +95,12 @@ class PlaneParallelLens(Lens):
         else:
             image = self.new_image(camera)
 
+        vp_pos = np.concatenate(
+            [camera.inv_mat.ravel('F').d,
+             self.back_center.ravel().in_units('code_length').d])
+
         sampler_params =\
-            dict(vp_pos=np.concatenate(
-                [camera.inv_mat.ravel('F'),
-                 self.back_center.ravel().in_units('code_length')]),
+            dict(vp_pos=vp_pos,
                  vp_dir=self.box_vectors[2],  # All the same
                  center=self.back_center,
                  bounds=(-camera.width[0] / 2.0, camera.width[0] / 2.0,
