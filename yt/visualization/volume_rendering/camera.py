@@ -165,6 +165,9 @@ class Camera(Orientation):
 
         def fset(self, value):
             position = _sanitize_camera_property_units(value, self.scene)
+            if np.array_equal(position, self.focus):
+                raise RuntimeError(
+                    'Cannot set the camera focus and position to the same value')
             self._position = position
             self.switch_orientation()
 
@@ -219,6 +222,9 @@ class Camera(Orientation):
 
         def fset(self, value):
             focus = _sanitize_camera_property_units(value, self.scene)
+            if np.array_equal(focus, self.position):
+                raise RuntimeError(
+                    'Cannot set the camera focus and position to the same value')
             self._focus = focus
             self.switch_orientation()
 
