@@ -885,7 +885,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     --------
     >>> import yt.funcs as funcs
     >>> funcs.get_hash('/path/to/test.png')
-    > 'd38da04859093d430fa4084fd605de60'
+    'd38da04859093d430fa4084fd605de60'
 
     """
     import hashlib
