@@ -14,5 +14,6 @@ code.
    command-line
    api/api
    configuration
+   python_introduction
    field_list
    changelog
