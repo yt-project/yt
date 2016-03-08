@@ -1,4 +1,3 @@
-import yt
 import glob
 import os
 from yt.extern.six import add_metaclass
