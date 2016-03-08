@@ -12,7 +12,6 @@ from yt.utilities.logger import ytLogger as \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
-from yt.utilities.file_handler import NetCDF4FileHandler
 from yt.data_objects.time_series import \
     DatasetSeries, \
     RegisteredSimulationTimeSeries
