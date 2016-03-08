@@ -861,7 +861,7 @@ def fix_unitary(u):
     else:
         return u
 
-def get_hash(infile, algorithm='md5'):
+def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     """Generate file hash without reading in the entire file at once.
     From: http://pythoncentral.io/hashing-files-with-python/
 
@@ -871,6 +871,8 @@ def get_hash(infile, algorithm='md5'):
         File of interest (including the path).
     algorithm : str (optional)
         Hash algorithm of choice. Defaults to 'md5'.
+    BLOCKSIZE : int (optional)
+        How much data in bytes to read in at once.
 
     Returns
     -------
@@ -879,13 +881,12 @@ def get_hash(infile, algorithm='md5'):
 
     Examples
     --------
-    import yt.funcs as funcs
-    funcs.get_hash('/path/to/test.png')
+    >>> import yt.funcs as funcs
+    >>> funcs.get_hash('/path/to/test.png')
     > 'd38da04859093d430fa4084fd605de60'
 
     """
     import hashlib
-    BLOCKSIZE = 65536
 
     try:
         hasher = getattr(hashlib, algorithm)()
