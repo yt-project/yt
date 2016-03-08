@@ -863,7 +863,9 @@ def fix_unitary(u):
 
 def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     """Generate file hash without reading in the entire file at once.
-    From: http://pythoncentral.io/hashing-files-with-python/
+
+    Original code licensed under MIT.  Source:
+    http://pythoncentral.io/hashing-files-with-python/
 
     Parameters
     ----------
