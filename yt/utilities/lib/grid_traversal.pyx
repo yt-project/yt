@@ -29,6 +29,7 @@ from field_interpolation_tables cimport \
 from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
+from vec3_ops cimport dot, subtract, L2_norm, fma
 
 DEF Nch = 4
 
@@ -219,11 +220,15 @@ cdef void calculate_extent_perspective(ImageContainer *image,
 
     cdef np.float64_t cam_pos[3]
     cdef np.float64_t cam_width[3]
-    cdef np.float64_t cam_unit_vec[3][3]
+    cdef np.float64_t north_vector[3]
+    cdef np.float64_t east_vector[3]
+    cdef np.float64_t normal_vector[3]
     cdef np.float64_t vertex[3]
+    cdef np.float64_t pos1[3]
+    cdef np.float64_t sight_vector[3]
+    cdef np.float64_t sight_center[3]
     cdef np.float64_t corners[3][8]
-    cdef np.float64_t sight_vector[3], pos1[3], sight_center[3]
-    cdef float sight_vector_norm, sight_angle_cos, sight_length, dx, dy, dz
+    cdef float sight_vector_norm, sight_angle_cos, sight_length, dx, dy
     cdef int i, iv, px, py
     cdef int min_px, min_py, max_px, max_py
 
@@ -265,30 +270,25 @@ cdef void calculate_extent_perspective(ImageContainer *image,
     for i in range(3):
         cam_pos[i] = image.camera_data[0, i]
         cam_width[i] = image.camera_data[1, i]
-        for iv in range(3):
-            cam_unit_vec[i][iv] = image.camera_data[2 + iv, i]
+        east_vector[i] = image.camera_data[2, i]
+        north_vector[i] = image.camera_data[3, i]
+        normal_vector[i] = image.camera_data[4, i]
 
     for iv in range(8):
         vertex[0] = corners[0][iv]
         vertex[1] = corners[1][iv]
         vertex[2] = corners[2][iv]
 
-        for i in range(3):
-            sight_vector[i] = vertex[i] - cam_pos[i]
-            sight_center[i] = cam_pos[i] + cam_width[2] * cam_unit_vec[i][2]
+        subtract(vertex, cam_pos, sight_vector)
+        fma(cam_width[2], normal_vector, cam_pos, sight_center)
 
-        sight_vector_norm = 0.0
-        for i in range(3):
-            sight_vector_norm += sight_vector[i]**2
-        sight_vector_norm = sqrt(sight_vector_norm)
+        sight_vector_norm = L2_norm(sight_vector)
        
         if sight_vector_norm != 0:
             for i in range(3):
                 sight_vector[i] /= sight_vector_norm
 
-        sight_angle_cos = 0.0
-        for i in range(3):
-            sight_angle_cos += sight_vector[i] * cam_unit_vec[i][2]
+        sight_angle_cos = dot(sight_vector, normal_vector)
         sight_angle_cos = fclip(sight_angle_cos, -1.0, 1.0)
 
         if acos(sight_angle_cos) < 0.5 * M_PI and sight_angle_cos != 0.0:
@@ -297,14 +297,10 @@ cdef void calculate_extent_perspective(ImageContainer *image,
             sight_length = sqrt(cam_width[0]**2 + cam_width[1]**2)
             sight_length = sight_length / sqrt(1.0 - sight_angle_cos**2)
 
-        for i in range(3):
-            pos1[i] = cam_pos[i] + sight_length * sight_vector[i]
-
-        dx = 0.0
-        dy = 0.0
-        for i in range(3):
-            dx += (pos1[i] - sight_center[i]) * cam_unit_vec[i][0]
-            dy += (pos1[i] - sight_center[i]) * cam_unit_vec[i][1]
+        fma(sight_length, sight_vector, cam_pos, pos1)
+        subtract(pos1, sight_center, pos1)
+        dx = dot(pos1, east_vector)
+        dy = dot(pos1, north_vector)
 
         px = int(image.nv[0] * 0.5 + image.nv[0] / cam_width[0] * dx)
         py = int(image.nv[1] * 0.5 + image.nv[1] / cam_width[1] * dy)
