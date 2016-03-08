@@ -202,7 +202,8 @@ class VolumeSource(RenderSource):
         """Set the source's fields to render
 
         Parameters
-        ---------
+        ----------
+
         fields: field name or list of field names
             The field or fields to render
         no_ghost: boolean
