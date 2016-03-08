@@ -606,7 +606,7 @@ function do_exit
 
 if [ $INST_PY3 -eq 1 ]
 then
-     PYTHON_EXEC='python3.4'
+     PYTHON_EXEC='python3.5'
 else 
      PYTHON_EXEC='python2.7'
 fi
@@ -742,7 +742,7 @@ then
     cd ${DEST_DIR}/src
 
     PYTHON2='Python-2.7.9'
-    PYTHON3='Python-3.4.3'
+    PYTHON3='Python-3.5.1'
     CYTHON='Cython-0.22'
     PYX='PyX-0.12.1'
     BZLIB='bzip2-1.0.6'
@@ -752,7 +752,7 @@ then
     LAPACK='lapack-3.4.2'
     PNG=libpng-1.6.3
     MATPLOTLIB='matplotlib-1.4.3'
-    MERCURIAL='mercurial-3.4'
+    MERCURIAL='mercurial-3.7.2'
     NOSE='nose-1.3.6'
     NUMPY='numpy-1.9.2'
     PYTHON_HGLIB='python-hglib-1.6'
@@ -767,7 +767,7 @@ then
     echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
     echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
     echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a913543731635f90859536244ac37dca9adf0fc2aa1b215ba884839d160  Python-2.7.9.tgz' > Python-2.7.9.tgz.sha512
-    echo '609cc82586fabecb25f25ecb410f2938e01d21cde85dd3f8824fe55c6edde9ecf3b7609195473d3fa05a16b9b121464f5414db1a0187103b78ea6edfa71684a7  Python-3.4.3.tgz' > Python-3.4.3.tgz.sha512
+    echo '73f1477f3d3f5bd978c4ea1d1b679467b45e9fd2f443287b88c5c107a9ced580c56e0e8f33acea84e06b11a252e2a4e733120b721a9b6e1bb3d34493a3353bfb  Python-3.5.1.tgz' > Python-3.5.1.tgz.sha512
     echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
     echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
     echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
@@ -776,7 +776,7 @@ then
     echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
     echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
     echo '51b0f58b2618b47b653e17e4f6b6a1215d3a3b0f1331ce3555cc7435e365d9c75693f289ce12fe3bf8f69fd57b663e545f0f1c2c94e81eaa661cac0689e125f5  matplotlib-1.4.3.tar.gz' > matplotlib-1.4.3.tar.gz.sha512
-    echo 'a61b0d4cf528136991243bb23ac972c11c50ab5681d09f8b2d12cf7d37d3a9d76262f7fe6e7a1834bf6d03e8dc0ebbd9231da982e049e09830341dabefe5d064  mercurial-3.4.tar.gz' > mercurial-3.4.tar.gz.sha512
+    echo '573b35052ec50f4672cdd5afd93080edc864deb854b890c8cedba53c40d6d3a37a560e364b94b819cfc6d9fc5c07c0411a13167f0888007e5c9366bc94154306  mercurial-3.7.2.tar.gz' > mercurial-3.7.2.tar.gz.sha512
     echo 'd0cede08dc33a8ac0af0f18063e57f31b615f06e911edb5ca264575174d8f4adb4338448968c403811d9dcc60f38ade3164662d6c7b69b499f56f0984bb6283c  nose-1.3.6.tar.gz' > nose-1.3.6.tar.gz.sha512
     echo '70470ebb9afef5dfd0c83ceb7a9d5f1b7a072b1a9b54b04f04f5ed50fbaedd5b4906bd500472268d478f94df9e749a88698b1ff30f2d80258e7f3fec040617d9  numpy-1.9.2.tar.gz' > numpy-1.9.2.tar.gz.sha512
     echo 'bfd10455e74e30df568c4c4827140fb6cc29893b0e062ce1764bd52852ec7487a70a0f5ea53c3fca7886f5d36365c9f4db52b8c93cad35fb67beeb44a2d56f2d  python-hglib-1.6.tar.gz' > python-hglib-1.6.tar.gz.sha512
@@ -950,8 +950,8 @@ then
             
             ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
             ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-            ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
-            ( ln -sf ${DEST_DIR}/bin/python3.4 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
+            ( ln -sf ${DEST_DIR}/bin/python3.5 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+            ( ln -sf ${DEST_DIR}/bin/python3.5 ${DEST_DIR}/bin/python 2>&1 ) 1>> ${LOG_FILE}
             ( ln -sf ${DEST_DIR}/bin/python3-config ${DEST_DIR}/bin/python-config 2>&1 ) 1>> ${LOG_FILE}
             ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
             touch done
