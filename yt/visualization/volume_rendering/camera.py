@@ -120,6 +120,12 @@ class Camera(Orientation):
 
     def __init__(self, scene, data_source=None, lens_type='plane-parallel',
                  auto=False):
+        # import this here to avoid an import cycle
+        from .scene import Scene
+        if not isinstance(scene, Scene):
+            raise RuntimeError(
+                'The first argument passed to the Camera initializer is a '
+                '%s object, expected a %s object' % (type(scene), Scene))
         self.scene = scene
         self.lens = None
         self.north_vector = None
