@@ -860,3 +860,52 @@ def fix_unitary(u):
         return 'unitary'
     else:
         return u
+
+def get_hash(infile, algorithm='md5'):
+    """Generate file hash without reading in the entire file at once.
+    From: http://pythoncentral.io/hashing-files-with-python/
+
+    Parameters
+    ----------
+    infile : str
+        File of interest (including the path).
+    algorithm : str (optional)
+        Hash algorithm of choice. Defaults to 'md5'.
+
+    Returns
+    -------
+    hash : str
+        The hash of the file.
+
+    Examples
+    --------
+    import yt.funcs as funcs
+    funcs.get_hash('/path/to/test.png')
+    > 'd38da04859093d430fa4084fd605de60'
+
+    """
+    import hashlib
+    BLOCKSIZE = 65536
+
+    try:
+        hasher = getattr(hashlib, algorithm)()
+    except:
+        raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
+                                  (algorithm, hashlib.algorithms))
+
+    filesize   = os.path.getsize(infile)
+    iterations = int(float(filesize)/float(BLOCKSIZE))
+
+    pbar = get_pbar('Generating %s hash' % algorithm, iterations)
+
+    iter = 0
+    with open(infile,'rb') as f:
+        buf = f.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(BLOCKSIZE)
+            iter += 1
+            pbar.update(iter)
+        pbar.finish()
+
+    return hasher.hexdigest()
