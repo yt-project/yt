@@ -158,11 +158,12 @@ class YTDataContainerDataset(YTDataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None):
+                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(YTDataContainerDataset, self).__init__(filename, dataset_type,
-            units_override=units_override)
+            units_override=units_override, unit_system=unit_system)
 
     def _parse_parameter_file(self):
         super(YTDataContainerDataset, self)._parse_parameter_file()
@@ -343,8 +344,9 @@ class YTGridDataset(YTDataset):
     default_fluid_type = "grid"
     fluid_types = ("grid", "gas", "deposit", "index")
 
-    def __init__(self, filename):
-        super(YTGridDataset, self).__init__(filename, self._dataset_type)
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTGridDataset, self).__init__(filename, self._dataset_type,
+                                            unit_system=unit_system)
         self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
@@ -585,8 +587,9 @@ class YTNonspatialDataset(YTGridDataset):
 
 class YTProfileDataset(YTNonspatialDataset):
     """Dataset for saved profile objects."""
-    def __init__(self, filename):
-        super(YTProfileDataset, self).__init__(filename)
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTProfileDataset, self).__init__(filename,
+                                               unit_system=unit_system)
 
     @property
     def profile(self):

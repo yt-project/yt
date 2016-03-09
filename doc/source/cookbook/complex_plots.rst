@@ -195,7 +195,11 @@ Moving a Volume Rendering Camera
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 In this recipe, we move a camera through a domain and take multiple volume
-rendering snapshots.
+rendering snapshots. This recipe uses an unstructured mesh dataset (see
+:ref:`unstructured_mesh_rendering`), which makes it easier to visualize what 
+the Camera is doing, but you can manipulate the Camera for other dataset types 
+in exactly the same manner.
+
 See :ref:`camera_movement` for more information.
 
 .. yt_cookbook:: camera_movement.py

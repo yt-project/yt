@@ -13,7 +13,6 @@ Volume rendering
 
 
 from .scene import Scene
-from .camera import Camera
 from .render_source import VolumeSource
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
@@ -149,7 +148,7 @@ def off_axis_projection(data_source, center, normal_vector,
         data_source.ds.field_dependencies.update(deps)
         fields = [weightfield, weight]
         vol.set_fields(fields)
-    camera = Camera(data_source)
+    camera = sc.add_camera(data_source)
     camera.set_width(width)
     if not iterable(resolution):
         resolution = [resolution]*2
@@ -172,10 +171,9 @@ def off_axis_projection(data_source, center, normal_vector,
     camera.switch_orientation(normal_vector,
                               north_vector)
 
-    sc.camera = camera
     sc.add_source(vol)
 
-    vol.set_sampler(camera)
+    vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
     mylog.debug("Casting rays")
@@ -202,7 +200,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if method == "integrate":
         if weight is None:
-            dl = width[2].in_units("cm")
+            dl = width[2].in_units(data_source.ds.unit_system["length"])
             image *= dl
         else:
             mask = image[:,:,1] == 0

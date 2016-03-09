@@ -5,6 +5,7 @@ from sys import platform as _platform
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.command.sdist import sdist as _sdist
 from setuptools.command.build_py import build_py as _build_py
 from setupext import \
     check_for_openmp, check_for_pyembree, read_embree_location, \
@@ -327,6 +328,16 @@ class build_ext(_build_ext):
         import numpy
         self.include_dirs.append(numpy.get_include())
 
+class sdist(_sdist):
+    # subclass setuptools source distribution builder to ensure cython
+    # generated C files are included in source distribution.
+    # See http://stackoverflow.com/a/18418524/1382869
+    def run(self):
+        # Make sure the compiled Cython files in the distribution are up-to-date
+        from Cython.Build import cythonize
+        cythonize(cython_extensions)
+        _sdist.run(self)
+
 setup(
     name="yt",
     version=VERSION,
@@ -357,15 +368,17 @@ setup(
     packages=find_packages(),
     setup_requires=[
         'numpy',
-        'cython>=0.22'
+        'cython>=0.22',
     ],
     install_requires=[
         # 'matplotlib',  # messes up nosetests will be fixed in future PRs
+        'setuptools>=18.0',
         'sympy',
         'numpy',
         'IPython',
+        'cython',
     ],
-    cmdclass={'build_ext': build_ext, 'build_py': build_py},
+    cmdclass={'sdist': sdist, 'build_ext': build_ext, 'build_py': build_py},
     author="The yt project",
     author_email="yt-dev@lists.spacepope.org",
     url="http://yt-project.org/",

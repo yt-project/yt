@@ -21,7 +21,6 @@ from yt.utilities.answer_testing.framework import \
     GenericImageTest
 from yt.visualization.volume_rendering.api import \
     MeshSource, \
-    Camera, \
     Scene, \
     create_scene
 
@@ -32,17 +31,18 @@ def test_surface_mesh_render():
     images = []
 
     ds = fake_tetrahedral_ds()
+    sc = Scene()
     for field in ds.field_list:
-        ms = MeshSource(ds, field)
-        cam = Camera(ds)
-        im = ms.render(cam)
+        sc.add_source(MeshSource(ds, field))
+        sc.add_camera()
+        im = sc.render()
         images.append(im)
 
     ds = fake_hexahedral_ds()
     for field in ds.field_list:
-        ms = MeshSource(ds, field)
-        cam = Camera(ds)
-        im = ms.render(cam)
+        sc.add_source(MeshSource(ds, field))
+        sc.add_camera()
+        im = sc.render()
         images.append(im)
 
     return images
@@ -114,12 +114,11 @@ def test_perspective_mesh_render():
     ds = data_dir_load(hex8)
     sc = create_scene(ds, ("connect2", "diffused"))
 
-    cam = Camera(ds, lens_type='perspective')
+    cam = sc.add_camera(ds, lens_type='perspective')
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')
     north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
-    sc.camera = cam
     cam.resolution = (800, 800)
     im = sc.render()
     yield compare(ds, im, "perspective_mesh_render")
@@ -130,13 +129,12 @@ def test_perspective_mesh_render():
 def test_composite_mesh_render():
     ds = data_dir_load(hex8)
     sc = Scene()
-    cam = Camera(ds)
+    cam = sc.add_camera(ds)
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
                      ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
     cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
     cam.resolution = (800, 800)
-    sc.camera = cam
 
     ms1 = MeshSource(ds, ('connect1', 'diffused'))
     ms2 = MeshSource(ds, ('connect2', 'diffused'))

@@ -12,13 +12,27 @@ The volume rendering Scene class.
 # -----------------------------------------------------------------------------
 
 
+import functools
 import numpy as np
 from collections import OrderedDict
 from yt.funcs import mylog, get_image_suffix
 from yt.extern.six import iteritems, itervalues, string_types
+from yt.units.dimensions import \
+    length
+from yt.units.unit_registry import \
+    UnitRegistry
+from yt.units.yt_array import \
+    YTQuantity, \
+    YTArray
 from .camera import Camera
-from .render_source import OpaqueSource, BoxSource, CoordinateVectorSource, \
-    GridSource, RenderSource, MeshSource
+from .render_source import \
+    OpaqueSource, \
+    BoxSource, \
+    CoordinateVectorSource, \
+    GridSource, \
+    RenderSource, \
+    MeshSource, \
+    VolumeSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -52,8 +66,7 @@ class Scene(object):
     >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
     >>> sc.add_source(source)
-    >>> cam = Camera(ds)
-    >>> sc.camera = cam
+    >>> cam = sc.add_camera()
     >>> im = sc.render()
 
     Alternatively, you can use the create_scene function to set up defaults 
@@ -70,13 +83,12 @@ class Scene(object):
 
     _current = None
     _camera = None
+    _unit_registry = None
 
     def __init__(self):
         r"""Create a new Scene instance"""
         super(Scene, self).__init__()
         self.sources = OrderedDict()
-        self.camera = None
-        # An image array containing the last rendered image of the scene
         self.last_render = None
         # A non-public attribute used to get around the fact that we can't
         # pass kwargs into _repr_png_()
@@ -122,9 +134,33 @@ class Scene(object):
         if keyname is None:
             keyname = 'source_%02i' % len(self.sources)
 
+        if isinstance(render_source, (VolumeSource, MeshSource, GridSource)):
+            self.set_new_unit_registry(
+                render_source.data_source.ds.unit_registry)
+
         self.sources[keyname] = render_source
 
         return self
+
+    def set_new_unit_registry(self, input_registry):
+        self.unit_registry = UnitRegistry(
+            add_default_symbols=False,
+            lut=input_registry.lut)
+
+        # Validate that the new unit registry makes sense
+        current_scaling = self.unit_registry['unitary'][0]
+        if current_scaling != input_registry['unitary'][0]:
+            for source in self.sources.items():
+                data_source = getattr(source, 'data_source', None)
+                if data_source is None:
+                    continue
+                scaling = data_source.ds.unit_registry['unitary'][0]
+                if scaling != current_scaling:
+                    raise NotImplementedError(
+                        "Simultaneously rendering data from datasets with "
+                        "different units is not supported"
+                    )
+
 
     def render(self, camera=None):
         r"""Render all sources in the Scene.
@@ -289,6 +325,69 @@ class Scene(object):
 
         return im
 
+    def add_camera(self, data_source=None, lens_type='plane-parallel',
+                   auto=False):
+        r"""Add a new camera to the Scene.
+
+        The camera is defined by a position (the location of the camera
+        in the simulation domain,), a focus (the point at which the
+        camera is pointed), a width (the width of the snapshot that will
+        be taken, a resolution (the number of pixels in the image), and
+        a north_vector (the "up" direction in the resulting image). A
+        camera can use a variety of different Lens objects.
+
+        If the scene already has a camera associated with it, this function
+        will create a new camera and discard the old one.
+
+        Parameters
+        ----------
+        data_source: :class:`AMR3DData` or :class:`Dataset`, optional
+            This is the source to be rendered, which can be any arbitrary yt
+            data object or dataset.
+        lens_type: string, optional
+            This specifies the type of lens to use for rendering. Current
+            options are 'plane-parallel', 'perspective', and 'fisheye'. See
+            :class:`yt.visualization.volume_rendering.lens.Lens` for details.
+            Default: 'plane-parallel'
+        auto: boolean
+            If True, build smart defaults using the data source extent. This
+            can be time-consuming to iterate over the entire dataset to find
+            the positional bounds. Default: False
+
+        Examples
+        --------
+
+        In this example, the camera is set using defaults that are chosen
+        to be reasonable for the argument Dataset.
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> sc = Scene()
+        >>> sc.add_camera()
+
+        Here, we set the camera properties manually:
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Scene, Camera
+        >>> sc = Scene()
+        >>> cam = sc.add_camera()
+        >>> cam.position = np.array([0.5, 0.5, -1.0])
+        >>> cam.focus = np.array([0.5, 0.5, 0.0])
+        >>> cam.north_vector = np.array([1.0, 0.0, 0.0])
+
+        Finally, we create a camera with a non-default lens:
+
+        >>> import yt
+        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> sc = Scene()
+        >>> sc.add_camera(ds, lens_type='perspective')
+
+        """
+        self._camera = Camera(self, data_source, lens_type, auto)
+        return self.camera
+
     def camera():
         doc = r"""The camera property.
 
@@ -297,14 +396,12 @@ class Scene(object):
         """
 
         def fget(self):
-            cam = self._camera
-            if cam is None:
-                cam = Camera()
-            self._camera = cam
             return self._camera
 
         def fset(self, value):
-            # Should add better validation here
+            value.width = self.arr(value.width)
+            value.focus = self.arr(value.focus)
+            value.position = self.arr(value.position)
             self._camera = value
 
         def fdel(self):
@@ -312,6 +409,32 @@ class Scene(object):
             self._camera = None
         return locals()
     camera = property(**camera())
+
+    def unit_registry():
+        def fget(self):
+            ur = self._unit_registry
+            if ur is None:
+                ur = UnitRegistry()
+                # This will be updated when we add a volume source
+                ur.add("unitary", 1.0, length)
+            self._unit_registry = ur
+            return self._unit_registry
+
+        def fset(self, value):
+            self._unit_registry = value
+            if self.camera is not None:
+                self.camera.width = YTArray(
+                    self.camera.width.in_units('unitary'), registry=value)
+                self.camera.focus = YTArray(
+                    self.camera.focus.in_units('unitary'), registry=value)
+                self.camera.position = YTArray(
+                    self.camera.position.in_units('unitary'), registry=value)
+
+        def fdel(self):
+            del self._unit_registry
+            self._unit_registry = None
+        return locals()
+    unit_registry = property(**unit_registry())
 
     def set_camera(self, camera):
         r"""
@@ -478,6 +601,92 @@ class Scene(object):
             return self
         else:
             raise YTNotInsideNotebook
+
+    _arr = None
+    @property
+    def arr(self):
+        """Converts an array into a :class:`yt.units.yt_array.YTArray`
+
+        The returned YTArray will be dimensionless by default, but can be
+        cast to arbitrary units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_array : iterable
+            A tuple, list, or array to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units object
+            The units of the array. Powers must be specified using python syntax
+            (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the returned array data
+
+        Examples
+        --------
+
+        >>> a = sc.arr([1, 2, 3], 'cm')
+        >>> b = sc.arr([4, 5, 6], 'm')
+        >>> a + b
+        YTArray([ 401.,  502.,  603.]) cm
+        >>> b + a
+        YTArray([ 4.01,  5.02,  6.03]) m
+
+        Arrays returned by this function know about the scene's unit system
+
+        >>> a = sc.arr(np.ones(5), 'unitary')
+        >>> a.in_units('Mpc')
+        YTArray([ 1.00010449,  1.00010449,  1.00010449,  1.00010449,
+                 1.00010449]) Mpc
+
+        """
+        if self._arr is not None:
+            return self._arr
+        self._arr = functools.partial(YTArray, registry=self.unit_registry)
+        return self._arr
+
+    _quan = None
+    @property
+    def quan(self):
+        """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
+
+        The returned YTQuantity will be dimensionless by default, but can be
+        cast to arbitrary units using the ``input_units`` keyword argument.
+
+        Parameters
+        ----------
+
+        input_scalar : an integer or floating point scalar
+            The scalar to attach units to
+        input_units : String unit specification, unit symbol object, or astropy
+                      units
+            The units of the quantity. Powers must be specified using python
+            syntax (cm**3, not cm^3).
+        dtype : string or NumPy dtype object
+            The dtype of the array data.
+
+        Examples
+        --------
+
+        >>> a = sc.quan(1, 'cm')
+        >>> b = sc.quan(2, 'm')
+        >>> a + b
+        201.0 cm
+        >>> b + a
+        2.01 m
+
+        Quantities created this way automatically know about the unit system
+        of the scene
+
+        >>> a = ds.quan(5, 'unitary')
+        >>> a.in_cgs()
+        1.543e+25 cm
+
+        """
+        if self._quan is not None:
+            return self._quan
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
+        return self._quan
 
     def _repr_png_(self):
         if self.last_render is None:

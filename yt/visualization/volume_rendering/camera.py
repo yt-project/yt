@@ -11,19 +11,49 @@ Volume Rendering Camera Class
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-from yt.funcs import iterable, mylog, ensure_numpy_array
+from yt.funcs import iterable, ensure_numpy_array
 from yt.utilities.orientation import Orientation
-from yt.units.yt_array import YTArray
-from yt.units.unit_registry import UnitParseError
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.extern.six import string_types
 from .utils import data_source_or_all
-from .lens import lenses
+from .lens import \
+    lenses, \
+    Lens
 import numpy as np
+from numbers import Number as numeric_type
+
+def _sanitize_camera_property_units(value, scene):
+    if iterable(value):
+        if len(value) == 1:
+            return _sanitize_camera_property_units(value[0], scene)
+        elif isinstance(value, YTArray) and len(value) == 3:
+            return scene.arr(value).in_units('unitary')
+        elif (len(value) == 2 and isinstance(value[0], numeric_type)
+              and isinstance(value[1], string_types)):
+            return scene.arr([scene.arr(value[0], value[1]).in_units('unitary')]*3)
+        if len(value) == 3:
+            if all([iterable(v) for v in value]):
+                if all([isinstance(v[0], numeric_type) and
+                        isinstance(v[1], string_types) for v in value]):
+                    return scene.arr(
+                        [scene.arr(v[0], v[1]) for v in value])
+                else:
+                    raise RuntimeError(
+                        "Cannot set camera width to invalid value '%s'" % (value, ))
+            return scene.arr(value, 'unitary')
+    else:
+        if isinstance(value, (YTQuantity, YTArray)):
+            return scene.arr([value.d]*3, value.units).in_units('unitary')
+        elif isinstance(value, numeric_type):
+            return scene.arr([value]*3, 'unitary')
+    raise RuntimeError(
+        "Cannot set camera width to invalid value '%s'" % (value, ))
 
 
 class Camera(Orientation):
-
     r"""A representation of a point of view into a Scene.
 
     It is defined by a position (the location of the camera
@@ -35,6 +65,8 @@ class Camera(Orientation):
 
     Parameters
     ----------
+    scene: A :class:`yt.visualization.volume_rendering.scene.Scene` object
+        A scene object that the camera will be attached to.
     data_source: :class:`AMR3DData` or :class:`Dataset`, optional
         This is the source to be rendered, which can be any arbitrary yt
         data object or dataset.
@@ -50,20 +82,22 @@ class Camera(Orientation):
 
     Examples
     --------
-    
+
     In this example, the camera is set using defaults that are chosen
     to be reasonable for the argument Dataset.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> from yt.visualization.volume_rendering.api import Scene
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> cam = Camera(ds)
+    >>> sc = Scene()
+    >>> cam = sc.add_camera(ds)
 
     Here, we set the camera properties manually:
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Camera
-    >>> cam = Camera()
+    >>> from yt.visualization.volume_rendering.api import Scene
+    >>> sc = Scene()
+    >>> cam = sc.add_camera()
     >>> cam.position = np.array([0.5, 0.5, -1.0])
     >>> cam.focus = np.array([0.5, 0.5, 0.0])
     >>> cam.north_vector = np.array([1.0, 0.0, 0.0])
@@ -71,9 +105,10 @@ class Camera(Orientation):
     Finally, we create a camera with a non-default lens:
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Camera
+    >>> from yt.visualization.volume_rendering.api import Scene
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> cam = Camera(ds, lens_type='perspective')
+    >>> sc = Scene()
+    >>> cam = sc.add_camera(ds, lens_type='perspective')
 
     """
 
@@ -83,25 +118,36 @@ class Camera(Orientation):
     _position = None
     _resolution = None
 
-    def __init__(self, data_source=None, lens_type='plane-parallel',
+    def __init__(self, scene, data_source=None, lens_type='plane-parallel',
                  auto=False):
-        """Initialize a Camera Instance"""
+        # import this here to avoid an import cycle
+        from .scene import Scene
+        if not isinstance(scene, Scene):
+            raise RuntimeError(
+                'The first argument passed to the Camera initializer is a '
+                '%s object, expected a %s object' % (type(scene), Scene))
+        self.scene = scene
         self.lens = None
         self.north_vector = None
         self.normal_vector = None
         self.light = None
+        self.data_source = data_source_or_all(data_source)
         self._resolution = (512, 512)
-        self._width = np.array([1.0, 1.0, 1.0])
-        self._focus = np.array([0.0]*3)
-        self._position = np.array([1.0]*3)
-        if data_source is not None:
-            data_source = data_source_or_all(data_source)
-            self._focus = data_source.ds.domain_center
-            self._position = data_source.ds.domain_right_edge
-            self._width = data_source.ds.arr(
+
+        if self.data_source is not None:
+            self.scene.set_new_unit_registry(self.data_source.ds.unit_registry)
+            self._focus = self.data_source.ds.domain_center
+            self._position = self.data_source.ds.domain_right_edge
+            self._width = 1.5*self.data_source.ds.domain_width
+            self._width = self.data_source.ds.arr(
                 [1.5*data_source.ds.domain_width.max()]*3)
-            self._domain_center = data_source.ds.domain_center
-            self._domain_width = data_source.ds.domain_width
+            self._domain_center = self.data_source.ds.domain_center
+            self._domain_width = self.data_source.ds.domain_width
+        else:
+            self._focus = scene.arr([0.0, 0.0, 0.0], 'unitary')
+            self._width = scene.arr([1.0, 1.0, 1.0], 'unitary')
+            self._position = scene.arr([1.0, 1.0, 1.0], 'unitary')
+
         if auto:
             self.set_defaults_from_data_source(data_source)
 
@@ -111,20 +157,27 @@ class Camera(Orientation):
         self.set_lens(lens_type)
 
     def position():
-        doc = '''The position is the location of the camera in
-               the coordinate system of the simulation. This needs
-               to be either a YTArray or a numpy array. If it is a 
-               numpy array, it is assumed to be in code units. If it
-               is a YTArray, it will be converted to code units 
-               automatically. '''
+        doc = '''
+        The location of the camera. 
+
+        Parameters
+        ----------
+
+        position : number, YTQuantity, iterable, or 3 element YTArray
+            If a scalar, assumes that the position is the same in all three
+            coordinates. If an interable, must contain only scalars or
+            (length, unit) tuples.
+        '''
 
         def fget(self):
             return self._position
 
         def fset(self, value):
-            if isinstance(value, YTArray):
-                value = value.in_units("code_length")
-            self._position = value
+            position = _sanitize_camera_property_units(value, self.scene)
+            if np.array_equal(position, self.focus):
+                raise RuntimeError(
+                    'Cannot set the camera focus and position to the same value')
+            self._position = position
             self.normal_vector = self.focus - self._position
             self.switch_orientation()
 
@@ -134,18 +187,24 @@ class Camera(Orientation):
     position = property(**position())
 
     def width():
-        doc = '''The width of the region that will be seen in the image. 
-               This needs to be either a YTArray or a numpy array. If it 
-               is a numpy array, it is assumed to be in code units. If it
-               is a YTArray, it will be converted to code units automatically. '''
+        doc = '''The width of the region that will be seen in the image.
+
+        Parameters
+        ----------
+
+        width : number, YTQuantity, iterable, or 3 element YTArray
+            The width of the volume rendering in the horizontal, vertical, and
+            depth directions. If a scalar, assumes that the width is the same in
+            all three directions. If an interable, must contain only scalars or
+            (length, unit) tuples.
+        '''
 
         def fget(self):
             return self._width
 
         def fset(self, value):
-            if isinstance(value, YTArray):
-                value = value.in_units("code_length")
-            self._width = value
+            width = _sanitize_camera_property_units(value, self.scene)
+            self._width = width
             self.switch_orientation()
 
         def fdel(self):
@@ -155,19 +214,28 @@ class Camera(Orientation):
     width = property(**width())
 
     def focus():
-        doc = '''The focus defines the point the Camera is pointed at. This needs
-               to be either a YTArray or a numpy array. If it is a 
-               numpy array, it is assumed to be in code units. If it
-               is a YTArray, it will be converted to code units 
-               automatically. '''
+        doc = '''
+        The focus defines the point the Camera is pointed at.
+
+        Parameters
+        ----------
+
+        focus : number, YTQuantity, iterable, or 3 element YTArray
+            The width of the volume rendering in the horizontal, vertical, and
+            depth directions. If a scalar, assumes that the width is the same in
+            all three directions. If an interable, must contain only scalars or
+            (length, unit) tuples.
+        '''
 
         def fget(self):
             return self._focus
 
         def fset(self, value):
-            if isinstance(value, YTArray):
-                value = value.in_units("code_length")
-            self._focus = value
+            focus = _sanitize_camera_property_units(value, self.scene)
+            if np.array_equal(focus, self.position):
+                raise RuntimeError(
+                    'Cannot set the camera focus and position to the same value')
+            self._focus = focus
             self.switch_orientation()
 
         def fdel(self):
@@ -177,14 +245,15 @@ class Camera(Orientation):
 
     def resolution():
         doc = '''The resolution is the number of pixels in the image that
-               will be produced. '''
+               will be produced. Must be a 2-tuple of integers or an integer.'''
 
         def fget(self):
             return self._resolution
 
         def fset(self, value):
             if iterable(value):
-                assert (len(value) == 2)
+                if len(value) != 2:
+                    raise RuntimeError
             else:
                 value = (value, value)
             self._resolution = value
@@ -194,6 +263,19 @@ class Camera(Orientation):
             self._resolution = None
         return locals()
     resolution = property(**resolution())
+
+    def set_resolution(self, resolution):
+        """
+        The resolution is the number of pixels in the image that
+        will be produced. Must be a 2-tuple of integers or an integer.
+        """
+        self.resolution = resolution
+
+    def get_resolution(self):
+        """
+        Returns the resolution of the volume rendering
+        """
+        return self.resolution
 
     def _get_sampler_params(self, render_source):
         lens_params = self.lens._get_sampler_params(self, render_source)
@@ -216,10 +298,14 @@ class Camera(Orientation):
             'stereo-spherical'
 
         """
-        if lens_type not in lenses:
-            mylog.error("Lens type not available")
-            raise RuntimeError()
-        self.lens = lenses[lens_type]()
+        if isinstance(lens_type, Lens):
+            self.lens = lens_type
+        elif lens_type not in lenses:
+            raise RuntimeError(
+                "Lens type %s not in available list of available lens "
+                "types (%s)" % (lens_type, list(lenses.keys())))
+        else:
+            self.lens = lenses[lens_type]()
         self.lens.set_camera(self)
 
     def set_defaults_from_data_source(self, data_source):
@@ -266,22 +352,18 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : YTQuantity or 3 element YTArray
+        width : number, YTQuantity, iterable, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
-            all three directions.
+            all three directions. If an interable, must contain only scalars or
+            (length, unit) tuples.
         """
-        try:
-            width = width.in_units('code_length')
-        except (AttributeError, UnitParseError):
-            raise ValueError(
-                'Volume rendering width must be a YTArray that can be '
-                'converted to code units')
-
-        if not iterable(width):
-            width = YTArray([width.d]*3, width.units)  # Can't get code units.
         self.width = width
         self.switch_orientation()
+
+    def get_width(self):
+        """Return the current camera width"""
+        return self.width
 
     def set_position(self, position, north_vector=None):
         r"""Set the position of the camera.
@@ -289,17 +371,41 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        position : array_like
-            The new position
+        width : number, YTQuantity, iterable, or 3 element YTArray
+            If a scalar, assumes that the position is the same in all three
+            coordinates. If an interable, must contain only scalars or
+            (length, unit) tuples.
+
         north_vector : array_like, optional
             The 'up' direction for the plane of rays.  If not specific,
             calculated automatically.
 
         """
-
         self.position = position
         self.switch_orientation(normal_vector=self.focus - self.position,
                                 north_vector=north_vector)
+
+    def get_position(self):
+        """Return the current camera position"""
+        return self.position
+
+    def set_focus(self, new_focus):
+        """Sets the point the Camera is pointed at.
+
+        Parameters
+        ----------
+
+        focus : number, YTQuantity, iterable, or 3 element YTArray
+            If a scalar, assumes that the focus is the same is all three
+            coordinates. If an interable, must contain only scalars or
+            (length, unit) tuples.
+
+        """
+        self.focus = new_focus
+
+    def get_focus(self):
+        """Returns the current camera focus"""
+        return self.focus
 
     def switch_orientation(self, normal_vector=None, north_vector=None):
         r"""Change the view direction based on any of the orientation parameters.
@@ -368,8 +474,9 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> cam = sc.add_camera()
         >>> # rotate the camera by pi / 4 radians:
         >>> cam.rotate(np.pi/4.0)  
         >>> # rotate the camera about the y-axis instead of cam.north_vector:
@@ -421,10 +528,11 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> sc.add_camera()
         >>> # pitch the camera by pi / 4 radians:
-        >>> cam.pitch(np.pi/4.0)  
+        >>> cam.pitch(np.pi/4.0)
         >>> # pitch the camera about the origin instead of its own position:
         >>> cam.pitch(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
@@ -448,10 +556,11 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> cam = sc.add_camera()
         >>> # yaw the camera by pi / 4 radians:
-        >>> cam.yaw(np.pi/4.0)  
+        >>> cam.yaw(np.pi/4.0)
         >>> # yaw the camera about the origin instead of its own position:
         >>> cam.yaw(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
@@ -475,8 +584,9 @@ class Camera(Orientation):
 
         >>> import yt
         >>> import numpy as np
-        >>> from yt.visualization.volume_rendering.api import Camera
-        >>> cam = Camera()
+        >>> from yt.visualization.volume_rendering.api import Scene
+        >>> sc = Scene()
+        >>> cam = sc.add_camera(ds)
         >>> # roll the camera by pi / 4 radians:
         >>> cam.roll(np.pi/4.0)  
         >>> # roll the camera about the origin instead of its own position:
@@ -586,9 +696,10 @@ class Camera(Orientation):
         --------
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Camera
+        >>> from yt.visualization.volume_rendering.api import Scene
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> cam = Camera(ds)
+        >>> sc = Scene()
+        >>> cam = sc.add_camera(ds)
         >>> cam.zoom(1.1)
 
         """
@@ -613,7 +724,6 @@ class Camera(Orientation):
         --------
 
         >>> import yt
-        >>> from yt.visualization.volume_rendering.api import Camera
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
