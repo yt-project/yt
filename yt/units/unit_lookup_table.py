@@ -122,7 +122,7 @@ default_unit_symbol_lut = {
     "me": (mass_electron_grams, dimensions.mass, 0.0, r"m_e"),
     "mp": (mass_hydrogen_grams, dimensions.mass, 0.0, r"m_p"),
     "mol": (1.0/amu_grams, dimensions.dimensionless, 0.0, r"\rm{mol}"),
-    'Sv': (cm_per_m**2, dimensions.length**2/dimensions.time**2, 0.0, 
+    'Sv': (cm_per_m**2, dimensions.specific_energy, 0.0,
            r"\rm{Sv}"),
 
     # for AstroPy compatibility
