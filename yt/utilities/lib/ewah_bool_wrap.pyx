@@ -136,7 +136,7 @@ cdef class FileBitmasks:
         if verbose == 1:
             nc = coll_refn[0].numberOfOnes()
             nm = coll_keys[0].numberOfOnes()
-            print("{: 10d}/{: 10d} collisions at coarse refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+            print("{: 10d}/{: 10d} collisions at coarse refinement.  ({: 9.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     cdef void _find_collisions_refined(self, BoolArrayCollection coll, bint verbose = 0):
         cdef np.int32_t ifile
@@ -148,7 +148,7 @@ cdef class FileBitmasks:
         coll_refn = <ewah_bool_array*> coll.ewah_refn
         if coll_refn.numberOfOnes() == 0:
             if verbose == 1:
-                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(0,0,0))
+                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(0,0,0))
             return
         coll_coll = <map[np.uint64_t, ewah_bool_array]*> coll.ewah_coll
         for ifile in range(self.nfiles):
@@ -178,9 +178,9 @@ cdef class FileBitmasks:
                 nm += iarr.numberOfOnes()
                 preincrement(it_mi1)
             if nm == 0:
-                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,0.0))
+                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(nc,nm,0.0))
             else:
-                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+                print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2 = FLAG):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]

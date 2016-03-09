@@ -393,6 +393,12 @@ cdef class ParticleForest:
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
+            if dims[i] != (1<<index_order1):
+                print("dims[{}] = {} does not match ".format(i,dims[i])+
+                      "2**index_order1 = {}. ".format(1<<index_order1)+
+                      "Overwriting...\n"+
+                      "Considering removing dims as an imput parameter.")
+                dims[i] = (1<<index_order1)
             self.dims[i] = dims[i]
             self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
             self.idds[i] = 1.0/self.dds[i] 
@@ -604,7 +610,7 @@ cdef class ParticleForest:
             nc = coll_refn[0].numberOfOnes()
             nm = coll_keys[0].numberOfOnes()
             if verbose:
-                print("{: 10d}/{: 10d} collisions at coarse refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+                print("{: 10d}/{: 10d} collisions at coarse refinement.  ({: 9.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -625,7 +631,7 @@ cdef class ParticleForest:
             coll_refn = <ewah_bool_array*> self.collisions.ewah_refn
             if coll_refn.numberOfOnes() == 0:
                 if verbose:
-                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(0,0,0))
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(0,0,0))
                 return
             coll_coll = (<map[np.uint64_t, ewah_bool_array]*> self.collisions.ewah_coll)
             for ifile in range(self.nfiles):
@@ -656,9 +662,9 @@ cdef class ParticleForest:
                         nm += iarr.numberOfOnes()
                     preincrement(it_mi1)
                 if nm == 0:
-                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,0))
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(nc,nm,0))
                 else:
-                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 3.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(nc,nm,100.0*float(nc)/nm))
 
     def calcsize_bitmasks(self):
         # TODO: All cython

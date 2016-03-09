@@ -173,49 +173,206 @@ class FakeRegion:
         self.right_edge = YTArray([file_id+1 - dx, self.nfiles, self.nfiles],
                                   'code_length', registry=self.ds.unit_registry)
 
+class FakeBoxRegion:
+    def __init__(self, nfiles, DLE, DRE):
+        self.ds = FakeDS()
+        self.ds.domain_left_edge = YTArray(DLE, "code_length",
+                                           registry=self.ds.unit_registry)
+        self.ds.domain_right_edge = YTArray(DRE, "code_length",
+                                            registry=self.ds.unit_registry)
+        self.ds.domain_width = self.ds.domain_right_edge - \
+                               self.ds.domain_left_edge
+        self.nfiles = nfiles
+
+    def set_edges(self, center, width):
+        self.left_edge = self.ds.domain_left_edge + self.ds.domain_width*(center-width/2)
+        self.right_edge = self.ds.domain_left_edge + self.ds.domain_width*(center+width/2)
+
+def FakeForest(npart, nfiles, order1, order2, file_order='grid', 
+               DLE=None, DRE=None, verbose=False):
+    np.random.seed(int(0x4d3d3d3))
+    N = (1<<order1)
+    if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
+    if DRE is None: DRE = np.array([1.0, 1.0, 1.0])
+    DW = DRE - DLE
+    reg = ParticleForest(DLE, DRE,
+                         [N, N, N], nfiles,
+                         index_order1 = order1,
+                         index_order2 = order2)
+    # Create positions for each files
+    positions = {}
+    if file_order == 'grid':
+        nYZ = int(np.sqrt(npart/nfiles))
+        div = DW/nYZ
+        Y, Z = np.mgrid[DLE[1] + 0.1*div[1] : DRE[1] - 0.1*div[1] : nYZ * 1j,
+                        DLE[2] + 0.1*div[2] : DRE[2] - 0.1*div[2] : nYZ * 1j]
+        X = 0.5 * div[0] * np.ones(Y.shape, dtype="float64")
+        pos = np.array([X.ravel(),Y.ravel(),Z.ravel()],
+                       dtype="float64").transpose()
+        for i in range(nfiles):
+            positions[i] = np.empty_like(pos)
+            # positions[i][:,:] = pos
+            np.copyto(positions[i],pos)
+            pos[:,0] += div[0]
+    elif file_order == 'slices':
+        nPF = int(npart/nfiles)
+        for ifile in range(nfiles):
+            pos = np.random.normal(0.5, scale=0.05, size=(nPF,3)) * (DRE-DLE) + DLE
+            iLE = DLE[0]+DW[0]*float(ifile)/float(nfiles)
+            iRE = iLE + DW[0]/float(nfiles)
+            np.clip(pos[:,0], iLE, iRE, pos[:,0])
+            for i in range(1,3):
+                np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
+            positions[ifile] = pos
+    elif file_order == 'random':
+        nPF = int(npart/nfiles)
+        for ifile in range(nfiles):
+            pos = np.random.normal(0.5, scale=0.05, size=(nPF,3)) * (DRE-DLE) + DLE
+            for i in range(3):
+                np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
+            positions[ifile] = pos
+    elif file_order == 'octtree': # Not really...
+        nfiles_per_dim = int(np.round(nfiles**(1.0/3.0)))
+        if (nfiles_per_dim**3) > nfiles:
+            nfiles_per_dim -= 1
+        nPF = int(npart/(nfiles_per_dim**3))
+        div = DW/nfiles_per_dim
+        iLE = DLE
+        iRE = DLE + div
+        ifile = 0
+        for xfile in range(nfiles_per_dim):
+            iLE[0] = DLE[0] + xfile*div[0]
+            iRE[0] = iLE[0] + div[0]
+            for yfile in range(nfiles_per_dim):
+                iLE[1] = DLE[1] + yfile*div[1]
+                iRE[1] = iLE[1] + div[1]
+                for zfile in range(nfiles_per_dim):
+                    iLE[2] = DLE[2] + zfile*div[2]
+                    iRE[2] = iLE[2] + div[2]
+                    pos = np.random.normal(0.5, scale=0.05, size=(nPF,3)) * (iRE-iLE) + iLE
+                    for i in range(3):
+                        np.clip(pos[:,i], iLE[i], iRE[i], pos[:,i])
+                    positions[ifile] = pos
+                    ifile += 1
+        while ifile < nfiles:
+            positions[ifile] = np.zeros((0,3), dtype=pos.dtype)
+            ifile += 1
+    elif file_order == 'kdtree': # Not really...
+        ndense = 2
+        nfiles_per_dim = int(np.round(nfiles**(1.0/3.0)))
+        if (nfiles_per_dim**3) > nfiles:
+            nfiles_per_dim -= 1
+        nPF = int(npart/(nfiles_per_dim**3))
+        div = DW/(nfiles_per_dim-(ndense-1))
+        div_dense = div/ndense
+        iLE = DLE
+        iRE = DLE + div
+        iiLE = iLE
+        iiRE = iLE + div_dense
+        ifile = 0
+        for xfile in range(nfiles_per_dim-(ndense-1)):
+            iLE[0] = DLE[0] + xfile*div[0]
+            iRE[0] = iLE[0] + div[0]
+            for yfile in range(nfiles_per_dim-(ndense-1)):
+                iLE[1] = DLE[1] + yfile*div[1]
+                iRE[1] = iLE[1] + div[1]
+                for zfile in range(nfiles_per_dim-(ndense-1)):
+                    iLE[2] = DLE[2] + zfile*div[2]
+                    iRE[2] = iLE[2] + div[2]
+                    if (xfile == nfiles_per_dim/2) and (yfile == nfiles_per_dim/2) and (zfile == nfiles_per_dim/2):
+                        for xdense in range(ndense):
+                            iiLE[0] = iLE[0] + xdense*div_dense[0]
+                            iiRE[0] = iiLE[0] + div_dense[0]
+                            for ydense in range(ndense):
+                                iiLE[1] = iLE[1] + ydense*div_dense[1]
+                                iiRE[1] = iiLE[1] + div_dense[1]
+                                for zdense in range(ndense):
+                                    iiLE[2] = iLE[2] + zdense*div_dense[2]
+                                    iiRE[2] = iiLE[2] + div_dense[2]
+                                    pos = np.random.normal(0.5, scale=0.05, size=(nPF,3)) * (iiRE-iiLE) + iiLE
+                                    for i in range(3):
+                                        np.clip(pos[:,i], iiLE[i], iiRE[i], pos[:,i])
+                                    positions[ifile] = pos
+                                    ifile += 1
+                    else:
+                        pos = np.random.normal(0.5, scale=0.05, size=(nPF,3)) * (iRE-iLE) + iLE
+                        for i in range(3):
+                            np.clip(pos[:,i], iLE[i], iRE[i], pos[:,i])
+                        positions[ifile] = pos
+                        ifile += 1
+        while ifile < nfiles:
+            positions[ifile] = np.zeros((0,3), dtype=pos.dtype)
+            ifile += 1
+    else:
+        raise ValueError("Unsupported value {} for input parameter 'file_order'".format(file_order))
+    # Coarse index
+    max_npart = positions[0].shape[0]
+    sub_mi1 = np.zeros(max_npart, "uint64")
+    sub_mi2 = np.zeros(max_npart, "uint64")
+    cp = 0
+    for i in range(nfiles):
+        reg._coarse_index_data_file(positions[i], i)
+        cp += positions[i].shape[0]
+    if verbose: print("{} particles in total".format(cp))
+    reg.find_collisions_coarse(verbose=verbose)
+    # Refined index
+    for i in range(nfiles):
+        reg._refined_index_data_file(positions[i], 
+                                     reg.masks.sum(axis=1).astype('uint8'),
+                                     sub_mi1, sub_mi2, i)
+    reg.find_collisions_refined(verbose=verbose)
+    return reg
+
+def time_selection_fileorder():
+    verbose = True
+    nfiles = 255
+    npart = 128**3
+    order1 = 6
+    order2 = 4
+    DLE = [0.0, 0.0, 0.0]
+    DRE = [1.0, 1.0, 1.0]
+    ngz = 1
+    file_orders = ['grid','slices','random','octtree','kdtree']
+    fake_regions = []
+    for c,r in [(0.5,0.1),(0.3,0.1),(0.5,0.01),(0.5,0.2),(0.5,0.5),(0.5,1.0)]:
+        fr = FakeBoxRegion(nfiles, DLE, DRE)
+        fr.set_edges(c,r)
+        fake_regions.append(fr)
+    if verbose: print("Timing differences due to order of particles.")
+    for file_order in file_orders:
+        if verbose: print(file_order)
+        reg = FakeForest(npart, nfiles, order1, order2, file_order=file_order,
+                         verbose=verbose)
+        t1 = time.time()
+        for fr in fake_regions:
+            selector = RegionSelector(fr)
+            df, gf = reg.identify_data_files(selector, ngz=ngz)
+        t2 = time.time()
+        if verbose: print("{:f}: {}".format(t2-t1,file_order))
+
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))
     dx = 0.1
     verbose = False
     # We are going to test having 31, 127, 128 and 257 data files.
     # for nfiles in [2, 31, 32, 33, 127, 128, 129]:
+    #for nfiles in [2, 31, 32, 33]:
     for nfiles in [2, 31, 127, 128, 129]:
         if verbose: print("nfiles = {}".format(nfiles))
         # Now we create particles 
-        # Note: we set N to nfiles here for testing purposes.  Inside the code 
-        # we set it to min(N, 256)
-        # This is equivalent to morton indexing of order min(log2(N),8)
+        # Note: we set order1 to log2(nfiles) here for testing purposes. 
+        # Inside the code we set it to min(log2(nfiles), 8)?
+        # langmm: this is not strictly true anymore
+        # TODO: remove the dims parameter (no longer used by Forest)
         N = nfiles
         order1 = int(np.ceil(np.log2(N))) # Ensures zero collisions
         order2 = 1 # No overlap for N = nfiles
         exact_division = (N == (1 << order1))
         div = float(nfiles)/float(1 << order1)
-        reg = ParticleForest([0.0, 0.0, 0.0],
-                             [nfiles, nfiles, nfiles],
-                             [N, N, N], nfiles,
-                             index_order1 = order1,
-                             index_order2 = order2)
-        Y, Z = np.mgrid[0.1 : nfiles - 0.1 : nfiles * 1j,
-                        0.1 : nfiles - 0.1 : nfiles * 1j]
-        X = 0.5 * np.ones(Y.shape, dtype="float64")
-        pos = np.array([X.ravel(),Y.ravel(),Z.ravel()],
-            dtype="float64").transpose()
-        # Coarse index
-        max_npart = pos.shape[0]
-        sub_mi1 = np.zeros(max_npart, "uint64")
-        sub_mi2 = np.zeros(max_npart, "uint64")
-        for i in range(nfiles):
-            reg._coarse_index_data_file(pos, i)
-            pos[:,0] += 1.0
-        pos[:,0] = 0.5
-        reg.find_collisions_coarse(verbose=verbose)
-        # Refined index
-        for i in range(nfiles):
-            reg._refined_index_data_file(pos, reg.masks.sum(axis=1).astype('uint8'),
-                                         sub_mi1, sub_mi2, i)
-            pos[:,0] += 1.0
-        pos[:,0] = 0.5
-        reg.find_collisions_refined(verbose=verbose)
+        reg = FakeForest(nfiles**3, nfiles, order1, order2, file_order='grid',
+                         DLE=np.array([0.0, 0.0, 0.0]),
+                         DRE=np.array([nfiles, nfiles, nfiles]), 
+                         verbose=verbose)
         # Loop over regions selecting single files
         fr = FakeRegion(nfiles)
         for i in range(nfiles):
@@ -256,7 +413,6 @@ def test_particle_regions():
                 if rf_ghost > rf: gf_ans.append(rf_ghost)
                 gf_ans = np.array(gf_ans)
                 yield assert_array_equal, gf, gf_ans, "selector {}, ghost file array".format(i)
-            pos[:,0] += 1.0
 
         # print reg.masks.shape
         # for mask in reg.masks:
