@@ -138,9 +138,8 @@ class Camera(Orientation):
             self.scene.set_new_unit_registry(self.data_source.ds.unit_registry)
             self._focus = self.data_source.ds.domain_center
             self._position = self.data_source.ds.domain_right_edge
-            self._width = 1.5*self.data_source.ds.domain_width
             self._width = self.data_source.ds.arr(
-                [1.5*data_source.ds.domain_width.max()]*3)
+                [1.5*self.data_source.ds.domain_width.max()]*3)
             self._domain_center = self.data_source.ds.domain_center
             self._domain_width = self.data_source.ds.domain_width
         else:
