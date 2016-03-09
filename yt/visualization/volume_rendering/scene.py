@@ -327,6 +327,8 @@ class Scene(object):
         rs = rensources[0]
         tf = rs.transfer_function
         label = rs.data_source.ds._get_field_info(rs.field).get_label()
+        if rs.data_source.ds._get_field_info(rs.field).take_log:
+            label = r'$\rm{log}\ $' + label
 
         ax = self._show_mpl(self.last_render.swapaxes(0,1),
                             sigma_clip=sigma_clip, dpi=dpi)
@@ -379,8 +381,6 @@ class Scene(object):
         ax.get_yaxis().set_ticks([])
         cb = plt.colorbar(ax.images[0], pad=0.0, fraction=0.05,
                           drawedges=True, shrink=0.75)
-        #if self.log_fields[0]:
-        #    label = r'$\rm{log}\ $' + label
         tf.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def _validate(self):
