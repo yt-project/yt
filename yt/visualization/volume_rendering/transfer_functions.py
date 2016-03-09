@@ -230,6 +230,7 @@ class TransferFunction(object):
         
     def clear(self):
         self.y[:]=0.0
+        self.features = []
 
     def __repr__(self):
         disp = "<Transfer Function Object>: x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s" % \
@@ -807,6 +808,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def clear(self):
         for f in self.funcs:
             f.clear()
+        self.features = []
 
     def __repr__(self):
         disp = "<Color Transfer Function Object>:\n" + \

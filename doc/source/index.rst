@@ -175,6 +175,7 @@ Table of Contents
 .. toctree::
    :hidden:
 
+   intro/index
    installing
    yt Quickstart <quickstart/index>
    yt3differences

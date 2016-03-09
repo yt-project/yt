@@ -17,8 +17,8 @@ from __future__ import division
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.units.yt_array import YTArray
 from yt.data_objects.image_array import ImageArray
+from yt.units.yt_array import unorm, uvstack
 from yt.utilities.math_utils import get_rotation_matrix
 import numpy as np
 
@@ -60,13 +60,14 @@ class Lens(ParallelAnalysisInterface):
         unit_vectors = camera.unit_vectors
         width = camera.width
         center = camera.focus
-        self.box_vectors = YTArray([unit_vectors[0] * width[0],
-                                    unit_vectors[1] * width[1],
-                                    unit_vectors[2] * width[2]])
-        self.origin = center - 0.5 * width.dot(YTArray(unit_vectors, ""))
+
+        self.box_vectors = camera.scene.arr(
+            [unit_vectors[0] * width[0],
+             unit_vectors[1] * width[1],
+             unit_vectors[2] * width[2]])
+        self.origin = center - 0.5 * width.dot(unit_vectors)
         self.back_center = center - 0.5 * width[2] * unit_vectors[2]
         self.front_center = center + 0.5 * width[2] * unit_vectors[2]
-
         self.set_viewpoint(camera)
 
     def set_viewpoint(self, camera):
@@ -99,9 +100,12 @@ class PlaneParallelLens(Lens):
         else:
             image = self.new_image(camera)
 
+        vp_pos = np.concatenate(
+            [camera.inv_mat.ravel('F').d,
+             self.back_center.ravel().in_units('code_length').d])
+
         sampler_params =\
-            dict(vp_pos=np.concatenate([camera.inv_mat.ravel('F'),
-                                        self.back_center.ravel()]),
+            dict(vp_pos=vp_pos,
                  vp_dir=self.box_vectors[2],  # All the same
                  center=self.back_center,
                  bounds=(-camera.width[0] / 2.0, camera.width[0] / 2.0,
@@ -190,8 +194,9 @@ class PerspectiveLens(Lens):
             camera.resolution[0], camera.resolution[1], 3)
 
         # The maximum possible length of ray
-        max_length = np.linalg.norm(camera.position - camera._domain_center) \
-            + 0.5 * np.linalg.norm(camera._domain_width)
+        max_length = (unorm(camera.position - camera._domain_center)
+                      + 0.5 * unorm(camera._domain_width))
+
         # Rescale the ray to be long enough to cover the entire domain
         vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
             (max_length / camera.width[2])
@@ -208,7 +213,7 @@ class PerspectiveLens(Lens):
         sampler_params =\
             dict(vp_pos=positions,
                  vp_dir=vectors,
-                 center=self.back_center.d,
+                 center=self.back_center,
                  bounds=(0.0, 1.0, 0.0, 1.0),
                  x_vec=uv,
                  y_vec=uv,
@@ -303,8 +308,8 @@ class StereoPerspectiveLens(Lens):
         uv = np.ones(3, dtype='float64')
 
         image = self.new_image(camera)
-        vectors_comb = np.vstack([vectors_left, vectors_right])
-        positions_comb = np.vstack([positions_left, positions_right])
+        vectors_comb = uvstack([vectors_left, vectors_right])
+        positions_comb = uvstack([positions_left, positions_right])
 
         image.shape = (camera.resolution[0], camera.resolution[1], 4)
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
@@ -313,7 +318,7 @@ class StereoPerspectiveLens(Lens):
         sampler_params =\
             dict(vp_pos=positions_comb,
                  vp_dir=vectors_comb,
-                 center=self.back_center.d,
+                 center=self.back_center,
                  bounds=(0.0, 1.0, 0.0, 1.0),
                  x_vec=uv,
                  y_vec=uv,
@@ -331,7 +336,8 @@ class StereoPerspectiveLens(Lens):
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
 
-        angle_disparity = - np.arctan2(disparity, camera.width[2])
+        angle_disparity = - np.arctan2(disparity.in_units(camera.width.units),
+                                       camera.width[2])
         R = get_rotation_matrix(angle_disparity, north_vec)
 
         east_vec_rot = np.dot(R, east_vec)
@@ -363,8 +369,9 @@ class StereoPerspectiveLens(Lens):
             single_resolution_x, camera.resolution[1], 3)
 
         # The maximum possible length of ray
-        max_length = np.linalg.norm(camera.position - camera._domain_center) \
-            + 0.5 * np.linalg.norm(camera._domain_width) + np.abs(self.disparity.d)
+        max_length = (unorm(camera.position - camera._domain_center)
+                      + 0.5 * unorm(camera._domain_width)
+                      + np.abs(self.disparity))
         # Rescale the ray to be long enough to cover the entire domain
         vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
             (max_length / camera.width[2])
@@ -394,9 +401,9 @@ class StereoPerspectiveLens(Lens):
         px_right, py_right, dz_right = self._get_px_py_dz(
             camera, pos, res, self.disparity)
 
-        px = np.vstack([px_left, px_right])
-        py = np.vstack([py_left, py_right])
-        dz = np.vstack([dz_left, dz_right])
+        px = uvstack([px_left, px_right])
+        py = uvstack([py_left, py_right])
+        dz = uvstack([dz_left, dz_right])
 
         return px, py, dz
 
@@ -594,8 +601,8 @@ class SphericalLens(Lens):
         vectors[:, :, 2] = np.sin(py)
 
         # The maximum possible length of ray
-        max_length = np.linalg.norm(camera.position - camera._domain_center) \
-            + 0.5 * np.linalg.norm(camera._domain_width)
+        max_length = (unorm(camera.position - camera._domain_center)
+                      + 0.5 * unorm(camera._domain_width))
         # Rescale the ray to be long enough to cover the entire domain
         vectors = vectors * max_length
 
@@ -625,7 +632,7 @@ class SphericalLens(Lens):
         sampler_params = dict(
             vp_pos=positions,
             vp_dir=vectors,
-            center=self.back_center.d,
+            center=self.back_center,
             bounds=(0.0, 1.0, 0.0, 1.0),
             x_vec=dummy,
             y_vec=dummy,
@@ -706,8 +713,9 @@ class StereoSphericalLens(Lens):
         vectors[:, :, 2] = np.sin(py)
 
         # The maximum possible length of ray
-        max_length = np.linalg.norm(camera.position - camera._domain_center) \
-            + 0.5 * np.linalg.norm(camera._domain_width) + np.abs(self.disparity.d)
+        max_length = (unorm(camera.position - camera._domain_center)
+                      + 0.5 * unorm(camera._domain_width)
+                      + np.abs(self.disparity))
         # Rescale the ray to be long enough to cover the entire domain
         vectors = vectors * max_length
 
@@ -741,8 +749,8 @@ class StereoSphericalLens(Lens):
 
         dummy = np.ones(3, dtype='float64')
 
-        vectors_comb = np.vstack([vectors, vectors])
-        positions_comb = np.vstack([positions_left, positions_right])
+        vectors_comb = uvstack([vectors, vectors])
+        positions_comb = uvstack([positions_left, positions_right])
 
         image.shape = (camera.resolution[0], camera.resolution[1], 4)
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
@@ -751,7 +759,7 @@ class StereoSphericalLens(Lens):
         sampler_params = dict(
             vp_pos=positions_comb,
             vp_dir=vectors_comb,
-            center=self.back_center.d,
+            center=self.back_center,
             bounds=(0.0, 1.0, 0.0, 1.0),
             x_vec=dummy,
             y_vec=dummy,
