@@ -604,8 +604,11 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
             if label_fmt is None:
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:
-                    e = np.floor(np.log10(abs(val)))
-                    return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+                    if not val == 0.0:
+                        e = np.floor(np.log10(abs(val)))
+                        return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+                    else:
+                        return r"$0$"
                 else:
                     return "%.1g" % (val)
             else:
