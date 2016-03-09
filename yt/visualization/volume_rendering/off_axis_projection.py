@@ -173,7 +173,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     sc.add_source(vol)
 
-    vol.set_sampler(camera)
+    vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
     mylog.debug("Casting rays")
