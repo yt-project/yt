@@ -47,7 +47,7 @@ def test_orientation():
     for lens_type in ['plane-parallel', 'perspective']:
         frame = 0
 
-        cam = Camera(ds, lens_type=lens_type)
+        cam = sc.add_camera(ds, lens_type=lens_type)
         cam.resolution = (1000, 1000)
         cam.position = ds.arr(np.array([-4., 0., 0.]), 'code_length')
         cam.switch_orientation(normal_vector=[1., 0., 0.],
