@@ -4,7 +4,10 @@ import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
 from .input_events import EventCollection, MouseRotation
+from .interactive_vr import \
+    SceneGraph, BlockCollection, TrackballCamera
 
+from yt.data_objects.static_output import Dataset
 from yt import write_bitmap
 
 class EGLRenderingContext(object):
@@ -105,7 +108,8 @@ class RenderingContext(object):
         callbacks.add_key_callback("shader_max", "1")
         callbacks.add_key_callback("shader_proj", "2")
         callbacks.add_key_callback("shader_test", "3")
-        callbacks.add_key_callback("print_limits", "h")
+        callbacks.add_key_callback("print_limits", "g")
+        callbacks.add_key_callback("print_help", "h")
         callbacks.add_key_callback("debug_buffer", "d")
         callbacks.add_key_callback("cmap_max_up", "right_bracket")
         callbacks.add_key_callback("cmap_max_down", "left_bracket")

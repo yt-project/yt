@@ -98,10 +98,12 @@ def framebuffer_size_callback(event_coll, event):
 
 @register_event("close_window")
 def close_window(event_coll, event):
+    '''Close main window'''
     glfw.SetWindowShouldClose(event.window, True)
 
 @register_event("zoomin")
 def zoomin(event_coll, event):
+    '''Zoom in the camera'''
     camera = event_coll.camera
     camera.position -= 0.05 * (camera.position - camera.focus) / \
                 np.linalg.norm(camera.position - camera.focus)
@@ -109,6 +111,7 @@ def zoomin(event_coll, event):
 
 @register_event("zoomout")
 def zoomout(event_coll, event):
+    '''Zoom out the camera'''
     camera = event_coll.camera
     camera.position += 0.05 * (camera.position - camera.focus) / \
         np.linalg.norm(camera.position - camera.focus)
@@ -116,7 +119,7 @@ def zoomout(event_coll, event):
 
 @register_event("camera_orto")
 def camera_orto(event_coll, event):
-    print("Changing to orthographic camera")
+    '''Change camera to orthographic projection'''
     camera = event_coll.camera
     if camera.proj_func == get_orthographic_matrix:
         return False
@@ -126,7 +129,7 @@ def camera_orto(event_coll, event):
 
 @register_event("camera_proj")
 def camera_proj(event_coll, event):
-    print("Changing to perspective camera")
+    '''Change camera to perspective projection'''
     camera = event_coll.camera
     if camera.proj_func == get_perspective_matrix:
         return False
@@ -137,6 +140,7 @@ def camera_proj(event_coll, event):
 
 @register_event("shader_max")
 def shader_max(event_coll, event):
+    '''Use maximum intensity shader'''
     print("Changing shader to max(intensity)")
     scene = event_coll.scene
     for coll in scene.collections:
@@ -153,6 +157,7 @@ def shader_max(event_coll, event):
 
 @register_event("shader_proj")
 def shader_proj(event_coll, event):
+    '''Use projection shader'''
     print("Changing shader to projection")
     scene = event_coll.scene
     for coll in scene.collections:
@@ -169,6 +174,7 @@ def shader_proj(event_coll, event):
 
 @register_event("shader_test")
 def shader_test(event_coll, event):
+    """Use transfer function shader"""
     print("Changing shader to projection")
     scene = event_coll.scene
     for coll in scene.collections:
@@ -187,6 +193,7 @@ def shader_test(event_coll, event):
 
 @register_event("cmap_cycle")
 def cmap_cycle(event_coll, event):
+    """Change colormap"""
     cmap = ['algae', 'kamae', 'viridis', 'inferno', 'magma']
     cmap = cm.get_cmap(random.choice(cmap))
     event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)),
@@ -197,6 +204,7 @@ def cmap_cycle(event_coll, event):
 
 @register_event("cmap_max_up")
 def cmap_max_up(event_coll, event):
+    """Increase upper bound of colormap"""
     if event_coll.camera.cmap_log:
         event_coll.camera.cmap_max += 0.5
     else:
@@ -205,6 +213,7 @@ def cmap_max_up(event_coll, event):
 
 @register_event("cmap_max_down")
 def cmap_max_down(event_coll, event):
+    """Decrease upper bound of colormap"""
     if event_coll.camera.cmap_log:
         event_coll.camera.cmap_max -= 0.5
     else:
@@ -213,6 +222,7 @@ def cmap_max_down(event_coll, event):
 
 @register_event("cmap_min_up")
 def cmap_min_up(event_coll, event):
+    """Increase lower bound of colormap"""
     if event_coll.camera.cmap_log:
         event_coll.camera.cmap_min += 0.5
     else:
@@ -221,6 +231,7 @@ def cmap_min_up(event_coll, event):
 
 @register_event("cmap_min_down")
 def cmap_min_down(event_coll, event):
+    """Decrease upper bound of colormap"""
     if event_coll.camera.cmap_log:
         event_coll.camera.cmap_min -= 0.5
     else:
@@ -229,6 +240,7 @@ def cmap_min_down(event_coll, event):
 
 @register_event("cmap_toggle_log")
 def cmap_toggle_log(event_coll, event):
+    """Switch between linear and logarithmic scales"""
     if event_coll.scene.data_logged:
         print("Data is logged already, can't toggle scale to linear")
         return False
@@ -244,24 +256,40 @@ def cmap_toggle_log(event_coll, event):
 
 @register_event("closeup")
 def closeup(event_coll, event):
+    """Change camera position to (0.01, 0.01, 0.01)"""
     event_coll.camera.position = (0.01, 0.01, 0.01)
     return True
 
 @register_event("reset")
 def reset(event_coll, event):
+    """Change camera position to (-1.0, -1.0, -1.0)"""
     event_coll.camera.position = (-1.0, -1.0, -1.0)
     return True
 
 @register_event("print_limits")
 def print_limits(event_coll, event):
+    """Print debug info about"""
     print event_coll.scene.min_val, event_coll.scene.max_val
     print event_coll.camera.cmap_min, event_coll.camera.cmap_max, event_coll.camera.cmap_log
     return False
 
 @register_event("debug_buffer")
 def debug_buffer(event_coll, event):
+    """Print debug info about"""
     buffer = event_coll.scene._retrieve_framebuffer()
     print buffer.min(), buffer.max()
+
+@register_event("print_help")
+def print_help(event_coll, event):
+    """Print this help"""
+    key_map = {}
+    for key in (a for a in dir(glfw) if a.startswith("KEY")):
+        key_map[glfw.__dict__.get(key)] = key[4:]
+    for cb in (f for f in sorted(event_coll.key_callbacks)
+               if isinstance(f, tuple)):
+        print("%s - %s" % (key_map[cb[0]],
+                           event_coll.key_callbacks[cb][0].__doc__))
+    return False
 
 class MouseRotation(object):
     def __init__(self):
