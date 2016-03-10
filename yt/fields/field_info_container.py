@@ -85,7 +85,7 @@ class FieldInfoContainer(dict):
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
                 units not in skip_output_units:
                 u = Unit(units, registry = self.ds.unit_registry)
-                output_units = str(u.get_cgs_equivalent())
+                output_units = str(self.ds.unit_system[u.dimensions])
             else:
                 output_units = units
             if (ptype, f) not in self.field_list:
@@ -240,6 +240,7 @@ class FieldInfoContainer(dict):
         # the derived field and exit. If used as a decorator, function will
         # be None. In that case, we return a function that will be applied
         # to the function that the decorator is applied to.
+        kwargs.setdefault('ds', self.ds)
         if function is None:
             def create_function(f):
                 self[name] = DerivedField(name, f, **kwargs)
@@ -274,6 +275,7 @@ class FieldInfoContainer(dict):
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
+        kwargs.setdefault('ds', self.ds)
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
@@ -283,7 +285,7 @@ class FieldInfoContainer(dict):
             # as well.
             u = Unit(self[original_name].units,
                       registry = self.ds.unit_registry)
-            units = str(u.get_cgs_equivalent())
+            units = str(self.ds.unit_system[u.dimensions])
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),

@@ -15,7 +15,7 @@ from yt.testing import fake_tetrahedral_ds
 from yt.testing import fake_hexahedral_ds
 from yt.testing import requires_module
 from yt.visualization.volume_rendering.render_source import MeshSource
-from yt.visualization.volume_rendering.camera import Camera
+from yt.visualization.volume_rendering.scene import Scene
 
 
 @requires_module("pyembree")
@@ -24,17 +24,18 @@ def test_surface_mesh_render():
     images = []
 
     ds = fake_tetrahedral_ds()
+    sc = Scene()
     for field in ds.field_list:
-        ms = MeshSource(ds, field)
-        cam = Camera(ds)
-        im = ms.render(cam)
+        sc.add_source(MeshSource(ds, field))
+        sc.add_camera()
+        im = sc.render()
         images.append(im)
 
     ds = fake_hexahedral_ds()
     for field in ds.field_list:
-        ms = MeshSource(ds, field)
-        cam = Camera(ds)
-        im = ms.render(cam)
+        sc.add_source(MeshSource(ds, field))
+        sc.add_camera()
+        im = sc.render()
         images.append(im)
 
     return images

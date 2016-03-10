@@ -1,4 +1,4 @@
-include README* CREDITS COPYING.txt CITATION requirements.txt optional-requirements.txt
+include README* CREDITS COPYING.txt CITATION requirements.txt optional-requirements.txt setupext.py
 include yt/visualization/mapserver/html/map_index.html
 include yt/visualization/mapserver/html/leaflet/*.css
 include yt/visualization/mapserver/html/leaflet/*.js

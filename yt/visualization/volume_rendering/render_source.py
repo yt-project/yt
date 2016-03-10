@@ -20,7 +20,8 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler
+    get_corners, new_projection_sampler, new_mesh_sampler, \
+    new_interpolated_projection_sampler
 from yt.visualization.image_writer import apply_colormap
 from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
@@ -114,8 +115,7 @@ class VolumeSource(RenderSource):
     >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
     >>> sc.add_source(source)
-    >>> cam = Camera(ds)
-    >>> sc.camera = cam
+    >>> sc.add_camera()
     >>> im = sc.render()
 
     """
@@ -161,6 +161,8 @@ class VolumeSource(RenderSource):
             raise RuntimeError("transfer_function not of correct type")
         if isinstance(transfer_function, ProjectionTransferFunction):
             self.sampler_type = 'projection'
+            self.volume.set_fields([self.field], log_fields=[False], 
+                                   no_ghost=True, force=True)
 
         self.transfer_function = transfer_function
         return self
@@ -203,7 +205,8 @@ class VolumeSource(RenderSource):
         """Set the source's fields to render
 
         Parameters
-        ---------
+        ----------
+
         fields: field name or list of field names
             The field or fields to render
         no_ghost: boolean
@@ -217,15 +220,24 @@ class VolumeSource(RenderSource):
         self.volume.set_fields(fields, log_fields, no_ghost)
         self.field = fields
 
-    def set_sampler(self, camera):
+    def set_sampler(self, camera, interpolated=True):
         """Sets a volume render sampler
 
         The type of sampler is determined based on the ``sampler_type`` attribute
         of the VolumeSource. Currently the ``volume_render`` and ``projection``
         sampler types are supported.
+
+        The 'interpolated' argument is only meaningful for projections. If True,
+        the data is first interpolated to the cell vertices, and then tri-linearly
+        interpolated to the ray sampling positions. If False, then the cell-centered
+        data is simply accumulated along the ray. Interpolation is always performed
+        for volume renderings.
+
         """
         if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == 'projection' and interpolated:
+            sampler = new_interpolated_projection_sampler(camera, self)
         elif self.sampler_type == 'projection':
             sampler = new_projection_sampler(camera, self)
         else:
@@ -487,7 +499,7 @@ class MeshSource(OpaqueSource):
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.finalize_image(camera, self.sampler.aimage)
+        self.finalize_image(camera)
         self.data = self.sampler.aimage
         self.current_image = self.apply_colormap()
 
@@ -503,14 +515,22 @@ class MeshSource(OpaqueSource):
 
         return self.current_image
 
-    def finalize_image(self, camera, image):
+    def finalize_image(self, camera):
         sam = self.sampler
+
+        # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
         sam.aimage = sam.aimage.reshape(Nx, Ny)
         sam.image_used = sam.image_used.reshape(Nx, Ny)
         sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
         sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
+
+        # rotate
+        sam.aimage = np.rot90(sam.aimage, k=2)
+        sam.image_used = np.rot90(sam.image_used, k=2)
+        sam.mesh_lines = np.rot90(sam.mesh_lines, k=2)
+        sam.zbuffer = np.rot90(sam.zbuffer, k=2)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
@@ -673,17 +693,7 @@ class PointSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get points plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
-        zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+        zpoints(empty, z, px, py, dz, self.colors, self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -799,22 +809,15 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
         if len(px.shape) == 1:
-            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
-            # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
-            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+            # For stereo-lens, two sets of pos for each eye are contained
+            # in px...pz
+            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors, 
+                   self.color_stride)
+            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors, 
+                   self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -938,10 +941,10 @@ class GridSource(LineSource):
 
     def __init__(self, data_source, alpha=0.3, cmap='algae',
                  min_level=None, max_level=None):
-        data_source = data_source_or_all(data_source)
+        self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in data_source.blocks:
+        for block, mask in self.data_source.blocks:
             block_corners = np.array([
                 [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
                 [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -968,7 +971,7 @@ class GridSource(LineSource):
 
         colors = apply_colormap(
             levels*1.0,
-            color_bounds=[0, data_source.ds.index.max_level],
+            color_bounds=[0, self.data_source.ds.index.max_level],
             cmap_name=cmap)[0, :, :]*alpha/255.
         colors[:, 3] = alpha
 
@@ -1101,22 +1104,15 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
         if len(px.shape) == 1:
-            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
-            # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
-            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+            # For stereo-lens, two sets of pos for each eye are contained
+            # in px...pz
+            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors,
+                   self.color_stride)
+            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors,
+                   self.color_stride)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

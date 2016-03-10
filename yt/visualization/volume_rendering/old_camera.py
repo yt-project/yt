@@ -1877,7 +1877,7 @@ class ProjectionCamera(Camera):
         dl = 1.0
         if self.method == "integrate":
             if self.weight is None:
-                dl = self.width[2].in_units("cm")
+                dl = self.width[2].in_units(ds.unit_system["length"])
             else:
                 image[:, : ,0] /= image[:, :, 1]
 

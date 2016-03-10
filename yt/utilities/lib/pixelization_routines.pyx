@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import YTPixelizeError, \
     YTElementTypeNotRecognized
 from yt.utilities.lib.element_mappings cimport \

@@ -211,7 +211,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             dens_func = self._create_ion_density_func( ftype, ion )
             self.add_field( (ftype, fname),
                             function = dens_func, 
-                            units="g/cm**3",
+                            units=self.ds.unit_system["density"],
                             particle_type=True )            
             self._show_field_errors.append( (ftype,fname) )
 

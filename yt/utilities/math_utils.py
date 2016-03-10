@@ -1188,6 +1188,15 @@ def resize_vector(vector,vector_array):
     else:
         res_vector = np.resize(vector,(3,1))
     return res_vector
+    
+def normalize_vector(vector):
+    # this function normalizes
+    # an input vector
+    
+    L2 = np.atleast_1d(np.linalg.norm(vector))
+    L2[L2==0] = 1.0
+    vector = vector / L2
+    return vector
 
 def get_sph_theta(coords, normal):
     # The angle (theta) with respect to the normal (J), is the arccos
@@ -1195,6 +1204,10 @@ def get_sph_theta(coords, normal):
     # vector.
 
     res_normal = resize_vector(normal, coords)
+
+    # check if the normal vector is normalized
+    # since arccos requires the vector to be normalised
+    res_normal = normalize_vector(res_normal)
 
     tile_shape = [1] + list(coords.shape)[1:]
 
@@ -1215,6 +1228,7 @@ def get_sph_phi(coords, normal):
     # yprime-component and the xprime-component of the coordinate
     # vector.
 
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, coords)
@@ -1234,6 +1248,7 @@ def get_cyl_r(coords, normal):
     # gives a vector of magnitude equal to the cylindrical radius.
 
     res_normal = resize_vector(normal, coords)
+    res_normal = normalize_vector(res_normal)
 
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
@@ -1246,7 +1261,8 @@ def get_cyl_z(coords, normal):
     # gives the cylindrical height.
 
     res_normal = resize_vector(normal, coords)
-
+    res_normal = normalize_vector(res_normal)
+    
     tile_shape = [1] + list(coords.shape)[1:]
     J = np.tile(res_normal, tile_shape)
 
@@ -1261,6 +1277,7 @@ def get_cyl_theta(coords, normal):
 def get_cyl_r_component(vectors, theta, normal):
     # The r of a vector is the vector dotted with rhat
 
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -1276,7 +1293,7 @@ def get_cyl_r_component(vectors, theta, normal):
 
 def get_cyl_theta_component(vectors, theta, normal):
     # The theta component of a vector is the vector dotted with thetahat
-
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -1292,6 +1309,7 @@ def get_cyl_theta_component(vectors, theta, normal):
 
 def get_cyl_z_component(vectors, normal):
     # The z component of a vector is the vector dotted with zhat
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_zprime = resize_vector(zprime, vectors)
@@ -1303,7 +1321,7 @@ def get_cyl_z_component(vectors, normal):
 
 def get_sph_r_component(vectors, theta, phi, normal):
     # The r component of a vector is the vector dotted with rhat
-
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -1324,7 +1342,7 @@ def get_sph_r_component(vectors, theta, phi, normal):
 
 def get_sph_phi_component(vectors, phi, normal):
     # The phi component of a vector is the vector dotted with phihat
-
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)
@@ -1340,7 +1358,7 @@ def get_sph_phi_component(vectors, phi, normal):
 
 def get_sph_theta_component(vectors, theta, phi, normal):
     # The theta component of a vector is the vector dotted with thetahat
-
+    normal = normalize_vector(normal)
     (xprime, yprime, zprime) = get_ortho_basis(normal)
 
     res_xprime = resize_vector(xprime, vectors)

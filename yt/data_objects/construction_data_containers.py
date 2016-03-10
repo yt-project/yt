@@ -426,7 +426,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
             # will not be necessary at all, as the final conversion will occur
             # at the display layer.
             if not dl.units.is_dimensionless:
-                dl.convert_to_units("cm")
+                dl.convert_to_units(self.ds.unit_system["length"])
         v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
             d = chunk[field] * dl
@@ -702,11 +702,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions.prod(), kernel_name)
+        op = cls(self.ActiveDimensions, kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="C")
+        return vals.copy(order="C")
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -860,6 +860,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     """
     _type_name = "smoothed_covering_grid"
     filename = None
+    _min_level = None
     @wraps(YTCoveringGrid.__init__)
     def __init__(self, *args, **kwargs):
         ds = kwargs['ds']
@@ -886,12 +887,47 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._pdata_source.min_level = level_state.current_level
         self._pdata_source.max_level = level_state.current_level
 
+    def _compute_minimum_level(self):
+        # This attempts to determine the minimum level that we should be
+        # starting on for this box.  It does this by identifying the minimum
+        # level that could contribute to the minimum bounding box at that
+        # level; that means that all cells from coarser levels will be replaced.
+        if self._min_level is not None:
+            return self._min_level
+        ils = LevelState()
+        min_level = 0
+        for l in range(self.level, 0, -1):
+            dx = self._base_dx / self.ds.relative_refinement(0, l)
+            start_index, end_index, dims = self._minimal_box(dx)
+            ils.left_edge = start_index * dx + self.ds.domain_left_edge
+            ils.right_edge = ils.left_edge + dx * dims
+            ils.current_dx = dx
+            ils.current_level = l
+            self._setup_data_source(ils)
+            # Reset the max_level
+            ils.data_source.min_level = 0
+            ils.data_source.max_level = l
+            ils.data_source.loose_selection = False
+            min_level = self.level
+            for chunk in ils.data_source.chunks([], "io"):
+                # With our odd selection methods, we can sometimes get no-sized ires.
+                ir = chunk.ires
+                if ir.size == 0: continue
+                min_level = min(ir.min(), min_level)
+            if min_level >= l:
+                break
+        self._min_level = min_level
+        return min_level
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
+        min_level = self._compute_minimum_level()
         for level in range(self.level + 1):
+            if level < min_level:
+                self._update_level_state(ls)
+                continue
             domain_dims = self.ds.domain_dimensions.astype("int64") \
                         * self.ds.relative_refinement(0, ls.current_level)
             tot = ls.current_dims.prod()

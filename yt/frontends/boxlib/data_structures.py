@@ -178,8 +178,15 @@ class BoxlibHierarchy(GridIndex):
                 raise RuntimeError("yt needs cylindrical to be 2D")
             self.level_dds[:,2] = 2*np.pi
             default_zbounds = (0.0, 2*np.pi)
+        elif self.ds.geometry == "spherical":
+            # BoxLib only supports 1D spherical, so ensure
+            # the other dimensions have the right extent.
+            self.level_dds[:,1] = np.pi
+            self.level_dds[:,2] = 2*np.pi
+            default_ybounds = (0.0, np.pi)
+            default_zbounds = (0.0, 2*np.pi)
         else:
-            raise RuntimeError("yt only supports cartesian and cylindrical coordinates.")
+            raise RuntimeError("Unknown BoxLib coordinate system.")
         if int(next(header_file)) != 0:
             raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
@@ -369,7 +376,8 @@ class BoxlibDataset(Dataset):
                  fparam_filename="probin",
                  dataset_type='boxlib_native',
                  storage_filename=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
@@ -384,7 +392,8 @@ class BoxlibDataset(Dataset):
         self.storage_filename = storage_filename
 
         Dataset.__init__(self, output_dir, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
 
         # These are still used in a few places.
         if "HydroMethod" not in self.parameters.keys():
@@ -586,8 +595,10 @@ class BoxlibDataset(Dataset):
             self.geometry = "cartesian"
         elif coordinate_type == 1:
             self.geometry = "cylindrical"
+        elif coordinate_type == 2:
+            self.geometry = "spherical"
         else:
-            raise RuntimeError("yt does not yet support spherical geometry")
+            raise RuntimeError("Unknown BoxLib coord_type")
 
         # overrides for 1/2-dimensional data
         if self.dimensionality == 1:
@@ -736,11 +747,13 @@ class OrionDataset(BoxlibDataset):
                  fparam_filename="probin",
                  dataset_type='orion_native',
                  storage_filename=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
 
         BoxlibDataset.__init__(self, output_dir,
                                cparam_filename, fparam_filename,
-                               dataset_type, units_override=units_override)
+                               dataset_type, units_override=units_override,
+                               unit_system=unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

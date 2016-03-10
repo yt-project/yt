@@ -20,7 +20,7 @@ cimport cython
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
     lrint, fabs, atan, atan2, asin, cos, sin, sqrt
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
@@ -281,11 +281,11 @@ cdef class ImageSampler:
         else:
             if not (vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0]) or \
                not (vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1]):
-                print "Bad lense shape / direction for %s" % (self.lens_type)
-                print "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
+                msg = "Bad lens shape / direction for %s\n" % (self.lens_type)
+                msg += "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
                     vp_pos.shape[0], vp_dir.shape[0], image.shape[0],
                     vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
-                raise RuntimeError
+                raise RuntimeError(msg)
             self.extent_function = calculate_extent_null
             self.vector_function = generate_vector_info_null
         self.sampler = NULL

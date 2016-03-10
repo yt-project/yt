@@ -73,6 +73,8 @@ def add_species_field_by_density(registry, ftype, species,
     adds the other fluids based on that.  This assumes that the field
     "SPECIES_density" already exists and refers to mass density.
     """
+    unit_system = registry.ds.unit_system
+
     registry.add_field((ftype, "%s_fraction" % species), 
                        function = _create_fraction_func(ftype, species),
                        particle_type = particle_type,
@@ -81,12 +83,12 @@ def add_species_field_by_density(registry, ftype, species,
     registry.add_field((ftype, "%s_mass" % species),
                        function = _create_mass_func(ftype, species),
                        particle_type = particle_type,
-                       units = "g")
+                       units = unit_system["mass"])
 
     registry.add_field((ftype, "%s_number_density" % species),
                        function = _create_number_density_func(ftype, species),
                        particle_type = particle_type,
-                       units = "cm**-3")
+                       units = unit_system["number_density"])
 
 def add_species_field_by_fraction(registry, ftype, species, 
                                   particle_type = False):
@@ -95,35 +97,38 @@ def add_species_field_by_fraction(registry, ftype, species,
     adds the other fluids based on that.  This assumes that the field
     "SPECIES_fraction" already exists and refers to mass fraction.
     """
+    unit_system = registry.ds.unit_system
+
     registry.add_field((ftype, "%s_density" % species), 
                        function = _create_density_func(ftype, species),
                        particle_type = particle_type,
-                       units = "g/cm**3")
+                       units = unit_system["density"])
 
     registry.add_field((ftype, "%s_mass" % species),
                        function = _create_mass_func(ftype, species),
                        particle_type = particle_type,
-                       units = "g")
+                       units = unit_system["mass"])
 
     registry.add_field((ftype, "%s_number_density" % species),
                        function = _create_number_density_func(ftype, species),
                        particle_type = particle_type,
-                       units = "cm**-3")
+                       units = unit_system["number_density"])
 
 def add_nuclei_density_fields(registry, ftype,
                               particle_type = False):
+    unit_system = registry.ds.unit_system
     elements = _get_all_elements(registry.species_names)
     for element in elements:
         registry.add_field((ftype, "%s_nuclei_density" % element),
                            function = _nuclei_density,
                            particle_type = particle_type,
-                           units = "cm**-3")
+                           units = unit_system["number_density"])
     if len(elements) == 0:
         for element in ["H", "He"]:
             registry.add_field((ftype, "%s_nuclei_density" % element),
                                function = _default_nuclei_density,
                                particle_type = particle_type,
-                               units = "cm**-3")
+                               units = unit_system["number_density"])
 
 def _default_nuclei_density(field, data):
     element = field.name[1][:field.name[1].find("_")]

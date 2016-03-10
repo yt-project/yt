@@ -30,6 +30,7 @@ yt/utilities/lib/alt_ray_tracers.c
 yt/utilities/lib/amr_kdtools.c
 yt/utilities/lib/basic_octree.c
 yt/utilities/lib/bitarray.c
+yt/utilities/lib/bounding_volume_hierarchy.c
 yt/utilities/lib/contour_finding.c
 yt/utilities/lib/depth_first_octree.c
 yt/utilities/lib/element_mappings.c

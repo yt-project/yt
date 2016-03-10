@@ -28,6 +28,7 @@ from yt.utilities.lib.amr_kdtools import \
     add_pygrids, \
     find_node, \
     kd_is_leaf, \
+    set_dirty, \
     depth_traverse, \
     depth_first_touch, \
     kd_traverse, \
@@ -165,7 +166,6 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.brick_dimensions = []
         self.sdx = ds.index.get_smallest_dx()
 
-        self.regenerate_data = True
         self._initialized = False
         try:
             self._id_offset = ds.index.grids[0]._id_offset
@@ -181,15 +181,15 @@ class AMRKDTree(ParallelAnalysisInterface):
                          min_level=min_level, max_level=max_level,
                          data_source=data_source)
 
-    def set_fields(self, fields, log_fields, no_ghost):
+    def set_fields(self, fields, log_fields, no_ghost, force=False):
         new_fields = self.data_source._determine_fields(fields)
-        self.regenerate_data = \
-            self.fields is None or \
-            len(self.fields) != len(new_fields) or \
-            self.fields != new_fields
+        regenerate_data = self.fields is None or \
+                          len(self.fields) != len(new_fields) or \
+                          self.fields != new_fields or force
+        set_dirty(self.tree.trunk, regenerate_data)
         self.fields = new_fields
 
-        if self.log_fields is not None:
+        if self.log_fields is not None and not regenerate_data:
             flip_log = map(operator.ne, self.log_fields, log_fields)
         else:
             flip_log = [False] * len(log_fields)
@@ -199,6 +199,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         del self.bricks, self.brick_dimensions
         self.brick_dimensions = []
         bricks = []
+
         for b in self.traverse():
             map(_apply_log, b.my_data, flip_log, log_fields)
             bricks.append(b)
@@ -284,7 +285,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         return scatter_image(self.comm, owners[1], image)
 
     def get_brick_data(self, node):
-        if node.data is not None and not self.regenerate_data:
+        if node.data is not None and not node.dirty:
             return node.data
         grid = self.ds.index.grids[node.grid - self._id_offset]
         dds = grid.dds.ndarray_view()
@@ -297,7 +298,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         assert(np.all(grid.LeftEdge <= nle))
         assert(np.all(grid.RightEdge >= nre))
 
-        if grid in self.current_saved_grids and not self.regenerate_data:
+        if grid in self.current_saved_grids and not node.dirty:
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
         else:
             dds = []
@@ -323,9 +324,9 @@ class AMRKDTree(ParallelAnalysisInterface):
                                 nre.copy(),
                                 dims.astype('int64'))
         node.data = brick
+        node.dirty = False
         if not self._initialized:
             self.brick_dimensions.append(dims)
-        self.regenerate_data = False
         return brick
 
     def locate_brick(self, position):
