@@ -10,7 +10,12 @@ In version 3.3 we introduced experimental, hardware accelerated, interactive
 volume renderer based on OpenGL. In order to use it you need to install
 `PyOpenGL <https://pypi.python.org/pypi/PyOpenGL>`_ and `cyglfw3
 <https://pypi.python.org/pypi/cyglfw3/>`_ along with their respective
-dependencies. Both packages are available in our conda channel and can be
+dependencies, e.g. `glfw3 <http://www.glfw.org/>` is required to be installed
+before you can ``pip install cyglfw3``. Please carefully read installation
+instructions provided on pypi pages of both packages. 
+
+If you are using conda, ``cyglfw3`` is provided in our conda channel
+(``pyopengl`` is shipped by Continuum already) and can be
 installed via:
 
 .. code-block:: bash
