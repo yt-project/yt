@@ -18,7 +18,7 @@ Using interactive renderer
 You can simply pass dataset to :meth:`~yt.interactive_render`. By default
 it will load all data and render gas density:
 
-.. python-script::
+.. code-block:: python
 
     import yt
     
@@ -28,7 +28,7 @@ it will load all data and render gas density:
 Alternatively you can provide data object as a main argument to
 :meth:`~yt.interactive_render` if your dataset is too big to fit GPU memory.
 
-.. python-script::
+.. code-block:: python
 
     import yt
 
