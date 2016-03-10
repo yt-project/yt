@@ -134,9 +134,20 @@ class Scene(object):
         if keyname is None:
             keyname = 'source_%02i' % len(self.sources)
 
-        if isinstance(render_source, (VolumeSource, MeshSource, GridSource)):
+        data_sources = (VolumeSource, MeshSource, GridSource)
+
+        if isinstance(render_source, data_sources):
             self.set_new_unit_registry(
                 render_source.data_source.ds.unit_registry)
+
+        line_annotation_sources = (MeshSource, BoxSource, CoordinateVectorSource)
+
+        if isinstance(render_source, line_annotation_sources):
+            lens_str = str(self.camera.lens)
+            if 'fisheye' in lens_str or 'spherical' in lens_str:
+                raise NotImplementedError(
+                    "Line annotation sources are not supported for %s."
+                    % (type(self.camera.lens).__name__), )
 
         self.sources[keyname] = render_source
 
@@ -489,7 +500,7 @@ class Scene(object):
         r"""
 
         Modifies this scene by drawing the edges of the AMR grids.
-        This adds a new BoxSource to the scene for each AMR grid 
+        This adds a new GridSource to the scene that represents the AMR grid 
         and returns the resulting Scene object.
 
         Parameters
