@@ -43,6 +43,15 @@ from .fields import ChomboFieldInfo, Orion2FieldInfo, \
     PlutoFieldInfo
 
 
+def is_chombo_hdf5(fn):
+    try:
+        with h5py.File(fn, 'r') as fileh:
+            valid = "Chombo_global" in fileh["/"]
+    except (KeyError, IOError, ImportError):
+        return False
+    return valid
+
+
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
@@ -351,6 +360,9 @@ class ChomboDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
+        if not is_chombo_hdf5(args[0]):
+            return False
+
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
@@ -507,6 +519,9 @@ class PlutoDataset(ChomboDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
+        if not is_chombo_hdf5(args[0]):
+            return False
+
         pluto_ini_file_exists = False
 
         if isinstance(args[0], six.string_types):
@@ -649,6 +664,9 @@ class Orion2Dataset(ChomboDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
+        if not is_chombo_hdf5(args[0]):
+            return False
+
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
@@ -702,6 +720,9 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
