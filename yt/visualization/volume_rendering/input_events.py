@@ -231,7 +231,7 @@ def cmap_min_up(event_coll, event):
 
 @register_event("cmap_min_down")
 def cmap_min_down(event_coll, event):
-    """Decrease upper bound of colormap"""
+    """Decrease lower bound of colormap"""
     if event_coll.camera.cmap_log:
         event_coll.camera.cmap_min -= 0.5
     else:
@@ -268,14 +268,14 @@ def reset(event_coll, event):
 
 @register_event("print_limits")
 def print_limits(event_coll, event):
-    """Print debug info about"""
+    """Print debug info about scene and camera"""
     print event_coll.scene.min_val, event_coll.scene.max_val
     print event_coll.camera.cmap_min, event_coll.camera.cmap_max, event_coll.camera.cmap_log
     return False
 
 @register_event("debug_buffer")
 def debug_buffer(event_coll, event):
-    """Print debug info about"""
+    """Print debug info about framebuffer"""
     buffer = event_coll.scene._retrieve_framebuffer()
     print buffer.min(), buffer.max()
 
