@@ -140,7 +140,7 @@ class Scene(object):
             self.set_new_unit_registry(
                 render_source.data_source.ds.unit_registry)
 
-        line_annotation_sources = (MeshSource, BoxSource, CoordinateVectorSource)
+        line_annotation_sources = (GridSource, BoxSource, CoordinateVectorSource)
 
         if isinstance(render_source, line_annotation_sources):
             lens_str = str(self.camera.lens)
