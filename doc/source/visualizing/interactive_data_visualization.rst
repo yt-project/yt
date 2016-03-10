@@ -56,3 +56,5 @@ Apart from doing maximum intensity rendering, it's possible to create projection
 along the line of sight (press *2*) which is equivalent to
 :meth:`~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection`.
 Pressing *h* key will print all available key bindings in the terminal window.
+More advanced initialization of interactive volume renderer can be found in
+:ref:`cookbook-opengl-vr`.
