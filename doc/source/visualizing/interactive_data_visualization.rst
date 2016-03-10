@@ -9,7 +9,7 @@ Installation
 In version 3.3 we introduced experimental, hardware accelerated, interactive
 volume renderer based on OpenGL. In order to use it you need to install
 `PyOpenGL <https://pypi.python.org/pypi/PyOpenGL>`_ and `cyglfw3
-<https://pypi.python.org/pypi/cyglfw3/`_ along with their respective
+<https://pypi.python.org/pypi/cyglfw3/>`_ along with their respective
 dependencies.
 
 Using interactive renderer
@@ -41,5 +41,5 @@ Alternatively you can provide data object as a main argument to
 Successful call to :meth:`~yt.interactive_render` should create new
 window called *vol_render*. By default it renders maximum intensity projection
 of your data. You can move the camera around by holding left mouse button and
-moving it. Pressing *h* key will print all available key binding in the
+moving it. Pressing *h* key will print all available key bindings in the
 terminal window.
