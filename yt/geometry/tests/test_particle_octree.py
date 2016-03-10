@@ -33,7 +33,8 @@ from yt.testing import \
     assert_array_equal
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
-from yt.utilities.lib.geometry_utils import get_morton_indices
+from yt.utilities.lib.geometry_utils import get_morton_indices, \
+    get_hilbert_points
 
 import yt.units.dimensions as dimensions
 import yt.data_objects.api
@@ -189,7 +190,7 @@ class FakeBoxRegion:
         self.right_edge = self.ds.domain_left_edge + self.ds.domain_width*(center+width/2)
 
 def FakeForest(npart, nfiles, order1, order2, file_order='grid', 
-               DLE=None, DRE=None, verbose=False):
+               DLE=None, DRE=None, verbose=False, really_verbose=False):
     np.random.seed(int(0x4d3d3d3))
     N = (1<<order1)
     if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
@@ -219,7 +220,7 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
     elif file_order == 'sliced':
         nPF = int(npart/nfiles)
         nR = npart % nfiles
-        if verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
+        if really_verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
         # First file gets extra particles
         pos = np.random.normal(0.5, scale=0.05, size=(nPF+nR,3)) * (DRE-DLE) + DLE
         iLE = DLE[0]
@@ -240,7 +241,7 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
     elif file_order == 'random':
         nPF = int(npart/nfiles)
         nR = npart % nfiles
-        if verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
+        if really_verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
         # First file gets extra particles
         pos = np.random.normal(0.5, scale=0.05, size=(nPF+nR,3)) * (DRE-DLE) + DLE
         for i in range(3):
@@ -258,7 +259,7 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
             nfiles_per_dim -= 1
         nPF = int(npart/(nfiles_per_dim**3))
         nR = npart - nPF*(nfiles_per_dim**3)
-        if verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
+        if really_verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
         div = DW/nfiles_per_dim
         iLE = DLE
         iRE = DLE + div
@@ -280,7 +281,7 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
                         np.clip(pos[:,i], iLE[i], iRE[i], pos[:,i])
                     positions[ifile] = pos
                     ifile += 1
-        if verbose: print("Filled {}/{} files".format(ifile,nfiles))
+        if really_verbose: print("Filled {}/{} files".format(ifile,nfiles))
         while ifile < nfiles:
             positions[ifile] = np.zeros((0,3), dtype=pos.dtype)
             ifile += 1
@@ -293,7 +294,7 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
         nfiles_per_dim -= ndense
         nPF = int(npart/(nfiles_per_dim**3 + (ndense**3)*(ndense_ref**3 - 1)))
         nR = npart - nPF*(nfiles_per_dim**3 + (ndense**3)*(ndense_ref**3 - 1))
-        if verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
+        if really_verbose: print("{}/{} remainder particles put in first file".format(nR,npart))
         div = DW/nfiles_per_dim
         div_dense = div/ndense_ref
         iLE = DLE
@@ -339,10 +340,34 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
                             np.clip(pos[:,i], iLE[i], iRE[i], pos[:,i])
                         positions[ifile] = pos
                         ifile += 1
-        if verbose: print("Filled {}/{} files".format(ifile,nfiles))
+        if really_verbose: print("Filled {}/{} files".format(ifile,nfiles))
         while ifile < nfiles:
             positions[ifile] = np.zeros((0,3), dtype=pos.dtype)
             ifile += 1
+    elif file_order == 'hilbert':
+        order_hilbert = order1 + 1
+        dim_hilbert = (1<<order_hilbert)
+        nH = dim_hilbert**3
+        if nH < nfiles:
+            raise Exception('Fewer hilbert cells than files.')
+        nHPF = nH/nfiles
+        nPH = npart/nH
+        nRH = npart%nH
+        hind = np.arange(nH, dtype='int64')
+        hpos = get_hilbert_points(order_hilbert, hind)
+        hdiv = DW/dim_hilbert
+        for i in range(nH):
+            ifile = min(i/nHPF, nfiles-1)
+            iLE = DLE + hdiv*hpos[i,:]
+            iRE = iLE + hdiv
+            if ifile == 0 and (i%nHPF == 0):
+                pos = np.random.normal(0.5, scale=0.05, size=(nPH+nRH,3)) * (iRE-iLE) + iLE
+            else:
+                pos = np.random.normal(0.5, scale=0.05, size=(nPH,3)) * (iRE-iLE) + iLE
+            if ifile in positions:
+                positions[ifile] = np.concatenate((positions[ifile],pos),axis=0)
+            else:
+                positions[ifile] = pos
     else:
         raise ValueError("Unsupported value {} for input parameter 'file_order'".format(file_order))
     # Coarse index
@@ -353,7 +378,7 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
     for i in range(nfiles):
         reg._coarse_index_data_file(positions[i], i)
         cp += positions[i].shape[0]
-    if verbose: print("{} particles in total".format(cp))
+    if really_verbose: print("{} particles in total".format(cp))
     reg.find_collisions_coarse(verbose=verbose)
     # Refined index
     for i in range(nfiles):
@@ -363,73 +388,56 @@ def FakeForest(npart, nfiles, order1, order2, file_order='grid',
     reg.find_collisions_refined(verbose=verbose)
     return reg
 
-def time_selection_order2():
-    verbose = True
-    nfiles = 256
-    npart = 128**3
-    order1 = 6
-    list_order2 = [0,1,2,3,4,5,6,7,8]
-    DLE = [0.0, 0.0, 0.0]
-    DRE = [1.0, 1.0, 1.0]
-    ngz = 1
-    # 'grid' also available, but should only be used to test selectors for
-    # correctness since it is time consuming
-    #file_orders = ['kdtree','octtree']
-    file_order = 'random'
+def time_selection_vary(var, varlist, verbose=False, 
+                        nfiles=256, npart=(128**3),
+                        DLE = [0.0, 0.0, 0.0],
+                        DRE = [1.0, 1.0, 1.0], **kws):
     fake_regions = []
     for c,r in [(0.5,0.1),(0.3,0.1),(0.5,0.01),(0.5,0.2),(0.5,0.5),(0.5,1.0)]:
         fr = FakeBoxRegion(nfiles, DLE, DRE)
         fr.set_edges(c,r)
         fake_regions.append(fr)
-    if verbose: print("Timing differences due to order2")
+    if verbose: print("Timing differences due to '{}'".format(var))
     out = {}
-    for order2 in list_order2:
-        if verbose: print("order2 = {}".format(order2))
-        reg = FakeForest(npart, nfiles, order1, order2, file_order=file_order,
-                         verbose=verbose)
-        t1 = time.time()
-        for fr in fake_regions:
-            selector = RegionSelector(fr)
-            df, gf = reg.identify_data_files(selector, ngz=ngz)
-        t2 = time.time()
-        out[file_order] = dict(t = t2-t1,
-                               ndf = len(df),
-                               ngf = len(gf))
-        if verbose: print("order2 = {}: {} s, {} files, {} ghost files".format(file_order,t2-t1,len(df),len(gf)))
+    for v in varlist:
+        kws[var] = v
+        t,ndf,ngf,nf = time_selection(npart, nfiles, fake_regions, 
+                                      verbose=verbose, **kws)
+        if verbose: print("{} = {}: {} s, {}/{} files, {}/{} ghost files".format(var,v,t,ndf,nf,ngf,nf))
+        out[v] = dict(t=t, ndf=ndf, ngf=ngf, nf=nf)
+
+def time_selection(npart, nfiles, fake_regions, verbose=False, really_verbose=False,
+                   file_order='octtree', order1=6, order2=4, ngz=0):
+    reg = FakeForest(npart, nfiles, order1, order2, file_order=file_order,
+                     verbose=verbose, really_verbose=really_verbose)
+    ndf = 0
+    ngf = 0
+    nf = 0
+    t1 = time.time()
+    for fr in fake_regions:
+        selector = RegionSelector(fr)
+        df, gf = reg.identify_data_files(selector, ngz=ngz)
+        ndf += len(df)
+        ngf += len(gf)
+        nf += nfiles
+    t2 = time.time()
+    return t2-t1, ndf, ngf, nf
+
+def time_selection_ngz():
+    vlist = [0,1]
+    out = time_selection_vary('ngz', vlist, verbose=True)
+
+def time_selection_order1():
+    vlist = [1,3,5,7,8]
+    out = time_selection_vary('order1', vlist, verbose=True)
+
+def time_selection_order2():
+    vlist = [0,1,3,5,7]
+    out = time_selection_vary('order2', vlist, verbose=True)
 
 def time_selection_fileorder():
-    verbose = False
-    nfiles = 256
-    npart = 128**3
-    order1 = 6
-    order2 = 4
-    DLE = [0.0, 0.0, 0.0]
-    DRE = [1.0, 1.0, 1.0]
-    ngz = 1
-    # 'grid' also available, but should only be used to test selectors for
-    # correctness since it is time consuming
-    #file_orders = ['kdtree','octtree']
-    file_orders = ['sliced','random','octtree','kdtree']
-    fake_regions = []
-    for c,r in [(0.5,0.1),(0.3,0.1),(0.5,0.01),(0.5,0.2),(0.5,0.5),(0.5,1.0)]:
-        fr = FakeBoxRegion(nfiles, DLE, DRE)
-        fr.set_edges(c,r)
-        fake_regions.append(fr)
-    if verbose: print("Timing differences due to order of particles.")
-    out = {}
-    for file_order in file_orders:
-        if verbose: print(file_order)
-        reg = FakeForest(npart, nfiles, order1, order2, file_order=file_order,
-                         verbose=verbose)
-        t1 = time.time()
-        for fr in fake_regions:
-            selector = RegionSelector(fr)
-            df, gf = reg.identify_data_files(selector, ngz=ngz)
-        t2 = time.time()
-        out[file_order] = dict(t = t2-t1,
-                               ndf = len(df),
-                               ngf = len(gf))
-        if verbose: print("{}: {} s, {} files, {} ghost files".format(file_order,t2-t1,len(df),len(gf)))
+    vlist = ['hilbert','sliced','random','octtree','kdtree']
+    out = time_selection_vary('file_order', vlist, verbose=True)
 
 def test_particle_regions():
     np.random.seed(int(0x4d3d3d3))
