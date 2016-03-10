@@ -17,8 +17,8 @@ installed via:
 
     conda install -c http://use.yt/with_conda/ cyglfw3 pyopengl
 
-Using interactive renderer
-^^^^^^^^^^^^^^^^^^^^^^^^^^
+Using the interactive renderer
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 You can simply pass dataset to :meth:`~yt.interactive_render`. By default
 it will load all data and render gas density:
@@ -30,8 +30,8 @@ it will load all data and render gas density:
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     yt.interactive_render(ds)
 
-Alternatively you can provide data object as a main argument to
-:meth:`~yt.interactive_render` if your dataset is too big to fit GPU memory.
+Alternatively you can provide data object as a first argument to
+:meth:`~yt.interactive_render` if your dataset is too big to fit GPU memory:
 
 .. code-block:: python
 
@@ -44,14 +44,14 @@ Alternatively you can provide data object as a main argument to
     yt.interactive_render(sp, field="pressure", cam_position=cam_pos,
                           window_size=(512, 512))
 
-Successful call to :meth:`~yt.interactive_render` should create new window
+A successful call to :meth:`~yt.interactive_render` should create new window
 called *vol_render*. 
 
 .. image:: _images/idv.jpg
    :width: 1000
 
 By default it renders maximum intensity of your data.
-Camera can be moved around by holding left mouse button while moving the mouse.
+The camera can be moved around by holding left mouse button while moving the mouse.
 Apart from doing maximum intensity rendering, it's possible to create projection
 along the line of sight (press *2*) which is equivalent to
 :meth:`~yt.visualization.volume_rendering.off_axis_projection.off_axis_projection`.
