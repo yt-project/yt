@@ -361,7 +361,7 @@ class AbsorptionSpectrum(object):
 
             # for a given transition, step through each location in the 
             # observed spectrum where it occurs and deposit a voigt profile
-            for i, lixel in parallel_objects(enumerate(valid_lines), njobs=-1):
+            for i in parallel_objects(valid_lines, njobs=-1):
 
                 # the virtual window into which the line is deposited initially 
                 # spans a region of 2 coarse spectral bins 
@@ -373,12 +373,12 @@ class AbsorptionSpectrum(object):
                 window_width_in_bins = 2
 
                 while True:
-                    left_index = (center_index[lixel] - \
+                    left_index = (center_index[i] - \
                             window_width_in_bins/2)
-                    right_index = (center_index[lixel] + \
+                    right_index = (center_index[i] + \
                             window_width_in_bins/2)
                     n_vbins = (right_index - left_index) * \
-                              n_vbins_per_bin[lixel]
+                              n_vbins_per_bin[i]
                     
                     # the array of virtual bins in lambda space
                     vbins = \
@@ -390,8 +390,8 @@ class AbsorptionSpectrum(object):
                     vbins, vtau = \
                         tau_profile(
                             lambda_0, line['f_value'], line['gamma'], 
-                            thermb[lixel], cdens[lixel], 
-                            delta_lambda=dlambda[lixel], lambda_bins=vbins)
+                            thermb[i], cdens[i], 
+                            delta_lambda=dlambda[i], lambda_bins=vbins)
 
                     # If tau has not dropped below min tau threshold by the
                     # edges (ie the wings), then widen the wavelength
@@ -403,12 +403,12 @@ class AbsorptionSpectrum(object):
                 # numerically integrate the virtual bins to calculate a
                 # virtual equivalent width; then sum the virtual equivalent
                 # widths and deposit into each spectral bin
-                vEW = vtau * vbin_width[lixel]
+                vEW = vtau * vbin_width[i]
                 EW = np.zeros(right_index - left_index)
                 EW_indices = np.arange(left_index, right_index)
                 for k, val in enumerate(EW_indices):
-                    EW[k] = vEW[n_vbins_per_bin[lixel] * k: \
-                                n_vbins_per_bin[lixel] * (k + 1)].sum()
+                    EW[k] = vEW[n_vbins_per_bin[i] * k: \
+                                n_vbins_per_bin[i] * (k + 1)].sum()
                 EW = EW/self.bin_width.d
 
                 # only deposit EW bins that actually intersect the original
@@ -440,15 +440,15 @@ class AbsorptionSpectrum(object):
                    cdens[i] >= line['label_threshold']:
 
                     if use_peculiar_velocity:
-                        peculiar_velocity = vlos[lixel]
+                        peculiar_velocity = vlos[i]
                     else:
                         peculiar_velocity = 0.0
                     self.absorbers_list.append({'label': line['label'],
-                                                'wavelength': (lambda_0 + dlambda[lixel]),
-                                                'column_density': column_density[lixel],
-                                                'b_thermal': thermal_b[lixel],
-                                                'redshift': field_data['redshift'][lixel],
-                                                'redshift_eff': field_data['redshift_eff'][lixel],
+                                                'wavelength': (lambda_0 + dlambda[i]),
+                                                'column_density': column_density[i],
+                                                'b_thermal': thermal_b[i],
+                                                'redshift': field_data['redshift'][i],
+                                                'redshift_eff': field_data['redshift_eff'][i],
                                                 'v_pec': peculiar_velocity})
                 pbar.update(i)
             pbar.finish()
