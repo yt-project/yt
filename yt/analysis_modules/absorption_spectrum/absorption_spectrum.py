@@ -421,38 +421,16 @@ class AbsorptionSpectrum(object):
                     pbar.update(i)
                     continue
 
-                #else:
-                #    intersect_left_index = np.max(left_index, 0)
-                #    intersect_right_index = np.min(right_index, self.n_lambda-1)
-                #    intersect_range = intersect_right_index - intersect_left_index
-                #    self.tau_field[intersect_left_index:intersect_right_index]
-                #        += EW[
-
-
-                # if EW bins only catch the left edge of the original
-                # spectral range
-                elif (left_index < 0) and (right_index < self.n_lambda):
-                    print "Left Edge: %s %s" % (left_index, right_index)
-                    self.tau_field[0:right_index] += EW[-left_index:]
-
-                # if EW bins only catch the right edge of the original
-                # spectral range
-                elif (left_index >= 0) and (right_index >= self.n_lambda):
-                    print "Right Edge: %s %s" % (left_index, right_index)
-                    self.tau_field[left_index:self.n_lambda-1] += \
-                        EW[:self.n_lambda-1-left_index]
-
-                # if EW bins cover the whole original spectral range
-                # but extend beyond both the left and right edges
-                elif (left_index < 0) and (right_index >= self.n_lambda):
-                    print "Both Edges: %s %s" % (left_index, right_index)
-                    self.tau_field[:] += EW[-left_index:self.n_lambda-left_index]
-
-                # if EW bins are fully in the original spectral range,
-                # just deposit into tau_field
+                # otherwise, determine how much of the original spectrum
+                # is intersected by the expanded line window to be deposited, 
+                # and deposit the Equivalent Width data into that intersecting
+                # window in the original spectrum's tau
                 else:
-                    #print "Inside: %s %s" % (left_index, right_index)
-                    self.tau_field[left_index:right_index] += EW
+                    intersect_left_index = max(left_index, 0)
+                    intersect_right_index = min(right_index, self.n_lambda-1)
+                    self.tau_field[intersect_left_index:intersect_right_index] \
+                        += EW[(intersect_left_index - left_index): \
+                              (intersect_right_index - left_index)]
 
                 # write out absorbers to file if the column density of
                 # an absorber is greater than the specified "label_threshold" 
