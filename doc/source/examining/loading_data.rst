@@ -369,7 +369,7 @@ You can access the connectivity information directly by doing:
 
 This particular dataset has two meshes in it, both of which are made of 8-node hexes.
 yt uses a field name convention to access these different meshes in plots and data
-objects. To see all the fields found in a particlular dataset, you can do:
+objects. To see all the fields found in a particular dataset, you can do:
 
 .. code-block:: python
     
@@ -540,7 +540,7 @@ each image the following header keywords have sensible values:
 
 * ``CDELTx``: The pixel width in along axis ``x``
 * ``CRVALx``: The coordinate value at the reference position along axis ``x``
-* ``CRPIXx``: The the reference pixel along axis ``x``
+* ``CRPIXx``: The reference pixel along axis ``x``
 * ``CTYPEx``: The projection type of axis ``x``
 * ``CUNITx``: The units of the coordinate along axis ``x``
 * ``BTYPE``: The type of the image
@@ -870,7 +870,7 @@ volume elements.  This is governed by two parameters, ``n_ref`` and
 ``over_refine_factor``.  They are weak proxies for each other.  The first,
 ``n_ref``, governs how many particles in an oct results in that oct being
 refined into eight child octs.  Lower values mean higher resolution; the
-default is 64.  The secon parameter, ``over_refine_factor``, governs how many
+default is 64.  The second parameter, ``over_refine_factor``, governs how many
 cells are in a given oct; the default value of 1 corresponds to 8 cells.
 The number of cells in an oct is defined by the expression
 ``2**(3*over_refine_factor)``.
