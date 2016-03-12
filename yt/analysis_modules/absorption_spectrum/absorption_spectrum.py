@@ -335,11 +335,8 @@ class AbsorptionSpectrum(object):
             n_vbins_per_bin = 10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
             vbin_width = self.bin_width.d / n_vbins_per_bin
 
-            # only locations in the wavelength range of the spectrum
-            # are valid for processing
-            #filter_lines = (lambda_obs > self.lambda_min) & \
-            #               (lambda_obs < self.lambda_max)
-            #valid_lines = np.where(filter_lines)[0]
+            # we process every line, and only after we know where it falls
+            # do we decide whether or not to deposit it in the original spectrum
             valid_lines = np.arange(len(thermal_width))
 
             # a note to the user about which lines components are unresolved
@@ -350,14 +347,9 @@ class AbsorptionSpectrum(object):
                             thermal_width.size))
 
             # provide a progress bar with information about lines processsed
-            if len(valid_lines) == 0:
-                pbar = get_pbar("No absorbers in wavelength range for line - %s [%f A]: " % \
-                                (line['label'], line['wavelength']),
-                                len(valid_lines))
-            else:
-                pbar = get_pbar("Adding line - %s [%f A]: " % \
-                                (line['label'], line['wavelength']),
-                                len(valid_lines))
+            pbar = get_pbar("Adding line - %s [%f A]: " % \
+                            (line['label'], line['wavelength']),
+                            len(valid_lines))
 
             # for a given transition, step through each location in the 
             # observed spectrum where it occurs and deposit a voigt profile
