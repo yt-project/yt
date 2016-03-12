@@ -521,7 +521,10 @@ class Dataset(object):
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.field_list.extend(fields)
+        new_fields = [_ for _ in fields if _ not in self.field_list]
+        self.field_list.extend(new_fields)
+        self.field_info.field_list.extend(new_fields)
+        self.index.field_list = sorted(self.field_list)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
