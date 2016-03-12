@@ -451,6 +451,7 @@ class Dataset(object):
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
+        self.index.field_list = sorted(self.field_list)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
