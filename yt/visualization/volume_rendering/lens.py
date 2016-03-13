@@ -123,17 +123,23 @@ class PlaneParallelLens(Lens):
     def project_to_plane(self, camera, pos, res=None):
         if res is None:
             res = camera.resolution
-        dx = np.dot(pos - self.origin.d, camera.unit_vectors[1])
-        dy = np.dot(pos - self.origin.d, camera.unit_vectors[0])
-        dz = np.dot(pos - self.front_center.d, -camera.unit_vectors[2])
+
+        origin = self.origin.in_units('code_length').d
+        front_center = self.front_center.in_units('code_length').d
+        width = camera.width.in_units('code_length').d
+
+        dx = np.array(np.dot(pos - origin, camera.unit_vectors[1]))
+        dy = np.array(np.dot(pos - origin, camera.unit_vectors[0]))
+        dz = np.array(np.dot(pos - front_center, -camera.unit_vectors[2]))
         # Transpose into image coords.
-        py = (res[0]*(dx/camera.width[0].d)).astype('int')
-        px = (res[1]*(dy/camera.width[1].d)).astype('int')
+
+        py = (res[0]*(dx/width[0])).astype('int')
+        px = (res[1]*(dy/width[1])).astype('int')
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:%s" %\
-            (self.viewpoint)
+        disp = ("<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:%s" %
+                (self.viewpoint))
         return disp
 
 
@@ -232,41 +238,53 @@ class PerspectiveLens(Lens):
         if res is None:
             res = camera.resolution
 
-        # Enforce width[1] / width[0] = resolution[1] / resolution[0]
-        camera.width[1] = camera.width[0] * (res[1] /res[0])
+        width = camera.width.in_units('code_length').d
+        position = camera.position.in_units('code_length').d
 
-        sight_vector = pos - camera.position.d
+        width[1] = width[0] * res[1] / res[0]
+
+        sight_vector = pos - position
+
         pos1 = sight_vector
+
         for i in range(0, sight_vector.shape[0]):
             sight_vector_norm = np.sqrt(np.dot(sight_vector[i], sight_vector[i]))
-            sight_vector[i] = sight_vector[i] / sight_vector_norm
+            if sight_vector_norm != 0:
+                sight_vector[i] = sight_vector[i] / sight_vector_norm
+
         sight_center = camera.position + camera.width[2] * camera.unit_vectors[2]
+
+        sight_center = sight_center.in_units('code_length').d
 
         for i in range(0, sight_vector.shape[0]):
             sight_angle_cos = np.dot(sight_vector[i], camera.unit_vectors[2])
+            # clip sight_angle_cos since floating point noise might
+            # go outside the domain of arccos
+            sight_angle_cos = np.clip(sight_angle_cos, -1.0, 1.0)
             if np.arccos(sight_angle_cos) < 0.5 * np.pi:
-                sight_length = camera.width[2] / sight_angle_cos
+                sight_length = width[2] / sight_angle_cos
             else:
                 # If the corner is on the backwards, then we put it outside of
                 # the image It can not be simply removed because it may connect
                 # to other corner within the image, which produces visible
                 # domain boundary line
-                sight_length = np.sqrt(camera.width[0]**2 + camera.width[1]**2)
+                sight_length = np.sqrt(width[0]**2 + width[1]**2)
                 sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
-            pos1[i] = camera.position + sight_length * sight_vector[i]
+            pos1[i] = position + sight_length * sight_vector[i]
 
-        dx = np.dot(pos1 - sight_center.d, camera.unit_vectors[0])
-        dy = np.dot(pos1 - sight_center.d, camera.unit_vectors[1])
-        dz = np.dot(pos - camera.position.d, camera.unit_vectors[2])
+        dx = np.dot(pos1 - sight_center, camera.unit_vectors[0])
+        dy = np.dot(pos1 - sight_center, camera.unit_vectors[1])
+        dz = np.dot(pos - position, camera.unit_vectors[2])
 
         # Transpose into image coords.
         px = (res[0] * 0.5 + res[0] / camera.width[0].d * dx).astype('int')
         py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
+
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % \
-            (self.viewpoint)
+        disp = ("<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:%s" %
+                (self.viewpoint))
         return disp
 
 
@@ -427,7 +445,9 @@ class StereoPerspectiveLens(Lens):
         normal_vec_rot = np.dot(R, normal_vec)
 
         camera_position_shift = camera.position + east_vec * disparity
-        sight_vector = pos - camera_position_shift.d
+        camera_position_shift = camera_position_shift.in_units('code_length').d
+        width = camera.width.in_units('code_length').d
+        sight_vector = pos - camera_position_shift
         pos1 = sight_vector
 
         for i in range(0, sight_vector.shape[0]):
@@ -437,21 +457,24 @@ class StereoPerspectiveLens(Lens):
 
         for i in range(0, sight_vector.shape[0]):
             sight_angle_cos = np.dot(sight_vector[i], normal_vec_rot)
+            # clip sight_angle_cos since floating point noise might
+            # cause it go outside the domain of arccos
+            sight_angle_cos = np.clip(sight_angle_cos, -1.0, 1.0)
             if np.arccos(sight_angle_cos) < 0.5 * np.pi:
-                sight_length = camera.width[2] / sight_angle_cos
+                sight_length = width[2] / sight_angle_cos
             else:
                 # If the corner is on the backwards, then we put it outside of
                 # the image It can not be simply removed because it may connect
                 # to other corner within the image, which produces visible
                 # domain boundary line
-                sight_length = np.sqrt(camera.width[0]**2 + camera.width[1]**2)
+                sight_length = np.sqrt(width[0]**2 + width[1]**2)
                 sight_length = sight_length / np.sqrt(1 - sight_angle_cos**2)
             pos1[i] = camera_position_shift + sight_length * sight_vector[i]
 
-        dx = np.dot(pos1 - sight_center.d, east_vec_rot)
-        dy = np.dot(pos1 - sight_center.d, north_vec)
-        dz = np.dot(pos - camera_position_shift.d, normal_vec_rot)
-        
+        dx = np.dot(pos1 - sight_center, east_vec_rot)
+        dy = np.dot(pos1 - sight_center, north_vec)
+        dz = np.dot(pos - camera_position_shift, normal_vec_rot)
+
         # Transpose into image coords.
         if disparity > 0:
             px = (res0_h * 0.5 + res0_h / camera.width[0].d * dx).astype('int')
@@ -468,8 +491,8 @@ class StereoPerspectiveLens(Lens):
         self.viewpoint = self.front_center
 
     def __repr__(self):
-        disp = "<Lens Object>: lens_type:perspective viewpoint:%s" % \
-            (self.viewpoint)
+        disp = ("<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:%s" %
+                (self.viewpoint))
         return disp
 
 
@@ -537,8 +560,9 @@ class FisheyeLens(Lens):
         self.viewpoint = camera.position
 
     def __repr__(self):
-        disp = "<Lens Object>: lens_type:fisheye viewpoint:%s fov:%s radius:" %\
-            (self.viewpoint, self.fov, self.radius)
+        disp = ("<Lens Object>:\n\tlens_type:fisheye\n\tviewpoint:%s"
+                "\nt\tfov:%s\n\tradius:%s" %
+                (self.viewpoint, self.fov, self.radius))
         return disp
 
     def project_to_plane(self, camera, pos, res=None):
@@ -550,26 +574,31 @@ class FisheyeLens(Lens):
         # vectors back onto the plane.  arr_fisheye_vectors goes from px, py to
         # vector, and we need the reverse.
         # First, we transform lpos into *relative to the camera* coordinates.
-        lpos = camera.position.d - pos
+
+        position = camera.position.in_units('code_length').d
+
+        lpos = position - pos
         lpos = lpos.dot(self.rotation_matrix)
-        # lpos = lpos.dot(self.rotation_matrix)
         mag = (lpos * lpos).sum(axis=1)**0.5
+
+        # screen out NaN values that would result from dividing by mag
+        mag[mag == 0] = 1
         lpos /= mag[:, None]
-        dz = mag / self.radius
+
+        dz = (mag / self.radius).in_units('1/code_length').d
         theta = np.arccos(lpos[:, 2])
         fov_rad = self.fov * np.pi / 180.0
         r = 2.0 * theta / fov_rad
         phi = np.arctan2(lpos[:, 1], lpos[:, 0])
         px = r * np.cos(phi)
         py = r * np.sin(phi)
-        u = camera.focus.uq
-        length_unit = u / u.d
+
         # dz is distance the ray would travel
         px = (px + 1.0) * res[0] / 2.0
         py = (py + 1.0) * res[1] / 2.0
         # px and py should be dimensionless
-        px = (u * np.rint(px) / length_unit).astype("int64")
-        py = (u * np.rint(py) / length_unit).astype("int64")
+        px = np.rint(px).astype("int64")
+        py = np.rint(py).astype("int64")
         return px, py, dz
 
 
@@ -655,11 +684,15 @@ class SphericalLens(Lens):
             res = camera.resolution
         # Much of our setup here is the same as in the fisheye, except for the
         # actual conversion back to the px, py values.
-        lpos = camera.position.d - pos
-        # inv_mat = np.linalg.inv(self.rotation_matrix)
-        # lpos = lpos.dot(self.rotation_matrix)
+        position = camera.position.in_units('code_length').d
+
+        lpos = position - pos
         mag = (lpos * lpos).sum(axis=1)**0.5
+
+        # screen out NaN values that would result from dividing by mag
+        mag[mag == 0] = 1
         lpos /= mag[:, None]
+
         # originally:
         #  the x vector is cos(px) * cos(py)
         #  the y vector is sin(px) * cos(py)
@@ -671,14 +704,12 @@ class SphericalLens(Lens):
         px = np.arctan2(lpos[:, 1], lpos[:, 0])
         py = np.arcsin(lpos[:, 2])
         dz = mag / self.radius
-        u = camera.focus.uq
-        length_unit = u / u.d
         # dz is distance the ray would travel
         px = ((-px + np.pi) / (2.0*np.pi)) * res[0]
         py = ((-py + np.pi/2.0) / np.pi) * res[1]
         # px and py should be dimensionless
-        px = (u * np.rint(px) / length_unit).astype("int64")
-        py = (u * np.rint(py) / length_unit).astype("int64")
+        px = np.rint(px).astype("int64")
+        py = np.rint(py).astype("int64")
         return px, py, dz
 
 
