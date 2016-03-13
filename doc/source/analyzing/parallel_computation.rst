@@ -49,7 +49,7 @@ system you are using try:
 
     $ conda install mpi4py
 
-This will install `MPICH2 <https://www.mpich.org/>`_ and will interefere with
+This will install `MPICH2 <https://www.mpich.org/>`_ and will interfere with
 other MPI libraries that are already installed. Therefore, it is preferable to
 use the ``pip`` installation method.
 
@@ -103,7 +103,7 @@ in the simulation and then makes a plot of the projected density:
    p.save()
 
 If this script is run in parallel, two of the most expensive operations -
-finding of the maximum density and the projection will be calulcated in
+finding of the maximum density and the projection will be calculated in
 parallel.  If we save the script as ``my_script.py``, we would run it on 16 MPI
 processes using the following Bash command:
 
@@ -121,7 +121,7 @@ How do I run my yt job on a subset of available processes
 
 You can set the ``communicator`` keyword in the 
 :func:`~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism` 
-call to a specific MPI communicator to specify a subset of availble MPI 
+call to a specific MPI communicator to specify a subset of available MPI 
 processes.  If none is specified, it defaults to ``COMM_WORLD``.
 
 Creating Parallel and Serial Sections in a Script
@@ -251,7 +251,7 @@ we offer the ``storage`` keyword in the ``piter`` function.
 You may define an empty dictionary and include it as the keyword argument 
 ``storage`` to ``piter()``.  Then, during the processing step, you can access
 this dictionary as the ``sto`` object.  After the 
-loop is finished, the dictionary is re-aggragated from all of the processors, 
+loop is finished, the dictionary is re-aggregated from all of the processors, 
 and you can access the contents:
 
 .. code-block:: python

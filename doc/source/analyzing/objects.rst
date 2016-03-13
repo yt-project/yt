@@ -313,7 +313,7 @@ See also the section on :ref:`filtering-data`.
     | A ``cut_region`` is a filter which can be applied to any other data 
       object.  The filter is defined by the conditionals present, which 
       apply cuts to the data in the object.  A ``cut_region`` will work
-      for either particle fields or mesh fields, but not on both simulaneously.
+      for either particle fields or mesh fields, but not on both simultaneously.
       For more detailed information and examples, see :ref:`cut-regions`.
 
 **Collection of Data Objects** 

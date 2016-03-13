@@ -158,7 +158,7 @@ To do this, we use Jupyter's nbconvert module to transform notebooks into
 HTML. to simplify versioning of the notebook JSON format, we store notebooks in
 an unevaluated state.
 
-To build the full documentation, you will need yt, jupyter, and all depedencies 
+To build the full documentation, you will need yt, jupyter, and all dependencies 
 needed for yt's analysis modules installed. The following dependencies were 
 used to generate the yt documentation during the release of yt 3.2 in 2015.
 
