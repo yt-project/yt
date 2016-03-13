@@ -36,7 +36,7 @@ will work best for you depends on your precise situation:
   <http://brew.sh>`_ or `MacPorts <http://www.macports.org/>`_ this choice will
   let you install yt using the python installed by the package manager. Similarly
   for python environments set up via Linux package managers so long as you
-  have the the necessary compilers installed (e.g. the ``build-essentials``
+  have the necessary compilers installed (e.g. the ``build-essentials``
   package on Debian and Ubuntu).
 
 .. note::
@@ -417,7 +417,7 @@ Switching versions of yt: yt-2.x, yt-3.x, stable, and dev
 
 With the release of version 3.0 of yt, development of the legacy yt 2.x series
 has been relegated to bugfixes.  That said, we will continue supporting the 2.x
-series for the forseeable future.  This makes it easy to use scripts written
+series for the foreseeable future.  This makes it easy to use scripts written
 for older versions of yt without substantially updating them to support the
 new field naming or unit systems in yt version 3.
 
@@ -431,7 +431,7 @@ If You Installed yt Using the Installer Script
 You already have the mercurial repository, so you simply need to switch
 which version you're using.  Navigate to the root of the yt mercurial
 repository, update to the desired version, and rebuild the source (some of the
-c code requires a compilation step for big changes like this):
+C code requires a compilation step for big changes like this):
 
 .. code-block:: bash
 
@@ -439,7 +439,7 @@ c code requires a compilation step for big changes like this):
   hg update <desired-version>
   python setup.py develop
 
-Valid versions to jump to are described in :ref:`branches-of-yt`).
+Valid versions to jump to are described in :ref:`branches-of-yt`.
 
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.
