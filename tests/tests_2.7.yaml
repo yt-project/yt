@@ -45,6 +45,7 @@ answer_tests:
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
     - yt/visualization/volume_rendering/tests/test_vr_orientation.py
+    - yt/visualization/volume_rendering/tests/test_mesh_render.py
 
   local_orion_270:
     - yt/frontends/boxlib/tests/test_orion.py
