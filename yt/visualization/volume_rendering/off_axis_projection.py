@@ -155,7 +155,7 @@ def off_axis_projection(data_source, center, normal_vector,
     camera.resolution = resolution
     if not iterable(width):
         width = data_source.ds.arr([width]*3)
-    camera.position = center - width[2]*camera.normal_vector
+    camera.position = center - width[2]*normal_vector
     camera.focus = center
     
     # If north_vector is None, we set the default here.
