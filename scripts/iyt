@@ -17,7 +17,7 @@ doc = """\
 try:
     import IPython
 except:
-    print 'ipython is not available. using default python interpreter.'
+    print('ipython is not available. using default python interpreter.')
     import code
     import sys
     code.interact(doc, None, namespace)
