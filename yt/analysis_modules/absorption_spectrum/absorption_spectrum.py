@@ -283,6 +283,8 @@ class AbsorptionSpectrum(object):
                 delta_lambda = line['wavelength'] * field_data['redshift']
             # lambda_obs is central wavelength of line after redshift
             lambda_obs = line['wavelength'] + delta_lambda
+            # the total number of absorbers per transition
+            n_absorbers = len(lambda_obs)
 
             # we want to know the bin index in the lambda_field array
             # where each line has its central wavelength after being
@@ -335,25 +337,20 @@ class AbsorptionSpectrum(object):
             n_vbins_per_bin = 10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
             vbin_width = self.bin_width.d / n_vbins_per_bin
 
-            # we process every line, and only after we know where it falls
-            # do we decide whether or not to deposit it in the original spectrum
-            valid_lines = np.arange(len(thermal_width))
-
             # a note to the user about which lines components are unresolved
             if (thermal_width < self.bin_width).any():
                 mylog.info(("%d out of %d line components will be " + \
                             "deposited as unresolved lines.") %
                            ((thermal_width < self.bin_width).sum(), 
-                            thermal_width.size))
+                            n_absorbers))
 
             # provide a progress bar with information about lines processsed
             pbar = get_pbar("Adding line - %s [%f A]: " % \
-                            (line['label'], line['wavelength']),
-                            len(valid_lines))
+                            (line['label'], line['wavelength']), n_absorbers)
 
             # for a given transition, step through each location in the 
             # observed spectrum where it occurs and deposit a voigt profile
-            for i in parallel_objects(valid_lines, njobs=-1):
+            for i in parallel_objects(np.arange(n_absorbers), njobs=-1):
 
                 # the virtual window into which the line is deposited initially 
                 # spans a region of 2 coarse spectral bins 
@@ -447,7 +444,7 @@ class AbsorptionSpectrum(object):
 
             del column_density, delta_lambda, lambda_obs, center_index, \
                 thermal_b, thermal_width, cdens, thermb, dlambda, \
-                vlos, resolution, vbin_width, n_vbins_per_bin, valid_lines 
+                vlos, resolution, vbin_width, n_vbins_per_bin
 
         comm = _get_comm(())
         self.tau_field = comm.mpi_allreduce(self.tau_field, op="sum")
