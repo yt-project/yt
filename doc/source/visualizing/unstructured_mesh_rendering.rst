@@ -355,7 +355,7 @@ Making Movies
 ^^^^^^^^^^^^^
 
 Here are a couple of example scripts that show how to create image frames that 
-can later be stiched together into a movie. In the first example, we look at a 
+can later be stitched together into a movie. In the first example, we look at a 
 single dataset at a fixed time, but we move the camera around to get a different
 vantage point. We call the rotate() method 300 times, saving a new image to the 
 disk each time.

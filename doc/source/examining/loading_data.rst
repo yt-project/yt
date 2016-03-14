@@ -1118,8 +1118,10 @@ a similar manner as the three-dimensional grid fields:
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
-where in this exampe the particle position fields have been assigned. ``number_of_particles`` must be the same size as the particle
-arrays. If no particle arrays are supplied then ``number_of_particles`` is assumed to be zero. 
+where in this example the particle position fields have been assigned.
+``number_of_particles`` must be the same size as the particle arrays. If no
+particle arrays are supplied then ``number_of_particles`` is assumed to be
+zero. 
 
 .. rubric:: Caveats
 
@@ -1153,7 +1155,7 @@ code:
    coordinates,connectivity = yt.hexahedral_connectivity(xgrid,ygrid,zgrid)
 
 will define the (x,y,z) coordinates of the hexahedral cells and
-information about that cell's neighbors such that the celll corners
+information about that cell's neighbors such that the cell corners
 will be a grid of points constructed as the Cartesion product of
 xgrid, ygrid, and zgrid.
 
