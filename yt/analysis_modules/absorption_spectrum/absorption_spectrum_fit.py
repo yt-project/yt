@@ -864,7 +864,7 @@ def _check_params(p, speciesDict,xb):
           any(p[:,1] <= speciesDict['minb']) or\
           any(p[:,2] >= maxz) or\
           any(p[:,2] <= minz):
-              check = 999
+        check = 999
 
     return check
 
@@ -894,38 +894,38 @@ def _check_optimization_init(p,speciesDict,initz,xb,yDat,yFit,minSize,errorBound
           any(p[:,1] == speciesDict['init_b']) or\
           any(p[:,1] == speciesDict['maxb']):
 
-            # These are the initial bounds
-            init_bounds = [yDat.argmin(),0,len(xb)-1]
+        # These are the initial bounds
+        init_bounds = [yDat.argmin(),0,len(xb)-1]
 
-            # Gratitutous limit for splitting region
-            newSplitLim = 1 - (1-min(yDat))*.5
+        # Gratitutous limit for splitting region
+        newSplitLim = 1 - (1-min(yDat))*.5
 
-            # Attempt to split region
-            split = _split_region(yDat,init_bounds,newSplitLim)
+        # Attempt to split region
+        split = _split_region(yDat,init_bounds,newSplitLim)
 
-            # If we can't split it, just reject it. Its unphysical
-            # to just keep the default parameters and we're out of
-            # options at this point
-            if not split:
-                return []
+        # If we can't split it, just reject it. Its unphysical
+        # to just keep the default parameters and we're out of
+        # options at this point
+        if not split:
+            return []
 
-            # Else set up the bounds for each region and fit separately
-            b1,b2 = split[0][2], split[1][1]
+        # Else set up the bounds for each region and fit separately
+        b1,b2 = split[0][2], split[1][1]
 
-            p1,flag = _complex_fit(xb[:b1], yDat[:b1], yFit[:b1],
-                            initz, minSize, errorBound, speciesDict)
+        p1,flag = _complex_fit(xb[:b1], yDat[:b1], yFit[:b1],
+                        initz, minSize, errorBound, speciesDict)
 
-            p2,flag = _complex_fit(xb[b2:], yDat[b2:], yFit[b2:],
-                            initz, minSize, errorBound, speciesDict)
+        p2,flag = _complex_fit(xb[b2:], yDat[b2:], yFit[b2:],
+                        initz, minSize, errorBound, speciesDict)
 
-            # Make the final line parameters. Its annoying because
-            # one or both regions may have fit to nothing
-            if np.size(p1)> 0 and np.size(p2)>0:
-                p = np.r_[p1,p2]
-            elif np.size(p1) > 0:
-                p = p1
-            else:
-                p = p2
+        # Make the final line parameters. Its annoying because
+        # one or both regions may have fit to nothing
+        if np.size(p1)> 0 and np.size(p2)>0:
+            p = np.r_[p1,p2]
+        elif np.size(p1) > 0:
+            p = p1
+        else:
+            p = p2
 
     return p
 
