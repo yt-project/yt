@@ -904,13 +904,13 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, width=0.003, head_length=None, 
-                   head_width=0.02, starting_pos=None, 
+    annotate_arrow(pos, length=0.03, width=0.003, head_length=None,
+                   head_width=0.02, starting_pos=None,
                    coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
     feature.  Arrow points from lower left to the designated position with
-    arrow length "length" unless starting_pos is set to specify tail location 
+    arrow length "length" unless starting_pos is set to specify tail location
     of arrow.
 
     Parameters
@@ -978,7 +978,7 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, width=0.0001, 
+    def __init__(self, pos, code_size=None, length=0.03, width=0.0001,
                  head_width=0.01, head_length=0.01,
                  starting_pos=None, coord_system='data', plot_args=None):
         def_plot_args = {'color':'white'}
@@ -1030,10 +1030,10 @@ class ArrowCallback(PlotCallback):
             warnings.warn("The arrow has zero length.  Not annotating.")
             return
         plot._axes.hold(True)
-        plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width, 
-                         head_width=self.head_width, 
-                         head_length=self.head_length, 
-                         transform=self.transform, 
+        plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width,
+                         head_width=self.head_width,
+                         head_length=self.head_length,
+                         transform=self.transform,
                          length_includes_head=True, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
@@ -1796,8 +1796,8 @@ class ScaleCallback(PlotCallback):
     axis length.  Additional customization of the scale bar is possible by
     adjusting the text_args and size_bar_args dictionaries.  The text_args
     dictionary accepts matplotlib's font_properties arguments to override
-    the default font_properties for the current plot.  The size_bar_args 
-    dictionary accepts keyword arguments for the AnchoredSizeBar class in 
+    the default font_properties for the current plot.  The size_bar_args
+    dictionary accepts keyword arguments for the AnchoredSizeBar class in
     matplotlib's axes_grid toolkit.
 
     Parameters
@@ -1877,7 +1877,7 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
                  max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 text_args=None, size_bar_args=None, draw_inset_box=False,
                  inset_box_args=None):
 
         def_size_bar_args = {
@@ -1970,7 +1970,7 @@ class ScaleCallback(PlotCallback):
         # FontProperties instances use set_<property>() setter functions
         for key, val in self.text_args.items():
             setter_func = "set_"+key
-            try: 
+            try:
                 getattr(fontproperties, setter_func)(val)
             except AttributeError:
                 raise AttributeError("Cannot set text_args keyword " \
@@ -2002,7 +2002,7 @@ class RayCallback(PlotCallback):
     The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
     If arrow is set to True, uses the MPL.pyplot.arrow function, otherwise
-    uses the MPL.pyplot.plot function to plot a normal line.  Adjust 
+    uses the MPL.pyplot.plot function to plot a normal line.  Adjust
     plot_args accordingly.
 
     Parameters
@@ -2016,8 +2016,8 @@ class RayCallback(PlotCallback):
         the dataset currently displayed.
 
     arrow : boolean, optional
-        Whether or not to place an arrowhead on the front of the ray as it
-        traverses the box.
+        Whether or not to place an arrowhead on the front of the ray to denote
+        direction
         Default: False
 
     plot_args : dictionary, optional
@@ -2133,7 +2133,7 @@ class RayCallback(PlotCallback):
             cb(plot)
         segment = segments[-1]
         if self.arrow:
-            cb = ArrowCallback(segment[1], starting_pos=segment[0], 
+            cb = ArrowCallback(segment[1], starting_pos=segment[0],
                                coord_system='data',
                                plot_args=self.plot_args)
         else:
@@ -2141,7 +2141,6 @@ class RayCallback(PlotCallback):
                                coord_system='data',
                                plot_args=self.plot_args)
         cb(plot)
- 
         return plot
 
 class LineIntegralConvolutionCallback(PlotCallback):
@@ -2151,7 +2150,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                        cmap='binary', alpha=0.8,
                                        const_alpha=False):
 
-    Add the line integral convolution to the plot for vector fields 
+    Add the line integral convolution to the plot for vector fields
     visualization. Two component of vector fields needed to be provided
     (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
 
@@ -2248,7 +2247,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
 
         if self.const_alpha:
-            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap, 
+            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
                               alpha=self.alpha)
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
