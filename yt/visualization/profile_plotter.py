@@ -17,6 +17,7 @@ from __future__ import absolute_import
 from yt.extern.six.moves import builtins
 from yt.extern.six.moves import zip as izip
 from yt.extern.six import string_types, iteritems
+from collections import OrderedDict
 import base64
 import os
 
@@ -59,7 +60,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
-class FigureContainer(dict):
+class FigureContainer(OrderedDict):
     def __init__(self):
         super(FigureContainer, self).__init__()
 
@@ -68,7 +69,7 @@ class FigureContainer(dict):
         self[key] = figure
         return self[key]
 
-class AxesContainer(dict):
+class AxesContainer(OrderedDict):
     def __init__(self, fig_container):
         self.fig_container = fig_container
         self.ylim = {}
@@ -334,8 +335,7 @@ class ProfilePlot(object):
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
 
-        # This relies on 'profile' leaking
-        for fname, axes in self.axes.items():
+        for (fname, axes), profile in zip(self.axes.items(), self.profiles):
             xscale, yscale = self._get_field_log(fname, profile)
             xtitle, ytitle = self._get_field_title(fname, profile)
             axes.set_xscale(xscale)
@@ -591,9 +591,7 @@ class ProfilePlot(object):
         return self
 
     def _get_field_log(self, field_y, profile):
-        ds = profile.data_source.ds
-        yf, = profile.data_source._determine_fields([field_y])
-        yfi = ds._get_field_info(*yf)
+        yfi = profile.field_info[field_y]
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -624,12 +622,9 @@ class ProfilePlot(object):
         return label
 
     def _get_field_title(self, field_y, profile):
-        ds = profile.data_source.ds
         field_x = profile.x_field
-        xf, yf = profile.data_source._determine_fields(
-            [field_x, field_y])
-        xfi = ds._get_field_info(*xf)
-        yfi = ds._get_field_info(*yf)
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
         x_unit = profile.x.units
         y_unit = profile.field_units[field_y]
         fractional = profile.fractional
@@ -753,14 +748,11 @@ class PhasePlot(ImagePlotContainer):
         return obj
 
     def _get_field_title(self, field_z, profile):
-        ds = profile.data_source.ds
         field_x = profile.x_field
         field_y = profile.y_field
-        xf, yf, zf = profile.data_source._determine_fields(
-            [field_x, field_y, field_z])
-        xfi = ds._get_field_info(*xf)
-        yfi = ds._get_field_info(*yf)
-        zfi = ds._get_field_info(*zf)
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
+        zfi = profile.field_info[field_z]
         x_unit = profile.x.units
         y_unit = profile.y.units
         z_unit = profile.field_units[field_z]
@@ -791,9 +783,7 @@ class PhasePlot(ImagePlotContainer):
         return label
 
     def _get_field_log(self, field_z, profile):
-        ds = profile.data_source.ds
-        zf, = profile.data_source._determine_fields([field_z])
-        zfi = ds._get_field_info(*zf)
+        zfi = profile.field_info[field_z]
         if self.x_log is None:
             x_log = profile.x_log
         else:
@@ -808,6 +798,10 @@ class PhasePlot(ImagePlotContainer):
             z_log = zfi.take_log
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log], scales[z_log]
+
+    def _recreate_frb(self):
+        # needed for API compatibility with PlotWindow
+        pass
 
     def _setup_plots(self):
         if self._plot_valid:

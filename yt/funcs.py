@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
+from yt.extern.six.moves import input
 import time
 import inspect
 import traceback
@@ -37,10 +38,10 @@ from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import builtins, urllib
+from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.exceptions import YTInvalidWidthError
-import yt.extern.progressbar as pb
+from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
 from functools import wraps
 
@@ -335,6 +336,21 @@ def insert_ipython(num_up=1):
 # Our progress bar types and how to get one
 #
 
+class TqdmProgressBar(object):
+    # This is a drop in replacement for pbar
+    # called tqdm
+    def __init__(self,title, maxval):
+        self._pbar = tqdm(leave=True, total=maxval, desc=title)
+        self.i = 0
+    def update(self, i=None):
+        if i is None:
+            i = self.i + 1
+        n = i - self.i
+        self.i = i
+        self._pbar.update(n)
+    def finish(self):
+        self._pbar.close()
+
 class DummyProgressBar(object):
     # This progressbar gets handed if we don't
     # want ANY output
@@ -373,7 +389,7 @@ class GUIProgressBar(object):
     def finish(self):
         self._pbar.Destroy()
 
-def get_pbar(title, maxval):
+def get_pbar(title, maxval, parallel=False):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -381,17 +397,18 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+        # If parallel is True, update progress on root only.
+        if parallel:
+            if is_root():
+                return TqdmProgressBar(title, maxval)
+            else:
+                return DummyProgressBar()
+        else:
+            return ParallelProgressBar(title, maxval)
+    pbar = TqdmProgressBar(title,maxval)
     return pbar
 
 def only_on_root(func, *args, **kwargs):
@@ -586,7 +603,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
@@ -604,7 +621,7 @@ def get_yt_supp():
         print("*** is a delicate act, I require you to respond   ***")
         print("*** to the prompt with the word 'yes'.            ***")
         print()
-        response = raw_input("Do you want me to try to check it out? ")
+        response = input("Do you want me to try to check it out? ")
         if response != "yes":
             print()
             print("Okay, I understand.  You can check it out yourself.")
@@ -843,3 +860,55 @@ def fix_unitary(u):
         return 'unitary'
     else:
         return u
+
+def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
+    """Generate file hash without reading in the entire file at once.
+
+    Original code licensed under MIT.  Source:
+    http://pythoncentral.io/hashing-files-with-python/
+
+    Parameters
+    ----------
+    infile : str
+        File of interest (including the path).
+    algorithm : str (optional)
+        Hash algorithm of choice. Defaults to 'md5'.
+    BLOCKSIZE : int (optional)
+        How much data in bytes to read in at once.
+
+    Returns
+    -------
+    hash : str
+        The hash of the file.
+
+    Examples
+    --------
+    >>> import yt.funcs as funcs
+    >>> funcs.get_hash('/path/to/test.png')
+    'd38da04859093d430fa4084fd605de60'
+
+    """
+    import hashlib
+
+    try:
+        hasher = getattr(hashlib, algorithm)()
+    except:
+        raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
+                                  (algorithm, hashlib.algorithms))
+
+    filesize   = os.path.getsize(infile)
+    iterations = int(float(filesize)/float(BLOCKSIZE))
+
+    pbar = get_pbar('Generating %s hash' % algorithm, iterations)
+
+    iter = 0
+    with open(infile,'rb') as f:
+        buf = f.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(BLOCKSIZE)
+            iter += 1
+            pbar.update(iter)
+        pbar.finish()
+
+    return hasher.hexdigest()

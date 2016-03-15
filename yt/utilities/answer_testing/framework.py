@@ -51,6 +51,8 @@ from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.profile_plotter as profile_plotter
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -349,11 +351,12 @@ class AnswerTestingTest(object):
 
     def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
         # plot_type should be a string
-        # plot_args should be a tuple
         # plot_kwargs should be a dict
         if plot_type is None:
             raise RuntimeError('Must explicitly request a plot type')
-        cls = getattr(pw, plot_type)
+        cls = getattr(pw, plot_type, None)
+        if cls is None:
+            cls = getattr(particle_plots, plot_type)
         plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
         return plot
 
@@ -668,14 +671,27 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
                             err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
-    fns = ['old.png', 'new.png']
+    fns = []
+    for i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns.append(tmpname)
     num_images = len(old_result)
     assert(num_images > 0)
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(-decimals)) is None
-        for fn in fns: os.remove(fn)
+        results = compare_images(fns[0], fns[1], 10**(-decimals))
+        if results is not None:
+            if os.environ.get("JENKINS_HOME") is not None:
+                tempfiles = [line.strip() for line in results.split('\n')
+                             if line.endswith(".png")]
+                for fn in tempfiles:
+                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                sys.stderr.write('\n')
+        assert_equal(results, None, results)
+        for fn in fns:
+            os.remove(fn)
 
 class VRImageComparisonTest(AnswerTestingTest):
     _type_name = "VRImageComparison"
@@ -740,6 +756,50 @@ class PlotWindowAttributeTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
+class PhasePlotAttributeTest(AnswerTestingTest):
+    _type_name = "PhasePlotAttribute"
+    _attrs = ('plot_type', 'x_field', 'y_field', 'z_field',
+              'attr_name', 'attr_args')
+    def __init__(self, ds_fn, x_field, y_field, z_field, 
+                 attr_name, attr_args, decimals, plot_type='PhasePlot'):
+        super(PhasePlotAttributeTest, self).__init__(ds_fn)
+        self.data_source = self.ds.all_data()
+        self.plot_type = plot_type
+        self.x_field = x_field
+        self.y_field = y_field
+        self.z_field = z_field
+        self.plot_kwargs = {}
+        self.attr_name = attr_name
+        self.attr_args = attr_args
+        self.decimals = decimals
+
+    def create_plot(self, data_source, x_field, y_field, z_field, 
+                    plot_type, plot_kwargs=None):
+        # plot_type should be a string
+        # plot_kwargs should be a dict
+        if plot_type is None:
+            raise RuntimeError('Must explicitly request a plot type')
+        cls = getattr(profile_plotter, plot_type, None)
+        if cls is None:
+            cls = getattr(particle_plots, plot_type)
+        plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
+        return plot
+
+    def run(self):
+        plot = self.create_plot(self.data_source, self.x_field, self.y_field,
+                                self.z_field, self.plot_type, self.plot_kwargs)
+        attr = getattr(plot, self.attr_name)
+        attr(*self.attr_args[0], **self.attr_args[1])
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
     _attrs = ('array_func_name','args','kwargs')
@@ -766,7 +826,7 @@ class GenericArrayTest(AnswerTestingTest):
                                           verbose=True)
         for k in new_result:
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_result[k])
             else:
                 assert_allclose_units(new_result[k], old_result[k],
                                       10**(-self.decimals))
@@ -870,12 +930,9 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
-    if not can_run_ds(ds_fn):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    if not can_run_ds(ds):
         return
-    if ds_kwargs is None:
-        ds_kwargs = {}
-    ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
     yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
                         str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
@@ -899,9 +956,9 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
             for axis in [0, 1, 2]:
                 if particle_type is False:
                     yield PixelizedProjectionValuesTest(
-                        ds_fn, axis, field, weight_field,
+                        ds, axis, field, weight_field,
                         dobj_name)
-            yield FieldValuesTest(ds_fn, field, dobj_name,
+            yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
 
 def create_obj(ds, obj_type):

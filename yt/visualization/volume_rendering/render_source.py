@@ -20,8 +20,10 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler
+    get_corners, new_projection_sampler, new_mesh_sampler, \
+    new_interpolated_projection_sampler
 from yt.visualization.image_writer import apply_colormap
+from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
@@ -70,6 +72,7 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
+
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
@@ -112,8 +115,7 @@ class VolumeSource(RenderSource):
     >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
     >>> sc.add_source(source)
-    >>> cam = Camera(ds)
-    >>> sc.camera = cam
+    >>> sc.add_camera()
     >>> im = sc.render()
 
     """
@@ -159,6 +161,8 @@ class VolumeSource(RenderSource):
             raise RuntimeError("transfer_function not of correct type")
         if isinstance(transfer_function, ProjectionTransferFunction):
             self.sampler_type = 'projection'
+            self.volume.set_fields([self.field], log_fields=[False], 
+                                   no_ghost=True, force=True)
 
         self.transfer_function = transfer_function
         return self
@@ -201,7 +205,8 @@ class VolumeSource(RenderSource):
         """Set the source's fields to render
 
         Parameters
-        ---------
+        ----------
+
         fields: field name or list of field names
             The field or fields to render
         no_ghost: boolean
@@ -215,15 +220,24 @@ class VolumeSource(RenderSource):
         self.volume.set_fields(fields, log_fields, no_ghost)
         self.field = fields
 
-    def set_sampler(self, camera):
+    def set_sampler(self, camera, interpolated=True):
         """Sets a volume render sampler
 
         The type of sampler is determined based on the ``sampler_type`` attribute
         of the VolumeSource. Currently the ``volume_render`` and ``projection``
         sampler types are supported.
+
+        The 'interpolated' argument is only meaningful for projections. If True,
+        the data is first interpolated to the cell vertices, and then tri-linearly
+        interpolated to the ray sampling positions. If False, then the cell-centered
+        data is simply accumulated along the ray. Interpolation is always performed
+        for volume renderings.
+
         """
         if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == 'projection' and interpolated:
+            sampler = new_interpolated_projection_sampler(camera, self)
         elif self.sampler_type == 'projection':
             sampler = new_projection_sampler(camera, self)
         else:
@@ -305,8 +319,8 @@ class VolumeSource(RenderSource):
         return disp
 
 
-class MeshSource(RenderSource):
-    """A source for unstructured mesh data
+class MeshSource(OpaqueSource):
+    """A source for unstructured mesh data.
 
     This functionality requires the embree ray-tracing engine and the
     associated pyembree python bindings to be installed in order to
@@ -325,7 +339,7 @@ class MeshSource(RenderSource):
 
     Examples
     --------
-    >>> source = MeshSource(ds, ('all', 'convected'))
+    >>> source = MeshSource(ds, ('connect1', 'convected'))
     """
 
     _image = None
@@ -340,13 +354,56 @@ class MeshSource(RenderSource):
         self.mesh = None
         self.current_image = None
 
+        # default color map
+        self._cmap = 'algae'
+        self._color_bounds = None
+
+        # default mesh annotation options
+        self._annotate_mesh = False
+        self._mesh_line_color = None
+        self._mesh_line_alpha = 1.0
+
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
 
         self.scene = mesh_traversal.YTEmbreeScene()
-
         self.build_mesh()
+
+    def cmap():
+        '''
+        This is the name of the colormap that will be used when rendering
+        this MeshSource object. Should be a string, like 'algae', or 'hot'.
+        
+        '''
+
+        def fget(self):
+            return self._cmap
+
+        def fset(self, cmap_name):
+            self._cmap = cmap_name
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    cmap = property(**cmap())
+
+    def color_bounds():
+        '''
+        These are the bounds that will be used with the colormap to the display
+        the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
+        None, the bounds will be automatically inferred from the max and min of 
+        the rendered data.
+
+        '''
+        def fget(self):
+            return self._color_bounds
+
+        def fset(self, bounds):
+            self._color_bounds = bounds
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    color_bounds = property(**color_bounds())
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
@@ -362,16 +419,47 @@ class MeshSource(RenderSource):
         This constructs the mesh that will be ray-traced.
 
         """
-        field_data = self.data_source[self.field]
-        vertices = self.data_source.ds.index.meshes[0].connectivity_coords
+        ftype, fname = self.field
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.meshes[mesh_id]._index_offset
+        field_data = self.data_source[self.field].d  # strip units
 
-        # convert the indices to zero-based indexing
-        indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
 
-        self.mesh = mesh_construction.ElementMesh(self.scene,
-                                                  vertices,
-                                                  indices,
-                                                  field_data.d)
+        # if this is an element field, promote to 2D here
+        if len(field_data.shape) == 1:
+            field_data = np.expand_dims(field_data, 1)
+
+        # Here, we decide whether to render based on high-order or 
+        # low-order geometry. Right now, high-order geometry is only
+        # implemented for 20-point hexes.
+        if indices.shape[1] == 20:
+            self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
+                                                               vertices,
+                                                               indices,
+                                                               field_data)
+        else:
+            # if this is another type of higher-order element, we demote
+            # to 1st order here, for now.
+            if indices.shape[1] == 27:
+                # hexahedral
+                mylog.warning("27-node hexes not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:8]
+                indices = indices[:, 0:8]
+            elif indices.shape[1] == 10:
+                # tetrahedral
+                mylog.warning("10-node tetrahedral elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:4]
+                indices = indices[:, 0:4]
+
+            self.mesh = mesh_construction.LinearElementMesh(self.scene,
+                                                            vertices,
+                                                            indices,
+                                                            field_data)
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -392,16 +480,119 @@ class MeshSource(RenderSource):
         the rendered image.
 
         """
- 
+
+        shape = (camera.resolution[0], camera.resolution[1], 4)
+        if zbuffer is None:
+            empty = np.empty(shape, dtype='float64')
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+        elif zbuffer.rgba.shape != shape:
+            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
+                              zbuffer.z.reshape(shape[:2]))
+        self.zbuffer = zbuffer
+
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
         self.sampler(self.scene)
         mylog.debug("Done casting rays")
 
-        self.current_image = self.sampler.aimage
+        self.finalize_image(camera)
+        self.data = self.sampler.aimage
+        self.current_image = self.apply_colormap()
+
+        zbuffer += ZBuffer(self.current_image.astype('float64'),
+                           self.sampler.zbuffer)
+        zbuffer.rgba = ImageArray(zbuffer.rgba)
+        self.zbuffer = zbuffer
+        self.current_image = self.zbuffer.rgba
+
+        if self._annotate_mesh:
+            self.current_image = self.annotate_mesh_lines(self._mesh_line_color,
+                                                          self._mesh_line_alpha)
 
         return self.current_image
+
+    def finalize_image(self, camera):
+        sam = self.sampler
+
+        # reshape data
+        Nx = camera.resolution[0]
+        Ny = camera.resolution[1]
+        sam.aimage = sam.aimage.reshape(Nx, Ny)
+        sam.image_used = sam.image_used.reshape(Nx, Ny)
+        sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
+        sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
+
+        # rotate
+        sam.aimage = np.rot90(sam.aimage, k=2)
+        sam.image_used = np.rot90(sam.image_used, k=2)
+        sam.mesh_lines = np.rot90(sam.mesh_lines, k=2)
+        sam.zbuffer = np.rot90(sam.zbuffer, k=2)
+
+    def annotate_mesh_lines(self, color=None, alpha=1.0):
+        r"""
+
+        Modifies this MeshSource by drawing the mesh lines.
+        This modifies the current image by drawing the element
+        boundaries and returns the modified image.
+
+        Parameters
+        ----------
+        color: array of ints, shape (4), optional
+            The RGBA value to use to draw the mesh lines.
+            Default is black.
+        alpha : float, optional
+            The opacity of the mesh lines. Default is 255 (solid).
+
+        """
+
+        self.annotate_mesh = True
+        self._mesh_line_color = color
+        self._mesh_line_alpha = alpha
+
+        if color is None:
+            color = np.array([0, 0, 0, alpha])
+
+        locs = [self.sampler.mesh_lines == 1]
+
+        self.current_image[:, :, 0][locs] = color[0]
+        self.current_image[:, :, 1][locs] = color[1]
+        self.current_image[:, :, 2][locs] = color[2]
+        self.current_image[:, :, 3][locs] = color[3]
+
+        return self.current_image
+
+    def apply_colormap(self):
+        '''
+
+        Applies a colormap to the current image without re-rendering.
+
+        Parameters
+        ----------
+        cmap_name : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        color_bounds : tuple of floats, optional
+            The min and max to scale between.  Outlying values will be clipped.
+
+        Returns
+        -------
+        current_image : A new image with the specified color scale applied to
+            the underlying data.
+
+
+        '''
+
+        image = apply_colormap(self.data,
+                               color_bounds=self._color_bounds,
+                               cmap_name=self._cmap)/255.
+        alpha = image[:, :, 3]
+        alpha[self.sampler.image_used == -1] = 0.0
+        image[:, :, 3] = alpha        
+        return image
 
     def __repr__(self):
         disp = "<Mesh Source>:%s " % str(self.data_source)
@@ -502,17 +693,7 @@ class PointSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get points plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
-        zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+        zpoints(empty, z, px, py, dz, self.colors, self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -628,22 +809,15 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
         if len(px.shape) == 1:
-            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
-            # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
-            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+            # For stereo-lens, two sets of pos for each eye are contained
+            # in px...pz
+            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors, 
+                   self.color_stride)
+            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors, 
+                   self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -764,12 +938,13 @@ class GridSource(LineSource):
     >>> im = sc.render()
 
     """
+
     def __init__(self, data_source, alpha=0.3, cmap='algae',
                  min_level=None, max_level=None):
-        data_source = data_source_or_all(data_source)
+        self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in data_source.blocks:
+        for block, mask in self.data_source.blocks:
             block_corners = np.array([
                 [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
                 [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -796,7 +971,7 @@ class GridSource(LineSource):
 
         colors = apply_colormap(
             levels*1.0,
-            color_bounds=[0, data_source.ds.index.max_level],
+            color_bounds=[0, self.data_source.ds.index.max_level],
             cmap_name=cmap)[0, :, :]*alpha/255.
         colors[:, 3] = alpha
 
@@ -929,22 +1104,15 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
         if len(px.shape) == 1:
-            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
-            # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
-            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+            # For stereo-lens, two sets of pos for each eye are contained
+            # in px...pz
+            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors,
+                   self.color_stride)
+            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors,
+                   self.color_stride)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

@@ -72,7 +72,7 @@ def test_oap(tmpdir=True):
     # make sure they are able to be projected, then remove and try next
     # iteration
     for oap_kwargs in oap_kwargs_list:
-        image, sc = off_axis_projection(*oap_args, **oap_kwargs)
+        image = off_axis_projection(*oap_args, **oap_kwargs)
         for wp_kwargs in wp_kwargs_list:
             write_projection(image, fn % oap_kwargs, **wp_kwargs)
             yield assert_equal, os.path.exists(fn % oap_kwargs), True

@@ -292,14 +292,14 @@ class SDFRead(dict):
             self.load_memmaps()
 
     def write(self, filename):
-        f = file(filename, 'w')
+        f = open(filename, 'w')
         f.write("# SDF 1.0\n")
         f.write("parameter byteorder = %s;\n" % (self.parameters['byteorder']))
         for c in self.comments:
             if "\x0c" in c: continue
             if "SDF 1.0" in c: continue
             f.write("%s" % c)
-        for k, v in sorted(self.parameters.iteritems()):
+        for k, v in sorted(self.parameters.items()):
             if k == 'byteorder': continue
             try:
                 t = _rev_types[v.dtype.name]
@@ -327,10 +327,10 @@ class SDFRead(dict):
     def __repr__(self):
         disp = "<SDFRead Object> file: %s\n" % self.filename
         disp += "parameters: \n"
-        for k, v in self.parameters.iteritems():
+        for k, v in self.parameters.items():
             disp += "\t%s: %s\n" % (k, v)
         disp += "arrays: \n"
-        for k, v in self.iteritems():
+        for k, v in self.items():
             disp += "\t%s[%s]\n" % (k, v.size)
         return disp
 

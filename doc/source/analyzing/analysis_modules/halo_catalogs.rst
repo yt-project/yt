@@ -169,7 +169,7 @@ This quantity will then be accessible for functions called later via the
 .. code-block:: python
 
    def my_new_function(halo):
-       print halo.quantities["my_quantity"]
+       print(halo.quantities["my_quantity"])
    add_callback("print_quantity", my_new_function)
 
    # ... Anywhere after "my_quantity" has been called
@@ -236,7 +236,7 @@ object was created.
 All callbacks, quantities, and filters are stored in an actions list, 
 meaning that they are executed in the same order in which they were added. 
 This enables the use of simple, reusable, single action callbacks that 
-depend on each other. This also prevents unecessary computation by allowing 
+depend on each other. This also prevents unnecessary computation by allowing 
 the user to add filters at multiple stages to skip remaining analysis if it 
 is not warranted.
 

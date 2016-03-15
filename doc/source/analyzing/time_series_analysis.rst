@@ -64,7 +64,7 @@ is returned for iteration:
    import yt
    ts = yt.load("*/*.index")
    for ds in ts:
-       print ds.current_time
+       print(ds.current_time)
 
 This can also operate in parallel, using
 :meth:`~yt.data_objects.time_series.DatasetSeries.piter`.  For more examples,
@@ -79,7 +79,7 @@ see:
 Analyzing an Entire Simulation
 ------------------------------
 
-.. note:: Implemented for: Enzo, Gadget, OWLS.
+.. note:: Implemented for the Enzo, Gadget, OWLS, and Exodus II frontends.
 
 The parameter file used to run a simulation contains all the information 
 necessary to know what datasets should be available.  The ``simulation`` 
@@ -113,7 +113,7 @@ After this, time series analysis can be done normally.
 
   for ds in my_sim.piter()
       all_data = ds.all_data()
-      print all_data.quantities.extrema('density')
+      print(all_data.quantities.extrema('density'))
  
 Additional keywords can be given to 
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series` 

@@ -13,14 +13,22 @@ Simple utilities that don't fit anywhere else
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.funcs import get_pbar
 import numpy as np
 from yt.units.yt_array import YTArray
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from libc.math cimport abs
-from fp_utils cimport fmin, fmax, i64min, i64max
+from libc.math cimport abs, sqrt
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
 from yt.geometry.selection_routines cimport _ensure_code
+
+from libc.stdlib cimport malloc, free
+from libc.string cimport strcmp
+
+from cython.view cimport memoryview
+from cpython cimport buffer
+
 
 cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
@@ -166,7 +174,6 @@ def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=2] qresult,
                   np.ndarray[np.float64_t, ndim=2] used):
     cdef int n, bini, binj
-    cdef np.int64_t bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
         bini = bins_x[n]
@@ -195,7 +202,6 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=3] qresult,
                   np.ndarray[np.float64_t, ndim=3] used):
     cdef int n, bini, binj, bink
-    cdef np.int64_t bin
     cdef np.float64_t wval, bval
     for n in range(bins_x.shape[0]):
         bini = bins_x[n]
@@ -214,10 +220,10 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def lines(np.ndarray[np.float64_t, ndim=3] image,
-          np.ndarray[np.int64_t, ndim=1] xs,
-          np.ndarray[np.int64_t, ndim=1] ys,
-          np.ndarray[np.float64_t, ndim=2] colors,
+def lines(np.float64_t[:,:,:] image,
+          np.int64_t[:] xs,
+          np.int64_t[:] ys,
+          np.float64_t[:,:] colors,
           int points_per_color=1,
           int thick=1,
 	      int flip=0,
@@ -228,7 +234,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nl = xs.shape[0]
     cdef np.float64_t alpha[4]
     cdef np.float64_t outa
-    cdef int i, j
+    cdef int i, j, xi, yi
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1
     cdef int has_alpha = (image.shape[2] == 4)
@@ -278,7 +284,7 @@ def lines(np.ndarray[np.float64_t, ndim=3] image,
                             yi0 = yi
 
                         if no_color:
-                            image[xi, yi0, 0] = fmin(alpha[i], image[xi, yi0, 0])
+                            image[xi, yi0, 0] = fmin(alpha[0], image[xi, yi0, 0])
                         elif has_alpha:
                             image[xi, yi0, 3] = outa = alpha[3] + image[xi, yi0, 3]*(1-alpha[3])
                             if outa != 0.0:
@@ -322,13 +328,10 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
     cdef np.float64_t alpha[4]
-    cdef np.float64_t outa
     cdef int i, j
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1, yi0
     cdef np.float64_t z0, z1, dzx, dzy
-    cdef int has_alpha = (image.shape[2] == 4)
-    cdef int no_color = (image.shape[2] < 3)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]
@@ -362,7 +365,7 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
             elif (y0 < thick and sy == -1): break
             elif (y0 >= ny-thick+1 and sy == 1): break
             if x0 >= thick and x0 < nx-thick and y0 >= thick and y0 < ny-thick:
-                for xi in range(x0-thick/2, x0+(1+thick)/2):
+                for _ in range(x0-thick/2, x0+(1+thick)/2):
                     for yi in range(y0-thick/2, y0+(1+thick)/2):
                         if flip:
                             yi0 = ny - yi
@@ -494,7 +497,7 @@ def get_color_bounds(np.ndarray[np.float64_t, ndim=1] px,
 def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                        np.ndarray[np.float64_t, ndim=1] l_corner,
                        np.ndarray[np.float64_t, ndim=1] r_corner):
-    cdef int i, j, k, dim, n_unique, best_dim, n_best, n_grids, addit, my_split
+    cdef int i, j, k, dim, n_unique, best_dim, n_grids, my_split
     n_grids = data.shape[0]
     cdef np.float64_t **uniquedims
     cdef np.float64_t *uniques
@@ -505,6 +508,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
                 alloca(2*n_grids * sizeof(np.float64_t))
     my_max = 0
     best_dim = -1
+    my_split = -1
     for dim in range(3):
         n_unique = 0
         uniques = uniquedims[dim]
@@ -536,6 +540,8 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         #print "Setting tarr: ", i, uniquedims[best_dim][i]
         tarr[i] = uniquedims[best_dim][i]
     tarr.sort()
+    if my_split < 0:
+        raise RuntimeError
     split = tarr[my_split]
     cdef np.ndarray[np.uint8_t, ndim=1] less_ids = np.empty(n_grids, dtype='uint8')
     cdef np.ndarray[np.uint8_t, ndim=1] greater_ids = np.empty(n_grids, dtype='uint8')
@@ -784,7 +790,7 @@ def fill_region(input_fields, output_fields,
                 np.int64_t refine_by = 2
                 ):
     cdef int i, n
-    cdef np.int64_t tot, oi, oj, ok, rf
+    cdef np.int64_t tot = 0, oi, oj, ok, rf
     cdef np.int64_t iind[3]
     cdef np.int64_t oind[3]
     cdef np.int64_t dim[3]
@@ -798,6 +804,8 @@ def fill_region(input_fields, output_fields,
     cdef int offsets[3][3]
     cdef np.int64_t off
     for i in range(3):
+        # Offsets here is a way of accounting for periodicity.  It keeps track
+        # of how to offset our grid as we loop over the icoords.
         dim[i] = output_fields[0].shape[i]
         offsets[i][0] = offsets[i][2] = 0
         offsets[i][1] = 1
@@ -815,27 +823,36 @@ def fill_region(input_fields, output_fields,
                 if offsets[0][wi] == 0: continue
                 off = (left_index[0] + level_dims[0]*(wi-1))
                 iind[0] = ipos[i, 0] * rf - off
+                # rf here is the "refinement factor", or, the number of zones
+                # that this zone could potentially contribute to our filled
+                # grid.
                 for oi in range(rf):
                     # Now we need to apply our offset
                     oind[0] = oi + iind[0]
-                    if oind[0] < 0 or oind[0] >= dim[0]:
+                    if oind[0] < 0:
                         continue
+                    elif oind[0] >= dim[0]:
+                        break
                     for wj in range(3):
                         if offsets[1][wj] == 0: continue
                         off = (left_index[1] + level_dims[1]*(wj-1))
                         iind[1] = ipos[i, 1] * rf - off
                         for oj in range(rf):
                             oind[1] = oj + iind[1]
-                            if oind[1] < 0 or oind[1] >= dim[1]:
+                            if oind[1] < 0:
                                 continue
+                            elif oind[1] >= dim[1]:
+                                break
                             for wk in range(3):
                                 if offsets[2][wk] == 0: continue
                                 off = (left_index[2] + level_dims[2]*(wk-1))
                                 iind[2] = ipos[i, 2] * rf - off
                                 for ok in range(rf):
                                     oind[2] = ok + iind[2]
-                                    if oind[2] < 0 or oind[2] >= dim[2]:
+                                    if oind[2] < 0:
                                         continue
+                                    elif oind[2] >= dim[2]:
+                                        break
                                     ofield[oind[0], oind[1], oind[2]] = \
                                         ifield[i]
                                     tot += 1
@@ -854,11 +871,22 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
                       period = None,
                       int check_period = 1):
     cdef np.float64_t ds_period[3]
-    cdef np.float64_t box_dds[3], box_idds[3], width[3], LE[3], RE[3]
-    cdef np.int64_t i, j, k, p, xi, yi, ji
-    cdef np.int64_t dims[3], ld[3], ud[3]
+    cdef np.float64_t box_dds[3]
+    cdef np.float64_t box_idds[3]
+    cdef np.float64_t width[3]
+    cdef np.float64_t LE[3]
+    cdef np.float64_t RE[3]
+    cdef np.int64_t i, j, k, p, xi, yi
+    cdef np.int64_t dims[3]
+    cdef np.int64_t ld[3]
+    cdef np.int64_t ud[3]
     cdef np.float64_t overlap[3]
-    cdef np.float64_t dsp, osp[3], odsp[3], sp[3], lfd[3], ufd[3]
+    cdef np.float64_t dsp
+    cdef np.float64_t osp[3]
+    cdef np.float64_t odsp[3]
+    cdef np.float64_t sp[3]
+    cdef np.float64_t lfd[3]
+    cdef np.float64_t ufd[3]
     # These are the temp vars we get from the arrays
     # Some periodicity helpers
     cdef int diter[3][2]
@@ -946,3 +974,173 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
                                         dest[i,j,k] += dsp * (overlap[0]*overlap[1]*overlap[2])
                                     else:
                                         dest[i,j,k] = dsp
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def gravitational_binding_energy(
+        np.float64_t[:] mass,
+        np.float64_t[:] x,
+        np.float64_t[:] y,
+        np.float64_t[:] z,
+        int truncate,
+        np.float64_t kinetic):
+
+    cdef int q_outer, q_inner, n_q, i
+    cdef np.float64_t mass_o, x_o, y_o, z_o
+    cdef np.float64_t mass_i, x_i, y_i, z_i
+    cdef np.float64_t this_potential, total_potential
+    total_potential = 0.
+
+    i = 0
+    n_q = mass.size
+    pbar = get_pbar("Calculating potential for %d cells" % n_q,
+                    0.5 * (n_q**2 - n_q))
+    for q_outer in range(n_q - 1):
+        this_potential = 0.
+        mass_o = mass[q_outer]
+        x_o = x[q_outer]
+        y_o = y[q_outer]
+        z_o = z[q_outer]
+        for q_inner in range(q_outer + 1, n_q):
+            mass_i = mass[q_inner]
+            x_i = x[q_inner]
+            y_i = y[q_inner]
+            z_i = z[q_inner]
+            this_potential += mass_o * mass_i / \
+              sqrt((x_i - x_o) * (x_i - x_o) +
+                   (y_i - y_o) * (y_i - y_o) +
+                   (z_i - z_o) * (z_i - z_o))
+        i += n_q - q_outer
+        pbar.update(i)
+        total_potential += this_potential
+        if truncate and total_potential / kinetic > 1.:
+            break
+    pbar.finish()
+
+    return total_potential
+
+# The OnceIndirect code is from:
+# http://stackoverflow.com/questions/10465091/assembling-a-cython-memoryview-from-numpy-arrays/12991519#12991519
+# This is under the CC-BY-SA license.
+
+cdef class OnceIndirect:
+    cdef object _objects
+    cdef void** buf
+    cdef int ndim
+    cdef int n_rows
+    cdef int buf_len
+    cdef Py_ssize_t* shape
+    cdef Py_ssize_t* strides
+    cdef Py_ssize_t* suboffsets
+    cdef Py_ssize_t itemsize
+    cdef bytes format
+    cdef int is_readonly
+
+    def __cinit__(self, object rows, want_writable=True, want_format=True, allow_indirect=False):
+        """
+        Set want_writable to False if you don't want writable data. (This may
+        prevent copies.)
+        Set want_format to False if your input doesn't support PyBUF_FORMAT (unlikely)
+        Set allow_indirect to True if you are ok with the memoryview being indirect
+        in dimensions other than the first. (This may prevent copies.)
+
+        An example usage:
+
+        cdef double[::cython.view.indirect, ::1] vectors =
+            OnceIndirect([object.vector for object in objects])
+        """
+        demand = buffer.PyBUF_INDIRECT if allow_indirect else buffer.PyBUF_STRIDES
+        if want_writable:
+            demand |= buffer.PyBUF_WRITABLE
+        if want_format:
+            demand |= buffer.PyBUF_FORMAT
+        self._objects = [memoryview(row, demand) for row in rows]
+        self.n_rows = len(self._objects)
+        self.buf_len = sizeof(void*) * self.n_rows
+        self.buf = <void**>malloc(self.buf_len)
+        self.ndim = 1 + self._objects[0].ndim
+        self.shape = <Py_ssize_t*>malloc(sizeof(Py_ssize_t) * self.ndim)
+        self.strides = <Py_ssize_t*>malloc(sizeof(Py_ssize_t) * self.ndim)
+        self.suboffsets = <Py_ssize_t*>malloc(sizeof(Py_ssize_t) * self.ndim)
+
+        cdef memoryview example_obj = self._objects[0]
+        self.itemsize = example_obj.itemsize
+
+        if want_format:
+            self.format = example_obj.view.format
+        else:
+            self.format = None
+        self.is_readonly |= example_obj.view.readonly
+
+        for dim in range(self.ndim):
+            if dim == 0:
+                self.shape[dim] = self.n_rows
+                self.strides[dim] = sizeof(void*)
+                self.suboffsets[dim] = 0
+            else:
+                self.shape[dim] = example_obj.view.shape[dim - 1]
+                self.strides[dim] = example_obj.view.strides[dim - 1]
+                if example_obj.view.suboffsets == NULL:
+                    self.suboffsets[dim] = -1
+                else:
+                    self.suboffsets[dim] = example_obj.suboffsets[dim - 1]
+
+        cdef memoryview obj
+        cdef int i = 0
+        for obj in self._objects:
+            assert_similar(example_obj, obj)
+            self.buf[i] = obj.view.buf
+            i += 1
+
+    def __getbuffer__(self, Py_buffer* buff, int flags):
+        if (flags & buffer.PyBUF_INDIRECT) != buffer.PyBUF_INDIRECT:
+            raise Exception("don't want to copy data")
+        if flags & buffer.PyBUF_WRITABLE and self.is_readonly:
+            raise Exception("couldn't provide writable, you should have demanded it earlier")
+        if flags & buffer.PyBUF_FORMAT:
+            if self.format is None:
+                raise Exception("couldn't provide format, you should have demanded it earlier")
+            buff.format = self.format
+        else:
+            buff.format = NULL
+
+        buff.buf = <void*>self.buf
+        buff.obj = self
+        buff.len = self.buf_len
+        buff.readonly = self.is_readonly
+        buff.ndim = self.ndim
+        buff.shape = self.shape
+        buff.strides = self.strides
+        buff.suboffsets = self.suboffsets
+        buff.itemsize = self.itemsize
+        buff.internal = NULL
+
+    def __dealloc__(self):
+        free(self.buf)
+        free(self.shape)
+        free(self.strides)
+        free(self.suboffsets)
+
+cdef int assert_similar(memoryview left_, memoryview right_) except -1:
+    cdef Py_buffer left = left_.view
+    cdef Py_buffer right = right_.view
+    assert left.ndim == right.ndim
+    cdef int i
+    for i in range(left.ndim):
+        assert left.shape[i] == right.shape[i], (left_.shape, right_.shape)
+        assert left.strides[i] == right.strides[i], (left_.strides, right_.strides)
+
+    if left.suboffsets == NULL:
+        assert right.suboffsets == NULL, (left_.suboffsets, right_.suboffsets)
+    else:
+        for i in range(left.ndim):
+            assert left.suboffsets[i] == right.suboffsets[i], (left_.suboffsets, right_.suboffsets)
+
+    if left.format == NULL:
+        assert right.format == NULL, (bytes(left.format), bytes(right.format))
+    else:
+        #alternatively, compare as Python strings:
+        #assert bytes(left.format) == bytes(right.format)
+        assert strcmp(left.format, right.format) == 0, (bytes(left.format), bytes(right.format))
+    return 0

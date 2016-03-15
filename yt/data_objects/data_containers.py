@@ -36,6 +36,7 @@ from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+import yt.units.dimensions as ytdims
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
@@ -45,7 +46,8 @@ from yt.utilities.exceptions import \
     YTFieldNotParseable, \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
-    YTDataSelectorNotImplemented
+    YTDataSelectorNotImplemented, \
+    YTDimensionalityError
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -186,11 +188,11 @@ class YTDataContainer(object):
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.in_cgs())
+            self.center = self.ds.arr(center.copy())
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.in_cgs() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center])
                 self.center.convert_to_units('code_length')
             else:
                 self.center = self.ds.arr(center, 'code_length')
@@ -588,7 +590,7 @@ class YTDataContainer(object):
                         extra_attrs=extra_attrs)
 
         return filename
-        
+
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
@@ -613,10 +615,84 @@ class YTDataContainer(object):
 
     # Numpy-like Operations
     def argmax(self, field, axis=None):
-        raise NotImplementedError
+        r"""Return the values at which the field is maximized.
+
+        This will, in a parallel-aware fashion, find the maximum value and then
+        return to you the values at that maximum location that are requested
+        for "axis".  By default it will return the spatial positions (in the
+        natural coordinate system), but it can be any field
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to maximize.
+        axis : string or list of strings, optional
+            If supplied, the fields to sample along; if not supplied, defaults
+            to the coordinate fields.  This can be the name of the coordinate
+            fields (i.e., 'x', 'y', 'z') or a list of fields, but cannot be 0,
+            1, 2.
+
+        Returns
+        -------
+        A list of YTQuantities as specified by the axis argument.
+
+        Examples
+        --------
+
+        >>> temp_at_max_rho = reg.argmax("density", axis="temperature")
+        >>> max_rho_xyz = reg.argmax("density")
+        >>> t_mrho, v_mrho = reg.argmax("density", axis=["temperature",
+        ...                 "velocity_magnitude"])
+        >>> x, y, z = reg.argmax("density")
+
+        """
+        if axis is None:
+            mv, pos0, pos1, pos2 = self.quantities.max_location(field)
+            return pos0, pos1, pos2
+        rv = self.quantities.sample_at_max_field_values(field, axis)
+        if len(rv) == 2:
+            return rv[1]
+        return rv[1:]
 
     def argmin(self, field, axis=None):
-        raise NotImplementedError
+        r"""Return the values at which the field is minimized.
+
+        This will, in a parallel-aware fashion, find the minimum value and then
+        return to you the values at that minimum location that are requested
+        for "axis".  By default it will return the spatial positions (in the
+        natural coordinate system), but it can be any field
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to minimize.
+        axis : string or list of strings, optional
+            If supplied, the fields to sample along; if not supplied, defaults
+            to the coordinate fields.  This can be the name of the coordinate
+            fields (i.e., 'x', 'y', 'z') or a list of fields, but cannot be 0,
+            1, 2.
+
+        Returns
+        -------
+        A list of YTQuantities as specified by the axis argument.
+
+        Examples
+        --------
+
+        >>> temp_at_min_rho = reg.argmin("density", axis="temperature")
+        >>> min_rho_xyz = reg.argmin("density")
+        >>> t_mrho, v_mrho = reg.argmin("density", axis=["temperature",
+        ...                 "velocity_magnitude"])
+        >>> x, y, z = reg.argmin("density")
+
+        """
+        if axis is None:
+            mv, pos0, pos1, pos2 = self.quantities.min_location(field)
+            return pos0, pos1, pos2
+        rv = self.quantities.sample_at_min_field_values(field, axis)
+        if len(rv) == 2:
+            return rv[1]
+        return rv[1:]
 
     def _compute_extrema(self, field):
         if self._extrema_cache is None:
@@ -712,7 +788,27 @@ class YTDataContainer(object):
         raise NotImplementedError
 
     def ptp(self, field):
-        raise NotImplementedError
+        r"""Compute the range of values (maximum - minimum) of a field.
+
+        This will, in a parallel-aware fashion, compute the "peak-to-peak" of
+        the given field.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to average.
+
+        Returns
+        -------
+        Scalar
+
+        Examples
+        --------
+
+        >>> rho_range = reg.ptp("density")
+        """
+        ex = self._compute_extrema(field)
+        return ex[1] - ex[0]
 
     def hist(self, field, weight = None, bins = None):
         raise NotImplementedError
@@ -841,7 +937,7 @@ class YTDataContainer(object):
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (i, getattr(self, i).in_cgs())
+                s += ", %s=%s" % (i, getattr(self, i).in_base(unit_system=self.ds.unit_system))
             except AttributeError:
                 s += ", %s=%s" % (i, getattr(self, i))
         return s
@@ -960,6 +1056,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                    "of lower dimensionality (%u vs %u)" %
                                     (data_source._dimensionality, self._dimensionality))
             self.field_parameters.update(data_source.field_parameters)
+        self.quantities = DerivedQuantityCollection(self)
 
     @property
     def selector(self):
@@ -1112,13 +1209,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # infer the units from the units of the data we get back
                         # from the field function and use these units for future
                         # field accesses
-                        units = str(getattr(fd, 'units', ''))
+                        units = getattr(fd, 'units', '')
+                        if units == '':
+                            dimensions = ytdims.dimensionless
+                        else:
+                            dimensions = units.dimensions
+                            units = str(units.get_base_equivalent(self.ds.unit_system.name))
+                        if fi.dimensions != dimensions:
+                            raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
                         mylog.warn(msg % (fi.name, units))
-                        continue
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:
@@ -1363,7 +1466,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._set_center(center)
         self.coords = None
         self._grids = None
-        self.quantities = DerivedQuantityCollection(self)
 
     def cut_region(self, field_cuts, field_parameters=None):
         """

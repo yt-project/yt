@@ -73,4 +73,10 @@ class FITSFileHandler(HDF5FileHandler):
         super(FITSFileHandler, self).__del__()
 
     def close(self):
-        pass
+        self.handle.close()
+
+class NetCDF4FileHandler(object):
+    def __init__(self, filename):
+        from netCDF4 import Dataset
+        ds = Dataset(filename)
+        self.dataset = ds

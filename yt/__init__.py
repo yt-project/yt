@@ -170,9 +170,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.convenience import \
     load, simulation
 
-from yt.testing import \
-    run_nose
+from yt.testing import run_nose
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
+
+from yt.units.unit_systems import UnitSystem
+from yt.units.unit_object import unit_system_registry
+
+from yt.analysis_modules.list_modules import \
+    amods

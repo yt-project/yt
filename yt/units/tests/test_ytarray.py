@@ -382,6 +382,7 @@ def test_comparisons():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 1, 3], 'cm')
     a3 = YTArray([.02, .01, .03], 'm')
+    dimless = np.array([2,1,3])
 
     ops = (
         np.less,
@@ -403,12 +404,22 @@ def test_comparisons():
 
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a2, op, answer
+    for op, answer in zip(ops, answers):
+        yield operate_and_compare, a1, dimless, op, answer
 
     for op in ops:
         yield assert_raises, YTUfuncUnitError, op, a1, a3
 
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a3.in_units('cm'), op, answer
+    
+    # Check that comparisons with dimensionless quantities work in both directions.
+    yield operate_and_compare, a3, dimless, np.less, [True, True, True]
+    yield operate_and_compare, dimless, a3, np.less, [False, False, False]
+    yield assert_equal, a1 < 2, [True, False, False]
+    yield assert_equal, a1 < 2, np.less(a1, 2)
+    yield assert_equal, 2 < a1, [False, False, True]
+    yield assert_equal, 2 < a1, np.less(2, a1)
 
 
 def test_unit_conversions():
@@ -466,6 +477,11 @@ def test_unit_conversions():
     yield assert_equal, em3.in_mks(), 1e-7
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
+
+    em3_converted = YTQuantity(1545436840.386756, 'Msun/(Myr**2*kpc)')
+    yield assert_equal, em3.in_base(unit_system="galactic"), em3
+    yield assert_array_almost_equal, em3.in_base(unit_system="galactic"), em3_converted
+    yield assert_equal, str(em3.in_base(unit_system="galactic").units), 'Msun/(Myr**2*kpc)'
 
     dimless = YTQuantity(1.0, "")
     yield assert_equal, dimless.in_cgs(), dimless
@@ -924,6 +940,12 @@ def test_h5_io():
 
     yield assert_equal, warr, iarr
     yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
+
+    warr.write_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    giarr = YTArray.from_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    yield assert_equal, warr, giarr
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)

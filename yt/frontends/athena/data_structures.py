@@ -152,10 +152,7 @@ class AthenaHierarchy(GridIndex):
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
         self.index_filename = os.path.join(os.getcwd(), self.dataset.filename)
-        if PY2:
-            self._fhandle = file(self.index_filename,'rb')
-        else:
-            self._fhandle = open(self.index_filename,'rb')
+        self._fhandle = open(self.index_filename,'rb')
         GridIndex.__init__(self, ds, dataset_type)
 
         self._fhandle.close()
@@ -447,7 +444,7 @@ class AthenaDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None,
-                 units_override=None, nprocs=1):
+                 units_override=None, nprocs=1, unit_system="cgs"):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
         if parameters is None:
@@ -464,7 +461,8 @@ class AthenaDataset(Dataset):
                                   "and will be removed in a future release. Use units_override instead.")
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]

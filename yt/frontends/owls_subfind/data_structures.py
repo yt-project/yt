@@ -24,6 +24,7 @@ import os
 from .fields import \
     OWLSSubfindFieldInfo
 
+from yt.funcs import only_on_root
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
@@ -105,11 +106,13 @@ class OWLSSubfindDataset(Dataset):
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="subfind_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None):
+                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(OWLSSubfindDataset, self).__init__(filename, dataset_type,
-                                                 units_override=units_override)
+                                                 units_override=units_override,
+                                                 unit_system=unit_system)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -157,7 +160,7 @@ class OWLSSubfindDataset(Dataset):
     def _set_code_unit_attributes(self):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in Mpc/h (comoving)")
+            only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
             self._unit_base = dict(length = (1.0, "Mpccm/h"))
         # The other same defaults we will use from the standard Gadget
         # defaults.

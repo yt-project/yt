@@ -59,6 +59,9 @@ class UnstructuredMesh(YTSelectionContainer):
         self._current_fluid_type = self.ds.default_fluid_type
 
     def _check_consistency(self):
+        if self.connectivity_indices.shape[1] != self._connectivity_length:
+            raise RuntimeError
+
         for gi in range(self.connectivity_indices.shape[0]):
             ind = self.connectivity_indices[gi, :] - self._index_offset
             coords = self.connectivity_coords[ind, :]
@@ -136,7 +139,7 @@ class UnstructuredMesh(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask,...]
+        dest[offset:offset+count] = source[mask, ...]
         return count
 
     def count(self, selector):
@@ -167,10 +170,11 @@ class UnstructuredMesh(YTSelectionContainer):
 
     def select_fcoords_vertex(self, dobj = None):
         mask = self._get_selector_mask(dobj.selector)
-        if mask is None: return np.empty((0,self._connectivity_length,3), dtype='float64')
+        if mask is None: return np.empty((0, self._connectivity_length, 3), dtype='float64')
         vertices = self.connectivity_coords[
                 self.connectivity_indices - 1]
         return vertices[mask, :, :]
+
 
 class SemiStructuredMesh(UnstructuredMesh):
     _connectivity_length = 8

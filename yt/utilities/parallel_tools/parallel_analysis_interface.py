@@ -29,7 +29,7 @@ from yt.funcs import \
 
 from yt.config import ytcfg
 import yt.utilities.logger
-from yt.utilities.lib.QuadTree import \
+from yt.utilities.lib.quad_tree import \
     QuadTree, merge_quadtrees
 from yt.units.yt_array import YTArray
 from yt.units.unit_registry import UnitRegistry

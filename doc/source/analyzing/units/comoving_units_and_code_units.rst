@@ -12,7 +12,7 @@ Units for Cosmological Datasets
 
 yt has additional capabilities to handle the comoving coordinate system used
 internally in cosmological simulations. Simulations that use comoving
-coordinates, all length units have three other counterparts correspoding to
+coordinates, all length units have three other counterparts corresponding to
 comoving units, scaled comoving units, and scaled proper units. In all cases
 'scaled' units refer to scaling by the reduced Hubble parameter - i.e. the length
 unit is what it would be in a universe where Hubble's parameter is 100 km/s/Mpc.

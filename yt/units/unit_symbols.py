@@ -172,3 +172,10 @@ T = tesla = Tesla = quan(1.0, "T")
 A = ampere = Ampere = quan(1.0, "A")
 V = volt = Volt = quan(1.0, "V")
 ohm = Ohm = quan(1.0, "ohm")
+
+#
+# Geographic units
+#
+
+latitude = lat = quan(1.0, "lat")
+longitude = lon = quan(1.0, "lon")

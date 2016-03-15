@@ -13,8 +13,8 @@ Volume rendering
 
 
 from .scene import Scene
-from .camera import Camera
-from .render_source import VolumeSource
+from .render_source import VolumeSource, \
+    MeshSource
 from .utils import data_source_or_all
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
@@ -60,6 +60,7 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
     >>> sc = yt.create_scene(ds)
     """
+
     data_source = data_source_or_all(data_source)
     sc = Scene()
     if field is None:
@@ -69,9 +70,13 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
                   Please specify a field in create_scene()""" % (field, data_source.ds))
         mylog.info('Setting default field to %s' % field.__repr__())
 
-    vol = VolumeSource(data_source, field=field)
-    sc.add_source(vol)
-    sc.camera = Camera(data_source=data_source, lens_type=lens_type)
+    if hasattr(data_source.ds.index, "meshes"):
+        source = MeshSource(data_source, field=field)
+    else:
+        source = VolumeSource(data_source, field=field)
+
+    sc.add_source(source)
+    sc.add_camera(data_source=data_source, lens_type=lens_type)
     return sc
 
 

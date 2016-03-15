@@ -47,13 +47,15 @@ class HTTPStreamDataset(ParticleDataset):
     
     def __init__(self, base_url,
                  dataset_type = "http_particle_stream",
-                 n_ref = 64, over_refine_factor=1):
+                 n_ref = 64, over_refine_factor=1, 
+                 unit_system="cgs"):
         if requests is None:
             raise RuntimeError
         self.base_url = base_url
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(HTTPStreamDataset, self).__init__("", dataset_type)
+        super(HTTPStreamDataset, self).__init__("", dataset_type, 
+                                                unit_system=unit_system)
 
     def __repr__(self):
         return self.base_url

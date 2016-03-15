@@ -17,17 +17,16 @@ from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
     get_output_filename, \
-    mylog
-from yt.units.unit_object import Unit
+    mylog, \
+    ensure_list
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
+    pixelize_cylinder, pixelize_off_axis_cartesian
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.frontends.stream.api import load_uniform_grid
 
-from . import _MPL
 import numpy as np
 import weakref
 import re
@@ -333,7 +332,17 @@ class FixedResolutionBuffer(object):
 
         from yt.utilities.fits_image import FITSImageData
 
-        if fields is None: fields = list(self.data.keys())
+        if fields is None:
+            fields = list(self.data.keys())
+        else:
+            fields = ensure_list(fields)
+
+        if len(fields) == 0:
+            raise RuntimeError(
+                "No fields to export. Either pass a field or list of fields to "
+                "export_fits or access a field from the fixed resolution buffer "
+                "object."
+            )
 
         fib = FITSImageData(self, fields=fields, units=units)
         if other_keys is not None:
@@ -527,7 +536,8 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = _MPL.CPixelize( self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
+        buff = pixelize_off_axis_cartesian(
+                               self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
                                self.data_source['px'],  self.data_source['py'],
                                self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
                                self.data_source.center, self.data_source._inv_mat, indices,
@@ -559,15 +569,12 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff, sc = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost, interpolated=dd.interpolated,
                                    north_vector=dd.north_vector, method=dd.method)
-        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
-        if dd.weight_field is None and dd.method == "integrate":
-            units *= Unit('cm', registry=dd.ds.unit_registry)
-        ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
+        ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
         self[item] = ia
         return ia
 
@@ -608,8 +615,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
-        x_data = self.data_source.dd[self.x_field]
-        y_data = self.data_source.dd[self.y_field]
+        ftype = item[0]
+        x_data = self.data_source.dd[ftype, self.x_field]
+        y_data = self.data_source.dd[ftype, self.y_field]
         data = self.data_source.dd[item]
 
         # convert to pixels

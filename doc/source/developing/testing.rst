@@ -339,11 +339,11 @@ You can find examples there of how to write a test.  Here is a trivial example:
 .. code-block:: python
 
    #!python
-   class MaximumValue(AnswerTestingTest):
-       _type_name = "ParentageRelationships"
+   class MaximumValueTest(AnswerTestingTest):
+       _type_name = "MaximumValue"
        _attrs = ("field",)
        def __init__(self, ds_fn, field):
-           super(MaximumValue, self).__init__(ds_fn)
+           super(MaximumValueTest, self).__init__(ds_fn)
            self.field = field
 
        def run(self):
@@ -381,10 +381,10 @@ To write a new test:
 * Typically for derived values, we compare to 10 or 12 decimal places.
   For exact values, we compare exactly.
 
-How to Add Data to the Testing Suite
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+How To Write Answer Tests for a Frontend
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To add data to the testing suite, first write a new set of tests for the data.
+To add a new frontend answer test, first write a new set of tests for the data.
 The Enzo example in ``yt/frontends/enzo/tests/test_outputs.py`` is
 considered canonical.  Do these things:
 
@@ -399,8 +399,13 @@ considered canonical.  Do these things:
   * This routine should test a number of different fields and data objects.
 
   * The test routine itself should be decorated with
-    ``@requires_ds(path_to_test_dataset)``. This decorator can accept the
-    argument ``big_data=True`` if the test is expensive.
+    ``@requires_ds(test_dataset_name)``. This decorator can accept the
+    argument ``big_data=True`` if the test is expensive. The 
+    ``test_dataset_name`` should be a string containing the path you would pass
+    to the ``yt.load`` function. It does not need to be the full path to the 
+    dataset, since the path will be automatically prepended with the location of
+    the test data directory.  See :ref:`configuration-file` for more information
+    about the ``test_data-dir`` configuration option.
 
   * There are ``small_patch_amr`` and ``big_patch_amr`` routines that you can
     yield from to execute a bunch of standard tests. In addition we have created
@@ -408,7 +413,66 @@ considered canonical.  Do these things:
     you should start, and then yield additional tests that stress the outputs in
     whatever ways are necessary to ensure functionality.
 
-  * **All tests should be yielded!**
-
 If you are adding to a frontend that has a few tests already, skip the first
 two steps.
+
+How to Write Image Comparison Tests
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+We have a number of tests designed to compare images as part of yt. We make use
+of some functionality from matplotlib to automatically compare images and detect
+differences, if any. Image comparison tests are used in the plotting and volume
+rendering machinery.
+
+The easiest way to use the image comparison tests is to make use of the 
+``GenericImageTest`` class. This class takes three arguments:
+
+* A dataset instance (e.g. something you load with ``yt.load`` or 
+  ``data_dir_load``) 
+* A function the test machinery can call which will save an image to disk. The 
+  test class will then find any images that get created and compare them with the
+  stored "correct" answer.
+* An integer specifying the number of decimal places to use when comparing
+  images. A smaller number of decimal places will produce a less stringent test.
+  Matplotlib uses an L2 norm on the full image to do the comparison tests, so
+  this is not a pixel-by-pixel measure, and surprisingly large variations will
+  still pass the test if the strictness of the comparison is not high enough.
+
+You *must* decorate your test function with ``requires_ds``, otherwise the 
+answer testing machinery will not be properly set up.
+
+Here is an example test function:
+
+.. code-block:: python
+
+   from yt.utilities.answer_testing.framework import \
+       GenericImageTest, requires_ds, data_dir_load
+
+   from matplotlib import pyplot as plt
+
+   @requires_ds(my_ds)
+   def test_my_ds():
+       ds = data_dir_load(my_ds)
+
+       def create_image(filename_prefix):
+           plt.plot([1, 2], [1, 2])
+           plt.savefig(filename_prefix)
+       test = GenericImageTest(ds, create_image, 12)
+
+       # this ensures the test has a unique key in the
+       # answer test storage file
+       test.prefix = "my_unique_name"
+
+       # this ensures a nice test name in nose's output
+       test_my_ds.__description__ = test.description
+
+       yield test_my_ds
+
+Another good example of an image comparison test is the
+``PlotWindowAttributeTest`` defined in the answer testing framework and used in
+``yt/visualization/tests/test_plotwindow.py``. This test shows how a new answer
+test subclass can be used to programmatically test a variety of different methods
+of a complicated class using the same test class. This sort of image comparison
+test is more useful if you are finding yourself writing a ton of boilerplate
+code to get your image comparison test working.  The ``GenericImageTest`` is
+more useful if you only need to do a one-off image comparison test.

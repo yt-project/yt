@@ -38,6 +38,7 @@ cdef class Node:
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   int grid,
                   np.int64_t node_id):
+        self.dirty = False
         self.left = left
         self.right = right
         self.parent = parent
@@ -48,6 +49,7 @@ cdef class Node:
         self.grid = grid
         self.node_id = node_id
         self.split == NULL
+
 
     def print_me(self):
         print 'Node %i' % self.node_id
@@ -134,6 +136,10 @@ cdef int should_i_build(Node node, int rank, int size):
         return 1
     else:
         return 0
+
+def set_dirty(Node trunk, bint state):
+    for node in depth_traverse(trunk):
+        node.dirty = state
 
 def kd_traverse(Node trunk, viewpoint=None):
     if viewpoint is None:
@@ -277,7 +283,6 @@ cdef add_grids(Node node,
                     int rank,
                     int size):
     cdef int i, j, nless, ngreater
-    cdef np.int64_t gid
     if not should_i_build(node, rank, size):
         return
 
@@ -468,7 +473,7 @@ cdef kdtree_get_choices(int n_grids,
                         np.uint8_t *less_ids,
                         np.uint8_t *greater_ids,
                        ):
-    cdef int i, j, k, dim, n_unique, best_dim, n_best, addit, my_split
+    cdef int i, j, k, dim, n_unique, best_dim, my_split
     cdef np.float64_t split
     cdef np.float64_t **uniquedims
     cdef np.float64_t *uniques
@@ -542,7 +547,7 @@ cdef int split_grids(Node node,
                        int rank,
                        int size):
     # Find a Split
-    cdef int i, j, k
+    cdef int i, j
 
     data = <np.float64_t ***> malloc(ngrids * sizeof(np.float64_t**))
     for i in range(ngrids):

@@ -328,7 +328,7 @@ projection through a simulation.
    W = [0.02, 0.02, 0.02]
    c = [0.5, 0.5, 0.5]
    N = 512
-   image, sc = yt.off_axis_projection(ds, c, L, W, N, "density")
+   image = yt.off_axis_projection(ds, c, L, W, N, "density")
    yt.write_image(np.log10(image), "%s_offaxis_projection.png" % ds)
 
 Here, ``W`` is the width of the projection in the x, y, *and* z
@@ -354,6 +354,78 @@ to project along, and a field to project.  For example:
 OffAxisProjectionPlots can also be created with a number of
 keyword arguments, as described in
 :class:`~yt.visualization.plot_window.OffAxisProjectionPlot`
+
+.. _unstructured-mesh-slices:
+
+Unstructured Mesh Slices
+------------------------
+
+Unstructured Mesh datasets can be sliced using the same syntax as above.
+Here is an example script using a publically available MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
+   sl = yt.SlicePlot(ds, 'x', ('connect1', 'diffused'))
+   sl.zoom(0.75)
+   sl.save()
+
+Here, we plot the ``'diffused'`` variable, using a slice normal to the ``'x'`` direction, 
+through the meshed labelled by ``'connect1'``. By default, the slice goes through the
+center of the domain. We have also zoomed out a bit to get a better view of the 
+resulting structure. To instead plot the ``'convected'`` variable, using a slice normal
+to the ``'z'`` direction through the mesh labelled by ``'connect2'``, we do:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MOOSE_sample_data/out.e-s010")
+   sl = yt.SlicePlot(ds, 'z', ('connect2', 'convected'))
+   sl.zoom(0.75)
+   sl.save()
+
+These slices are made by sampling the finite element solution at the points corresponding 
+to each pixel of the image. The ``'convected'`` and ``'diffused'`` variables are node-centered,
+so this interpolation is performed by converting the sample point the reference coordinate
+system of the element and evaluating the appropriate shape functions. You can also
+plot element-centered fields:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e-s010')
+   sl = yt.SlicePlot(ds, 'y', ('connect1', 'conv_indicator'))
+   sl.zoom(0.75)
+   sl.save()
+
+We can also annotate the mesh lines, as follows:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e-s010')
+   sl = yt.SlicePlot(ds, 'z', ('connect1', 'diffused'))
+   sl.annotate_mesh_lines(thresh=0.1)
+   sl.zoom(0.75)
+   sl.save()
+
+This annotation is performed by marking the pixels where the mapped coordinate is close
+to the element boundary. What counts as 'close' (in the mapped coordinate system) is 
+determined by the ``thresh`` parameter, which can be varied to make the lines thicker or
+thinner.
+
+Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
+slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
+an example using another MOOSE dataset:
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e')
+   sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
+
 
 Plot Customization: Recentering, Resizing, Colormaps, and More
 --------------------------------------------------------------
@@ -723,9 +795,9 @@ The profiled fields can be accessed from the dictionary ``field_data``.
                       weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
-   print profile.x
+   print(profile.x)
    # print the profiled cell_mass field
-   print profile['cell_mass']
+   print(profile['cell_mass'])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for
@@ -1380,7 +1452,9 @@ filesize.
 .. note::
    PyX must be installed, which can be accomplished either manually
    with ``pip install pyx`` or with the install script by setting
-   ``INST_PYX=1``.
+   ``INST_PYX=1``. If you are using python2, you must install pyx
+   version 0.12.1 with ``pip install pyx==0.12.1``, since that is 
+   the last version with python2 support.
 
 This module can take any of the plots mentioned above and create an
 EPS or PDF figure.  For example,
@@ -1427,3 +1501,31 @@ The routine will try its best to place the colorbars in the optimal
 margin, but it can be overridden by providing the keyword
 ``cb_location`` with a dict of either ``right, left, top, bottom``
 with the fields as the keys.
+
+You can also combine slices, projections, and phase plots. Here is
+an example that includes slices and phase plots:
+
+.. code-block:: python
+
+    from yt import SlicePlot, PhasePlot
+    from yt.visualization.eps_writer import multiplot_yt
+   
+    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+    p1 = SlicePlot(ds, 0, 'density')
+    p1.set_width(10, 'kpc')
+   
+    p2 = SlicePlot(ds, 0, 'temperature')
+    p2.set_width(10, 'kpc')
+    p2.set_cmap('temperature', 'hot')
+
+    sph = ds.sphere(ds.domain_center, (10, 'kpc'))
+    p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
+                   weight_field='cell_mass')
+
+    p4 = PhasePlot(sph, 'radius', 'density', 'pressure', 'cell_mass')
+
+    mp = multiplot_yt(2, 2, [p1, p2, p3, p4], savefig="yt", shrink_cb=0.9,
+                      bare_axes=False, yt_nocbar=False, margins=(0.5,0.5))
+
+    mp.save_fig('multi_slice_phase')

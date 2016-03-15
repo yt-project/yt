@@ -34,3 +34,5 @@ from .io import \
       IOHandlerStream
 
 from . import tests
+
+from . import sample_data

@@ -11,25 +11,31 @@ Test Surface Mesh Rendering
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import yt
-import numpy as np
+from yt.testing import fake_tetrahedral_ds
+from yt.testing import fake_hexahedral_ds
 from yt.testing import requires_module
 from yt.visualization.volume_rendering.render_source import MeshSource
-from yt.visualization.volume_rendering.camera import Camera
-from yt.frontends.stream.sample_data.tetrahedral_mesh import \
-    _connectivity, \
-    _coordinates
+from yt.visualization.volume_rendering.scene import Scene
+
 
 @requires_module("pyembree")
 def test_surface_mesh_render():
-    data ={}
-    data[('gas', 'diffused')] = np.ones_like(_connectivity)
-    ds = yt.load_unstructured_mesh(data, _connectivity, _coordinates)
-    ms = MeshSource(ds, ('gas', 'diffused'))
-    cam = Camera(ds)
-    im = ms.render(cam)
-    return im
 
+    images = []
 
-if __name__ == "__main__":
-    im = test_surface_mesh_render()
+    ds = fake_tetrahedral_ds()
+    sc = Scene()
+    for field in ds.field_list:
+        sc.add_source(MeshSource(ds, field))
+        sc.add_camera()
+        im = sc.render()
+        images.append(im)
+
+    ds = fake_hexahedral_ds()
+    for field in ds.field_list:
+        sc.add_source(MeshSource(ds, field))
+        sc.add_camera()
+        im = sc.render()
+        images.append(im)
+
+    return images

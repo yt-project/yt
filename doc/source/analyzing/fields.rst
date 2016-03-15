@@ -30,9 +30,9 @@ specify which particular particle type we want to query:
 
 .. code-block:: python
 
-   print ad["humans", "particle_position"]
-   print ad["dogs", "particle_position"]
-   print ad["dinosaurs", "particle_position"]
+   print(ad["humans", "particle_position"])
+   print(ad["dogs", "particle_position"])
+   print(ad["dinosaurs", "particle_position"])
 
 Each of these three fields may have different sizes.  In order to enable
 falling back on asking only for a field by the name, yt will use the most
@@ -43,7 +43,7 @@ velocity:
 
 .. code-block:: python
 
-   print ad["particle_velocity"]
+   print(ad["particle_velocity"])
 
 it would select ``dinosaurs`` as the field type.
 
@@ -54,7 +54,7 @@ types (described below) versus the gas fields:
 
 .. code-block:: python
 
-   print ad["deposit", "dark_matter_density"] / ad["gas", "density"]
+   print(ad["deposit", "dark_matter_density"] / ad["gas", "density"])
 
 The ``deposit`` field type is a mesh field, so it will have the same shape as
 the gas density.  If we weren't using ``deposit``, and instead directly
@@ -94,16 +94,16 @@ For more information, see :ref:`creating-derived-fields`.
 
 There is a third, borderline class of field in yt, as well.  This is the
 "alias" type, where a field on disk (for example, (frontend, ``Density``)) is 
-aliased into an internal yt-name (for example, (``gas``, ``density``)).  The 
+aliased into an internal yt-name (for example, (``gas``, ``density``)). The 
 aliasing process allows universally-defined derived fields to take advantage of 
 internal names, and it also provides an easy way to address what units something 
 should be returned in.  If an aliased field is requested (and aliased fields 
 will always be lowercase, with underscores separating words) it will be returned 
-in CGS units (future versions will enable global defaults to be set for MKS and 
-other unit systems), whereas if the frontend-specific field is requested, it 
-will not undergo any unit conversions from its natural units.  (This rule is 
-occasionally violated for fields which are mesh-dependent, specifically particle 
-masses in some cosmology codes.)
+in the units specified by the unit system of the database (see :ref:`unit_systems`
+for a guide to using the different unit systems in yt), whereas if the 
+frontend-specific field is requested, it will not undergo any unit conversions 
+from its natural units.  (This rule is occasionally violated for fields which 
+are mesh-dependent, specifically particle masses in some cosmology codes.)
 
 .. _known-field-types:
 
@@ -125,7 +125,8 @@ Recall that fields are formally accessed in two parts: ('*field type*',
 * ``gas`` -- This is the usual default for simulation frontends for fluid
   types.  These fields are typically aliased to the frontend-specific mesh
   fields for grid-based codes or to the deposit fields for particle-based
-  codes.  Default units are in CGS.
+  codes.  Default units are in the unit system of the dataset (see 
+  :ref:`unit_systems` for more information).
 * particle type -- These are particle fields that exist on-disk as written 
   by individual frontends.  If the frontend designates names for these particles
   (i.e. particle type) those names are the field types. 
@@ -201,7 +202,9 @@ its attributes the fields themselves.  When one of these is printed, it returns
 information about the field and things like units and so on.  You can use this
 for tab-completing as well as easier access to information.
 
-As an example, you might browse the available fields like so:::
+As an example, you might browse the available fields like so:
+
+.. code-block:: python
 
   print(dir(ds.fields))
   print(dir(ds.fields.gas))
@@ -225,8 +228,8 @@ of ``field_list``).  You can view these lists by examining a dataset like this:
 .. code-block:: python
 
    ds = yt.load("my_data")
-   print ds.field_list
-   print ds.derived_field_list
+   print(ds.field_list)
+   print(ds.derived_field_list)
 
 By using the ``field_info()`` class, one can access information about a given
 field, like its default units or the source code for it.  
@@ -235,8 +238,39 @@ field, like its default units or the source code for it.
 
    ds = yt.load("my_data")
    ds.index
-   print ds.field_info["gas", "pressure"].get_units()
-   print ds.field_info["gas", "pressure"].get_source()
+   print(ds.field_info["gas", "pressure"].get_units())
+   print(ds.field_info["gas", "pressure"].get_source())
+
+.. _bfields:
+
+Magnetic Fields
+---------------
+
+Magnetic fields require special handling, because their dimensions are different in
+different systems of units, in particular between the CGS and MKS (SI) systems of units.
+Superficially, it would appear that they are in the same dimensions, since the units 
+of the magnetic field in the CGS and MKS system are gauss (:math:`\rm{G}`) and tesla 
+(:math:`\rm{T}`), respectively, and numerically :math:`1~\rm{G} = 10^{-4}~\rm{T}`. However, 
+if we examine the base units, we find that they do indeed have different dimensions:
+
+.. math::
+
+    \rm{1~G = 1~\frac{\sqrt{g}}{\sqrt{cm}\cdot{s}}} \\
+    \rm{1~T = 1~\frac{kg}{A\cdot{s^2}}}
+
+It is easier to see the difference between the dimensionality of the magnetic field in the two
+systems in terms of the definition of the magnetic pressure:
+
+.. math::
+
+    p_B = \frac{B^2}{8\pi}~\rm{(cgs)} \\
+    p_B = \frac{B^2}{2\mu_0}~\rm{(MKS)}
+
+where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
+detects on a per-frontend basis what units the magnetic should be in, and allows conversion between 
+different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To 
+determine how to set up special magnetic field handling when designing a new frontend, check out 
+:ref:`bfields-frontend`.
 
 Particle Fields
 ---------------
@@ -277,7 +311,7 @@ the two most commonly used field parameters.
 
    ad.set_field_parameter("wickets", 13)
 
-   print ad.get_field_parameter("wickets")
+   print(ad.get_field_parameter("wickets"))
 
 If a field parameter is not set, ``get_field_parameter`` will return None.  
 Within a field function, these can then be retrieved and used in the same way.
@@ -427,7 +461,7 @@ yt defines this field as a plugin, and it can be added like so:
    fn, = add_nearest_neighbor_field("all", "particle_position", ds)
 
    dd = ds.all_data()
-   print dd[fn]
+   print(dd[fn])
 
 Note that ``fn`` here is the "field name" that yt adds.  It will be of the form
 ``(ptype, nearest_neighbor_distance_NN)`` where ``NN`` is the integer.  By

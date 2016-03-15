@@ -64,7 +64,7 @@ instance:
 
 .. code-block:: python
 
-   print surface["temperature"].min(), surface["temperature"].max()
+   print(surface["temperature"].min(), surface["temperature"].max())
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
@@ -80,8 +80,8 @@ If you want to export this to a `PLY file
 ``export_ply``, which will write to a file and optionally sample a field at
 every face or vertex, outputting a color value to the file as well.  This file
 can then be viewed in MeshLab, Blender or on the website `Sketchfab.com
-<Sketchfab.com>`_.  But if you want to view it on Sketchfab, there's an even
-easier way!
+<https://sketchfab.com>`_.  But if you want to view it on Sketchfab, there's an
+even easier way!
 
 Exporting to Sketchfab
 ----------------------

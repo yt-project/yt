@@ -16,7 +16,7 @@ Marching cubes implementation
 cimport numpy as np
 cimport cython
 import numpy as np
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from libc.stdlib cimport malloc, free, abs
 from fixed_interpolator cimport *
 
@@ -60,14 +60,12 @@ cdef int CountTriangles(Triangle *first):
 cdef void FillTriangleValues(np.ndarray[np.float64_t, ndim=1] values,
                              Triangle *first, int nskip = 1):
     cdef Triangle *this = first
-    cdef Triangle *last
     cdef int i = 0
     cdef int j
     while this != NULL:
         for j in range(nskip):
             values[i*nskip + j] = this.val[j]
         i += 1
-        last = this
         this = this.next
 
 cdef void WipeTriangles(Triangle *first):
@@ -179,7 +177,7 @@ def march_cubes_grid(np.float64_t isovalue,
     cdef np.float64_t idds[3]
     cdef np.float64_t *intdata = NULL
     cdef np.float64_t *sdata = NULL
-    cdef np.float64_t x, y, z, do_sample
+    cdef np.float64_t do_sample
     cdef np.ndarray[np.float64_t, ndim=3] sample
     cdef np.ndarray[np.float64_t, ndim=1] sampled
     cdef TriangleCollection triangles
@@ -254,7 +252,7 @@ def march_cubes_grid(np.float64_t isovalue,
     if do_sample == 0:
         FillAndWipeTriangles(vertices, triangles.first)
         return vertices
-    cdef int nskip
+    cdef int nskip = 0
     if do_sample == 1:
         nskip = 1
     elif do_sample == 2:
