@@ -52,7 +52,7 @@ class AbsorptionSpectrum(object):
     def __init__(self, lambda_min, lambda_max, n_lambda):
         self.n_lambda = n_lambda
         # lambda, flux, and tau are wavelength, flux, and optical depth
-        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max, 
+        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max,
                                     n_lambda), "angstrom")
         self.tau_field = None
         self.flux_field = None
@@ -117,7 +117,7 @@ class AbsorptionSpectrum(object):
 
     def make_spectrum(self, input_file, output_file=None,
                       line_list_file=None, output_absorbers_file=None,
-                      use_peculiar_velocity=True, 
+                      use_peculiar_velocity=True,
                       subgrid_resolution=10, observing_redshift=0.,
                       njobs="auto"):
         """
@@ -129,36 +129,37 @@ class AbsorptionSpectrum(object):
         input_file : string or dataset
            path to input ray data or a loaded ray dataset
         output_file : optional, string
-           Option to save a file containing the wavelength, flux, and optical 
-           depth fields.  File formats are chosen based on the filename extension.  
-           ``.h5`` for hdf5, ``.fits`` for fits, and everything else is ASCII.
+           Option to save a file containing the wavelength, flux, and optical
+           depth fields.  File formats are chosen based on the filename
+           extension. ``.h5`` for hdf5, ``.fits`` for fits, and everything
+           else is ASCII.
            Default: None
         output_absorbers_file : optional, string
-           Option to save a text file containing all of the absorbers and 
+           Option to save a text file containing all of the absorbers and
            corresponding wavelength and redshift information.
            For parallel jobs, combining the lines lists can be slow so it
            is recommended to set to None in such circumstances.
            Default: None
         use_peculiar_velocity : optional, bool
            if True, include peculiar velocity for calculating doppler redshift
-           to shift lines.  Requires similar flag to be set in LightRay 
+           to shift lines.  Requires similar flag to be set in LightRay
            generation.
            Default: True
         subgrid_resolution : optional, int
            When a line is being added that is unresolved (ie its thermal
            width is less than the spectral bin width), the voigt profile of
-           the line is deposited into an array of virtual wavelength bins at 
-           higher resolution.  The optical depth from these virtual bins is 
-           integrated and then added to the coarser spectral wavelength bin.  
-           The subgrid_resolution value determines the ratio between the 
-           thermal width and the bin width of the virtual bins.  Increasing 
-           this value yields smaller virtual bins, which increases accuracy, 
-           but is more expensive.  A value of 10 yields accuracy to the 4th 
+           the line is deposited into an array of virtual wavelength bins at
+           higher resolution.  The optical depth from these virtual bins is
+           integrated and then added to the coarser spectral wavelength bin.
+           The subgrid_resolution value determines the ratio between the
+           thermal width and the bin width of the virtual bins.  Increasing
+           this value yields smaller virtual bins, which increases accuracy,
+           but is more expensive.  A value of 10 yields accuracy to the 4th
            significant digit in tau.
            Default: 10
         observing_redshift : optional, float
            This is the redshift at which the observer is observing
-           the absorption spectrum.  
+           the absorption spectrum.
            Default: 0
         njobs : optional, int or "auto"
            the number of process groups into which the loop over
@@ -248,14 +249,14 @@ class AbsorptionSpectrum(object):
                     redshift_eff = field_data['redshift_eff']
             else:
                 # The intermediate redshift that is seen by an observer
-                # at a redshift other than z=0 is z12, where z1 is the 
+                # at a redshift other than z=0 is z12, where z1 is the
                 # observing redshift and z2 is the emitted photon's redshift
                 # Hogg (2000) eq. 13:
                 # 1 + z12 = (1 + z2) / (1 + z1)
                 redshift = ((1 + field_data['redshift']) / \
                             (1 + observing_redshift)) - 1.
-                # Combining cosmological redshift and doppler redshift 
-                # into an effective redshift is found in Peacock's 
+                # Combining cosmological redshift and doppler redshift
+                # into an effective redshift is found in Peacock's
                 # Cosmological Physics eqn 3.75:
                 # 1 + z_eff = (1 + z_cosmo) * (1 + z_doppler)
                 if use_peculiar_velocity:
@@ -289,13 +290,13 @@ class AbsorptionSpectrum(object):
             pbar.finish()
 
     def _add_lines_to_spectrum(self, field_data, use_peculiar_velocity,
-                               output_absorbers_file, subgrid_resolution=10, 
+                               output_absorbers_file, subgrid_resolution=10,
                                observing_redshift=0., njobs=-1):
         """
         Add the absorption lines to the spectrum.
         """
-        # Widen wavelength window until optical depth falls below this tau 
-        # value at the ends to assure that the wings of a line have been 
+        # Widen wavelength window until optical depth falls below this tau
+        # value at the ends to assure that the wings of a line have been
         # fully resolved.
         min_tau = 1e-3
 
@@ -311,14 +312,14 @@ class AbsorptionSpectrum(object):
                     redshift_eff = field_data['redshift_eff']
             else:
                 # The intermediate redshift that is seen by an observer
-                # at a redshift other than z=0 is z12, where z1 is the 
+                # at a redshift other than z=0 is z12, where z1 is the
                 # observing redshift and z2 is the emitted photon's redshift
                 # Hogg (2000) eq. 13:
                 # 1 + z12 = (1 + z2) / (1 + z1)
                 redshift = ((1 + field_data['redshift']) / \
                             (1 + observing_redshift)) - 1.
-                # Combining cosmological redshift and doppler redshift 
-                # into an effective redshift is found in Peacock's 
+                # Combining cosmological redshift and doppler redshift
+                # into an effective redshift is found in Peacock's
                 # Cosmological Physics eqn 3.75:
                 # 1 + z_eff = (1 + z_cosmo) * (1 + z_doppler)
                 if use_peculiar_velocity:
@@ -327,7 +328,7 @@ class AbsorptionSpectrum(object):
 
             # redshift_eff field combines cosmological and velocity redshifts
             # so delta_lambda gives the offset in angstroms from the rest frame
-            # wavelength to the observed wavelength of the transition 
+            # wavelength to the observed wavelength of the transition
             if use_peculiar_velocity:
                 delta_lambda = line['wavelength'] * redshift_eff
             else:
@@ -343,7 +344,7 @@ class AbsorptionSpectrum(object):
                                   line['atomic_mass'])
 
             # the actual thermal width of the lines
-            thermal_width = (lambda_obs * thermal_b / 
+            thermal_width = (lambda_obs * thermal_b /
                              speed_of_light_cgs).convert_to_units("angstrom")
 
             # Sanitize units for faster runtime of the tau_profile machinery.
@@ -356,25 +357,25 @@ class AbsorptionSpectrum(object):
 
             # When we actually deposit the voigt profile, sometimes we will
             # have underresolved lines (ie lines with smaller widths than
-            # the spectral bin size).  Here, we create virtual wavelength bins 
-            # small enough in width to well resolve each line, deposit the 
-            # voigt profile into them, then numerically integrate their tau 
-            # values and sum them to redeposit them into the actual spectral 
+            # the spectral bin size).  Here, we create virtual wavelength bins
+            # small enough in width to well resolve each line, deposit the
+            # voigt profile into them, then numerically integrate their tau
+            # values and sum them to redeposit them into the actual spectral
             # bins.
 
             # virtual bins (vbins) will be:
             # 1) <= the bin_width; assures at least as good as spectral bins
             # 2) <= 1/10th the thermal width; assures resolving voigt profiles
             #   (actually 1/subgrid_resolution value, default is 1/10)
-            # 3) a bin width will be divisible by vbin_width times a power of 
+            # 3) a bin width will be divisible by vbin_width times a power of
             #    10; this will assure we don't get spikes in the deposited
             #    spectra from uneven numbers of vbins per bin
-            resolution = thermal_width / self.bin_width 
+            resolution = thermal_width / self.bin_width
             vbin_width = self.bin_width / \
                          10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
             vbin_width = vbin_width.in_units('angstrom').d
 
-            # the virtual window into which the line is deposited initially 
+            # the virtual window into which the line is deposited initially
             # spans a region of 5 thermal_widths, but this may expand
             n_vbins = np.ceil(5*thermal_width.d/vbin_width)
             vbin_window_width = n_vbins*vbin_width
@@ -382,7 +383,7 @@ class AbsorptionSpectrum(object):
             if (thermal_width < self.bin_width).any():
                 mylog.info(("%d out of %d line components will be " + \
                             "deposited as unresolved lines.") %
-                           ((thermal_width < self.bin_width).sum(), 
+                           ((thermal_width < self.bin_width).sum(),
                             thermal_width.size))
 
             valid_lines = np.arange(len(thermal_width))
@@ -390,7 +391,7 @@ class AbsorptionSpectrum(object):
                             (line['label'], line['wavelength']),
                             thermal_width.size)
 
-            # for a given transition, step through each location in the 
+            # for a given transition, step through each location in the
             # observed spectrum where it occurs and deposit a voigt profile
             for i in parallel_objects(valid_lines, njobs=-1):
                 my_vbin_window_width = vbin_window_width[i]
@@ -400,7 +401,7 @@ class AbsorptionSpectrum(object):
                 while True:
                     vbins = \
                         np.linspace(lambda_1[i]-my_vbin_window_width/2.,
-                                    lambda_1[i]+my_vbin_window_width/2., 
+                                    lambda_1[i]+my_vbin_window_width/2.,
                                     my_n_vbins, endpoint=False)
 
                     vbins, vtau = \
@@ -410,8 +411,8 @@ class AbsorptionSpectrum(object):
                             lambda_bins=vbins)
 
                     # If tau has not dropped below min tau threshold by the
-                    # edges (ie the wings), then widen the wavelength 
-                    # window and repeat process. 
+                    # edges (ie the wings), then widen the wavelength
+                    # window and repeat process.
                     if (vtau[0] < min_tau and vtau[-1] < min_tau):
                         break
                     my_vbin_window_width *= 2
@@ -427,10 +428,10 @@ class AbsorptionSpectrum(object):
 
                 # run digitize to identify which vbins are deposited into which
                 # global lambda bins.
-                # shift global lambda bins over by half a bin width; 
-                # this has the effect of assuring np.digitize will place 
+                # shift global lambda bins over by half a bin width;
+                # this has the effect of assuring np.digitize will place
                 # the vbins in the closest bin center.
-                binned = np.digitize(vbins, 
+                binned = np.digitize(vbins,
                                      self.lambda_field[left_index:right_index] \
                                      + (0.5 * self.bin_width))
 
@@ -443,7 +444,7 @@ class AbsorptionSpectrum(object):
                 self.tau_field[left_index:right_index] += EW
 
                 # write out absorbers to file if the column density of
-                # an absorber is greater than the specified "label_threshold" 
+                # an absorber is greater than the specified "label_threshold"
                 # of that absorption line
                 if output_absorbers_file and \
                    line['label_threshold'] is not None and \
