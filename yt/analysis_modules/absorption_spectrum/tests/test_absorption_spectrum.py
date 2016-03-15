@@ -13,34 +13,31 @@ Unit test for the AbsorptionSpectrum analysis module
 import numpy as np
 from yt.testing import \
     assert_allclose_units, requires_file, requires_module, \
-    assert_almost_equal, assert_array_almost_equal
+    assert_almost_equal
 from yt.analysis_modules.absorption_spectrum.absorption_line import \
     voigt_old, voigt_scipy
 from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 from yt.analysis_modules.cosmological_observation.api import LightRay
-from yt.config import ytcfg
+from yt.utilities.answer_testing.framework import \
+    GenericArrayTest, \
+    requires_answer_testing
 import tempfile
 import os
 import shutil
 from yt.utilities.on_demand_imports import \
     _h5py as h5
 
-test_dir = ytcfg.get("yt", "test_data_dir")
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
 COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
-HI_SPECTRUM_COSMO = "absorption_spectrum_data/enzo_lyman_alpha_cosmo_spec.h5"
-HI_SPECTRUM_COSMO_FILE = os.path.join(test_dir, HI_SPECTRUM_COSMO)
-HI_SPECTRUM = "absorption_spectrum_data/enzo_lyman_alpha_spec.h5"
-HI_SPECTRUM_FILE = os.path.join(test_dir, HI_SPECTRUM)
+
 
 @requires_file(COSMO_PLUS)
-@requires_file(HI_SPECTRUM_COSMO)
+@requires_answer_testing()
 def test_absorption_spectrum_cosmo():
     """
     This test generates an absorption spectrum from a cosmological light ray
     """
-
     # Set up in a temp dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -78,22 +75,21 @@ def test_absorption_spectrum_cosmo():
                                         use_peculiar_velocity=True)
 
     # load just-generated hdf5 file of spectral data (for consistency)
-    f_new = h5.File('spectrum.h5', 'r')
+    data = h5.File('spectrum.h5', 'r')
 
-    # load standard data for comparison
-    f_old = h5.File(HI_SPECTRUM_COSMO_FILE, 'r')
-
-    # compare between standard data and current data for each array saved 
-    # (wavelength, flux, tau)
-    for key in f_old.keys():
-        assert_array_almost_equal(f_new[key].value, f_old[key].value, 10)
+    for key in data.keys():
+        func = lambda x=key: data[x][:]
+        func.__name__ = "{}_cosmo".format(key)
+        test = GenericArrayTest(None, func)
+        test_absorption_spectrum_cosmo.__name__ = test.description
+        yield test
 
     # clean up
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
 @requires_file(COSMO_PLUS_SINGLE)
-@requires_file(HI_SPECTRUM)
+@requires_answer_testing()
 def test_absorption_spectrum_non_cosmo():
     """
     This test generates an absorption spectrum from a non-cosmological light ray
@@ -130,15 +126,14 @@ def test_absorption_spectrum_non_cosmo():
                                         use_peculiar_velocity=True)
 
     # load just-generated hdf5 file of spectral data (for consistency)
-    f_new = h5.File('spectrum.h5', 'r')
-
-    # load standard data for comparison
-    f_old = h5.File(HI_SPECTRUM_FILE, 'r')
-
-    # compare between standard data and current data for each array saved 
-    # (wavelength, flux, tau)
-    for key in f_old.keys():
-        assert_array_almost_equal(f_new[key].value, f_old[key].value, 10)
+    data = h5.File('spectrum.h5', 'r')
+    
+    for key in data.keys():
+        func = lambda x=key: data[x][:]
+        func.__name__ = "{}_non_cosmo".format(key)
+        test = GenericArrayTest(None, func)
+        test_absorption_spectrum_cosmo.__name__ = test.description
+        yield test
 
     # clean up
     os.chdir(curdir)
