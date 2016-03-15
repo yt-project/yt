@@ -141,7 +141,7 @@ look at the source to figure out what is going on.
   $ grep -r SlicePlot *         (or $ grin SlicePlot)
 
 This will print a number of locations in the yt source tree where ``SlicePlot``
-is mentioned.  You can now followup on this and open up the files that have
+is mentioned.  You can now follow-up on this and open up the files that have
 references to ``SlicePlot`` (particularly the one that defines SlicePlot) and
 inspect their contents for problems or clarification.
 

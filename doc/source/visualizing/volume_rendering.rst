@@ -236,12 +236,13 @@ Camera
 The :class:`~yt.visualization.volume_rendering.camera.Camera` object
 is what it sounds like, a camera within the Scene.  It possesses the 
 quantities:
- * :meth:`~yt.visualization.volume_rendering.camera.Camera.position` - the position of the camera in scene-space
- * :meth:`~yt.visualization.volume_rendering.camera.Camera.width` - the width of the plane the camera can see
- * :meth:`~yt.visualization.volume_rendering.camera.Camera.focus` - the point in space the camera is looking at
- * :meth:`~yt.visualization.volume_rendering.camera.Camera.resolution` - the image resolution
- * ``north_vector`` - a vector defining the "up" direction in an image
- * :ref:`lens <lenses>` - an object controlling how rays traverse the Scene
+ 
+* :meth:`~yt.visualization.volume_rendering.camera.Camera.position` - the position of the camera in scene-space
+* :meth:`~yt.visualization.volume_rendering.camera.Camera.width` - the width of the plane the camera can see
+* :meth:`~yt.visualization.volume_rendering.camera.Camera.focus` - the point in space the camera is looking at
+* :meth:`~yt.visualization.volume_rendering.camera.Camera.resolution` - the image resolution
+* ``north_vector`` - a vector defining the "up" direction in an image
+* :ref:`lens <lenses>` - an object controlling how rays traverse the Scene
 
 .. _camera_movement:
 
@@ -482,7 +483,7 @@ yt can utilize both MPI and OpenMP parallelism for volume rendering.  Both, and
 their combination, are described below.
 
 MPI Parallelization
-+++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^
 
 Currently the volume renderer is parallelized using MPI to decompose the volume
 by attempting to split up the
@@ -516,7 +517,7 @@ Caveats:
 For more information about enabling parallelism, see :ref:`parallel-computation`.
 
 OpenMP Parallelization
-++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^
 
 The volume rendering also parallelized using the OpenMP interface in Cython.
 While the MPI parallelization is done using domain decomposition, the OpenMP
@@ -532,7 +533,7 @@ The number of threads can be controlled with the num_threads keyword in
 by default by modifying the environment variable OMP_NUM_THREADS. 
 
 Running in Hybrid MPI + OpenMP
-++++++++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The two methods for volume rendering parallelization can be used together to
 leverage large supercomputing resources.  When choosing how to balance the

@@ -40,7 +40,7 @@ the corresponding quantity before the catalog is created. See
 the full halo catalog documentation for further information about
 how to add these quantities and what quantities are available.
 
-You no longer have to iteratre over halos in the ``halo_list``.
+You no longer have to iterate over halos in the ``halo_list``.
 Now a halo dataset can be treated as a regular dataset and 
 all quantities are available by accessing ``all_data``.
 Specifically, all quantities can be accessed as shown:

@@ -170,7 +170,8 @@ def fake_random_ds(
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
         particle_fields=None, particle_field_units=None,
-        negative = False, nprocs = 1, particles = 0, length_unit=1.0):
+        negative = False, nprocs = 1, particles = 0, length_unit=1.0,
+        unit_system="cgs", bbox=None):
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
@@ -206,7 +207,8 @@ def fake_random_ds(
                 data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
             data['io', 'particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
-    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
+    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
+                           unit_system=unit_system, bbox=bbox)
     return ug
 
 _geom_transforms = {
@@ -718,8 +720,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
@@ -742,8 +744,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv

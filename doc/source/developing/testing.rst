@@ -453,18 +453,25 @@ Here is an example test function:
    @requires_ds(my_ds)
    def test_my_ds():
        ds = data_dir_load(my_ds)
+
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
            plt.savefig(filename_prefix)
        test = GenericImageTest(ds, create_image, 12)
+
+       # this ensures the test has a unique key in the
+       # answer test storage file
+       test.prefix = "my_unique_name"
+
        # this ensures a nice test name in nose's output
        test_my_ds.__description__ = test.description
+
        yield test_my_ds
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
 ``yt/visualization/tests/test_plotwindow.py``. This test shows how a new answer
-test subclass can be used to programitically test a variety of different methods
+test subclass can be used to programmatically test a variety of different methods
 of a complicated class using the same test class. This sort of image comparison
 test is more useful if you are finding yourself writing a ton of boilerplate
 code to get your image comparison test working.  The ``GenericImageTest`` is

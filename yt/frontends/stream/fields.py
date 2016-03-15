@@ -28,9 +28,9 @@ class StreamFieldInfo(FieldInfoContainer):
         ("velocity_x", ("code_length/code_time", ["velocity_x"], None)),
         ("velocity_y", ("code_length/code_time", ["velocity_y"], None)),
         ("velocity_z", ("code_length/code_time", ["velocity_z"], None)),
-        ("magnetic_field_x", ("gauss", ["magnetic_field_x"], None)),
-        ("magnetic_field_y", ("gauss", ["magnetic_field_y"], None)),
-        ("magnetic_field_z", ("gauss", ["magnetic_field_z"], None)),
+        ("magnetic_field_x", ("gauss", [], None)),
+        ("magnetic_field_y", ("gauss", [], None)),
+        ("magnetic_field_z", ("gauss", [], None)),
         ("radiation_acceleration_x", ("code_length/code_time**2", ["radiation_acceleration_x"], None)),
         ("radiation_acceleration_y", ("code_length/code_time**2", ["radiation_acceleration_y"], None)),
         ("radiation_acceleration_z", ("code_length/code_time**2", ["radiation_acceleration_z"], None)),
@@ -70,9 +70,12 @@ class StreamFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
         for field in self.ds.stream_handler.field_units:
             units = self.ds.stream_handler.field_units[field]
             if units != '': self.add_output_field(field, units=units)
+        setup_magnetic_field_aliases(self, "stream", ["magnetic_field_%s" % ax for ax in "xyz"])
 
     def add_output_field(self, name, **kwargs):
         if name in self.ds.stream_handler.field_units:

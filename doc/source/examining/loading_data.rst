@@ -369,7 +369,7 @@ You can access the connectivity information directly by doing:
 
 This particular dataset has two meshes in it, both of which are made of 8-node hexes.
 yt uses a field name convention to access these different meshes in plots and data
-objects. To see all the fields found in a particlular dataset, you can do:
+objects. To see all the fields found in a particular dataset, you can do:
 
 .. code-block:: python
     
@@ -434,8 +434,8 @@ original position as a node variable, rather than updating the actual vertex
 positions with time. For analysis and visualization, it is often useful to turn 
 these displacements on or off, and to be able to scale them arbitrarily to 
 emphasize certain features of the solution. To allow this, if ``yt`` detects 
-displacement fields in an Exodus II dataset (using the convention that they will
- be named ``disp_x``, ``disp_y``, etc...), it will add optionally add these to 
+displacement fields in an Exodus II dataset (using the convention that they will 
+be named ``disp_x``, ``disp_y``, etc...), it will optionally add these to 
 the mesh vertex positions for the purposes of visualization. Displacement fields 
 can be controlled when a dataset is loaded by passing in an optional dictionary 
 to the ``yt.load`` command. This feature is turned off by default, meaning that 
@@ -540,7 +540,7 @@ each image the following header keywords have sensible values:
 
 * ``CDELTx``: The pixel width in along axis ``x``
 * ``CRVALx``: The coordinate value at the reference position along axis ``x``
-* ``CRPIXx``: The the reference pixel along axis ``x``
+* ``CRPIXx``: The reference pixel along axis ``x``
 * ``CTYPEx``: The projection type of axis ``x``
 * ``CUNITx``: The units of the coordinate along axis ``x``
 * ``BTYPE``: The type of the image
@@ -803,7 +803,8 @@ consistent with the grid structure of the latter), its data may be loaded with t
 
 .. rubric:: Caveats
 
-* Please be careful that the units are correctly utilized; yt assumes cgs.
+* Please be careful that the units are correctly utilized; yt assumes cgs by default, but conversion to
+  other :ref:`unit systems <unit_systems>` is also possible. 
 
 .. _loading-gadget-data:
 
@@ -869,7 +870,7 @@ volume elements.  This is governed by two parameters, ``n_ref`` and
 ``over_refine_factor``.  They are weak proxies for each other.  The first,
 ``n_ref``, governs how many particles in an oct results in that oct being
 refined into eight child octs.  Lower values mean higher resolution; the
-default is 64.  The secon parameter, ``over_refine_factor``, governs how many
+default is 64.  The second parameter, ``over_refine_factor``, governs how many
 cells are in a given oct; the default value of 1 corresponds to 8 cells.
 The number of cells in an oct is defined by the expression
 ``2**(3*over_refine_factor)``.
@@ -1065,7 +1066,6 @@ setting the ``number_of_particles`` key to each ``grid``'s dict:
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Some functions may behave oddly, and parallelism will be disappointing or
   non-existent in most cases.
 * No consistency checks are performed on the index
@@ -1118,12 +1118,13 @@ a similar manner as the three-dimensional grid fields:
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
-where in this exampe the particle position fields have been assigned. ``number_of_particles`` must be the same size as the particle
-arrays. If no particle arrays are supplied then ``number_of_particles`` is assumed to be zero. 
+where in this example the particle position fields have been assigned.
+``number_of_particles`` must be the same size as the particle arrays. If no
+particle arrays are supplied then ``number_of_particles`` is assumed to be
+zero. 
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Particles may be difficult to integrate.
 * Data must already reside in memory.
 
@@ -1154,7 +1155,7 @@ code:
    coordinates,connectivity = yt.hexahedral_connectivity(xgrid,ygrid,zgrid)
 
 will define the (x,y,z) coordinates of the hexahedral cells and
-information about that cell's neighbors such that the celll corners
+information about that cell's neighbors such that the cell corners
 will be a grid of points constructed as the Cartesion product of
 xgrid, ygrid, and zgrid.
 
@@ -1176,7 +1177,6 @@ have assumed your data is stored in the three-dimensional array
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Integration is not implemented.
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
@@ -1230,7 +1230,6 @@ Here, we have selected only the first mesh to load.
 
 .. rubric:: Caveats
 
-* Units will be incorrect unless the data has already been converted to cgs.
 * Integration is not implemented.
 * Some functions may behave oddly or not work at all.
 * Data must already reside in memory.
@@ -1389,8 +1388,8 @@ PyNE Data
 ---------
 
 `PyNE <http://pyne.io/>`_ is an open source nuclear engineering toolkit
-maintained by the PyNE developement team (`pyne-dev@googlegroups.com
-<pyne-dev%40googlegroups.com>`_). PyNE meshes utilize the Mesh-Oriented datABase
+maintained by the PyNE developement team (pyne-dev@googlegroups.com).
+PyNE meshes utilize the Mesh-Oriented datABase
 `(MOAB) <http://trac.mcs.anl.gov/projects/ITAPS/wiki/MOAB/>`_ and can be
 Cartesian or tetrahedral. In addition to field data, pyne meshes store pyne
 Material objects which provide a rich set of capabilities for nuclear

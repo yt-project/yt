@@ -258,6 +258,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             start_index = dobj.field_data_start[i]
             end_index = dobj.field_data_end[i]
             pcount = end_index - start_index
+            if pcount == 0: continue
             field_end = field_start + end_index - start_index
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
@@ -298,11 +299,9 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
     def _identify_fields(self, data_file):
         fields = []
         scalar_fields = []
-        pcount = data_file.total_particles
-        if sum(pcount.values()) == 0: return fields, scalar_fields, {}
+        id_fields = {}
         with h5py.File(data_file.filename, "r") as f:
             for ptype in self.ds.particle_types_raw:
-                if data_file.total_particles[ptype] == 0: continue
                 fields.append((ptype, "particle_identifier"))
                 scalar_fields.append((ptype, "particle_identifier"))
                 my_fields, my_offset_fields = \
@@ -311,8 +310,9 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
                 scalar_fields.extend(my_fields)
 
                 if "IDs" not in f: continue
-                fields.extend([(ptype, field) for field in f["IDs"]])
-        return fields, scalar_fields, {}
+                id_fields = [(ptype, field) for field in f["IDs"]]
+                fields.extend(id_fields)
+        return fields, scalar_fields, id_fields, {}
 
 def subfind_field_list(fh, ptype, pcount):
     fields = []

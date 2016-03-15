@@ -278,12 +278,13 @@ class EnzoHierarchy(GridIndex):
             nap = dict((ap_type, []) for ap_type in 
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
         else:
-            nap = {}
             if "AppendActiveParticleType" in self.parameters:
+                nap = {}
                 active_particles = True
                 for type in self.parameters.get("AppendActiveParticleType", []):
                     nap[type] = []
             else:
+                nap = None
                 active_particles = False
         for grid_id in range(self.num_grids):
             pbar.update(grid_id)
@@ -665,7 +666,8 @@ class EnzoDataset(Dataset):
                  parameter_override = None,
                  conversion_override = None,
                  storage_filename = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         """
         This class is a stripped down class that simply reads and parses
         *filename* without looking at the index.  *dataset_type* gets passed
@@ -683,7 +685,7 @@ class EnzoDataset(Dataset):
         self._conversion_override = conversion_override
         self.storage_filename = storage_filename
         Dataset.__init__(self, filename, dataset_type, file_style=file_style,
-                         units_override=units_override)
+                         units_override=units_override, unit_system=unit_system)
 
     def _setup_1d(self):
         self._index_class = EnzoHierarchy1D
