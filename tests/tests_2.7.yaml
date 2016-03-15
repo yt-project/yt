@@ -55,7 +55,7 @@ answer_tests:
   local_ytdata_270:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_270:
+  local_absorption_spectrum_271:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
 
