@@ -15,12 +15,15 @@ import subprocess
 
 
 PARALLEL_TEST = {"rockstar_nest.py": "3"}
+BLACKLIST = ["opengl_ipython.py", "opengl_vr.py"]
 
 
 def test_recipe():
     '''Dummy test grabbing all cookbook's recipes'''
     for fname in glob.glob("doc/source/cookbook/*.py"):
         recipe = os.path.basename(fname)
+        if recipe in BLACKLIST:
+            continue
         check_recipe.description = "Testing recipe: %s" % recipe
         if recipe in PARALLEL_TEST:
             yield check_recipe, \
