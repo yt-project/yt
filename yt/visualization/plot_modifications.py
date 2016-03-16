@@ -913,16 +913,18 @@ class ArrowCallback(PlotCallback):
                    coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
-    feature.  By default, arrow points from lower left to the designated 
-    position with arrow length "length" unless starting_pos is set to specify 
-    tail location of arrow.
+    feature.  By default, arrow points from lower left to the designated
+    position "pos" with arrow length "length".  Alternatively, if
+    "starting_pos" is set, arrow will stretch from "starting_pos" to "pos"
+    and "length" will be disregarded.
 
-    coord_system keyword refers to positions set in pos arg and starting_pos
-    keyword, which by default are in data coordinates.
+    "coord_system" keyword refers to positions set in "pos" arg and
+    "starting_pos" keyword, which by default are in data coordinates.
 
-    length, width, head_length, and head_width keywords for the arrow are all 
-    in axis units, ie relative to the size of the plot axes as 1, even if
-    the position of the arrow is set relative to another coordinate system.
+    "length", "width", "head_length", and "head_width" keywords for the arrow
+    are all in axis units, ie relative to the size of the plot axes as 1,
+    even if the position of the arrow is set relative to another coordinate
+    system.
 
     Parameters
     ----------
@@ -1028,8 +1030,8 @@ class ArrowCallback(PlotCallback):
             dx = dy = self.code_size
         else:
             if self.starting_pos is not None:
-                start_x,start_y = self.sanitize_coord_system(plot, \
-                                       self.starting_pos, \
+                start_x,start_y = self.sanitize_coord_system(plot,
+                                       self.starting_pos,
                                        coord_system=self.coord_system)
                 dx = x - start_x
                 dy = y - start_y
