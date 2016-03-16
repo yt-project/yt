@@ -4,10 +4,7 @@ import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
 from .input_events import EventCollection, MouseRotation
-from .interactive_vr import \
-    SceneGraph, BlockCollection, TrackballCamera
 
-from yt.data_objects.static_output import Dataset
 from yt import write_bitmap
 
 class EGLRenderingContext(object):
