@@ -180,9 +180,9 @@ def test_equivalent_width_conserved():
         wavelength, flux = sp.make_spectrum('lightray.h5')
         total_tau.append((lambda_bin_width * sp.tau_field).sum())
         
-    # assure that the total tau values are all within 1e-5 of each other
+    # assure that the total tau values are all within 1e-3 of each other
     for tau in total_tau:
-        assert_almost_equal(tau, total_tau[0], 5)
+        assert_almost_equal(tau, total_tau[0], 3)
 
     # clean up
     os.chdir(curdir)
