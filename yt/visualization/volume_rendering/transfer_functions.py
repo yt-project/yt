@@ -29,7 +29,7 @@ class TransferFunction(object):
 
     Transfer functions are defined by boundaries, bins, and the value that
     governs transmission through that bin.  This is scaled between 0 and 1.
-    When integrating through a volume. the value through a given cell is
+    When integrating through a volume the value through a given cell is
     defined by the value calculated in the transfer function.
 
     Parameters
@@ -38,7 +38,7 @@ class TransferFunction(object):
         The min and max for the transfer function.  Values below or above
         these values are discarded.
     nbins : int
-        How many bins to calculate; in betwee, linear interpolation is
+        How many bins to calculate; in between, linear interpolation is
         used, so low values are typically fine.
 
     Notes
@@ -63,7 +63,7 @@ class TransferFunction(object):
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
 
-        Typically, when rendering isocontours, a Guassian distribution is the
+        Typically, when rendering isocontours, a Gaussian distribution is the
         easiest way to draw out features.  The spread provides a softness.
         The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}`.
 
@@ -239,7 +239,7 @@ class TransferFunction(object):
 
 class MultiVariateTransferFunction(object):
     r"""This object constructs a set of field tables that allow for
-    multiple field variables to control the integration through a volme.
+    multiple field variables to control the integration through a volume.
 
     The integration through a volume typically only utilizes a single field
     variable (for instance, Density) to set up and control the values
@@ -825,7 +825,7 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
     this transfer function should be used.  It will create a very simple
     table that merely sums along each ray.  Note that the end product will
     need to be scaled by the total width through which the rays were cast,
-    a piece of information inacessible to the transfer function.
+    a piece of information inaccessible to the transfer function.
 
     Parameters
     ----------

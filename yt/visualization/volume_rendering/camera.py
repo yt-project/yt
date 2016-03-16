@@ -327,7 +327,7 @@ class Camera(Orientation):
         if not isinstance(width, YTArray):
             width = data_source.ds.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
-            focus = self.ds.arr(focus, input_units="code_length")
+            focus = data_source.ds.arr(focus, input_units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
         # that will not be set up until the base class initializer is called.
