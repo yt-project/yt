@@ -65,7 +65,7 @@ See :ref:`light-ray-generator` and :ref:`absorption_spectrum` for more informati
 
 .. yt_cookbook:: light_ray.py 
 
-This script demontrates how to make a light ray from a single dataset.
+This script demonstrates how to make a light ray from a single dataset.
 
 .. _cookbook-single-dataset-light-ray:
 

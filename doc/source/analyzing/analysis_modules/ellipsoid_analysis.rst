@@ -93,7 +93,7 @@ finder.  The A, B, C are the largest to smallest magnitude of the
 ellipsoid's semi-principle axes. "e0" is the largest semi-principle
 axis vector direction that would have magnitude A but normalized.  
 The "tilt" is an angle measured in radians.  It can be best described
-as after the rotation about the z-axis to allign e0 to x in the x-y
+as after the rotation about the z-axis to align e0 to x in the x-y
 plane, and then rotating about the y-axis to align e0 completely to
 the x-axis, the angle remaining to rotate about the x-axis to align
 both e1 to the y-axis and e2 to the z-axis.

@@ -236,7 +236,7 @@ object was created.
 All callbacks, quantities, and filters are stored in an actions list, 
 meaning that they are executed in the same order in which they were added. 
 This enables the use of simple, reusable, single action callbacks that 
-depend on each other. This also prevents unecessary computation by allowing 
+depend on each other. This also prevents unnecessary computation by allowing 
 the user to add filters at multiple stages to skip remaining analysis if it 
 is not warranted.
 

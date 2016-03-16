@@ -347,7 +347,7 @@ project along one of those axes.
   be used to control what vector corresponds to the "up" direction in 
   the resulting event list. 
 * ``psf_sigma`` may be specified to provide a crude representation of 
-  a PSF, and corresponds to the standard deviation (in degress) of a 
+  a PSF, and corresponds to the standard deviation (in degrees) of a 
   Gaussian PSF model. 
 
 Let's just take a quick look at the raw events object:

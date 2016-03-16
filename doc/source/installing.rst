@@ -19,7 +19,7 @@ will work best for you depends on your precise situation:
 * If you do not have root access on your computer, are not comfortable managing
   python packages, or are working on a supercomputer or cluster computer, you
   will probably want to use the bash all-in-one installation script.  This builds 
-  python, numpy, matplotlib, and yt from source to set up an isolated scientific 
+  Python, NumPy, Matplotlib, and yt from source to set up an isolated scientific 
   python environment inside of a single folder in your home directory. See
   :ref:`install-script` for more details.
 
@@ -35,9 +35,9 @@ will work best for you depends on your precise situation:
   up python using a source-based package manager like `Homebrew
   <http://brew.sh>`_ or `MacPorts <http://www.macports.org/>`_ this choice will
   let you install yt using the python installed by the package manager. Similarly
-  for python environments set up via linux package managers so long as you
-  have the the necessary compilers installed (e.g. the ``build-essentials``
-  package on debian and ubuntu).
+  for python environments set up via Linux package managers so long as you
+  have the necessary compilers installed (e.g. the ``build-essentials``
+  package on Debian and Ubuntu).
 
 .. note::
   See `Parallel Computation
@@ -199,13 +199,12 @@ packages.
 
 If you do not want to install the full anaconda python distribution, you can
 install a bare-bones Python installation using miniconda.  To install miniconda,
-visit http://repo.continuum.io/miniconda/ and download a recent version of the
-``Miniconda-x.y.z`` script (corresponding to Python 2.7) for your platform and
-system architecture. Next, run the script, e.g.:
+visit http://repo.continuum.io/miniconda/ and download ``Miniconda-latest-...`` 
+script for your platform and system architecture. Next, run the script, e.g.:
 
 .. code-block:: bash
 
-  bash Miniconda-3.3.0-Linux-x86_64.sh
+  bash Miniconda-latest-Linux-x86_64.sh
 
 For both the Anaconda and Miniconda installations, make sure that the Anaconda
 ``bin`` directory is in your path, and then issue:
@@ -214,7 +213,28 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
   conda install yt
 
-which will install yt along with all of its dependencies.
+which will install stable branch of yt along with all of its dependencies.
+
+If you would like to install latest development version of yt, you can download
+it from our custom anaconda channel:
+
+.. code-block:: bash
+
+  conda install -c http://use.yt/with_conda/ yt
+
+New packages for development branch are built after every pull request is
+merged. In order to make sure you are running latest version, it's recommended
+to update frequently:
+
+.. code-block:: bash
+
+  conda update -c http://use.yt/with_conda/ yt
+
+Location of our channel can be added to ``.condarc`` to avoid retyping it during
+each *conda* invocation. Please refer to `Conda Manual
+<http://conda.pydata.org/docs/config.html#channel-locations-channels>`_ for
+detailed instructions.
+
 
 Obtaining Source Code
 ^^^^^^^^^^^^^^^^^^^^^
@@ -252,7 +272,7 @@ clone the conda-recipes repository
 
   git clone https://github.com/conda/conda-recipes
 
-Then navigate to the repository root and invoke `conda build`:
+Then navigate to the repository root and invoke ``conda build``:
 
 .. code-block:: bash
 
@@ -290,7 +310,7 @@ Then install the required Python packages with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install numpy matplotlib cython cython h5py nose sympy
+  $ pip install numpy matplotlib cython h5py nose sympy
 
 If you're using IPython notebooks, you can install its dependencies
 with ``pip`` as well:
@@ -366,7 +386,7 @@ command line:
   yt update
 
 This will detect that you have installed yt from the mercurial repository, pull
-any changes from bitbucket, and then recompile yt if necessary.
+any changes from Bitbucket, and then recompile yt if necessary.
 
 .. _testing-installation:
 
@@ -397,7 +417,7 @@ Switching versions of yt: yt-2.x, yt-3.x, stable, and dev
 
 With the release of version 3.0 of yt, development of the legacy yt 2.x series
 has been relegated to bugfixes.  That said, we will continue supporting the 2.x
-series for the forseeable future.  This makes it easy to use scripts written
+series for the foreseeable future.  This makes it easy to use scripts written
 for older versions of yt without substantially updating them to support the
 new field naming or unit systems in yt version 3.
 
@@ -411,7 +431,7 @@ If You Installed yt Using the Installer Script
 You already have the mercurial repository, so you simply need to switch
 which version you're using.  Navigate to the root of the yt mercurial
 repository, update to the desired version, and rebuild the source (some of the
-c code requires a compilation step for big changes like this):
+C code requires a compilation step for big changes like this):
 
 .. code-block:: bash
 
@@ -419,7 +439,7 @@ c code requires a compilation step for big changes like this):
   hg update <desired-version>
   python setup.py develop
 
-Valid versions to jump to are described in :ref:`branches-of-yt`).
+Valid versions to jump to are described in :ref:`branches-of-yt`.
 
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.

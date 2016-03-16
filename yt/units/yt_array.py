@@ -346,7 +346,8 @@ class YTArray(np.ndarray):
                 if registry is None:
                     pass
                 else:
-                    input_array.units.registry = registry
+                    units = Unit(str(input_array.units), registry=registry)
+                    input_array.units = units
             elif isinstance(input_units, Unit):
                 input_array.units = input_units
             else:
@@ -357,7 +358,7 @@ class YTArray(np.ndarray):
         elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
                 return YTArray(np.array(input_array, dtype=dtype),
-                               input_array[0].units)
+                               input_array[0].units, registry=registry)
 
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
@@ -369,7 +370,10 @@ class YTArray(np.ndarray):
             # Nothing provided. Make dimensionless...
             units = Unit()
         elif isinstance(input_units, Unit):
-            units = input_units
+            if registry and registry is not input_units.registry:
+                units = Unit(str(input_units), registry=registry)
+            else:
+                units = input_units
         else:
             # units kwarg set, but it's not a Unit object.
             # don't handle all the cases here, let the Unit class handle if
@@ -1406,6 +1410,31 @@ def uunion1d(arr1, arr2):
     """
     v = np.union1d(arr1, arr2)
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
+    return v
+
+def unorm(data):
+    """Matrix or vector norm that preserves units
+
+    This is a wrapper around np.linalg.norm that preserves units.
+    """
+    return YTArray(np.linalg.norm(data), data.units)
+
+def uvstack(arrs):
+    """Stack arrays in sequence vertically (row wise) while preserving units
+
+    This is a wrapper around np.vstack that preserves units.
+    """
+    v = np.vstack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
+def uhstack(arrs):
+    """Stack arrays in sequence horizontally (column wise) while preserving units
+
+    This is a wrapper around np.hstack that preserves units.
+    """
+    v = np.vstack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
     return v
 
 def array_like_field(data, x, field):

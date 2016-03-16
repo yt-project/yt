@@ -471,7 +471,7 @@ Here is an example test function:
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
 ``yt/visualization/tests/test_plotwindow.py``. This test shows how a new answer
-test subclass can be used to programitically test a variety of different methods
+test subclass can be used to programmatically test a variety of different methods
 of a complicated class using the same test class. This sort of image comparison
 test is more useful if you are finding yourself writing a ton of boilerplate
 code to get your image comparison test working.  The ``GenericImageTest`` is
