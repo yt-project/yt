@@ -913,7 +913,7 @@ class ArrowCallback(PlotCallback):
                    coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
-    feature.  By default, wrrow points from lower left to the designated 
+    feature.  By default, arrow points from lower left to the designated 
     position with arrow length "length" unless starting_pos is set to specify 
     tail location of arrow.
 
