@@ -214,6 +214,29 @@ that we want to look at the last one.
     # render and save
     sc.save()
 
+Here is an example using 6-node wedge elements:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("MOOSE_sample_data/wedge_out.e")
+
+   # create a default scene
+   sc = yt.create_scene(ds, ('connect2', 'diffused'))
+
+   # override the default colormap
+   ms = sc.get_source(0)
+   ms.cmap = 'Eos A'
+
+   # adjust the camera position and orientation
+   cam = sc.camera
+   cam.set_position(ds.arr([1.0, -1.0, 1.0], 'code_length'))
+   cam.width = ds.arr([1.5, 1.5, 1.5], 'code_length')
+
+   # render and save
+   sc.save()
+
 Another example, this time plotting the temperature field from a 20-node hex 
 MOOSE dataset:
 
@@ -273,7 +296,7 @@ add an offset to the mesh by 1.0 unit in the x-direction:
     # adjust the camera position and orientation
     cam = sc.camera
     camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
     cam.set_position(camera_position, north_vector)
     
