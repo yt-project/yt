@@ -97,7 +97,6 @@ ip.ex("import yt")
 # http://pymel.googlecode.com/svn/trunk/tools/ipymel.py
 # We'll start with some fields.
 
-import re
 def yt_fieldname_completer(self, event):
     """Match dictionary completions"""
     #print "python_matches", event.symbol
