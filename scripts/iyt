@@ -17,7 +17,7 @@ doc = """\
 
 try:
     import IPython
-except:
+except ImportError:
     print('ipython is not available. using default python interpreter.')
     import code
     import sys
