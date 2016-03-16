@@ -913,9 +913,16 @@ class ArrowCallback(PlotCallback):
                    coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
-    feature.  Arrow points from lower left to the designated position with
-    arrow length "length" unless starting_pos is set to specify tail location
-    of arrow.
+    feature.  By default, wrrow points from lower left to the designated 
+    position with arrow length "length" unless starting_pos is set to specify 
+    tail location of arrow.
+
+    coord_system keyword refers to positions set in pos arg and starting_pos
+    keyword, which by default are in data coordinates.
+
+    length, width, head_length, and head_width keywords for the arrow are all 
+    in axis units, ie relative to the size of the plot axes as 1, even if
+    the position of the arrow is set relative to another coordinate system.
 
     Parameters
     ----------
