@@ -426,7 +426,7 @@ class AbsorptionSpectrum(object):
                     right_index = (center_index[i] + window_width_in_bins/2)
                     n_vbins = (right_index - left_index) * n_vbins_per_bin[i]
                     
-                   # the array of virtual bins in lambda space
+                    # the array of virtual bins in lambda space
                     vbins = \
                         np.linspace(self.lambda_min + self.bin_width.d * left_index, 
                                     self.lambda_min + self.bin_width.d * right_index, 
