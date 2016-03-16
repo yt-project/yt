@@ -1,6 +1,7 @@
 #!python
 from __future__ import print_function
-import os, re
+import os
+import re
 from distutils.version import LooseVersion
 from yt.mods import *
 from yt.data_objects.data_containers import YTDataContainer
