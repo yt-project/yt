@@ -671,14 +671,27 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
                             err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
-    fns = ['old.png', 'new.png']
+    fns = []
+    for i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns.append(tmpname)
     num_images = len(old_result)
     assert(num_images > 0)
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(-decimals)) is None
-        for fn in fns: os.remove(fn)
+        results = compare_images(fns[0], fns[1], 10**(-decimals))
+        if results is not None:
+            if os.environ.get("JENKINS_HOME") is not None:
+                tempfiles = [line.strip() for line in results.split('\n')
+                             if line.endswith(".png")]
+                for fn in tempfiles:
+                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                sys.stderr.write('\n')
+        assert_equal(results, None, results)
+        for fn in fns:
+            os.remove(fn)
 
 class VRImageComparisonTest(AnswerTestingTest):
     _type_name = "VRImageComparison"
@@ -813,7 +826,7 @@ class GenericArrayTest(AnswerTestingTest):
                                           verbose=True)
         for k in new_result:
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_result[k])
             else:
                 assert_allclose_units(new_result[k], old_result[k],
                                       10**(-self.decimals))
@@ -917,12 +930,9 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
-    if not can_run_ds(ds_fn):
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    if not can_run_ds(ds):
         return
-    if ds_kwargs is None:
-        ds_kwargs = {}
-    ds = data_dir_load(ds_fn, kwargs=ds_kwargs)
     yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
                         str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
@@ -946,9 +956,9 @@ def sph_answer(ds_fn, ds_str_repr, ds_nparticles, fields, ds_kwargs=None):
             for axis in [0, 1, 2]:
                 if particle_type is False:
                     yield PixelizedProjectionValuesTest(
-                        ds_fn, axis, field, weight_field,
+                        ds, axis, field, weight_field,
                         dobj_name)
-            yield FieldValuesTest(ds_fn, field, dobj_name,
+            yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
 
 def create_obj(ds, obj_type):

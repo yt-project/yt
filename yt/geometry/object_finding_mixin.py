@@ -24,7 +24,7 @@ from yt.utilities.lib.misc_utilities import \
 from yt.geometry.grid_container import \
     MatchPointsToGrids, \
     GridTree
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     HUGE
 from yt.utilities.exceptions import YTTooParallel
 
@@ -79,7 +79,7 @@ class ObjectFindingMixin(object) :
             source = self.all_data()
         mylog.debug("Searching %s grids for maximum value of %s",
                     len(source._grids), field)
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities["MaxLocation"]( field )
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
               max_val, mx, my, mz)

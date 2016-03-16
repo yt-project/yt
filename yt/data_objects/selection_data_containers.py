@@ -69,7 +69,11 @@ class YTPoint(YTSelectionContainer0D):
     _con_args = ('p',)
     def __init__(self, p, ds=None, field_parameters=None, data_source=None):
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
-        self.p = p
+        if isinstance(p, YTArray):
+            # we pass p through ds.arr to ensure code units are attached
+            self.p = self.ds.arr(p)
+        else:
+            self.p = self.ds.arr(p, 'code_length')
 
 class YTOrthoRay(YTSelectionContainer1D):
     """

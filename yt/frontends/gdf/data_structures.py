@@ -174,10 +174,11 @@ class GDFDataset(Dataset):
 
     def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None, geometry=None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override, unit_system=unit_system)
         self.storage_filename = storage_filename
         self.filename = filename
 
@@ -215,7 +216,7 @@ class GDFDataset(Dataset):
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = unit
+                    self.field_units[unit_name] = unit.decode('utf8')
         else:
             self.length_unit = self.quan(1.0, "cm")
             self.mass_unit = self.quan(1.0, "g")

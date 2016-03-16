@@ -15,16 +15,13 @@ import tempfile
 import shutil
 from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import \
-    Scene, Camera, ZBuffer, \
-    VolumeSource, OpaqueSource
+    Scene, \
+    ZBuffer, \
+    VolumeSource, \
+    OpaqueSource
 from yt.testing import assert_almost_equal
 import numpy as np
 from unittest import TestCase
-
-np.random.seed(0)
-
-# This toggles using a temporary directory. Turn off to examine images.
-use_tmpdir = True
 
 
 def setup():
@@ -34,8 +31,12 @@ def setup():
 
 
 class ZBufferTest(TestCase):
+    # This toggles using a temporary directory. Turn off to examine images.
+    use_tmpdir = True
+
     def setUp(self):
-        if use_tmpdir:
+        np.random.seed(0)
+        if self.use_tmpdir:
             self.curdir = os.getcwd()
             # Perform I/O in safe place instead of yt main dir
             self.tmpdir = tempfile.mkdtemp()
@@ -44,7 +45,7 @@ class ZBufferTest(TestCase):
             self.curdir, self.tmpdir = None, None
 
     def tearDown(self):
-        if use_tmpdir:
+        if self.use_tmpdir:
             os.chdir(self.curdir)
             shutil.rmtree(self.tmpdir)
 
@@ -55,9 +56,8 @@ class ZBufferTest(TestCase):
         ds.field_info[ds.field_list[0]].take_log=False
 
         sc = Scene()
-        cam = Camera(ds)
+        cam = sc.add_camera(ds)
         cam.resolution = (512,512)
-        sc.camera = cam
         vr = VolumeSource(dd, field=ds.field_list[0])
         vr.transfer_function.clear()
         vr.transfer_function.grey_opacity=True

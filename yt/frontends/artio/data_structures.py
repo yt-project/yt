@@ -199,7 +199,7 @@ class ARTIOIndex(Index):
         if finest_levels is not False:
             source.min_level = self.max_level - finest_levels
         mylog.debug("Searching for maximum value of %s", field)
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
                    max_val, mx, my, mz)
@@ -318,7 +318,7 @@ class ARTIODataset(Dataset):
 
     def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         from sys import version
         if self._handle is not None:
             return
@@ -333,7 +333,8 @@ class ARTIODataset(Dataset):
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

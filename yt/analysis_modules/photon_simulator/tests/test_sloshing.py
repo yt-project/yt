@@ -15,10 +15,11 @@ from yt.analysis_modules.photon_simulator.api import \
     ThermalPhotonModel, PhotonList, EventList, \
     convert_old_file, merge_files
 from yt.config import ytcfg
-from yt.testing import requires_file
+from yt.testing import \
+    requires_file, \
+    assert_almost_equal
 from yt.utilities.answer_testing.framework import requires_ds, \
     GenericArrayTest, data_dir_load
-from numpy.testing import assert_array_equal
 from numpy.random import RandomState
 from yt.units.yt_array import uconcatenate
 import os
@@ -87,7 +88,7 @@ def test_sloshing():
         events1 = photons1.project_photons([1.0,-0.5,0.2], responses=[arf,rmf],
                                           absorb_model=tbabs_model, 
                                           convolve_energies=True, prng=prng)
-
+        events1['xsky']
         return_events = return_data(events1.events)
 
         tests.append(GenericArrayTest(ds, return_events, args=[a]))
@@ -117,11 +118,11 @@ def test_sloshing():
             arr1 = photons1[k]
             arr2 = photons2[k]
             arr3 = photons3[k]
-        yield assert_array_equal, arr1, arr2
-        yield assert_array_equal, arr1, arr3
+        assert_almost_equal(arr1, arr2)
+        assert_almost_equal(arr1, arr3)
     for k in events1.keys():
-        yield assert_array_equal, events1[k], events2[k]
-        yield assert_array_equal, events1[k], events3[k]
+        assert_almost_equal(events1[k], events2[k])
+        assert_almost_equal(events1[k], events3[k])
 
     nevents = 0
 

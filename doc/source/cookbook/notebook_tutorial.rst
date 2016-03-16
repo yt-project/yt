@@ -17,7 +17,7 @@ To start the notebook, enter the following command at the bash command line:
    $ ipython notebook
 
 Depending on your default web browser and system setup this will open a web
-browser and direct you to the notebook dahboard.  If it does not,  you might
+browser and direct you to the notebook dashboard.  If it does not,  you might
 need to connect to the notebook manually.  See the `IPython documentation
 <http://ipython.org/ipython-doc/stable/notebook/notebook.html#starting-the-notebook-server>`_
 for more details.

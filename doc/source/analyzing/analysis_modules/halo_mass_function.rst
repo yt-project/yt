@@ -13,7 +13,7 @@ General Overview
 
 A halo mass function can be created for the halos identified in a cosmological 
 simulation, as well as analytic fits using any arbitrary set of cosmological
-paramters. In order to create a mass function for simulated halos, they must
+parameters. In order to create a mass function for simulated halos, they must
 first be identified (using HOP, FOF, or Rockstar, see 
 :ref:`halo_catalog`) and loaded as a halo dataset object. The distribution of
 halo masses will then be found, and can be compared to the analytic prediction
@@ -78,7 +78,7 @@ range of halo masses.
   my_halos = load("rockstar_halos/halos_0.0.bin")
   hmf = HaloMassFcn(halos_ds=my_halos)
 
-A simulation dataset can be passed along with additonal cosmological parameters 
+A simulation dataset can be passed along with additional cosmological parameters 
 to create an analytic mass function.
 
 .. code-block:: python
@@ -106,7 +106,7 @@ Keyword Arguments
 -----------------
 
 * **simulation_ds** (*Simulation dataset object*)
-  The loaded simulation dataset, used to set cosmological paramters.
+  The loaded simulation dataset, used to set cosmological parameters.
   Default : None.
 
 * **halos_ds** (*Halo dataset object*)
@@ -130,7 +130,7 @@ Keyword Arguments
 
 * **omega_baryon0**  (*float*)
   The fraction of the universe made up of baryonic matter. This is not 
-  always stored in the datset and should be checked by hand.
+  always stored in the dataset and should be checked by hand.
   Default : 0.0456.
 
 * **hubble0** (*float*)
@@ -140,14 +140,14 @@ Keyword Arguments
 * **sigma8** (*float*)
   The amplitude of the linear power spectrum at z=0 as specified by 
   the rms amplitude of mass-fluctuations in a top-hat sphere of radius 
-  8 Mpc/h. This is not always stored in the datset and should be 
+  8 Mpc/h. This is not always stored in the dataset and should be 
   checked by hand.
   Default : 0.86.
 
 * **primoridal_index** (*float*)
   This is the index of the mass power spectrum before modification by 
   the transfer function. A value of 1 corresponds to the scale-free 
-  primordial spectrum. This is not always stored in the datset and 
+  primordial spectrum. This is not always stored in the dataset and 
   should be checked by hand.
   Default : 1.0.
 

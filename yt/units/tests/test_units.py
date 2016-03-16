@@ -25,6 +25,7 @@ from sympy import Symbol
 from yt.testing import \
     fake_random_ds, assert_allclose_units, \
     assert_almost_equal
+from yt.units.unit_registry import UnitRegistry
 
 # dimensions
 from yt.units.dimensions import \
@@ -36,6 +37,7 @@ from yt.units.unit_object import Unit, UnitParseError, InvalidUnitOperation
 # objects
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, unit_prefixes, prefixable_units
+import yt.units.unit_symbols as unit_symbols
 # unit definitions
 from yt.utilities.physical_ratios import \
     cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
@@ -474,3 +476,31 @@ def test_latex_repr():
 
     test_unit = Unit('cm**-3', base_value=1.0, registry=ds.unit_registry)
     assert_equal(test_unit.latex_repr, '\\frac{1}{\\rm{cm}^{3}}')
+
+def test_latitude_longitude():
+    lat = unit_symbols.lat
+    lon = unit_symbols.lon
+    deg = unit_symbols.deg
+    yield assert_equal, lat.units.base_offset, 90.0
+    yield assert_equal, (deg*90.0).in_units("lat").value, 0.0
+    yield assert_equal, (deg*180).in_units("lat").value, -90.0
+    yield assert_equal, (lat*0.0).in_units("deg"), deg*90.0
+    yield assert_equal, (lat*-90).in_units("deg"), deg*180
+
+    yield assert_equal, lon.units.base_offset, -180.0
+    yield assert_equal, (deg*0.0).in_units("lon").value, -180.0
+    yield assert_equal, (deg*90.0).in_units("lon").value, -90.0
+    yield assert_equal, (deg*180).in_units("lon").value, 0.0
+    yield assert_equal, (deg*360).in_units("lon").value, 180.0
+
+    yield assert_equal, (lon*-180.0).in_units("deg"), deg*0.0
+    yield assert_equal, (lon*-90.0).in_units("deg"), deg*90.0
+    yield assert_equal, (lon*0.0).in_units("deg"), deg*180.0
+    yield assert_equal, (lon*180.0).in_units("deg"), deg*360
+
+def test_registry_json():
+    reg = UnitRegistry()
+    json_reg = reg.to_json()
+    unserialized_reg = UnitRegistry.from_json(json_reg)
+
+    assert_equal(reg.lut, unserialized_reg.lut)

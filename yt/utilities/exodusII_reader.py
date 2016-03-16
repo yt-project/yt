@@ -20,8 +20,8 @@ def get_data(fn):
     # Is this correct?
     etypes = fvars["eb_status"][:]
     nelem = etypes.shape[0]
-#    varnames = [sanitize_string(v.tostring()) for v in
-#                fvars["name_elem_var"][:]]
+    varnames = [sanitize_string(v.tostring()) for v in
+                fvars["name_elem_var"][:]]
     nodnames = [sanitize_string(v.tostring()) for v in
                 fvars["name_nod_var"][:]]
     coord = np.array([fvars["coord%s" % ax][:]
@@ -34,9 +34,9 @@ def get_data(fn):
         ci = connects[-1]
         coords.append(coord)  # Same for all
         vals = {}
-#        for j, v in enumerate(varnames):
-#            values = fvars["vals_elem_var%seb%s" % (j+1, i+1)][:]
-#            vals['gas', v] = values.astype("f8")[-1, :]
+        for j, v in enumerate(varnames):
+            values = fvars["vals_elem_var%seb%s" % (j+1, i+1)][:]
+            vals['gas', v] = values.astype("f8")[-1, :]
         for j, v in enumerate(nodnames):
             # We want just for this set of nodes all the node variables
             # Use (ci - 1) to get these values

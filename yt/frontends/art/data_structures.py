@@ -162,7 +162,7 @@ class ARTDataset(Dataset):
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
                  file_particle_data=None, file_particle_stars=None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("art", )
         if fields is None:
             fields = fluid_fields
@@ -181,7 +181,8 @@ class ARTDataset(Dataset):
         self.force_max_level = force_max_level
         self.spread_age = spread_age
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):
@@ -419,7 +420,8 @@ class DarkMatterARTDataset(ARTDataset):
                           skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
-                 file_particle_stars=None):
+                 file_particle_stars=None, units_override=None,
+                 unit_system="cgs"):
         self.over_refine_factor = 1
         self.n_ref = 64
         self.particle_types += ("all",)
@@ -433,7 +435,9 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_particle):
@@ -444,7 +448,7 @@ class DarkMatterARTDataset(ARTDataset):
         base_prefix, base_suffix = filename_pattern['particle_data']
         aexpstr = file_particle.rsplit('s0',1)[1].replace(base_suffix,'')
         possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle))+"/*")
-        for filetype, (prefix, suffix) in filename_pattern.iteritems():
+        for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
             if getattr(self, "_file_"+filetype, None) is not None:
                 continue

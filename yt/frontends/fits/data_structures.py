@@ -311,7 +311,8 @@ class FITSDataset(Dataset):
                  z_axis_decomp=False,
                  suppress_astropy_warnings=True,
                  parameters=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
 
         if parameters is None:
             parameters = {}
@@ -417,7 +418,8 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, fn, dataset_type, units_override=units_override)
+        Dataset.__init__(self, fn, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -433,9 +435,9 @@ class FITSDataset(Dataset):
         default_length_units += more_length_units
         file_units = []
         cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
-        for i, unit in enumerate(cunits):
+        for unit in (_.to_string() for _ in cunits):
             if unit in default_length_units:
-                file_units.append(unit.name)
+                file_units.append(unit)
         if len(set(file_units)) == 1:
             length_factor = self.wcs.wcs.cdelt[0]
             length_unit = str(file_units[0])
@@ -540,6 +542,13 @@ class FITSDataset(Dataset):
             else:
                 self._setup_spec_cube()
 
+        # Now we can set up some of our parameters for convenience.
+        #self.parameters['wcs'] = dict(self.wcs.to_header())
+        for k, v in self.primary_header.items():
+            self.parameters[k] = v
+        # Remove potential default keys
+        self.parameters.pop('', None)
+
     def _setup_spec_cube(self):
 
         self.spec_cube = True
@@ -626,7 +635,7 @@ class FITSDataset(Dataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         ext = args[0].rsplit(".", 1)[-1]
-        if ext.upper() == "GZ":
+        if ext.upper() in ("GZ", "FZ"):
             # We don't know for sure that there will be > 1
             ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
         if ext.upper() not in ("FITS", "FTS"):
@@ -645,3 +654,17 @@ class FITSDataset(Dataset):
         except:
             pass
         return False
+
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = []
+        for fn, fnl in ((_, _.lower()) for _ in files):
+            if fnl.endswith(".fits") or \
+               fnl.endswith(".fits.gz") or \
+               fnl.endswith(".fits.fz"):
+                candidates.append(fn)
+        # FITS files don't preclude subdirectories
+        return candidates, True
+
+    def close(self):
+        self._handle.close()

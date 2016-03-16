@@ -41,6 +41,7 @@ from .fields import \
     MaestroFieldInfo, \
     CastroFieldInfo
 
+
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
@@ -178,8 +179,15 @@ class BoxlibHierarchy(GridIndex):
                 raise RuntimeError("yt needs cylindrical to be 2D")
             self.level_dds[:,2] = 2*np.pi
             default_zbounds = (0.0, 2*np.pi)
+        elif self.ds.geometry == "spherical":
+            # BoxLib only supports 1D spherical, so ensure
+            # the other dimensions have the right extent.
+            self.level_dds[:,1] = np.pi
+            self.level_dds[:,2] = 2*np.pi
+            default_ybounds = (0.0, np.pi)
+            default_zbounds = (0.0, 2*np.pi)
         else:
-            raise RuntimeError("yt only supports cartesian and cylindrical coordinates.")
+            raise RuntimeError("Unknown BoxLib coordinate system.")
         if int(next(header_file)) != 0:
             raise RuntimeError("INTERNAL ERROR! This should be a zero.")
 
@@ -369,7 +377,8 @@ class BoxlibDataset(Dataset):
                  fparam_filename="probin",
                  dataset_type='boxlib_native',
                  storage_filename=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
@@ -384,7 +393,8 @@ class BoxlibDataset(Dataset):
         self.storage_filename = storage_filename
 
         Dataset.__init__(self, output_dir, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
 
         # These are still used in a few places.
         if "HydroMethod" not in self.parameters.keys():
@@ -448,6 +458,16 @@ class BoxlibDataset(Dataset):
             param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
                 vals = self.domain_dimensions = np.array(vals.split(), dtype='int32')
+
+                # For 1D and 2D simulations in BoxLib usually only the relevant dimensions
+                # have a specified number of zones, but yt requires domain_dimensions to 
+                # have three elements, with 1 in the additional slots if we're not in 3D, 
+                # so append them as necessary.
+
+                if (len(vals) == 1):
+                    vals = self.domain_dimensions = np.array([vals[0], 1, 1])
+                elif (len(vals) == 2):
+                    vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
@@ -576,8 +596,10 @@ class BoxlibDataset(Dataset):
             self.geometry = "cartesian"
         elif coordinate_type == 1:
             self.geometry = "cylindrical"
+        elif coordinate_type == 2:
+            self.geometry = "spherical"
         else:
-            raise RuntimeError("yt does not yet support spherical geometry")
+            raise RuntimeError("Unknown BoxLib coord_type")
 
         # overrides for 1/2-dimensional data
         if self.dimensionality == 1:
@@ -726,11 +748,13 @@ class OrionDataset(BoxlibDataset):
                  fparam_filename="probin",
                  dataset_type='orion_native',
                  storage_filename=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
 
         BoxlibDataset.__init__(self, output_dir,
                                cparam_filename, fparam_filename,
-                               dataset_type, units_override=units_override)
+                               dataset_type, units_override=units_override,
+                               unit_system=unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -884,7 +908,7 @@ class NyxHierarchy(BoxlibHierarchy):
         self._read_particle_header()
 
     def _read_particle_header(self):
-        if not self.ds.parameters["particles.write_in_plotfile"]:
+        if not self.ds.parameters["particles"]:
             self.pgrid_info = np.zeros((self.num_grids, 3), dtype='int64')
             return
         for fn in ['particle_position_%s' % ax for ax in 'xyz'] + \
@@ -926,31 +950,48 @@ class NyxDataset(BoxlibDataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
-        pname = args[0].rstrip("/")
+        output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(pname): return False
-        dn = os.path.dirname(pname)
-        if len(args) > 1:
-            kwargs['paramFilename'] = args[1]
-
-        pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
-
-        # @todo: new Nyx output.
-        # We check for the job_info file's existence because this is currently
-        # what distinguishes Nyx data from MAESTRO data.
-        pfn = os.path.join(pfname)
-        if not os.path.exists(pfn) or os.path.isdir(pfn): return False
-        nyx = any(("nyx." in line for line in open(pfn)))
-        return nyx
+        if not os.path.isdir(output_dir): return False
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        if not os.path.exists(jobinfo_filename):
+            return False
+        # Now we check the job_info for the mention of maestro
+        lines = open(jobinfo_filename).readlines()
+        if any(line.startswith("Nyx  ") for line in lines): return True
+        if any(line.startswith("nyx.") for line in lines): return True
+        return False
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
-        # return
+
         # Nyx is always cosmological.
         self.cosmological_simulation = 1
-        self.omega_lambda = self.parameters["comoving_OmL"]
-        self.omega_matter = self.parameters["comoving_OmM"]
-        self.hubble_constant = self.parameters["comoving_h"]
+
+        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        line = ""
+        with open(jobinfo_filename, "r") as f:
+            while not line.startswith(" Cosmology Information"):
+                # get the code git hashes
+                if "git hash" in line:
+                    # line format: codename git hash:  the-hash
+                    fields = line.split(":")
+                    self.parameters[fields[0]] = fields[1].strip()
+                line = next(f)
+
+            # get the cosmology
+            for line in f:
+                if "Omega_m (comoving)" in line:
+                    self.omega_matter = float(line.split(":")[1])
+                elif "Omega_lambda (comoving)" in line:
+                    self.omega_lambda = float(line.split(":")[1])
+                elif "h (comoving)" in line:
+                    self.hubble_constant = float(line.split(":")[1])
+
 
         # Read in the `comoving_a` file and parse the value. We should fix this
         # in the new Nyx output format...
@@ -964,7 +1005,9 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if self.parameters["particles.write_in_plotfile"]:
+        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+            # we have particles
+            self.parameters["particles"] = 1 
             self.particle_types = ("io",)
             self.particle_types_raw = self.particle_types
 

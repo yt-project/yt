@@ -55,13 +55,14 @@ dataset you could:
    sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
 
    # Show all temperature values
-   print sp["temperature"]
+   print(sp["temperature"])
 
    # Print things in a more human-friendly manner: one temperature at a time
-   print "(x,  y,  z) Temperature"
-   print "-----------------------"
+   print("(x,  y,  z) Temperature")
+   print("-----------------------")
    for i in range(sp["temperature"].size):
-       print "(%f,  %f,  %f)    %f" % (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i])
+       print("(%f,  %f,  %f)    %f" %
+             (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
 
 .. _quickly-selecting-data:
 
@@ -245,6 +246,8 @@ for the grid cell to be incorporated.
     | A plane normal to a specified vector and intersecting a particular 
       coordinate.
 
+.. _region-reference:
+
 3D Objects
 """"""""""
 
@@ -254,8 +257,6 @@ for the grid cell to be incorporated.
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
       ``ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)``.
-
-.. _region-reference:
 
 **Box Region** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTRegion`
@@ -312,7 +313,7 @@ See also the section on :ref:`filtering-data`.
     | A ``cut_region`` is a filter which can be applied to any other data 
       object.  The filter is defined by the conditionals present, which 
       apply cuts to the data in the object.  A ``cut_region`` will work
-      for either particle fields or mesh fields, but not on both simulaneously.
+      for either particle fields or mesh fields, but not on both simultaneously.
       For more detailed information and examples, see :ref:`cut-regions`.
 
 **Collection of Data Objects** 
@@ -390,7 +391,7 @@ all the cells contained in a sphere at the center of our dataset.
 
    ds = load("my_data")
    sp = ds.sphere('c', (10, 'kpc'))
-   print sp.quantities.angular_momentum_vector()
+   print(sp.quantities.angular_momentum_vector())
 
 Quickly Processing Data
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -468,6 +469,19 @@ use the ``integrate`` function:::
 
 All of these projections supply the data object as their base input.
 
+Often, it can be useful to sample a field at the minimum and maximum of a
+different field.  You can use the ``argmax`` and ``argmin`` operations to do
+this.::
+
+  reg.argmin("density", axis="temperature")
+
+This will return the temperature at the minimum density.
+
+If you don't specify an ``axis``, it will return the spatial position of
+the maximum value of the queried field.  Here is an example:::
+
+  x, y, z = reg.argmin("density")
+
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -494,17 +508,27 @@ Available Derived Quantities
     | Usage: ``extrema(fields, non_zero=False)``
     | The extrema of a field or list of fields.
 
-**Maximum Location**
-    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
-    | Usage: ``max_location(fields)``
-    | The maximum of a field or list of fields as well
-      as the x,y,z location of that maximum.
+**Maximum Location Sampling**
+    | Class :class:`~yt.data_objects.derived_quantities.SampleAtMaxFieldValues`
+    | Usage: ``sample_at_max_field_values(fields, sample_fields)``
+    | The value of sample_fields at the maximum value in fields.
+
+**Minimum Location Sampling**
+    | Class :class:`~yt.data_objects.derived_quantities.SampleAtMinFieldValues`
+    | Usage: ``sample_at_min_field_values(fields, sample_fields)``
+    | The value of sample_fields at the minimum value in fields.
 
 **Minimum Location**
     | Class :class:`~yt.data_objects.derived_quantities.MinLocation`
     | Usage: ``min_location(fields)``
     | The minimum of a field or list of fields as well
       as the x,y,z location of that minimum.
+
+**Maximum Location**
+    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
+    | Usage: ``max_location(fields)``
+    | The maximum of a field or list of fields as well
+      as the x,y,z location of that maximum.
 
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
@@ -563,7 +587,7 @@ the deposited particle density, like so:
 
    obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
                           dims=[128, 128, 128])
-   print obj["deposit", "all_density"]
+   print(obj["deposit", "all_density"])
 
 While these cannot yet be used as input to projections or slices, slices and
 projections can be taken of the data in them and visualized by hand.

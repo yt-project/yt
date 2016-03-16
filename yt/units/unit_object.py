@@ -24,10 +24,11 @@ from sympy.parsing.sympy_parser import \
 from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
-    dimensionless, current_mks
+    dimensionless, current_mks, \
+    angle
 from yt.units.unit_lookup_table import \
-    unit_prefixes, prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes, yt_base_units
+    unit_prefixes, prefixable_units, latex_prefixes, \
+    default_base_units
 from yt.units.unit_registry import \
     UnitRegistry, \
     UnitParseError
@@ -50,6 +51,8 @@ global_dict = {
     'Rational': Rational,
     'sqrt': sqrt
 }
+
+unit_system_registry = {}
 
 def auto_positive_symbol(tokens, local_dict, global_dict):
     """
@@ -174,8 +177,13 @@ class Unit(Expr):
                     # Bug catch...
                     # if unit_expr is an empty string, parse_expr fails hard...
                     unit_expr = "1"
-                unit_expr = parse_expr(unit_expr, global_dict=global_dict,
-                                       transformations=unit_text_transform)
+                try:
+                    unit_expr = parse_expr(unit_expr, global_dict=global_dict,
+                                           transformations=unit_text_transform)
+                except SyntaxError as e:
+                    msg = ("Unit expression %s raised an error "
+                           "during parsing:\n%s" % (unit_expr, repr(e)))
+                    raise UnitParseError(msg)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
@@ -290,13 +298,13 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is temperature and self.is_dimensionless:
+            if u.dimensions in (temperature, angle) and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is temperature and u.is_dimensionless:
+            elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
-                                           "and Celsius cannot be multiplied.")
+                                           "and Celsius or angles cannot be multiplied.")
 
         return Unit(self.expr * u.expr,
                     base_value=(self.base_value * u.base_value),
@@ -313,9 +321,9 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is temperature and self.is_dimensionless:
+            if u.dimensions in (temperature, angle) and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is temperature and u.is_dimensionless:
+            elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
@@ -391,50 +399,41 @@ class Unit(Expr):
                 return False
         return True
 
-    def _get_system_unit_string(self, base_units):
-        # The dimensions of a unit object is the product of the base dimensions.
-        # Use sympy to factor the dimensions into base CGS unit symbols.
-        units = []
-        my_dims = self.dimensions.expand()
-        if my_dims is dimensionless:
-            return ""
-        for factor in my_dims.as_ordered_factors():
-            dim = list(factor.free_symbols)[0]
-            unit_string = base_units[dim]
-            if factor.is_Pow:
-                power_string = "**(%s)" % factor.as_base_exp()[1]
-            else:
-                power_string = ""
-            units.append("".join([unit_string, power_string]))
-        return " * ".join(units)
+    def get_base_equivalent(self, unit_system="cgs"):
+        """
+        Create and return dimensionally-equivalent units in a specified base.
+        """
+        yt_base_unit_string = _get_system_unit_string(self.dimensions, default_base_units)
+        yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
+                            dimensions=self.dimensions, registry=self.registry)
+        if unit_system == "cgs":
+            if current_mks in self.dimensions.free_symbols:
+                raise YTUnitsNotReducible(self, "cgs")
+            return yt_base_unit
+        else:
+            if unit_system == "code":
+                raise RuntimeError(r'You must refer to a dataset instance to convert to a '
+                                   r'code unit system. Try again with unit_system=ds instead, '
+                                   r'where \'ds\' is your dataset.')
+            unit_system = unit_system_registry[str(unit_system)]
+            units_string = _get_system_unit_string(self.dimensions, unit_system.base_units)
+            u = Unit(units_string, registry=self.registry)
+            base_value = get_conversion_factor(self, yt_base_unit)[0]
+            base_value /= get_conversion_factor(self, u)[0]
+            return Unit(units_string, base_value=base_value,
+                        dimensions=self.dimensions, registry=self.registry)
 
-    def get_base_equivalent(self):
-        """
-        Create and return dimensionally-equivalent base units.
-        """
-        units_string = self._get_system_unit_string(yt_base_units)
-        return Unit(units_string, base_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
-    
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
         """
-        if current_mks in self.dimensions.free_symbols:
-            raise YTUnitsNotReducible(self, "cgs")
-        units_string = self._get_system_unit_string(cgs_base_units)
-        return Unit(units_string, base_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
+        return self.get_base_equivalent(unit_system="cgs")
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
         """
-        units_string = self._get_system_unit_string(mks_base_units)
-        base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
-        base_value /= get_conversion_factor(self, Unit(units_string))[0]
-        return Unit(units_string, base_value=base_value,
-                    dimensions=self.dimensions, registry=self.registry)
+        return self.get_base_equivalent(unit_system="mks")
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
@@ -471,7 +470,7 @@ def get_conversion_factor(old_units, new_units):
     if old_units.base_offset == 0 and new_units.base_offset == 0:
         return (ratio, None)
     else:
-        if old_units.dimensions is temperature:
+        if old_units.dimensions in (temperature, angle):
             return ratio, ratio*old_units.base_offset - new_units.base_offset
         else:
             raise InvalidUnitOperation(
@@ -612,3 +611,20 @@ def validate_dimensions(dimensions):
                                  "allowed.  Got dimensions '%s'" % dimensions)
     elif not isinstance(dimensions, Basic):
         raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
+
+def _get_system_unit_string(dimensions, base_units):
+    # The dimensions of a unit object is the product of the base dimensions.
+    # Use sympy to factor the dimensions into base CGS unit symbols.
+    units = []
+    my_dims = dimensions.expand()
+    if my_dims is dimensionless:
+        return ""
+    for factor in my_dims.as_ordered_factors():
+        dim = list(factor.free_symbols)[0]
+        unit_string = str(base_units[dim])
+        if factor.is_Pow:
+            power_string = "**(%s)" % factor.as_base_exp()[1]
+        else:
+            power_string = ""
+        units.append("(%s)%s" % (unit_string, power_string))
+    return " * ".join(units)

@@ -553,7 +553,7 @@ class SimulationTimeSeries(DatasetSeries):
                 values = self.arr(*values)
             else:
                 values = self.arr(values)
-        values = values.in_cgs()
+        values = values.in_base()
 
         if outputs is None:
             outputs = self.all_outputs

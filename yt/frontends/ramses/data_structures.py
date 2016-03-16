@@ -520,7 +520,7 @@ class RAMSESDataset(Dataset):
     
     def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
@@ -530,7 +530,8 @@ class RAMSESDataset(Dataset):
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def __repr__(self):

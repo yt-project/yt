@@ -31,7 +31,12 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
-from nose.tools import assert_true, assert_less_equal  # NOQA
+try:
+    from nose.tools import assert_true, assert_less_equal  # NOQA
+except ImportError:
+    # This means nose isn't installed, so the tests can't run and it's ok
+    # to not import these functions
+    pass
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
@@ -165,7 +170,8 @@ def fake_random_ds(
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
         particle_fields=None, particle_field_units=None,
-        negative = False, nprocs = 1, particles = 0, length_unit=1.0):
+        negative = False, nprocs = 1, particles = 0, length_unit=1.0,
+        unit_system="cgs", bbox=None):
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
@@ -201,7 +207,8 @@ def fake_random_ds(
                 data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
             data['io', 'particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
-    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
+    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
+                           unit_system=unit_system, bbox=bbox)
     return ug
 
 _geom_transforms = {
@@ -257,12 +264,56 @@ def fake_particle_ds(
     data = {}
     for field, offset, u in zip(fields, offsets, units):
         if "position" in field:
-            v = np.random.normal(npart, 0.5, 0.25)
+            v = np.random.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
         v = (np.random.random(npart) - offset)
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     ds = load_particles(data, 1.0, bbox=bbox)
+    return ds
+
+
+def fake_tetrahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.tetrahedral_mesh import \
+        _connectivity, _coordinates
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
+
+def fake_hexahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.hexahedral_mesh import \
+        _connectivity, _coordinates
+
+    _connectivity -= 1  # this mesh has an offset of 1
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
     return ds
 
 
@@ -669,8 +720,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
@@ -693,8 +744,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
@@ -735,11 +786,9 @@ def periodicity_cases(ds):
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb = False):
-    import nose
-    import os
+    from yt.utilities.on_demand_imports import _nose
     import sys
-    import yt
-    from yt.funcs import mylog
+    from yt.utilities.logger import ytLogger as mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
@@ -753,7 +802,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     if answer_big_data:
         nose_argv.append('--answer-big-data')
     initial_dir = os.getcwd()
-    yt_file = os.path.abspath(yt.__file__)
+    yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
     if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
         # Provide a nice error message to work around nose bug
@@ -771,7 +820,7 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
             )
     os.chdir(yt_dir)
     try:
-        nose.run(argv=nose_argv)
+        _nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)

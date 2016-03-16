@@ -21,6 +21,10 @@ from .coordinate_handler import \
     _get_vert_fields, \
     cartesian_to_cylindrical, \
     cylindrical_to_cartesian
+from yt.funcs import mylog
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_element_mesh, pixelize_off_axis_cartesian
+from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 import yt.visualization._MPL as _MPL
 
 
@@ -59,7 +63,54 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        if dimension < 3:
+        index = data_source.ds.index
+        if (hasattr(index, 'meshes') and
+           not isinstance(index.meshes[0], SemiStructuredMesh)):
+            ftype, fname = field
+            mesh_id = int(ftype[-1]) - 1
+            mesh = index.meshes[mesh_id]
+            coords = mesh.connectivity_coords
+            indices = mesh.connectivity_indices
+            offset = mesh._index_offset
+            ad = data_source.ds.all_data()
+            field_data = ad[field]
+            buff_size = size[0:dimension] + (1,) + size[dimension:]
+
+            c = np.float64(data_source.center[dimension].d)
+            bounds.insert(2*dimension, c)
+            bounds.insert(2*dimension, c)
+            bounds = np.reshape(bounds, (3, 2))
+
+            # if this is an element field, promote to 2D here
+            if len(field_data.shape) == 1:
+                field_data = np.expand_dims(field_data, 1)
+            # if this is a higher-order element, we demote to 1st order
+            # here, for now.
+            elif field_data.shape[1] == 27:
+                # hexahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:8]
+                indices = indices[:, 0:8]
+            elif field_data.shape[1] == 10:
+                # tetrahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:,0:4]
+                indices = indices[:, 0:4]
+
+            img = pixelize_element_mesh(coords,
+                                        indices,
+                                        buff_size, field_data, bounds,
+                                        index_offset=offset)
+
+            # re-order the array and squeeze out the dummy dim
+            ax = data_source.axis
+            xax = self.x_axis[ax]
+            yax = self.y_axis[ax]
+            return np.squeeze(np.transpose(img, (yax, xax, ax)))
+
+        elif dimension < 3:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
         else:
@@ -83,7 +134,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['dx'])[::-1]
-        buff = _MPL.CPixelize(data_source['x'], data_source['y'],
+        buff = pixelize_off_axis_cartesian(
+                              data_source['x'], data_source['y'],
                               data_source['z'], data_source['px'],
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],
