@@ -393,8 +393,8 @@ cdef class ImageSampler:
         else:
             if not (vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0]) or \
                not (vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1]):
-                print "Bad lense shape / direction for %s" % (self.lens_type)
-                print "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
+                msg = "Bad lense shape / direction for %s\n" % (self.lens_type)
+                msg += "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
                     vp_pos.shape[0], vp_dir.shape[0], image.shape[0],
                     vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
                 raise RuntimeError(msg)
