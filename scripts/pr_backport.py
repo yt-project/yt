@@ -7,6 +7,7 @@ import tempfile
 from datetime import datetime
 from distutils.version import LooseVersion
 from time import strptime, mktime
+from yt.extern.six.moves import input
 
 MERGED_PR_ENDPOINT = ("http://bitbucket.org/api/2.0/repositories/yt_analysis/"
                       "yt/pullrequests/?state=MERGED")
@@ -284,7 +285,7 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
         print("PR #%s\nTitle: %s\nCreated on: %s\nLink: %s\n%s" % pr_desc)
         print("To backport, issue the following command(s):\n")
         print(message)
-        raw_input('Press any key to continue')
+        input('Press any key to continue')
 
 
 if __name__ == "__main__":
@@ -311,9 +312,9 @@ if __name__ == "__main__":
         inv_map = screen_already_backported(repo_path, inv_map)
         print("In another terminal window, navigate to the following path:")
         print("%s" % repo_path)
-        raw_input("Press any key to continue")
+        input("Press any key to continue")
         backport_pr_commits(repo_path, inv_map, last_stable, prs)
-        raw_input(
+        input(
             "Now you need to push your backported changes. The temporary\n"
             "repository currently being used will be deleted as soon as you\n"
             "press any key.")
