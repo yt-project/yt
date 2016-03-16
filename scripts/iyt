@@ -97,6 +97,7 @@ ip.ex("import yt")
 # http://pymel.googlecode.com/svn/trunk/tools/ipymel.py
 # We'll start with some fields.
 
+
 def yt_fieldname_completer(self, event):
     """Match dictionary completions"""
     #print "python_matches", event.symbol
@@ -124,7 +125,7 @@ def yt_fieldname_completer(self, event):
         except:
             raise IPython.ipapi.TryNext
 
-    if isinstance(obj, (YTDataContainer, ) ):
+    if isinstance(obj, YTDataContainer):
         #print "COMPLETING ON THIS THING"
         all_fields = [f for f in sorted(
                 obj.ds.field_list + obj.ds.derived_field_list)]
@@ -135,6 +136,6 @@ def yt_fieldname_completer(self, event):
 
     raise try_next
 
-ip.set_hook('complete_command', yt_fieldname_completer , re_key = ".*" )
+ip.set_hook('complete_command', yt_fieldname_completer, re_key = ".*")
 
 ip_shell.mainloop(**kwargs)
