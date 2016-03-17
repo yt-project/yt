@@ -36,7 +36,6 @@ from .render_source import \
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
-import matplotlib.pyplot as plt
 
 class Scene(object):
 
@@ -346,6 +345,8 @@ class Scene(object):
         >>>                                        horizontalalignment="center")]])
 
         """
+        import matplotlib.pyplot as plt
+
         sources = list(itervalues(self.sources))
         rensources = [s for s in sources if isinstance(s, RenderSource)]
 
@@ -403,6 +404,7 @@ class Scene(object):
         plt.savefig(fname, facecolor='black', pad_inches=0)
 
     def _show_mpl(self, im, sigma_clip=None, dpi=100):
+        import matplotlib.pyplot as plt
         s = im.shape
         self._render_figure = plt.figure(1, figsize=(s[1]/dpi, s[0]/dpi))
         ax = plt.gca()
@@ -422,6 +424,7 @@ class Scene(object):
         return axim
 
     def _annotate(self, ax, tf, label="", label_fmt=None):
+        import matplotlib.pyplot as plt
         ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_visible(False)
