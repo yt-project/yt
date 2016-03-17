@@ -279,6 +279,8 @@ cdef void calculate_extent_perspective(ImageContainer *image,
         vertex[1] = corners[1][iv]
         vertex[2] = corners[2][iv]
 
+        cam_width[1] = cam_width[0] * image.nv[1] / image.nv[0]
+
         subtract(vertex, cam_pos, sight_vector)
         fma(cam_width[2], normal_vector, cam_pos, sight_center)
 
