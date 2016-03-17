@@ -7,7 +7,7 @@ The clump finder uses a contouring algorithm to identified topologically
 disconnected structures within a dataset.  This works by first creating a 
 single contour over the full range of the contouring field, then continually 
 increasing the lower value of the contour until it reaches the maximum value 
-of the field.  As disconnected structures are identified as separate contoures, 
+of the field.  As disconnected structures are identified as separate contours, 
 the routine continues recursively through each object, creating a hierarchy of 
 clumps.  Individual clumps can be kept or removed from the hierarchy based on 
 the result of user-specified functions, such as checking for gravitational 

@@ -49,7 +49,7 @@ and :ref:`filters <filtering-data>`.  It also includes an explanation of how
 the :ref:`units system <units>` works to tag every individual field and 
 quantity with a physical unit (e.g. cm, AU, kpc, Mpc, etc.), and it describes 
 ways of analyzing multiple chronological data outputs from the same underlying 
-dataset known as :ref:`time series <time-series-analysis`.  Lastly, it includes 
+dataset known as :ref:`time series <time-series-analysis>`.  Lastly, it includes 
 information on how to enable yt to operate :ref:`in parallel over multiple 
 processors simultaneously <parallel-computation>`.
 

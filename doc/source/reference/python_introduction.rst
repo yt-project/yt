@@ -315,7 +315,7 @@ by a text editor in place of tab characters.
 Let's try this out with a for loop.  First type ``for i in range(10):`` and
 press enter.  This will change the prompt to be three periods, instead of three
 greater-than signs, and you will be expected to hit the tab key to indent.
-Then type "print i", press enter, and then instead of indenting again, press
+Then type "print(i)", press enter, and then instead of indenting again, press
 enter again.  The entire entry should look like this::
 
    >>> for i in range(10):

@@ -15,7 +15,7 @@ def data_source_or_all(data_source):
 
 
 def new_mesh_sampler(camera, render_source):
-    params = camera._get_sampler_params(render_source)
+    params = ensure_code_unit_params(camera._get_sampler_params(render_source))
     args = (
         np.atleast_3d(params['vp_pos']),
         np.atleast_3d(params['vp_dir']),
@@ -32,7 +32,7 @@ def new_mesh_sampler(camera, render_source):
 
 
 def new_volume_render_sampler(camera, render_source):
-    params = camera._get_sampler_params(render_source)
+    params = ensure_code_unit_params(camera._get_sampler_params(render_source))
     params.update(transfer_function=render_source.transfer_function)
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
@@ -49,6 +49,8 @@ def new_volume_render_sampler(camera, render_source):
         params['num_samples'],
     )
     kwargs = {'lens_type': params['lens_type']}
+    if "camera_data" in params:
+        kwargs['camera_data'] = params['camera_data']
     if render_source.zbuffer is not None:
         kwargs['zbuffer'] = render_source.zbuffer.z
         args[4][:] = np.reshape(render_source.zbuffer.rgba[:], \
@@ -61,7 +63,7 @@ def new_volume_render_sampler(camera, render_source):
 
 
 def new_interpolated_projection_sampler(camera, render_source):
-    params = camera._get_sampler_params(render_source)
+    params = ensure_code_unit_params(camera._get_sampler_params(render_source))
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
     args = (
@@ -85,7 +87,7 @@ def new_interpolated_projection_sampler(camera, render_source):
 
 
 def new_projection_sampler(camera, render_source):
-    params = camera._get_sampler_params(render_source)
+    params = ensure_code_unit_params(camera._get_sampler_params(render_source))
     params.update(transfer_function=render_source.transfer_function)
     params.update(num_samples=render_source.num_samples)
     args = (
@@ -107,6 +109,16 @@ def new_projection_sampler(camera, render_source):
     sampler = ProjectionSampler(*args, **kwargs)
     return sampler
 
+def ensure_code_unit_params(params):
+    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
+        param = params[param_name]
+        if hasattr(param, 'in_units'):
+            params[param_name] = param.in_units('code_length')
+    bounds = params['bounds']
+    if hasattr(bounds[0], 'units'):
+        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
+
+    return params
 
 def get_corners(le, re):
     return np.array([

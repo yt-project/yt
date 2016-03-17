@@ -79,7 +79,7 @@ see:
 Analyzing an Entire Simulation
 ------------------------------
 
-.. note:: Implemented for: Enzo, Gadget, OWLS.
+.. note:: Implemented for the Enzo, Gadget, OWLS, and Exodus II frontends.
 
 The parameter file used to run a simulation contains all the information 
 necessary to know what datasets should be available.  The ``simulation`` 

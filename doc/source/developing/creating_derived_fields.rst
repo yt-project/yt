@@ -65,7 +65,7 @@ Field definitions return array data with units. If the field function returns
 data in a dimensionally equivalent unit (e.g. a ``"dyne"`` versus a ``"N"``), the
 field data will be converted to the units specified in ``add_field`` before
 being returned in a data object selection. If the field function returns data
-with dimensions that are incompatibible with units specified in ``add_field``,
+with dimensions that are incompatible with units specified in ``add_field``,
 you will see an error. To clear this error, you must ensure that your field
 function returns data in the correct units. Often, this means applying units to
 a dimensionless float or array.
@@ -75,7 +75,7 @@ constant as a float, you can import it from ``yt.utilities.physical_constants``
 to get a predefined version of the constant with the correct units. If you know
 the units your data is supposed to have ahead of time, you can import unit
 symbols like ``g`` or ``cm`` from the ``yt.units`` namespace and multiply the
-return value of your field function by the appropriate compbination of unit
+return value of your field function by the appropriate combination of unit
 symbols for your field's units. You can also convert floats or NumPy arrays into
 :class:`~yt.units.yt_array.YTArray` or :class:`~yt.units.yt_array.YTQuantity`
 instances by making use of the

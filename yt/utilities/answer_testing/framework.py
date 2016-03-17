@@ -826,7 +826,7 @@ class GenericArrayTest(AnswerTestingTest):
                                           verbose=True)
         for k in new_result:
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_result[k])
             else:
                 assert_allclose_units(new_result[k], old_result[k],
                                       10**(-self.decimals))

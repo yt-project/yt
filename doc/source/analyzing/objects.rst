@@ -246,6 +246,8 @@ for the grid cell to be incorporated.
     | A plane normal to a specified vector and intersecting a particular 
       coordinate.
 
+.. _region-reference:
+
 3D Objects
 """"""""""
 
@@ -255,8 +257,6 @@ for the grid cell to be incorporated.
     | ``all_data()`` is a wrapper on the Box Region class which defaults to 
       creating a Region covering the entire dataset domain.  It is effectively 
       ``ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)``.
-
-.. _region-reference:
 
 **Box Region** 
     | Class :class:`~yt.data_objects.selection_data_containers.YTRegion`
@@ -313,7 +313,7 @@ See also the section on :ref:`filtering-data`.
     | A ``cut_region`` is a filter which can be applied to any other data 
       object.  The filter is defined by the conditionals present, which 
       apply cuts to the data in the object.  A ``cut_region`` will work
-      for either particle fields or mesh fields, but not on both simulaneously.
+      for either particle fields or mesh fields, but not on both simultaneously.
       For more detailed information and examples, see :ref:`cut-regions`.
 
 **Collection of Data Objects** 

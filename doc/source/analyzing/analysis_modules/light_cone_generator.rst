@@ -50,7 +50,7 @@ The additional keyword arguments are:
   ``use_minimum_datasets`` set to False, this parameter specifies the 
   fraction of the total box size to be traversed before rerandomizing the 
   projection axis and center.  This was invented to allow light cones with 
-  thin slices to sample coherent large cale structure, but in practice does 
+  thin slices to sample coherent large scale structure, but in practice does 
   not work so well.  Try setting this parameter to 1 and see what happens.  
   Default: 0.0.
 
@@ -74,7 +74,7 @@ Creating Light Cone Solutions
 
 A light cone solution consists of a list of datasets spanning a redshift 
 interval with a random orientation for each dataset.  A new solution 
-is calcuated with the 
+is calculated with the 
 :func:`~yt.analysis_modules.cosmological_observation.light_cone.light_cone.LightCone.calculate_light_cone_solution`
 function:
 
