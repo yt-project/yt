@@ -244,6 +244,13 @@ installation.
 
 Option 1:
 
+Ensure that you have all build dependencies installed in your current
+conda environment:
+
+.. code-block:: bash
+
+  conda install cython mercurial sympy ipython h5py matplotlib
+
 Clone the yt repository with:
 
 .. code-block:: bash
