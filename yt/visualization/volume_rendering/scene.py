@@ -406,7 +406,8 @@ class Scene(object):
     def _show_mpl(self, im, sigma_clip=None, dpi=100):
         import matplotlib.pyplot as plt
         s = im.shape
-        self._render_figure = plt.figure(1, figsize=(s[1]/dpi, s[0]/dpi))
+        self._render_figure = plt.figure(1, figsize=(s[1]/float(dpi), s[0]/float(dpi)))
+        self._render_figure.clf()
         ax = plt.gca()
         ax.set_position([0, 0, 1, 1])
 
