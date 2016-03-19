@@ -262,7 +262,7 @@ if check_for_pyembree() is not None:
     if in_conda_env():
         conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
         embree_inc_dir.append(os.path.join(conda_basedir, 'include'))
-        embree_lib_dir.append(os.path.join(embree_prefix, 'lib'))
+        embree_lib_dir.append(os.path.join(conda_basedir, 'lib'))
         
     if _platform == "darwin":
         embree_lib_name = "embree.2"
