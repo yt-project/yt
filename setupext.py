@@ -59,6 +59,8 @@ def check_for_pyembree():
         return None
     return os.path.dirname(fn)
 
+def in_conda_env():
+    return any(s in sys.version for s in ("Anaconda", "Continuum"))
 
 def read_embree_location():
     '''

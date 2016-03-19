@@ -9,7 +9,7 @@ from setuptools.command.sdist import sdist as _sdist
 from setuptools.command.build_py import build_py as _build_py
 from setupext import \
     check_for_openmp, check_for_pyembree, read_embree_location, \
-    get_mercurial_changeset_id
+    get_mercurial_changeset_id, in_conda_env
 
 if sys.version_info < (2, 7):
     print("yt currently requires Python version 2.7")
@@ -257,14 +257,21 @@ if check_for_pyembree() is not None:
     ]
 
     embree_prefix = os.path.abspath(read_embree_location())
+    embree_inc_dir = [os.path.join(embree_prefix, 'include')]
+    embree_lib_dir = [os.path.join(embree_prefix, 'lib')]
+    if in_conda_env():
+        conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
+        embree_inc_dir.append(os.path.join(conda_basedir, 'include'))
+        embree_lib_dir.append(os.path.join(embree_prefix, 'lib'))
+        
     if _platform == "darwin":
         embree_lib_name = "embree.2"
     else:
         embree_lib_name = "embree"
 
     for ext in embree_extensions:
-        ext.include_dirs.append(os.path.join(embree_prefix, 'include'))
-        ext.library_dirs.append(os.path.join(embree_prefix, 'lib'))
+        ext.include_dirs += embree_inc_dir
+        ext.library_dirs += embree_lib_dir
         ext.language = "c++"
         ext.libraries += ["m", embree_lib_name]
 
