@@ -41,12 +41,12 @@ class IOHandlerGDFHDF5(BaseIOHandler):
         from sys import version
         rv = {}
         chunks = list(chunks)
+        data_dir = ytcfg.get("yt", "test_data_dir")
 
         if selector.__class__.__name__ == "GridSelector":
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]
-            data_dir = ytcfg.get("yt","test_data_dir")
             h5f = h5py.File(os.path.join(data_dir, grid.filename), 'r')
             gds = h5f.get(_grid_dname(grid.id))
             for ftype, fname in fields:
@@ -78,10 +78,11 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                 if grid.filename is None:
                     continue
                 if fid is None:
+                    _filename = os.path.join(data_dir, grid.filename)
                     if version < '3':
-                        fid = h5py.h5f.open(grid.filename,h5py.h5f.ACC_RDONLY)
+                        fid = h5py.h5f.open(_filename,h5py.h5f.ACC_RDONLY)
                     else:
-                        fid = h5py.h5f.open(bytes(grid.filename,'utf-8'),h5py.h5f.ACC_RDONLY)
+                        fid = h5py.h5f.open(bytes(_filename,'utf-8'),h5py.h5f.ACC_RDONLY)
                 if self.ds.field_ordering == 1:
                     # check the dtype instead
                     data = np.empty(grid.ActiveDimensions[::-1],
