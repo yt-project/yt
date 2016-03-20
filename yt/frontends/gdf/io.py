@@ -13,10 +13,8 @@ The data-file handling functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os
 import numpy as np
 from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.config import ytcfg
 from yt.funcs import \
     mylog
 from yt.utilities.io_handler import \
@@ -46,8 +44,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]
-            data_dir = ytcfg.get("yt","test_data_dir")
-            h5f = h5py.File(os.path.join(data_dir, grid.filename), 'r')
+            h5f = h5py.File(grid.filename, 'r')
             gds = h5f.get(_grid_dname(grid.id))
             for ftype, fname in fields:
                 if self.ds.field_ordering == 1:
