@@ -14,7 +14,7 @@ most recent development version of yt from our channel:
 
 .. code-block:: bash
 
-    conda install -c http://use.yt/with_conda/ yt=3.3_dev
+    conda install -c http://use.yt/with_conda/ yt
 
 If you want to install from source, you can use the ``get_yt.sh`` script.
 Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the 
@@ -73,7 +73,13 @@ you could just run
 
 as usual. Finally, if you create a file called embree.cfg in the yt-hg directory with
 the location of the embree installation, the setup script will find this and use it, 
-provided EMBREE_DIR is not set. We recommend one of the later two methods, especially
+provided EMBREE_DIR is not set. An example embree.cfg file could like this:
+
+.. code-block:: bash
+
+   /opt/local/
+
+We recommend one of the later two methods, especially
 if you plan on re-compiling the cython extensions regularly. Note that none of this is
 neccessary if you installed embree into a location that is in your default path, such
 as /usr/local.
