@@ -116,14 +116,14 @@ def read_embree_location():
         file.close()
 
     except OSError:
-        print fail_msg
+        print(fail_msg)
 
     finally:
         os.chdir(curdir)
         shutil.rmtree(tmpdir)
 
     if exit_code != 0:
-        print fail_msg
+        print(fail_msg)
 
     return rd
 
