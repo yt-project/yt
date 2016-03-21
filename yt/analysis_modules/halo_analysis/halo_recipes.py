@@ -59,6 +59,8 @@ def calculate_virial_quantities(hc, fields,
     ----------
     halo : Halo object
         The Halo object to be provided by the HaloCatalog.
+    fields: string or list of strings
+        The fields for which virial values are to be calculated.
     weight_field : string
         Weight field for profiling.
         Default : "cell_mass"
