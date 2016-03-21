@@ -313,7 +313,8 @@ class SceneComponent(object):
 
 class BlockCollection(SceneComponent):
     name = "block_collection"
-    def __init__(self):
+    def __init__(self, scale = False):
+        self.scale = scale
         super(BlockCollection, self).__init__()
         self.set_shader("default.v")
         self.set_shader("max_intensity.f")
@@ -369,6 +370,19 @@ class BlockCollection(SceneComponent):
         vert, dx, le, re = [], [], [], []
         self.min_val = 1e60
         self.max_val = -1e60
+        if self.scale:
+            left_min = np.ones(3, "f8") * np.inf
+            right_max = np.ones(3, "f8") * -np.inf
+            for block in self.data_source.tiles.traverse():
+                np.minimum(left_min, block.LeftEdge, left_min)
+                np.maximum(right_max, block.LeftEdge, right_max)
+            offset = left_min.min()
+            scale = right_max.max() - left_min.min()
+            for block in self.data_source.tiles.traverse():
+                block.LeftEdge -= left_min
+                block.LeftEdge /= scale
+                block.RightEdge -= left_min
+                block.RightEdge /= scale
         for i, block in enumerate(self.data_source.tiles.traverse()):
             self.min_val = min(self.min_val, np.nanmin(block.my_data[0].min()))
             self.max_val = max(self.max_val, np.nanmax(block.my_data[0].max()))
