@@ -13,9 +13,6 @@ Halo recipe object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-import os
-
 from yt.utilities.operator_registry import \
     OperatorRegistry
 
