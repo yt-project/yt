@@ -15,6 +15,8 @@ from __future__ import absolute_import
 
 import numpy as np
 
+from yt.config import \
+    ytcfg
 from yt.funcs import mylog, get_image_suffix
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -175,7 +177,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
-def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
+def write_image(image, filename, color_bounds = None, cmap_name = None, func = lambda x: x):
     r"""Write out a floating point array directly to a PNG file, scaling it and
     applying a colormap.
 
@@ -210,6 +212,8 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
                     (1024, 1024))
     >>> write_image(frb1["Density"], "saved.png")
     """
+    if cmap_name is None:
+        cmap_name = ytcfg.get("yt", "default_colormap")
     if len(image.shape) == 3:
         mylog.info("Using only channel 1 of supplied image")
         image = image[:,:,0]
@@ -217,7 +221,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
     pw.write_png(to_plot, filename)
     return to_plot
 
-def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda x: x):
+def apply_colormap(image, color_bounds = None, cmap_name = None, func=lambda x: x):
     r"""Apply a colormap to a floating point image, scaling to uint8.
 
     This function will scale an image and directly call libpng to write out a
@@ -242,6 +246,8 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot : uint8 image with colorbar applied.
 
     """
+    if cmap_name is None:
+        cmap_name = ytcfg.get("yt", "default_colormap")
     from yt.data_objects.image_array import ImageArray
     image = ImageArray(func(image))
     if color_bounds is None:
@@ -333,7 +339,7 @@ def splat_points(image, points_x, points_y,
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
                      title=None, limits=None, take_log=True, figsize=(8,6),
-                     dpi=100, cmap_name='algae', extent=None, xlabel=None,
+                     dpi=100, cmap_name=None, extent=None, xlabel=None,
                      ylabel=None):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
@@ -378,6 +384,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          title="Offaxis Projection", limits=(1e-5,1e-3), 
                          take_log=True)
     """
+    if cmap_name is None:
+        cmap_name = ytcfg.get("yt", "default_colormap")
     import matplotlib
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 

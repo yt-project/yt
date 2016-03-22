@@ -18,6 +18,8 @@ import shutil
 from numpy.testing import \
     assert_raises
 
+from yt.config import \
+    ytcfg
 from yt.testing import \
     fake_amr_ds
 import yt.units as u
@@ -357,7 +359,7 @@ def test_line_integral_convolution_callback():
         p = SlicePlot(ds, "x", "density")
         p.annotate_line_integral_convolution("velocity_x", "velocity_y",
                                              kernellen=100., lim=(0.4,0.7),
-                                             cmap='algae', alpha=0.9,
-                                             const_alpha=True)
+                                             cmap=ytcfg.get("yt", "default_colormap"),
+                                             alpha=0.9, const_alpha=True)
         p.save(prefix)
 

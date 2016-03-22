@@ -15,6 +15,8 @@ The volume rendering Scene class.
 import functools
 import numpy as np
 from collections import OrderedDict
+from yt.config import \
+    ytcfg
 from yt.funcs import mylog, get_image_suffix
 from yt.extern.six import iteritems, itervalues, string_types
 from yt.units.dimensions import \
@@ -643,7 +645,7 @@ class Scene(object):
         self.add_source(box_source)
         return self
 
-    def annotate_grids(self, data_source, alpha=0.3, cmap='algae',
+    def annotate_grids(self, data_source, alpha=0.3, cmap=None,
                        min_level=None, max_level=None):
         r"""
 
@@ -677,6 +679,8 @@ class Scene(object):
         >>> im = sc.render()
 
         """
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
         grids = GridSource(data_source, alpha=alpha, cmap=cmap,
                             min_level=min_level, max_level=max_level)
         self.add_source(grids)
