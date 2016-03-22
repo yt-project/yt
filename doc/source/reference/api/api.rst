@@ -472,6 +472,8 @@ on cosmological halos.  It is also the primary interface for halo finding.
    ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
    ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
    ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_recipes.HaloRecipe
+   ~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities
 
 Halo Finding
 ^^^^^^^^^^^^
