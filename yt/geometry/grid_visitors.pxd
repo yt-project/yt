@@ -48,24 +48,6 @@ cdef struct GridTreeNodePadded:
     np.float64_t dds_y
     np.float64_t dds_z
 
-cdef struct GridVisitorData:
-    GridTreeNode *grid
-    np.uint64_t index
-    np.uint64_t global_index
-    np.int64_t pos[3]       # position in ints
-    int n_tuples
-    int **child_tuples # [N_child][6], where 0-1 are x_start, x_end, etc.
-    void *array
-    int ref_factor # This may change on a grid-by-grid basis
-                   # It is the number of cells a child grid has per dimension
-                   # in a cell of this grid.
-                            
-cdef void free_tuples(GridVisitorData *data) nogil
-cdef void setup_tuples(GridVisitorData *data) nogil
-cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil
-
-ctypedef void grid_visitor_function(GridVisitorData *data,
-                                         np.uint8_t selected) nogil
 # This is similar in spirit to the way oct visitor functions work.  However,
 # there are a few important differences.  Because the grid objects are expected
 # to be bigger, we don't need to pass them along -- we will not be recursively
@@ -76,9 +58,43 @@ ctypedef void grid_visitor_function(GridVisitorData *data,
 # information about whether they have been selected and whether they are
 # covered by child cells.
 
-cdef grid_visitor_function count_cells
-cdef grid_visitor_function mask_cells
-cdef grid_visitor_function icoords_cells
-cdef grid_visitor_function ires_cells
-cdef grid_visitor_function fcoords_cells
-cdef grid_visitor_function fwidth_cells
+# One other note: many things that for Octs can be 4D arrays are here
+# flattened.  This is because we can't have "ragged" arrays, where the
+# dimensionality is different based on where we are in the array.  Such things
+# *can* be constructed (there's an example in the particle smoothing) but often
+# they are too complex or expensive, and we will flatten them anyway later.
+
+cdef class GridVisitor:
+    cdef np.uint64_t index
+    cdef np.uint64_t global_index
+    cdef np.int64_t pos[3]       # position in ints
+    cdef int n_tuples
+    cdef int **child_tuples # [N_child][6], where 0-1 are x_start, x_end, etc.
+    cdef int ref_factor # This may change on a grid-by-grid basis
+                        # It is the number of cells a child grid has per
+                        # dimension in a cell of this grid.
+
+    
+    cdef void visit(self, GridTreeNode *grid, np.uint8_t selected) nogil
+
+    cdef void free_tuples(self) nogil
+    cdef void setup_tuples(self, GridTreeNode *grid) nogil
+    cdef np.uint8_t check_child_masked(self) nogil
+
+cdef class CountGridCells(GridVisitor):
+    cdef np.uint64_t count
+
+cdef class MaskGridCells(GridVisitor):
+    cdef np.uint8_t[:] mask
+
+cdef class ICoordsGrids(GridVisitor):
+    cdef np.int64_t[:,:] icoords
+
+cdef class IResGrids(GridVisitor):
+    cdef np.int64_t[:] ires
+
+cdef class FCoordsGrids(GridVisitor):
+    cdef np.float64_t[:,:] fcoords
+
+cdef class FWidthGrids(GridVisitor):
+    cdef np.float64_t[:,:] fwidth

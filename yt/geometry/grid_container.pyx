@@ -17,7 +17,6 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.math cimport rint
-from yt.utilities.lib.bitarray cimport bitarray
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -149,17 +148,7 @@ cdef class GridTree:
             dtn[n] = (f, o)
         return grids_basic.view(dtype=np.dtype(dtn))
 
-    cdef void setup_data(self, GridVisitorData *data):
-        # Being handed a new GVD object, we initialize it to sane defaults.
-        data.index = 0
-        data.global_index = 0
-        data.n_tuples = 0
-        data.child_tuples = NULL
-        data.array = NULL
-        data.ref_factor = 2 #### FIX THIS
-
-    cdef void visit_grids(self, GridVisitorData *data,
-                          grid_visitor_function *func,
+    cdef void visit_grids(self, GridVisitor visitor,
                           SelectorObject selector):
         # This iterates over all root grids, given a selector+data, and then
         # visits each one and its children.
@@ -167,107 +156,95 @@ cdef class GridTree:
         # Because of confusion about mapping of children to parents, we are
         # going to do this the stupid way for now.
         cdef GridTreeNode *grid
-        cdef np.uint8_t *buf = NULL
-        if self.mask is not None:
-            buf = self.mask.buf
+        # Can be None
+        cdef np.uint8_t[:] buf = self.mask
         for i in range(self.num_root_grids):
             grid = &self.root_grids[i]
-            self.recursively_visit_grid(data, func, selector, grid, buf)
-        grid_visitors.free_tuples(data)
+            self.recursively_visit_grid(visitor, selector, grid, buf)
+        visitor.free_tuples()
 
-    cdef void recursively_visit_grid(self, GridVisitorData *data,
-                                     grid_visitor_function *func,
+    cdef void recursively_visit_grid(self, GridVisitor visitor,
                                      SelectorObject selector,
                                      GridTreeNode *grid,
-                                     np.uint8_t *buf = NULL):
+                                     np.uint8_t[:] buf = None):
         # Visit this grid and all of its child grids, with a given grid visitor
         # function.  We early terminate if we are not selected by the selector.
         cdef int i
-        data.grid = grid
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
             # Note that this does not increment the global_index.
             return
-        grid_visitors.setup_tuples(data)
-        selector.visit_grid_cells(data, func, buf)
+        visitor.setup_tuples(grid)
+        selector.visit_grid_cells(visitor, grid, buf)
         for i in range(grid.num_children):
-            self.recursively_visit_grid(data, func, selector, grid.children[i],
+            self.recursively_visit_grid(visitor, selector, grid.children[i],
                                         buf)
+
+    cdef np.int64_t _count(self, SelectorObject selector):
+        cdef grid_visitors.CountGridCells count_visitor 
+        count_visitor = grid_visitors.CountGridCells(self)
+        count_visitor.count = 0
+        self.visit_grids(count_visitor, selector)
+        return count_visitor.count
 
     def count(self, SelectorObject selector):
         # Use the counting grid visitor
-        cdef GridVisitorData data
-        self.setup_data(&data)
+        cdef grid_visitors.MaskGridCells mask_visitor 
+        mask_visitor = grid_visitors.MaskGridCells(self)
         cdef np.uint64_t size = 0
         cdef int i
         for i in range(self.num_grids):
             size += (self.grids[i].dims[0] *
                      self.grids[i].dims[1] *
                      self.grids[i].dims[2])
-        cdef bitarray mask = bitarray(size)
-        data.array = <void*>mask.buf
-        self.visit_grids(&data, grid_visitors.mask_cells, selector)
-        self.mask = mask
-        size = 0
-        self.setup_data(&data)
-        data.array = <void*>(&size)
-        self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        return size
+        cdef np.uint8_t[:] mask = np.zeros(size, "uint8")
+        self.mask = mask_visitor.mask = mask
+        self.visit_grids(mask_visitor, selector)
+        cdef grid_visitors.CountGridCells count_visitor 
+        count_visitor = grid_visitors.CountGridCells(self)
+        count_visitor.count = 0
+        self.visit_grids(count_visitor, selector)
+        return count_visitor.count
 
     def select_icoords(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill icoords with a selector
-        cdef GridVisitorData data
-        self.setup_data(&data)
+        cdef grid_visitors.ICoordsGrids visitor
+        visitor = grid_visitors.ICoordsGrids(self)
         if size == -1:
-            size = 0
-            data.array = <void*>(&size)
-            self.visit_grids(&data,  grid_visitors.count_cells, selector)
+            size = self._count(selector)
         cdef np.ndarray[np.int64_t, ndim=2] icoords 
-        icoords = np.empty((size, 3), dtype="int64")
-        data.array = icoords.data
-        self.visit_grids(&data, grid_visitors.icoords_cells, selector)
-        return icoords
+        visitor.icoords = np.empty((size, 3), dtype="int64")
+        self.visit_grids(visitor, selector)
+        return visitor.icoords
 
     def select_ires(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill ires with a selector
-        cdef GridVisitorData data
-        self.setup_data(&data)
+        cdef grid_visitors.IResGrids visitor
+        visitor = grid_visitors.IResGrids(self)
         if size == -1:
-            size = 0
-            data.array = <void*>(&size)
-            self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.int64_t, ndim=1] ires 
-        ires = np.empty(size, dtype="int64")
-        data.array = ires.data
-        self.visit_grids(&data, grid_visitors.ires_cells, selector)
-        return ires
+            size = self._count(selector)
+        visitor.ires = np.empty(size, dtype="int64")
+        self.visit_grids(visitor, selector)
+        return visitor.ires
 
     def select_fcoords(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill fcoords with a selector
-        cdef GridVisitorData data
-        self.setup_data(&data)
+        cdef grid_visitors.FCoordsGrids visitor
+        visitor = grid_visitors.FCoordsGrids(self)
         if size == -1:
-            size = 0
-            data.array = <void*>(&size)
-            self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.float64_t, ndim=2] fcoords 
-        fcoords = np.empty((size, 3), dtype="float64")
-        data.array = fcoords.data
-        self.visit_grids(&data, grid_visitors.fcoords_cells, selector)
-        return fcoords
+            size = self._count(selector)
+        visitor.fcoords = np.empty((size, 3), dtype="float64")
+        self.visit_grids(visitor, selector)
+        return visitor.fcoords
 
     def select_fwidth(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill fwidth with a selector
-        cdef GridVisitorData data
-        self.setup_data(&data)
+        cdef grid_visitors.FWidthGrids visitor
+        visitor = grid_visitors.FWidthGrids(self)
         if size == -1:
-            size = 0
-            data.array = <void*>(&size)
-            self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.float64_t, ndim=2] fwidth 
-        fwidth = np.empty((size, 3), dtype="float64")
-        data.array = fwidth.data
-        self.visit_grids(&data, grid_visitors.fwidth_cells, selector)
-        return fwidth
+            size = self._count(selector)
+        visitor.fwidth = np.empty((size, 3), dtype="float64")
+        self.visit_grids(visitor, selector)
+        return visitor.fwidth
     
 cdef class MatchPointsToGrids:
 

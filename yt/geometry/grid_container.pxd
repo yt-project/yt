@@ -20,10 +20,9 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
-from grid_visitors cimport GridTreeNode, GridVisitorData, \
-    grid_visitor_function, GridTreeNodePadded
+from grid_visitors cimport GridTreeNode, GridTreeNodePadded
 cimport grid_visitors 
-from yt.utilities.lib.bitarray cimport bitarray
+from grid_visitors cimport GridVisitor
 
 cdef class GridTree:
     cdef GridTreeNode *grids
@@ -31,17 +30,14 @@ cdef class GridTree:
     cdef int num_grids
     cdef int num_root_grids
     cdef int num_leaf_grids
-    cdef public bitarray mask
-    cdef void setup_data(self, GridVisitorData *data)
-    cdef void visit_grids(self, GridVisitorData *data,
-                          grid_visitor_function *func,
-                          SelectorObject selector)
+    cdef np.uint8_t[:] mask
+    cdef void visit_grids(self, GridVisitor visitor, SelectorObject selector)
     cdef void recursively_visit_grid(self,
-                          GridVisitorData *data,
-                          grid_visitor_function *func,
+                          GridVisitor visitor,
                           SelectorObject selector,
                           GridTreeNode *grid,
-                          np.uint8_t *buf = ?)
+                          np.uint8_t[:] buf = ?)
+    cdef np.int64_t _count(self, SelectorObject selector)
 
 cdef class MatchPointsToGrids:
 

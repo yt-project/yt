@@ -24,7 +24,6 @@ cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
     VolumeContainer, sample_function, walk_volume
-from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -486,9 +485,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void visit_grid_cells(self, GridVisitorData *data,
-                              grid_visitor_function *func,
-                              np.uint8_t *cached_mask = NULL):
+    cdef void visit_grid_cells(self, GridVisitor visitor,
+                              GridTreeNode *grid,
+                              np.uint8_t[:] cached_mask = None):
         # This function accepts a grid visitor function, the data that
         # corresponds to the current grid being examined (the most important
         # aspect of which is the .grid attribute, along with index values and
@@ -500,50 +499,50 @@ cdef class SelectorObject:
         cdef int dim[3]
         cdef int this_level = 0, level, i
         cdef np.float64_t pos[3]
-        level = data.grid.level
+        level = grid.level
         if level < self.min_level or level > self.max_level:
             return
         if level == self.max_level:
             this_level = 1
         cdef np.uint8_t child_masked, selected
         for i in range(3):
-            left_edge[i] = data.grid.left_edge[i]
-            right_edge[i] = data.grid.right_edge[i]
-            dds[i] = (right_edge[i] - left_edge[i])/data.grid.dims[i]
-            dim[i] = data.grid.dims[i]
+            left_edge[i] = grid.left_edge[i]
+            right_edge[i] = grid.right_edge[i]
+            dds[i] = (right_edge[i] - left_edge[i])/grid.dims[i]
+            dim[i] = grid.dims[i]
+        cdef int have_cache = cached_mask is not None
         with nogil:
             pos[0] = left_edge[0] + dds[0] * 0.5
-            data.pos[0] = 0
+            visitor.pos[0] = 0
             for i in range(dim[0]):
                 pos[1] = left_edge[1] + dds[1] * 0.5
-                data.pos[1] = 0
+                visitor.pos[1] = 0
                 for j in range(dim[1]):
                     pos[2] = left_edge[2] + dds[2] * 0.5
-                    data.pos[2] = 0
+                    visitor.pos[2] = 0
                     for k in range(dim[2]):
                         # We short-circuit if we have a cache; if we don't, we
                         # only set selected to true if it's *not* masked by a
                         # child and it *is* selected.
-                        if cached_mask != NULL:
-                            selected = ba_get_value(cached_mask,
-                                                    data.global_index)
+                        if have_cache:
+                            selected = cached_mask[visitor.global_index]
                         else:
                             if this_level == 1:
                                 child_masked = 0
                             else:
-                                child_masked = check_child_masked(data)
+                                child_masked = visitor.check_child_masked()
                             if child_masked == 0:
                                 selected = self.select_cell(pos, dds)
                             else:
                                 selected = 0
-                        func(data, selected)
-                        data.global_index += 1
+                        visitor.visit(grid, selected)
+                        visitor.global_index += 1
                         pos[2] += dds[2]
-                        data.pos[2] += 1
+                        visitor.pos[2] += 1
                     pos[1] += dds[1]
-                    data.pos[1] += 1
+                    visitor.pos[1] += 1
                 pos[0] += dds[0]
-                data.pos[0] += 1
+                visitor.pos[0] += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
