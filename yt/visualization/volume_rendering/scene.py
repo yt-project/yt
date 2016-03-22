@@ -419,7 +419,8 @@ class Scene(object):
             del nz
         else:
             nim = im
-        axim = plt.imshow(nim[:,:,:3]/nim[:,:,:3].max(), interpolation="nearest")
+        axim = plt.imshow(nim[:,:,:3]/nim[:,:,:3].max(), interpolation="nearest",
+                          cmap=self.cmap)
 
         return axim
 

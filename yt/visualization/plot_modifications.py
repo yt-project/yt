@@ -1590,7 +1590,7 @@ class MeshLinesCallback(PlotCallback):
 
         plot._axes.imshow(image, zorder=1,
                           extent=[xx0, xx1, yy0, yy1],
-                          origin='lower',
+                          origin='lower', cmap=self.cmap,
                           interpolation='nearest')
 
 
@@ -2276,7 +2276,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
-            plot._axes.imshow(lic_data_rgba, extent=extent)
+            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap)
         plot._axes.hold(False)
 
         return plot

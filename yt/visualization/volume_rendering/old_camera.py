@@ -691,7 +691,8 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper')
+        ax = self._pylab.imshow(nim[:,:,:3]/nim[:,:,:3].max(), origin='upper',
+                                cmap=self.cmap)
         return ax
 
     def draw(self):
@@ -1103,7 +1104,7 @@ class InteractiveCamera(Camera):
         pylab.draw()
         im = Camera.snapshot(self, fn, clip_ratio)
         pylab.figure(1)
-        pylab.imshow(im / im.max())
+        pylab.imshow(im / im.max(), cmap=self.cmap)
         pylab.draw()
         self.frames.append(im)
 
@@ -1780,7 +1781,8 @@ def plot_allsky_healpix(image, nside, fn, label = "", rotation = None,
     if take_log: func = np.log10
     else: func = lambda a: a
     implot = ax.imshow(func(img), extent=(-np.pi,np.pi,-np.pi/2,np.pi/2),
-                       clip_on=False, aspect=0.5, vmin=cmin, vmax=cmax)
+                       clip_on=False, aspect=0.5, vmin=cmin, vmax=cmax,
+                       cmap=self.cmap)
     cb = fig.colorbar(implot, orientation='horizontal')
     cb.set_label(label)
     ax.xaxis.set_ticks(())
