@@ -36,6 +36,7 @@ class GridIndex(Index):
     """The index class for patch and block AMR datasets. """
     float_type = 'float64'
     _preload_implemented = False
+    _grid_tree = None
     _index_properties = ("grid_left_edge", "grid_right_edge",
                          "grid_levels", "grid_particle_count",
                          "grid_dimensions")
@@ -252,6 +253,8 @@ class GridIndex(Index):
         return self.grids[ind], ind
 
     def _get_grid_tree(self):
+        if self._grid_tree is not None:
+            return self._grid_tree
 
         left_edge = self.ds.arr(np.zeros((self.num_grids, 3)),
                                'code_length')
@@ -274,8 +277,10 @@ class GridIndex(Index):
             num_children[i] = np.int64(len(grid.Children))
             dimensions[i,:] = grid.ActiveDimensions
 
-        return GridTree(self.num_grids, left_edge, right_edge, dimensions,
-                        parent_ind, level, num_children)
+        self._grid_tree = GridTree(self.num_grids, left_edge,
+                                   right_edge, dimensions,
+                                   parent_ind, level, num_children)
+        return self._grid_tree
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -298,8 +303,8 @@ class GridIndex(Index):
             for i, g in enumerate(grids):
                 dobj._chunk_info[i] = g
         # These next two lines, when uncommented, turn "on" the fast index.
-        #if dobj._type_name != "grid":
-        #    fast_index = self._get_grid_tree()
+        if dobj._type_name != "grid":
+            fast_index = self._get_grid_tree()
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj, fast_index = fast_index)
         if getattr(dobj, "shape", None) is None:
@@ -355,6 +360,7 @@ class GridIndex(Index):
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         fast_index = dobj._current_chunk._fast_index
+        fast_index = None
         for g in gobjs:
             gfiles[g.filename].append(g)
         # We can apply a heuristic here to make sure we aren't loading too
