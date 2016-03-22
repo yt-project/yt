@@ -16,8 +16,6 @@ Halo recipe object
 import numpy as np
 import os
 
-from yt.utilities.logger import ytLogger as \
-    mylog
 from yt.utilities.operator_registry import \
     OperatorRegistry
 
