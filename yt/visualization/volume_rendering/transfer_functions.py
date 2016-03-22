@@ -493,7 +493,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         i_data[:,:,0] = np.outer(np.ones(self.alpha.x.size), self.funcs[0].y)
         i_data[:,:,1] = np.outer(np.ones(self.alpha.x.size), self.funcs[1].y)
         i_data[:,:,2] = np.outer(np.ones(self.alpha.x.size), self.funcs[2].y)
-        ax.imshow(i_data, origin='lower', cmap=self.cmap)
+        ax.imshow(i_data, origin='lower')
         ax.fill_between(np.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
         ax.set_xlim(0, self.alpha.x.size)
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
@@ -534,7 +534,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         i_data[:,:,0] = np.outer(np.ones(self.alpha.x.size), self.funcs[0].y)
         i_data[:,:,1] = np.outer(np.ones(self.alpha.x.size), self.funcs[1].y)
         i_data[:,:,2] = np.outer(np.ones(self.alpha.x.size), self.funcs[2].y)
-        ax.imshow(i_data, origin='lower', cmap=self.cmap)
+        ax.imshow(i_data, origin='lower')
         ax.fill_between(np.arange(self.alpha.y.size), self.alpha.x.size * self.alpha.y, y2=self.alpha.x.size, color='white')
         ax.set_xlim(0, self.alpha.x.size)
         xticks = np.arange(np.ceil(self.alpha.x[0]), np.floor(self.alpha.x[-1]) + 1, 1) - self.alpha.x[0]
@@ -582,7 +582,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         i_data[:,:,0] = np.outer(self.funcs[0].y, np.ones(self.alpha.x.size))
         i_data[:,:,1] = np.outer(self.funcs[1].y, np.ones(self.alpha.x.size))
         i_data[:,:,2] = np.outer(self.funcs[2].y, np.ones(self.alpha.x.size))
-        ax.imshow(i_data, origin='lower', aspect='auto', cmap=self.cmap)
+        ax.imshow(i_data, origin='lower', aspect='auto')
         ax.plot(alpha, np.arange(self.alpha.y.size), 'w')
 
         # Set TF limits based on what is visible

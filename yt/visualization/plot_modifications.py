@@ -27,6 +27,8 @@ from matplotlib.colors import colorConverter
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
@@ -1535,9 +1537,12 @@ class MeshLinesCallback(PlotCallback):
     """
     _type_name = "mesh_lines"
 
-    def __init__(self, thresh=0.1):
+    def __init__(self, thresh=0.1, cmap=None):
         super(MeshLinesCallback, self).__init__()
         self.thresh = thresh
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
+        self.cmap = cmap
 
     def __call__(self, plot):
 
