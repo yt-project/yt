@@ -154,7 +154,6 @@ cdef class GridTreeSelector:
             size += (self.tree.grids[i].dims[0] *
                      self.tree.grids[i].dims[1] *
                      self.tree.grids[i].dims[2])
-        #self.mask = np.zeros(self.tree.num_grids, "uint8")
         self.size = size
         self.mask = np.zeros(size, "uint8")
         self.initialized = 0
@@ -171,8 +170,6 @@ cdef class GridTreeSelector:
         # This iterates over all root grids, given a selector+data, and then
         # visits each one and its children.
         cdef int i
-        # Because of confusion about mapping of children to parents, we are
-        # going to do this the stupid way for now.
         cdef GridTreeNode *grid
         # Can be None
         for i in range(self.tree.num_root_grids):

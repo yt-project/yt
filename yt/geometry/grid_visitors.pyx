@@ -67,6 +67,21 @@ cdef class GridVisitor:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef void expand_mask(self, np.uint8_t[:,:,:] child_mask) nogil:
+        cdef int ti, i, j, k
+        cdef int *tup
+        for ti in range(self.n_tuples):
+            # k is if we're inside a given child tuple.  We check each one
+            # individually, and invalidate if we're outside.
+            tup = self.child_tuples[ti]
+            for i in range(tup[0], tup[1]):
+                for j in range(tup[2], tup[3]):
+                    for k in range(tup[4], tup[5]):
+                        child_mask[i,j,k] = 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef np.uint8_t check_child_masked(self) nogil:
         # This simply checks if we're inside any of the tuples.  Probably not the
         # most efficient way, but the GVD* passed in has a position affiliated with
