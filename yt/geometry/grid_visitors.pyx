@@ -109,6 +109,7 @@ cdef class MaskGridCells(GridVisitor):
         # Set our bitarray -- we're creating a mask -- if we are selected.
         if selected == 0: return
         self.mask[self.global_index] = 1
+        self.count += 1
         # No need to increment anything.
 
 cdef class ICoordsGrids(GridVisitor):

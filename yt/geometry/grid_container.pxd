@@ -44,9 +44,7 @@ cdef class GridTreeSelector:
     cdef void recursively_visit_grid(self,
                           GridVisitor visitor,
                           SelectorObject selector,
-                          GridTreeNode *grid,
-                          np.uint8_t[:] buf = ?)
-    cdef np.int64_t _count(self, SelectorObject selector)
+                          GridTreeNode *grid)
 
 
 cdef class MatchPointsToGrids:

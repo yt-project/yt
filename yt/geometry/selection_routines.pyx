@@ -482,12 +482,13 @@ cdef class SelectorObject:
                 pos[0] += dds[0]
         return total
 
+    @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void visit_grid_cells(self, GridVisitor visitor,
-                              GridTreeNode *grid,
-                              np.uint8_t[:] cached_mask = None):
+                              GridTreeNode *grid, int use_cache,
+                              np.uint8_t[:] cached_mask):
         # This function accepts a grid visitor function, the data that
         # corresponds to the current grid being examined (the most important
         # aspect of which is the .grid attribute, along with index values and
@@ -510,7 +511,6 @@ cdef class SelectorObject:
             right_edge[i] = grid.right_edge[i]
             dds[i] = (right_edge[i] - left_edge[i])/grid.dims[i]
             dim[i] = grid.dims[i]
-        cdef int have_cache = cached_mask is not None
         with nogil:
             pos[0] = left_edge[0] + dds[0] * 0.5
             visitor.pos[0] = 0
@@ -524,7 +524,7 @@ cdef class SelectorObject:
                         # We short-circuit if we have a cache; if we don't, we
                         # only set selected to true if it's *not* masked by a
                         # child and it *is* selected.
-                        if have_cache:
+                        if use_cache:
                             selected = cached_mask[visitor.global_index]
                         else:
                             if this_level == 1:

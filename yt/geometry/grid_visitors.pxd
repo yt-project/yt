@@ -86,6 +86,7 @@ cdef class CountGridCells(GridVisitor):
 
 cdef class MaskGridCells(GridVisitor):
     cdef np.uint8_t[:] mask
+    cdef np.uint64_t count
 
 cdef class ICoordsGrids(GridVisitor):
     cdef np.int64_t[:,:] icoords
