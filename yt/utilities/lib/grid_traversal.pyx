@@ -399,7 +399,7 @@ cdef class ImageSampler:
                     vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
                 raise RuntimeError(msg)
 
-            if camera_data is not None and "perspective" in self.lens_type:
+            if camera_data is not None and self.lens_type == 'perspective':
                 self.extent_function = calculate_extent_perspective
             else:
                 self.extent_function = calculate_extent_null
