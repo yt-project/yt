@@ -154,8 +154,9 @@ class DatasetSeries(object):
         return ret
 
     def __init__(self, outputs, parallel = True, setup_function = None,
-                 **kwargs):
+                 mixed_dataset_types = False, **kwargs):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
+        self._mixed_dataset_types = mixed_dataset_types
         if iterable(outputs) and not isinstance(outputs, string_types):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
@@ -173,7 +174,7 @@ class DatasetSeries(object):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
             if isinstance(o, string_types):
-                ds = load(o, **self.kwargs)
+                ds = self._load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
             else:
@@ -187,7 +188,7 @@ class DatasetSeries(object):
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
         if isinstance(o, string_types):
-            o = load(o, **self.kwargs)
+            o = self._load(o, **self.kwargs)
             self._setup_function(o)
         return o
 
@@ -278,7 +279,7 @@ class DatasetSeries(object):
                 sto, output = output
 
             if isinstance(output, string_types):
-                ds = load(output, **self.kwargs)
+                ds = self._load(output, **self.kwargs)
                 self._setup_function(ds)
             else:
                 ds = output
@@ -383,6 +384,16 @@ class DatasetSeries(object):
             filenames.append(fn)
         obj = cls(filenames, parallel = parallel)
         return obj
+
+    _dataset_cls = None
+    def _load(self, output_fn, **kwargs):
+        if self._dataset_cls is not None:
+            return self._dataset_cls(output_fn, **kwargs)
+        elif self._mixed_dataset_types:
+            return load(output_fn, **kwargs)
+        ds = load(output_fn, **kwargs)
+        self._dataset_cls = ds.__class__
+        return ds
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):
