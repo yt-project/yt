@@ -49,7 +49,7 @@ def setup_test_ds():
 def test_grid_tree():
     """Main test suite for GridTree"""
     test_ds = setup_test_ds()
-    grid_tree = test_ds.index._get_grid_tree()
+    grid_tree = test_ds.index.grid_tree()
     indices, levels, nchild, children = grid_tree.return_tree_info()
 
     grid_levels = [grid.Level for grid in test_ds.index.grids]
@@ -119,7 +119,7 @@ def test_find_points():
 
 def test_grid_arrays_view():
     ds = setup_test_ds()
-    tree = ds.index._get_grid_tree()
+    tree = ds.index.grid_tree()
     grid_arr = tree.grid_arrays
     yield assert_equal, grid_arr['left_edge'], ds.index.grid_left_edge
     yield assert_equal, grid_arr['right_edge'], ds.index.grid_right_edge

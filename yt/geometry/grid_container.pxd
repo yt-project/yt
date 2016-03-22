@@ -22,7 +22,9 @@ from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
 from grid_visitors cimport GridTreeNode, GridTreeNodePadded
 cimport grid_visitors 
-from grid_visitors cimport GridVisitor
+from grid_visitors cimport GridVisitor, \
+    CountGridCells, MaskGridCells, ICoordsGrids, IResGrids, FCoordsGrids, \
+    FWidthGrids
 
 cdef class GridTree:
     cdef GridTreeNode *grids
@@ -30,7 +32,14 @@ cdef class GridTree:
     cdef int num_grids
     cdef int num_root_grids
     cdef int num_leaf_grids
+
+cdef class GridTreeSelector:
+    cdef GridTree tree
     cdef np.uint8_t[:] mask
+    cdef np.uint64_t size
+    cdef np.uint64_t cell_count
+    cdef np.uint8_t initialized
+
     cdef void visit_grids(self, GridVisitor visitor, SelectorObject selector)
     cdef void recursively_visit_grid(self,
                           GridVisitor visitor,
@@ -38,6 +47,7 @@ cdef class GridTree:
                           GridTreeNode *grid,
                           np.uint8_t[:] buf = ?)
     cdef np.int64_t _count(self, SelectorObject selector)
+
 
 cdef class MatchPointsToGrids:
 

@@ -21,7 +21,7 @@ from yt.utilities.lib.fp_utils cimport iclip
 from yt.geometry.grid_container cimport GridTree
 
 cdef class GridVisitor:
-    def __init__(self, GridTree grid_tree):
+    def __cinit__(self):
         self.index = 0
         self.global_index = 0
         self.n_tuples = 0

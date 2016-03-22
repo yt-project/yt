@@ -252,6 +252,10 @@ class GridIndex(Index):
         ind = pts.find_points_in_tree()
         return self.grids[ind], ind
 
+    @property
+    def grid_tree(self):
+        return self._get_grid_tree()
+
     def _get_grid_tree(self):
         if self._grid_tree is not None:
             return self._grid_tree
@@ -304,7 +308,7 @@ class GridIndex(Index):
                 dobj._chunk_info[i] = g
         # These next two lines, when uncommented, turn "on" the fast index.
         if dobj._type_name != "grid":
-            fast_index = self._get_grid_tree()
+            fast_index = self.grid_tree.selector()
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj, fast_index = fast_index)
         if getattr(dobj, "shape", None) is None:
