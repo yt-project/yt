@@ -220,7 +220,7 @@ Recipes
 Recipes allow you to create analysis tasks that consist of a series of
 callbacks, quantities, and filters that are run in succession.  An example
 of this is
-:func:`yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities`,
+:func:`~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities`,
 which calculates virial quantities by first creating a sphere container,
 performing 1D radial profiles, and then interpolating to get values at a
 specified threshold overdensity.  All of these operations are separate
