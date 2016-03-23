@@ -537,7 +537,7 @@ would regenerate answers for OWLS frontend.
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
 
-In order to add new answer with a set of test it is sufficient to extend
+In order to add a new set of answer tests, it is sufficient to extend the
 *answer_tests* list in *tests/tests_2.7.yaml* e.g.: 
 
 .. code-block:: diff
