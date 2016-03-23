@@ -118,7 +118,7 @@ class OctreeSubset(YTSelectionContainer):
         mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
         slicer = OctreeSubsetBlockSlice(self)
         for i, sl in slicer:
-            yield sl, mask[i,...]
+            yield sl, np.atleast_3d(mask[i,...])
 
     def select_tcoords(self, dobj):
         # These will not be pre-allocated, which can be a problem for speed and
@@ -129,6 +129,8 @@ class OctreeSubset(YTSelectionContainer):
             dt, t = dobj.selector.get_dt(sl)
             dts.append(dt)
             ts.append(t)
+        if len(dts) == len(ts) == 0:
+            return np.empty(0, "f8"), np.empty(0, "f8")
         return np.concatenate(dts), np.concatenate(ts)
 
     @property
