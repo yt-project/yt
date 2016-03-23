@@ -19,7 +19,7 @@ The testing suite should be run locally by developers to make sure they aren't
 checking in any code that breaks existing functionality.  To further this goal,
 an automatic buildbot runs the test suite after each code commit to confirm
 that yt hasn't broken recently.  To supplement this effort, we also maintain a
-`continuous integration server <http://tests.yt-project.org>`_ that runs the
+`continuous integration server <https://tests.yt-project.org>`_ that runs the
 tests with each commit to the yt version control repository.
 
 .. _unit_testing:
