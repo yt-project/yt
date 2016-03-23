@@ -65,12 +65,13 @@ Analysis Using Halo Catalogs
 
 Analysis is done by adding actions to the 
 :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
-Each action is represented by a callback function that will be run on each halo. 
-There are three types of actions:
+Each action is represented by a callback function that will be run on
+each halo.  There are four types of actions:
 
 * Filters
 * Quantities
 * Callbacks
+* Recipes
 
 A list of all available filters, quantities, and callbacks can be found in 
 :ref:`halo_analysis_ref`.  
@@ -212,6 +213,50 @@ An example of defining your own callback:
 
    # ...  Later on in your script
    hc.add_callback("my_callback")
+
+Recipes
+^^^^^^^
+
+Recipes allow you to create analysis tasks that consist of a series of
+callbacks, quantities, and filters that are run in succession.  An example
+of this is
+:func:`~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities`,
+which calculates virial quantities by first creating a sphere container,
+performing 1D radial profiles, and then interpolating to get values at a
+specified threshold overdensity.  All of these operations are separate
+callbacks, but the recipes allow you to add them to your analysis pipeline
+with one call.  For example,
+
+.. code-block:: python
+
+   hc.add_recipe("calculate_virial_quantities", ["radius", "matter_mass"])
+
+The available recipes are located in
+``yt/analysis_modules/halo_analysis/halo_recipes.py``.  New recipes can be
+created in the following manner:
+
+.. code-block:: python
+
+   def my_recipe(halo_catalog, fields, weight_field=None):
+       # create a sphere
+       halo_catalog.add_callback("sphere")
+       # make profiles
+       halo_catalog.add_callback("profile", ["radius"], fields,
+                                 weight_field=weight_field)
+       # save the profile data
+       halo_catalog.add_callback("save_profiles", output_dir="profiles")
+
+   # add recipe to the registry of recipes
+   add_recipe("profile_and_save", my_recipe)
+
+
+   # ...  Later on in your script
+   hc.add_recipe("profile_and_save", ["density", "temperature"],
+                 weight_field="cell_mass")
+
+Note, that unlike callback, filter, and quantity functions that take a ``Halo``
+object as the first argument, recipe functions should take a ``HaloCatalog``
+object as the first argument.
 
 Running Analysis
 ----------------
