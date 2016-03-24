@@ -92,8 +92,8 @@ class YTOrthoRay(YTSelectionContainer1D):
     coords : tuple of floats
         The (plane_x, plane_y) coordinates at which to cast the ray.  Note
         that this is in the plane coordinates: so if you are casting along
-        x, this will be (y,z).  If you are casting along y, this will be
-        (x,z).  If you are casting along z, this will be (x,y).
+        x, this will be (y, z).  If you are casting along y, this will be
+        (z, x).  If you are casting along z, this will be (x, y).
     ds: Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
