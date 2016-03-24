@@ -40,6 +40,8 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
     YTTooManyVertices
+from yt.fields.field_exceptions import \
+    NeedsGridType
 from yt.utilities.lib.quad_tree import \
     QuadTree
 from yt.utilities.lib.interpolators import \
@@ -492,6 +494,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
         A list of fields that you'd like pre-generated for your object
+    num_ghost_zones : integer, optional
+        The number of padding ghost zones used when accessing fields.
 
     Examples
     --------
@@ -609,7 +613,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
-        fill, gen, part, alias = self._split_fields(fields_to_get)
+        try:
+            fill, gen, part, alias = self._split_fields(fields_to_get)
+        except NeedsGridType:
+            if self._num_ghost_zones == 0:
+                raise RuntimeError(
+                    "Attempting to access a field that needs ghost zones, but "
+                    "num_ghost_zones = %s. You should create the covering grid "
+                    "with nonzero num_ghost_zones." % self._num_ghost_zones)
+            else:
+                raise
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
