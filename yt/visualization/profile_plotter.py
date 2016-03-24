@@ -1061,7 +1061,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @invalidate_plot
-    def annotate_title(self,title):
+    def annotate_title(self, title):
         """Set a title for the plot.
 
         Parameters
@@ -1076,7 +1076,7 @@ class PhasePlot(ImagePlotContainer):
 
         """
         for f in self.profile.field_data:
-            if isinstance(f,tuple):
+            if isinstance(f, tuple):
                 f = f[1]
             self.plot_title[self.data_source._determine_fields(f)[0]] = title
         return self
