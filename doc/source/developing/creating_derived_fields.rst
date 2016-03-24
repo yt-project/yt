@@ -10,7 +10,7 @@ Defining a New Field
 --------------------
 
 Once a new field has been conceived of, the best way to create it is to
-construct a function that performs an array operation -- operating on a 
+construct a function that performs an array operation -- operating on a
 collection of data, neutral to its size, shape, and type.
 
 A simple example of this is the pressure field, which demonstrates the ease of
@@ -26,7 +26,7 @@ this approach.
 
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
-the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived 
+the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived
 field!  We don't do any loops, we don't do any type-checking, we can simply
 multiply the three items together.
 
@@ -45,7 +45,7 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 .. note::
 
-    There are two different :func:`add_field` functions.  For the differences, 
+    There are two different :func:`add_field` functions.  For the differences,
     see :ref:`faq-add-field-diffs`.
 
 .. code-block:: python
@@ -53,12 +53,12 @@ look at the most basic ones needed for a simple scalar baryon field.
    yt.add_field(("gas", "pressure"), function=_pressure, units="dyne/cm**2")
 
 We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that yt 
-uses in its :ref:`symbolic units implementation <units>` (e.g., employing only 
-unit names, numbers, and mathematical operators in the string, and using 
-``"**"`` for exponentiation). For cosmological datasets and fields, see 
-:ref:`cosmological-units`.  We suggest that you name the function that creates 
-a derived field with the intended field name prefixed by a single underscore, 
+units.  Note that the units parameter is a "raw" string, in the format that yt
+uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
+unit names, numbers, and mathematical operators in the string, and using
+``"**"`` for exponentiation). For cosmological datasets and fields, see
+:ref:`cosmological-units`.  We suggest that you name the function that creates
+a derived field with the intended field name prefixed by a single underscore,
 as in the ``_pressure`` example above.
 
 Field definitions return array data with units. If the field function returns
@@ -86,8 +86,8 @@ Lastly, if you do not know the units of your field ahead of time, you can
 specify ``units='auto'`` in the call to ``add_field`` for your field.  This will
 automatically determine the appropriate units based on the units of the data
 returned by the field function. This is also a good way to let your derived fields
-be automatically converted to the units of the :ref:`unit system <unit_systems>` in 
-your dataset. 
+be automatically converted to the units of the :ref:`unit system <unit_systems>` in
+your dataset.
 
 If ``units='auto'`` is set, it is also required to set the ``dimensions`` keyword
 argument so that error-checking can be done on the derived field to make sure that
@@ -97,20 +97,20 @@ the dimensionality of the returned array and the field are the same:
 
     import yt
     from yt.units import dimensions
-    
+
     def _pressure(field, data):
         return (data.ds.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
-              
+
     yt.add_field(("gas","pressure"), function=_pressure, units="auto",
                  dimensions=dimensions.pressure)
 
 If ``dimensions`` is not set, an error will be thrown. The ``dimensions`` keyword
 can be a SymPy ``symbol`` object imported from ``yt.units.dimensions``, a compound
-dimension of these, or a string corresponding to one of these objects. 
+dimension of these, or a string corresponding to one of these objects.
 
-:func:`add_field` can be invoked in two other ways. The first is by the 
-function decorator :func:`derived_field`. The following code is equivalent to 
+:func:`add_field` can be invoked in two other ways. The first is by the
+function decorator :func:`derived_field`. The following code is equivalent to
 the previous example:
 
 .. code-block:: python
@@ -122,15 +122,15 @@ the previous example:
        return (data.ds.gamma - 1.0) * \
               data["density"] * data["thermal_energy"]
 
-The :func:`derived_field` decorator takes the same arguments as 
-:func:`add_field`, and is often a more convenient shorthand in cases where 
+The :func:`derived_field` decorator takes the same arguments as
+:func:`add_field`, and is often a more convenient shorthand in cases where
 you want to quickly set up a new field.
 
-Defining derived fields in the above fashion must be done before a dataset is 
-loaded, in order for the dataset to recognize it. If you want to set up a 
-derived field after you have loaded a dataset, or if you only want to set up 
-a derived field for a particular dataset, there is an 
-:func:`~yt.data_objects.static_output.Dataset.add_field` method that hangs off 
+Defining derived fields in the above fashion must be done before a dataset is
+loaded, in order for the dataset to recognize it. If you want to set up a
+derived field after you have loaded a dataset, or if you only want to set up
+a derived field for a particular dataset, there is an
+:func:`~yt.data_objects.static_output.Dataset.add_field` method that hangs off
 dataset objects. The calling syntax is the same:
 
 .. code-block:: python
@@ -138,7 +138,7 @@ dataset objects. The calling syntax is the same:
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
    ds.add_field(("gas", "pressure"), function=_pressure, units="dyne/cm**2")
 
-If you specify fields in this way, you can take advantage of the dataset's 
+If you specify fields in this way, you can take advantage of the dataset's
 :ref:`unit system <unit_systems>` to define the units for you, so that
 the units will be returned in the units of that system:
 
@@ -164,8 +164,8 @@ A More Complicated Example
 But what if we want to do something a bit more fancy?  Here's an example of getting
 parameters from the data object and using those to define the field;
 specifically, here we obtain the ``center`` and ``bulk_velocity`` parameters
-and use those to define a field for radial velocity (there is already 
-a ``radial_velocity`` field in yt, but we create this one here just as a 
+and use those to define a field for radial velocity (there is already
+a ``radial_velocity`` field in yt, but we create this one here just as a
 transparent and simple example).
 
 .. code-block:: python
@@ -202,11 +202,11 @@ that we do not wish to display this field as logged, that we require both
 ``bulk_velocity`` and ``center`` to be present in a given data object we wish
 to calculate this for, and we say that it should not be displayed in a
 drop-down box of fields to display. This is done through the parameter
-*validators*, which accepts a list of :class:`~yt.fields.derived_field.FieldValidator` 
-objects. These objects define the way in which the field is generated, and 
-when it is able to be created. In this case, we mandate that parameters 
-``center`` and ``bulk_velocity`` are set before creating the field. These are 
-set via :meth:`~yt.data_objects.data_containers.set_field_parameter`, which can 
+*validators*, which accepts a list of :class:`~yt.fields.derived_field.FieldValidator`
+objects. These objects define the way in which the field is generated, and
+when it is able to be created. In this case, we mandate that parameters
+``center`` and ``bulk_velocity`` are set before creating the field. These are
+set via :meth:`~yt.data_objects.data_containers.set_field_parameter`, which can
 be called on any object that has fields:
 
 .. code-block:: python
@@ -215,8 +215,8 @@ be called on any object that has fields:
    sp = ds.sphere("max", (200.,"kpc"))
    sp.set_field_parameter("bulk_velocity", yt.YTArray([-100.,200.,300.], "km/s"))
 
-In this case, we already know what the ``center`` of the sphere is, so we do 
-not set it. Also, note that ``center`` and ``bulk_velocity`` need to be 
+In this case, we already know what the ``center`` of the sphere is, so we do
+not set it. Also, note that ``center`` and ``bulk_velocity`` need to be
 :class:`~yt.units.yt_array.YTArray` objects with units.
 
 Other examples for creating derived fields can be found in the cookbook recipe
@@ -237,11 +237,11 @@ There are a number of options available, but the only mandatory ones are ``name`
 ``function``
      This is a function handle that defines the field
 ``units``
-     This is a string that describes the units, or a query to a :ref:`UnitSystem <unit_systems>` 
-     object, e.g. ``ds.unit_system["energy"]``. Powers must be in Python syntax (``**`` 
-     instead of ``^``). Alternatively, it may be set to ``"auto"`` to have the units 
+     This is a string that describes the units, or a query to a :ref:`UnitSystem <unit_systems>`
+     object, e.g. ``ds.unit_system["energy"]``. Powers must be in Python syntax (``**``
+     instead of ``^``). Alternatively, it may be set to ``"auto"`` to have the units
      determined automatically. In this case, the ``dimensions`` keyword must be set to the
-     correct dimensions of the field. 
+     correct dimensions of the field.
 ``display_name``
      This is a name used in the plots, for instance ``"Divergence of
      Velocity"``.  If not supplied, the ``name`` value is used.

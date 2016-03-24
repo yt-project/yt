@@ -7,8 +7,8 @@ Installation
 ^^^^^^^^^^^^
 
 Beginning with version 3.3, yt has the ability to volume render unstructured
-mesh data like that created by finite element calculations. In order to use 
-this capability, a few additional dependencies are required. The easiest way 
+mesh data like that created by finite element calculations. In order to use
+this capability, a few additional dependencies are required. The easiest way
 to install yt with unstructured mesh support is to use conda to install the
 most recent development version of yt from our channel:
 
@@ -17,7 +17,7 @@ most recent development version of yt from our channel:
     conda install -c http://use.yt/with_conda/ yt
 
 If you want to install from source, you can use the ``get_yt.sh`` script.
-Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the 
+Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the
 top of the script. The ``get_yt.sh`` script can be downloaded by doing:
 
 .. code-block:: bash
@@ -34,9 +34,9 @@ Alternatively, you can install the additional dependencies by hand.
 First, `embree <https://embree.github.io>`_
 (a fast software ray-tracing library from Intel) must be installed, either
 by compiling from source or by using one of the pre-built binaries available
-at Embree's `downloads <https://embree.github.io/downloads.html>`_ page. 
+at Embree's `downloads <https://embree.github.io/downloads.html>`_ page.
 
-Second, the python bindings for embree (called 
+Second, the python bindings for embree (called
 `pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
 do so, first obtain a copy, by .e.g. cloning the repo:
 
@@ -47,7 +47,7 @@ do so, first obtain a copy, by .e.g. cloning the repo:
 To install, navigate to the root directory and run the setup script.
 If Embree was installed to some location that is not in your path by default,
 you will need to pass in CFLAGS and LDFLAGS to the setup.py script. For example,
-the Mac OS X package installer puts the installation at /opt/local/ instead of 
+the Mac OS X package installer puts the installation at /opt/local/ instead of
 usr/local. To account for this, you would do:
 
 .. code-block:: bash
@@ -55,7 +55,7 @@ usr/local. To account for this, you would do:
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
 Once embree and pyembree are installed, you must rebuild yt from source in order to use
-the unstructured mesh rendering capability. Once again, if embree is installed in a 
+the unstructured mesh rendering capability. Once again, if embree is installed in a
 location that is not part of your default search path, you must tell yt where to find it.
 There are a number of ways to do this. One way is to again manually pass in the flags
 when running the setup script in the yt-hg directory:
@@ -65,14 +65,14 @@ when running the setup script in the yt-hg directory:
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py develop
 
 You can also set EMBREE_DIR environment variable to '/opt/local', in which case
-you could just run 
+you could just run
 
 .. code-block:: bash
-   
+
    python setup.py develop
 
 as usual. Finally, if you create a file called embree.cfg in the yt-hg directory with
-the location of the embree installation, the setup script will find this and use it, 
+the location of the embree installation, the setup script will find this and use it,
 provided EMBREE_DIR is not set. An example embree.cfg file could like this:
 
 .. code-block:: bash
@@ -85,17 +85,17 @@ neccessary if you installed embree into a location that is in your default path,
 as /usr/local.
 
 Once the pre-requisites are installed, unstructured mesh data can be rendered
-much like any other dataset. In particular, a new type of 
+much like any other dataset. In particular, a new type of
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` object
-has been defined, called the 
+has been defined, called the
 :class:`~yt.visualization.volume_rendering.render_source.MeshSource`, that
-represents the unstructured mesh data that will be rendered. The user creates 
+represents the unstructured mesh data that will be rendered. The user creates
 this object, and also defines a
-:class:`~yt.visualization.volume_rendering.camera.Camera` 
-that specifies your viewpoint into the scene. When 
+:class:`~yt.visualization.volume_rendering.camera.Camera`
+that specifies your viewpoint into the scene. When
 :class:`~yt.visualization.volume_rendering.render_source.RenderSource` is called,
 a set of rays are cast at the source. Each time a ray strikes the source mesh,
-the data is sampled at the intersection point at the resulting value gets 
+the data is sampled at the intersection point at the resulting value gets
 saved into an image. See below for examples.
 
 Examples
@@ -160,7 +160,7 @@ You can also overplot the mesh boundaries:
     sc.save()
 
 As with slices, you can visualize different meshes and different fields. For example,
-Here is a script similar to the above that plots the "diffused" variable 
+Here is a script similar to the above that plots the "diffused" variable
 using the mesh labelled by "connect2":
 
 .. python-script::
@@ -168,24 +168,24 @@ using the mesh labelled by "connect2":
     import yt
 
     ds = yt.load("MOOSE_sample_data/out.e-s010")
-   
+
     # create a default scene
     sc = yt.create_scene(ds, ('connect2', 'diffused'))
-   
+
     # override the default colormap
     ms = sc.get_source(0)
     ms.cmap = 'Eos A'
-   
+
     # adjust the camera position and orientation
     cam = sc.camera
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
     north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
-   
+
     # increase the default resolution
     cam.resolution = (800, 800)
-   
+
     # render and save
     sc.save()
 
@@ -243,7 +243,7 @@ Here is an example using 6-node wedge elements:
    # render and save
    sc.save()
 
-Another example, this time plotting the temperature field from a 20-node hex 
+Another example, this time plotting the temperature field from a 20-node hex
 MOOSE dataset:
 
 .. python-script::
@@ -279,7 +279,7 @@ MOOSE dataset:
 
 The dataset in the above example contains displacement fields, so this is a good
 opportunity to demonstrate their use. The following example is exactly like the
-above, except we scale the displacements by a factor of a 10.0, and additionally 
+above, except we scale the displacements by a factor of a 10.0, and additionally
 add an offset to the mesh by 1.0 unit in the x-direction:
 
 .. python-script::
@@ -305,7 +305,7 @@ add an offset to the mesh by 1.0 unit in the x-direction:
     north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
     cam.set_position(camera_position, north_vector)
-    
+
     # increase the default resolution
     cam.resolution = (800, 800)
 
@@ -314,8 +314,8 @@ add an offset to the mesh by 1.0 unit in the x-direction:
     sc.annotate_mesh_lines()
     sc.save()
 
-As with other volume renderings in yt, you can swap out different lenses. Here is 
-an example that uses a "perspective" lens, for which the rays diverge from the 
+As with other volume renderings in yt, you can swap out different lenses. Here is
+an example that uses a "perspective" lens, for which the rays diverge from the
 camera position according to some opening angle:
 
 .. python-script::
@@ -330,17 +330,17 @@ camera position according to some opening angle:
     # override the default colormap
     ms = sc.get_source(0)
     ms.cmap = 'Eos A'
-   
+
     # Create a perspective Camera
     cam = sc.add_camera(ds, lens_type='perspective')
     cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
     cam_pos = ds.arr([-4.5, 4.5, -4.5], 'code_length')
     north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.set_position(cam_pos, north_vector)
-   
+
     # increase the default resolution
     cam.resolution = (800, 800)
-   
+
     # render, draw the element boundaries, and save
     sc.render()
     sc.annotate_mesh_lines()
@@ -348,7 +348,7 @@ camera position according to some opening angle:
 
 You can also create scenes that have multiple meshes. The ray-tracing infrastructure
 will keep track of the depth information for each source separately, and composite
-the final image accordingly. In the next example, we show how to render a scene 
+the final image accordingly. In the next example, we show how to render a scene
 with two meshes on it:
 
 .. python-script::
@@ -383,10 +383,10 @@ with two meshes on it:
 Making Movies
 ^^^^^^^^^^^^^
 
-Here are a couple of example scripts that show how to create image frames that 
-can later be stitched together into a movie. In the first example, we look at a 
+Here are a couple of example scripts that show how to create image frames that
+can later be stitched together into a movie. In the first example, we look at a
 single dataset at a fixed time, but we move the camera around to get a different
-vantage point. We call the rotate() method 300 times, saving a new image to the 
+vantage point. We call the rotate() method 300 times, saving a new image to the
 disk each time.
 
 .. code-block:: python

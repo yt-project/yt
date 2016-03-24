@@ -22,7 +22,7 @@ hc.add_callback('sphere', radius_field='radius_200', factor=5,
                 field_parameters=field_params)
 
 # Compute profiles of T vs. r/r_200
-hc.add_callback('profile', ['virial_radius_fraction'], 
+hc.add_callback('profile', ['virial_radius_fraction'],
                 [('gas', 'temperature')],
                 storage='virial_profiles',
                 weight_field='cell_mass',

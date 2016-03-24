@@ -66,7 +66,7 @@ for file in ctx:
             written = cond_output(output, written)
             ofn = "%s/%s_%s" % (ndir, fn, os.path.basename(ifn))
             open(ofn, "wb").write(open(ifn, "rb").read())
-            output.write(".. image:: _%s/%s_%s\n" % (fn, fn, os.path.basename(ifn)) + 
+            output.write(".. image:: _%s/%s_%s\n" % (fn, fn, os.path.basename(ifn)) +
                          "   :width: 240\n" +
                          "   :target: ../_images/%s_%s\n" % (fn, os.path.basename(ifn))
                         )

@@ -7,9 +7,9 @@ The quickstart is a series of worked examples of how to use much of the
 funtionality of yt.  These are simple, short introductions to give you a taste
 of what the code can do and are not meant to be detailed walkthroughs.
 
-There are two ways in which you can go through the quickstart: interactively and 
-non-interactively.  We recommend the interactive method, but if you're pressed 
-on time, you can non-interactively go through the linked pages below and view the 
+There are two ways in which you can go through the quickstart: interactively and
+non-interactively.  We recommend the interactive method, but if you're pressed
+on time, you can non-interactively go through the linked pages below and view the
 worked examples.
 
 To execute the quickstart interactively, you need to download the repository and
@@ -28,7 +28,7 @@ Now start the IPython notebook from within the repository:
    yt notebook
 
 This command will give you information about the notebook server and how to
-access it.  You will basically just pick a password (for security reasons) and then 
+access it.  You will basically just pick a password (for security reasons) and then
 redirect your web browser to point to the notebook server.
 Once you have done so, choose "Introduction" from the list of
 notebooks, which includes an introduction and information about how to download

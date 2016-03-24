@@ -15,7 +15,7 @@ def thermal_energy_dens(field, data):
 ds.add_field(("gas", "thermal_energy_density"), units="erg/cm**3", function=thermal_energy_dens)
 
 # It will now show up in your derived_field_list
-for i in sorted(ds.derived_field_list): 
+for i in sorted(ds.derived_field_list):
     print(i)
 
 # Let's use it to make a projection

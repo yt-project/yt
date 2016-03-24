@@ -6,7 +6,7 @@ Plot Modifications: Overplotting Contours, Velocities, Particles, and More
 Adding callbacks to plots
 -------------------------
 
-After a plot is generated using the standard tools (e.g. SlicePlot, 
+After a plot is generated using the standard tools (e.g. SlicePlot,
 ProjectionPlot, etc.), it can be annotated with any number of ``callbacks``
 before being saved to disk.  These callbacks can modify the plots by adding
 lines, text, markers, streamlines, velocity vectors, contours, and more.
@@ -25,36 +25,36 @@ of available callbacks.  For example:
    slc = SlicePlot(ds,0,'density')
    slc.annotate_title('This is a Density plot')
 
-would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to 
-the plot object.  All of the callbacks listed below are available via 
+would add the :func:`~yt.visualization.plot_modifications.TitleCallback` to
+the plot object.  All of the callbacks listed below are available via
 similar ``annotate_`` functions.
 
-To clear one or more annotations from an existing plot, see the 
+To clear one or more annotations from an existing plot, see the
 :ref:`annotate_clear() function <annotate-clear>`.
 
-For a brief demonstration of a few of these callbacks in action together, 
+For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
 
 Coordinate Systems in Callbacks
 -------------------------------
 
-Many of the callbacks (e.g. 
-:class:`~yt.visualization.plot_modifications.TextLabelCallback`) are specified 
-to occur at user-defined coordinate locations (like where to place a marker 
-or text on the plot).  There are several different coordinate systems used 
-to identify these locations.  These coordinate systems can be specified with 
-the ``coord_system`` keyword in the relevant callback, which is by default 
+Many of the callbacks (e.g.
+:class:`~yt.visualization.plot_modifications.TextLabelCallback`) are specified
+to occur at user-defined coordinate locations (like where to place a marker
+or text on the plot).  There are several different coordinate systems used
+to identify these locations.  These coordinate systems can be specified with
+the ``coord_system`` keyword in the relevant callback, which is by default
 set to ``data``.  The valid coordinate systems are:
 
-    ``data`` – the 3D dataset coordinates 
+    ``data`` – the 3D dataset coordinates
 
-    ``plot`` – the 2D coordinates defined by the actual plot limits 
+    ``plot`` – the 2D coordinates defined by the actual plot limits
 
     ``axis`` – the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
     ``figure`` – the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
-Here we will demonstrate these different coordinate systems for an projection 
+Here we will demonstrate these different coordinate systems for an projection
 of the x-plane (i.e. with axes in the y and z directions):
 
 .. python-script::
@@ -72,16 +72,16 @@ of the x-plane (i.e. with axes in the y and z directions):
     # Plot marker and text in plot coords
     s.annotate_marker((200, -300), coord_system='plot')
     s.annotate_text((200, -300), 'plot: (200, -300)', coord_system='plot')
-    
+
     # Plot marker and text in axis coords
     s.annotate_marker((0.1, 0.2), coord_system='axis')
     s.annotate_text((0.1, 0.2), 'axis: (0.1, 0.2)', coord_system='axis')
-    
+
     # Plot marker and text in figure coords
     # N.B. marker will not render outside of axis bounds
-    s.annotate_marker((0.1, 0.2), coord_system='figure', 
+    s.annotate_marker((0.1, 0.2), coord_system='figure',
                     plot_args={'color':'black'})
-    s.annotate_text((0.1, 0.2), 'figure: (0.1, 0.2)', coord_system='figure', 
+    s.annotate_text((0.1, 0.2), 'figure: (0.1, 0.2)', coord_system='figure',
                     text_args={'color':'black'})
     s.save()
 
@@ -97,15 +97,15 @@ Clear Callbacks (Some or All)
 
 .. function:: annotate_clear(index=None)
 
-    This function will clear previous annotations (callbacks) in the plot.  
+    This function will clear previous annotations (callbacks) in the plot.
     If no index is provided, it will clear all annotations to the plot.
     If an index is provided, it will clear only the Nth annotation
-    to the plot.  Note that the index goes from 0..N, and you can 
+    to the plot.  Note that the index goes from 0..N, and you can
     specify the index of the last added annotation as -1.
- 
+
 .. python-script::
 
-    import yt 
+    import yt
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
     p.annotate_scale()
@@ -285,21 +285,21 @@ Overplot Halo Annotations
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
 
-   Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog` 
-   and plots a circle at the location of each halo with the radius of the 
-   circle corresponding to the virial radius of the halo.  If ``width`` is set 
-   to None (default) all halos are plotted, otherwise it accepts a tuple in 
-   the form (1.0, ‘Mpc’) to only display halos that fall within a slab with 
-   width ``width`` centered on the center of the plot data.  The appearance of 
-   the circles can be changed with the circle_kwargs dictionary, which is 
-   supplied to the Matplotlib patch Circle.  One can label each of the halos 
-   with the annotate_field, which accepts a field contained in the halo catalog 
+   Accepts a :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
+   and plots a circle at the location of each halo with the radius of the
+   circle corresponding to the virial radius of the halo.  If ``width`` is set
+   to None (default) all halos are plotted, otherwise it accepts a tuple in
+   the form (1.0, ‘Mpc’) to only display halos that fall within a slab with
+   width ``width`` centered on the center of the plot data.  The appearance of
+   the circles can be changed with the circle_kwargs dictionary, which is
+   supplied to the Matplotlib patch Circle.  One can label each of the halos
+   with the annotate_field, which accepts a field contained in the halo catalog
    to add text to the plot near the halo (example: ``annotate_field=
-   'particle_mass'`` will write the halo mass next to each halo, whereas 
-   ``'particle_identifier'`` shows the halo number).  font_kwargs contains the 
+   'particle_mass'`` will write the halo mass next to each halo, whereas
+   ``'particle_identifier'`` shows the halo number).  font_kwargs contains the
    arguments controlling the text appearance of the annotated field.
-   Factor is the number the virial radius is multiplied by for plotting the 
-   circles. Ex: ``factor=2.0`` will plot circles with twice the radius of each 
+   Factor is the number the virial radius is multiplied by for plotting the
+   circles. Ex: ``factor=2.0`` will plot circles with twice the radius of each
    halo virial radius.
 
 .. python-script::
@@ -385,7 +385,7 @@ Annotate a Point With a Marker
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    s = yt.SlicePlot(ds, 'z', 'density', center='c', width=(10, 'kpc'))
-   s.annotate_marker((-2,-2), coord_system='plot', 
+   s.annotate_marker((-2,-2), coord_system='plot',
                      plot_args={'color':'blue','s':500})
    s.save()
 
@@ -433,7 +433,7 @@ Overplot a Circle on a Plot
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    p = yt.ProjectionPlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
-   p.annotate_sphere([0.5, 0.5, 0.5], radius=(2, 'kpc'), 
+   p.annotate_sphere([0.5, 0.5, 0.5], radius=(2, 'kpc'),
                      circle_args={'color':'black'})
    p.save()
 
@@ -476,12 +476,12 @@ Overplot Line Integral Convolution
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.LineIntegralConvolutionCallback`.)
 
-   Add line integral convolution to any plot, using the ``field_x`` and ``field_y`` 
-   from the associated data. A white noise background will be used for ``texture`` 
-   as default. Adjust the bounds of ``lim`` in the range of ``[0, 1]`` which applies 
-   upper and lower bounds to the values of line integral convolution and enhance 
-   the visibility of plots. When ``const_alpha=False``, alpha will be weighted 
-   spatially by the values of line integral convolution; otherwise a constant value 
+   Add line integral convolution to any plot, using the ``field_x`` and ``field_y``
+   from the associated data. A white noise background will be used for ``texture``
+   as default. Adjust the bounds of ``lim`` in the range of ``[0, 1]`` which applies
+   upper and lower bounds to the values of line integral convolution and enhance
+   the visibility of plots. When ``const_alpha=False``, alpha will be weighted
+   spatially by the values of line integral convolution; otherwise a constant value
    of the given alpha is used.
 
 .. python-script::
@@ -580,8 +580,8 @@ Add the Current Time and/or Redshift
 
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
-    image coordinates with the x_pos, y_pos arguments.  If no time_units are 
-    specified, it will automatically choose appropriate units.  It allows for 
+    image coordinates with the x_pos, y_pos arguments.  If no time_units are
+    specified, it will automatically choose appropriate units.  It allows for
     custom formatting of the time and redshift information, as well as the
     specification of an inset box around the text.
 
@@ -637,7 +637,7 @@ Annotate Triangle Facets Callback
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.TriangleFacetsCallback`.)
 
-   This add a line collection of a SlicePlot's plane-intersection 
+   This add a line collection of a SlicePlot's plane-intersection
    with the triangles to the plot. This callback is ideal for a
    dataset representing a geometric model of triangular facets.
 
@@ -645,12 +645,12 @@ Annotate Triangle Facets Callback
 
    import h5py
    import os
-   import yt 
-   
+   import yt
+
    # Load data file
    pf = yt.load("MoabTest/fng_usrbin22.h5m")
 
-   # Create the desired slice plot	
+   # Create the desired slice plot
    s = yt.SlicePlot(pf, 'z', ('moab','TALLY_TAG'))
 
    #get triangle vertices from file (in this case hdf5)

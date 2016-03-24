@@ -4,7 +4,7 @@ Auxiliary Data Files for use with yt's Photon Simulator
 Included in the `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ package are a number of files that you may find
 useful when working with yt's X-ray `photon_simulator
 <photon_simulator.html>`_  analysis module. They have been tested to give spectral fitting results
-consistent with input parameters. 
+consistent with input parameters.
 
 Spectral Model Tables
 ---------------------
@@ -21,11 +21,11 @@ We have tested the following ARFs and RMFs with the photon
 simulator. These can be used to generate a very simplified
 representation of an X-ray observation, using a uniform, on-axis
 response. For more accurate models of X-ray observations we suggest
-using MARX or SIMX (detailed below_). 
+using MARX or SIMX (detailed below_).
 
 * Chandra: chandra_ACIS-S3_onaxis_arf.fits, chandra_ACIS-S3_onaxis_rmf.fits
 
-  Generated from the CIAO tools, on-axis on the ACIS-S3 chip. 
+  Generated from the CIAO tools, on-axis on the ACIS-S3 chip.
 
 * XMM-Newton: pn-med.arf, pn-med.rmf
 
@@ -41,19 +41,19 @@ using MARX or SIMX (detailed below_).
 
 .. _below:
 
-  
+
 Other Useful Things Not Included Here
 -------------------------------------
 
 * AtomDB: http://www.atomdb.org
 
   FITS table data for emission lines and continuum emission. Must have
-  it installed to use the TableApecModel spectral model. 
+  it installed to use the TableApecModel spectral model.
 
 * PyXspec: http://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/
 
   Python interface to the XSPEC spectral-fitting program. Two of the
-  spectral models for the photon simulator use it. 
+  spectral models for the photon simulator use it.
 
 * MARX: http://space.mit.edu/ASC/MARX/
 
@@ -62,5 +62,5 @@ Other Useful Things Not Included Here
 * SIMX: http://hea-www.harvard.edu/simx/
 
   Simulates a photon-counting detector's response to an input source,
-  including a simplified models of telescopes. 
+  including a simplified models of telescopes.
 

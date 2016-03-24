@@ -223,7 +223,7 @@ As you can see, now not only does a contain the value "Hi there!", but it also
 is a different value than what b contains, and it also points to a different
 region in memory.  That's because strings are immutable -- the act of adding on
 "!" actually creates an entirely new string and assigns that entirely new
-string to the variable a, leaving the string pointed to by b untouched.  
+string to the variable a, leaving the string pointed to by b untouched.
 
 With lists, which are mutable, we have a bit more liberty with how we modify
 the items and how that modifies the object and its pointers.  A list is really

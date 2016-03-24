@@ -6,7 +6,7 @@ Creating Data Objects
 The three-dimensional datatypes in yt follow a fairly simple protocol.  The
 basic principle is that if you want to define a region in space, that region
 must be identifiable from some sort of cut applied against the cells --
-typically, in yt, this is done by examining the geometry.  
+typically, in yt, this is done by examining the geometry.
 
 Creating a new data object requires modifications to two different files, one
 of which is in Python and the other in Cython.  First, a subclass of
@@ -15,7 +15,7 @@ typically you actually want to subclass one of:
 :class:`~yt.data_objects.data_containers.YTSelectionContainer0D`
 :class:`~yt.data_objects.data_containers.YTSelectionContainer1D`
 :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
-:class:`~yt.data_objects.data_containers.YTSelectionContainer3D`.  
+:class:`~yt.data_objects.data_containers.YTSelectionContainer3D`.
 The following attributes must be defined:
 
  * ``_type_name`` - this is the short name by which the object type will be

@@ -37,7 +37,7 @@ ds.add_particle_filter('stars_young')
 ds.add_particle_filter('stars_medium')
 ds.add_particle_filter('stars_old')
 
-# What are the total masses of different ages of star in the whole simulation 
+# What are the total masses of different ages of star in the whole simulation
 # volume?
 ad = ds.all_data()
 mass_young = ad['stars_young', 'particle_mass'].in_units('Msun').sum()

@@ -17,7 +17,7 @@ is the location of a clone of the yt mercurial repository), and then start an
 IPython notebook server:
 
 .. code:: bash
-  
+
    $ ipython notebook
 
 .. warning:: The pre-filled out notebooks are *far* less fun than running them

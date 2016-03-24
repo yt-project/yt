@@ -3,7 +3,7 @@
 Synthetic Observation
 =====================
 
-Methods for generating various types of synthetic observations 
+Methods for generating various types of synthetic observations
 from simulation data.
 
 .. toctree::
