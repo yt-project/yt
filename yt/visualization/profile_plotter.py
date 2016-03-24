@@ -697,7 +697,7 @@ class PhasePlot(ImagePlotContainer):
     >>> # Change plot properties.
     >>> plot.set_cmap("cell_mass", "jet")
     >>> plot.set_zlim("cell_mass", 1e8, 1e13)
-    >>> plot.annotate_title("cell_mass", "This is a phase plot")
+    >>> plot.annotate_title("This is a phase plot")
 
     """
     x_log = None
