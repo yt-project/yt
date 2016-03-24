@@ -123,6 +123,11 @@ class DatasetSeries(object):
         file provided to the loop.
     setup_function : callable, accepts a ds
         This function will be called whenever a dataset is loaded.
+    mixed_dataset_types : True or False, default False
+        If the times of datasets provided are not always going to be generated
+        by the same frontend, this should be True.  Assuming identical datasets
+        will use the frontend Dataset class rather than using ``load``, which
+        provides a considerable speedup in some cases.
 
     Examples
     --------
