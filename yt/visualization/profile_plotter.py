@@ -697,7 +697,7 @@ class PhasePlot(ImagePlotContainer):
     >>> # Change plot properties.
     >>> plot.set_cmap("cell_mass", "jet")
     >>> plot.set_zlim("cell_mass", 1e8, 1e13)
-    >>> plot.set_title("cell_mass", "This is a phase plot")
+    >>> plot.annotate_title("cell_mass", "This is a phase plot")
 
     """
     x_log = None
@@ -1058,6 +1058,27 @@ class PhasePlot(ImagePlotContainer):
 
         """
         self.plot_title[self.data_source._determine_fields(field)[0]] = title
+        return self
+
+    @invalidate_plot
+    def annotate_title(self,title):
+        """Set a title for the plot.
+
+        Parameters
+        ----------
+        title : str
+            The title to add.
+
+        Examples
+        --------
+
+        >>> plot.annotate_title("This is a phase plot")
+
+        """
+        for f in self.profile.field_data:
+            if isinstance(f,tuple):
+                f = f[1]
+            self.plot_title[self.data_source._determine_fields(f)[0]] = title
         return self
 
     @invalidate_plot
