@@ -376,7 +376,6 @@ class BlockCollection(SceneComponent):
             for block in self.data_source.tiles.traverse():
                 np.minimum(left_min, block.LeftEdge, left_min)
                 np.maximum(right_max, block.LeftEdge, right_max)
-            offset = left_min.min()
             scale = right_max.max() - left_min.min()
             for block in self.data_source.tiles.traverse():
                 block.LeftEdge -= left_min
