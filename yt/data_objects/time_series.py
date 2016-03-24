@@ -124,10 +124,9 @@ class DatasetSeries(object):
     setup_function : callable, accepts a ds
         This function will be called whenever a dataset is loaded.
     mixed_dataset_types : True or False, default False
-        If the times of datasets provided are not always going to be generated
-        by the same frontend, this should be True.  Assuming identical datasets
-        will use the frontend Dataset class rather than using ``load``, which
-        provides a considerable speedup in some cases.
+        Set to True if the DatasetSeries will load different dataset types, set
+        to False if loading dataset of a single type as this will result in a
+        considerable speed up from not having to figure out the dataset type.
 
     Examples
     --------
