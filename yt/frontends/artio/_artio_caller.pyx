@@ -718,12 +718,13 @@ cdef class ARTIOSFCRangeHandler:
     cdef np.int64_t **pcount
     cdef float **root_mesh_data
     cdef np.int64_t nvars[2]
+    cdef int cache_root_mesh
 
     def __init__(self, domain_dimensions, # cells
                  domain_left_edge,
                  domain_right_edge,
                  artio_fileset artio_handle,
-                 sfc_start, sfc_end):
+                 sfc_start, sfc_end, int cache_root_mesh = 0):
         cdef int i
         cdef np.int64_t sfc
         self.sfc_start = sfc_start
@@ -735,6 +736,7 @@ cdef class ARTIOSFCRangeHandler:
         self.oct_count = None
         self.root_mesh_data = NULL
         self.pcount = NULL
+        self.cache_root_mesh = cache_root_mesh
 
         if artio_handle.has_particles:
             self.pcount = <np.int64_t **> malloc(sizeof(np.int64_t*)
@@ -789,10 +791,11 @@ cdef class ARTIOSFCRangeHandler:
         cdef float *grid_variables = <float *>malloc(
             ngv * sizeof(float))
         self.octree_handler = octree = ARTIOOctreeContainer(self)
-        self.root_mesh_data = <float **>malloc(sizeof(float *) * ngv)
-        for i in range(ngv):
-            self.root_mesh_data[i] = <float *>malloc(sizeof(float) * \
-                (self.sfc_end - self.sfc_start + 1))
+        if self.cache_root_mesh == 1:
+            self.root_mesh_data = <float **>malloc(sizeof(float *) * ngv)
+            for i in range(ngv):
+                self.root_mesh_data[i] = <float *>malloc(sizeof(float) * \
+                    (self.sfc_end - self.sfc_start + 1))
         # We want to pre-allocate an array of root pointers.  In the future,
         # this will be pre-determined by the ARTIO library.  However, because
         # realloc plays havoc with our tree searching, we can't utilize an
@@ -808,7 +811,7 @@ cdef class ARTIOSFCRangeHandler:
                 sfc, dpos, grid_variables, &num_oct_levels,
                 num_octs_per_level)
             check_artio_status(status)
-            for i in range(ngv):
+            for i in range(ngv * self.cache_root_mesh):
                 self.root_mesh_data[i][sfc - self.sfc_start] = \
                     grid_variables[i]
             if num_oct_levels > 0:
@@ -823,7 +826,6 @@ cdef class ARTIOSFCRangeHandler:
             check_artio_status(status)
         status = artio_grid_clear_sfc_cache(self.handle)
         check_artio_status(status)
-
         if self.artio_handle.has_particles:
             num_particles_per_species =  <int *>malloc(
                     sizeof(int)*num_species)
@@ -1505,10 +1507,15 @@ cdef class ARTIORootMeshContainer:
         cdef np.int64_t sfc, num_cells, sfci = -1
         cdef np.float64_t val
         cdef double dpos[3]
+        max_level = self.artio_handle.max_level
+        cdef int *num_octs_per_level = <int *>malloc(
+            (max_level + 1)*sizeof(int))
         # We duplicate some of the grid_variables stuff here so that we can
         # potentially release the GIL
         nf = len(field_indices)
         ngv = self.artio_handle.num_grid_variables
+        cdef float *grid_variables = <float *>malloc(
+            ngv * sizeof(float))
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
         mask = self.mask(selector, -1)
         num_cells = self._last_mask_sum
@@ -1528,17 +1535,39 @@ cdef class ARTIORootMeshContainer:
         # location based on the file index.
         cdef int filled = 0
         cdef float **mesh_data = self.range_handler.root_mesh_data
-        for sfc in range(self.sfc_start, self.sfc_end + 1):
-            if self.sfc_mask[sfc - self.sfc_start] == 0: continue
-            sfci += 1
-            if mask[sfci] == 0: continue
-            for i in range(nf):
-                field_vals[i][filled] = mesh_data[field_ind[i]][
-                    sfc - self.sfc_start]
-            filled += 1
+        if mesh_data == NULL:
+            status = artio_grid_cache_sfc_range(self.handle, self.sfc_start,
+                                                self.sfc_end)
+            check_artio_status(status)
+            for sfc in range(self.sfc_start, self.sfc_end + 1):
+                if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+                sfci += 1
+                if mask[sfci] == 0: continue
+                status = artio_grid_read_root_cell_begin( self.handle,
+                    sfc, dpos, grid_variables, &num_oct_levels,
+                    num_octs_per_level)
+                check_artio_status(status)
+                for i in range(nf):
+                    field_vals[i][filled] = grid_variables[field_ind[i]]
+                filled += 1
+                status = artio_grid_read_root_cell_end(self.handle)
+                check_artio_status(status)
+            status = artio_grid_clear_sfc_cache(self.handle)
+            check_artio_status(status)
+        else:
+            for sfc in range(self.sfc_start, self.sfc_end + 1):
+                if self.sfc_mask[sfc - self.sfc_start] == 0: continue
+                sfci += 1
+                if mask[sfci] == 0: continue
+                for i in range(nf):
+                    field_vals[i][filled] = mesh_data[field_ind[i]][
+                        sfc - self.sfc_start]
+                filled += 1
         # Now we have all our sources.
         free(field_ind)
         free(field_vals)
+        free(grid_variables)
+        free(num_octs_per_level)
         return tr
 
     @cython.boundscheck(False)
