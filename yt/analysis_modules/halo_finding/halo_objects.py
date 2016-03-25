@@ -59,7 +59,10 @@ class Halo(object):
 
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
-        bulk_vel=None, tasks=None, rms_vel=None, supp=None):
+        bulk_vel=None, tasks=None, rms_vel=None, supp=None, ptype=None):
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
         self.halo_list = halo_list
         self._max_dens = halo_list._max_dens
         self.id = id
@@ -276,10 +279,7 @@ class Halo(object):
         return r.max()
 
     def __getitem__(self, key):
-        if ytcfg.getboolean("yt", "inline") is False:
-            return self.data[key][self.indices]
-        else:
-            return self.data[key][self.indices]
+        return self.data[(self.ptype, key)][self.indices]
 
     def get_sphere(self, center_of_mass=True):
         r"""Returns a sphere source.
@@ -954,7 +954,8 @@ class HaloList(object):
 
     _fields = ["particle_position_%s" % ax for ax in 'xyz']
 
-    def __init__(self, data_source, dm_only=True, redshift=-1):
+    def __init__(self, data_source, dm_only=True, redshift=-1,
+                 ptype=None):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is True (default), only run it on the dark matter particles,
@@ -963,6 +964,9 @@ class HaloList(object):
         """
         self._data_source = data_source
         self.dm_only = dm_only
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
         self._groups = []
         self._max_dens = {}
         self.__obtain_particles()
@@ -979,14 +983,14 @@ class HaloList(object):
             ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            tot_part = self._data_source[field].size
+            tot_part = self._data_source[(self.ptype, field)].size
             if field == "particle_index":
                 self.particle_fields[field] = \
-                    self._data_source[field][ii].astype('int64')
+                    self._data_source[(self.ptype, field)][ii].astype('int64')
             else:
                 self.particle_fields[field] = \
-                    self._data_source[field][ii].astype('float64')
-            del self._data_source[field]
+                    self._data_source[(self.ptype, field)][ii].astype('float64')
+            del self._data_source[(self.ptype, field)]
         self._base_indices = np.arange(tot_part)[ii]
         gc.collect()
 
@@ -1014,11 +1018,12 @@ class HaloList(object):
                 cp += counts[i + 1]
                 continue
             group_indices = grab_indices[cp:cp_c]
-            self._groups.append(self._halo_class(self, i, group_indices))
+            self._groups.append(self._halo_class(self, i, group_indices,
+                                                 ptype=self.ptype))
             md_i = np.argmax(dens[cp:cp_c])
             px, py, pz = \
                 [self.particle_fields['particle_position_%s' % ax][group_indices]
-                                            for ax in 'xyz']
+                 for ax in 'xyz']
             self._max_dens[i] = (dens[cp:cp_c][md_i], px[md_i],
                 py[md_i], pz[md_i])
             cp += counts[i + 1]
@@ -1260,10 +1265,11 @@ class HOPHaloList(HaloList):
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["particle_mass"]
 
-    def __init__(self, data_source, threshold=160.0, dm_only=True):
+    def __init__(self, data_source, threshold=160.0, dm_only=True,
+                 ptype=None):
         self.threshold = threshold
         mylog.info("Initializing HOP")
-        HaloList.__init__(self, data_source, dm_only)
+        HaloList.__init__(self, data_source, dm_only, ptype=ptype)
 
     def _run_finder(self):
         self.densities, self.tags = \
@@ -1450,12 +1456,15 @@ class TextHaloList(HaloList):
             halo += 1
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
-    def __init__(self, ds, data_source, dm_only=True, padding=0.0):
+    def __init__(self, ds, data_source, padding=0.0, ptype=None):
         ParallelAnalysisInterface.__init__(self)
         self.ds = ds
         self.index = ds.index
         self.center = (np.array(data_source.right_edge) +
                        np.array(data_source.left_edge)) / 2.0
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
 
     def _parse_halolist(self, threshold_adjustment):
         groups = []
@@ -1474,7 +1483,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                     threshold_adjustment
                 max_dens[hi] = [max_dens_temp] + \
                     list(self._max_dens[halo.id])[1:4]
-                groups.append(self._halo_class(self, hi))
+                groups.append(self._halo_class(self, hi, ptype=self.ptype))
                 groups[-1].indices = halo.indices
                 self.comm.claim_object(groups[-1])
                 hi += 1
@@ -1505,9 +1514,11 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         # Note: we already know which halos we own!
         after = my_first_id + len(self._groups)
         # One single fake halo, not owned, does the trick
-        self._groups = [self._halo_class(self, i) for i in range(my_first_id)] + \
+        self._groups = [self._halo_class(self, i, ptype=self.ptype)
+                        for i in range(my_first_id)] + \
                        self._groups + \
-                       [self._halo_class(self, i) for i in range(after, nhalos)]
+                       [self._halo_class(self, i, ptype=self.ptype)
+                        for i in range(after, nhalos)]
         id = 0
         for proc in sorted(halo_info.keys()):
             for halo in self._groups[id:id + halo_info[proc]]:
@@ -1540,7 +1551,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         LE, RE = bounds
         dw = self.ds.domain_right_edge - self.ds.domain_left_edge
         for i, ax in enumerate('xyz'):
-            arr = self._data_source["particle_position_%s" % ax]
+            arr = self._data_source[self.ptype, "particle_position_%s" % ax]
             arr[arr < LE[i] - self.padding] += dw[i]
             arr[arr > RE[i] + self.padding] -= dw[i]
 
@@ -1697,14 +1708,14 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     >>> halos = HaloFinder(ds)
     """
     def __init__(self, ds, subvolume=None, threshold=160, dm_only=True,
-            padding=0.02, total_mass=None):
+                 ptype=None, padding=0.02, total_mass=None):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
         self.period = ds.domain_right_edge - ds.domain_left_edge
         self._data_source = ds.all_data()
-        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
-            padding)
+        GenericHaloFinder.__init__(self, ds, self._data_source, padding,
+                                   ptype=ptype)
         # do it once with no padding so the total_mass is correct
         # (no duplicated particles), and on the entire volume, even if only
         # a small part is actually going to be used.
@@ -1712,6 +1723,17 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
                 padding=self.padding)
+
+        # Don't allow dm_only=True and setting a ptype.
+        if dm_only and ptype is not None:
+            raise RuntimeError(
+                "If dm_only is True, ptype must be None.  " + \
+                "dm_only must be False if ptype is set.")
+
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
+
         # For scaling the threshold, note that it's a passthrough
         if total_mass is None:
             if dm_only:
@@ -1719,7 +1741,9 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
                 total_mass = \
                     self.comm.mpi_allreduce((self._data_source['all', "particle_mass"][select].in_units('Msun')).sum(dtype='float64'), op='sum')
             else:
-                total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("particle_mass").in_units('Msun'), op='sum')
+                total_mass = self.comm.mpi_allreduce(
+                    self._data_source.quantities.total_quantity(
+                        (self.ptype, "particle_mass")).in_units('Msun'), op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -1743,9 +1767,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             sub_mass = self._data_source["particle_mass"][select].in_units('Msun').sum(dtype='float64')
         else:
             sub_mass = \
-                self._data_source.quantities["TotalQuantity"]("particle_mass").in_units('Msun')
+                self._data_source.quantities.total_quantity(
+                    (self.ptype, "particle_mass")).in_units('Msun')
         HOPHaloList.__init__(self, self._data_source,
-            threshold * total_mass / sub_mass, dm_only)
+            threshold * total_mass / sub_mass, dm_only, ptype=self.ptype)
         self._parse_halolist(total_mass / sub_mass)
         self._join_halolists()
 
@@ -1800,8 +1825,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.index = ds.index
         self.redshift = ds.current_redshift
         self._data_source = ds.all_data()
-        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
-                                   padding)
+        GenericHaloFinder.__init__(self, ds, self._data_source, padding)
         self.padding = 0.0  # * ds["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \
