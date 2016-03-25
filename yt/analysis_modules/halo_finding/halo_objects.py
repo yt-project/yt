@@ -1304,10 +1304,12 @@ class FOFHaloList(HaloList):
     _name = "FOF"
     _halo_class = FOFHalo
 
-    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1):
+    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1,
+                 ptype=None):
         self.link = link
         mylog.info("Initializing FOF")
-        HaloList.__init__(self, data_source, dm_only, redshift=redshift)
+        HaloList.__init__(self, data_source, dm_only, redshift=redshift,
+                          ptype=ptype)
 
     def _run_finder(self):
         self.tags = \
@@ -1816,7 +1818,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     >>> halos = FOFHaloFinder(ds)
     """
     def __init__(self, ds, subvolume=None, link=0.2, dm_only=True,
-        padding=0.02):
+                 ptype=None, padding=0.02):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
@@ -1831,6 +1833,17 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
+
+        # Don't allow dm_only=True and setting a ptype.
+        if dm_only and ptype is not None:
+            raise RuntimeError(
+                "If dm_only is True, ptype must be None.  " + \
+                "dm_only must be False if ptype is set.")
+
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
+
         if link > 0.0:
             n_parts = self.comm.mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
             # get the average spacing between particles
@@ -1858,7 +1871,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         # here is where the FOF halo finder is run
         mylog.info("Using a linking length of %0.3e", linking_length)
         FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
-                             redshift=self.redshift)
+                             redshift=self.redshift, ptype=self.ptype)
         self._parse_halolist(1.)
         self._join_halolists()
 
