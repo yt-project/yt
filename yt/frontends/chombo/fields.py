@@ -84,15 +84,15 @@ class Orion2FieldInfo(ChomboFieldInfo):
         unit_system = self.ds.unit_system
         def _thermal_energy_density(field, data):
             try:
-                return data['energy-density'] - data['kinetic_energy_density'] - \
-                    data["magnetic_energy_density"]
+                return data["energy-density"] - data["kinetic_energy"] - \
+                    data["magnetic_energy"]
             except YTFieldNotFound:
-                return data['energy-density'] - data['kinetic_energy_density']
+                return data['energy-density'] - data["kinetic_energy"]
 
         def _thermal_energy(field, data):
             return data['thermal_energy_density']/data['density']
 
-        def _magnetic_energy_density(field, data):
+        def _magnetic_energy(field, data):
             ret = data["X-magnfield"]**2
             if data.ds.dimensionality > 1:
                 ret = ret + data["Y-magnfield"]**2
@@ -100,10 +100,10 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 ret = ret + data["Z-magnfield"]**2
             return ret/2.0
 
-        def _magnetic_energy(field, data):
-            return data['magnetic_energy_density']/data['density']
+        def _specific_magnetic_energy(field, data):
+            return data['specific_magnetic_energy']/data['density']
 
-        def _kinetic_energy_density(field, data):
+        def _kinetic_energy(field, data):
             p2 = data['X-momentum']**2
             if data.ds.dimensionality > 1:
                 p2 = p2 + data["Y-momentum"]**2
@@ -111,8 +111,8 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 p2 = p2 + data["Z-momentum"]**2
             return 0.5 * p2/data['density']
 
-        def _kinetic_energy(field, data):
-            return data['kinetic_energy_density']/data['density']
+        def _specific_kinetic_energy(field, data):
+            return data['kinetic_energy']/data['density']
 
         def _temperature(field, data):
             c_v = data.ds.quan(data.ds.parameters['radiation.const_cv'], 
@@ -135,16 +135,16 @@ class Orion2FieldInfo(ChomboFieldInfo):
                        units = unit_system["pressure"])
         self.add_field(("gas", "kinetic_energy"),
                        function = _kinetic_energy,
-                       units = unit_system["specific_energy"])
-        self.add_field(("gas", "kinetic_energy_density"),
-                       function = _kinetic_energy_density,
                        units = unit_system["pressure"])
+        self.add_field(("gas", "specific_kinetic_energy"),
+                       function = _specific_kinetic_energy,
+                       units = unit_system["specific_energy"])
         self.add_field(("gas", "magnetic_energy"),
                        function = _magnetic_energy,
-                       units = unit_system["specific_energy"])
-        self.add_field(("gas", "magnetic_energy_density"),
-                       function = _magnetic_energy_density,
                        units = unit_system["pressure"])
+        self.add_field(("gas", "specific_magnetic_energy"),
+                       function = _specific_magnetic_energy,
+                       units = unit_system["specific_energy"])
         self.add_field(("gas", "temperature"), function=_temperature,
                        units=unit_system["temperature"])
 
