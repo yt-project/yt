@@ -541,17 +541,17 @@ def test_yt_array_yt_quantity_ops():
     a = YTArray(range(10), 'cm')
     b = YTQuantity(5, 'g')
 
-    yield assert_isinstance, a*b, YTArray
-    yield assert_isinstance, b*a, YTArray
+    assert_isinstance(a*b, YTArray)
+    assert_isinstance(b*a, YTArray)
 
-    yield assert_isinstance, a/b, YTArray
-    yield assert_isinstance, b/a, YTArray
+    assert_isinstance(a/b, YTArray)
+    assert_isinstance(b/a, YTArray)
 
-    yield assert_isinstance, a*a, YTArray
-    yield assert_isinstance, a/a, YTArray
+    assert_isinstance(a*a, YTArray)
+    assert_isinstance(a/a, YTArray)
 
-    yield assert_isinstance, b*b, YTQuantity
-    yield assert_isinstance, b/b, YTQuantity
+    assert_isinstance(b*b, YTQuantity)
+    assert_isinstance(b/b, YTQuantity)
 
 
 def test_selecting():
@@ -910,21 +910,22 @@ def test_subclass():
         ops.append(operator.div)
     for op in ops:
         for inst in (b, ytq, ndf, yta, nda, loq):
-            yield op_comparison, op, a, inst, YTASubclass
+            op_comparison(op, a, inst, YTASubclass)
 
-        yield op_comparison, op, ytq, nda, YTArray
-        yield op_comparison, op, ytq, yta, YTArray
+        op_comparison(op, ytq, nda, YTArray)
+        op_comparison(op, ytq, yta, YTArray)
 
     for op in (operator.add, operator.sub):
-        yield op_comparison, op, nu, nda, YTASubclass
-        yield op_comparison, op, a, b, YTASubclass
-        yield op_comparison, op, a, yta, YTASubclass
-        yield op_comparison, op, a, loq, YTASubclass
+        op_comparison(op, nu, nda, YTASubclass)
+        op_comparison(op, a, b, YTASubclass)
+        op_comparison(op, a, yta, YTASubclass)
+        op_comparison(op, a, loq, YTASubclass)
 
-    yield assert_isinstance, a[0], YTQuantity
-    yield assert_isinstance, a[:], YTASubclass
-    yield assert_isinstance, a[:2], YTASubclass
-
+    assert_isinstance(a[0], YTQuantity)
+    assert_isinstance(a[:], YTASubclass)
+    assert_isinstance(a[:2], YTASubclass)
+    assert_isinstance(YTASubclass(yta), YTASubclass)
+    
 def test_h5_io():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
