@@ -98,7 +98,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 ret = ret + data["Y-magnfield"]**2
             if data.ds.dimensionality > 2:
                 ret = ret + data["Z-magnfield"]**2
-            return ret/2.0
+            return ret/8.0/np.pi
 
         def _specific_magnetic_energy(field, data):
             return data['specific_magnetic_energy']/data['density']
