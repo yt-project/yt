@@ -1687,6 +1687,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     dm_only : bool
         If True, only dark matter particles are used when building halos.
         Default = True.
+    ptype : string
+        When dm_only is set to False, this sets the type of particle to be
+        used for halo finding, with a default of "all".  This should not be
+        used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
@@ -1806,6 +1810,10 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     dm_only : bool
         If True, only dark matter particles are used when building halos.
         Default = True.
+    ptype : string
+        When dm_only is set to False, this sets the type of particle to be
+        used for halo finding, with a default of "all".  This should not be
+        used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
