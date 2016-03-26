@@ -869,6 +869,7 @@ Cosmology Calculator
 .. autosummary::
    :toctree: generated/
 
+   ~yt.utilities.cosmology.Cosmology
    ~yt.utilities.cosmology.Cosmology.hubble_distance
    ~yt.utilities.cosmology.Cosmology.comoving_radial_distance
    ~yt.utilities.cosmology.Cosmology.comoving_transverse_distance
