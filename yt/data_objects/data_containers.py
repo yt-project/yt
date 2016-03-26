@@ -1439,7 +1439,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             height = width
         elif iterable(height):
             h, u = height
-            height = self.ds.quan(w, input_units = u)
+            height = self.ds.quan(h, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
