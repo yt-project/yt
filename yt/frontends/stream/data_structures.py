@@ -66,7 +66,7 @@ from yt.utilities.flagging_methods import \
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh, \
     UnstructuredMesh
-from yt.extern.six import string_types, iteritems
+from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
 
