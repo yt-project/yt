@@ -2286,11 +2286,30 @@ class CellEdgesCallback(PlotCallback):
     """
     annotate_cell_edges(line_width=1.0, alpha = 1.0, color = (0.0, 0.0, 0.0))
 
-    Annotate the edges of cells, where the *line_width* in pixels is specified.
-    The *alpha* of the overlaid image and the *color* of the lines are also
-    specifiable.  Note that because the lines are drawn from both sides of a
-    cell, the image sometimes has the effect of doubling the line width.
-    Color here is in RGB float values (0 to 1).
+    Annotate cell edges.  This is done through a second call to pixelize, where
+    the distance from a pixel to a cell boundary in pixels is compared against
+    the `line_width` argument.  The secondary image is colored as `color` and
+    overlaid with the `alpha` value.
+
+    Parameters
+    ----------
+    line_width : float
+        Distance, in pixels, from a cell edge that will mark a pixel as being
+        annotated as a cell edge.  Default is 1.0.
+    alpha : float
+        When the second image is overlaid, it will have this level of alpha
+        transparency.  Default is 1.0 (fully-opaque).
+    color : tuple of three floats
+        This is the color of the cell edge values.  It defaults to black.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>> s = yt.SlicePlot(ds, 'z', 'density')
+    >>> s.annotate_cell_edges()
+    >>> s.save()
     """
     _type_name = "cell_edges"
     def __init__(self, line_width=1.0, alpha = 1.0, color=(0.0, 0.0, 0.0)):
