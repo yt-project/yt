@@ -124,25 +124,22 @@ The plugin file is a means of creating custom fields, quantities, data
 objects, colormaps, and other code classes and objects to be used in future
 yt sessions without modifying the source code directly.  
 
+To force the plugin file to be parsed, call the function
+:func:`~yt.funcs.enable_plugins` at the top of your script.
 
 .. note::
 
-   The ``my_plugins.py`` is only parsed inside of ``yt.mods``, so in order
-   to use it, you must load yt with either: ``import yt.mods as yt``
-   or ``from yt.mods import *``.  You can tell that your
-   plugins file is being parsed by watching for a logging message when you
-   import yt.  Note that both the ``yt load`` and ``iyt`` command line entry
-   points invoke ``from yt.mods import *``, so the ``my_plugins.py`` file
-   will be parsed if you enter yt that way.
+   You can tell that your plugins file is being parsed by watching for a logging
+   message when you import yt.  Note that both the ``yt load`` and ``iyt``
+   command line entry points parse the plugin file, so the ``my_plugins.py``
+   file will be parsed if you enter yt that way.
 
 Plugin File Format
 ^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.yt/my_plugins`` as a plugin
+yt will look for and recognize the file ``$HOME/.yt/my_plugins.py`` as a plugin
 file, which should contain python code.  If accessing yt functions and classes
 they will not require the ``yt.`` prefix, because of how they are loaded.
-It is executed at the bottom of ``yt.mods``, and so
-it is provided with the entire namespace available in the module ``yt.mods``.
 
 For example, if I created a plugin file containing:
 
@@ -152,7 +149,7 @@ For example, if I created a plugin file containing:
        return np.random.random(data["density"].shape)
    add_field("random", function=_myfunc, units='auto')
 
-then all of my data objects would have access to the field ``some_quantity``.
+then all of my data objects would have access to the field ``random``.
 
 You can also define other convenience functions in your plugin file.  For
 instance, you could define some variables or functions, and even import common
@@ -176,12 +173,18 @@ use this function:
 
 .. code-block:: python
 
-   import yt.mods as yt
+   import yt
+   yt.enable_plugins()
 
    my_run = yt.load_run("hotgasflow/DD0040/DD0040")
 
-And because we have imported from ``yt.mods`` we have access to the
+And because we have used ``yt.enable_plugins`` we have access to the
 ``load_run`` function defined in our plugin file.
+
+Note that using the plugins file implies that your script is no longer fully
+reproducible. If you share your script with someone else and use some of the
+functionality if your plugins file, you will also need to share your plugins
+file for someone else to re-run your script properly.
 
 Adding Custom Colormaps
 ^^^^^^^^^^^^^^^^^^^^^^^

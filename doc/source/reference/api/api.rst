@@ -791,6 +791,7 @@ Function List
    ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
+   ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
