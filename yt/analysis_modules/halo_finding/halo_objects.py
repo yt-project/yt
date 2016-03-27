@@ -1684,8 +1684,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         to the full volume automatically.
     threshold : float
         The density threshold used when building halos. Default = 160.0.
-    dm_only : bool
+    dm_only : bool (deprecated)
         If True, only dark matter particles are used when building halos.
+        This has been deprecated.  Instead, the ptype keyword should be
+        used to specify a particle type.
         Default = True.
     ptype : string
         When dm_only is set to False, this sets the type of particle to be
@@ -1811,8 +1813,10 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         average) used to build the halos. If negative, this is taken to be
         the *actual* linking length, and no other calculations will be
         applied.  Default = 0.2.
-    dm_only : bool
+    dm_only : bool (deprecated)
         If True, only dark matter particles are used when building halos.
+        This has been deprecated.  Instead, the ptype keyword should be
+        used to specify a particle type.
         Default = True.
     ptype : string
         When dm_only is set to False, this sets the type of particle to be
