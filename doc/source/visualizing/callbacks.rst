@@ -273,6 +273,31 @@ Overplot Grids
    slc.annotate_grids()
    slc.save()
 
+.. _annotate-cell-edges:
+
+Overplot Cell Edges
+~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_cell_edges(line_width=1.0, alpha = 1.0,
+                                  color = (0.0, 0.0, 0.0))
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.CellEdgesCallback`.)
+
+    Annotate the edges of cells, where the ``line_width`` in pixels is specified.
+    The ``alpha`` of the overlaid image and the ``color`` of the lines are also
+    specifiable.  Note that because the lines are drawn from both sides of a
+    cell, the image sometimes has the effect of doubling the line width.
+    Color here is in RGB float values (0 to 1).
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'), center='max')
+   slc.annotate_cell_edges()
+   slc.save()
+
 .. _annotate-halos:
 
 Overplot Halo Annotations

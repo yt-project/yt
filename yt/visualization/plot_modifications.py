@@ -34,7 +34,8 @@ from yt.units.yt_array import YTQuantity, YTArray
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_element_mesh, pixelize_off_axis_cartesian
+    pixelize_element_mesh, pixelize_off_axis_cartesian, \
+    pixelize_cartesian
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
     periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
@@ -2280,3 +2281,49 @@ class LineIntegralConvolutionCallback(PlotCallback):
         plot._axes.hold(False)
 
         return plot
+
+class CellEdgesCallback(PlotCallback):
+    """
+    annotate_cell_edges(line_width=1.0, alpha = 1.0, color = (0.0, 0.0, 0.0))
+
+    Annotate the edges of cells, where the *line_width* in pixels is specified.
+    The *alpha* of the overlaid image and the *color* of the lines are also
+    specifiable.  Note that because the lines are drawn from both sides of a
+    cell, the image sometimes has the effect of doubling the line width.
+    Color here is in RGB float values (0 to 1).
+    """
+    _type_name = "cell_edges"
+    def __init__(self, line_width=1.0, alpha = 1.0, color=(0.0, 0.0, 0.0)):
+        PlotCallback.__init__(self)
+        self.line_width = line_width
+        self.alpha = alpha
+        self.color = (np.array(color) * 255).astype("uint8")
+
+    def __call__(self, plot):
+        x0, x1 = plot.xlim
+        y0, y1 = plot.ylim
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        plot._axes.hold(True)
+        nx = plot.image._A.shape[0]
+        ny = plot.image._A.shape[1]
+        im = pixelize_cartesian(plot.data['px'],
+                                plot.data['py'],
+                                plot.data['pdx'],
+                                plot.data['pdy'],
+                                plot.data['px'], # dummy field
+                                int(nx), int(ny),
+                                (x0, x1, y0, y1),
+                                line_width=self.line_width).transpose()
+        # New image:
+        im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
+        im_buffer[im>0,3] = 255
+        im_buffer[im>0,:3] = self.color
+        plot._axes.imshow(im_buffer, origin='lower',
+                          interpolation='nearest',
+                          extent = [xx0, xx1, yy0, yy1],
+                          alpha = self.alpha)
+        plot._axes.set_xlim(xx0,xx1)
+        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.hold(False)
+
