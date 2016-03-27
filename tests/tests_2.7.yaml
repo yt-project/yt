@@ -5,7 +5,7 @@ answer_tests:
   local_athena_270:
     - yt/frontends/athena
 
-  local_chombo_270:
+  local_chombo_271:
     - yt/frontends/chombo/tests/test_outputs.py
 
   local_enzo_270:
