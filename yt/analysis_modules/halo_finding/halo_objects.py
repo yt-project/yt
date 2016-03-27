@@ -1730,6 +1730,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             self.partition_index_3d(ds=self._data_source,
                 padding=self.padding)
 
+        if dm_only:
+            mylog.warn("dm_only is deprecated.  " +
+                       "Use ptype to specify a particle type, instead.")
+
         # Don't allow dm_only=True and setting a ptype.
         if dm_only and ptype is not None:
             raise RuntimeError(
@@ -1841,6 +1845,10 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
+
+        if dm_only:
+            mylog.warn("dm_only is deprecated.  " +
+                       "Use ptype to specify a particle type, instead.")
 
         # Don't allow dm_only=True and setting a ptype.
         if dm_only and ptype is not None:
