@@ -112,7 +112,7 @@ then
 else
     if [ $INST_YT_SOURCE -eq 0 ]
     then
-        echo "yt must be compiled from source if INST_CONDA is not set"
+        echo "yt must be compiled from source if INST_CONDA is set to 0"
         echo "Please set INST_YT_SOURCE to 1 and re-run."
         exit 1
     fi
