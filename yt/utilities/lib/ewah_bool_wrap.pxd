@@ -6,10 +6,11 @@ cdef class FileBitmasks:
     cdef void** ewah_keys
     cdef void** ewah_refn
 
+    cdef bint _iseq(self, FileBitmasks solf)
     cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile)
-    cdef void _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
-    cdef void _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose=*)
-    cdef void _find_collisions_refined(self, BoolArrayCollection coll, bint verbose=*)
+    cdef tuple _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
+    cdef tuple _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose=*)
+    cdef tuple _find_collisions_refined(self, BoolArrayCollection coll, bint verbose=*)
     cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint32_t ifile, np.uint64_t i1)
     cdef void _set_refined(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
@@ -25,6 +26,8 @@ cdef class FileBitmasks:
     cdef int _count_coarse(self, np.uint32_t ifile)
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf)
     cdef bint _intersects(self, np.uint32_t ifile, BoolArrayCollection solf)
+    cdef void _logicalxor(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
+    cdef void _logicaland(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
     cdef bytes _dumps(self, np.uint32_t ifile)
     cdef void _loads(self, np.uint32_t ifile, bytes s)
 
@@ -52,6 +55,8 @@ cdef class BoolArrayCollection:
     cdef int _count_coarse(self)
     cdef void _append(self, BoolArrayCollection solf)
     cdef bint _intersects(self, BoolArrayCollection solf)
+    cdef void _logicalxor(self, BoolArrayCollection solf, BoolArrayCollection out)
+    cdef void _logicaland(self, BoolArrayCollection solf, BoolArrayCollection out)
     cdef bytes _dumps(self)
     cdef void _loads(self, bytes s)
 

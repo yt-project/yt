@@ -928,7 +928,11 @@ cdef class SphereSelector(SelectorObject):
                 edge = right_edge[i] - left_edge[i]
                 box_center = (right_edge[i] + left_edge[i])/2.0
                 relcenter = self.difference(box_center, self.center[i], i)
-                farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
+                if relcenter >= 0:
+                    farthest = relcenter + edge/2.0
+                else:
+                    farthest = relcenter - edge/2.0
+                # farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
                 fdist += farthest*farthest
                 if fdist >= self.radius2: return 2
             return 1
@@ -946,7 +950,11 @@ cdef class SphereSelector(SelectorObject):
             relcenter = self.difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
-            farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
+            if relcenter >= 0:
+                farthest = relcenter + edge/2.0
+            else:
+                farthest = relcenter - edge/2.0
+            #farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
             cdist += closest*closest
             fdist += farthest*farthest
             if cdist > self.radius2: return 0
