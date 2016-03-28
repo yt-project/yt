@@ -1312,7 +1312,10 @@ else # INST_CONDA -eq 1
         exit 1
     fi
     YT_DEPS+=('conda-build')
-    YT_DEPS+=('mercurial')
+    if [ $INST_PY3 -eq 0 ]
+    then
+       YT_DEPS+=('mercurial')
+    fi
     YT_DEPS+=('sympy')
 
     if [ $INST_UNSTRUCTURED -eq 1 ]
@@ -1353,6 +1356,12 @@ else # INST_CONDA -eq 1
         pushd ${DEST_DIR}/src/pyembree-master
         log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
         popd
+    fi
+
+    if [ $INST_PY3 -eq 1 ]
+    then
+        log_cmd conda create -y -n py27 python=2.7 mercurial
+        log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
     fi
 
     if [ $INST_YT_SOURCE -eq 0 ]
