@@ -42,6 +42,14 @@ cdef inline void subtract(const Real[3] a,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
+cdef inline Real distance(const Real[3] a,
+                          const Real[3] b) nogil:
+    return sqrt((a[0] - b[0])**2 + (a[1] - b[1])**2 +(a[2] - b[2])**2)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef inline void fma(const Real f,
                      const Real[3] a, 
                      const Real[3] b,
