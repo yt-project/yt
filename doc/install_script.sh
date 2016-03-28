@@ -1369,7 +1369,6 @@ else # INST_CONDA -eq 1
         echo "Installing yt"
         log_cmd conda install --yes yt
     else
-        # We do a source install.
         echo "Installing yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
         log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
@@ -1388,6 +1387,18 @@ else # INST_CONDA -eq 1
     echo
     echo "yt and the Conda system are now installed in $DEST_DIR"
     echo
+    echo "To get started with yt, check out the orientation:"
+    echo
+    echo "    http://yt-project.org/doc/orientation/"
+    echo
+    echo "For support, see the website and join the mailing list:"
+    echo
+    echo "    http://yt-project.org/"
+    echo "    http://yt-project.org/data/      (Sample data)"
+    echo "    http://yt-project.org/doc/       (Docs)"
+    echo
+    echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
+    echo
     echo "You must now prepend the following folder to your PATH environment variable:"
     echo 
     echo "    $DEST_DIR/bin"
@@ -1404,18 +1415,6 @@ else # INST_CONDA -eq 1
     echo "You can also update the init file appropriate for your shell"
     echo "(e.g. .bashrc, .bash_profile, .cshrc, or .zshrc) to include"
     echo "the same command."
-    echo
-    echo "To get started with yt, check out the orientation:"
-    echo
-    echo "    http://yt-project.org/doc/orientation/"
-    echo
-    echo "For support, see the website and join the mailing list:"
-    echo
-    echo "    http://yt-project.org/"
-    echo "    http://yt-project.org/data/      (Sample data)"
-    echo "    http://yt-project.org/doc/       (Docs)"
-    echo
-    echo "    http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org"
     echo
     echo "========================================================================"
     echo
