@@ -38,6 +38,13 @@ from .particle_fields import \
     add_volume_weighted_smoothed_field, \
     sph_whitelist_fields
 
+def tupleize(inp):
+    if isinstance(inp, tuple):
+        return inp
+    # prepending with a '?' ensures that the sort order is the same in py2 and
+    # py3, since names of field types shouldn't begin with punctuation
+    return ('?', inp, )
+
 class FieldInfoContainer(dict):
     """
     This is a generic field container.  It contains a list of potential derived
@@ -271,7 +278,7 @@ class FieldInfoContainer(dict):
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl))
+        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
@@ -357,5 +364,5 @@ class FieldInfoContainer(dict):
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl))
+        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return deps, unavailable
