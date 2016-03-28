@@ -332,13 +332,18 @@ function host_specific
         echo "with the following command:"
         echo "    xcode-select --install"
         echo
-        echo "For OS X 10.11, you will additionally need to install the OpenSSL"
-        echo "library using a package manager like homebrew or macports."
-        echo "If you install fails with a message like"
-        echo "    ImportError: cannot import HTTPSHandler"
-        echo "then you do not have the OpenSSL headers available in a location"
-        echo "visible to your C compiler. Consider installing yt using the"
-        echo "get_yt.sh script instead, as that bundles OpenSSL."
+        if [ $INST_CONDA -eq 0 ]
+        then
+            echo "For OS X 10.11, you will additionally need to install the"
+            echo "OpenSSL library using a package manager like homebrew or"
+            echo "macports."
+            echo
+            echo "If your install fails with a message like"
+            echo "    ImportError: cannot import HTTPSHandler"
+            echo "then you do not have the OpenSSL headers available in a"
+            echo "location visible to your C compiler. Consider setting"
+            echo "INST_CONDA=1 instead, as conda's python bundles OpenSSL."
+        fi
         OSX_VERSION=`sw_vers -productVersion`
         if [ "${OSX_VERSION##10.8}" != "${OSX_VERSION}" ]
         then
