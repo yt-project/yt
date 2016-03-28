@@ -119,7 +119,7 @@ else
     DEST_SUFFIX="yt-`uname -m`"
 fi
 
-if [ ! -z "${DEST_DIR}" ]
+if [ -z "${DEST_DIR}" ]
 then
     DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
 fi
