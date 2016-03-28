@@ -506,7 +506,7 @@ echo "be installing Mercurial"
 
 printf "%-18s = %s so I " "INST_UNSTRUCTURED" "${INST_UNSTRUCTURED}"
 get_willwont ${INST_HG}
-echo "be installing support for unstructured mesh rendering"
+echo "be installing unstructured mesh rendering"
 
 if [ $INST_CONDA -eq 0 ]
 then
