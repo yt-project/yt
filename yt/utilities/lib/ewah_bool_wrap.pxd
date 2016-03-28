@@ -8,9 +8,9 @@ cdef class FileBitmasks:
 
     cdef bint _iseq(self, FileBitmasks solf)
     cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile)
-    cdef void _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
-    cdef void _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose=*)
-    cdef void _find_collisions_refined(self, BoolArrayCollection coll, bint verbose=*)
+    cdef tuple _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
+    cdef tuple _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose=*)
+    cdef tuple _find_collisions_refined(self, BoolArrayCollection coll, bint verbose=*)
     cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint32_t ifile, np.uint64_t i1)
     cdef void _set_refined(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)

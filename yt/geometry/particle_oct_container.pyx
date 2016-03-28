@@ -576,21 +576,23 @@ cdef class ParticleForest:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def find_collisions(self, verbose=True):
+        cdef tuple cc, rc
         IF UseCythonBitmasks == 1:
-            self.bitmasks._find_collisions(self.collisions,verbose)
+            cc, rc = self.bitmasks._find_collisions(self.collisions,verbose)
         ELSE:
-            self.find_collisions_coarse(verbose=verbose)
-            self.find_collisions_refined(verbose=verbose)
+            cc = self.find_collisions_coarse(verbose=verbose)
+            rc = self.find_collisions_refined(verbose=verbose)
+        return cc, rc
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def find_collisions_coarse(self, verbose=True):
+        cdef int nc, nm
         IF UseCythonBitmasks == 1:
-            self.bitmasks._find_collisions_coarse(self.collisions,verbose)
+            nc, nm = self.bitmasks._find_collisions_coarse(self.collisions,verbose)
         ELSE:
-            cdef int nc, nm
             cdef ewah_bool_array* coll_keys
             cdef ewah_bool_array* coll_refn
             cdef np.int32_t ifile
@@ -610,17 +612,18 @@ cdef class ParticleForest:
             nc = coll_refn[0].numberOfOnes()
             nm = coll_keys[0].numberOfOnes()
             if verbose:
-                print("{: 10d}/{: 10d} collisions at coarse refinement.  ({: 9.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+                print("{: 10d}/{: 10d} collisions at coarse refinement.  ({: 10.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+        return nc, nm
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def find_collisions_refined(self, verbose=True):
+        cdef np.int32_t nc, nm
         IF UseCythonBitmasks == 1:
-            self.bitmasks._find_collisions_refined(self.collisions,verbose)
+            nc, nm = self.bitmasks._find_collisions_refined(self.collisions,verbose)
         ELSE:
-            cdef np.int32_t nc, nm
             cdef map[np.uint64_t, ewah_bool_array].iterator it_mi1
             cdef np.int32_t ifile
             cdef BoolArrayCollection bitmask
@@ -629,10 +632,10 @@ cdef class ParticleForest:
             cdef map[np.uint64_t, ewah_bool_array] map_bitmask, map_keys, map_refn
             cdef map[np.uint64_t, ewah_bool_array]* coll_coll
             coll_refn = <ewah_bool_array*> self.collisions.ewah_refn
-            if coll_refn.numberOfOnes() == 0:
+            if coll_refn[0].numberOfOnes() == 0:
                 if verbose:
-                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(0,0,0))
-                return
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 10.5f}%)".format(0,0,0))
+                return (0,0)
             coll_coll = (<map[np.uint64_t, ewah_bool_array]*> self.collisions.ewah_coll)
             for ifile in range(self.nfiles):
                 bitmask = self.bitmasks[ifile]
@@ -662,9 +665,10 @@ cdef class ParticleForest:
                         nm += iarr.numberOfOnes()
                     preincrement(it_mi1)
                 if nm == 0:
-                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(nc,nm,0))
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 10.5f}%)".format(nc,nm,0))
                 else:
-                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 9.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+                    print("{: 10d}/{: 10d} collisions at refined refinement. ({: 10.5f}%)".format(nc,nm,100.0*float(nc)/nm))
+        return nc, nm
 
     def calcsize_bitmasks(self):
         # TODO: All cython
