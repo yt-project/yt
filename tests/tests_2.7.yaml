@@ -20,6 +20,9 @@ answer_tests:
   local_gadget_270:
     - yt/frontends/gadget/tests/test_outputs.py
 
+  local_gdf_270:
+    - yt/frontends/gdf/tests/test_outputs.py
+
   local_halos_270:
     - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py
     - yt/analysis_modules/halo_finding/tests/test_rockstar.py

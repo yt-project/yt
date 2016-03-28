@@ -156,6 +156,9 @@ class PlotCallback(object):
                                   "need to be in 3D")
             coord = self.project_coords(plot, coord)
             coord = self.convert_to_plot(plot, coord)
+            # Convert coordinates from a tuple of ndarray to a tuple of floats
+            # since not all callbacks are OK with ndarrays as coords (eg arrow)
+            coord = (coord[0][0], coord[1][0])
         # if in plot coords, define the transform correctly
         if coord_system == "data" or coord_system == "plot":
             self.transform = plot._axes.transData
@@ -891,11 +894,23 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, coord_system='data', plot_args=None):
+    annotate_arrow(pos, length=0.03, width=0.003, head_length=None,
+                   head_width=0.02, starting_pos=None,
+                   coord_system='data', plot_args=None):
 
     Overplot an arrow pointing at a position for highlighting a specific
-    feature.  Arrow points from lower left to the designated position with
-    arrow length "length".
+    feature.  By default, arrow points from lower left to the designated
+    position "pos" with arrow length "length".  Alternatively, if
+    "starting_pos" is set, arrow will stretch from "starting_pos" to "pos"
+    and "length" will be disregarded.
+
+    "coord_system" keyword refers to positions set in "pos" arg and
+    "starting_pos" keyword, which by default are in data coordinates.
+
+    "length", "width", "head_length", and "head_width" keywords for the arrow
+    are all in axis units, ie relative to the size of the plot axes as 1,
+    even if the position of the arrow is set relative to another coordinate
+    system.
 
     Parameters
     ----------
@@ -904,6 +919,24 @@ class ArrowCallback(PlotCallback):
 
     length : float, optional
         The length, in axis units, of the arrow.
+        Default: 0.03
+
+    width : float, optional
+        The width, in axis units, of the tail line of the arrow.
+        Default: 0.003
+
+    head_length : float, optional
+        The length, in axis units, of the head of the arrow.  If set
+        to None, use 1.5*head_width
+        Default: None
+
+    head_width : float, optional
+        The width, in axis units, of the head of the arrow.
+        Default: 0.02
+
+    starting_pos : 2- or 3-element tuple, list, or array, optional
+        These are the coordinates from which the arrow starts towards its
+        point.  Not compatible with 'length' kwarg.
 
     coord_system : string, optional
         This string defines the coordinate system of the coordinates of pos
@@ -921,7 +954,7 @@ class ArrowCallback(PlotCallback):
 
     plot_args : dictionary, optional
         This dictionary is passed to the MPL arrow function for generating
-        the arrow.  By default, it is: {'color':'white', 'linewidth':2}
+        the arrow.  By default, it is: {'color':'white'}
 
     Examples
     --------
@@ -938,18 +971,23 @@ class ArrowCallback(PlotCallback):
     >>> import yt
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> s = yt.SlicePlot(ds, 'z', 'density')
-    >>> s.annotate_arrow([0.1, -0.1, length=0.06, coord_system='plot',
+    >>> s.annotate_arrow([0.1, -0.1], length=0.06, coord_system='plot',
     ...                  plot_args={'color':'red'})
     >>> s.save()
 
     """
     _type_name = "arrow"
-    def __init__(self, pos, code_size=None, length=0.03, coord_system='data',
-                 plot_args=None):
-        def_plot_args = {'color':'white', 'linewidth':2}
+    def __init__(self, pos, code_size=None, length=0.03, width=0.0001,
+                 head_width=0.01, head_length=0.01,
+                 starting_pos=None, coord_system='data', plot_args=None):
+        def_plot_args = {'color':'white'}
         self.pos = pos
         self.code_size = code_size
         self.length = length
+        self.width = width
+        self.head_width = head_width
+        self.head_length = head_length
+        self.starting_pos = starting_pos
         self.coord_system = coord_system
         self.transform = None
         if plot_args is None: plot_args = def_plot_args
@@ -960,7 +998,13 @@ class ArrowCallback(PlotCallback):
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-
+        # normalize all of the kwarg lengths to the plot size
+        plot_diag = ((yy1-yy0)**2 + (xx1-xx0)**2)**(0.5)
+        self.length *= plot_diag
+        self.width *= plot_diag
+        self.head_width *= plot_diag
+        if self.head_length is not None:
+            self.head_length *= plot_diag
         if self.code_size is not None:
             warnings.warn("The code_size keyword is deprecated.  Please use "
                           "the length keyword in 'axis' units instead. "
@@ -971,13 +1015,25 @@ class ArrowCallback(PlotCallback):
             self.code_size = self.code_size * self.pixel_scale(plot)[0]
             dx = dy = self.code_size
         else:
-            dx = (xx1-xx0) * self.length
-            dy = (yy1-yy0) * self.length
+            if self.starting_pos is not None:
+                start_x,start_y = self.sanitize_coord_system(plot,
+                                       self.starting_pos,
+                                       coord_system=self.coord_system)
+                dx = x - start_x
+                dy = y - start_y
+            else:
+                dx = (xx1-xx0) * 2**(0.5) * self.length
+                dy = (yy1-yy0) * 2**(0.5) * self.length
+        # If the arrow is 0 length
+        if dx == dy == 0:
+            warnings.warn("The arrow has zero length.  Not annotating.")
+            return
         plot._axes.hold(True)
-        from matplotlib.patches import Arrow
-        arrow = Arrow(x-dx, y-dy, dx, dy, width=dx,
-                      transform=self.transform, **self.plot_args)
-        plot._axes.add_patch(arrow)
+        plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width,
+                         head_width=self.head_width,
+                         head_length=self.head_length,
+                         transform=self.transform,
+                         length_includes_head=True, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -1823,8 +1879,8 @@ class ScaleCallback(PlotCallback):
     axis length.  Additional customization of the scale bar is possible by
     adjusting the text_args and size_bar_args dictionaries.  The text_args
     dictionary accepts matplotlib's font_properties arguments to override
-    the default font_properties for the current plot.  The size_bar_args 
-    dictionary accepts keyword arguments for the AnchoredSizeBar class in 
+    the default font_properties for the current plot.  The size_bar_args
+    dictionary accepts keyword arguments for the AnchoredSizeBar class in
     matplotlib's axes_grid toolkit.
 
     Parameters
@@ -1904,7 +1960,7 @@ class ScaleCallback(PlotCallback):
     _type_name = "scale"
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
                  max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 text_args=None, size_bar_args=None, draw_inset_box=False, 
+                 text_args=None, size_bar_args=None, draw_inset_box=False,
                  inset_box_args=None):
 
         def_size_bar_args = {
@@ -1997,7 +2053,7 @@ class ScaleCallback(PlotCallback):
         # FontProperties instances use set_<property>() setter functions
         for key, val in self.text_args.items():
             setter_func = "set_"+key
-            try: 
+            try:
                 getattr(fontproperties, setter_func)(val)
             except AttributeError:
                 raise AttributeError("Cannot set text_args keyword " \
@@ -2028,6 +2084,9 @@ class RayCallback(PlotCallback):
     Adds a line representing the projected path of a ray across the plot.
     The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
+    If arrow is set to True, uses the MPL.pyplot.arrow function, otherwise
+    uses the MPL.pyplot.plot function to plot a normal line.  Adjust
+    plot_args accordingly.
 
     Parameters
     ----------
@@ -2038,6 +2097,11 @@ class RayCallback(PlotCallback):
         analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
         object, it will only plot the segment of the LightRay that intersects
         the dataset currently displayed.
+
+    arrow : boolean, optional
+        Whether or not to place an arrowhead on the front of the ray to denote
+        direction
+        Default: False
 
     plot_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -2069,10 +2133,11 @@ class RayCallback(PlotCallback):
 
     """
     _type_name = "ray"
-    def __init__(self, ray, plot_args=None):
+    def __init__(self, ray, arrow=False, plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'white', 'linewidth':2}
         self.ray = ray
+        self.arrow = arrow
         if plot_args is None: plot_args = def_plot_args
         self.plot_args = plot_args
 
@@ -2142,12 +2207,23 @@ class RayCallback(PlotCallback):
         else:
             segments = [[start_coord, end_coord]]
 
-        for segment in segments:
-            lcb = LinePlotCallback(segment[0], segment[1],
-                                   coord_system='data',
-                                   plot_args=self.plot_args)
-            lcb(plot)
-
+        # To assure that the last ray segment has an arrow if so desired
+        # and all other ray segments are lines
+        for segment in segments[:-1]:
+            cb = LinePlotCallback(segment[0], segment[1],
+                                  coord_system='data',
+                                  plot_args=self.plot_args)
+            cb(plot)
+        segment = segments[-1]
+        if self.arrow:
+            cb = ArrowCallback(segment[1], starting_pos=segment[0],
+                               coord_system='data',
+                               plot_args=self.plot_args)
+        else:
+           cb = LinePlotCallback(segment[0], segment[1],
+                               coord_system='data',
+                               plot_args=self.plot_args)
+        cb(plot)
         return plot
 
 class LineIntegralConvolutionCallback(PlotCallback):
@@ -2157,7 +2233,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                        cmap='binary', alpha=0.8,
                                        const_alpha=False):
 
-    Add the line integral convolution to the plot for vector fields 
+    Add the line integral convolution to the plot for vector fields
     visualization. Two component of vector fields needed to be provided
     (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
 
@@ -2254,7 +2330,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
 
         if self.const_alpha:
-            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap, 
+            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
                               alpha=self.alpha)
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
