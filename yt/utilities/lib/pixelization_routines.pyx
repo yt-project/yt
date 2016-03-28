@@ -261,7 +261,7 @@ def pixelize_off_axis_cartesian(
                        fabs(ysp - cy) * 0.95 > dysp or \
                        fabs(zsp - cz) * 0.95 > dzsp:
                         continue
-                    mask[i, j] = 1
+                    mask[i, j] += 1
                     my_array[i, j] += dsp
     my_array /= mask
     return my_array

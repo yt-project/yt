@@ -40,6 +40,8 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
     YTTooManyVertices
+from yt.fields.field_exceptions import \
+    NeedsGridType
 from yt.utilities.lib.quad_tree import \
     QuadTree
 from yt.utilities.lib.interpolators import \
@@ -492,6 +494,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
         A list of fields that you'd like pre-generated for your object
+    num_ghost_zones : integer, optional
+        The number of padding ghost zones used when accessing fields.
 
     Examples
     --------
@@ -609,7 +613,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
-        fill, gen, part, alias = self._split_fields(fields_to_get)
+        try:
+            fill, gen, part, alias = self._split_fields(fields_to_get)
+        except NeedsGridType:
+            if self._num_ghost_zones == 0:
+                raise RuntimeError(
+                    "Attempting to access a field that needs ghost zones, but "
+                    "num_ghost_zones = %s. You should create the covering grid "
+                    "with nonzero num_ghost_zones." % self._num_ghost_zones)
+            else:
+                raise
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
@@ -860,6 +873,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     """
     _type_name = "smoothed_covering_grid"
     filename = None
+    _min_level = None
     @wraps(YTCoveringGrid.__init__)
     def __init__(self, *args, **kwargs):
         ds = kwargs['ds']
@@ -886,12 +900,47 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._pdata_source.min_level = level_state.current_level
         self._pdata_source.max_level = level_state.current_level
 
+    def _compute_minimum_level(self):
+        # This attempts to determine the minimum level that we should be
+        # starting on for this box.  It does this by identifying the minimum
+        # level that could contribute to the minimum bounding box at that
+        # level; that means that all cells from coarser levels will be replaced.
+        if self._min_level is not None:
+            return self._min_level
+        ils = LevelState()
+        min_level = 0
+        for l in range(self.level, 0, -1):
+            dx = self._base_dx / self.ds.relative_refinement(0, l)
+            start_index, end_index, dims = self._minimal_box(dx)
+            ils.left_edge = start_index * dx + self.ds.domain_left_edge
+            ils.right_edge = ils.left_edge + dx * dims
+            ils.current_dx = dx
+            ils.current_level = l
+            self._setup_data_source(ils)
+            # Reset the max_level
+            ils.data_source.min_level = 0
+            ils.data_source.max_level = l
+            ils.data_source.loose_selection = False
+            min_level = self.level
+            for chunk in ils.data_source.chunks([], "io"):
+                # With our odd selection methods, we can sometimes get no-sized ires.
+                ir = chunk.ires
+                if ir.size == 0: continue
+                min_level = min(ir.min(), min_level)
+            if min_level >= l:
+                break
+        self._min_level = min_level
+        return min_level
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
+        min_level = self._compute_minimum_level()
         for level in range(self.level + 1):
+            if level < min_level:
+                self._update_level_state(ls)
+                continue
             domain_dims = self.ds.domain_dimensions.astype("int64") \
                         * self.ds.relative_refinement(0, ls.current_level)
             tot = ls.current_dims.prod()
@@ -1176,7 +1225,7 @@ class YTSurface(YTSelectionContainer3D):
         return vv
 
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae",
+                   color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
@@ -1256,6 +1305,8 @@ class YTSurface(YTSelectionContainer3D):
         ...                      dist_fac = distf, plot_index = i)
 
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             if color_field is not None:
                 self.get_data(color_field,"face")
@@ -1330,10 +1381,12 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _export_obj(self, filename, transparency, dist_fac = None,
-                    color_field = None, emit_field = None, color_map = "algae",
+                    color_field = None, emit_field = None, color_map = None,
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if plot_index is None:
             plot_index = 0
         if isinstance(filename, io.IOBase):
@@ -1424,7 +1477,7 @@ class YTSurface(YTSelectionContainer3D):
 
 
     def export_blender(self,  transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae",
+                   color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
@@ -1504,6 +1557,8 @@ class YTSurface(YTSelectionContainer3D):
         ...                      dist_fac = distf, plot_index = i)
 
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             if color_field is not None:
                 self.get_data(color_field,"face")
@@ -1523,10 +1578,12 @@ class YTSurface(YTSelectionContainer3D):
         return fullverts, colors, alpha, emisses, colorindex
 
     def _export_blender(self, transparency, dist_fac = None,
-                    color_field = None, emit_field = None, color_map = "algae",
+                    color_field = None, emit_field = None, color_map = None,
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if plot_index is None:
             plot_index = 0
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1571,7 +1628,7 @@ class YTSurface(YTSelectionContainer3D):
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face",
+                   color_map = None, color_log = True, sample_type = "face",
                    no_ghost=False):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
@@ -1603,6 +1660,8 @@ class YTSurface(YTSelectionContainer3D):
         ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             self.get_data(color_field, sample_type, no_ghost=no_ghost)
         elif color_field is not None:
@@ -1627,7 +1686,9 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face"):
+                   color_map = None, color_log = True, sample_type = "face"):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if hasattr(filename, 'read'):
             f = filename
         else:
@@ -1691,7 +1752,7 @@ class YTSurface(YTSelectionContainer3D):
             f.close()
 
     def export_sketchfab(self, title, description, api_key = None,
-                            color_field = None, color_map = "algae",
+                            color_field = None, color_map = None,
                             color_log = True, bounds = None, no_ghost = False):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
@@ -1748,6 +1809,8 @@ class YTSurface(YTSelectionContainer3D):
         ...     bounds = bounds)
         ...
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):
             raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")

@@ -204,7 +204,7 @@ Generating Fit of Spectrum
 --------------------------
 
 After loading a spectrum and specifying the properties of the species
-used to generate the spectrum, an apporpriate fit can be generated. 
+used to generate the spectrum, an appropriate fit can be generated. 
 
 .. code-block:: python
 
@@ -232,7 +232,7 @@ and ``z[i]`` and is part of the same complex (and was fitted at the same time)
 as all lines with the same group number as ``group#[i]``.
 
 The ``fitted_flux`` is an ndarray of the same size as ``flux`` and 
-``wavelength`` that contains the cummulative absorption spectrum generated 
+``wavelength`` that contains the cumulative absorption spectrum generated
 by the lines contained in ``fitted_lines``.
 
 Saving a Spectrum Fit

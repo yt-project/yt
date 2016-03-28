@@ -176,7 +176,7 @@ data from that child grid. Where it is covered only by the parent grid, the
 cells from the parent grid will be duplicated (appropriately) to fill the 
 covering grid.
 
-Let's say we now want to look at that entire data volume and sample it at the 
+Let's say we now want to look at that entire data volume and sample it at
 a higher resolution (i.e. level 2).  As stated above, we'll be oversampling
 under-refined regions, but that's OK.  We must also increase the resolution 
 of our output array by a factor of 2^2 in each direction to hold this new 

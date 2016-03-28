@@ -41,6 +41,7 @@ from .fields import \
     MaestroFieldInfo, \
     CastroFieldInfo
 
+
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
@@ -907,7 +908,7 @@ class NyxHierarchy(BoxlibHierarchy):
         self._read_particle_header()
 
     def _read_particle_header(self):
-        if not self.ds.parameters["particles.write_in_plotfile"]:
+        if not self.ds.parameters["particles"]:
             self.pgrid_info = np.zeros((self.num_grids, 3), dtype='int64')
             return
         for fn in ['particle_position_%s' % ax for ax in 'xyz'] + \
@@ -949,31 +950,48 @@ class NyxDataset(BoxlibDataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
-        pname = args[0].rstrip("/")
+        output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(pname): return False
-        dn = os.path.dirname(pname)
-        if len(args) > 1:
-            kwargs['paramFilename'] = args[1]
-
-        pfname = kwargs.get("paramFilename", os.path.join(dn, "inputs"))
-
-        # @todo: new Nyx output.
-        # We check for the job_info file's existence because this is currently
-        # what distinguishes Nyx data from MAESTRO data.
-        pfn = os.path.join(pfname)
-        if not os.path.exists(pfn) or os.path.isdir(pfn): return False
-        nyx = any(("nyx." in line for line in open(pfn)))
-        return nyx
+        if not os.path.isdir(output_dir): return False
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        if not os.path.exists(jobinfo_filename):
+            return False
+        # Now we check the job_info for the mention of maestro
+        lines = open(jobinfo_filename).readlines()
+        if any(line.startswith("Nyx  ") for line in lines): return True
+        if any(line.startswith("nyx.") for line in lines): return True
+        return False
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
-        # return
+
         # Nyx is always cosmological.
         self.cosmological_simulation = 1
-        self.omega_lambda = self.parameters["comoving_OmL"]
-        self.omega_matter = self.parameters["comoving_OmM"]
-        self.hubble_constant = self.parameters["comoving_h"]
+
+        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        line = ""
+        with open(jobinfo_filename, "r") as f:
+            while not line.startswith(" Cosmology Information"):
+                # get the code git hashes
+                if "git hash" in line:
+                    # line format: codename git hash:  the-hash
+                    fields = line.split(":")
+                    self.parameters[fields[0]] = fields[1].strip()
+                line = next(f)
+
+            # get the cosmology
+            for line in f:
+                if "Omega_m (comoving)" in line:
+                    self.omega_matter = float(line.split(":")[1])
+                elif "Omega_lambda (comoving)" in line:
+                    self.omega_lambda = float(line.split(":")[1])
+                elif "h (comoving)" in line:
+                    self.hubble_constant = float(line.split(":")[1])
+
 
         # Read in the `comoving_a` file and parse the value. We should fix this
         # in the new Nyx output format...
@@ -987,7 +1005,9 @@ class NyxDataset(BoxlibDataset):
 
         # alias
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
-        if self.parameters["particles.write_in_plotfile"]:
+        if os.path.isdir(os.path.join(self.output_dir, "DM")):
+            # we have particles
+            self.parameters["particles"] = 1 
             self.particle_types = ("io",)
             self.particle_types_raw = self.particle_types
 

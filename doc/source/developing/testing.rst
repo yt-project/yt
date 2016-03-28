@@ -19,7 +19,7 @@ The testing suite should be run locally by developers to make sure they aren't
 checking in any code that breaks existing functionality.  To further this goal,
 an automatic buildbot runs the test suite after each code commit to confirm
 that yt hasn't broken recently.  To supplement this effort, we also maintain a
-`continuous integration server <http://tests.yt-project.org>`_ that runs the
+`continuous integration server <https://tests.yt-project.org>`_ that runs the
 tests with each commit to the yt version control repository.
 
 .. _unit_testing:
@@ -471,8 +471,87 @@ Here is an example test function:
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
 ``yt/visualization/tests/test_plotwindow.py``. This test shows how a new answer
-test subclass can be used to programitically test a variety of different methods
+test subclass can be used to programmatically test a variety of different methods
 of a complicated class using the same test class. This sort of image comparison
 test is more useful if you are finding yourself writing a ton of boilerplate
 code to get your image comparison test working.  The ``GenericImageTest`` is
 more useful if you only need to do a one-off image comparison test.
+
+Enabling Answer Tests on Jenkins
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Before any code is added to or modified in the yt codebase, each incoming
+changeset is run against all available unit and answer tests on our `continuous
+integration server <http://tests.yt-project.org>`_. While unit tests are
+autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
+answer tests require definition of which set of tests constitute to a given
+answer. Configuration for the integration server is stored in
+*tests/tests_2.7.yaml* in the main yt repository:
+
+.. code-block:: yaml
+
+   answer_tests:
+      local_artio_270:
+         - yt/frontends/artio/tests/test_outputs.py
+   # ...
+   other_tests:
+      unittests:
+         - '-v'
+         - '-s'
+
+Each element under *answer_tests* defines answer name (*local_artio_270* in above
+snippet) and specifies a list of files/classes/methods that will be validated
+(*yt/frontends/artio/tests/test_outputs.py* in above snippet). On the testing
+server it is translated to:
+
+.. code-block:: bash
+
+   $ nosetests --with-answer-testing --local --local-dir ... --answer-big-data \
+      --answer-name=local_artio_270 \
+      yt/frontends/artio/tests/test_outputs.py
+
+If the answer doesn't exist on the server yet, ``nosetests`` is run twice and
+during first pass ``--answer-store`` is added to the commandline. 
+
+Updating Answers
+~~~~~~~~~~~~~~~~
+
+In order to regenerate answers for a particular set of tests it is sufficient to
+change the answer name in *tests/tests_2.7.yaml* e.g.:
+
+.. code-block:: diff
+
+   --- a/tests/tests_2.7.yaml
+   +++ b/tests/tests_2.7.yaml
+   @@ -25,7 +25,7 @@
+        - yt/analysis_modules/halo_finding/tests/test_rockstar.py
+        - yt/frontends/owls_subfind/tests/test_outputs.py
+   
+   -  local_owls_270:
+   +  local_owls_271:
+        - yt/frontends/owls/tests/test_outputs.py
+   
+      local_pw_270:
+
+would regenerate answers for OWLS frontend.
+
+Adding New Answer Tests
+~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to add a new set of answer tests, it is sufficient to extend the
+*answer_tests* list in *tests/tests_2.7.yaml* e.g.: 
+
+.. code-block:: diff
+
+   --- a/tests/tests_2.7.yaml
+   +++ b/tests/tests_2.7.yaml
+   @@ -60,6 +60,10 @@
+        - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
+        - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
+    
+   +  local_gdf_270:
+   +    - yt/frontends/gdf/tests/test_outputs.py
+   +
+   +
+    other_tests:
+      unittests:
+

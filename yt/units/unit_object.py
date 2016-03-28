@@ -133,7 +133,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "base_value", "base_offset", "dimensions",
-                 "registry", "latex_repr"]
+                 "registry", "_latex_repr"]
 
     def __new__(cls, unit_expr=sympy_one, base_value=None, base_offset=0.0,
                 dimensions=None, registry=None, latex_repr=None, **assumptions):
@@ -223,8 +223,6 @@ class Unit(Expr):
             # check that dimensions is valid
             if dimensions is not None:
                 validate_dimensions(dimensions)
-            if latex_repr is None:
-                latex_repr = get_latex_representation(unit_expr, registry)
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
@@ -235,7 +233,6 @@ class Unit(Expr):
                 latex_repr = unit_data[3]
             else:
                 base_offset = 0.0
-                latex_repr = get_latex_representation(unit_expr, registry)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -246,7 +243,7 @@ class Unit(Expr):
         obj.base_value = base_value
         obj.base_offset = base_offset
         obj.dimensions = dimensions
-        obj.latex_repr = latex_repr
+        obj._latex_repr = latex_repr
         obj.registry = registry
 
         if unit_key is not None:
@@ -255,6 +252,14 @@ class Unit(Expr):
         # Return `obj` so __init__ can handle it.
 
         return obj
+
+    _latex_expr = None
+    @property
+    def latex_repr(self):
+        if self._latex_repr is not None:
+            return self._latex_repr
+        self._latex_repr = get_latex_representation(self.expr, self.registry)
+        return self._latex_repr
 
     ### Some sympy conventions
     def __getnewargs__(self):

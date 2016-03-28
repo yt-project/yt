@@ -14,7 +14,7 @@ most recent development version of yt from our channel:
 
 .. code-block:: bash
 
-    conda install -c http://use.yt/with_conda/ yt=3.3_dev
+    conda install -c http://use.yt/with_conda/ yt
 
 If you want to install from source, you can use the ``get_yt.sh`` script.
 Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the 
@@ -73,7 +73,13 @@ you could just run
 
 as usual. Finally, if you create a file called embree.cfg in the yt-hg directory with
 the location of the embree installation, the setup script will find this and use it, 
-provided EMBREE_DIR is not set. We recommend one of the later two methods, especially
+provided EMBREE_DIR is not set. An example embree.cfg file could like this:
+
+.. code-block:: bash
+
+   /opt/local/
+
+We recommend one of the later two methods, especially
 if you plan on re-compiling the cython extensions regularly. Note that none of this is
 neccessary if you installed embree into a location that is in your default path, such
 as /usr/local.
@@ -214,6 +220,29 @@ that we want to look at the last one.
     # render and save
     sc.save()
 
+Here is an example using 6-node wedge elements:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("MOOSE_sample_data/wedge_out.e")
+
+   # create a default scene
+   sc = yt.create_scene(ds, ('connect2', 'diffused'))
+
+   # override the default colormap
+   ms = sc.get_source(0)
+   ms.cmap = 'Eos A'
+
+   # adjust the camera position and orientation
+   cam = sc.camera
+   cam.set_position(ds.arr([1.0, -1.0, 1.0], 'code_length'))
+   cam.width = ds.arr([1.5, 1.5, 1.5], 'code_length')
+
+   # render and save
+   sc.save()
+
 Another example, this time plotting the temperature field from a 20-node hex 
 MOOSE dataset:
 
@@ -273,7 +302,7 @@ add an offset to the mesh by 1.0 unit in the x-direction:
     # adjust the camera position and orientation
     cam = sc.camera
     camera_position = ds.arr([-1.0, 1.0, -0.5], 'code_length')
-    north_vector = ds.arr([0.0, 1.0, 1.0], 'dimensionless')
+    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
     cam.width = ds.arr([0.05, 0.05, 0.05], 'code_length')
     cam.set_position(camera_position, north_vector)
     
@@ -355,7 +384,7 @@ Making Movies
 ^^^^^^^^^^^^^
 
 Here are a couple of example scripts that show how to create image frames that 
-can later be stiched together into a movie. In the first example, we look at a 
+can later be stitched together into a movie. In the first example, we look at a 
 single dataset at a fixed time, but we move the camera around to get a different
 vantage point. We call the rotate() method 300 times, saving a new image to the 
 disk each time.

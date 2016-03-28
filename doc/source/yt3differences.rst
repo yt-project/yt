@@ -84,7 +84,7 @@ important changes.
   external code**
   Mesh fields that exist on-disk in an output file can be read in using whatever
   name is used by the output file.  On-disk fields are always returned in code
-  units.  The full field name will be will be ``(code_name, field_name)``. See
+  units.  The full field name will be ``(code_name, field_name)``. See
   :ref:`field-list`.
 * **Particle fields are now more obviously different than mesh fields**
   Particle fields on-disk will also be in code units, and will be named
@@ -247,8 +247,8 @@ Parameter Files are Now Datasets
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Wherever possible, we have attempted to replace the term "parameter file"
-(i.e., ``pf``) with the term "dataset."  In yt-3.0, all of the 
-the ``pf`` atrributes of objects are now ``ds`` or ``dataset`` attributes.
+(i.e., ``pf``) with the term "dataset."  In yt-3.0, all of
+the ``pf`` attributes of objects are now ``ds`` or ``dataset`` attributes.
 
 Hierarchy is Now Index
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -262,7 +262,7 @@ New derived quantities interface
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Derived quantities can now be accessed via a function that hangs off of the
-``quantities`` atribute of data objects. Instead of
+``quantities`` attribute of data objects. Instead of
 ``dd.quantities['TotalMass']()``, you can now use ``dd.quantities.total_mass()``
 to do the same thing. All derived quantities can be accessed via a function that
 hangs off of the `quantities` attribute of data objects.

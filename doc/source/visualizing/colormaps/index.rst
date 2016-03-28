@@ -47,7 +47,7 @@ complexity.  You can make these on the fly for each yt session, or you can
 store them in your :ref:`plugin-file` for access to them in every future yt 
 session.  The example below creates two custom colormaps, one that has
 three equally spaced bars of blue, white and red, and the other that 
-interpolates in increasing lengthed intervals from black to red, to green, 
+interpolates in increasing lengthen intervals from black to red, to green, 
 to blue.  These will be accessible for the rest of the yt session as 
 'french_flag' and 'weird'.  See 
 :func:`~yt.visualization.color_maps.make_colormap` and 
@@ -97,7 +97,8 @@ or to output just a few colormaps to an image file, try:
 .. code-block:: python
 
     import yt
-    yt.show_colormaps(subset=['algae', 'kamae', 'spectral'], 
+    yt.show_colormaps(subset=['algae', 'kamae', 'spectral',
+                              'arbre', 'dusk', 'octarine', 'kelp'], 
                       filename="yt_native.png")
 
 Applying a Colormap to your Rendering

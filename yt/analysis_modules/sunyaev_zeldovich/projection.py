@@ -18,6 +18,8 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.config import \
+    ytcfg
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
 from yt.funcs import fix_axis, get_pbar
 from yt.visualization.volume_rendering.off_axis_projection import \
@@ -391,7 +393,7 @@ class SZProjection(object):
         fib.writeto(filename, clobber=clobber)
 
     @parallel_root_only
-    def write_png(self, filename_prefix, cmap_name="algae",
+    def write_png(self, filename_prefix, cmap_name=None,
                   axes_units="kpc", log_fields=None):
         r""" Export images to PNG files. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
@@ -406,6 +408,9 @@ class SZProjection(object):
         --------
         >>> szprj.write_png("SZsloshing")
         """
+        if cmap_name is None:
+            cmap_name = ytcfg.get("yt", "default_colormap")
+        
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt
