@@ -12,7 +12,6 @@
 #-----------------------------------------------------------------------------
 import numpy as np
 
-import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
 from . import _colormap_data as _cm
