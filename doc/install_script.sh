@@ -1262,16 +1262,18 @@ else # INST_CONDA -eq 1
         rm $MINICONDA_PKG
     fi
 
-    ${GETFILE} ${MINICONDA_URLBASE}/${MINICONDA_PKG} || do_exit
-
     echo "Installing the Miniconda python environment."
 
     if [ -e ${DEST_DIR} ]
     then
-       rm -r $DEST_DIR
+        rm -rf $DEST_DIR/*
+    else
+        mkdir $DEST_DIR
     fi
 
-    bash ./${MINICONDA_PKG} -b -p $DEST_DIR
+    log_cmd ${GETFILE} ${MINICONDA_URLBASE}/${MINICONDA_PKG} || do_exit
+
+    log_cmd bash ./${MINICONDA_PKG} -b -p $DEST_DIR -f
 
     # Need to set PATH so we use miniconda's python environment
     export PATH=${DEST_DIR}/bin:$PATH
