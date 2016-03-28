@@ -1217,7 +1217,7 @@ then
 
     echo "yt dependencies were last updated on" > ${DEST_DIR}/.yt_update
     date >> ${DEST_DIR}/.yt_update
-else
+else # INST_CONDA -eq 1
     MYARCH=`uname -m`       # A guess at the OS
     MYOS=`uname -s`
 
