@@ -1005,9 +1005,9 @@ class YTDataContainer(object):
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
             if finfo.particle_type and ftype not in self.ds.particle_types:
-                raise YTFieldTypeNotFound(ftype)
+                raise YTFieldTypeNotFound(ftype, ds=self.ds)
             elif not finfo.particle_type and ftype not in self.ds.fluid_types:
-                raise YTFieldTypeNotFound(ftype)
+                raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
         return explicit_fields
 
