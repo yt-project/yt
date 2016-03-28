@@ -1244,7 +1244,14 @@ else # INST_CONDA -eq 1
         fi
     fi
 
-    MINICONDA_PKG="Miniconda-${MINICONDA_VERSION}-${MINICONDA_OS}-${MINICONDA_ARCH}.sh"
+    if [ $INST_PY3 -eq 1 ]
+    then
+        PY_VERSION='3'
+    else
+        PY_VERSION='2'
+    fi
+
+    MINICONDA_PKG="Miniconda${PY_VERSION}-${MINICONDA_VERSION}-${MINICONDA_OS}-${MINICONDA_ARCH}.sh"
 
     echo
     echo "Downloading ${MINICONDA_URLBASE}/${MINICONDA_PKG}"
