@@ -1225,7 +1225,7 @@ class YTSurface(YTSelectionContainer3D):
         return vv
 
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae",
+                   color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
@@ -1305,6 +1305,8 @@ class YTSurface(YTSelectionContainer3D):
         ...                      dist_fac = distf, plot_index = i)
 
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             if color_field is not None:
                 self.get_data(color_field,"face")
@@ -1379,10 +1381,12 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _export_obj(self, filename, transparency, dist_fac = None,
-                    color_field = None, emit_field = None, color_map = "algae",
+                    color_field = None, emit_field = None, color_map = None,
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if plot_index is None:
             plot_index = 0
         if isinstance(filename, io.IOBase):
@@ -1473,7 +1477,7 @@ class YTSurface(YTSelectionContainer3D):
 
 
     def export_blender(self,  transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae",
+                   color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
@@ -1553,6 +1557,8 @@ class YTSurface(YTSelectionContainer3D):
         ...                      dist_fac = distf, plot_index = i)
 
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             if color_field is not None:
                 self.get_data(color_field,"face")
@@ -1572,10 +1578,12 @@ class YTSurface(YTSelectionContainer3D):
         return fullverts, colors, alpha, emisses, colorindex
 
     def _export_blender(self, transparency, dist_fac = None,
-                    color_field = None, emit_field = None, color_map = "algae",
+                    color_field = None, emit_field = None, color_map = None,
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if plot_index is None:
             plot_index = 0
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1620,7 +1628,7 @@ class YTSurface(YTSelectionContainer3D):
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face",
+                   color_map = None, color_log = True, sample_type = "face",
                    no_ghost=False):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
@@ -1652,6 +1660,8 @@ class YTSurface(YTSelectionContainer3D):
         ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             self.get_data(color_field, sample_type, no_ghost=no_ghost)
         elif color_field is not None:
@@ -1676,7 +1686,9 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face"):
+                   color_map = None, color_log = True, sample_type = "face"):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if hasattr(filename, 'read'):
             f = filename
         else:
@@ -1740,7 +1752,7 @@ class YTSurface(YTSelectionContainer3D):
             f.close()
 
     def export_sketchfab(self, title, description, api_key = None,
-                            color_field = None, color_map = "algae",
+                            color_field = None, color_map = None,
                             color_log = True, bounds = None, no_ghost = False):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
@@ -1797,6 +1809,8 @@ class YTSurface(YTSelectionContainer3D):
         ...     bounds = bounds)
         ...
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):
             raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")

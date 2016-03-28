@@ -27,6 +27,8 @@ from matplotlib.colors import colorConverter
 from matplotlib import cm
 from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
@@ -1591,9 +1593,12 @@ class MeshLinesCallback(PlotCallback):
     """
     _type_name = "mesh_lines"
 
-    def __init__(self, thresh=0.1):
+    def __init__(self, thresh=0.1, cmap=None):
         super(MeshLinesCallback, self).__init__()
         self.thresh = thresh
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
+        self.cmap = cmap
 
     def __call__(self, plot):
 
@@ -1646,7 +1651,7 @@ class MeshLinesCallback(PlotCallback):
 
         plot._axes.imshow(image, zorder=1,
                           extent=[xx0, xx1, yy0, yy1],
-                          origin='lower',
+                          origin='lower', cmap=self.cmap,
                           interpolation='nearest')
 
 
@@ -2352,7 +2357,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
-            plot._axes.imshow(lic_data_rgba, extent=extent)
+            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap)
         plot._axes.hold(False)
 
         return plot

@@ -12,6 +12,8 @@ RenderSource Class
 # -----------------------------------------------------------------------------
 
 import numpy as np
+from yt.config import \
+    ytcfg
 from yt.funcs import mylog, ensure_numpy_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -355,7 +357,7 @@ class MeshSource(OpaqueSource):
         self.current_image = None
 
         # default color map
-        self._cmap = 'algae'
+        self._cmap = ytcfg.get("yt", "default_colormap")
         self._color_bounds = None
 
         # default mesh annotation options
@@ -939,7 +941,7 @@ class GridSource(LineSource):
 
     """
 
-    def __init__(self, data_source, alpha=0.3, cmap='algae',
+    def __init__(self, data_source, alpha=0.3, cmap=None,
                  min_level=None, max_level=None):
         self.data_source = data_source_or_all(data_source)
         corners = []
@@ -959,6 +961,8 @@ class GridSource(LineSource):
             levels.append(block.Level)
         corners = np.dstack(corners)
         levels = np.array(levels)
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
 
         if max_level is not None:
             subset = levels <= max_level
