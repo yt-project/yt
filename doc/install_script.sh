@@ -30,30 +30,6 @@ INST_YT_SOURCE=0   # Should yt itself be installed from source?
 # INST_CONDA=0
 # INST_YT_SOURCE=1
 
-if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
-then
-    DEST_DIR=${YT_DEST}
-    INST_CONDA=0
-fi
-
-if [ $INST_CONDA -ne 0 ]
-then
-    DEST_SUFFIX="yt-conda"
-else
-    if [ $INST_YT_SOURCE -eq 0 ]
-    then
-        echo "yt must be compiled from source if INST_CONDA is not set"
-        echo "Please set INST_YT_SOURCE to 1 and re-run."
-        exit 1
-    fi
-    DEST_SUFFIX="yt-`uname -m`"
-fi
-
-if [ ! -z "${DEST_DIR}" ]
-then
-    DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
-fi
-
 BRANCH="yt" # This is the branch to which we will forcibly update.
 
 # What follows are some other options that you may or may not need to change.
@@ -123,7 +99,30 @@ MAKE_PROCS=""
 
 MINICONDA_URLBASE="http://repo.continuum.io/miniconda"
 MINICONDA_VERSION="latest"
-YT_RECIPE_REPO="https://bitbucket.org/yt_analysis/yt_conda/raw/default"
+
+if [ ${REINST_YT} ] && [ ${REINST_YT} -eq 1 ] && [ -n ${YT_DEST} ]
+then
+    DEST_DIR=${YT_DEST}
+    INST_CONDA=0
+fi
+
+if [ $INST_CONDA -ne 0 ]
+then
+    DEST_SUFFIX="yt-conda"
+else
+    if [ $INST_YT_SOURCE -eq 0 ]
+    then
+        echo "yt must be compiled from source if INST_CONDA is not set"
+        echo "Please set INST_YT_SOURCE to 1 and re-run."
+        exit 1
+    fi
+    DEST_SUFFIX="yt-`uname -m`"
+fi
+
+if [ ! -z "${DEST_DIR}" ]
+then
+    DEST_DIR="`pwd`/${DEST_SUFFIX/ /}"   # Installation location
+fi
 
 # Make sure we are NOT being run as root
 if [[ $EUID -eq 0 ]]
