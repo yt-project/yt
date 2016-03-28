@@ -1353,7 +1353,7 @@ else # INST_CONDA -eq 1
         echo "Installing pyembree from source"
         ( ${GETFILE} "$PYEMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
         log_cmd unzip ${DEST_DIR}/src/master.zip
-        pushd ${DEST_DIR}/src/pyembree-master
+        log_cmd pushd ${DEST_DIR}/src/pyembree-master
         log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
         popd
     fi
@@ -1377,9 +1377,9 @@ else # INST_CONDA -eq 1
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg
         fi
-        pushd ${YT_DIR}
+        log_cmd pushd ${YT_DIR}
         log_cmd python setup.py develop
-        popd
+        log_cmd popd
     fi
 
     echo
