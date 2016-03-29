@@ -76,17 +76,58 @@ def read_embree_location():
     '''
 
     rd = os.environ.get('EMBREE_DIR')
-    if rd is not None:
-        return rd
-    print("EMBREE_DIR not set. Attempting to read embree.cfg")
+    if rd is None:
+        try:
+            rd = open("embree.cfg").read().strip()
+        except IOError:
+            rd = '/usr/local'
+
+    fail_msg = ("Pyembree is installed, but I could not compile Embree test code. \n"
+               "I attempted to find Embree headers in %s. \n"
+               "If this is not correct, please set your correct embree location \n"
+               "using EMBREE_DIR environment variable or your embree.cfg file. \n"
+               "Please see http://yt-project.org/docs/dev/visualizing/unstructured_mesh_rendering.html "
+                "for more information." % rd)
+
+    # Create a temporary directory
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+
     try:
-        rd = open("embree.cfg").read().strip()
-        return rd
-    except IOError:
-        print("Reading Embree location from embree.cfg failed.")
-        print("If compilation fails, please place the base directory")
-        print("of your Embree install in embree.cfg and restart.")
-        return '/usr/local'
+        os.chdir(tmpdir)
+
+        # Get compiler invocation
+        compiler = os.getenv('CXX', 'c++')
+        compiler = compiler.split(' ')
+
+        # Attempt to compile a test script.
+        filename = r'test.cpp'
+        file = open(filename, 'wt', 1)
+        file.write(
+            '#include "embree2/rtcore.h"\n'
+            'int main() {\n'
+            'return 0;\n'
+            '}'
+        )
+        file.flush()
+        with open(os.devnull, 'w') as fnull:
+            exit_code = subprocess.call(compiler + ['-I%s/include/' % rd, filename],
+                             stdout=fnull, stderr=fnull)
+
+        # Clean up
+        file.close()
+
+    except OSError:
+        print(fail_msg)
+
+    finally:
+        os.chdir(curdir)
+        shutil.rmtree(tmpdir)
+
+    if exit_code != 0:
+        print(fail_msg)
+
+    return rd
 
 
 def get_mercurial_changeset_id(target_dir):
