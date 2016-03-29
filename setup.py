@@ -185,7 +185,7 @@ cython_extensions = [
                        "yt/utilities/lib/fixed_interpolator.pxd",
                        "yt/utilities/lib/field_interpolation_tables.pxd",
                        "yt/utilities/lib/vec3_ops.pxd"]),
-    Extension("ewah_bool_wrap",
+    Extension("yt.utilities.lib.ewah_bool_wrap",
               ["yt/utilities/lib/ewah_bool_wrap.pyx"],
               depends=["yt/utilities/lib/ewah_bool_array.pxd"],
               include_dirs=["yt/utilities/lib/",
