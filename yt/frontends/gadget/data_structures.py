@@ -82,7 +82,8 @@ class GadgetDataset(ParticleDataset):
                  ptype_spec = "default",
                  long_ids = False,
                  units_override=None,
-                 header_offset = 0):
+                 header_offset = 0,
+                 unit_system="cgs"):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -111,7 +112,7 @@ class GadgetDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
-        super(GadgetDataset, self).__init__(filename, dataset_type)
+        super(GadgetDataset, self).__init__(filename, dataset_type, unit_system=unit_system)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
             self.length_unit.convert_to_units('kpccm/h')
@@ -348,7 +349,8 @@ class GadgetHDF5Dataset(GadgetDataset):
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
                  bounding_box = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         if units_override is not None:
@@ -357,7 +359,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
             over_refine_factor=over_refine_factor,
-            bounding_box = bounding_box)
+            bounding_box = bounding_box, unit_system=unit_system)
 
     def _get_hvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")

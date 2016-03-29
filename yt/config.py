@@ -39,7 +39,7 @@ ytcfg_defaults = dict(
     storeparameterfiles = 'False',
     parameterfilestore = 'parameter_files.csv',
     maximumstoreddatasets = '500',
-    skip_dataset_cache = 'False',
+    skip_dataset_cache = 'True',
     loadfieldplugins = 'True',
     pluginfilename = 'my_plugins.py',
     parallel_traceback = 'False',
@@ -61,6 +61,7 @@ ytcfg_defaults = dict(
     ignore_invalid_unit_operation_errors = 'False',
     chunk_size = '1000',
     xray_data_dir = '/does/not/exist',
+    default_colormap = 'arbre',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

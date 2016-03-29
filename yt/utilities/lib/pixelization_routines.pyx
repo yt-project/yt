@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import YTPixelizeError, \
     YTElementTypeNotRecognized
 from yt.utilities.lib.element_mappings cimport \
@@ -261,7 +261,7 @@ def pixelize_off_axis_cartesian(
                        fabs(ysp - cy) * 0.95 > dysp or \
                        fabs(zsp - cz) * 0.95 > dzsp:
                         continue
-                    mask[i, j] = 1
+                    mask[i, j] += 1
                     my_array[i, j] += dsp
     my_array /= mask
     return my_array

@@ -38,6 +38,7 @@ cdef class Node:
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   int grid,
                   np.int64_t node_id):
+        self.dirty = False
         self.left = left
         self.right = right
         self.parent = parent
@@ -48,6 +49,7 @@ cdef class Node:
         self.grid = grid
         self.node_id = node_id
         self.split == NULL
+
 
     def print_me(self):
         print 'Node %i' % self.node_id
@@ -134,6 +136,10 @@ cdef int should_i_build(Node node, int rank, int size):
         return 1
     else:
         return 0
+
+def set_dirty(Node trunk, bint state):
+    for node in depth_traverse(trunk):
+        node.dirty = state
 
 def kd_traverse(Node trunk, viewpoint=None):
     if viewpoint is None:

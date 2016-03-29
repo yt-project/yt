@@ -35,7 +35,7 @@ from yt.utilities.math_utils import \
 
 @register_field_plugin
 def setup_geometric_fields(registry, ftype="gas", slice_info=None):
-
+    unit_system = registry.ds.unit_system
     def _radius(field, data):
         """The spherical radius component of the mesh cells.
 
@@ -47,7 +47,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     registry.add_field(("index", "radius"),
                        function=_radius,
                        validators=[ValidateParameter("center")],
-                       units="cm")
+                       units=unit_system["length"])
 
     def _grid_level(field, data):
         """The AMR refinement level"""
@@ -75,7 +75,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
 
     registry.add_field(("index", "ones_over_dx"),
                        function=_ones_over_dx,
-                       units="1 / cm",
+                       units=unit_system["length"]**-1,
                        display_field=False)
 
     def _zeros(field, data):
@@ -107,12 +107,12 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         parameter.
         """
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_sph_r(coords), "code_length").in_cgs()
+        return data.ds.arr(get_sph_r(coords), "code_length").in_base(unit_system.name)
 
     registry.add_field(("index", "spherical_radius"),
                        function=_spherical_radius,
                        validators=[ValidateParameter("center")],
-                       units="cm")
+                       units=unit_system["length"])
 
     def _spherical_r(field, data):
         """This field is deprecated and will be removed in a future release"""
@@ -121,7 +121,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     registry.add_field(("index", "spherical_r"),
                        function=_spherical_r,
                        validators=[ValidateParameter("center")],
-                       units="cm")
+                       units=unit_system["length"])
 
     def _spherical_theta(field, data):
         """The spherical theta component of the positions of the mesh cells.
@@ -169,13 +169,13 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_cgs()
+        return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_base(unit_system.name)
 
     registry.add_field(("index", "cylindrical_radius"),
                        function=_cylindrical_radius,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
-                       units="cm")
+                       units=unit_system["length"])
 
     def _cylindrical_r(field, data):
         """This field is deprecated and will be removed in a future release"""
@@ -184,7 +184,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     registry.add_field(("index", "cylindrical_r"),
                        function=_cylindrical_r,
                        validators=[ValidateParameter("center")],
-                       units="cm")
+                       units=unit_system["length"])
 
     def _cylindrical_z(field, data):
         """The cylindrical z component of the positions of the mesh cells.
@@ -194,13 +194,13 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """
         normal = data.get_field_parameter("normal")
         coords = get_periodic_rvec(data)
-        return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_cgs()
+        return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_base(unit_system.name)
 
     registry.add_field(("index", "cylindrical_z"),
                        function=_cylindrical_z,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
-                       units="cm")
+                       units=unit_system["length"])
 
     def _cylindrical_theta(field, data):
         """The cylindrical z component of the positions of the mesh cells.
@@ -241,5 +241,5 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                        function=_height,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
-                       units="cm",
+                       units=unit_system["length"],
                        display_field=False)

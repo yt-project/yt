@@ -12,6 +12,7 @@ by default when you "import yt".  Read up on these advanced tools below.
 .. toctree::
    :maxdepth: 2
 
+   cosmology_calculator
    halo_analysis
    synthetic_observation
    exporting

@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
-from fp_utils cimport fclip, i64clip
+from yt.utilities.lib.fp_utils cimport fclip, i64clip
 from libc.math cimport copysign
 from yt.utilities.exceptions import YTDomainOverflow
 

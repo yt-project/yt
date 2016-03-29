@@ -20,15 +20,14 @@ cimport oct_visitors
 from oct_visitors cimport cind
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor, ceil, fmod
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport bounded_morton, \
     bounded_morton_dds, bounded_morton_relative_dds, \
     encode_morton_64bit, decode_morton_64bit, \
     morton_neighbors_coarse, morton_neighbors_refined
 import numpy as np
 cimport numpy as np
-from selection_routines cimport SelectorObject, \
-    OctVisitorData, oct_visitor_function, AlwaysSelector
+from selection_routines cimport SelectorObject
 cimport cython
 from collections import defaultdict
 
@@ -2014,107 +2013,3 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
             if (prefix1 == prefix2):
                 o.file_ind += 1
         #print ind[0], ind[1], ind[2], o.file_ind, level
-
-    @classmethod
-    def load_octree(cls, header):
-        cdef ParticleForestOctreeContainer obj = cls(
-                header['dims'], header['left_edge'],
-                header['right_edge'], header['num_root'],
-                over_refine = header['over_refine'])
-        cdef np.uint64_t i, j
-        cdef np.int64_t i64ind[3]
-        cdef int ind[3]
-        cdef np.ndarray[np.uint8_t, ndim=1] ref_mask, packed_mask
-        obj.loaded = 1
-        packed_mask = header['octree']
-        ref_mask = np.zeros(header['nocts'], 'uint8')
-        i = j = 0
-        while i * 8 + j < ref_mask.size:
-            ref_mask[i * 8 + j] = ((packed_mask[i] >> j) & 1)
-            j += 1
-            if j == 8:
-                j = 0
-                i += 1
-        # NOTE: We do not allow domain/file indices to be specified.
-        cdef SelectorObject selector = AlwaysSelector(None)
-        cdef OctVisitorData data
-        obj.setup_data(&data, -1)
-        data.global_index = -1
-        data.level = 0
-        data.oref = 0
-        data.nz = 1
-        assert(ref_mask.shape[0] / float(data.nz) ==
-            <int>(ref_mask.shape[0]/float(data.nz)))
-        obj.allocate_domains([obj.max_root, ref_mask.size - obj.max_root])
-        cdef np.ndarray[np.uint64_t, ndim=1] keys = header['keys']
-        cdef np.int64_t domain_id = header['domain_id']
-        cdef OctAllocationContainer *cur 
-        cur = obj.domains[1]
-        for i in range(obj.max_root):
-            obj.key_to_ipos(keys[i], i64ind)
-            for j in range(3):
-                ind[j] = i64ind[j]
-            obj.next_root(1, ind)
-        # cdef np.float64_t dds[3]
-        # # This dds is the oct-width
-        # for i in range(3):
-        #     dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
-        # Pos is the center of the octs
-        cdef void *p[4]
-        cdef np.int64_t nfinest = 0
-        p[0] = ref_mask.data
-        p[1] = <void *> cur.my_octs
-        p[2] = <void *> &cur.n_assigned
-        p[3] = <void *> &nfinest
-        data.array = p
-        obj.visit_all_octs(selector, oct_visitors.load_octree, &data, 1)
-        obj.nocts = data.index
-        obj.finalize()
-        for j in range(2):
-            cur = obj.domains[j]
-            for i in range(cur.n):
-                cur.my_octs[i].domain = domain_id
-        if obj.nocts * data.nz != ref_mask.size:
-            raise KeyError(ref_mask.size, obj.nocts, obj.oref,
-                obj.partial_coverage)
-        return obj
-
-    def save_octree(self):
-        header = dict(dims = (self.nn[0], self.nn[1], self.nn[2]),
-                      left_edge = (self.DLE[0], self.DLE[1], self.DLE[2]),
-                      right_edge = (self.DRE[0], self.DRE[1], self.DRE[2]),
-                      over_refine = self.oref, num_root = self.num_root)
-        cdef np.uint64_t i, j
-        cdef SelectorObject selector = AlwaysSelector(None)
-        # domain_id = -1 here, because we want *every* oct
-        cdef OctVisitorData data
-        self.setup_data(&data, -1)
-        data.oref = 0
-        data.nz = 1
-        cdef np.ndarray[np.uint8_t, ndim=1] ref_mask
-        cdef np.ndarray[np.uint8_t, ndim=1] packed_mask
-        cdef np.ndarray[np.uint64_t, ndim=1] keys
-        ref_mask = np.zeros(self.nocts * data.nz, dtype="uint8") - 1
-        keys = np.zeros(self.num_root, "uint64")
-        for i in range(self.num_root):
-            keys[i] = self.root_nodes[i].key
-        cdef void *p[1]
-        p[0] = ref_mask.data
-        data.array = p
-        # Enforce partial_coverage here
-        self.visit_all_octs(selector, oct_visitors.store_octree, &data, 1)
-        # Now let's bitpack; we'll un-bitpack later.
-        packed_mask = np.zeros(ceil(self.nocts * data.nz/8.0), dtype="uint8")
-        i = j = 0
-        while i * 8 + j < np.uint64(self.nocts * data.nz):
-            packed_mask[i] |= (ref_mask[i * 8 + j] << j)
-            j += 1
-            if j == 8:
-                j = 0
-                i += 1
-        header['octree'] = packed_mask
-        header['nocts'] = self.nocts
-        header['keys'] = keys
-        header['domain_id'] = self.oct_list[0].domain
-        return header
-

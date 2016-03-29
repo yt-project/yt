@@ -96,6 +96,9 @@ class ParticleIndex(Index):
                 self._initialize_refined_index()
             if fname is not None:
                 self.regions.save_bitmasks(fname=fname)
+        # These are now invalid, but I don't know what to replace them with:
+        #self.max_level = self.oct_handler.max_level
+        #self.dataset.max_level = self.max_level
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))

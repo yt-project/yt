@@ -67,6 +67,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        unit_system = self.ds.unit_system
         def _get_vel(axis):
             def velocity(field, data):
                 return data["momentum_%s" % axis]/data["density"]
@@ -74,7 +75,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         for ax in 'xyz':
             self.add_field(("gas", "velocity_%s" % ax),
                            function = _get_vel(ax),
-                           units = "cm/s")
+                           units = unit_system["velocity"])
 
         def _temperature(field, data):
             tr = data["thermal_energy"]/data["density"]
@@ -97,7 +98,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
         self.add_field(("gas", "temperature"), function = _temperature,
-                       units = "K")
+                       units = unit_system["temperature"])
 
         # Create a metal_density field as sum of existing metal fields. 
         flag1 = ("artio", "HVAR_METAL_DENSITY_Ia") in self.field_list
@@ -118,7 +119,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
                     return tr
             self.add_field(("gas","metal_density"),
                            function=_metal_density,
-                           units="g/cm**3",
+                           units=unit_system["density"],
                            take_log=True)
 
     def setup_particle_fields(self, ptype):

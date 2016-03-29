@@ -444,7 +444,7 @@ class AthenaDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None,
-                 units_override=None, nprocs=1):
+                 units_override=None, nprocs=1, unit_system="cgs"):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
         if parameters is None:
@@ -461,7 +461,8 @@ class AthenaDataset(Dataset):
                                   "and will be removed in a future release. Use units_override instead.")
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]

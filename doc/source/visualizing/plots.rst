@@ -415,9 +415,19 @@ to the element boundary. What counts as 'close' (in the mapped coordinate system
 determined by the ``thresh`` parameter, which can be varied to make the lines thicker or
 thinner.
 
+The above example all involve 8-node hexahedral mesh elements. Here is another example from
+a dataset that uses 6-node wedge elements:
+
+.. python-script::
+   
+   import yt
+   ds = yt.load("MOOSE_sample_data/wedge_out.e")
+   sl = yt.SlicePlot(ds, 2, ('connect2', 'diffused'))
+   sl.save()
+
 Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
 slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
-an example using another MOOSE dataset:
+an example using another MOOSE dataset that uses triangular mesh elements:
 
 .. python-script::
 
@@ -795,9 +805,9 @@ The profiled fields can be accessed from the dictionary ``field_data``.
                       weight_field=None)
    profile = plot.profiles[0]
    # print the bin field, in this case temperature
-   print profile.x
+   print(profile.x)
    # print the profiled cell_mass field
-   print profile['cell_mass']
+   print(profile['cell_mass'])
 
 Other options, such as the number of bins, are also configurable. See the
 documentation for :class:`~yt.visualization.profile_plotter.ProfilePlot` for

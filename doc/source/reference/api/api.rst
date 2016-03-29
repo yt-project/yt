@@ -472,6 +472,8 @@ on cosmological halos.  It is also the primary interface for halo finding.
    ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
    ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
    ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_recipes.HaloRecipe
+   ~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities
 
 Halo Finding
 ^^^^^^^^^^^^
@@ -789,6 +791,7 @@ Function List
    ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
+   ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
@@ -859,6 +862,29 @@ Miscellaneous Types
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
 
+.. _cosmology-calculator-ref:
+
+Cosmology Calculator
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.utilities.cosmology.Cosmology
+   ~yt.utilities.cosmology.Cosmology.hubble_distance
+   ~yt.utilities.cosmology.Cosmology.comoving_radial_distance
+   ~yt.utilities.cosmology.Cosmology.comoving_transverse_distance
+   ~yt.utilities.cosmology.Cosmology.comoving_volume
+   ~yt.utilities.cosmology.Cosmology.angular_diameter_distance
+   ~yt.utilities.cosmology.Cosmology.angular_scale
+   ~yt.utilities.cosmology.Cosmology.luminosity_distance
+   ~yt.utilities.cosmology.Cosmology.lookback_time
+   ~yt.utilities.cosmology.Cosmology.hubble_time
+   ~yt.utilities.cosmology.Cosmology.critical_density
+   ~yt.utilities.cosmology.Cosmology.hubble_parameter
+   ~yt.utilities.cosmology.Cosmology.expansion_factor
+   ~yt.utilities.cosmology.Cosmology.z_from_t
+   ~yt.utilities.cosmology.Cosmology.t_from_z
 
 Testing Infrastructure
 ----------------------

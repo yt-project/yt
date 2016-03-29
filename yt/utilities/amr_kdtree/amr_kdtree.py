@@ -14,6 +14,7 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import operator
 import numpy as np
 
 from yt.funcs import mylog
@@ -27,6 +28,7 @@ from yt.utilities.lib.amr_kdtools import \
     add_pygrids, \
     find_node, \
     kd_is_leaf, \
+    set_dirty, \
     depth_traverse, \
     depth_first_touch, \
     kd_traverse, \
@@ -42,19 +44,28 @@ from yt.utilities.math_utils import periodic_position
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],
                   [-1,  1, -1], [-1,  1,  0], [-1,  1,  1],
-                  
+
                   [ 0, -1, -1], [ 0, -1,  0], [ 0, -1,  1],
                   [ 0,  0, -1],
                   # [ 0,  0,  0],
                   [ 0,  0,  1],
                   [ 0,  1, -1], [ 0,  1,  0], [ 0,  1,  1],
-                  
+
                   [ 1, -1, -1], [ 1, -1,  0], [ 1, -1,  1],
                   [ 1,  0, -1], [ 1,  0,  0], [ 1,  0,  1],
                   [ 1,  1, -1], [ 1,  1,  0], [ 1,  1,  1] ])
 
+def _apply_log(data, log_changed, log_new):
+    '''Helper used to set log10/10^ to data in AMRKDTree'''
+    if not log_changed:
+        return
+    if log_new:
+        np.log10(data, data)
+    else:
+        np.power(10.0, data, data)
+
 class Tree(object):
-    def __init__(self, ds, comm_rank=0, comm_size=1, left=None, right=None, 
+    def __init__(self, ds, comm_rank=0, comm_size=1, left=None, right=None,
         min_level=None, max_level=None, data_source=None):
 
         self.ds = ds
@@ -170,14 +181,27 @@ class AMRKDTree(ParallelAnalysisInterface):
                          min_level=min_level, max_level=max_level,
                          data_source=data_source)
 
-    def set_fields(self, fields, log_fields, no_ghost):
-        self.fields = self.data_source._determine_fields(fields)
+    def set_fields(self, fields, log_fields, no_ghost, force=False):
+        new_fields = self.data_source._determine_fields(fields)
+        regenerate_data = self.fields is None or \
+                          len(self.fields) != len(new_fields) or \
+                          self.fields != new_fields or force
+        set_dirty(self.tree.trunk, regenerate_data)
+        self.fields = new_fields
+
+        if self.log_fields is not None and not regenerate_data:
+            flip_log = map(operator.ne, self.log_fields, log_fields)
+        else:
+            flip_log = [False] * len(log_fields)
         self.log_fields = log_fields
+
         self.no_ghost = no_ghost
         del self.bricks, self.brick_dimensions
         self.brick_dimensions = []
         bricks = []
+
         for b in self.traverse():
+            map(_apply_log, b.my_data, flip_log, log_fields)
             bricks.append(b)
         self.bricks = np.array(bricks)
         self.brick_dimensions = np.array(self.brick_dimensions)
@@ -261,7 +285,8 @@ class AMRKDTree(ParallelAnalysisInterface):
         return scatter_image(self.comm, owners[1], image)
 
     def get_brick_data(self, node):
-        if node.data is not None: return node.data
+        if node.data is not None and not node.dirty:
+            return node.data
         grid = self.ds.index.grids[node.grid - self._id_offset]
         dds = grid.dds.ndarray_view()
         gle = grid.LeftEdge.ndarray_view()
@@ -273,7 +298,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         assert(np.all(grid.LeftEdge <= nle))
         assert(np.all(grid.RightEdge >= nre))
 
-        if grid in self.current_saved_grids:
+        if grid in self.current_saved_grids and not node.dirty:
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
         else:
             dds = []
@@ -299,6 +324,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                                 nre.copy(),
                                 dims.astype('int64'))
         node.data = brick
+        node.dirty = False
         if not self._initialized:
             self.brick_dimensions.append(dims)
         return brick
@@ -327,16 +353,16 @@ class AMRKDTree(ParallelAnalysisInterface):
         cis: List of neighbor cell index tuples
 
         Both of these are neighbors that, relative to the current cell
-        index (i,j,k), are ordered as: 
-        
-        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...  
-        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...  
+        index (i,j,k), are ordered as:
+
+        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...
+        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...
         (i+1, j+1, k-1), (i-1, j-1, k ), (i+1, j+1, k+1)
 
         That is they start from the lower left and proceed to upper
         right varying the third index most frequently. Note that the
         center cell (i,j,k) is ommitted.
-        
+
         """
         ci = np.array(ci)
         center_dds = grid.dds
@@ -351,7 +377,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         new_positions = position + steps*offs
         new_positions = [periodic_position(p, self.ds) for p in new_positions]
         grids[in_grid] = grid
-                
+
         get_them = np.argwhere(in_grid).ravel()
         cis[in_grid] = new_cis[in_grid]
 
@@ -367,11 +393,11 @@ class AMRKDTree(ParallelAnalysisInterface):
         return grids, cis
 
     def locate_neighbors_from_position(self, position):
-        r"""Given a position, finds the 26 neighbor grids 
+        r"""Given a position, finds the 26 neighbor grids
         and cell indices.
 
         This is a mostly a wrapper for locate_neighbors.
-        
+
         Parameters
         ----------
         position: array-like
@@ -383,16 +409,16 @@ class AMRKDTree(ParallelAnalysisInterface):
         cis: List of neighbor cell index tuples
 
         Both of these are neighbors that, relative to the current cell
-        index (i,j,k), are ordered as: 
-        
-        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...  
-        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...  
+        index (i,j,k), are ordered as:
+
+        (i-1, j-1, k-1), (i-1, j-1, k ), (i-1, j-1, k+1), ...
+        (i-1, j  , k-1), (i-1, j  , k ), (i-1, j  , k+1), ...
         (i+1, j+1, k-1), (i-1, j-1, k ), (i+1, j+1, k+1)
 
         That is they start from the lower left and proceed to upper
         right varying the third index most frequently. Note that the
         center cell (i,j,k) is ommitted.
-        
+
         """
         position = np.array(position)
         grid = self.ds.index.grids[self.locate_brick(position).grid -
@@ -421,7 +447,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         del f
         if self.comm.rank != (self.comm.size-1):
             self.comm.send_array([0],self.comm.rank+1, tag=self.comm.rank)
-        
+
     def load_kd_bricks(self,fn=None):
         if fn is None:
             fn = '%s_kd_bricks.h5' % self.ds
@@ -435,10 +461,10 @@ class AMRKDTree(ParallelAnalysisInterface):
                     data = [f["brick_%s_%s" %
                               (hex(i), field)][:].astype('float64') for field in self.fields]
                     node.data = PartitionedGrid(node.grid.id, data,
-                                                 node.l_corner.copy(), 
-                                                 node.r_corner.copy(), 
+                                                 node.l_corner.copy(),
+                                                 node.r_corner.copy(),
                                                  node.dims.astype('int64'))
-                    
+
                     self.bricks.append(node.data)
                     self.brick_dimensions.append(node.dims)
 
@@ -457,15 +483,15 @@ class AMRKDTree(ParallelAnalysisInterface):
         if self.comm.size == 0: return
         nid, pid, lid, rid, les, res, gid, splitdims, splitposs = \
                 self.get_node_arrays()
-        nid = self.comm.par_combine_object(nid, 'cat', 'list') 
-        pid = self.comm.par_combine_object(pid, 'cat', 'list') 
-        lid = self.comm.par_combine_object(lid, 'cat', 'list') 
-        rid = self.comm.par_combine_object(rid, 'cat', 'list') 
-        gid = self.comm.par_combine_object(gid, 'cat', 'list') 
-        les = self.comm.par_combine_object(les, 'cat', 'list') 
-        res = self.comm.par_combine_object(res, 'cat', 'list') 
-        splitdims = self.comm.par_combine_object(splitdims, 'cat', 'list') 
-        splitposs = self.comm.par_combine_object(splitposs, 'cat', 'list') 
+        nid = self.comm.par_combine_object(nid, 'cat', 'list')
+        pid = self.comm.par_combine_object(pid, 'cat', 'list')
+        lid = self.comm.par_combine_object(lid, 'cat', 'list')
+        rid = self.comm.par_combine_object(rid, 'cat', 'list')
+        gid = self.comm.par_combine_object(gid, 'cat', 'list')
+        les = self.comm.par_combine_object(les, 'cat', 'list')
+        res = self.comm.par_combine_object(res, 'cat', 'list')
+        splitdims = self.comm.par_combine_object(splitdims, 'cat', 'list')
+        splitposs = self.comm.par_combine_object(splitposs, 'cat', 'list')
         nid = np.array(nid)
         self.rebuild_tree_from_array(nid, pid, lid,
             rid, les, res, gid, splitdims, splitposs)
@@ -481,25 +507,25 @@ class AMRKDTree(ParallelAnalysisInterface):
         splitdims = []
         splitposs = []
         for node in depth_first_touch(self.tree.trunk):
-            nids.append(node.node_id) 
-            les.append(node.get_left_edge()) 
-            res.append(node.get_right_edge()) 
+            nids.append(node.node_id)
+            les.append(node.get_left_edge())
+            res.append(node.get_right_edge())
             if node.left is None:
-                leftids.append(-1) 
+                leftids.append(-1)
             else:
-                leftids.append(node.left.node_id) 
+                leftids.append(node.left.node_id)
             if node.right is None:
-                rightids.append(-1) 
+                rightids.append(-1)
             else:
-                rightids.append(node.right.node_id) 
+                rightids.append(node.right.node_id)
             if node.parent is None:
-                parentids.append(-1) 
+                parentids.append(-1)
             else:
-                parentids.append(node.parent.node_id) 
+                parentids.append(node.parent.node_id)
             if node.grid is None:
-                gridids.append(-1) 
+                gridids.append(-1)
             else:
-                gridids.append(node.grid) 
+                gridids.append(node.grid)
             splitdims.append(node.get_split_dim())
             splitposs.append(node.get_split_pos())
 
@@ -510,10 +536,10 @@ class AMRKDTree(ParallelAnalysisInterface):
                                rids, les, res, gids, splitdims, splitposs):
         del self.tree.trunk
 
-        self.tree.trunk = Node(None, 
+        self.tree.trunk = Node(None,
                     None,
                     None,
-                    les[0], res[0], gids[0], nids[0]) 
+                    les[0], res[0], gids[0], nids[0])
 
         N = nids.shape[0]
         for i in range(N):
@@ -521,14 +547,14 @@ class AMRKDTree(ParallelAnalysisInterface):
             n.set_left_edge(les[i])
             n.set_right_edge(res[i])
             if lids[i] != -1 and n.left is None:
-                n.left = Node(n, None, None, 
-                              np.zeros(3, dtype='float64'),  
-                              np.zeros(3, dtype='float64'),  
+                n.left = Node(n, None, None,
+                              np.zeros(3, dtype='float64'),
+                              np.zeros(3, dtype='float64'),
                               -1, lids[i])
             if rids[i] != -1 and n.right is None:
-                n.right = Node(n, None, None, 
-                               np.zeros(3, dtype='float64'),  
-                               np.zeros(3, dtype='float64'),  
+                n.right = Node(n, None, None,
+                               np.zeros(3, dtype='float64'),
+                               np.zeros(3, dtype='float64'),
                                -1, rids[i])
             if gids[i] != -1:
                 n.grid = gids[i]
@@ -541,9 +567,9 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def count_volume(self):
         return kd_sum_volume(self.tree.trunk)
-    
+
     def count_cells(self):
-        return self.tree.sum_cells() 
+        return self.tree.sum_cells()
 
 if __name__ == "__main__":
     import yt
