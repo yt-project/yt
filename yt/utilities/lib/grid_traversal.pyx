@@ -16,7 +16,6 @@ Simple integrators for the radiative transfer equation
 import numpy as np
 cimport numpy as np
 cimport cython
-cimport openmp
 #cimport healpix_interface
 cdef extern from "limits.h":
     cdef int SHRT_MAX
@@ -462,11 +461,9 @@ cdef class ImageSampler:
         cdef ImageAccumulator *idata
         cdef np.float64_t width[3]
         cdef int chunksize = 100
-        cdef int threads
         for i in range(3):
             width[i] = self.width[i]
         with nogil, parallel(num_threads = num_threads):
-            threads = openmp.omp_get_num_threads()
             idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
             idata.supp_data = self.supp_data
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -482,7 +479,7 @@ cdef class ImageSampler:
                 max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
-                if j % (threads*chunksize) == 0:
+                if (j % chunksize) == 0:
                     with gil:
                         PyErr_CheckSignals()
                 for i in range(Nch):
