@@ -31,6 +31,8 @@ from fixed_interpolator cimport *
 from cython.parallel import prange, parallel, threadid
 from vec3_ops cimport dot, subtract, L2_norm, fma
 
+from cpython.exc cimport PyErr_CheckSignals
+
 DEF Nch = 4
 
 cdef class PartitionedGrid:
@@ -476,6 +478,8 @@ cdef class ImageSampler:
                 max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
+                with gil:
+                    PyErr_CheckSignals()
                 for i in range(Nch):
                     im.image[vi, vj, i] = idata.rgba[i]
             free(idata)
