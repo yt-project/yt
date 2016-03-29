@@ -479,7 +479,7 @@ cdef class ImageSampler:
                 max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
-                if (j % 10*chunksize) == 0:
+                if (j % (10*chunksize)) == 0:
                     with gil:
                         PyErr_CheckSignals()
                 for i in range(Nch):
