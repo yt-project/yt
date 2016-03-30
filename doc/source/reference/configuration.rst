@@ -1,10 +1,10 @@
 Customizing yt: The Configuration and Plugin Files
 ==================================================
 
-yt features ways to customize it to your personal preferences in terms of 
-how much output it displays, loading custom fields, loading custom colormaps, 
+yt features ways to customize it to your personal preferences in terms of
+how much output it displays, loading custom fields, loading custom colormaps,
 accessing test datasets regardless of where you are in the file system, etc.
-This customization is done through :ref:`configuration-file` and 
+This customization is done through :ref:`configuration-file` and
 :ref:`plugin-file` both of which exist in your ``$HOME/.yt`` directory.
 
 .. _configuration-file:
@@ -24,7 +24,7 @@ runtime behavior.  For example, a sample ``$HOME/.yt/config`` file could look
 like:
 
 .. code-block:: none
-    
+
    [yt]
    loglevel = 1
    maximumstoreddatasets = 10000
@@ -37,7 +37,7 @@ Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In addition to setting parameters in the configuration file itself, you can set
-them at runtime.  
+them at runtime.
 
 .. warning:: Several parameters are only accessed when yt starts up: therefore,
    if you want to modify any configuration parameters at runtime, you should
@@ -104,7 +104,7 @@ used internally.
   IPython notebook created by ``yt notebook``.  Note that this should be an
   sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
   setting will provide instructions for setting this.
-* ``serialize`` (default: ``'False'``): If true, perform automatic 
+* ``serialize`` (default: ``'False'``): If true, perform automatic
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
@@ -120,9 +120,9 @@ used internally.
 The Plugin File
 ---------------
 
-The plugin file is a means of creating custom fields, quantities, data 
+The plugin file is a means of creating custom fields, quantities, data
 objects, colormaps, and other code classes and objects to be used in future
-yt sessions without modifying the source code directly.  
+yt sessions without modifying the source code directly.
 
 To force the plugin file to be parsed, call the function
 :func:`~yt.funcs.enable_plugins` at the top of your script.
@@ -190,7 +190,7 @@ Adding Custom Colormaps
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 To add custom :ref:`colormaps` to your plugin file, you must use the
-:func:`~yt.visualization.color_maps.make_colormap` function to generate a 
+:func:`~yt.visualization.color_maps.make_colormap` function to generate a
 colormap of your choice and then add it to the plugin file.  You can see
 an example of this in :ref:`custom-colormaps`.  Remember that you don't need
 to prefix commands in your plugin file with ``yt.``, but you'll only be

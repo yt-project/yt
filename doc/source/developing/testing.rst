@@ -400,9 +400,9 @@ considered canonical.  Do these things:
 
   * The test routine itself should be decorated with
     ``@requires_ds(test_dataset_name)``. This decorator can accept the
-    argument ``big_data=True`` if the test is expensive. The 
+    argument ``big_data=True`` if the test is expensive. The
     ``test_dataset_name`` should be a string containing the path you would pass
-    to the ``yt.load`` function. It does not need to be the full path to the 
+    to the ``yt.load`` function. It does not need to be the full path to the
     dataset, since the path will be automatically prepended with the location of
     the test data directory.  See :ref:`configuration-file` for more information
     about the ``test_data-dir`` configuration option.
@@ -424,12 +424,12 @@ of some functionality from matplotlib to automatically compare images and detect
 differences, if any. Image comparison tests are used in the plotting and volume
 rendering machinery.
 
-The easiest way to use the image comparison tests is to make use of the 
+The easiest way to use the image comparison tests is to make use of the
 ``GenericImageTest`` class. This class takes three arguments:
 
-* A dataset instance (e.g. something you load with ``yt.load`` or 
-  ``data_dir_load``) 
-* A function the test machinery can call which will save an image to disk. The 
+* A dataset instance (e.g. something you load with ``yt.load`` or
+  ``data_dir_load``)
+* A function the test machinery can call which will save an image to disk. The
   test class will then find any images that get created and compare them with the
   stored "correct" answer.
 * An integer specifying the number of decimal places to use when comparing
@@ -438,7 +438,7 @@ The easiest way to use the image comparison tests is to make use of the
   this is not a pixel-by-pixel measure, and surprisingly large variations will
   still pass the test if the strictness of the comparison is not high enough.
 
-You *must* decorate your test function with ``requires_ds``, otherwise the 
+You *must* decorate your test function with ``requires_ds``, otherwise the
 answer testing machinery will not be properly set up.
 
 Here is an example test function:
@@ -510,7 +510,7 @@ server it is translated to:
       yt/frontends/artio/tests/test_outputs.py
 
 If the answer doesn't exist on the server yet, ``nosetests`` is run twice and
-during first pass ``--answer-store`` is added to the commandline. 
+during first pass ``--answer-store`` is added to the commandline.
 
 Updating Answers
 ~~~~~~~~~~~~~~~~
@@ -525,11 +525,11 @@ change the answer name in *tests/tests_2.7.yaml* e.g.:
    @@ -25,7 +25,7 @@
         - yt/analysis_modules/halo_finding/tests/test_rockstar.py
         - yt/frontends/owls_subfind/tests/test_outputs.py
-   
+
    -  local_owls_270:
    +  local_owls_271:
         - yt/frontends/owls/tests/test_outputs.py
-   
+
       local_pw_270:
 
 would regenerate answers for OWLS frontend.
@@ -538,7 +538,7 @@ Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to add a new set of answer tests, it is sufficient to extend the
-*answer_tests* list in *tests/tests_2.7.yaml* e.g.: 
+*answer_tests* list in *tests/tests_2.7.yaml* e.g.:
 
 .. code-block:: diff
 
@@ -547,7 +547,7 @@ In order to add a new set of answer tests, it is sufficient to extend the
    @@ -60,6 +60,10 @@
         - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
         - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
-    
+
    +  local_gdf_270:
    +    - yt/frontends/gdf/tests/test_outputs.py
    +

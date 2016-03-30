@@ -17,14 +17,14 @@ Version 3.2
 Major enhancements
 ^^^^^^^^^^^^^^^^^^
 
-* Particle-Only Plots - a series of new plotting functions for visualizing 
+* Particle-Only Plots - a series of new plotting functions for visualizing
   particle data.  See here for more information.
-* Late-stage beta support for Python 3 - unit tests and answer tests pass for 
-  all the major frontends under python 3.4, and yt should now be mostly if not 
-  fully usable.  Because many of the yt developers are still on Python 2 at 
-  this point, this should be considered a "late stage beta" as there may be 
+* Late-stage beta support for Python 3 - unit tests and answer tests pass for
+  all the major frontends under python 3.4, and yt should now be mostly if not
+  fully usable.  Because many of the yt developers are still on Python 2 at
+  this point, this should be considered a "late stage beta" as there may be
   remaining issues yet to be identified or worked out.
-* Now supporting Gadget Friend-of-Friends/Subfind catalogs - see here to learn 
+* Now supporting Gadget Friend-of-Friends/Subfind catalogs - see here to learn
   how to load halo catalogs as regular yt datasets.
 * Custom colormaps can now be easily defined and added - see here to learn how!
 * Now supporting Fargo3D data
@@ -33,17 +33,17 @@ Major enhancements
 Minor enhancements
 ^^^^^^^^^^^^^^^^^^
 
-* Various updates to the following frontends: ART, Athena, Castro, Chombo, 
+* Various updates to the following frontends: ART, Athena, Castro, Chombo,
   Gadget, GDF, Maestro, Pluto, RAMSES, Rockstar, SDF, Tipsy
 * Numerous documentation updates
 * Generic hexahedral mesh pixelizer
 * Adding annotate_ray() callback for plots
-* AbsorptionSpectrum returned to full functionality and now using faster SciPy 
+* AbsorptionSpectrum returned to full functionality and now using faster SciPy
   Voigt profile
 * Add a color_field argument to annotate_streamline
 * Smoothing lengths auto-calculated for Tipsy Datasets
 * Adding SimulationTimeSeries support for Gadget and OWLS.
-* Generalizing derived quantity outputs to all be YTArrays or lists of 
+* Generalizing derived quantity outputs to all be YTArrays or lists of
   YTArrays as appropriate
 * Star analysis returned to full functionality
 * FITS image writing refactor
@@ -312,8 +312,8 @@ rendering be viewed as a late-stage beta, with a series of additional
 releases (3.1, 3.2, etc) appearing over the course of the next year to
 improve support in these areas.
 
-For a description of how to bring your 2.x scripts up to date to 3.0, 
-and a summary of common gotchas in this transition, please see 
+For a description of how to bring your 2.x scripts up to date to 3.0,
+and a summary of common gotchas in this transition, please see
 :ref:`yt3differences`.
 
 Version 2.6
@@ -503,17 +503,17 @@ Most Visible Improvements
  * Metallicity-dependent X-ray fields have now been added.
  * Grid lines can now be added to volume renderings.
  * Volume rendering backend has been updated to use an alpha channel, fixing
-   parallel opaque volume renderings.  This also enables easier blending of 
+   parallel opaque volume renderings.  This also enables easier blending of
    multiple images and annotations to the rendering. Users are encouraged
    to look at the capabilities of the ``ImageArray`` for writing out renders,
    as updated in the cookbook examples. Volume renders can now be saved with
    an arbitrary background color.
  * Periodicity, or alternately non-periodicity, is now a part of radius
    calculations.
- * The AMRKDTree has been rewritten.  This allows parallelism with other than 
+ * The AMRKDTree has been rewritten.  This allows parallelism with other than
    power-of-2 MPI processes, arbitrary sets of grids, and splitting of
-   unigrids. 
- * Fixed Resolution Buffers and volume rendering images now utilize a new 
+   unigrids.
+ * Fixed Resolution Buffers and volume rendering images now utilize a new
    ImageArray class that stores information such as data source, field names,
    and other information in a .info dictionary. See the ``ImageArray``
    docstrings for more information on how they can be used to save to a bitmap
@@ -555,7 +555,7 @@ Most Visible Improvements
 Other Changes
 ^^^^^^^^^^^^^
 
- * :class:`~yt.visualization.plot_window.ProjectionPlot` and 
+ * :class:`~yt.visualization.plot_window.ProjectionPlot` and
    :class:`~yt.visualization.plot_window.SlicePlot` supplant the functionality
    of PlotCollection.
  * Camera path creation from keyframes and splines
@@ -595,7 +595,7 @@ Other Changes
  * Light cone and light ray updates to fit with current best practices for
    parallelism
 
-Version 2.3 
+Version 2.3
 -----------
 
 `(yt 2.3 docs) <http://yt-project.org/docs/2.3>`_
@@ -651,7 +651,7 @@ Version 2.1
  * Halos found inline in Enzo can be loaded and merger trees calculated
  * Support for CASTRO particles has been added
  * Chombo support updated and fixed
- * New code contributions 
+ * New code contributions
  * Contour finder has been sped up by a factor of a few
  * Constrained two-point functions are now possible, for LOS power spectra
  * Time series analysis (:ref:`time-series-analysis`) now much easier
@@ -664,7 +664,7 @@ Version 2.1
  * ``yt-supplemental`` repository now checked out by default, containing
    cookbook, documentation, handy mercurial extensions, and advanced plotting
    examples and helper scripts.
- * Pasteboards now supported and available 
+ * Pasteboards now supported and available
  * Parallel yt efficiency improved by removal of barriers and improvement of
    collective operations
 
@@ -749,7 +749,7 @@ finder (see :ref:`halo_finding`)
  * Fixes for plots, including normalized phase plots
  * Better collective communication in parallel routines
  * Consolidation of optimized C routines into ``amr_utils``
- * Many bug fixes and minor optimizations 
+ * Many bug fixes and minor optimizations
 
 Version 1.5
 -----------

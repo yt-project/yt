@@ -6,14 +6,14 @@ Exporting to Sunrise
 .. sectionauthor:: Christopher Moody <cemoody@ucsc.edu>
 .. versionadded:: 1.8
 
-.. note:: 
+.. note::
 
     As of :code:`yt-3.0`, the sunrise exporter is not currently functional.
     This functionality is still available in :code:`yt-2.x`.  If you would like
     to use these features in :code:`yt-3.x`, help is needed to port them over.
     Contact the yt-users mailing list if you are interested in doing this.
 
-The yt-Sunrise exporter essentially takes grid cell data and translates it into a binary octree format, attaches star particles, and saves the output to a FITS file Sunrise can read. For every cell, the gas mass, metals mass (a fraction of which is later assumed to be in the form of dust), and the temperature are saved. Star particles are defined entirely by their mass, position, metallicity, and a 'radius.' This guide outlines the steps to exporting the data, troubleshoots common problems, and reviews recommended sanity checks. 
+The yt-Sunrise exporter essentially takes grid cell data and translates it into a binary octree format, attaches star particles, and saves the output to a FITS file Sunrise can read. For every cell, the gas mass, metals mass (a fraction of which is later assumed to be in the form of dust), and the temperature are saved. Star particles are defined entirely by their mass, position, metallicity, and a 'radius.' This guide outlines the steps to exporting the data, troubleshoots common problems, and reviews recommended sanity checks.
 
 Simple Export
 -------------
@@ -30,7 +30,7 @@ The code outlined here is a barebones Sunrise export:
 	root_cells = ds.domain_dimensions[0]
 	le = np.floor(root_cells*center) #left edge
 	re = np.ceil(root_cells*center) #right edge
-	bounds = [(le[0], re[0]-le[0]), (le[1], re[1]-le[1]), (le[2], re[2]-le[2])] 
+	bounds = [(le[0], re[0]-le[0]), (le[1], re[1]-le[1]), (le[2], re[2]-le[2])]
 	#bounds are left edge plus a span
 	bounds = numpy.array(bounds,dtype='int')
 	amods.sunrise_export.export_to_sunrise(ds, out_fits_file,subregion_bounds = bounds)
@@ -61,14 +61,14 @@ Some codes do not yet enjoy full yt support. As a result, export_to_sunrise() ca
 	amods.sunrise_export.export_to_sunrise(ds, out_fits_file,write_particles=cols,
 	    subregion_bounds = bounds)
 
-This code snippet takes the stars in a region outlined by the ``bounds`` variable, organizes them into pyfits columns which are then passed to export_to_sunrise. Note that yt units are in CGS, and Sunrise accepts units in (physical) kpc, kelvin, solar masses, and years.  
+This code snippet takes the stars in a region outlined by the ``bounds`` variable, organizes them into pyfits columns which are then passed to export_to_sunrise. Note that yt units are in CGS, and Sunrise accepts units in (physical) kpc, kelvin, solar masses, and years.
 
-Remember that in Sunrise, photons are not spawned at the exact point of the star particle, but stochastically in a radius around it. Default to setting this radius to the resolution (or smoothing kernel) of your simulation - and then test that Sunrise is not sensitive to a doubling or halving of this number. 
+Remember that in Sunrise, photons are not spawned at the exact point of the star particle, but stochastically in a radius around it. Default to setting this radius to the resolution (or smoothing kernel) of your simulation - and then test that Sunrise is not sensitive to a doubling or halving of this number.
 
 Sanity Check: Young Stars
 -------------------------
 
-Young stars are treated in a special way in Sunrise. Stars under 10 Myr do not emit in the normal fashion; instead they are replaced with MAPPINGS III particles that emulate the emission characteristics of star forming clusters. Among other things this involves a calculation of the local pressure, P/k, which Sunrise reports for debugging purposes and is something you should also check. 
+Young stars are treated in a special way in Sunrise. Stars under 10 Myr do not emit in the normal fashion; instead they are replaced with MAPPINGS III particles that emulate the emission characteristics of star forming clusters. Among other things this involves a calculation of the local pressure, P/k, which Sunrise reports for debugging purposes and is something you should also check.
 
 The code snippet below finds the location of every star under 10 Myr and looks up the cell containing it:
 
@@ -125,7 +125,7 @@ If you add your star particles separately from the gas cell index, then it is wo
 
 .. code-block:: python
 
-	pc.add_projection("density", 0, "density")  
+	pc.add_projection("density", 0, "density")
 
 
 Convergence: High Resolution
@@ -136,7 +136,7 @@ At the moment, yt exports are the only grid data format Sunrise accepts. Otherwi
 Other checks:
 -------------
 
-Check that the width of your extracted region is at least the size of your camera's field of view. It should probably be significantly larger than your FOV, and cutting that short could throw out otherwise interesting objects. 
+Check that the width of your extracted region is at least the size of your camera's field of view. It should probably be significantly larger than your FOV, and cutting that short could throw out otherwise interesting objects.
 
 A good idea is to leverage yt to find the inertia tensor of the stars, find the rotation matrix that diagonalizes it, and use that to define cameras for Sunrise. Unless your code grid is aligned with your galaxy, this is required for getting edge-on or face-on shots.
 
@@ -147,5 +147,5 @@ The final product:
    :width: 479
    :height: 479
 
-Above is a false color image where RGB are assigned to IR, optical and UV broadband filters, respectively. 
+Above is a false color image where RGB are assigned to IR, optical and UV broadband filters, respectively.
 

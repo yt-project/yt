@@ -17,7 +17,7 @@
 #
 # By default this will install yt from source.
 #
-# If you experience problems, please visit the Help section at 
+# If you experience problems, please visit the Help section at
 # http://yt-project.org.
 #
 DEST_SUFFIX="yt-conda"
@@ -298,7 +298,7 @@ YT_DEPS+=('sympy')
 
 if [ $INST_UNSTRUCTURED -eq 1 ]
 then
-  YT_DEPS+=('netcdf4')   
+  YT_DEPS+=('netcdf4')
 fi
 
 # Here is our dependency list for yt
@@ -361,7 +361,7 @@ echo
 echo "yt and the Conda system are now installed in $DEST_DIR ."
 echo
 echo "You must now modify your PATH variable by prepending:"
-echo 
+echo
 echo "   $DEST_DIR/bin"
 echo
 echo "On Bash-style shells you can copy/paste the following command to "

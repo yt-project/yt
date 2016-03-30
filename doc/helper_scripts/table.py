@@ -44,7 +44,7 @@ contents = [
       "A bunch of illustrated examples of how to do things"),
      ("reference/index.html", "Reference Materials",
       "A list of all bundled fields, API documentation, the Change Log..."),
-     ("faq/index.html", "FAQ", 
+     ("faq/index.html", "FAQ",
       "Frequently Asked Questions: answered for you!")
   ]),
 ]

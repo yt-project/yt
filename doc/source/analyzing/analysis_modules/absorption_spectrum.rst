@@ -5,23 +5,23 @@ Absorption Spectrum
 
 .. sectionauthor:: Britton Smith <brittonsmith@gmail.com>
 
-Absorption line spectra, such as shown below, can be made with data created 
-by the (:ref:`light-ray-generator`).  For each element of the ray, column 
-densities are calculated multiplying the number density within a grid cell 
-with the path length of the ray through the cell.  Line profiles are 
-generated using a voigt profile based on the temperature field.  The lines 
-are then shifted according to the redshift recorded by the light ray tool 
-and (optionally) the peculiar velocity of gas along the ray.  Inclusion of the 
-peculiar velocity requires setting ``use_peculiar_velocity`` to True in the call to 
+Absorption line spectra, such as shown below, can be made with data created
+by the (:ref:`light-ray-generator`).  For each element of the ray, column
+densities are calculated multiplying the number density within a grid cell
+with the path length of the ray through the cell.  Line profiles are
+generated using a voigt profile based on the temperature field.  The lines
+are then shifted according to the redshift recorded by the light ray tool
+and (optionally) the peculiar velocity of gas along the ray.  Inclusion of the
+peculiar velocity requires setting ``use_peculiar_velocity`` to True in the call to
 :meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`.
 
-The spectrum generator will output a file containing the wavelength and 
+The spectrum generator will output a file containing the wavelength and
 normalized flux.  It will also output a text file listing all important lines.
 
 .. image:: _images/spectrum_full.png
    :width: 500
 
-An absorption spectrum for the wavelength range from 900 to 1800 Angstroms 
+An absorption spectrum for the wavelength range from 900 to 1800 Angstroms
 made with a light ray extending from z = 0 to z = 0.4.
 
 .. image:: _images/spectrum_zoom.png
@@ -32,7 +32,7 @@ A zoom-in of the above spectrum.
 Creating an Absorption Spectrum
 -------------------------------
 
-To instantiate an AbsorptionSpectrum object, the arguments required are the 
+To instantiate an AbsorptionSpectrum object, the arguments required are the
 minimum and maximum wavelengths, and the number of wavelength bins.
 
 .. code-block:: python
@@ -44,33 +44,33 @@ minimum and maximum wavelengths, and the number of wavelength bins.
 Adding Features to the Spectrum
 -------------------------------
 
-Absorption lines and continuum features can then be added to the spectrum.  
-To add a line, you must know some properties of the line: the rest wavelength, 
-f-value, gamma value, and the atomic mass in amu of the atom.  That line must 
+Absorption lines and continuum features can then be added to the spectrum.
+To add a line, you must know some properties of the line: the rest wavelength,
+f-value, gamma value, and the atomic mass in amu of the atom.  That line must
 be tied in some way to a field in the dataset you are loading, and this field
-must be added to the LightRay object when it is created.  Below, we will 
-add the H Lyman-alpha line, which is tied to the neutral hydrogen field 
+must be added to the LightRay object when it is created.  Below, we will
+add the H Lyman-alpha line, which is tied to the neutral hydrogen field
 ('H_number_density').
 
 .. code-block:: python
-  
+
   my_label = 'HI Lya'
   field = 'H_number_density'
   wavelength = 1215.6700 # Angstroms
   f_value = 4.164E-01
   gamma = 6.265e+08
   mass = 1.00794
-  
+
   sp.add_line(my_label, field, wavelength, f_value, gamma, mass, label_threshold=1.e10)
 
-In the above example, the *field* argument tells the spectrum generator which 
-field from the ray data to use to calculate the column density.  The 
-``label_threshold`` keyword tells the spectrum generator to add all lines 
-above a column density of 10 :superscript:`10` cm :superscript:`-2` to the 
-text line list.  If None is provided, as is the default, no lines of this 
+In the above example, the *field* argument tells the spectrum generator which
+field from the ray data to use to calculate the column density.  The
+``label_threshold`` keyword tells the spectrum generator to add all lines
+above a column density of 10 :superscript:`10` cm :superscript:`-2` to the
+text line list.  If None is provided, as is the default, no lines of this
 type will be added to the text list.
 
-Continuum features with optical depths that follow a power law can also be 
+Continuum features with optical depths that follow a power law can also be
 added.  Like adding lines, you must specify details like the wavelength
 and the field in the dataset and LightRay that is tied to this feature.
 Below, we will add H Lyman continuum.
@@ -82,29 +82,29 @@ Below, we will add H Lyman continuum.
   wavelength = 912.323660 # Angstroms
   normalization = 1.6e17
   index = 3.0
-  
+
   sp.add_continuum(my_label, field, wavelength, normalization, index)
 
 Making the Spectrum
 -------------------
 
-Once all the lines and continuum are added, it is time to make a spectrum out 
+Once all the lines and continuum are added, it is time to make a spectrum out
 of some light ray data.
 
 .. code-block:: python
 
-  wavelength, flux = sp.make_spectrum('lightray.h5', 
-                                      output_file='spectrum.fits', 
+  wavelength, flux = sp.make_spectrum('lightray.h5',
+                                      output_file='spectrum.fits',
                                       line_list_file='lines.txt',
                                       use_peculiar_velocity=True)
 
-A spectrum will be made using the specified ray data and the wavelength and 
-flux arrays will also be returned.  If ``use_peculiar_velocity`` is set to 
+A spectrum will be made using the specified ray data and the wavelength and
+flux arrays will also be returned.  If ``use_peculiar_velocity`` is set to
 False, the lines will only be shifted according to the redshift.
 
-Three output file formats are supported for writing out the spectrum: fits, 
-hdf5, and ascii.  The file format used is based on the extension provided 
-in the ``output_file`` keyword: ``.fits`` for a fits file, 
+Three output file formats are supported for writing out the spectrum: fits,
+hdf5, and ascii.  The file format used is based on the extension provided
+in the ``output_file`` keyword: ``.fits`` for a fits file,
 ``.h5`` for an hdf5 file, and anything else for an ascii file.
 
 .. note:: To write out a fits file, you must install the `astropy <http://www.astropy.org>`_ python library in order to access the astropy.io.fits module.  You can usually do this by simply running `pip install astropy` at the command line.
@@ -112,11 +112,11 @@ in the ``output_file`` keyword: ``.fits`` for a fits file,
 Generating Spectra in Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The spectrum generator can be run in parallel simply by following the procedures 
-laid out in :ref:`parallel-computation` for running yt scripts in parallel.  
-Spectrum generation is parallelized using a multi-level strategy where each 
-absorption line is deposited by a different processor.  If the number of available 
-processors is greater than the number of lines, then the deposition of 
+The spectrum generator can be run in parallel simply by following the procedures
+laid out in :ref:`parallel-computation` for running yt scripts in parallel.
+Spectrum generation is parallelized using a multi-level strategy where each
+absorption line is deposited by a different processor.  If the number of available
+processors is greater than the number of lines, then the deposition of
 individual lines will be divided over multiple processors.
 
 Fitting an Absorption Spectrum
@@ -127,14 +127,14 @@ Fitting an Absorption Spectrum
 This tool can be used to fit absorption spectra, particularly those
 generated using the (``AbsorptionSpectrum``) tool. For more details
 on its uses and implementation please see (`Egan et al. (2013)
-<http://arxiv.org/abs/1307.2244>`_). If you find this tool useful we 
+<http://arxiv.org/abs/1307.2244>`_). If you find this tool useful we
 encourage you to cite accordingly.
 
 Loading an Absorption Spectrum
 ------------------------------
 
-To load an absorption spectrum created by 
-(:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum``), 
+To load an absorption spectrum created by
+(:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum``),
 we specify the output file name. It is advisable to use either an .h5
 or .fits file, rather than an ascii file to save the spectrum as rounding
 errors produced in saving to a ascii file will negatively impact fit quality.
@@ -149,7 +149,7 @@ errors produced in saving to a ascii file will negatively impact fit quality.
 Specifying Species Properties
 -----------------------------
 
-Before fitting a spectrum, you must specify the properties of all the 
+Before fitting a spectrum, you must specify the properties of all the
 species included when generating the spectrum.
 
 The physical properties needed for each species are the rest wavelength,
@@ -160,7 +160,7 @@ OVI doublet). The number of lines is also specified on its own.
 
 To fine tune the fitting procedure and give results in a minimal
 number of optimizing steps, we specify expected maximum and minimum
-values for the column density, doppler parameter, and redshift. These 
+values for the column density, doppler parameter, and redshift. These
 values can be well outside the range of expected values for a typical line
 and are mostly to prevent the algorithm from fitting to negative values
 or becoming numerically unstable.
@@ -204,7 +204,7 @@ Generating Fit of Spectrum
 --------------------------
 
 After loading a spectrum and specifying the properties of the species
-used to generate the spectrum, an appropriate fit can be generated. 
+used to generate the spectrum, an appropriate fit can be generated.
 
 .. code-block:: python
 
@@ -219,19 +219,19 @@ as lines may be fit as an incorrect species. For best results, it is
 recommended to fit species the generate multiple lines first, as a fit
 will only be accepted if all of the lines are fit appropriately using
 a single set of parameters. At the moment no cross correlation between
-lines of different species is performed. 
+lines of different species is performed.
 
-The parameters of the lines that are needed to fit the spectrum are contained 
+The parameters of the lines that are needed to fit the spectrum are contained
 in the ``fitted_lines`` variable. Each species given in ``orderFits`` will
-be a key in the ``fitted_lines`` dictionary. The entry for each species 
-key will be another dictionary containing entries for 'N','b','z', and 
+be a key in the ``fitted_lines`` dictionary. The entry for each species
+key will be another dictionary containing entries for 'N','b','z', and
 'group#' which are the column density, doppler parameter, redshift,
-and associate line complex respectively. The i :superscript:`th` line 
-of a given species is then given by the parameters ``N[i]``, ``b[i]``, 
+and associate line complex respectively. The i :superscript:`th` line
+of a given species is then given by the parameters ``N[i]``, ``b[i]``,
 and ``z[i]`` and is part of the same complex (and was fitted at the same time)
 as all lines with the same group number as ``group#[i]``.
 
-The ``fitted_flux`` is an ndarray of the same size as ``flux`` and 
+The ``fitted_flux`` is an ndarray of the same size as ``flux`` and
 ``wavelength`` that contains the cumulative absorption spectrum generated
 by the lines contained in ``fitted_lines``.
 
@@ -250,8 +250,8 @@ Procedure for Generating Fits
 
 .. sectionauthor:: Hilary Egan <hilary.egan@colorado.edu>
 
-To generate a fit for a spectrum 
-:func:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit` 
+To generate a fit for a spectrum
+:func:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit`
 is called.
 This function controls the identification of line complexes, the fit
 of a series of absorption lines for each appropriate species, checks of
@@ -260,14 +260,14 @@ those fits, and returns the results of the fits.
 Finding Line Complexes
 ----------------------
 
-Line complexes are found using the 
+Line complexes are found using the
 :func:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.find_complexes`
-function. The process by which line complexes are found involves walking 
-through the array of flux in order from minimum to maximum wavelength, and 
-finding series of spatially contiguous cells whose flux is less than some 
-limit.  These regions are then checked in terms of an additional flux limit 
-and size.  The bounds of all the passing regions are then listed and returned. 
-Those bounds that cover an exceptionally large region of wavelength space will 
+function. The process by which line complexes are found involves walking
+through the array of flux in order from minimum to maximum wavelength, and
+finding series of spatially contiguous cells whose flux is less than some
+limit.  These regions are then checked in terms of an additional flux limit
+and size.  The bounds of all the passing regions are then listed and returned.
+Those bounds that cover an exceptionally large region of wavelength space will
 be broken up if a suitable cut point is found. This method is only appropriate
 for noiseless spectra.
 
@@ -280,25 +280,25 @@ the flux of the trough is very close to the flux of the edge can be incredibly
 unstable when optimizing.
 
 The ``fitLim`` parameter controls what is the maximum flux that the trough
-of the region can have and still be considered a line complex. This 
+of the region can have and still be considered a line complex. This
 effectively controls the sensitivity to very low column absorbers. Default
-value is ``fitLim`` = 0.99. If a region is identified where the flux of the 
+value is ``fitLim`` = 0.99. If a region is identified where the flux of the
 trough is greater than this value, the region is simply ignored.
 
-The ``minLength`` parameter controls the minimum number of array elements 
+The ``minLength`` parameter controls the minimum number of array elements
 that an identified region must have. This value must be greater than or
 equal to 3 as there are a minimum of 3 free parameters that must be fit.
 Default is ``minLength`` = 3.
 
 The ``maxLength`` parameter controls the maximum number of array elements
 that an identified region can have before it is split into separate regions.
-Default is ``maxLength`` = 1000. This should be adjusted based on the 
+Default is ``maxLength`` = 1000. This should be adjusted based on the
 resolution of the spectrum to remain appropriate. The value correspond
-to a wavelength of roughly 50 angstroms. 
+to a wavelength of roughly 50 angstroms.
 
 The ``splitLim`` parameter controls how exceptionally large regions are split.
 When such a region is identified by having more array elements than
-``maxLength``, the point of maximum flux (or minimum absorption) in the 
+``maxLength``, the point of maximum flux (or minimum absorption) in the
 middle two quartiles is identified. If that point has a flux greater than
 or equal to ``splitLim``, then two separate complexes are created: one from
 the lower wavelength edge to the minimum absorption point and the other from
@@ -309,7 +309,7 @@ long as the value is reasonably close to 1.
 Fitting a Line Complex
 ----------------------
 
-After a complex is identified, it is fitted by iteratively adding and 
+After a complex is identified, it is fitted by iteratively adding and
 optimizing a set of Voigt Profiles for a particular species until the
 region is considered successfully fit. The optimizing is accomplished
 using scipy's least squares optimizer. This requires an initial estimate
@@ -326,36 +326,36 @@ guess is chosen. If the flux is relatively high (all values >.9) than the
 smaller initial guess is given. These values are chosen to make optimization
 faster and more stable by being closer to the actual value, but the final
 results of fitting should not depend on them as they merely provide a
-starting point. 
+starting point.
 
-After the parameters for a line are optimized for the first time, the 
-optimized parameters are then used for the initial guess on subsequent 
-iterations with more lines. 
+After the parameters for a line are optimized for the first time, the
+optimized parameters are then used for the initial guess on subsequent
+iterations with more lines.
 
-The complex is considered successfully fit when the sum of the squares of 
+The complex is considered successfully fit when the sum of the squares of
 the difference between the flux generated from the fit and the desired flux
 profile is less than ``errBound``. ``errBound`` is related to the optional
-parameter to 
+parameter to
 :meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.generate_total_fit`,
-``maxAvgError`` by the number of array elements in the region such that 
+``maxAvgError`` by the number of array elements in the region such that
 ``errBound`` = number of elements * ``maxAvgError``.
 
-There are several other conditions under which the cycle of adding and 
+There are several other conditions under which the cycle of adding and
 optimizing lines will halt. If the error of the optimized fit from adding
 a line is an order of magnitude worse than the error of the fit without
-that line, then it is assumed that the fitting has become unstable and 
+that line, then it is assumed that the fitting has become unstable and
 the latest line is removed. Lines are also prevented from being added if
 the total number of lines is greater than the number of elements in the flux
 array being fit divided by 3. This is because there must not be more free
-parameters in a fit than the number of points to constrain them. 
+parameters in a fit than the number of points to constrain them.
 
 Checking Fit Results
 --------------------
 
 After an acceptable fit for a region is determined, there are several steps
-the algorithm must go through to validate the fits. 
+the algorithm must go through to validate the fits.
 
-First, the parameters must be in a reasonable range. This is a check to make 
+First, the parameters must be in a reasonable range. This is a check to make
 sure that the optimization did not become unstable and generate a fit that
 diverges wildly outside the region where the fit was performed. This way, even
 if particular complex cannot be fit, the rest of the spectrum fitting still
@@ -363,13 +363,13 @@ behaves as expected. The range of acceptability for each parameter is given
 in the species parameter dictionary. These are merely broad limits that will
 prevent numerical instability rather than physical limits.
 
-In cases where a single species generates multiple lines (as in the OVI 
+In cases where a single species generates multiple lines (as in the OVI
 doublet), the fits are then checked for higher wavelength lines. Originally
 the fits are generated only considering the lowest wavelength fit to a region.
 This is because we perform the fitting of complexes in order from the lowest
 wavelength to the highest, so any contribution to a complex being fit must
 come from the lower wavelength as the higher wavelength contributions would
-already have been subtracted out after fitting the lower wavelength. 
+already have been subtracted out after fitting the lower wavelength.
 
 Saturated Lyman Alpha Fitting Tools
 -----------------------------------
@@ -380,8 +380,8 @@ more robust set of fitting tools is used to try and remedy the situation.
 The basic approach is to simply try a much wider range of initial parameter
 guesses in order to find the true optimization minimum, rather than getting
 stuck in a local minimum. A set of hard coded initial parameter guesses
-for Lyman alpha lines is given by the function 
+for Lyman alpha lines is given by the function
 :func:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.get_test_lines`.
 Also included in these parameter guesses is an an initial guess of a high
-column cool line overlapping a lower column warm line, indictive of a 
+column cool line overlapping a lower column warm line, indictive of a
 broad Lyman alpha (BLA) absorber.
