@@ -11,12 +11,15 @@ Example:
 """
 import glob
 import os
+import sys
 import subprocess
 
 
 PARALLEL_TEST = {"rockstar_nest.py": "3"}
 BLACKLIST = ["opengl_ipython.py", "opengl_vr.py"]
 
+if sys.version_info >= (3,0,0):
+    BLACKLIST.append("rockstar_nest.py")
 
 def test_recipe():
     '''Dummy test grabbing all cookbook's recipes'''
