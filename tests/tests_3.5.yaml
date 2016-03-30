@@ -25,6 +25,8 @@ answer_tests:
 
   local_halos_350:
     - yt/frontends/owls_subfind/tests/test_outputs.py
+    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
+    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
   
   local_owls_350:
     - yt/frontends/owls/tests/test_outputs.py
