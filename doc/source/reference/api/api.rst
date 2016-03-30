@@ -743,6 +743,7 @@ See also :ref:`callbacks`.
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
+   ~yt.visualization.plot_modifications.CellEdgesCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
