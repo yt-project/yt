@@ -333,7 +333,7 @@ class YTArray(np.ndarray):
                 obj.units.registry = registry
             return obj
         if input_array is NotImplemented:
-            return input_array
+            return input_array.view(cls)
         if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
@@ -352,7 +352,7 @@ class YTArray(np.ndarray):
                 input_array.units = input_units
             else:
                 input_array.units = Unit(input_units, registry=registry)
-            return input_array
+            return input_array.view(cls)
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array) and input_array:
@@ -885,12 +885,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "addition")
-        return YTArray(super(YTArray, self).__add__(ro))
+        return super(YTArray, self).__add__(ro)
 
     def __radd__(self, left_object):
         """ See __add__. """
         lo = sanitize_units_add(self, left_object, "addition")
-        return YTArray(super(YTArray, self).__radd__(lo))
+        return super(YTArray, self).__radd__(lo)
 
     def __iadd__(self, other):
         """ See __add__. """
@@ -905,12 +905,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "subtraction")
-        return YTArray(super(YTArray, self).__sub__(ro))
+        return super(YTArray, self).__sub__(ro)
 
     def __rsub__(self, left_object):
         """ See __sub__. """
         lo = sanitize_units_add(self, left_object, "subtraction")
-        return YTArray(super(YTArray, self).__rsub__(lo))
+        return super(YTArray, self).__rsub__(lo)
 
     def __isub__(self, other):
         """ See __sub__. """
@@ -920,11 +920,11 @@ class YTArray(np.ndarray):
 
     def __neg__(self):
         """ Negate the data. """
-        return YTArray(super(YTArray, self).__neg__())
+        return super(YTArray, self).__neg__()
 
     def __pos__(self):
         """ Posify the data. """
-        return YTArray(super(YTArray, self).__pos__(), self.units)
+        return type(self)(super(YTArray, self).__pos__(), self.units)
 
     def __mul__(self, right_object):
         """
@@ -933,12 +933,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__mul__(ro))
+        return super(YTArray, self).__mul__(ro)
 
     def __rmul__(self, left_object):
         """ See __mul__. """
         lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rmul__(lo))
+        return super(YTArray, self).__rmul__(lo)
 
     def __imul__(self, other):
         """ See __mul__. """
@@ -952,12 +952,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__div__(ro))
+        return super(YTArray, self).__div__(ro)
 
     def __rdiv__(self, left_object):
         """ See __div__. """
         lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rdiv__(lo))
+        return super(YTArray, self).__rdiv__(lo)
 
     def __idiv__(self, other):
         """ See __div__. """
@@ -967,12 +967,12 @@ class YTArray(np.ndarray):
 
     def __truediv__(self, right_object):
         ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__truediv__(ro))
+        return super(YTArray, self).__truediv__(ro)
 
     def __rtruediv__(self, left_object):
         """ See __div__. """
         lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rtruediv__(lo))
+        return super(YTArray, self).__rtruediv__(lo)
 
     def __itruediv__(self, other):
         """ See __div__. """
@@ -982,12 +982,12 @@ class YTArray(np.ndarray):
 
     def __floordiv__(self, right_object):
         ro = sanitize_units_mul(self, right_object)
-        return YTArray(super(YTArray, self).__floordiv__(ro))
+        return super(YTArray, self).__floordiv__(ro)
 
     def __rfloordiv__(self, left_object):
         """ See __div__. """
         lo = sanitize_units_mul(self, left_object)
-        return YTArray(super(YTArray, self).__rfloordiv__(lo))
+        return super(YTArray, self).__rfloordiv__(lo)
 
     def __ifloordiv__(self, other):
         """ See __div__. """
@@ -995,32 +995,31 @@ class YTArray(np.ndarray):
         np.floor_divide(self, oth, out=self)
         return self
 
-    #Should these raise errors?  I need to come back and check this.
     def __or__(self, right_object):
-        return YTArray(super(YTArray, self).__or__(right_object))
+        return super(YTArray, self).__or__(right_object)
 
     def __ror__(self, left_object):
-        return YTArray(super(YTArray, self).__ror__(left_object))
+        return super(YTArray, self).__ror__(left_object)
 
     def __ior__(self, other):
         np.bitwise_or(self, other, out=self)
         return self
 
     def __xor__(self, right_object):
-        return YTArray(super(YTArray, self).__xor__(right_object))
+        return super(YTArray, self).__xor__(right_object)
 
     def __rxor__(self, left_object):
-        return YTArray(super(YTArray, self).__rxor__(left_object))
+        return super(YTArray, self).__rxor__(left_object)
 
     def __ixor__(self, other):
         np.bitwise_xor(self, other, out=self)
         return self
 
     def __and__(self, right_object):
-        return YTArray(super(YTArray, self).__and__(right_object))
+        return super(YTArray, self).__and__(right_object)
 
     def __rand__(self, left_object):
-        return YTArray(super(YTArray, self).__rand__(left_object))
+        return super(YTArray, self).__rand__(left_object)
 
     def __iand__(self, other):
         np.bitwise_and(self, other, out=self)
@@ -1047,13 +1046,13 @@ class YTArray(np.ndarray):
         # dimensionless Unit object.
         if self.units.is_dimensionless and power == -1:
             ret = super(YTArray, self).__pow__(power)
-            return YTArray(ret, input_units='')
+            return type(self)(ret, input_units='')
 
-        return YTArray(super(YTArray, self).__pow__(power))
+        return super(YTArray, self).__pow__(power)
 
     def __abs__(self):
         """ Return a YTArray with the abs of the data. """
-        return YTArray(super(YTArray, self).__abs__())
+        return super(YTArray, self).__abs__()
 
     def sqrt(self):
         """
@@ -1061,18 +1060,17 @@ class YTArray(np.ndarray):
         take the 1/2 power of the units.
 
         """
-        return YTArray(super(YTArray, self).sqrt(),
-                       input_units=self.units**0.5)
+        return type(self)(super(YTArray, self).sqrt(),
+                          input_units=self.units**0.5)
 
     #
     # Start comparison operators.
     #
 
-    # @todo: outsource to a single method with an op argument.
-
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """
-        oth = validate_comparison_units(self, other, 'less_than') # converts if possible
+        # converts if possible
+        oth = validate_comparison_units(self, other, 'less_than')
         return super(YTArray, self).__lt__(oth)
 
     def __le__(self, other):
