@@ -385,7 +385,7 @@ setup(
         'cython>=0.22',
     ],
     install_requires=[
-        # 'matplotlib',  # messes up nosetests will be fixed in future PRs
+        'matplotlib',
         'setuptools>=18.0',
         'sympy',
         'numpy',
