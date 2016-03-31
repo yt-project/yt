@@ -1,4 +1,18 @@
-# This is for the experimental OpenGL Volume Rendering
+# encoding: utf-8
+"""
+Event loop for Interactive Data Visualization
+
+"""
+
+# ----------------------------------------------------------------------------
+# Copyright (c) 2016, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+# ----------------------------------------------------------------------------
+
+# This is a part of the experimental Interactive Data Visualization
 
 import cyglfw3 as glfw
 import numpy as np
@@ -8,6 +22,7 @@ from .input_events import EventCollection, MouseRotation
 from yt import write_bitmap
 
 class EGLRenderingContext(object):
+    '''Rendering context using EGL (experimental)'''
     def __init__(self, width = 800, height = 600, title = "vol_render"):
         from OpenGL import EGL
         self.EGL = EGL
@@ -70,6 +85,7 @@ class EGLRenderingContext(object):
         write_bitmap(arr, "test.png")
 
 class RenderingContext(object):
+    '''Basic rendering context for IDV using GLFW3, that handles the main window even loop'''
     should_quit = False
     def __init__(self, width = 800, height = 600, title = "vol_render"):
         glfw.Init()

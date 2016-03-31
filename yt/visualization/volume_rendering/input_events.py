@@ -1,4 +1,18 @@
-# This is for the experimental OpenGL Volume Rendering
+# encoding: utf-8
+"""
+Input event handlers for Interactive Data Visualization
+
+"""
+
+# ----------------------------------------------------------------------------
+# Copyright (c) 2016, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+# ----------------------------------------------------------------------------
+
+# This is a part of the experimental Interactive Data Visualization
 
 from collections import defaultdict, namedtuple
 from yt.utilities.math_utils import \
@@ -16,6 +30,7 @@ GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
                        'mods', 'width', 'height'])
 
 class EventCollection(object):
+    '''Class handling mouse and keyboard events occuring in IDV'''
     def __init__(self, scene, camera):
         self.key_callbacks = defaultdict(list)
         self.mouse_callbacks = defaultdict(list)
@@ -293,6 +308,7 @@ def print_help(event_coll, event):
     return False
 
 class MouseRotation(object):
+    '''Class translating mouse movements to positions in OpenGL scene's coordinates'''
     def __init__(self):
         self.start = None
         self.rotation = False
@@ -335,6 +351,7 @@ class MouseRotation(object):
         return True
 
 class BlendFuncs(object):
+    '''Class allowing to switch between different GL blending functions'''
     possibilities = (
         "GL_ZERO", "GL_ONE", "GL_SRC_COLOR", "GL_ONE_MINUS_SRC_COLOR",
         "GL_DST_COLOR", "GL_ONE_MINUS_DST_COLOR", "GL_SRC_ALPHA",

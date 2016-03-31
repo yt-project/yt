@@ -1,5 +1,6 @@
+# encoding: utf-8
 """
-Helper routines for OpenGL VR
+Helper routines for Interactive Data Visualization
 """
 
 #-----------------------------------------------------------------------------
@@ -9,12 +10,16 @@ Helper routines for OpenGL VR
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
+# This part of the experimental Interactive Data Visualization
+
 from yt.utilities.on_demand_imports import NotAModule
 from yt.data_objects.static_output import Dataset
 import numpy as np
 
 def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
                    cam_focus=None):
+    '''High level wrapper for Interactive Data Visualization'''
     from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera
     from .interactive_loop import RenderingContext
 
