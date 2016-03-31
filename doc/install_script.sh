@@ -505,7 +505,7 @@ get_willwont ${INST_HG}
 echo "be installing Mercurial"
 
 printf "%-18s = %s so I " "INST_UNSTRUCTURED" "${INST_UNSTRUCTURED}"
-get_willwont ${INST_HG}
+get_willwont ${INST_UNSTRUCTURED}
 echo "be installing unstructured mesh rendering"
 
 if [ $INST_CONDA -eq 0 ]
@@ -1353,9 +1353,9 @@ else # INST_CONDA -eq 1
         echo "Installing pyembree from source"
         ( ${GETFILE} "$PYEMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
         log_cmd unzip ${DEST_DIR}/src/master.zip
-        log_cmd pushd ${DEST_DIR}/src/pyembree-master
+        pushd ${DEST_DIR}/src/pyembree-master &< /dev/null
         log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
-        popd
+        popd &> /dev/null
     fi
 
     if [ $INST_PY3 -eq 1 ]
@@ -1376,9 +1376,9 @@ else # INST_CONDA -eq 1
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg
         fi
-        log_cmd pushd ${YT_DIR}
+        pushd ${YT_DIR} &> /dev/null
         log_cmd python setup.py develop
-        log_cmd popd
+        popd &> /dev/null
     fi
 
     echo
