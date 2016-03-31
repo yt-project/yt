@@ -61,10 +61,12 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                        int cols, int rows, bounds,
                        int antialias = 1,
                        period = None,
-                       int check_period = 1):
+                       int check_period = 1,
+                       np.float64_t line_width = 0.0):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
+    cdef np.float64_t ld_x, ld_y, cx, cy
     cdef int i, j, p, xi, yi
     cdef int lc, lr, rc, rr
     cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
@@ -170,13 +172,29 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                         for j in range(lc, rc):
                             lxpx = px_dx * j + x_min
                             rxpx = px_dx * (j+1) + x_min
-                            if antialias == 1:
+                            if line_width > 0:
+                                # Here, we figure out if we're within
+                                # line_width*px_dx of the cell edge
+                                # Midpoint of x:
+                                cx = (rxpx+lxpx)*0.5
+                                ld_x = fmin(fabs(cx - (xsp+dxsp)),
+                                            fabs(cx - (xsp-dxsp)))
+                                ld_x *= ipx_dx
+                                # Midpoint of y:
+                                cy = (rypx+lypx)*0.5
+                                ld_y = fmin(fabs(cy - (ysp+dysp)),
+                                            fabs(cy - (ysp-dysp)))
+                                ld_y *= ipx_dy
+                                if ld_x <= line_width or ld_y <= line_width:
+                                    my_array[j,i] = 1.0
+                            elif antialias == 1:
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
                                 if overlap1 < 0.0: continue
                                 my_array[j,i] += (dsp * overlap1) * overlap2
                             else:
                                 my_array[j,i] = dsp
+                            
     return my_array
 
 @cython.cdivision(True)

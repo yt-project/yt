@@ -62,7 +62,7 @@ def test_subhalos():
     for hid in range(0, ds.index.particle_count["Group"]):
         my_h = ds.halo("Group", hid)
         h_ids = my_h["ID"]
-        for sid in range(my_h["subhalo_number"]):
+        for sid in range(int(my_h["subhalo_number"][0])):
             my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
             total_sub += my_s["ID"].size
             total_int += np.intersect1d(h_ids, my_s["ID"]).size

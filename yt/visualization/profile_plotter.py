@@ -462,7 +462,7 @@ class ProfilePlot(object):
         """
         if field == "all":
             self.x_log = log
-            for field in self.profiles[0].field_data.keys():
+            for field in list(self.profiles[0].field_data.keys()):
                 self.y_log[field] = log
         else:
             field, = self.profiles[0].data_source._determine_fields([field])
@@ -578,7 +578,7 @@ class ProfilePlot(object):
 
         """
         if field is 'all':
-            fields = self.axes.keys()
+            fields = list(self.axes.keys())
         else:
             fields = ensure_list(field)
         for profile in self.profiles:
@@ -697,7 +697,7 @@ class PhasePlot(ImagePlotContainer):
     >>> # Change plot properties.
     >>> plot.set_cmap("cell_mass", "jet")
     >>> plot.set_zlim("cell_mass", 1e8, 1e13)
-    >>> plot.set_title("cell_mass", "This is a phase plot")
+    >>> plot.annotate_title("This is a phase plot")
 
     """
     x_log = None
@@ -971,7 +971,7 @@ class PhasePlot(ImagePlotContainer):
         >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
 
         """
-        for f in self.data_source._determine_fields(self.plots.keys()):
+        for f in self.data_source._determine_fields(list(self.plots.keys())):
             if self.plots[f].figure is not None and text is not None:
                 self.plots[f].axes.text(xpos, ypos, text,
                                         fontproperties=self._font_properties,
@@ -1058,6 +1058,27 @@ class PhasePlot(ImagePlotContainer):
 
         """
         self.plot_title[self.data_source._determine_fields(field)[0]] = title
+        return self
+
+    @invalidate_plot
+    def annotate_title(self, title):
+        """Set a title for the plot.
+
+        Parameters
+        ----------
+        title : str
+            The title to add.
+
+        Examples
+        --------
+
+        >>> plot.annotate_title("This is a phase plot")
+
+        """
+        for f in self.profile.field_data:
+            if isinstance(f, tuple):
+                f = f[1]
+            self.plot_title[self.data_source._determine_fields(f)[0]] = title
         return self
 
     @invalidate_plot

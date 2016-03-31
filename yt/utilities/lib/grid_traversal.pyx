@@ -31,6 +31,8 @@ from fixed_interpolator cimport *
 from cython.parallel import prange, parallel, threadid
 from vec3_ops cimport dot, subtract, L2_norm, fma
 
+from cpython.exc cimport PyErr_CheckSignals
+
 DEF Nch = 4
 
 cdef class PartitionedGrid:
@@ -458,6 +460,7 @@ cdef class ImageSampler:
         size = nx * ny
         cdef ImageAccumulator *idata
         cdef np.float64_t width[3]
+        cdef int chunksize = 100
         for i in range(3):
             width[i] = self.width[i]
         with nogil, parallel(num_threads = num_threads):
@@ -465,7 +468,7 @@ cdef class ImageSampler:
             idata.supp_data = self.supp_data
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
             v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            for j in prange(size, schedule="static", chunksize=100):
+            for j in prange(size, schedule="static", chunksize=chunksize):
                 vj = j % ny
                 vi = (j - vj) / ny + iter[0]
                 vj = vj + iter[2]
@@ -476,6 +479,9 @@ cdef class ImageSampler:
                 max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
+                if (j % (10*chunksize)) == 0:
+                    with gil:
+                        PyErr_CheckSignals()
                 for i in range(Nch):
                     im.image[vi, vj, i] = idata.rgba[i]
             free(idata)
