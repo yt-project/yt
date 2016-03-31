@@ -485,12 +485,12 @@ integration server <http://tests.yt-project.org>`_. While unit tests are
 autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
-*tests/tests_2.7.yaml* in the main yt repository:
+*tests/tests.yaml* in the main yt repository:
 
 .. code-block:: yaml
 
    answer_tests:
-      local_artio_270:
+      local_artio_000:
          - yt/frontends/artio/tests/test_outputs.py
    # ...
    other_tests:
@@ -498,7 +498,7 @@ answer. Configuration for the integration server is stored in
          - '-v'
          - '-s'
 
-Each element under *answer_tests* defines answer name (*local_artio_270* in above
+Each element under *answer_tests* defines answer name (*local_artio_000* in above
 snippet) and specifies a list of files/classes/methods that will be validated
 (*yt/frontends/artio/tests/test_outputs.py* in above snippet). On the testing
 server it is translated to:
@@ -506,7 +506,7 @@ server it is translated to:
 .. code-block:: bash
 
    $ nosetests --with-answer-testing --local --local-dir ... --answer-big-data \
-      --answer-name=local_artio_270 \
+      --answer-name=local_artio_000 \
       yt/frontends/artio/tests/test_outputs.py
 
 If the answer doesn't exist on the server yet, ``nosetests`` is run twice and
@@ -516,21 +516,21 @@ Updating Answers
 ~~~~~~~~~~~~~~~~
 
 In order to regenerate answers for a particular set of tests it is sufficient to
-change the answer name in *tests/tests_2.7.yaml* e.g.:
+change the answer name in *tests/tests.yaml* e.g.:
 
 .. code-block:: diff
 
-   --- a/tests/tests_2.7.yaml
-   +++ b/tests/tests_2.7.yaml
+   --- a/tests/tests.yaml
+   +++ b/tests/tests.yaml
    @@ -25,7 +25,7 @@
         - yt/analysis_modules/halo_finding/tests/test_rockstar.py
         - yt/frontends/owls_subfind/tests/test_outputs.py
 
-   -  local_owls_270:
-   +  local_owls_271:
+   -  local_owls_000:
+   +  local_owls_001:
         - yt/frontends/owls/tests/test_outputs.py
 
-      local_pw_270:
+      local_pw_000:
 
 would regenerate answers for OWLS frontend.
 
@@ -538,20 +538,35 @@ Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 In order to add a new set of answer tests, it is sufficient to extend the
-*answer_tests* list in *tests/tests_2.7.yaml* e.g.:
+*answer_tests* list in *tests/tests.yaml* e.g.:
 
 .. code-block:: diff
 
-   --- a/tests/tests_2.7.yaml
-   +++ b/tests/tests_2.7.yaml
+   --- a/tests/tests.yaml
+   +++ b/tests/tests.yaml
    @@ -60,6 +60,10 @@
         - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
         - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
 
-   +  local_gdf_270:
+   +  local_gdf_000:
    +    - yt/frontends/gdf/tests/test_outputs.py
    +
    +
     other_tests:
       unittests:
 
+Restricting Python Versions for Answer Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If for some reason a test can be run only for specific version of python it is
+possible to specify this by adding ``[py2]`` or ``[py3]`` tag. For example:
+
+.. code-block:: yaml
+
+   answer_tests:
+      local_test_000:
+         - yt/test_A.py  # [py2]
+         - yt/test_B.py  # [py3]
+
+would result in ``test_A.py`` being run only for *python2* and ``test_B.py``
+being run only for *python3*.
