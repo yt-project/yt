@@ -18,6 +18,9 @@ from .data_structures import \
     ExodusIIUnstructuredIndex, \
     ExodusIIDataset
 
+from .simulation_handling import \
+    ExodusIISimulation
+
 from .fields import \
     ExodusIIFieldInfo
 

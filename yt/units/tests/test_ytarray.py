@@ -478,6 +478,11 @@ def test_unit_conversions():
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
 
+    em3_converted = YTQuantity(1545436840.386756, 'Msun/(Myr**2*kpc)')
+    yield assert_equal, em3.in_base(unit_system="galactic"), em3
+    yield assert_array_almost_equal, em3.in_base(unit_system="galactic"), em3_converted
+    yield assert_equal, str(em3.in_base(unit_system="galactic").units), 'Msun/(Myr**2*kpc)'
+
     dimless = YTQuantity(1.0, "")
     yield assert_equal, dimless.in_cgs(), dimless
     yield assert_equal, dimless.in_cgs(), 1.0
@@ -536,17 +541,17 @@ def test_yt_array_yt_quantity_ops():
     a = YTArray(range(10), 'cm')
     b = YTQuantity(5, 'g')
 
-    yield assert_isinstance, a*b, YTArray
-    yield assert_isinstance, b*a, YTArray
+    assert_isinstance(a*b, YTArray)
+    assert_isinstance(b*a, YTArray)
 
-    yield assert_isinstance, a/b, YTArray
-    yield assert_isinstance, b/a, YTArray
+    assert_isinstance(a/b, YTArray)
+    assert_isinstance(b/a, YTArray)
 
-    yield assert_isinstance, a*a, YTArray
-    yield assert_isinstance, a/a, YTArray
+    assert_isinstance(a*a, YTArray)
+    assert_isinstance(a/a, YTArray)
 
-    yield assert_isinstance, b*b, YTQuantity
-    yield assert_isinstance, b/b, YTQuantity
+    assert_isinstance(b*b, YTQuantity)
+    assert_isinstance(b/b, YTQuantity)
 
 
 def test_selecting():
@@ -905,21 +910,22 @@ def test_subclass():
         ops.append(operator.div)
     for op in ops:
         for inst in (b, ytq, ndf, yta, nda, loq):
-            yield op_comparison, op, a, inst, YTASubclass
+            op_comparison(op, a, inst, YTASubclass)
 
-        yield op_comparison, op, ytq, nda, YTArray
-        yield op_comparison, op, ytq, yta, YTArray
+        op_comparison(op, ytq, nda, YTArray)
+        op_comparison(op, ytq, yta, YTArray)
 
     for op in (operator.add, operator.sub):
-        yield op_comparison, op, nu, nda, YTASubclass
-        yield op_comparison, op, a, b, YTASubclass
-        yield op_comparison, op, a, yta, YTASubclass
-        yield op_comparison, op, a, loq, YTASubclass
+        op_comparison(op, nu, nda, YTASubclass)
+        op_comparison(op, a, b, YTASubclass)
+        op_comparison(op, a, yta, YTASubclass)
+        op_comparison(op, a, loq, YTASubclass)
 
-    yield assert_isinstance, a[0], YTQuantity
-    yield assert_isinstance, a[:], YTASubclass
-    yield assert_isinstance, a[:2], YTASubclass
-
+    assert_isinstance(a[0], YTQuantity)
+    assert_isinstance(a[:], YTASubclass)
+    assert_isinstance(a[:2], YTASubclass)
+    assert_isinstance(YTASubclass(yta), YTASubclass)
+    
 def test_h5_io():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()

@@ -40,7 +40,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -59,6 +59,7 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
 
@@ -192,7 +193,8 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, 
+                 units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -234,6 +236,11 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
+
+        create_code_unit_system(self)
+        if unit_system == "code":
+            unit_system = str(self)
+        self.unit_system = unit_system_registry[unit_system]
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -444,6 +451,7 @@ class Dataset(object):
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
+        self.index.field_list = sorted(self.field_list)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -513,7 +521,12 @@ class Dataset(object):
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.field_list.extend(fields)
+        new_fields = [_ for _ in fields if _ not in self.field_list]
+        self.field_list.extend(new_fields)
+        new_field_info_fields = [
+            _ for _ in fields if _ not in self.field_info.field_list]
+        self.field_info.field_list.extend(new_field_info_fields)
+        self.index.field_list = sorted(self.field_list)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
@@ -870,7 +883,7 @@ class Dataset(object):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
@@ -916,7 +929,7 @@ class Dataset(object):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------

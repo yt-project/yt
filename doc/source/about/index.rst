@@ -12,10 +12,10 @@ What is yt?
 -----------
 
 yt is a toolkit for analyzing and visualizing quantitative data.  Originally
-written to analyze 3D grid-based astrophysical simulation data, 
+written to analyze 3D grid-based astrophysical simulation data,
 it has grown to handle any kind of data represented in a 2D or 3D volume.
-yt is an Python-based open source project and is open for anyone to use or 
-contribute code.  The entire source code and history is available to all 
+yt is an Python-based open source project and is open for anyone to use or
+contribute code.  The entire source code and history is available to all
 at https://bitbucket.org/yt_analysis/yt .
 
 .. _who-is-yt:
@@ -23,16 +23,16 @@ at https://bitbucket.org/yt_analysis/yt .
 Who is yt?
 ----------
 
-As an open-source project, yt has a large number of user-developers.  
-In September of 2014, the yt developer community collectively decided to endow 
-the title of *member* on individuals who had contributed in a significant way 
-to the project.  For a list of those members and a description of their 
-contributions to the code, see 
+As an open-source project, yt has a large number of user-developers.
+In September of 2014, the yt developer community collectively decided to endow
+the title of *member* on individuals who had contributed in a significant way
+to the project.  For a list of those members and a description of their
+contributions to the code, see
 `our members website. <http://yt-project.org/members.html>`_
 
-For an up-to-date list of everyone who has contributed to the yt codebase, 
-see the current `CREDITS <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ file.  
-For a more detailed breakup of contributions made by individual users, see out 
+For an up-to-date list of everyone who has contributed to the yt codebase,
+see the current `CREDITS <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ file.
+For a more detailed breakup of contributions made by individual users, see out
 `Open HUB page <https://www.openhub.net/p/yt_amr/contributors?query=&sort=commits>`_.
 
 History of yt
@@ -40,17 +40,17 @@ History of yt
 
 yt was originally begun by Matthew Turk in 2007 in the course of his graduate
 studies in computational astrophysics.  The code was developed
-as a simple data-reader and exporter for grid-based hydrodynamical simulation 
-data outputs from the *Enzo* code.  Over the next few years, he invited 
+as a simple data-reader and exporter for grid-based hydrodynamical simulation
+data outputs from the *Enzo* code.  Over the next few years, he invited
 collaborators and friends to contribute and use yt.  As the community grew,
-so did the capabilities of yt.  It is now a community-developed project with 
-contributions from many people, the hospitality of several institutions, and 
-benefiting from numerous grants.  With this community-driven approach 
-and contributions from a sizeable population of developers, it has evolved 
-into a fully-featured toolkit for analysis and visualization of 
-multidimensional data.  It relies on no proprietary software -- although it 
-can be and has been extended to interface with proprietary software and 
-libraries -- and has been designed from the ground up to enable users to be 
+so did the capabilities of yt.  It is now a community-developed project with
+contributions from many people, the hospitality of several institutions, and
+benefiting from numerous grants.  With this community-driven approach
+and contributions from a sizeable population of developers, it has evolved
+into a fully-featured toolkit for analysis and visualization of
+multidimensional data.  It relies on no proprietary software -- although it
+can be and has been extended to interface with proprietary software and
+libraries -- and has been designed from the ground up to enable users to be
 as immersed in the data as they desire.
 
 How do I contact yt?
@@ -58,7 +58,7 @@ How do I contact yt?
 
 If you have any questions about the code, please contact the `yt users email
 list <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_.  If
-you're having other problems, please follow the steps in 
+you're having other problems, please follow the steps in
 :ref:`asking-for-help`.
 
 How do I cite yt?
@@ -70,7 +70,7 @@ should feel free to cite the `ApJS paper
 entry: ::
 
    @ARTICLE{2011ApJS..192....9T,
-      author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and 
+      author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and
    	{Skillman}, S.~W. and {Abel}, T. and {Norman}, M.~L.},
        title = "{yt: A Multi-code Analysis Toolkit for Astrophysical Simulation Data}",
      journal = {\apjs},

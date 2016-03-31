@@ -9,10 +9,10 @@ level = 2
 dims = ds.domain_dimensions * ds.refine_by**level
 
 # We construct an object that describes the data region and structure we want
-# In this case, we want all data up to the maximum "level" of refinement 
-# across the entire simulation volume.  Higher levels than this will not 
+# In this case, we want all data up to the maximum "level" of refinement
+# across the entire simulation volume.  Higher levels than this will not
 # contribute to our covering grid.
-cube = ds.covering_grid(level,  
+cube = ds.covering_grid(level,
                         left_edge=[0.0, 0.0, 0.0],
                         dims=dims,
                         # And any fields to preload (this is optional!)

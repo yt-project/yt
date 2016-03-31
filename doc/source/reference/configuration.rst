@@ -1,10 +1,10 @@
 Customizing yt: The Configuration and Plugin Files
 ==================================================
 
-yt features ways to customize it to your personal preferences in terms of 
-how much output it displays, loading custom fields, loading custom colormaps, 
+yt features ways to customize it to your personal preferences in terms of
+how much output it displays, loading custom fields, loading custom colormaps,
 accessing test datasets regardless of where you are in the file system, etc.
-This customization is done through :ref:`configuration-file` and 
+This customization is done through :ref:`configuration-file` and
 :ref:`plugin-file` both of which exist in your ``$HOME/.yt`` directory.
 
 .. _configuration-file:
@@ -24,7 +24,7 @@ runtime behavior.  For example, a sample ``$HOME/.yt/config`` file could look
 like:
 
 .. code-block:: none
-    
+
    [yt]
    loglevel = 1
    maximumstoreddatasets = 10000
@@ -37,7 +37,7 @@ Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In addition to setting parameters in the configuration file itself, you can set
-them at runtime.  
+them at runtime.
 
 .. warning:: Several parameters are only accessed when yt starts up: therefore,
    if you want to modify any configuration parameters at runtime, you should
@@ -104,7 +104,7 @@ used internally.
   IPython notebook created by ``yt notebook``.  Note that this should be an
   sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
   setting will provide instructions for setting this.
-* ``serialize`` (default: ``'False'``): If true, perform automatic 
+* ``serialize`` (default: ``'False'``): If true, perform automatic
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
@@ -120,29 +120,26 @@ used internally.
 The Plugin File
 ---------------
 
-The plugin file is a means of creating custom fields, quantities, data 
+The plugin file is a means of creating custom fields, quantities, data
 objects, colormaps, and other code classes and objects to be used in future
-yt sessions without modifying the source code directly.  
+yt sessions without modifying the source code directly.
 
+To force the plugin file to be parsed, call the function
+:func:`~yt.funcs.enable_plugins` at the top of your script.
 
 .. note::
 
-   The ``my_plugins.py`` is only parsed inside of ``yt.mods``, so in order
-   to use it, you must load yt with either: ``import yt.mods as yt``
-   or ``from yt.mods import *``.  You can tell that your
-   plugins file is being parsed by watching for a logging message when you
-   import yt.  Note that both the ``yt load`` and ``iyt`` command line entry
-   points invoke ``from yt.mods import *``, so the ``my_plugins.py`` file
-   will be parsed if you enter yt that way.
+   You can tell that your plugins file is being parsed by watching for a logging
+   message when you import yt.  Note that both the ``yt load`` and ``iyt``
+   command line entry points parse the plugin file, so the ``my_plugins.py``
+   file will be parsed if you enter yt that way.
 
 Plugin File Format
 ^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.yt/my_plugins`` as a plugin
+yt will look for and recognize the file ``$HOME/.yt/my_plugins.py`` as a plugin
 file, which should contain python code.  If accessing yt functions and classes
 they will not require the ``yt.`` prefix, because of how they are loaded.
-It is executed at the bottom of ``yt.mods``, and so
-it is provided with the entire namespace available in the module ``yt.mods``.
 
 For example, if I created a plugin file containing:
 
@@ -152,7 +149,7 @@ For example, if I created a plugin file containing:
        return np.random.random(data["density"].shape)
    add_field("random", function=_myfunc, units='auto')
 
-then all of my data objects would have access to the field ``some_quantity``.
+then all of my data objects would have access to the field ``random``.
 
 You can also define other convenience functions in your plugin file.  For
 instance, you could define some variables or functions, and even import common
@@ -176,18 +173,24 @@ use this function:
 
 .. code-block:: python
 
-   import yt.mods as yt
+   import yt
+   yt.enable_plugins()
 
    my_run = yt.load_run("hotgasflow/DD0040/DD0040")
 
-And because we have imported from ``yt.mods`` we have access to the
+And because we have used ``yt.enable_plugins`` we have access to the
 ``load_run`` function defined in our plugin file.
+
+Note that using the plugins file implies that your script is no longer fully
+reproducible. If you share your script with someone else and use some of the
+functionality if your plugins file, you will also need to share your plugins
+file for someone else to re-run your script properly.
 
 Adding Custom Colormaps
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 To add custom :ref:`colormaps` to your plugin file, you must use the
-:func:`~yt.visualization.color_maps.make_colormap` function to generate a 
+:func:`~yt.visualization.color_maps.make_colormap` function to generate a
 colormap of your choice and then add it to the plugin file.  You can see
 an example of this in :ref:`custom-colormaps`.  Remember that you don't need
 to prefix commands in your plugin file with ``yt.``, but you'll only be

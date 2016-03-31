@@ -5,10 +5,11 @@ from sys import platform as _platform
 from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from setuptools.command.build_ext import build_ext as _build_ext
+from setuptools.command.sdist import sdist as _sdist
 from setuptools.command.build_py import build_py as _build_py
 from setupext import \
     check_for_openmp, check_for_pyembree, read_embree_location, \
-    get_mercurial_changeset_id
+    get_mercurial_changeset_id, in_conda_env
 
 if sys.version_info < (2, 7):
     print("yt currently requires Python version 2.7")
@@ -126,7 +127,9 @@ cython_extensions = [
               ["yt/utilities/lib/bounding_volume_hierarchy.pyx"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
-              libraries=["m"], depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd"]),
+              libraries=["m"],
+              depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd",
+                       "yt/utilities/lib/vec3_ops.pxd"]),
     Extension("yt.utilities.lib.contour_finding",
               ["yt/utilities/lib/contour_finding.pyx"],
               include_dirs=["yt/utilities/lib/",
@@ -176,7 +179,8 @@ cython_extensions = [
                        "yt/utilities/lib/kdtree.h",
                        "yt/utilities/lib/fixed_interpolator.h",
                        "yt/utilities/lib/fixed_interpolator.pxd",
-                       "yt/utilities/lib/field_interpolation_tables.pxd"]),
+                       "yt/utilities/lib/field_interpolation_tables.pxd",
+                       "yt/utilities/lib/vec3_ops.pxd"]),
     Extension("yt.utilities.lib.element_mappings",
               ["yt/utilities/lib/element_mappings.pyx"],
               libraries=["m"], depends=["yt/utilities/lib/element_mappings.pxd"]),
@@ -253,14 +257,21 @@ if check_for_pyembree() is not None:
     ]
 
     embree_prefix = os.path.abspath(read_embree_location())
+    embree_inc_dir = [os.path.join(embree_prefix, 'include')]
+    embree_lib_dir = [os.path.join(embree_prefix, 'lib')]
+    if in_conda_env():
+        conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
+        embree_inc_dir.append(os.path.join(conda_basedir, 'include'))
+        embree_lib_dir.append(os.path.join(conda_basedir, 'lib'))
+        
     if _platform == "darwin":
         embree_lib_name = "embree.2"
     else:
         embree_lib_name = "embree"
 
     for ext in embree_extensions:
-        ext.include_dirs.append(os.path.join(embree_prefix, 'include'))
-        ext.library_dirs.append(os.path.join(embree_prefix, 'lib'))
+        ext.include_dirs += embree_inc_dir
+        ext.library_dirs += embree_lib_dir
         ext.language = "c++"
         ext.libraries += ["m", embree_lib_name]
 
@@ -327,6 +338,16 @@ class build_ext(_build_ext):
         import numpy
         self.include_dirs.append(numpy.get_include())
 
+class sdist(_sdist):
+    # subclass setuptools source distribution builder to ensure cython
+    # generated C files are included in source distribution.
+    # See http://stackoverflow.com/a/18418524/1382869
+    def run(self):
+        # Make sure the compiled Cython files in the distribution are up-to-date
+        from Cython.Build import cythonize
+        cythonize(cython_extensions)
+        _sdist.run(self)
+
 setup(
     name="yt",
     version=VERSION,
@@ -341,7 +362,11 @@ setup(
                  "Operating System :: POSIX :: AIX",
                  "Operating System :: POSIX :: Linux",
                  "Programming Language :: C",
-                 "Programming Language :: Python",
+                 "Programming Language :: Python :: 2",
+                 "Programming Language :: Python :: 2.7",
+                 "Programming Language :: Python :: 3",
+                 "Programming Language :: Python :: 3.4",
+                 "Programming Language :: Python :: 3.5",
                  "Topic :: Scientific/Engineering :: Astronomy",
                  "Topic :: Scientific/Engineering :: Physics",
                  "Topic :: Scientific/Engineering :: Visualization"],
@@ -357,15 +382,17 @@ setup(
     packages=find_packages(),
     setup_requires=[
         'numpy',
-        'cython>=0.22'
+        'cython>=0.22',
     ],
     install_requires=[
-        # 'matplotlib',  # messes up nosetests will be fixed in future PRs
+        'matplotlib',
+        'setuptools>=18.0',
         'sympy',
         'numpy',
         'IPython',
+        'cython',
     ],
-    cmdclass={'build_ext': build_ext, 'build_py': build_py},
+    cmdclass={'sdist': sdist, 'build_ext': build_ext, 'build_py': build_py},
     author="The yt project",
     author_email="yt-dev@lists.spacepope.org",
     url="http://yt-project.org/",

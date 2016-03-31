@@ -18,8 +18,8 @@ will work best for you depends on your precise situation:
 
 * If you do not have root access on your computer, are not comfortable managing
   python packages, or are working on a supercomputer or cluster computer, you
-  will probably want to use the bash all-in-one installation script.  This builds 
-  python, numpy, matplotlib, and yt from source to set up an isolated scientific 
+  will probably want to use the bash all-in-one installation script.  This builds
+  Python, NumPy, Matplotlib, and yt from source to set up an isolated scientific
   python environment inside of a single folder in your home directory. See
   :ref:`install-script` for more details.
 
@@ -35,9 +35,9 @@ will work best for you depends on your precise situation:
   up python using a source-based package manager like `Homebrew
   <http://brew.sh>`_ or `MacPorts <http://www.macports.org/>`_ this choice will
   let you install yt using the python installed by the package manager. Similarly
-  for python environments set up via linux package managers so long as you
-  have the the necessary compilers installed (e.g. the ``build-essentials``
-  package on debian and ubuntu).
+  for python environments set up via Linux package managers so long as you
+  have the necessary compilers installed (e.g. the ``build-essentials``
+  package on Debian and Ubuntu).
 
 .. note::
   See `Parallel Computation
@@ -50,20 +50,20 @@ will work best for you depends on your precise situation:
 Branches of yt: ``yt``, ``stable``, and ``yt-2.x``
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Before you install yt, you must decide which branch (i.e. version) of the code 
+Before you install yt, you must decide which branch (i.e. version) of the code
 you prefer to use:
 
 * ``yt`` -- The most up-to-date *development* version with the most current features but sometimes unstable (yt-3.x)
 * ``stable`` -- The latest stable release of yt-3.x
 * ``yt-2.x`` -- The latest stable release of yt-2.x
 
-If this is your first time using the code, we recommend using ``stable``, 
-unless you specifically need some piece of brand-new functionality only 
+If this is your first time using the code, we recommend using ``stable``,
+unless you specifically need some piece of brand-new functionality only
 available in ``yt`` or need to run an old script developed for ``yt-2.x``.
 There were major API and functionality changes made in yt after version 2.7
 in moving to version 3.0.  For a detailed description of the changes
-between versions 2.x (e.g. branch ``yt-2.x``) and 3.x (e.g. branches ``yt`` and 
-``stable``) see :ref:`yt3differences`.  Lastly, don't feel like you're locked 
+between versions 2.x (e.g. branch ``yt-2.x``) and 3.x (e.g. branches ``yt`` and
+``stable``) see :ref:`yt3differences`.  Lastly, don't feel like you're locked
 into one branch when you install yt, because you can easily change the active
 branch by following the instructions in :ref:`switching-between-yt-versions`.
 
@@ -93,16 +93,16 @@ throughout your system).
 Running the Install Script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To get the installation script for the ``stable`` branch of the code, 
+To get the installation script for the ``stable`` branch of the code,
 download it from:
 
 .. code-block:: bash
 
   wget http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
 
-If you wish to install a different version of yt (see 
-:ref:`above <branches-of-yt>`), replace ``stable`` with the appropriate 
-branch name (e.g. ``yt``, ``yt-2.x``) in the path above to get the correct 
+If you wish to install a different version of yt (see
+:ref:`above <branches-of-yt>`), replace ``stable`` with the appropriate
+branch name (e.g. ``yt``, ``yt-2.x``) in the path above to get the correct
 install script.
 
 By default, the bash install script will install an array of items, but there
@@ -116,15 +116,15 @@ it, run:
   bash install_script.sh
 
 Because the installer is downloading and building a variety of packages from
-source, this will likely take a while (e.g. 20 minutes), but you will get 
+source, this will likely take a while (e.g. 20 minutes), but you will get
 updates of its status at the command line throughout.
 
-If you receive errors during this process, the installer will provide you 
-with a large amount of information to assist in debugging your problems.  The 
-file ``yt_install.log`` will contain all of the ``stdout`` and ``stderr`` from 
-the entire installation process, so it is usually quite cumbersome.  By looking 
-at the last few hundred lines (i.e. ``tail -500 yt_install.log``), you can 
-potentially figure out what went wrong.  If you have problems, though, do not 
+If you receive errors during this process, the installer will provide you
+with a large amount of information to assist in debugging your problems.  The
+file ``yt_install.log`` will contain all of the ``stdout`` and ``stderr`` from
+the entire installation process, so it is usually quite cumbersome.  By looking
+at the last few hundred lines (i.e. ``tail -500 yt_install.log``), you can
+potentially figure out what went wrong.  If you have problems, though, do not
 hesitate to :ref:`contact us <asking-for-help>` for assistance.
 
 .. _activating-yt:
@@ -132,10 +132,10 @@ hesitate to :ref:`contact us <asking-for-help>` for assistance.
 Activating Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Once the installation has completed, there will be instructions on how to set up 
-your shell environment to use yt by executing the activate script.  You must 
-run this script in order to have yt properly recognized by your system.  You can 
-either add it to your login script, or you must execute it in each shell session 
+Once the installation has completed, there will be instructions on how to set up
+your shell environment to use yt by executing the activate script.  You must
+run this script in order to have yt properly recognized by your system.  You can
+either add it to your login script, or you must execute it in each shell session
 prior to working with yt.
 
 .. code-block:: bash
@@ -148,11 +148,11 @@ If you use csh or tcsh as your shell, activate that version of the script:
 
   source <yt installation directory>/bin/activate.csh
 
-If you don't like executing outside scripts on your computer, you can set 
+If you don't like executing outside scripts on your computer, you can set
 the shell variables manually.  ``YT_DEST`` needs to point to the root of the
 directory containing the install. By default, this will be ``yt-<arch>``, where
-``<arch>`` is your machine's architecture (usually ``x86_64`` or ``i386``). You 
-will also need to set ``LD_LIBRARY_PATH`` and ``PYTHONPATH`` to contain 
+``<arch>`` is your machine's architecture (usually ``x86_64`` or ``i386``). You
+will also need to set ``LD_LIBRARY_PATH`` and ``PYTHONPATH`` to contain
 ``$YT_DEST/lib`` and ``$YT_DEST/python2.7/site-packages``, respectively.
 
 .. _updating-yt:
@@ -199,13 +199,12 @@ packages.
 
 If you do not want to install the full anaconda python distribution, you can
 install a bare-bones Python installation using miniconda.  To install miniconda,
-visit http://repo.continuum.io/miniconda/ and download a recent version of the
-``Miniconda-x.y.z`` script (corresponding to Python 2.7) for your platform and
-system architecture. Next, run the script, e.g.:
+visit http://repo.continuum.io/miniconda/ and download ``Miniconda-latest-...``
+script for your platform and system architecture. Next, run the script, e.g.:
 
 .. code-block:: bash
 
-  bash Miniconda-3.3.0-Linux-x86_64.sh
+  bash Miniconda-latest-Linux-x86_64.sh
 
 For both the Anaconda and Miniconda installations, make sure that the Anaconda
 ``bin`` directory is in your path, and then issue:
@@ -214,7 +213,28 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
   conda install yt
 
-which will install yt along with all of its dependencies.
+which will install stable branch of yt along with all of its dependencies.
+
+If you would like to install latest development version of yt, you can download
+it from our custom anaconda channel:
+
+.. code-block:: bash
+
+  conda install -c http://use.yt/with_conda/ yt
+
+New packages for development branch are built after every pull request is
+merged. In order to make sure you are running latest version, it's recommended
+to update frequently:
+
+.. code-block:: bash
+
+  conda update -c http://use.yt/with_conda/ yt
+
+Location of our channel can be added to ``.condarc`` to avoid retyping it during
+each *conda* invocation. Please refer to `Conda Manual
+<http://conda.pydata.org/docs/config.html#channel-locations-channels>`_ for
+detailed instructions.
+
 
 Obtaining Source Code
 ^^^^^^^^^^^^^^^^^^^^^
@@ -239,7 +259,7 @@ to see the tip of the development branch.
   hg up yt
   python setup.py develop
 
-This will make sure you are running a version of yt corresponding to the 
+This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
 
 Option 2:
@@ -252,7 +272,7 @@ clone the conda-recipes repository
 
   git clone https://github.com/conda/conda-recipes
 
-Then navigate to the repository root and invoke `conda build`:
+Then navigate to the repository root and invoke ``conda build``:
 
 .. code-block:: bash
 
@@ -276,21 +296,21 @@ Installing yt Using pip or from Source
 ++++++++++++++++++++++++++++++++++++++
 
 To install yt from source, you must make sure you have yt's dependencies
-installed on your system. 
+installed on your system.
 
 If you use a Linux OS, use your distro's package manager to install these yt
 dependencies on your system:
 
 - ``HDF5``
 - ``zeromq``
-- ``sqlite`` 
+- ``sqlite``
 - ``mercurial``
 
 Then install the required Python packages with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install numpy matplotlib cython cython h5py nose sympy
+  $ pip install numpy matplotlib cython h5py nose sympy
 
 If you're using IPython notebooks, you can install its dependencies
 with ``pip`` as well:
@@ -366,7 +386,7 @@ command line:
   yt update
 
 This will detect that you have installed yt from the mercurial repository, pull
-any changes from bitbucket, and then recompile yt if necessary.
+any changes from Bitbucket, and then recompile yt if necessary.
 
 .. _testing-installation:
 
@@ -397,7 +417,7 @@ Switching versions of yt: yt-2.x, yt-3.x, stable, and dev
 
 With the release of version 3.0 of yt, development of the legacy yt 2.x series
 has been relegated to bugfixes.  That said, we will continue supporting the 2.x
-series for the forseeable future.  This makes it easy to use scripts written
+series for the foreseeable future.  This makes it easy to use scripts written
 for older versions of yt without substantially updating them to support the
 new field naming or unit systems in yt version 3.
 
@@ -411,7 +431,7 @@ If You Installed yt Using the Installer Script
 You already have the mercurial repository, so you simply need to switch
 which version you're using.  Navigate to the root of the yt mercurial
 repository, update to the desired version, and rebuild the source (some of the
-c code requires a compilation step for big changes like this):
+C code requires a compilation step for big changes like this):
 
 .. code-block:: bash
 
@@ -419,7 +439,7 @@ c code requires a compilation step for big changes like this):
   hg update <desired-version>
   python setup.py develop
 
-Valid versions to jump to are described in :ref:`branches-of-yt`).
+Valid versions to jump to are described in :ref:`branches-of-yt`.
 
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.
@@ -427,8 +447,8 @@ at the command line.  If you encounter problems, see :ref:`update-errors`.
 If You Installed yt Using from Source or Using pip
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-If you have installed python via ``pip``, remove 
-any extant installations of yt on your system and clone the source mercurial 
+If you have installed python via ``pip``, remove
+any extant installations of yt on your system and clone the source mercurial
 repository of yt as described in :ref:`source-installation`.
 
 .. code-block:: bash
@@ -438,7 +458,7 @@ repository of yt as described in :ref:`source-installation`.
 
 Now, to switch between versions, you need to navigate to the root of
 the mercurial yt repository. Use mercurial to
-update to the appropriate version and recompile.  
+update to the appropriate version and recompile.
 
 .. code-block:: bash
 
@@ -447,6 +467,6 @@ update to the appropriate version and recompile.
   python setup.py install --user --prefix=
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).
-    
+
 You can check which version of yt you have installed by invoking ``yt version``
 at the command line.  If you encounter problems, see :ref:`update-errors`.

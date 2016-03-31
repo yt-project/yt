@@ -4,9 +4,9 @@ What to do if you run into problems
 ===================================
 
 If you run into problems with yt, there are a number of steps to follow
-to come to a solution.  The first handful of options are things you can do 
-on your own, but if those don't yield results, we have provided a number of 
-ways to connect with our community of users and developers to solve the 
+to come to a solution.  The first handful of options are things you can do
+on your own, but if those don't yield results, we have provided a number of
+ways to connect with our community of users and developers to solve the
 problem together.
 
 To summarize, here are the steps in order:
@@ -23,8 +23,8 @@ Don't panic and don't give up
 
 This may seem silly, but it's effective.  While yt is a robust code with
 lots of functionality, like all actively-developed codes sometimes there
-are bugs.  Chances are good that your problems have a quick fix, either 
-because someone encountered it before and fixed it, the documentation is 
+are bugs.  Chances are good that your problems have a quick fix, either
+because someone encountered it before and fixed it, the documentation is
 out of date, or some other simple solution.  Don't give up!  We want
 to help you succeed!
 
@@ -36,12 +36,12 @@ Update to the latest version
 Sometimes the pace of development is pretty fast on yt, particularly in the
 development branch, so a fix to your problem may have already been developed
 by the time you encounter it.  Many users' problems can simply be corrected
-by updating to the latest version of the code and/or its dependencies.  You 
+by updating to the latest version of the code and/or its dependencies.  You
 can update yt's source by running:
 
 .. code-block:: bash
 
-  $ yt update 
+  $ yt update
 
 or you could update yt's source as well as any software dependencies by running:
 
@@ -54,12 +54,12 @@ or you could update yt's source as well as any software dependencies by running:
 Update errors
 ^^^^^^^^^^^^^
 
-If for some reason the ``update`` command fails with errors, or any attempt at 
-loading yt either from the command line or from within python also fails, it 
-may simply mean you need to rebuild the yt source (some of the c-code in yt 
+If for some reason the ``update`` command fails with errors, or any attempt at
+loading yt either from the command line or from within python also fails, it
+may simply mean you need to rebuild the yt source (some of the c-code in yt
 needs to be rebuilt after major changes).  You can do this by navigating to
 the root of the yt mercurial repository.  If you installed with the all-in-one
-installer script, this is the ``yt-<machine>/src/yt-hg`` directory.  Then 
+installer script, this is the ``yt-<machine>/src/yt-hg`` directory.  Then
 execute these commands:
 
 .. code-block:: bash
@@ -80,16 +80,16 @@ but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
 Search the documentation, FAQ, and mailing lists
 ------------------------------------------------
 
-The documentation has a lot of the answers to everyday problems.  This doesn't 
-mean you have to read all of the docs top-to-bottom, but you should at least 
-run a search to see if relevant topics have been answered in the docs.  Click 
-on the search field to the right of this window and enter your text.  Another 
+The documentation has a lot of the answers to everyday problems.  This doesn't
+mean you have to read all of the docs top-to-bottom, but you should at least
+run a search to see if relevant topics have been answered in the docs.  Click
+on the search field to the right of this window and enter your text.  Another
 good place to look for answers in the documentation is our :ref:`faq` page.
 
-OK, so there was no obvious solution to your problem in the documentation.  
+OK, so there was no obvious solution to your problem in the documentation.
 It is possible that someone else experienced the problem before you did, and
-wrote to the mailing list about it.  You can easily check the mailing list 
-archive with the other search field to the right of this window (or you can 
+wrote to the mailing list about it.  You can easily check the mailing list
+archive with the other search field to the right of this window (or you can
 use the search field below).
 
 .. raw:: html
@@ -109,7 +109,7 @@ use the search field below).
 Look at the source code
 -----------------------
 
-We've done our best to make the source clean, and it is easily searchable from 
+We've done our best to make the source clean, and it is easily searchable from
 your computer.
 
 If you have not done so already (see :ref:`source-installation`), clone a copy of the yt mercurial repository and make it the 'active' installation by doing
@@ -141,7 +141,7 @@ look at the source to figure out what is going on.
   $ grep -r SlicePlot *         (or $ grin SlicePlot)
 
 This will print a number of locations in the yt source tree where ``SlicePlot``
-is mentioned.  You can now followup on this and open up the files that have
+is mentioned.  You can now follow-up on this and open up the files that have
 references to ``SlicePlot`` (particularly the one that defines SlicePlot) and
 inspect their contents for problems or clarification.
 
@@ -151,7 +151,7 @@ Isolate and document your problem
 ---------------------------------
 
 As you gear up to take your question to the rest of the community, try to distill
-your problem down to the fewest number of steps needed to produce it in a 
+your problem down to the fewest number of steps needed to produce it in a
 script.  This can help you (and us) to identify the basic problem.  Follow
 these steps:
 
@@ -161,11 +161,11 @@ these steps:
   * ``$ yt pastebin script.py`` - pastes script.py online
   * ``$ yt upload_image image.png`` - pastes image online
 
-* Identify which version of the code you’re using. 
+* Identify which version of the code you’re using.
 
   * ``$ yt version`` - provides version information, including changeset hash
 
-It may be that through the mere process of doing this, you end up solving 
+It may be that through the mere process of doing this, you end up solving
 the problem!
 
 .. _irc:
@@ -173,13 +173,13 @@ the problem!
 Go on IRC to ask a question
 ---------------------------
 
-If you want a fast, interactive experience, you could try jumping into our IRC 
-channel to get your questions answered in a chatroom style environment.  You 
+If you want a fast, interactive experience, you could try jumping into our IRC
+channel to get your questions answered in a chatroom style environment.  You
 don't even need to have any special IRC client in order to join.  We are the
-#yt channel on irc.freenode.net, but you can also connect using your web 
-browser by going to http://yt-project.org/irc.html .  There are usually 2-8 
-members of the user base and development team online, so you'll probably get 
-your answers quickly.  Remember to bring the information from the 
+#yt channel on irc.freenode.net, but you can also connect using your web
+browser by going to http://yt-project.org/irc.html .  There are usually 2-8
+members of the user base and development team online, so you'll probably get
+your answers quickly.  Remember to bring the information from the
 :ref:`last step <isolate_and_document>`.
 
 .. _mailing-list:
@@ -187,7 +187,7 @@ your answers quickly.  Remember to bring the information from the
 Ask the mailing list
 --------------------
 
-If you still haven't yet found a solution, feel free to 
+If you still haven't yet found a solution, feel free to
 write to the mailing list regarding your problems.  There are two mailing lists,
 `yt-users <http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org>`_ and
 `yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_.  The
@@ -208,8 +208,8 @@ difficult to help out!
 Submit a bug report
 -------------------
 
-If you have gone through all of the above steps, and you're still encountering 
-problems, then you have found a bug.  
+If you have gone through all of the above steps, and you're still encountering
+problems, then you have found a bug.
 To submit a bug report, you can either directly create one through the
 BitBucket `web interface <http://bitbucket.org/yt_analysis/yt/issues/new>`_,
 or you can use the command line ``yt bugreport`` to interactively create one.
@@ -223,11 +223,11 @@ Special Issues
 Installation Issues
 ^^^^^^^^^^^^^^^^^^^
 
-If you are having installation issues and nothing from the 
-:ref:`installation instructions <getting-and-installing-yt>` seems to work, you should 
-*definitely* email the ``yt-users`` email list.  You should provide information 
-about the host, the version of the code you are using, and the output of 
-``yt_install.log`` from your installation.  We are very interested in making 
+If you are having installation issues and nothing from the
+:ref:`installation instructions <getting-and-installing-yt>` seems to work, you should
+*definitely* email the ``yt-users`` email list.  You should provide information
+about the host, the version of the code you are using, and the output of
+``yt_install.log`` from your installation.  We are very interested in making
 sure that yt installs everywhere!
 
 Customization and Scripting Issues
@@ -235,5 +235,5 @@ Customization and Scripting Issues
 
 If you have customized yt in some way, or created your own plugins file (as
 described in :ref:`plugin-file`) then it may be necessary to supply users
-willing to help you (or the mailing list) with both your patches to the 
+willing to help you (or the mailing list) with both your patches to the
 source, the plugin file, and perhaps even the datafile on which you're running.

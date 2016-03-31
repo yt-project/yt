@@ -838,6 +838,17 @@ def deprecated_class(cls):
     return _func
 
 def enable_plugins():
+    """Forces the plugins file to be parsed.
+
+    This plugin file is a means of creating custom fields, quantities,
+    data objects, colormaps, and other code classes and objects to be used
+    in yt scripts without modifying the yt source directly.
+
+    The file must be located at ``$HOME/.yt/my_plugins.py``.
+
+    Warning: when you use this function, your script will only be reproducible
+    if you also provide the ``my_plugins.py`` file.
+    """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
@@ -860,3 +871,55 @@ def fix_unitary(u):
         return 'unitary'
     else:
         return u
+
+def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
+    """Generate file hash without reading in the entire file at once.
+
+    Original code licensed under MIT.  Source:
+    http://pythoncentral.io/hashing-files-with-python/
+
+    Parameters
+    ----------
+    infile : str
+        File of interest (including the path).
+    algorithm : str (optional)
+        Hash algorithm of choice. Defaults to 'md5'.
+    BLOCKSIZE : int (optional)
+        How much data in bytes to read in at once.
+
+    Returns
+    -------
+    hash : str
+        The hash of the file.
+
+    Examples
+    --------
+    >>> import yt.funcs as funcs
+    >>> funcs.get_hash('/path/to/test.png')
+    'd38da04859093d430fa4084fd605de60'
+
+    """
+    import hashlib
+
+    try:
+        hasher = getattr(hashlib, algorithm)()
+    except:
+        raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
+                                  (algorithm, hashlib.algorithms))
+
+    filesize   = os.path.getsize(infile)
+    iterations = int(float(filesize)/float(BLOCKSIZE))
+
+    pbar = get_pbar('Generating %s hash' % algorithm, iterations)
+
+    iter = 0
+    with open(infile,'rb') as f:
+        buf = f.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(BLOCKSIZE)
+            iter += 1
+            pbar.update(iter)
+        pbar.finish()
+
+    return hasher.hexdigest()

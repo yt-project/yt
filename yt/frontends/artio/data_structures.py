@@ -164,6 +164,7 @@ class ARTIOIndex(Index):
         self.directory = os.path.dirname(self.index_filename)
 
         self.max_level = ds.max_level
+        self.range_handlers = {}
         self.float_type = np.float64
         super(ARTIOIndex, self).__init__(ds, dataset_type)
 
@@ -251,11 +252,15 @@ class ARTIOIndex(Index):
             #v = np.array(list_sfc_ranges)
             #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
-                range_handler = ARTIOSFCRangeHandler(
-                    self.ds.domain_dimensions,
-                    self.ds.domain_left_edge, self.ds.domain_right_edge,
-                    self.ds._handle, start, end)
-                range_handler.construct_mesh()
+                if (start, end) in self.range_handlers.keys():
+                    range_handler = self.range_handlers[(start, end)]
+                else:
+                    range_handler = ARTIOSFCRangeHandler(
+                        self.ds.domain_dimensions,
+                        self.ds.domain_left_edge, self.ds.domain_right_edge,
+                        self.ds._handle, start, end)
+                    range_handler.construct_mesh()
+                    self.range_handlers[(start, end)] = range_handler
                 if nz != 2:
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
                                 range_handler.root_mesh_handler, self.ds))
@@ -318,7 +323,7 @@ class ARTIODataset(Dataset):
 
     def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         from sys import version
         if self._handle is not None:
             return
@@ -333,7 +338,8 @@ class ARTIODataset(Dataset):
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):

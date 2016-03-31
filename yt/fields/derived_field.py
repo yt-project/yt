@@ -28,6 +28,7 @@ from .field_detector import \
     FieldDetector
 from yt.units.unit_object import \
     Unit
+import yt.units.dimensions as ytdims
 from yt.utilities.exceptions import \
     YTFieldNotFound
 
@@ -55,9 +56,11 @@ class DerivedField(object):
        A function handle that defines the field.  Should accept
        arguments (field, data)
     units : str
-       A plain text string encoding the unit.  Powers must be in
-       python syntax (** instead of ^). If set to "auto" the units will be
-       inferred from the units of the return value of the field function.
+       A plain text string encoding the unit, or a query to a unit system of
+       a dataset. Powers must be in python syntax (** instead of ^). If set
+       to "auto" the units will be inferred from the units of the return
+       value of the field function, and the dimensions keyword must also be
+       set (see below).
     take_log : bool
        Describes whether the field should be logged
     validators : list
@@ -76,12 +79,15 @@ class DerivedField(object):
        For fields that exist on disk, which we may want to convert to other
        fields or that get aliased to themselves, we can specify a different
        desired output unit than the unit found on disk.
+    dimensions : str or object from yt.units.dimensions
+       The dimensions of the field, only needed if units="auto" and only used
+       for error checking.
     """
     def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
-                 ds=None):
+                 dimensions=None, ds=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -103,6 +109,9 @@ class DerivedField(object):
             self.units = ''
         elif isinstance(units, string_types):
             if units.lower() == 'auto':
+                if dimensions is None:
+                    raise RuntimeError("To set units='auto', please specify the dimensions "
+                                       "of the field with dimensions=<dimensions of field>!")
                 self.units = None
             else:
                 self.units = units
@@ -115,6 +124,10 @@ class DerivedField(object):
         if output_units is None:
             output_units = self.units
         self.output_units = output_units
+
+        if isinstance(dimensions, string_types):
+            dimensions = getattr(ytdims, dimensions)
+        self.dimensions = dimensions
 
     def _copy_def(self):
         dd = {}
@@ -221,7 +234,6 @@ class DerivedField(object):
             func_name = self._function.func_name
         else:
             func_name = self._function.__name__
-
         if self._function == NullFunc:
             s = "On-Disk Field "
         elif func_name == "_TranslationFunc":

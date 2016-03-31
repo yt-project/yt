@@ -91,9 +91,9 @@ This will return 6 items
 The center of mass would be the same one as returned by the halo
 finder.  The A, B, C are the largest to smallest magnitude of the
 ellipsoid's semi-principle axes. "e0" is the largest semi-principle
-axis vector direction that would have magnitude A but normalized.  
+axis vector direction that would have magnitude A but normalized.
 The "tilt" is an angle measured in radians.  It can be best described
-as after the rotation about the z-axis to allign e0 to x in the x-y
+as after the rotation about the z-axis to align e0 to x in the x-y
 plane, and then rotating about the y-axis to align e0 completely to
 the x-axis, the angle remaining to rotate about the x-axis to align
 both e1 to the y-axis and e2 to the z-axis.
@@ -128,7 +128,7 @@ Drawbacks
 Since this is a first attempt, there are many drawbacks and corners
 cut.  Many things listed here will be amended when I have time.
 
-* The ellipsoid 3D container like the boolean object, do not contain 
+* The ellipsoid 3D container like the boolean object, do not contain
   particle position and velocity information.
 * This currently assume periodic boundary condition, so if an
   ellipsoid center is at the edge, it will return part of the opposite
@@ -136,7 +136,7 @@ cut.  Many things listed here will be amended when I have time.
   periodicity in the future.
 * This method gives a minimalistic ellipsoid centered around the
   center of mass that contains all the particles, but sometimes people
-  prefer an inertial tensor triaxial ellipsoid described in 
+  prefer an inertial tensor triaxial ellipsoid described in
   `Dubinski, Carlberg 1991
   <http://adsabs.harvard.edu/abs/1991ApJ...378..496D>`_.  I have that
   method composed but it is not fully tested yet.

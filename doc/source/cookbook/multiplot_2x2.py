@@ -9,7 +9,7 @@ fig = plt.figure()
 
 # See http://matplotlib.org/mpl_toolkits/axes_grid/api/axes_grid_api.html
 # These choices of keyword arguments produce a four panel plot that includes
-# four narrow colorbars, one for each plot.  Axes labels are only drawn on the 
+# four narrow colorbars, one for each plot.  Axes labels are only drawn on the
 # bottom left hand plot to avoid repeating information and make the plot less
 # cluttered.
 grid = AxesGrid(fig, (0.075,0.075,0.85,0.85),

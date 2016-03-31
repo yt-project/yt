@@ -6,7 +6,7 @@ from yt.analysis_modules.cosmological_observation.api import \
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"
 lr = LightRay(fn)
 
-# With a single dataset, a start_position and 
+# With a single dataset, a start_position and
 # end_position or trajectory must be given.
 # Trajectory should be given as (r, theta, phi)
 lr.make_light_ray(start_position=[0., 0., 0.],
@@ -15,7 +15,7 @@ lr.make_light_ray(start_position=[0., 0., 0.],
                   data_filename='lightray.h5',
                   fields=['temperature', 'density'])
 
-# Optionally, we can now overplot this ray on a projection of the source 
+# Optionally, we can now overplot this ray on a projection of the source
 # dataset
 ds = yt.load(fn)
 p = yt.ProjectionPlot(ds, 'z', 'density')

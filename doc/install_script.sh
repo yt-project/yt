@@ -1,7 +1,7 @@
 #
 # Hi there!  Welcome to the yt installation script.
 #
-# First things first, if you experience problems, please visit the Help 
+# First things first, if you experience problems, please visit the Help
 # section at http://yt-project.org.
 #
 # This script is designed to create a fully isolated Python installation
@@ -365,7 +365,7 @@ function host_specific
         echo "  * gcc-{,c++,gfortran}"
         echo "  * make"
         echo "  * patch"
-        echo 
+        echo
         echo "You can accomplish this by executing:"
         echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
@@ -629,7 +629,7 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
-    if [[ $LIB =~ .*mercurial.* ]] 
+    if [[ $LIB =~ .*mercurial.* ]]
     then
         PYEXE="python2.7"
     else

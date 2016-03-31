@@ -8,7 +8,7 @@ vector field at all points.  While commonly used to follow the
 velocity flow or magnetic field lines, they can be defined to follow
 any three-dimensional vector field.  Once an initial condition and
 total length of the streamline are specified, the streamline is
-uniquely defined.  Relatedly, yt also has the ability to follow 
+uniquely defined.  Relatedly, yt also has the ability to follow
 :ref:`particle-trajectories`.
 
 Method
@@ -39,7 +39,7 @@ The implementation of streamlining  in yt is described below.
       #. While inside the brick
 
          #. Integrate the streamline path using a Runge-Kutta 4th
-            order method and the vertex centered data.  
+            order method and the vertex centered data.
 	 #. During the intermediate steps of each RK4 step, if the
             position is updated to outside the current brick,
             interrupt the integration and locate a new brick at the
@@ -64,7 +64,7 @@ Example Script
     # Load the dataset
     ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 
-    # Define c: the center of the box, N: the number of streamlines, 
+    # Define c: the center of the box, N: the number of streamlines,
     # scale: the spatial scale of the streamlines relative to the boxsize,
     # and then pos: the random positions of the streamlines.
     c = ds.domain_center
@@ -73,9 +73,9 @@ Example Script
     pos_dx = np.random.random((N,3))*scale-scale/2.
     pos = c+pos_dx
 
-    # Create streamlines of the 3D vector velocity and integrate them through 
+    # Create streamlines of the 3D vector velocity and integrate them through
     # the box defined above
-    streamlines = Streamlines(ds, pos, 'velocity_x', 'velocity_y', 'velocity_z', 
+    streamlines = Streamlines(ds, pos, 'velocity_x', 'velocity_y', 'velocity_z',
                               length=1.0*Mpc, get_magnitude=True)
     streamlines.integrate_through_volume()
 
@@ -116,9 +116,9 @@ Example Script
 
     import yt
     from yt.visualization.api import Streamlines
-    
-    ds = yt.load('DD1701') # Load ds 
-    streamlines = Streamlines(ds, [0.5]*3) 
+
+    ds = yt.load('DD1701') # Load ds
+    streamlines = Streamlines(ds, [0.5]*3)
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
     matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')
@@ -132,5 +132,5 @@ splitting the streamlines up between the processors.  Upon completion,
 each processor has access to all of the streamlines through the use of
 a reduction operation.
 
-For more information on enabling parallelism in yt, see 
+For more information on enabling parallelism in yt, see
 :ref:`parallel-computation`.

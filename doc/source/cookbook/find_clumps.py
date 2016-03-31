@@ -5,7 +5,7 @@ from yt.analysis_modules.level_sets.api import *
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.], 
+data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
                       (8, 'kpc'), (1, 'kpc'))
 
 # the field to be used for contouring

@@ -33,7 +33,7 @@ generate an FRB is to use the ``.to_frb(width, resolution, center=None)`` method
 of any data two-dimensional data object:
 
 .. python-script::
-   
+
    import matplotlib
    matplotlib.use('Agg')
    from matplotlib import pyplot as plt
@@ -50,7 +50,7 @@ of any data two-dimensional data object:
 
    plt.imshow(np.array(frb['density']))
    plt.savefig('my_perfect_figure.png')
-   
+
 Note that in the above example the axes tick marks indicate pixel indices.  If you
 want to represent physical distances on your plot axes, you will need to use the
 ``extent`` keyword of the ``imshow`` function.

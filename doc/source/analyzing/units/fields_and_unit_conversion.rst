@@ -26,7 +26,7 @@ volume.
    # Load the dataset
    ds = yt.load('HiresIsolatedGalaxy/DD0044/DD0044')
 
-   # Add the field to the dataset, linking to the derived field function and 
+   # Add the field to the dataset, linking to the derived field function and
    # units of the field
    ds.add_field(("gas", "root_cell_volume"), units="cm**(3/2)", function=root_cell_volume)
 

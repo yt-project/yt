@@ -93,24 +93,24 @@ elsewhere for further transformations.
 For more information, see :ref:`creating-derived-fields`.
 
 There is a third, borderline class of field in yt, as well.  This is the
-"alias" type, where a field on disk (for example, (frontend, ``Density``)) is 
-aliased into an internal yt-name (for example, (``gas``, ``density``)).  The 
-aliasing process allows universally-defined derived fields to take advantage of 
-internal names, and it also provides an easy way to address what units something 
-should be returned in.  If an aliased field is requested (and aliased fields 
-will always be lowercase, with underscores separating words) it will be returned 
-in CGS units (future versions will enable global defaults to be set for MKS and 
-other unit systems), whereas if the frontend-specific field is requested, it 
-will not undergo any unit conversions from its natural units.  (This rule is 
-occasionally violated for fields which are mesh-dependent, specifically particle 
-masses in some cosmology codes.)
+"alias" type, where a field on disk (for example, (frontend, ``Density``)) is
+aliased into an internal yt-name (for example, (``gas``, ``density``)). The
+aliasing process allows universally-defined derived fields to take advantage of
+internal names, and it also provides an easy way to address what units something
+should be returned in.  If an aliased field is requested (and aliased fields
+will always be lowercase, with underscores separating words) it will be returned
+in the units specified by the unit system of the database (see :ref:`unit_systems`
+for a guide to using the different unit systems in yt), whereas if the
+frontend-specific field is requested, it will not undergo any unit conversions
+from its natural units.  (This rule is occasionally violated for fields which
+are mesh-dependent, specifically particle masses in some cosmology codes.)
 
 .. _known-field-types:
 
 Field types known to yt
 -----------------------
 
-Recall that fields are formally accessed in two parts: ('*field type*', 
+Recall that fields are formally accessed in two parts: ('*field type*',
 '*field name*').  Here we describe the different field types you will encounter:
 
 * frontend-name -- Mesh or fluid fields that exist on-disk default to having
@@ -125,29 +125,30 @@ Recall that fields are formally accessed in two parts: ('*field type*',
 * ``gas`` -- This is the usual default for simulation frontends for fluid
   types.  These fields are typically aliased to the frontend-specific mesh
   fields for grid-based codes or to the deposit fields for particle-based
-  codes.  Default units are in CGS.
-* particle type -- These are particle fields that exist on-disk as written 
+  codes.  Default units are in the unit system of the dataset (see
+  :ref:`unit_systems` for more information).
+* particle type -- These are particle fields that exist on-disk as written
   by individual frontends.  If the frontend designates names for these particles
-  (i.e. particle type) those names are the field types. 
+  (i.e. particle type) those names are the field types.
   Additionally, any particle unions or filters will be accessible as field
-  types.  Examples of particle types are ``Stars``, ``DM``, ``io``, etc.  
+  types.  Examples of particle types are ``Stars``, ``DM``, ``io``, etc.
   Like the front-end specific mesh or fluid fields, the units of these fields
   are whatever was designated by the source frontend when written to disk.
-* ``io`` -- If a data frontend does not have a set of multiple particle types, 
+* ``io`` -- If a data frontend does not have a set of multiple particle types,
   this is the default for all particles.
 * ``all`` -- This is a special particle field type that represents a
   concatenation of all particle field types using :ref:`particle-unions`.
 * ``deposit`` -- This field type refers to the deposition of particles
   (discrete data) onto a mesh, typically to compute smoothing kernels, local
-  density estimates, counts, and the like.  See :ref:`deposited-particle-fields` 
+  density estimates, counts, and the like.  See :ref:`deposited-particle-fields`
   for more information.
 
-While it is best to be explicit access fields by their full names 
-(i.e. ('*field type*', '*field name*')), yt provides an abbreviated 
+While it is best to be explicit access fields by their full names
+(i.e. ('*field type*', '*field name*')), yt provides an abbreviated
 interface for accessing common fields (i.e. '*field name*').  In the abbreviated
 case, yt will assume you want the last *field type* accessed.  If you
-haven't previously accessed a *field type*, it will default to *field type* = 
-``'all'`` in the case of particle fields and *field type* = ``'gas'`` in the 
+haven't previously accessed a *field type*, it will default to *field type* =
+``'all'`` in the case of particle fields and *field type* = ``'gas'`` in the
 case of mesh fields.
 
 Field Plugins
@@ -191,8 +192,8 @@ The field plugins currently available include:
 What fields are available?
 --------------------------
 
-We provide a full list of fields that yt recognizes by default at 
-:ref:`field-list`.  If you want to create additional custom derived fields, 
+We provide a full list of fields that yt recognizes by default at
+:ref:`field-list`.  If you want to create additional custom derived fields,
 see :ref:`creating-derived-fields`.
 
 Every dataset has an attribute, ``ds.fields``.  This attribute possesses
@@ -231,7 +232,7 @@ of ``field_list``).  You can view these lists by examining a dataset like this:
    print(ds.derived_field_list)
 
 By using the ``field_info()`` class, one can access information about a given
-field, like its default units or the source code for it.  
+field, like its default units or the source code for it.
 
 .. code-block:: python
 
@@ -240,17 +241,48 @@ field, like its default units or the source code for it.
    print(ds.field_info["gas", "pressure"].get_units())
    print(ds.field_info["gas", "pressure"].get_source())
 
+.. _bfields:
+
+Magnetic Fields
+---------------
+
+Magnetic fields require special handling, because their dimensions are different in
+different systems of units, in particular between the CGS and MKS (SI) systems of units.
+Superficially, it would appear that they are in the same dimensions, since the units
+of the magnetic field in the CGS and MKS system are gauss (:math:`\rm{G}`) and tesla
+(:math:`\rm{T}`), respectively, and numerically :math:`1~\rm{G} = 10^{-4}~\rm{T}`. However,
+if we examine the base units, we find that they do indeed have different dimensions:
+
+.. math::
+
+    \rm{1~G = 1~\frac{\sqrt{g}}{\sqrt{cm}\cdot{s}}} \\
+    \rm{1~T = 1~\frac{kg}{A\cdot{s^2}}}
+
+It is easier to see the difference between the dimensionality of the magnetic field in the two
+systems in terms of the definition of the magnetic pressure:
+
+.. math::
+
+    p_B = \frac{B^2}{8\pi}~\rm{(cgs)} \\
+    p_B = \frac{B^2}{2\mu_0}~\rm{(MKS)}
+
+where :math:`\mu_0 = 4\pi \times 10^{-7}~\rm{N/A^2}` is the vacuum permeability. yt automatically
+detects on a per-frontend basis what units the magnetic should be in, and allows conversion between
+different magnetic field units in the different :ref:`unit systems <unit_systems>` as well. To
+determine how to set up special magnetic field handling when designing a new frontend, check out
+:ref:`bfields-frontend`.
+
 Particle Fields
 ---------------
 
 Naturally, particle fields contain properties of particles rather than
-grid cells.  By examining the particle field in detail, you can see that 
-each element of the field array represents a single particle, whereas in mesh 
+grid cells.  By examining the particle field in detail, you can see that
+each element of the field array represents a single particle, whereas in mesh
 fields each element represents a single mesh cell.  This means that for the
 most part, operations cannot operate on both particle fields and mesh fields
 simultaneously in the same way, like filters (see :ref:`filtering-data`).
 However, many of the particle fields have corresponding mesh fields that
-can be populated by "depositing" the particle values onto a yt grid as 
+can be populated by "depositing" the particle values onto a yt grid as
 described below.
 
 .. _field_parameters:
@@ -258,18 +290,18 @@ described below.
 Field Parameters
 ----------------
 
-Certain fields require external information in order to be calculated.  For 
-example, the radius field has to be defined based on some point of reference 
-and the radial velocity field needs to know the bulk velocity of the data object 
-so that it can be subtracted.  This information is passed into a field function 
-by setting field parameters, which are user-specified data that can be associated 
-with a data object.  The 
-:meth:`~yt.data_objects.data_containers.YTDataContainer.set_field_parameter` 
-and 
-:meth:`~yt.data_objects.data_containers.YTDataContainer.get_field_parameter` 
-functions are 
-used to set and retrieve field parameter values for a given data object.  In the 
-cases above, the field parameters are ``center`` and ``bulk_velocity`` respectively -- 
+Certain fields require external information in order to be calculated.  For
+example, the radius field has to be defined based on some point of reference
+and the radial velocity field needs to know the bulk velocity of the data object
+so that it can be subtracted.  This information is passed into a field function
+by setting field parameters, which are user-specified data that can be associated
+with a data object.  The
+:meth:`~yt.data_objects.data_containers.YTDataContainer.set_field_parameter`
+and
+:meth:`~yt.data_objects.data_containers.YTDataContainer.get_field_parameter`
+functions are
+used to set and retrieve field parameter values for a given data object.  In the
+cases above, the field parameters are ``center`` and ``bulk_velocity`` respectively --
 the two most commonly used field parameters.
 
 .. code-block:: python
@@ -281,7 +313,7 @@ the two most commonly used field parameters.
 
    print(ad.get_field_parameter("wickets"))
 
-If a field parameter is not set, ``get_field_parameter`` will return None.  
+If a field parameter is not set, ``get_field_parameter`` will return None.
 Within a field function, these can then be retrieved and used in the same way.
 
 .. code-block:: python
@@ -299,8 +331,8 @@ Gradient Fields
 ---------------
 
 yt provides a way to compute gradients of spatial fields using the
-:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields` 
-method. If you have a spatially-based field such as density or temperature, 
+:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields`
+method. If you have a spatially-based field such as density or temperature,
 and want to calculate the gradient of that field, you can do it like so:
 
 .. code-block:: python
@@ -366,8 +398,8 @@ SPH Fields
 ----------
 
 For gas particles from SPH simulations, each particle will typically carry
-a field for the smoothing length ``h``, which is roughly equivalent to 
-``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density 
+a field for the smoothing length ``h``, which is roughly equivalent to
+``(m/\rho)^{1/3}``, where ``m`` and ``rho`` are the particle mass and density
 respectively.  This can be useful for doing neighbour finding.
 
 As a note, SPH fields are special cases of the "deposited" particle fields.
@@ -392,7 +424,7 @@ field; this is not always useful, but it errs on the side of extra fields,
 rather than too few fields.  (For instance, it may be unlikely that the
 smoothed angular momentum field will be useful.)  The naming scheme is an
 extension of the scheme described in :ref:`deposited-particle-fields`, and is
-defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where 
+defined as such: ``("deposit", "particletype_smoothed_fieldname")``, where
 ``fieldname`` is the name of the field being smoothed.  For example, smoothed
 ``Temperature`` of the ``Gas`` particle type would be ``("deposit",
 "Gas_smoothed_Temperature")``, which in most cases would be aliased to the
