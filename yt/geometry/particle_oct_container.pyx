@@ -375,7 +375,7 @@ cdef class ParticleForest:
         cdef BoolArrayCollection[:] bitmasks
     cdef public BoolArrayCollection collisions
 
-    def __init__(self, left_edge, right_edge, dims, nfiles, oref = 1,
+    def __init__(self, left_edge, right_edge, nfiles, oref = 1,
                  n_ref = 64, index_order1 = None, index_order2 = None):
         # TODO: Set limit on maximum orders?
         if index_order1 is None: index_order1 = 7
@@ -392,14 +392,8 @@ cdef class ParticleForest:
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
-            if dims[i] != (1<<index_order1):
-                print("dims[{}] = {} does not match ".format(i,dims[i])+
-                      "2**index_order1 = {}. ".format(1<<index_order1)+
-                      "Overwriting...\n"+
-                      "Considering removing dims as an imput parameter.")
-                dims[i] = (1<<index_order1)
-            self.dims[i] = dims[i]
-            self.dds[i] = (right_edge[i] - left_edge[i])/dims[i]
+            self.dims[i] = (1<<index_order1)
+            self.dds[i] = (right_edge[i] - left_edge[i])/self.dims[i]
             self.idds[i] = 1.0/self.dds[i] 
             self.dds_mi1[i] = (right_edge[i] - left_edge[i]) / (1<<index_order1)
             self.dds_mi2[i] = self.dds_mi1[i] / (1<<index_order2)

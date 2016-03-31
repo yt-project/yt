@@ -85,7 +85,7 @@ class ParticleIndex(Index):
         N = self.ds.domain_dimensions / (1<<self.ds.over_refine_factor)
         self.regions = ParticleForest(
                 ds.domain_left_edge, ds.domain_right_edge,
-                N, len(self.data_files), ds.over_refine_factor,
+                len(self.data_files), ds.over_refine_factor,
                 ds.n_ref, index_order1=order1, index_order2=order2)
         # Load indices from file if provided
         if fname is not None and os.path.isfile(fname):

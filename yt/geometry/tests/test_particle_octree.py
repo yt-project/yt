@@ -324,26 +324,7 @@ def yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, **kws):
         yield fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws)
 
 def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
-    # A perfect grid, no overlap between files
-    if decomp == 'grid':
-        pos = fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, **kws)
-    # Completely random data set
-    elif decomp == 'random':
-        pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
-    # Each file contains a slab (part of x domain, all of y/z domain)
-    elif decomp == 'sliced':
-        pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
-    # Particles are assigned to files based on their location on a
-    # Peano-Hilbert curve of order 6
-    elif decomp == 'hilbert':
-        pos = fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE, **kws)
-    # Particles are assigned to files based on their location on a
-    # Morton ordered Z-curve of order 6
-    elif decomp == 'morton':
-        pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
-        # if ifile in positions:
-        #     positions[ifile] = np.concatenate((positions[ifile],pos),axis=0)
-    elif decomp.startswith('zoom_'):
+    if decomp.startswith('zoom_'):
         zoom_factor = 5
         decomp_zoom = decomp.split('zoom_')[-1]
         zoom_npart = npart/2
@@ -366,6 +347,32 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
                 inp += decomp_nr
             ipos = fake_decomp(idecomp, inp, nfiles, ifile, DLE, DRE, **kws)
             pos = np.concatenate((pos,ipos),axis=0)
+    # A perfect grid, no overlap between files
+    elif decomp == 'grid':
+        buff = kws.pop('buff',None)
+        pos = fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, **kws)
+    # Completely random data set
+    elif decomp == 'random':
+        pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
+    # Each file contains a slab (part of x domain, all of y/z domain)
+    elif decomp == 'sliced':
+        pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
+    # Particles are assigned to files based on their location on a
+    # Peano-Hilbert curve of order 6
+    elif decomp.startswith('hilbert'):
+        if decomp == 'hilbert':
+            kws['order'] = 6
+        else:
+            kws['order'] = int(decomp.split('hilbert')[-1])
+        pos = fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE, **kws)
+    # Particles are assigned to files based on their location on a
+    # Morton ordered Z-curve of order 6
+    elif decomp.startswith('morton'):
+        if decomp == 'morton':
+            kws['order'] = 6
+        else:
+            kws['order'] = int(decomp.split('morton')[-1])
+        pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
     else:
         raise ValueError("Unsupported value {} for input parameter 'decomp'".format(decomp))
     return pos
@@ -377,8 +384,7 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
     N = (1<<order1)
     if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
     if DRE is None: DRE = np.array([1.0, 1.0, 1.0])
-    reg = ParticleForest(DLE, DRE,
-                         [N, N, N], nfiles,
+    reg = ParticleForest(DLE, DRE, nfiles,
                          index_order1 = order1,
                          index_order2 = order2)
     # Load from file if it exists
@@ -611,7 +617,7 @@ def plot_vary_selector(**kws):
     order2 = 2
     testtag = "vary_{}_np{}_nf{}".format('selector',kws['npart_dim'],kws['nfiles'])
     if kws['decomp']!='hilbert' or kws['buff']!=0.1:
-        testtag += '_{}{}'.format(kws['decomp'],str(kws['buff']).replace('.','p'))
+        testtag += '_{}_buff{}'.format(kws['decomp'],str(kws['buff']).replace('.','p'))
     fname = testtag+'.png'
     # Set up plot
     plt.close('all')
@@ -969,7 +975,7 @@ def test_save_load_bitmap():
     pos[:,0] = (DW[0]/nfiles)/2
     for i in range(3):
         np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
-    reg0 = ParticleForest(DLE, DRE, 3*[1<<order1], nfiles,
+    reg0 = ParticleForest(DLE, DRE, nfiles,
                           index_order1 = order1,
                           index_order2 = order2)
     # Coarse index
@@ -991,7 +997,7 @@ def test_save_load_bitmap():
     # Save
     reg0.save_bitmasks(fname)
     # Load
-    reg1 = ParticleForest(DLE, DRE, 3*[1<<order1], nfiles,
+    reg1 = ParticleForest(DLE, DRE, nfiles,
                           index_order1 = order1,
                           index_order2 = order2)
     reg1.load_bitmasks(fname)
@@ -1024,9 +1030,8 @@ def test_initialize_index():
     ds = yt.GadgetDataset(bc94, long_ids = True)
     ds.index._initialize_index(order1=order1, order2=order2)
     reg1 = ds.index.regions
-    N = ds.index.ds.domain_dimensions / (1<<ds.index.ds.over_refine_factor)
     reg0 = ParticleForest(ds.domain_left_edge, ds.domain_right_edge,
-                          N, len(ds.index.data_files), ds.over_refine_factor,
+                          len(ds.index.data_files), ds.over_refine_factor,
                           ds.n_ref, index_order1=order1, index_order2=order2)
     reg0.load_bitmasks(fname=bc94_coll)
     yield assert_true, reg0.iseq_bitmask(reg1)
@@ -1078,10 +1083,9 @@ def test_fill_masks():
     ds = yt.GadgetDataset(bc94, long_ids = True)
     ds.index._initialize_index(fname=bc94_coll, order1=order1, order2=order2)
     print "default_fluid_type",getattr(ds,"default_fluid_type")
-    N = ds_empty.domain_dimensions/(1<<ds_empty.over_refine_factor)
     reg = ds.index.regions
     reg0 = ParticleForest(ds_empty.domain_left_edge, ds_empty.domain_right_edge,
-                          N, ds_empty.nfiles, ds_empty.over_refine_factor,
+                          ds_empty.nfiles, ds_empty.over_refine_factor,
                           ds_empty.n_ref, index_order1=ds_empty.order1, index_order2=ds_empty.order2)
     reg0.load_bitmasks(fname=bc94_coll)
     tests_sph = {(0,0.9/float(1 << order1)):  8,
