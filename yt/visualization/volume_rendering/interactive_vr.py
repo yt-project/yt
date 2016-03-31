@@ -464,7 +464,7 @@ class BlockCollection(SceneComponent):
         return transformed_box
 
     def _load_textures(self):
-        print "Loading textures."
+        print("Loading textures.")
         if len(self.gl_texture_names) == 0:
             self.gl_texture_names = GL.glGenTextures(len(self.blocks))
             if len(self.blocks) == 1:

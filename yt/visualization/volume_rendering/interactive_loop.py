@@ -92,7 +92,7 @@ class RenderingContext(object):
         scene.set_camera(camera)
         scene.update_minmax()
         camera.compute_matrices()
-        print "Starting rendering..."
+        print("Starting rendering...")
         callbacks = EventCollection(scene, camera)
         callbacks.add_key_callback("close_window", "escape")
         callbacks.add_key_callback("zoomin", "w")

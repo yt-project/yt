@@ -269,15 +269,16 @@ def reset(event_coll, event):
 @register_event("print_limits")
 def print_limits(event_coll, event):
     """Print debug info about scene and camera"""
-    print event_coll.scene.min_val, event_coll.scene.max_val
-    print event_coll.camera.cmap_min, event_coll.camera.cmap_max, event_coll.camera.cmap_log
+    print(event_coll.scene.min_val, event_coll.scene.max_val)
+    print(event_coll.camera.cmap_min, event_coll.camera.cmap_max,
+          event_coll.camera.cmap_log)
     return False
 
 @register_event("debug_buffer")
 def debug_buffer(event_coll, event):
     """Print debug info about framebuffer"""
     buffer = event_coll.scene._retrieve_framebuffer()
-    print buffer.min(), buffer.max()
+    print(buffer.min(), buffer.max())
 
 @register_event("print_help")
 def print_help(event_coll, event):
@@ -347,8 +348,9 @@ class BlendFuncs(object):
         self.source_i = (self.source_i + 1) % len(self.possibilities)
         s = getattr(GL, self.possibilities[self.source_i])
         d = getattr(GL, self.possibilities[self.dest_i])
-        print "Setting source to %s and dest to %s" % (
-            self.possibilities[self.source_i], self.possibilities[self.dest_i])
+        print("Setting source to %s and dest to %s" %
+              (self.possibilities[self.source_i], 
+               self.possibilities[self.dest_i]))
         GL.glBlendFunc(s, d)
         return True
 
@@ -356,7 +358,8 @@ class BlendFuncs(object):
         self.dest_i = (self.dest_i + 1) % len(self.possibilities)
         s = getattr(GL, self.possibilities[self.source_i])
         d = getattr(GL, self.possibilities[self.dest_i])
-        print "Setting source to %s and dest to %s" % (
-            self.possibilities[self.source_i], self.possibilities[self.dest_i])
+        print("Setting source to %s and dest to %s" %
+              (self.possibilities[self.source_i],
+               self.possibilities[self.dest_i]))
         GL.glBlendFunc(s, d)
         return True
