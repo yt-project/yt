@@ -558,8 +558,8 @@ In order to add a new set of answer tests, it is sufficient to extend the
 Restricting Python Versions for Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If for some reason a test can be run only for specific version of python it is
-possible to specify this by adding ``[py2]`` or ``[py3]`` tag. For example:
+If for some reason a test can be run only for a specific version of python it is
+possible to indicate this by adding a ``[py2]`` or ``[py3]`` tag. For example:
 
 .. code-block:: yaml
 
