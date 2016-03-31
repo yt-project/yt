@@ -303,6 +303,25 @@ new developments and the infrastructure described in :ref:`volume_rendering`.
 
 .. yt_cookbook:: vol-annotated.py
 
+.. _cookbook-opengl_vr:
+
+Advanced Interactive Volume Rendering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to manually create all components required to
+start the Interactive Volume Rendering.
+
+.. yt_cookbook:: opengl_vr.py
+
+
+Embedding Interactive Volume Rendering
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to embed the Interactive Volume Rendering inside
+the Jupyter notebook.
+
+.. yt_cookbook:: opengl_ipython.py
+
 Plotting Streamlines
 ~~~~~~~~~~~~~~~~~~~~
 

@@ -1,5 +1,4 @@
 import yt
-import numpy as np
 from yt.visualization.volume_rendering.interactive_vr import \
     SceneGraph, BlockCollection, TrackballCamera
 from yt.visualization.volume_rendering.interactive_loop import \
