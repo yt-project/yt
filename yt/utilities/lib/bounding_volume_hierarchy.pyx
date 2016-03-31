@@ -5,6 +5,10 @@ from libc.math cimport fabs, fmax, fmin
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
 from vec3_ops cimport dot, subtract, cross
+from yt.utilities.lib.element_mappings cimport ElementSampler, \
+    Q1Sampler3D
+
+cdef ElementSampler Q1Sampler = Q1Sampler3D()
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -104,6 +108,10 @@ cdef class BVH:
                   np.int64_t[:, ::1] indices,
                   np.float64_t[:, ::1] field_data):
 
+        self.vertices = vertices
+        self.indices = indices
+        self.field_data = field_data
+
         cdef np.int64_t num_elem = indices.shape[0]
         cdef np.int64_t num_tri = 12*num_elem
 
@@ -185,6 +193,33 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef void intersect(self, Ray* ray) nogil:
         self._recursive_intersect(ray, self.root)
+        
+        if ray.elem_id < 0:
+            return
+
+        cdef np.float64_t[3] position
+        cdef np.float64_t[3] direction
+        cdef np.float64_t[8] field_data
+        cdef np.int64_t[8] element_indices
+        cdef np.float64_t[24] vertices
+
+        cdef np.int64_t i
+        for i in range(3):
+            position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
+            
+        for i in range(8):
+            element_indices[i] = self.indices[ray.elem_id][i]
+            field_data[i]      = self.field_data[ray.elem_id][i]
+
+        for i in range(8):
+            vertices[i*3]     = self.vertices[element_indices[i]][0]
+            vertices[i*3 + 1] = self.vertices[element_indices[i]][1]
+            vertices[i*3 + 2] = self.vertices[element_indices[i]][2]   
+
+        cdef double mapped_coord[3]
+        Q1Sampler.map_real_to_unit(mapped_coord, vertices, position)
+        val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
+        ray.data_val = val
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -277,6 +312,7 @@ cdef void cast_rays(np.float64_t* image,
             ray.t_far = INF
             ray.t_near = 0.0
             ray.data_val = 0
+            ray.elem_id = -1
             bvh.intersect(ray)
             image[i] = ray.data_val
 
