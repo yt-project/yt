@@ -1353,7 +1353,7 @@ else # INST_CONDA -eq 1
         echo "Installing pyembree from source"
         ( ${GETFILE} "$PYEMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
         log_cmd unzip ${DEST_DIR}/src/master.zip
-        pushd ${DEST_DIR}/src/pyembree-master &< /dev/null
+        pushd ${DEST_DIR}/src/pyembree-master &> /dev/null
         log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
         popd &> /dev/null
     fi
