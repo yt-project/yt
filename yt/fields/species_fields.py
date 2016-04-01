@@ -201,6 +201,7 @@ def setup_species_fields(registry, ftype = "gas", slice_info = None):
         func(registry, ftype, species, particle_type)
         # Adds aliases for all neutral species from their raw "MM_"
         # species to "MM_p0_" species to be explicit.
+        # See YTEP-0003 for more details.
         if (ChemicalFormula(species).charge == 0):
             alias_species = "%s_p0" % species.split('_')[0]
             add_species_aliases(registry, "gas", alias_species, species)
