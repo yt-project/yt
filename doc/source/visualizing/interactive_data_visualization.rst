@@ -69,8 +69,9 @@ called *vol_render*.
 .. image:: _images/idv.jpg
    :width: 1000
 
-By default it renders a Maximum Intensity Projection of the density field. The
-rendering can be dynamically modified using the following keybindings:
+By default it renders a Maximum Intensity Projection of the density field (see
+:ref:`projection-types` for more information). The rendering can be
+dynamically modified using the following keybindings:
 
 1
    Switch to MIP fragment shader
