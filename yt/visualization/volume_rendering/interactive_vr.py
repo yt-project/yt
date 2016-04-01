@@ -124,7 +124,57 @@ FULLSCREEN_QUAD = np.array(
      +1.0, +1.0, 0.0], dtype=np.float32
 )
 
-class TrackballCamera(object):
+
+class IDVCamera(object):
+    def __init__(self,
+                 position=(0.0, 0.0, 1.0),
+                 focus=(0.0, 0.0, 0.0),
+                 up=(0.0, 1.0, 0.0),
+                 fov=45.0, near_plane=0.01, far_plane=20.0,
+                 aspect_ratio=8.0/6.0):
+        self.position = np.array(position)
+        self.focus = np.array(focus)
+        self.up = np.array(up)
+        self.fov = fov
+        self.near_plane = near_plane
+        self.far_plane = far_plane
+        self.aspect_ratio = aspect_ratio
+        
+        # set cmap
+        cmap = cm.get_cmap("algae")   # TODO: get default_cmap
+        self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
+        self.cmap_min = 1e55
+        self.cmap_max = -1e55
+        self.cmap_log = True
+        self.cmap_new = True
+
+        self.view_matrix = np.zeros((4, 4), dtype=np.float32)
+        self.projection_matrix = np.zeros((4, 4), dtype=np.float32)
+        self.orientation = np.zeros((4, 4), dtype=np.float32)
+        self.proj_func = get_perspective_matrix
+
+    def compute_matrices(self):
+        pass
+
+    def update_orientation(self, start_x, start_y, end_x, end_y):
+        pass
+
+    def get_viewpoint(self):
+        return self.position
+
+    def get_view_matrix(self):
+        return self.view_matrix
+
+    def get_projection_matrix(self):
+        return self.projection_matrix
+    
+    def update_cmap_minmax(self, minval, maxval, iflog):
+        self.cmap_log = iflog
+        self.cmap_min = minval
+        self.cmap_max = maxval
+
+
+class TrackballCamera(IDVCamera):
     """
 
     This class implements a basic "Trackball" or "Arcball" camera control system
@@ -138,28 +188,15 @@ class TrackballCamera(object):
 
     """
 
-    def __init__(self,
-                 position=(0.0, 0.0, 1.0),
-                 focus=(0.0, 0.0, 0.0),
-                 up=(0.0, 1.0, 0.0),
-                 fov=45.0, near_plane=0.01, far_plane=20.0,
+    def __init__(self, position=(0.0, 0.0, 1.0), focus=(0.0, 0.0, 0.0),
+                 up=(0.0, 1.0, 0.0), fov=45.0, near_plane=0.01, far_plane=20.0,
                  aspect_ratio=8.0/6.0):
-        self.view_matrix = np.zeros((4, 4), dtype=np.float32)
-        self.proj_matrix = np.zeros((4, 4), dtype=np.float32)
-        self.proj_func = get_perspective_matrix
-        self.position = np.array(position)
-        self.focus = np.array(focus)
-        self.fov = fov
-        self.near_plane = near_plane
-        self.far_plane = far_plane
-        self.aspect_ratio = aspect_ratio
-        self.up = np.array(up)
-        cmap = cm.get_cmap("algae")
-        self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
-        self.cmap_min = 1e55
-        self.cmap_max = -1e55
-        self.cmap_log = True
-        self.cmap_new = True
+
+        super(TrackballCamera, self).__init__(position=position, focus=focus,
+                                              up=up, fov=fov, 
+                                              near_plane=near_plane,
+                                              far_plane=far_plane,
+                                              aspect_ratio=aspect_ratio)
 
         self.view_matrix = get_lookat_matrix(self.position,
                                              self.focus,
@@ -215,54 +252,6 @@ class TrackballCamera(object):
                                                 self.near_plane,
                                                 self.far_plane)
 
-    def get_viewpoint(self):
-        return self.position
-
-    def get_view_matrix(self):
-        return self.view_matrix
-
-    def get_projection_matrix(self):
-        return self.projection_matrix
-
-
-    def update_cmap_minmax(self, minval, maxval, iflog):
-        self.cmap_log = iflog
-        self.cmap_min = minval
-        self.cmap_max = maxval
-
-class Camera:
-    def __init__(self, position = (0, 0, 0), fov = 60.0, near_plane = 0.01,
-            far_plane = 20, aspect_ratio = 8.0 / 6.0, focus = (0, 0, 0),
-            up = (0, 0, 1)):
-        self.position = np.array(position)
-        self.fov = fov
-        self.near_plane = near_plane
-        self.far_plane = far_plane
-        self.aspect_ratio = aspect_ratio
-        self.up = np.array(up)
-        self.focus = np.array(focus)
-
-    def get_viewpoint(self):
-        return self.position
-
-    def get_view_matrix(self):
-        return get_lookat_matrix(self.position, self.focus, self.up)
-
-    def get_projection_matrix(self):
-        return self.proj_func(self.fov, self.aspect_ratio, self.near_plane,
-                              self.far_plane)
-
-    def update_position(self, theta, phi):
-        rho = np.linalg.norm(self.position)
-        curr_theta = np.arctan2( self.position[1], self.position[0] )
-        curr_phi = np.arctan2( np.linalg.norm(self.position[:2]), self.position[2])
-
-        curr_theta += theta
-        curr_phi += phi
-
-        self.position[0] = rho * np.sin(curr_phi) * np.cos(curr_theta)
-        self.position[1] = rho * np.sin(curr_phi) * np.sin(curr_theta)
-        self.position[2] = rho * np.cos(curr_phi)
 
 class SceneComponent(object):
     name = None

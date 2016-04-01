@@ -25,7 +25,8 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.AMR3DData`
+    data_source : :class:`yt.data_objects.data_containers.AMR3DData`,
+                  :class:`yt.data_objects.static_output.Dataset`
         This is the source to be rendered, which can be any arbitrary yt
         3D object
     field : string, tuple, optional
@@ -59,8 +60,8 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     else:
         dobj = data_source
     if field is None:
-        field = data_source.ds.default_field
-        if field not in data_source.ds.derived_field_list:
+        field = dobj.ds.default_field
+        if field not in dobj.ds.derived_field_list:
             raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
                   Please specify a field in create_scene()""" % (field, data_source.ds))
         mylog.info('Setting default field to %s' % field.__repr__())

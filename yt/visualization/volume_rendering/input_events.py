@@ -30,7 +30,15 @@ GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
                        'mods', 'width', 'height'])
 
 class EventCollection(object):
-    '''Class handling mouse and keyboard events occurring in IDV'''
+    '''Class handling mouse and keyboard events occurring in IDV
+    
+    Parameters
+    ----------
+    scene : :class:`yt.visualization.volume_rendering.interactive_vr.SceneGraph`
+
+    camera : :class:`yt.visualization.volume_rendering.interactive_vr.`
+    
+    '''
     def __init__(self, scene, camera):
         self.key_callbacks = defaultdict(list)
         self.mouse_callbacks = defaultdict(list)
