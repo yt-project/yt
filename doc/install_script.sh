@@ -745,33 +745,35 @@ then
     mkdir -p ${DEST_DIR}/src
     cd ${DEST_DIR}/src
 
-    PYTHON2='Python-2.7.9'
+    PYTHON2='Python-2.7.11'
     PYTHON3='Python-3.5.1'
-    CYTHON='Cython-0.22'
+    CYTHON='Cython-0.23.5'
     PYX='PyX-0.12.1'
     BZLIB='bzip2-1.0.6'
     FREETYPE_VER='freetype-2.4.12' 
     H5PY='h5py-2.5.0'
     HDF5='hdf5-1.8.14' 
     LAPACK='lapack-3.4.2'
-    PNG=libpng-1.6.3
-    MATPLOTLIB='matplotlib-1.4.3'
-    MERCURIAL='mercurial-3.7.2'
-    NOSE='nose-1.3.6'
-    NUMPY='numpy-1.9.2'
-    PYTHON_HGLIB='python-hglib-1.6'
+    PNG='libpng-1.6.3'
+    MATPLOTLIB='matplotlib-1.5.1'
+    MERCURIAL='mercurial-3.7.3'
+    NOSE='nose-1.3.7'
+    NUMPY='numpy-1.11.0'
+    PYTHON_HGLIB='python-hglib-2.0'
     ROCKSTAR='rockstar-0.99.6'
-    SCIPY='scipy-0.15.1'
+    SCIPY='scipy-0.17.0'
     SQLITE='sqlite-autoconf-3071700'
-    SYMPY='sympy-0.7.6'
+    SYMPY='sympy-1.0'
     ZLIB='zlib-1.2.8'
-    SETUPTOOLS='setuptools-18.0.1'
+    SETUPTOOLS='setuptools-20.6.7'
+    ASTROPY='astropy-1.1.2'
     
     # Now we dump all our SHA512 files out.
-    echo '856220fa579e272ac38dcef091760f527431ff3b98df9af6e68416fcf77d9659ac5abe5c7dee41331f359614637a4ff452033085335ee499830ed126ab584267  Cython-0.22.tar.gz' > Cython-0.22.tar.gz.sha512
+    echo '9052d74bbd0c93757fd916939cc3c39eb1aba6c9692b48887ae577256bec64b39b1fd25b6c751e6c8fe723de4c0ddf9a1a207de39f75b0839500dfcdde69f925  Cython-0.23.5.tar.gz' > Cython-0.23.5.tar.gz.sha512
     echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
-    echo 'a42f28ed8e49f04cf89e2ea7434c5ecbc264e7188dcb79ab97f745adf664dd9ab57f9a913543731635f90859536244ac37dca9adf0fc2aa1b215ba884839d160  Python-2.7.9.tgz' > Python-2.7.9.tgz.sha512
+    echo 'f21df53da87e9e3c14599a34388976e7dd09b951dff3c4b978fe224beeff07e749c0059ffd94f68ca9b75ecaef142b285d579b8dfaad4eab85aca33957114937  Python-2.7.11.tgz' > Python-2.7.11.tgz.sha512
     echo '73f1477f3d3f5bd978c4ea1d1b679467b45e9fd2f443287b88c5c107a9ced580c56e0e8f33acea84e06b11a252e2a4e733120b721a9b6e1bb3d34493a3353bfb  Python-3.5.1.tgz' > Python-3.5.1.tgz.sha512
+    echo 'b83c4a1415a3eb8c016507705d0d2f22971e4da937bb97953eec08f8f856933d8fa76ce8c536122235b19e7879b16add2e20fd2fee3e488f9b2b4bf1b9f4dbdb  astropy-1.1.2.tar.gz' > astropy.1.1.2.tar.gz
     echo '276bd9c061ec9a27d478b33078a86f93164ee2da72210e12e2c9da71dcffeb64767e4460b93f257302b09328eda8655e93c4b9ae85e74472869afbeae35ca71e  blas.tar.gz' > blas.tar.gz.sha512
     echo '00ace5438cfa0c577e5f578d8a808613187eff5217c35164ffe044fbafdfec9e98f4192c02a7d67e01e5a5ccced630583ad1003c37697219b0f147343a3fdd12  bzip2-1.0.6.tar.gz' > bzip2-1.0.6.tar.gz.sha512
     echo '609a68a3675087e0cc95268574f31e104549daa48efe15a25a33b8e269a93b4bd160f4c3e8178dca9c950ef5ca514b039d6fd1b45db6af57f25342464d0429ce  freetype-2.4.12.tar.gz' > freetype-2.4.12.tar.gz.sha512
@@ -779,16 +781,17 @@ then
     echo '4073fba510ccadaba41db0939f909613c9cb52ba8fb6c1062fc9118edc601394c75e102310be1af4077d07c9b327e6bbb1a6359939a7268dc140382d0c1e0199  hdf5-1.8.14.tar.gz' > hdf5-1.8.14.tar.gz.sha512
     echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
     echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
-    echo '51b0f58b2618b47b653e17e4f6b6a1215d3a3b0f1331ce3555cc7435e365d9c75693f289ce12fe3bf8f69fd57b663e545f0f1c2c94e81eaa661cac0689e125f5  matplotlib-1.4.3.tar.gz' > matplotlib-1.4.3.tar.gz.sha512
-    echo '573b35052ec50f4672cdd5afd93080edc864deb854b890c8cedba53c40d6d3a37a560e364b94b819cfc6d9fc5c07c0411a13167f0888007e5c9366bc94154306  mercurial-3.7.2.tar.gz' > mercurial-3.7.2.tar.gz.sha512
-    echo 'd0cede08dc33a8ac0af0f18063e57f31b615f06e911edb5ca264575174d8f4adb4338448968c403811d9dcc60f38ade3164662d6c7b69b499f56f0984bb6283c  nose-1.3.6.tar.gz' > nose-1.3.6.tar.gz.sha512
-    echo '70470ebb9afef5dfd0c83ceb7a9d5f1b7a072b1a9b54b04f04f5ed50fbaedd5b4906bd500472268d478f94df9e749a88698b1ff30f2d80258e7f3fec040617d9  numpy-1.9.2.tar.gz' > numpy-1.9.2.tar.gz.sha512
-    echo 'bfd10455e74e30df568c4c4827140fb6cc29893b0e062ce1764bd52852ec7487a70a0f5ea53c3fca7886f5d36365c9f4db52b8c93cad35fb67beeb44a2d56f2d  python-hglib-1.6.tar.gz' > python-hglib-1.6.tar.gz.sha512
-    echo 'fff4412d850c431a1b4e6ee3b17958ee5ab3beb81e6cb8a8e7d56d368751eaa8781d7c3e69d932dc002d718fddc66a72098acfe74cfe29ec80b24e6736317275  scipy-0.15.1.tar.gz' > scipy-0.15.1.tar.gz.sha512
+    echo 'a0e78b5027a3a49cf8e77dc0d26f5f380dcd80f7b309b6121199acd5e1d94f48482864a9eee3bd397f7ac6f07fe1d3c21bf517217df3c72e8e3d105b7c2ae58e  matplotlib-1.5.1.tar.gz' > matplotlib-1.5.1.tar.gz.sha512
+    echo '7f9f97229e40c7092c16ccf227b19a08a9839d8ce19a9d057341fff75876bff32241ee9aa10eab293f779ea3e8a1d97577597187bd96251fb499cbb1075a82cf  mercurial-3.7.3.tar.gz' > mercurial-3.7.3.tar.gz.sha512
+    echo 'e65c914f621f8da06b9ab11a0ff2763d6e29b82ce2aaed56da0e3773dc899d9deb1f20015789d44c65a5dad7214520f5b659b3f8d7695fb207ad3f78e5cf1b62  nose-1.3.7.tar.gz' > nose-1.3.7.tar.gz.sha512
+    echo '92c1889397ad013e25da3a0657fc01e787d528fc19c29cc2acd286c3f07d41b984252583457b1b9259fc303afbe9694565cdcf5752eb4ecb950cc7a99ec1ad8b  numpy-1.11.0.tar.gz' > numpy-1.11.0.tar.gz.sha512
+    echo '647cc82424783efc3d74540e34976af66acc35fc36d66afba169508946cc62027910c7e41dc9d11ec88c15d6b1e113ce22c2781711ea324de58db3b24d5079c4  python-hglib-2.0.tar.gz' > python-hglib-2.0.tar.gz.sha512
+    echo 'de6409d75a3ff3cf1e5391d3b09126f0bc7e1a40a15f9bee244195638fe2f8481fca032896d8534623e6122ff59aaf669664e27ff89cf1b094a5ce7312f220b7  scipy-0.17.0.tar.gz' > scipy-0.17.0.tar.gz.sha512
     echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
-    echo 'ce0f1a17ac01eb48aec31fc0ad431d9d7ed9907f0e8584a6d79d0ffe6864fe62e203fe3f2a3c3e4e3d485809750ce07507a6488e776a388a7a9a713110882fcf  sympy-0.7.6.tar.gz' > sympy-0.7.6.tar.gz.sha512
+    echo '977db6e9bc6a5918cceb255981a57e85e7060c0922aefd2968b004d25d704e25a5cb5bbe09eb387e8695581e23e2825d9c40310068fe25ece7e9c23037a21f39  sympy-1.0.tar.gz' > sympy-1.0.tar.gz.sha512
     echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
-    echo '9b318ce2ee2cf787929dcb886d76c492b433e71024fda9452d8b4927652a298d6bd1bdb7a4c73883a98e100024f89b46ea8aa14b250f896e549e6dd7e10a6b41  setuptools-18.0.1.tar.gz' > setuptools-18.0.1.tar.gz.sha512
+    echo '91a212b5007f9fdfacb4341e06dc0355c5c29897eb8ea407dd4864091f845ba1417bb0d33b5ed6897869d0233e2d0ec6548898d3dbe9eda23f751829bd51a104  setuptools-20.6.7.tar.gz' > setuptools-20.6.7.tar.gz.sha512
+    echo 'b83c4a1415a3eb8c016507705d0d2f22971e4da937bb97953eec08f8f856933d8fa76ce8c536122235b19e7879b16add2e20fd2fee3e488f9b2b4bf1b9f4dbdb  astropy-1.1.2.tar.gz' > astropy-1.1.2.tar.gz
     # Individual processes
     [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
     [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
@@ -804,6 +807,7 @@ then
     [ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
     [ $INST_H5PY -eq 1 ] && get_ytproject $H5PY.tat.gz
     [ $INST_NOSE -eq 1 ] && get_ytproject $NOSE.tar.gz
+    [ $INST_ASTROPY -eq 1] && get_ytproject $ASTROPY.tar.gz
     get_ytproject $PYTHON2.tgz
     get_ytproject $NUMPY.tar.gz
     get_ytproject $MATPLOTLIB.tar.gz
@@ -1095,8 +1099,18 @@ then
     ( ${DEST_DIR}/bin/pip install "jupyter<2.0.0" 2>&1 ) 1>> ${LOG_FILE}
     
     do_setup_py $CYTHON
-    do_setup_py $H5PY
-    do_setup_py $NOSE
+    if [ $INST_H5PY -eq 1 ]
+    then
+        do_setup_py $H5PY
+    fi
+    if [ $INST_NOSE -eq 1 ]
+    then
+        do_setup_py $NOSE
+    fi
+    if [ $INST_ASTROPY -eq 1]
+    then
+        do_setup_py $ASTROPY
+    fi
     do_setup_py $PYTHON_HGLIB
     do_setup_py $SYMPY
     [ $INST_PYX -eq 1 ] && do_setup_py $PYX
