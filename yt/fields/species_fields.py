@@ -114,6 +114,24 @@ def add_species_field_by_fraction(registry, ftype, species,
                        particle_type = particle_type,
                        units = unit_system["number_density"])
 
+def add_species_aliases(registry, ftype, alias_species, species):
+    """
+    This takes a field registry, a fluid type, and two species names.  
+    The first species name is one you wish to alias to an existing species
+    name.  For instance you might alias all "H_p0" fields to "H_" fields
+    to indicate that "H_" fields are really just neutral hydrogen fields.
+    This function registers field aliases for the density, number_density,
+    mass, and fraction fields between the two species given in the arguments.
+    """
+    registry.alias((ftype, "%s_density" % alias_species), 
+                   (ftype, "%s_density" % species))
+    registry.alias((ftype, "%s_fraction" % alias_species), 
+                   (ftype, "%s_fraction" % species))
+    registry.alias((ftype, "%s_number_density" % alias_species), 
+                   (ftype, "%s_number_density" % species))
+    registry.alias((ftype, "%s_mass" % alias_species), 
+                   (ftype, "%s_mass" % species))
+
 def add_nuclei_density_fields(registry, ftype,
                               particle_type = False):
     unit_system = registry.ds.unit_system
@@ -181,4 +199,9 @@ def setup_species_fields(registry, ftype = "gas", slice_info = None):
             # Skip it
             continue
         func(registry, ftype, species, particle_type)
+        # Adds aliases for all neutral species from their raw "MM_"
+        # species to "MM_p0_" species to be explicit.
+        if (ChemicalFormula(species).charge == 0):
+            alias_species = "%s_p0" % species.split('_')[0]
+            add_species_aliases(registry, "gas", alias_species, species)
     add_nuclei_density_fields(registry, ftype, particle_type=particle_type)
