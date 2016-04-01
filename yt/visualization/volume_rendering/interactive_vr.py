@@ -18,8 +18,9 @@ import os
 import re
 import OpenGL.GL as GL
 from collections import OrderedDict
-
+import matplotlib.cm as cm
 import numpy as np
+
 from yt.utilities.math_utils import \
     get_translate_matrix, \
     get_scale_matrix, \
@@ -31,50 +32,6 @@ from yt.utilities.math_utils import \
 from yt.utilities.exceptions import \
     YTInvalidShaderType
 from .shader_objects import known_shaders, ShaderProgram
-
-import matplotlib.cm as cm
-
-def _compile_shader(source, shader_type=None):
-    '''A wrapper for OpenGL glCreateShader.
-    '''
-    if shader_type is None:
-        try:
-            shader_type = re.match("^.*\.(vertex|fragment)shader$",
-                                   source).groups()[0]
-        except AttributeError:
-            raise YTInvalidShaderType(source)
-
-    if os.path.isfile(source):
-        sh_directory = ''
-    else:
-        sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
-    shader = GL.glCreateShader(
-        eval("GL.GL_{}_SHADER".format(shader_type.upper()))
-    )
-
-    with open(os.path.join(sh_directory, source), 'r') as fp:
-        GL.glShaderSource(shader, fp.read())
-    GL.glCompileShader(shader)
-    result = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
-    if not(result):
-        raise RuntimeError(GL.glGetShaderInfoLog(shader))
-    return shader
-
-def link_shader_program(shaders):
-    """Create a shader program with from compiled shaders."""
-    compiled_shaders = []
-    program = GL.glCreateProgram()
-    for shader in shaders:
-        compiled_shaders.append(_compile_shader(shader))
-        GL.glAttachShader(program, compiled_shaders[-1])
-    GL.glLinkProgram(program)
-    # check linking error
-    result = GL.glGetProgramiv(program, GL.GL_LINK_STATUS)
-    if not(result):
-        raise RuntimeError(GL.glGetProgramInfoLog(program))
-    for shader in compiled_shaders:
-        GL.glDeleteShader(shader)
-    return program
 
 
 bbox_vertices = np.array(
@@ -126,6 +83,27 @@ FULLSCREEN_QUAD = np.array(
 
 
 class IDVCamera(object):
+    '''Camera object used in the Interactive Data Visualization
+
+    Parameters
+    ----------
+
+    position : iterable, or 3 element array in code_length
+        The initial position of the camera.
+    focus : iterable, or 3 element array in code_length
+        A point in space that the camera is looking at.
+    up : iterable, or 3 element array in code_length
+        The 'up' direction for the camera.
+    fov : float, optional
+        An angle defining field of view in degrees.
+    near_plane : float, optional
+        The distance to the near plane of the perspective camera.
+    far_plane : float, optional
+        The distance to the far plane of the perspective camera.
+    aspect_ratio: float, optional
+        The ratio between the height and the width of the camera's fov.
+
+    '''
     def __init__(self,
                  position=(0.0, 0.0, 1.0),
                  focus=(0.0, 0.0, 0.0),
@@ -154,9 +132,25 @@ class IDVCamera(object):
         self.proj_func = get_perspective_matrix
 
     def compute_matrices(self):
+        '''Regenerate all position, view and projection matrices of the camera.'''
         pass
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
+        '''Change camera orientation matrix using delta of mouse's cursor position
+        
+        Parameters
+        ----------
+
+        start_x : float
+            initial cursor position in x direction
+        start_y : float
+            initial cursor position in y direction
+        end_x : float
+            final cursor position in x direction
+        end_y : float
+            final cursor position in y direction
+
+        '''
         pass
 
     def get_viewpoint(self):
@@ -169,6 +163,18 @@ class IDVCamera(object):
         return self.projection_matrix
     
     def update_cmap_minmax(self, minval, maxval, iflog):
+        '''Update camera's colormap bounds
+
+        Parameters
+        ----------
+        
+        minval: float
+            min color limit used for image scaling
+        maxval: float
+            max color limit used for image scaling
+        iflog: boolean
+            Set to True if colormap is using log scale, False for linear scale.
+        '''
         self.cmap_log = iflog
         self.cmap_min = minval
         self.cmap_max = maxval
@@ -254,6 +260,13 @@ class TrackballCamera(IDVCamera):
 
 
 class SceneComponent(object):
+    """A class that defines basic OpenGL object
+
+    This class contains the largest common set of features that every object in
+    the OpenGL rendering uses: a set of vertices, a set of vertex attributes and
+    a shader program to operate on them.
+
+    """
     name = None
     _program = None
     _program_invalid = True
@@ -316,9 +329,19 @@ class SceneComponent(object):
             raise KeyError(shader.shader_type)
         self._program_invalid = True
 
+
 class BlockCollection(SceneComponent):
     name = "block_collection"
-    def __init__(self, scale = False):
+    def __init__(self, scale=False):
+        '''Class responsible for converting yt data objects into a set of 3D textures
+        
+        Parameters
+        ----------
+
+        scale : boolean, optional
+            Rescale the data passed to the texture from 0 to 1
+
+        '''
         self.scale = scale
         super(BlockCollection, self).__init__()
         self.set_shader("default.v")
@@ -349,6 +372,15 @@ class BlockCollection(SceneComponent):
         GL.glBlendEquation(GL.GL_MAX)
 
     def set_fields_log(self, log_field):
+        """Switch between a logarithmic and a linear scale for the data.
+
+        Parameters
+        ----------
+
+        log_field : boolean
+            If set to True log10 will be applied to data before passing it to GPU.
+
+        """
         self.add_data(self.data_source, self.data_source.tiles.fields[0], log_field)
 
     def add_data(self, data_source, field, log_field=True):
@@ -361,9 +393,10 @@ class BlockCollection(SceneComponent):
         ----------
         data_source : YTRegion
             A YTRegion object to use as a data source.
-        field - String
+        field : string
             A field to populate from.
-
+        log_field : boolean, optional
+            If set to True log10 will be applied to data before passing it to GPU.
         """
         self.data_source = data_source
         self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
@@ -424,7 +457,7 @@ class BlockCollection(SceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
             A simple camera object.
 
         """
@@ -503,7 +536,23 @@ class BlockCollection(SceneComponent):
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
+
 class SceneGraph(SceneComponent):
+    """A basic OpenGL render for IDV.
+
+    The SceneGraph class is the primary driver behind creating a IDV rendering.
+    It is responsible for performing two pass volume rendering: firstly ray
+    casting through the BlockCollection into 2D Texture that is stored into a
+    framebuffer, secondly performing a fragment shader based modification of
+    the 2D texture from the first pass before showing it in the interactive
+    window.
+
+    Parameters
+    ----------
+    None
+
+    """
+
     def __init__(self):
         super(SceneGraph, self).__init__()
         self.collections = []

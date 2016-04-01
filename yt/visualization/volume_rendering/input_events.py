@@ -35,8 +35,10 @@ class EventCollection(object):
     Parameters
     ----------
     scene : :class:`yt.visualization.volume_rendering.interactive_vr.SceneGraph`
+        A current scene object used in the IDV
 
-    camera : :class:`yt.visualization.volume_rendering.interactive_vr.`
+    camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
+        A current camera object used in the IDV
     
     '''
     def __init__(self, scene, camera):
