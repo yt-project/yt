@@ -13,13 +13,44 @@ Helper routines for Interactive Data Visualization
 
 # This part of the experimental Interactive Data Visualization
 
-from yt.utilities.on_demand_imports import NotAModule
-from yt.data_objects.static_output import Dataset
 import numpy as np
+from yt.funcs import mylog
+from yt.data_objects.static_output import Dataset
+from yt.utilities.exceptions import YTSceneFieldNotFound
+from yt.utilities.on_demand_imports import NotAModule
 
 def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
                    cam_focus=None):
-    '''High level wrapper for Interactive Data Visualization'''
+    '''High level wrapper for Interactive Data Visualization
+    
+    Parameters
+    ----------
+    data_source : :class:`yt.data_objects.data_containers.AMR3DData`
+        This is the source to be rendered, which can be any arbitrary yt
+        3D object
+    field : string, tuple, optional
+        The field to be rendered. If unspecified, this will use the
+        default_field for your dataset's frontend--usually ('gas', 'density').
+    window_size : 2 element tuple of ints
+        The width and the height of the Interactive Data Visualization window.
+        For performance reasons it is recommended to use values that are natural
+        powers of 2.
+    cam_position : 3 element YTArray, optional
+        The camera position in physical coordinates. If unspecified,
+        data_source's domain right edge will be used.
+    cam_focus: 3 element YTArray, optional
+        The focus defines the point the camera is pointed at. If unspecified,
+        data_source's domain center will be used.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("Enzo_64/DD0046/DD0046")
+    >>> yt.interactive_render(ds)
+
+    '''
+
     from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera
     from .interactive_loop import RenderingContext
 
@@ -28,7 +59,11 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     else:
         dobj = data_source
     if field is None:
-        field = ("gas", "density")
+        field = data_source.ds.default_field
+        if field not in data_source.ds.derived_field_list:
+            raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
+                  Please specify a field in create_scene()""" % (field, data_source.ds))
+        mylog.info('Setting default field to %s' % field.__repr__())
     if window_size is None:
         window_size = (1024, 1024)
     if cam_position is None:

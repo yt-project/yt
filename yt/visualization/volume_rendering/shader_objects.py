@@ -27,7 +27,21 @@ from yt.utilities.exceptions import \
 known_shaders = {}
 
 class ShaderProgram(object):
-    def __init__(self, vertex_shader = None, fragment_shader = None):
+    '''
+    Wrapper class that compiles and links vertex and fragment shaders
+    into shader program.
+
+    Parameters
+    ----------
+
+    vertex_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
+        The vertex shader used in the Interactive Data Visualization pipeline.
+
+    fragment_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
+        The fragment shader used in the Interactive Data Visualization pipeline.
+    '''
+
+    def __init__(self, vertex_shader=None, fragment_shader=None):
         # Don't allow just one.  Either neither or both.
         if vertex_shader is None and fragment_shader is None:
             pass
@@ -131,10 +145,24 @@ class RegisteredShader(type):
 
 @add_metaclass(RegisteredShader)
 class Shader(object):
+    '''
+    Creates a shader from source
+
+    Parameters
+    ----------
+
+    source : str
+        This can either be a string containing a full source of a shader,
+        an absolute path to a source file or a filename of a shader
+        residing in the ./shaders/ directory.
+
+    '''
+
     _shader = None
     _source = None
     _shader_name = None
-    def __init__(self, source = None):
+
+    def __init__(self, source=None):
         if source:
             self.compile(source)
 
@@ -186,39 +214,58 @@ class Shader(object):
         self.delete_shader()
 
 class FragmentShader(Shader):
+    '''Wrapper class for fragment shaders'''
     shader_type = "fragment"
 
 class VertexShader(Shader):
+    '''Wrapper class for vertex shaders'''
     shader_type = "vertex"
 
 class ApplyColormapFragmentShader(FragmentShader):
+    '''A second pass fragment shader used to apply a colormap to the result of
+    the first pass rendering'''
     _source = "apply_colormap.fragmentshader"
     _shader_name = "apply_colormap.f"
 
 class MaxIntensityFragmentShader(FragmentShader):
+    '''A first pass fragment shader that computes Maximum Intensity Projection
+    of the data. See :ref:`projection-types` for more information.'''
     _source = "max_intensity.fragmentshader"
     _shader_name = "max_intensity.f"
 
 class NoOpFragmentShader(FragmentShader):
+    '''A second pass fragment shader that performs no operation. Usually used if
+    the first pass already took care of applying proper color to the data'''
     _source = "noop.fragmentshader"
     _shader_name = "noop.f"
 
 class PassthroughFragmentShader(FragmentShader):
+    '''A first pass fragment shader that performs no operation. Used for debug
+    puproses. It's distinct from NoOpFragmentShader, because of the number of
+    uniforms'''
     _source = "passthrough.fragmentshader"
     _shader_name = "passthrough.f"
 
 class ProjectionFragmentShader(FragmentShader):
+    '''A first pass fragment shader that performs unweighted integration of the
+    data along the line of sight. See :ref:`projection-types` for more
+    information.'''
     _source = "projection.fragmentshader"
     _shader_name = "projection.f"
 
 class TransferFunctionFragmentShader(FragmentShader):
+    '''A first pass fragment shader that performs ray casting using transfer
+    function. See :ref:`volume-rendering-method` for more details.'''
     _source = "transfer_function.fragmentshader"
     _shader_name = "transfer_function.f"
 
 class DefaultVertexShader(VertexShader):
+    '''A first pass vertex shader that tranlates the location of vertices from
+    the world coordinates to the viewing plane coordinates'''
     _source = "default.vertexshader"
     _shader_name = "default.v"
 
 class PassthroughVertexShader(VertexShader):
+    '''A second pass vertex shader that performs no operations on vertices'''
     _source = "passthrough.vertexshader"
     _shader_name = "passthrough.v"
