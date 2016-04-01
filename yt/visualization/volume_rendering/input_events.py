@@ -211,10 +211,30 @@ def shader_test(event_coll, event):
         collection.set_fields_log(True)
     #scene.update_minmax()
     # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
-    #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
-    GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    GL.glBlendEquation(GL.GL_FUNC_ADD)
+    GL.glBlendEquationSeparate(GL.GL_FUNC_ADD, GL.GL_FUNC_ADD)
+    GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE, GL.GL_ZERO)
     return True
+
+@register_event("shader_lines")
+def shader_lines(event_coll, event):
+    print("Changing shader to projection")
+    scene = event_coll.scene
+    for coll in scene.collections:
+        coll.set_shader("default.v")
+        coll.set_shader("drawlines.f")
+    scene.set_shader("passthrough.v")
+    scene.set_shader("noop.f")
+    for collection in scene.collections:
+        collection.set_fields_log(True)
+    #scene.update_minmax()
+    # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
+    #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
+    #GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    #GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_SRC_ALPHA)
+    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
+    GL.glBlendEquation(GL.GL_MAX)
+    return True
+
 
 @register_event("cmap_cycle")
 def cmap_cycle(event_coll, event):
@@ -316,6 +336,18 @@ def print_help(event_coll, event):
         print("%s - %s" % (key_map[cb[0]],
                            event_coll.key_callbacks[cb][0].__doc__))
     return False
+
+@register_event("nplane_closer")
+def nplane_closer(event_coll, event):
+    print("nearplane", event_coll.camera.near_plane)
+    event_coll.camera.near_plane /= 2.0
+    return True
+
+@register_event("nplane_further")
+def nplane_further(event_coll, event):
+    print("nearplane", event_coll.camera.near_plane)
+    event_coll.camera.near_plane *= 2.0
+    return True
 
 class MouseRotation(object):
     '''Class translating mouse movements to positions in OpenGL scene's coordinates'''
