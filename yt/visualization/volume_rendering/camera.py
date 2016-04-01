@@ -24,6 +24,7 @@ from .lens import \
     Lens
 import numpy as np
 from numbers import Number as numeric_type
+import weakref
 
 def _sanitize_camera_property_units(value, scene):
     if iterable(value):
@@ -126,7 +127,7 @@ class Camera(Orientation):
             raise RuntimeError(
                 'The first argument passed to the Camera initializer is a '
                 '%s object, expected a %s object' % (type(scene), Scene))
-        self.scene = scene
+        self.scene = weakref.proxy(scene)
         self.lens = None
         self.north_vector = None
         self.normal_vector = None
