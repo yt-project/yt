@@ -22,8 +22,21 @@ from .input_events import EventCollection, MouseRotation
 from yt import write_bitmap
 
 class EGLRenderingContext(object):
-    '''Rendering context using EGL (experimental)'''
-    def __init__(self, width = 800, height = 600, title = "vol_render"):
+    '''Rendering context using EGL (experimental)
+
+    Parameters
+    ----------
+    width : int, optional
+        The width of the off-screen buffer window.  For performance reasons it
+        is recommended to use values that are natural powers of 2.
+
+    height : int, optional
+        The height of the off-screen buffer window.  For performance reasons it
+        it is recommended to use values that are natural powers of 2.
+
+    '''
+
+    def __init__(self, width=1024, height=1024):
         from OpenGL import EGL
         self.EGL = EGL
         self.display = EGL.eglGetDisplay(EGL.EGL_DEFAULT_DISPLAY)
@@ -85,9 +98,24 @@ class EGLRenderingContext(object):
         write_bitmap(arr, "test.png")
 
 class RenderingContext(object):
-    '''Basic rendering context for IDV using GLFW3, that handles the main window even loop'''
+    '''Basic rendering context for IDV using GLFW3, that handles the main window even loop
+    
+    Parameters
+    ----------
+    width : int, optional
+        The width of the Interactive Data Visualization window.  For
+        performance reasons it is recommended to use values that are natural
+        powers of 2.
+    height : int, optional
+        The height of the Interactive Data Visualization window.  For
+        performance reasons it is recommended to use values that are natural
+        powers of 2.
+    title : str, optional
+        The title of the Interactive Data Visualization window. 
+    
+    '''
     should_quit = False
-    def __init__(self, width = 800, height = 600, title = "vol_render"):
+    def __init__(self, width=1024, height=1024, title="vol_render"):
         glfw.Init()
         glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
@@ -110,6 +138,8 @@ class RenderingContext(object):
         camera.compute_matrices()
         print("Starting rendering...")
         callbacks = EventCollection(scene, camera)
+        # register key callbacks defined in 
+        # yt.visualization.volume_rendering.input_events
         callbacks.add_key_callback("close_window", "escape")
         callbacks.add_key_callback("zoomin", "w")
         callbacks.add_key_callback("zoomout", "s")
