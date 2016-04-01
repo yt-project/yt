@@ -404,7 +404,7 @@ class BlockCollection(SceneComponent):
             self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
             dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
-            n = vert[-1].size/4
+            n = int(vert[-1].size) // 4
             dx.append([dds.astype('f4') for _ in range(n)])
             le.append([block.LeftEdge.astype('f4') for _ in range(n)])
             re.append([block.RightEdge.astype('f4') for _ in range(n)])
