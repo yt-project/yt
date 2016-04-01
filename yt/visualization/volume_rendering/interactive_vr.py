@@ -14,8 +14,6 @@ Interactive Data Visualization classes for Scene, Camera and BlockCollection
 
 # This is a part of the experimental Interactive Data Visualization
 
-import os
-import re
 import OpenGL.GL as GL
 from collections import OrderedDict
 import matplotlib.cm as cm
@@ -29,8 +27,6 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
-from yt.utilities.exceptions import \
-    YTInvalidShaderType
 from .shader_objects import known_shaders, ShaderProgram
 
 
