@@ -5,10 +5,16 @@ from libc.math cimport fabs, fmax, fmin
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
 from vec3_ops cimport dot, subtract, cross
-from yt.utilities.lib.element_mappings cimport ElementSampler, \
-    Q1Sampler3D
+from yt.utilities.lib.element_mappings cimport \
+    ElementSampler, \
+    Q1Sampler3D, \
+    P1Sampler3D, \
+    Q1Sampler3D, \
+    W1Sampler3D
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
+cdef ElementSampler P1Sampler = P1Sampler3D()
+cdef ElementSampler W1Sampler = W1Sampler3D()
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -103,27 +109,40 @@ cdef class BVH:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def __cinit__(self,
-                  np.float64_t[:, ::1] vertices,
-                  np.int64_t[:, ::1] indices,
-                  np.float64_t[:, ::1] field_data):
+                  np.float64_t[:, :] vertices,
+                  np.int64_t[:, :] indices,
+                  np.float64_t[:, :] field_data):
 
-        self.vertices = vertices
-        self.indices = indices
-        self.field_data = field_data
+        self.num_elem = indices.shape[0]
+        self.num_verts_per_elem = indices.shape[1]
+        self.num_tri_per_elem = 12
+        self.num_tri = self.num_tri_per_elem*self.num_elem
+        self.sampler = Q1Sampler
 
-        cdef np.int64_t num_elem = indices.shape[0]
-        cdef np.int64_t num_verts_per_elem = indices.shape[1]
-        cdef np.int64_t num_tri = 12*num_elem
+        # allocate storage
+        cdef np.int64_t size = self.num_verts_per_elem * self.num_elem
+        self.vertices = <np.float64_t*> malloc(size * 3 * sizeof(np.float64_t))
+        self.field_data = <np.float64_t*> malloc(size * sizeof(np.float64_t))
+
+        # create data buffers
+        cdef np.int64_t i, j, k
+        cdef np.int64_t field_offset, vertex_offset
+        for i in range(self.num_elem):
+            field_offset = i*self.num_verts_per_elem
+            for j in range(self.num_verts_per_elem):
+                vertex_offset = i*self.num_verts_per_elem*3 + j*3
+                self.field_data[field_offset + j] = field_data[i][j]
+                for k in range(3):
+                    self.vertices[vertex_offset + k] = vertices[indices[i,j]][k]
 
         # fill our array of triangles
-        cdef np.int64_t i, j, k
         cdef np.int64_t offset, tri_index
         cdef np.int64_t v0, v1, v2
         cdef Triangle* tri
-        self.triangles = <Triangle*> malloc(num_tri * sizeof(Triangle))
-        for i in range(num_elem):
-            offset = 12*i
-            for j in range(12):
+        self.triangles = <Triangle*> malloc(self.num_tri * sizeof(Triangle))
+        for i in range(self.num_elem):
+            offset = self.num_tri_per_elem*i
+            for j in range(self.num_tri_per_elem):
                 tri_index = offset + j
                 tri = &(self.triangles[tri_index])
                 tri.elem_id = i
@@ -138,7 +157,7 @@ cdef class BVH:
                     tri.bbox.left_edge[k]  = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
                     tri.bbox.right_edge[k] = fmax(fmax(tri.p0[k], tri.p1[k]), tri.p2[k])
 
-        self.root = self._recursive_build(0, num_tri)
+        self.root = self._recursive_build(0, self.num_tri)
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
         if node.end - node.begin > LEAF_SIZE:
@@ -149,6 +168,8 @@ cdef class BVH:
     def __dealloc__(self):
         self._recursive_free(self.root)
         free(self.triangles)
+        free(self.field_data)
+        free(self.vertices)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -195,28 +216,17 @@ cdef class BVH:
             return
 
         cdef np.float64_t[3] position
-        cdef np.float64_t[3] direction
-        cdef np.float64_t[8] field_data
-        cdef np.int64_t[8] element_indices
-        cdef np.float64_t[24] vertices
-
         cdef np.int64_t i
         for i in range(3):
             position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
             
-        for i in range(8):
-            element_indices[i] = self.indices[ray.elem_id][i]
-            field_data[i]      = self.field_data[ray.elem_id][i]
-
-        for i in range(8):
-            vertices[i*3]     = self.vertices[element_indices[i]][0]
-            vertices[i*3 + 1] = self.vertices[element_indices[i]][1]
-            vertices[i*3 + 2] = self.vertices[element_indices[i]][2]   
-
-        cdef double mapped_coord[3]
-        Q1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-        val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
-        ray.data_val = val
+        cdef np.float64_t* vertex_ptr
+        cdef np.float64_t* field_ptr         
+        vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
+        field_ptr = self.field_data + ray.elem_id*self.num_verts_per_elem
+        ray.data_val = self.sampler.sample_at_real_point(vertex_ptr,
+                                                         field_ptr,
+                                                         position)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

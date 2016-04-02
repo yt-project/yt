@@ -1,6 +1,7 @@
 cimport cython 
 import numpy as np
 cimport numpy as np
+from yt.utilities.lib.element_mappings cimport ElementSampler
 
 # ray data structure
 cdef struct Ray:
@@ -37,9 +38,13 @@ cdef struct Triangle:
 cdef class BVH:
     cdef BVHNode* root
     cdef Triangle* triangles
-    cdef np.float64_t[:, ::1] vertices
-    cdef np.int64_t[:, ::1] indices
-    cdef np.float64_t[:, ::1] field_data
+    cdef np.float64_t* vertices
+    cdef np.float64_t* field_data
+    cdef np.int64_t num_tri_per_elem
+    cdef np.int64_t num_tri
+    cdef np.int64_t num_elem
+    cdef np.int64_t num_verts_per_elem
+    cdef ElementSampler sampler
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil
     cdef void intersect(self, Ray* ray) nogil
