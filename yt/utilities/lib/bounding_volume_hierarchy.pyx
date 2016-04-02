@@ -19,7 +19,16 @@ cdef ElementSampler W1Sampler = W1Sampler3D()
 cdef extern from "mesh_construction.h":
     enum:
         MAX_NUM_TRI
+
+    int HEX_NV
+    int HEX_NT
+    int TETRA_NV
+    int TETRA_NT
+    int WEDGE_NV
+    int WEDGE_NT
     int triangulate_hex[MAX_NUM_TRI][3]
+    int triangulate_tetra[MAX_NUM_TRI][3]
+    int triangulate_wedge[MAX_NUM_TRI][3]
 
 # define some constants
 cdef np.float64_t DETERMINANT_EPS = 1.0e-10
@@ -115,9 +124,22 @@ cdef class BVH:
 
         self.num_elem = indices.shape[0]
         self.num_verts_per_elem = indices.shape[1]
-        self.num_tri_per_elem = 12
+
+        # We need to figure out what kind of elements we've been handed.
+        cdef int[MAX_NUM_TRI][3] tri_array
+        if self.num_verts_per_elem == 8:
+            self.num_tri_per_elem = HEX_NT
+            tri_array = triangulate_hex
+            self.sampler = Q1Sampler
+        elif self.num_verts_per_elem == 6:
+            self.num_tri_per_elem = WEDGE_NT
+            tri_array = triangulate_wedge
+            self.sampler = W1Sampler
+        elif self.num_verts_per_elem == 4:
+            self.num_tri_per_elem = TETRA_NT
+            tri_array = triangulate_tetra
+            self.sampler = P1Sampler
         self.num_tri = self.num_tri_per_elem*self.num_elem
-        self.sampler = Q1Sampler
 
         # allocate storage
         cdef np.int64_t size = self.num_verts_per_elem * self.num_elem
@@ -146,9 +168,9 @@ cdef class BVH:
                 tri_index = offset + j
                 tri = &(self.triangles[tri_index])
                 tri.elem_id = i
-                v0 = indices[i][triangulate_hex[j][0]]
-                v1 = indices[i][triangulate_hex[j][1]]
-                v2 = indices[i][triangulate_hex[j][2]]
+                v0 = indices[i][tri_array[j][0]]
+                v1 = indices[i][tri_array[j][1]]
+                v2 = indices[i][tri_array[j][2]]
                 for k in range(3):
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]

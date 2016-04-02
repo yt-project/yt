@@ -104,7 +104,7 @@ cdef class LinearElementMesh:
                  np.ndarray indices,
                  np.ndarray data):
 
-        # We need now to figure out what kind of elements we've been handed.
+        # We need to figure out what kind of elements we've been handed.
         if indices.shape[1] == 8:
             self.vpe = HEX_NV
             self.tpe = HEX_NT
