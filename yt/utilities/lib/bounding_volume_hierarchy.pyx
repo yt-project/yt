@@ -1,4 +1,4 @@
-cimport cython 
+cimport cython
 import numpy as np
 cimport numpy as np
 from libc.math cimport fabs, fmax, fmin
@@ -249,6 +249,8 @@ cdef class BVH:
         ray.data_val = self.sampler.sample_at_real_point(vertex_ptr,
                                                          field_ptr,
                                                          position)
+
+        ray.near_boundary = -1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

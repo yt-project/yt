@@ -12,6 +12,7 @@ cdef struct Ray:
     np.float64_t t_near
     np.float64_t t_far
     np.int64_t elem_id
+    np.int64_t near_boundary
 
 # axis-aligned bounding box
 cdef struct BBox:
