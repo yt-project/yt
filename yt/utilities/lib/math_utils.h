@@ -1,3 +1,4 @@
+/* Taken from http://siliconandlithium.blogspot.com/2014/05/msvc-c99-mathh-header.html */
 #include <math.h>
 #define isnormal(x) ((_fpclass(x) == _FPCLASS_NN) || (_fpclass(x) == _FPCLASS_PN))
 static __inline double rint(double x){
