@@ -20,7 +20,7 @@ cimport cython
 import numpy as np
 from libc.math cimport fabs
 
-cdef extern from "math_utils.h":
+cdef extern from "platform_dep.h":
     double fmax(double x, double y) nogil
 
 @cython.boundscheck(False)

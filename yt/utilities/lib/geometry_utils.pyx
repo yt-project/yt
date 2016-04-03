@@ -30,7 +30,7 @@ cdef extern from "math.h":
     double fmod(double x, double y) nogil
     double fabs(double x) nogil
 
-cdef extern from "math_utils.h":
+cdef extern from "platform_dep.h":
     double log2(double x) nogil
     long int lrint(double x) nogil
 

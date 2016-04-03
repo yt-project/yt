@@ -22,7 +22,12 @@
 
 #include "artio_endian.h"
 
+#if defined(_WIN32) || defined(_WIN64)
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
 #include <stdint.h>
+#endif
 
 void artio_int_swap(int32_t *src, int count) {
 	int i;

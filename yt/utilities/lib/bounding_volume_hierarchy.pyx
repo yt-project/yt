@@ -6,7 +6,7 @@ from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
 from vec3_ops cimport dot, subtract, cross
 
-cdef extern from "math_utils.h" nogil:
+cdef extern from "platform_dep.h" nogil:
     double fmax(double x, double y)
     double fmin(double x, double y)
 

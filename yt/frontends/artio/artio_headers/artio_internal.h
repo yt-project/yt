@@ -28,8 +28,14 @@
 #endif
 
 #include <stdlib.h>
-#include <stdint.h>
 #include <limits.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
+#include <stdint.h>
+#endif
 
 #include "artio_endian.h"
 

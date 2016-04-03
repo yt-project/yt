@@ -64,5 +64,5 @@ cdef class MatchPointsToGrids:
 			 np.float64_t z,
 			 GridTreeNode *grid)
 
-cdef extern from "math_utils.h" nogil:
+cdef extern from "platform_dep.h" nogil:
     double rint(double x)

@@ -11,15 +11,16 @@ from yt.geometry.oct_container cimport \
 from yt.geometry.oct_visitors cimport Oct
 from yt.geometry.particle_deposit cimport \
     ParticleDepositOperation
-from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures
 from yt.utilities.lib.misc_utilities import OnceIndirect
 
 cdef extern from "platform_dep.h":
+    ctypedef int int32_t
+    ctypedef long long int64_t
     void *alloca(int)
-    
+
 cdef extern from "cosmology.h":
     ctypedef struct CosmologyParameters "CosmologyParameters" :
         pass

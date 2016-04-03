@@ -28,8 +28,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <assert.h>
+#if defined(_WIN32) || defined(_WIN64)
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
+#include <stdint.h>
+#endif
 
 struct ARTIO_FH {
 	FILE *fh;
@@ -51,13 +56,14 @@ artio_context artio_context_global_struct = { 0 };
 const artio_context *artio_context_global = &artio_context_global_struct;
 
 artio_fh *artio_file_fopen_i( char * filename, int mode, const artio_context *not_used ) {
+	artio_fh *ffh;
 	/* check for invalid combination of mode parameter */
 	if ( ( mode & ARTIO_MODE_READ && mode & ARTIO_MODE_WRITE ) ||
 			!( mode & ARTIO_MODE_READ || mode & ARTIO_MODE_WRITE ) ) {
 		return NULL;
 	}
 
-	artio_fh *ffh = (artio_fh *)malloc(sizeof(artio_fh));
+	ffh = (artio_fh *)malloc(sizeof(artio_fh));
 	if ( ffh == NULL ) {
 		return NULL;
 	}

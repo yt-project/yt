@@ -28,7 +28,13 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+
+#if defined(_WIN32) || defined(_WIN64)
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
 #include <stdint.h>
+#endif
 
 artio_context artio_context_global_struct = { MPI_COMM_WORLD };
 const artio_context *artio_context_global = &artio_context_global_struct;
