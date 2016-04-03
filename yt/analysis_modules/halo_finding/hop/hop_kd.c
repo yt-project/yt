@@ -12,10 +12,10 @@ the input and output routines. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <sys/time.h>
-#if defined(WIN32) || defined(WIN64) 
+#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
 #include <windows.h> 
 #else
+#include <sys/time.h>
 #include <sys/resource.h>
 #endif
 #include <assert.h>
