@@ -502,11 +502,10 @@ class MeshSource(OpaqueSource):
         mylog.debug("Done casting rays")
 
         self.finalize_image(camera)
-        self.data = self.sampler.aimage
         self.current_image = self.apply_colormap()
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
-                           self.sampler.zbuffer)
+                           self.sampler.azbuffer)
         zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
         self.current_image = self.zbuffer.rgba
@@ -523,16 +522,13 @@ class MeshSource(OpaqueSource):
         # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
-        sam.aimage = sam.aimage.reshape(Nx, Ny)
-        sam.image_used = sam.image_used.reshape(Nx, Ny)
-        sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
-        sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
+        self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
 
         # rotate
-        sam.aimage = np.rot90(sam.aimage, k=2)
-        sam.image_used = np.rot90(sam.image_used, k=2)
-        sam.mesh_lines = np.rot90(sam.mesh_lines, k=2)
-        sam.zbuffer = np.rot90(sam.zbuffer, k=2)
+        self.data = np.rot90(self.data, k=2)
+        sam.aimage_used = np.rot90(sam.aimage_used, k=2)
+        sam.amesh_lines = np.rot90(sam.amesh_lines, k=2)
+        sam.azbuffer = np.rot90(sam.azbuffer, k=2)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
@@ -558,7 +554,7 @@ class MeshSource(OpaqueSource):
         if color is None:
             color = np.array([0, 0, 0, alpha])
 
-        locs = [self.sampler.mesh_lines == 1]
+        locs = [self.sampler.amesh_lines == 1]
 
         self.current_image[:, :, 0][locs] = color[0]
         self.current_image[:, :, 1][locs] = color[1]
@@ -592,7 +588,7 @@ class MeshSource(OpaqueSource):
                                color_bounds=self._color_bounds,
                                cmap_name=self._cmap)/255.
         alpha = image[:, :, 3]
-        alpha[self.sampler.image_used == -1] = 0.0
+        alpha[self.sampler.aimage_used == -1] = 0.0
         image[:, :, 3] = alpha        
         return image
 

@@ -25,7 +25,9 @@ from grid_traversal cimport ImageSampler, \
     ImageContainer
 from cython.parallel import prange, parallel, threadid
 from yt.visualization.image_writer import apply_colormap
-from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray 
+from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray
+
+cdef np.float64_t INF = np.inf
 
 rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
@@ -43,11 +45,8 @@ cdef class YTEmbreeScene:
     def __dealloc__(self):
         rtcs.rtcDeleteScene(self.scene_i)
 
-cdef class MeshSampler(ImageSampler):
 
-    cdef public object image_used
-    cdef public object mesh_lines
-    cdef public object zbuffer
+cdef class MeshSampler(ImageSampler):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -71,15 +70,10 @@ cdef class MeshSampler(ImageSampler):
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
-        cdef np.ndarray[np.float64_t, ndim=1] data
         cdef np.ndarray[np.int64_t, ndim=1] used
         nx = im.nv[0]
         ny = im.nv[1]
         size = nx * ny
-        used = np.empty(size, dtype="int64")
-        mesh = np.empty(size, dtype="int64")
-        data = np.empty(size, dtype="float64")
-        zbuffer = np.empty(size, dtype="float64")
         cdef rtcr.RTCRay ray
         v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
         v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -100,23 +94,15 @@ cdef class MeshSampler(ImageSampler):
             ray.time = 0
             ray.Ng[0] = 1e37  # we use this to track the hit distance
             rtcs.rtcIntersect(scene.scene_i, ray)
-            data[j] = ray.time
-            used[j] = ray.primID
-            mesh[j] = ray.instID
-            zbuffer[j] = ray.tfar
-        self.aimage = data
-        self.image_used = used
-        self.mesh_lines = mesh
-        self.zbuffer = zbuffer
+            im.image[vi, vj, 0] = ray.time
+            im.image_used[vi, vj] = ray.primID
+            im.mesh_lines[vi, vj] = ray.instID
+            im.zbuffer[vi, vj] = ray.tfar
         free(v_pos)
         free(v_dir)
 
 
 cdef class BVHMeshSampler(ImageSampler):
-
-    cdef public object image_used
-    cdef public object mesh_lines
-    cdef public object zbuffer
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -144,10 +130,6 @@ cdef class BVHMeshSampler(ImageSampler):
         nx = im.nv[0]
         ny = im.nv[1]
         size = nx * ny
-        used = np.empty(size, dtype="int64")
-        mesh = np.empty(size, dtype="int64")
-        data = np.empty(size, dtype="float64")
-        zbuffer = np.empty(size, dtype="float64")
         cdef Ray* ray
         with nogil, parallel(num_threads = num_threads):
             ray = <Ray *> malloc(sizeof(Ray))
@@ -162,19 +144,15 @@ cdef class BVHMeshSampler(ImageSampler):
                     ray.origin[i] = v_pos[i]
                     ray.direction[i] = v_dir[i]
                     ray.inv_dir[i] = 1.0 / v_dir[i]
-                ray.t_far = np.inf
+                ray.t_far = INF
                 ray.t_near = 0.0
                 ray.data_val = 0
                 ray.elem_id = -1
                 bvh.intersect(ray)
-                data[j] = ray.data_val
-                used[j] = ray.elem_id
-                mesh[j] = ray.near_boundary
-                zbuffer[j] = ray.t_far
-        self.aimage = data
-        self.image_used = used
-        self.mesh_lines = mesh
-        self.zbuffer = zbuffer
-        free(v_pos)
-        free(v_dir)
-        free(ray)
+                im.image[vi, vj, 0] = ray.data_val
+                im.image_used[vi, vj] = ray.elem_id
+                im.mesh_lines[vi, vj] = ray.near_boundary
+                im.zbuffer[vi, vj] = ray.t_far
+            free(v_pos)
+            free(v_dir)
+            free(ray)
