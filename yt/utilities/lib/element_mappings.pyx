@@ -18,8 +18,10 @@ cimport numpy as np
 from numpy cimport ndarray
 cimport cython
 import numpy as np
-from libc.math cimport fabs, fmax
+from libc.math cimport fabs
 
+cdef extern from "math_utils.h":
+    double fmax(double x, double y) nogil
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

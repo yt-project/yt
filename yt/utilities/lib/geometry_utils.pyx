@@ -28,9 +28,11 @@ cdef extern from "math.h":
     double floor(double x) nogil
     double ceil(double x) nogil
     double fmod(double x, double y) nogil
+    double fabs(double x) nogil
+
+cdef extern from "math_utils.h":
     double log2(double x) nogil
     long int lrint(double x) nogil
-    double fabs(double x) nogil
 
 # Finally, miscellaneous routines.
 

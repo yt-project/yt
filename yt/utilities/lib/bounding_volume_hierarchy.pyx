@@ -1,10 +1,14 @@
 cimport cython 
 import numpy as np
 cimport numpy as np
-from libc.math cimport fabs, fmax, fmin
+from libc.math cimport fabs
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
 from vec3_ops cimport dot, subtract, cross
+
+cdef extern from "math_utils.h" nogil:
+    double fmax(double x, double y)
+    double fmin(double x, double y)
 
 cdef extern from "mesh_construction.h":
     enum:

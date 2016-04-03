@@ -18,7 +18,6 @@ cimport numpy as np
 cimport cython
 
 from libc.stdlib cimport malloc, free
-from libc.math cimport nearbyint, rint
 from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
@@ -64,3 +63,6 @@ cdef class MatchPointsToGrids:
 			 np.float64_t y,
 			 np.float64_t z,
 			 GridTreeNode *grid)
+
+cdef extern from "math_utils.h" nogil:
+    double rint(double x)

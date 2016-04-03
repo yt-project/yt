@@ -21,12 +21,15 @@ cdef extern from "limits.h":
     cdef int SHRT_MAX
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    lrint, fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
+    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
+
+cdef extern from "math_utils.h":
+    long int lrint(double x) nogil
 
 from cython.parallel import prange, parallel, threadid
 from vec3_ops cimport dot, subtract, L2_norm, fma
