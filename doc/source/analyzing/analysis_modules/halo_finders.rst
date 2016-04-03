@@ -41,11 +41,11 @@ groups in this fashion:
    depending on the user-supplied over density
    threshold parameter. The default is 160.0.
 
-Please see the `HOP method paper
-<http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_ for
-full details and the
-:class:`~yt.analysis_modules.halo_finding.halo_objects.HOPHalo` and
-:class:`~yt.analysis_modules.halo_finding.halo_objects.Halo` classes.
+Please see the `HOP method paper 
+<http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_ for 
+full details and the 
+:class:`~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder`
+documentation.
 
 .. _fof:
 
@@ -53,8 +53,8 @@ FOF
 ---
 
 A basic friends-of-friends halo finder is included.  See the
-:class:`~yt.analysis_modules.halo_finding.halo_objects.FOFHalo` and
-:class:`~yt.analysis_modules.halo_finding.halo_objects.Halo` classes.
+:class:`~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder`
+documentation.
 
 .. _rockstar:
 

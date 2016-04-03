@@ -492,6 +492,15 @@ cdef class ImageSampler:
     cdef void setup(self, PartitionedGrid pg):
         return
 
+    def __dealloc__(self):
+        self.image.image = None
+        self.image.vp_pos = None
+        self.image.vp_dir = None
+        self.image.zbuffer = None
+        self.image.camera_data = None
+        free(self.image)
+
+
 cdef void projection_sampler(
                  VolumeContainer *vc,
                  np.float64_t v_pos[3],

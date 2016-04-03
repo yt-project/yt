@@ -25,6 +25,8 @@ answer_tests:
 
   local_halos_350:
     - yt/frontends/owls_subfind/tests/test_outputs.py
+    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
+    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
   
   local_owls_350:
     - yt/frontends/owls/tests/test_outputs.py
@@ -40,7 +42,7 @@ answer_tests:
   local_tipsy_350:
     - yt/frontends/tipsy/tests/test_outputs.py
   
-  local_varia_350:
+  local_varia_351:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py

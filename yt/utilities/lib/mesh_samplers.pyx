@@ -196,9 +196,6 @@ cdef void sample_hex20(void* userPtr,
                        rtcr.RTCRay& ray) nogil:
     cdef int ray_id, elem_id, i
     cdef double val
-    cdef double[20] field_data
-    cdef int[20] element_indices
-    cdef double[60] vertices
     cdef double[3] position
     cdef float[3] pos
     cdef Patch* data
@@ -220,16 +217,10 @@ cdef void sample_hex20(void* userPtr,
     for i in range(3):
         position[i] = <double> pos[i]
  
-    for i in range(20):
-        field_data[i] = patch.field_data[elem_id, i]
-        vertices[i*3    ] = patch.vertices[patch.indices[elem_id, i]][0]
-        vertices[i*3 + 1] = patch.vertices[patch.indices[elem_id, i]][1]
-        vertices[i*3 + 2] = patch.vertices[patch.indices[elem_id, i]][2]
-
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
-    S2Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = S2Sampler.sample_at_unit_point(mapped_coord, field_data)
+    S2Sampler.map_real_to_unit(mapped_coord, patch.vertices, position)
+    val = S2Sampler.sample_at_unit_point(mapped_coord, patch.field_data)
     ray.time = val
 
     # we use ray.instID to pass back whether the ray is near the

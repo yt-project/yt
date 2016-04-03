@@ -42,7 +42,7 @@ answer_tests:
   local_tipsy_270:
     - yt/frontends/tipsy/tests/test_outputs.py
   
-  local_varia_273:
+  local_varia_274:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
