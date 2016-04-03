@@ -24,6 +24,7 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler, \
     new_interpolated_projection_sampler
+from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.visualization.image_writer import apply_colormap
 from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
@@ -353,8 +354,9 @@ class MeshSource(OpaqueSource):
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.field = field
-        self.mesh = None
+        self.volume = None
         self.current_image = None
+        self.engine = 'engine'
 
         # default color map
         self._cmap = ytcfg.get("yt", "default_colormap")
@@ -369,8 +371,12 @@ class MeshSource(OpaqueSource):
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        self.volume = mesh_traversal.YTEmbreeScene()
-        self.build_mesh()
+        if self.engine == 'embree':
+            self.volume = mesh_traversal.YTEmbreeScene()
+            self.build_volume_embree()
+
+        elif self.engine == 'bvh':
+            self.build_volume_bvh()
 
     def cmap():
         '''
@@ -410,15 +416,15 @@ class MeshSource(OpaqueSource):
     def _validate(self):
         """Make sure that all dependencies have been met"""
         if self.data_source is None:
-            raise RuntimeError("Data source not initialized")
+            raise RuntimeError("Data source not initialized.")
 
-        if self.mesh is None:
-            raise RuntimeError("Mesh not initialized")
+        if self.volume is None:
+            raise RuntimeError("Volume not initialized.")
 
-    def build_mesh(self):
+    def build_volume_embree(self):
         """
 
-        This constructs the mesh that will be ray-traced.
+        This constructs the mesh that will be ray-traced by pyembree.
 
         """
         ftype, fname = self.field
@@ -463,6 +469,49 @@ class MeshSource(OpaqueSource):
                                                             indices,
                                                             field_data)
 
+    def build_volume_bvh(self):
+        """
+
+        This constructs the mesh that will be ray-traced.
+
+        """
+        ftype, fname = self.field
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.meshes[mesh_id]._index_offset
+        field_data = self.data_source[self.field].d  # strip units
+
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
+
+        if len(field_data.shape) == 1:
+            raise NotImplementedError("Element-centered fields are "
+                                      "only supported by Embree. ")
+
+        # Here, we decide whether to render based on high-order or 
+        # low-order geometry. Right now, high-order geometry is only
+        # supported by Embree.
+        if indices.shape[1] == 20:
+            # hexahedral
+            mylog.warning("20-node hexes not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:8]
+            indices = indices[:, 0:8]
+        elif indices.shape[1] == 27:
+            # hexahedral
+            mylog.warning("27-node hexes not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:8]
+            indices = indices[:, 0:8]
+        elif indices.shape[1] == 10:
+            # tetrahedral
+            mylog.warning("10-node tetrahedral elements not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:4]
+            indices = indices[:, 0:4]
+
+        self.volume = BVH(vertices, indices, field_data)
+
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
 
@@ -495,7 +544,7 @@ class MeshSource(OpaqueSource):
                               zbuffer.z.reshape(shape[:2]))
         self.zbuffer = zbuffer
 
-        self.sampler = new_mesh_sampler(camera, self)
+        self.sampler = new_mesh_sampler(camera, self, engine=self.engine)
 
         mylog.debug("Casting rays")
         self.sampler(self.volume)
