@@ -1,6 +1,6 @@
 """
-This file contains the MeshSampler class, which handles casting rays at a
-MeshSource using pyembree.
+This file contains the MeshSampler classes, which handles casting rays at a
+mesh source using either pyembree or the cython ray caster.
 
 
 """
@@ -46,7 +46,7 @@ cdef class YTEmbreeScene:
         rtcs.rtcDeleteScene(self.scene_i)
 
 
-cdef class MeshSampler(ImageSampler):
+cdef class EmbreeMeshSampler(ImageSampler):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

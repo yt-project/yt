@@ -27,7 +27,7 @@ def new_mesh_sampler(camera, render_source):
         params['width'],
     )
     kwargs = {'lens_type': params['lens_type']}
-    sampler = mesh_traversal.MeshSampler(*args, **kwargs)
+    sampler = mesh_traversal.EmbreeMeshSampler(*args, **kwargs)
     return sampler
 
 

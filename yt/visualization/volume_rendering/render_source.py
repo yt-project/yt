@@ -369,7 +369,7 @@ class MeshSource(OpaqueSource):
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        self.scene = mesh_traversal.YTEmbreeScene()
+        self.volume = mesh_traversal.YTEmbreeScene()
         self.build_mesh()
 
     def cmap():
@@ -438,7 +438,7 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20:
-            self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
+            self.mesh = mesh_construction.QuadraticElementMesh(self.volume,
                                                                vertices,
                                                                indices,
                                                                field_data)
@@ -458,7 +458,7 @@ class MeshSource(OpaqueSource):
                 field_data = field_data[:, 0:4]
                 indices = indices[:, 0:4]
 
-            self.mesh = mesh_construction.LinearElementMesh(self.scene,
+            self.mesh = mesh_construction.LinearElementMesh(self.volume,
                                                             vertices,
                                                             indices,
                                                             field_data)
@@ -498,7 +498,7 @@ class MeshSource(OpaqueSource):
         self.sampler = new_mesh_sampler(camera, self)
 
         mylog.debug("Casting rays")
-        self.sampler(self.scene)
+        self.sampler(self.volume)
         mylog.debug("Done casting rays")
 
         self.finalize_image(camera)
