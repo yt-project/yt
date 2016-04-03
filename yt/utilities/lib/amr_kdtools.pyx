@@ -18,7 +18,7 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 
-cdef extern from "stdlib.h":
+cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 

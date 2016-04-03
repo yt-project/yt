@@ -25,7 +25,7 @@ from libc.stdlib cimport malloc, free, abs
 
 import sys, time
 
-cdef extern from "stdlib.h":
+cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
