@@ -1,11 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include <sys/time.h>
-#if defined(WIN32) || defined(WIN64) 
-#include <windows.h> 
+#if defined(WIN32) || defined(_WIN32) || defined(WIN64) || defined(_WIN64)
+#include <windows.h>
 #else
 #include <sys/resource.h>
+#include <sys/time.h>
 #endif
 #include <assert.h>
 #include "kd.h"
@@ -15,7 +15,7 @@
 void kdTimeFoF(KDFOF kd,int *puSecond,int *puMicro)
 {
 
-#if defined(WIN32) || defined(WIN64)
+#if defined(WIN32) || defined(WIN64) || defined(_WIN64)
         int secs, usecs;
         HANDLE hProcess = GetCurrentProcess();
 	FILETIME ftCreation, ftExit, ftKernel, ftUser;
