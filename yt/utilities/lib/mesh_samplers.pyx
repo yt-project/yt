@@ -97,7 +97,9 @@ cdef void sample_hex(void* userPtr,
     
     for i in range(8):
         element_indices[i] = data.element_indices[elem_id*8+i]
-        field_data[i]      = data.field_data[elem_id*8+i]
+
+    for i in range(data.fpe):
+        field_data[i] = data.field_data[elem_id*data.fpe+i]
 
     for i in range(8):
         vertices[i*3]     = data.vertices[element_indices[i]].x
@@ -107,7 +109,10 @@ cdef void sample_hex(void* userPtr,
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
     Q1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
+    if data.fpe == 1:
+        val = field_data[0]
+    else:
+        val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
 
     # we use ray.instID to pass back whether the ray is near the
@@ -143,7 +148,9 @@ cdef void sample_wedge(void* userPtr,
     
     for i in range(6):
         element_indices[i] = data.element_indices[elem_id*6+i]
-        field_data[i]      = data.field_data[elem_id*6+i]
+
+    for i in range(data.fpe):
+        field_data[i] = data.field_data[elem_id*data.fpe+i]
 
     for i in range(6):
         vertices[i*3]     = data.vertices[element_indices[i]].x
@@ -153,9 +160,11 @@ cdef void sample_wedge(void* userPtr,
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
     W1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = W1Sampler.sample_at_unit_point(mapped_coord, field_data)
+    if data.fpe == 1:
+        val = field_data[0]
+    else:
+        val = W1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
-
     ray.instID = W1Sampler.check_mesh_lines(mapped_coord)
 
 @cython.boundscheck(False)
@@ -192,7 +201,6 @@ cdef void sample_hex20(void* userPtr,
     S2Sampler.map_real_to_unit(mapped_coord, patch.vertices, position)
     val = S2Sampler.sample_at_unit_point(mapped_coord, patch.field_data)
     ray.time = val
-
     ray.instID = S2Sampler.check_mesh_lines(mapped_coord)
     
 
@@ -225,39 +233,19 @@ cdef void sample_tetra(void* userPtr,
 
     for i in range(4):
         element_indices[i] = data.element_indices[elem_id*4+i]
-        field_data[i] = data.field_data[elem_id*4+i]
         vertices[i*3] = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
+    for i in range(data.fpe):
+        field_data[i] = data.field_data[elem_id*data.fpe+i]
+
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[4]
     P1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
+    if data.fpe == 1:
+        val = field_data[0]
+    else:
+        val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
-    
     ray.instID = P1Sampler.check_mesh_lines(mapped_coord)
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void sample_element(void* userPtr,
-                         rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id
-    cdef double val
-    cdef MeshDataContainer* data
-
-    data = <MeshDataContainer*> userPtr
-    ray_id = ray.primID
-    if ray_id == -1:
-        return
-
-    # ray_id records the id number of the hit according to
-    # embree, in which the primitives are triangles. Here,
-    # we convert this to the element id by dividing by the
-    # number of triangles per element.
-    elem_id = ray_id / data.tpe
-
-    val = data.field_data[elem_id]
-    ray.time = val
