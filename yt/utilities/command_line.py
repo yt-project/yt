@@ -50,6 +50,8 @@ from yt.utilities.exceptions import \
 if ytcfg.getboolean("yt","loadfieldplugins"):
     enable_plugins()
 
+_default_colormap = ytcfg.get("yt", "default_colormap")
+
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
         os.path.exists("%s/%s" % (arg,arg)):
@@ -160,7 +162,7 @@ _common_options = dict(
                    help="Field to weight projections with"),
     cmap    = dict(longname="--colormap",
                    action="store", type=str,
-                   dest="cmap", default="algae",
+                   dest="cmap", default=_default_colormap,
                    help="Colormap name"),
     zlim    = dict(short="-z", longname="--zlim",
                    action="store", type=float,

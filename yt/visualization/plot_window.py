@@ -1407,7 +1407,8 @@ class ProjectionPlot(PWViewerMPL):
         else:
             proj = ds.proj(fields, axis, weight_field=weight_field,
                            center=center, data_source=data_source,
-                           field_parameters = field_parameters, method = method)
+                           field_parameters=field_parameters, method=method,
+                           max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
@@ -1640,6 +1641,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector, method=method)
+        if max_level is not None:
+            OffAxisProj.dd.max_level = max_level
         # If a non-weighted, integral projection, assure field-label reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True

@@ -354,6 +354,11 @@ class ExodusIIDataset(Dataset):
             displaced_coords = self._apply_displacement(coords, mesh_id)
             mi = np.minimum(displaced_coords.min(axis=0), mi)
             ma = np.maximum(displaced_coords.max(axis=0), ma)
+
+        # pad domain boundaries
+        width = ma - mi
+        mi -= 0.1 * width
+        ma += 0.1 * width
         return mi, ma
 
     @classmethod

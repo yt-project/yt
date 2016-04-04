@@ -164,6 +164,7 @@ class ARTIOIndex(Index):
         self.directory = os.path.dirname(self.index_filename)
 
         self.max_level = ds.max_level
+        self.range_handlers = {}
         self.float_type = np.float64
         super(ARTIOIndex, self).__init__(ds, dataset_type)
 
@@ -251,11 +252,15 @@ class ARTIOIndex(Index):
             #v = np.array(list_sfc_ranges)
             #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
-                range_handler = ARTIOSFCRangeHandler(
-                    self.ds.domain_dimensions,
-                    self.ds.domain_left_edge, self.ds.domain_right_edge,
-                    self.ds._handle, start, end)
-                range_handler.construct_mesh()
+                if (start, end) in self.range_handlers.keys():
+                    range_handler = self.range_handlers[(start, end)]
+                else:
+                    range_handler = ARTIOSFCRangeHandler(
+                        self.ds.domain_dimensions,
+                        self.ds.domain_left_edge, self.ds.domain_right_edge,
+                        self.ds._handle, start, end)
+                    range_handler.construct_mesh()
+                    self.range_handlers[(start, end)] = range_handler
                 if nz != 2:
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
                                 range_handler.root_mesh_handler, self.ds))

@@ -27,6 +27,7 @@ cdef struct ImageContainer:
     np.float64_t[:,:] zbuffer
     np.float64_t pdx, pdy
     np.float64_t bounds[4]
+    np.float64_t[:,:] camera_data   # position, width, unit_vec[0,2]
     int nv[2]
     np.float64_t *x_vec
     np.float64_t *y_vec

@@ -19,6 +19,8 @@ from matplotlib import cm
 import matplotlib.pyplot as plt
 from ._mpl_imports import FigureCanvasAgg
 
+from yt.config import \
+    ytcfg
 from yt.utilities.logger import ytLogger as mylog
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot, ProfilePlot
@@ -725,7 +727,7 @@ class DualEPS(object):
             if plot.cmap is not None:
                 _cmap = plot.cmap.name
         if _cmap is None:
-            _cmap = 'algae'
+            _cmap = ytcfg.get("yt", "default_colormap")
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if isinstance(plot, PlotWindow):
                 try:
@@ -1345,7 +1347,7 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
     return d
 
 #=============================================================================
-def return_cmap(cmap="algae", label="", range=(0,1), log=False):
+def return_cmap(cmap=None, label="", range=(0,1), log=False):
     r"""Returns a dict that describes a colorbar.  Exclusively for use with
     multiplot.
 
@@ -1364,5 +1366,7 @@ def return_cmap(cmap="algae", label="", range=(0,1), log=False):
     --------
     >>> cb = return_cmap("algae", "Density [cm$^{-3}$]", (0,10), False)
     """
+    if cmap is None:
+        cmap = ytcfg.get("yt", "default_colormap")
     return {'cmap': cmap, 'name': label, 'range': range, 'log': log}
     

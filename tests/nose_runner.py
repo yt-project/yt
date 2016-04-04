@@ -3,7 +3,7 @@ import os
 import yaml
 import multiprocessing
 import nose
-from cStringIO import StringIO
+from yt.extern.six import StringIO
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
 
@@ -23,7 +23,7 @@ class NoseWorker(multiprocessing.Process):
                 print("%s: Exiting" % proc_name)
                 self.task_queue.task_done()
                 break
-            print '%s: %s' % (proc_name, next_task)
+            print('%s: %s' % (proc_name, next_task))
             result = next_task()
             self.task_queue.task_done()
             self.result_queue.put(result)
@@ -43,6 +43,8 @@ class NoseTask(object):
                 not os.path.isdir(os.path.join(answers_dir, self.name)):
             nose.run(argv=self.argv + ['--answer-store'],
                      addplugins=[AnswerTesting()], exit=False)
+        if os.path.isfile("{}.xml".format(self.name)):
+            os.remove("{}.xml".format(self.name))
         nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
         sys.stderr = old_stderr
         return mystderr.getvalue()

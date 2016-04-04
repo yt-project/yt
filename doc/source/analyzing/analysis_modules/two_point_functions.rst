@@ -5,7 +5,7 @@ Two Point Functions
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
 .. versionadded:: 1.7
 
-.. note:: 
+.. note::
 
     As of :code:`yt-3.0`, the two point function analysis module is not
     currently functional.  This functionality is still available in
@@ -41,9 +41,9 @@ step.
 
     from yt.mods import *
     from yt.analysis_modules.two_point_functions.api import *
-    
+
     ds = load("data0005")
-    
+
     # Calculate the S in RMS velocity difference between the two points.
     # All functions have five inputs. The first two are containers
     # for field values, and the second two are the raw point coordinates
@@ -56,28 +56,28 @@ step.
         vdiff = np.sum(vdiff, axis=1)
         return vdiff
 
-    
+
     # Initialize a function generator object.
     # Set the input fields for the function(s),
     # the number of pairs of points to calculate, how big a data queue to
-    # use, the range of pair separations and how many lengths to use, 
+    # use, the range of pair separations and how many lengths to use,
     # and how to divide that range (linear or log).
     tpf = TwoPointFunctions(ds, ["velocity_x", "velocity_y", "velocity_z"],
-        total_values=1e5, comm_size=10000, 
+        total_values=1e5, comm_size=10000,
         length_number=10, length_range=[1./128, .5],
         length_type="log")
-    
+
     # Adds the function to the generator. An output label is given,
     # and whether or not to square-root the results in the text output is given.
     # Note that the items below are being added as lists.
     f1 = tpf.add_function(function=rms_vel, out_labels=['RMSvdiff'], sqrt=[True])
-    
+
     # Define the bins used to store the results of the function.
     f1.set_pdf_params(bin_type='log', bin_range=[5e4, 5.5e13], bin_number=1000)
-    
+
     # Runs the functions.
     tpf.run_generator()
-    
+
     # This calculates the M in RMS and writes out a text file with
     # the RMS values and the lengths. The R happens because sqrt=True in
     # add_function, above.
@@ -139,7 +139,7 @@ values of (phi, theta) in spherical coordinates and length by the length ranges.
 If that second point is inside the tasks subvolume, the functions
 are evaluated and their results binned.
 However, if the second point lies outside the subvolume (as in a different
-tasks subvolume), the point pair is stored in a point data queue, as well as the 
+tasks subvolume), the point pair is stored in a point data queue, as well as the
 field values for the first point in a companion data queue.
 When a task makes its share of ``total_values``, or it fills up its data
 queue with points it can't fully process, it passes its queues to its neighbor on
@@ -155,7 +155,7 @@ Once the queues are full of points that a task cannot process, it passes them
 on.
 The data communication cycle ends when all tasks have made their share of
 ``total_values``, and all the data queues are cleared.
-When all the cycles have run, the bins are added up globally to find the 
+When all the cycles have run, the bins are added up globally to find the
 global PDF.
 
 Below is a two-dimensional representation of how the full simulation is
@@ -230,7 +230,7 @@ Define Functions
 
 All functions must adhere to these specifications:
 
-  * There must be five input variables. The first two are arrays for the 
+  * There must be five input variables. The first two are arrays for the
     fields needed by the function, and the next two are the raw coordinate
     values for the points. The fifth input is an array with the normal
     vector between each of the points in r1 and r2.
@@ -285,7 +285,7 @@ to be created. It has these inputs:
     result in longer run times due to extra communication cycles. Each unit of
     ``comm_size`` costs (6 + number_of_fields)*8 bytes, where number_of_fields
     is the size of the set of unique data fields used by all the functions added to the
-    TPF. In the RMS velocity example above, number_of_fields=3, and a 
+    TPF. In the RMS velocity example above, number_of_fields=3, and a
     ``comm_size`` of 10,000 means each queue costs 10,000*8*(6+3) =
     720 KB per task.
     Default=10000.
@@ -302,7 +302,7 @@ to be created. It has these inputs:
     min_simulation_edge is the length of the smallest edge (1D) of the simulation,
     and dx is the smallest cell size in the dataset. The sqrt(3) is there because
     that is the distance between opposite corners of a unit cube, and that
-    guarantees that the point pairs will be in different cells for the most 
+    guarantees that the point pairs will be in different cells for the most
     refined regions.
     If the first term of the list is -1, the minimum length will be automatically
     set to sqrt(3)*dx, ex: ``length_range = [-1, 10/ds['kpc']]``.
@@ -319,7 +319,7 @@ to be created. It has these inputs:
     are given the full volume.
   * ``salt``, integer: A number that will be added to the random number generator
     seed. Use this if a different random series of numbers is desired when
-    keeping everything else constant from this set: (MPI task count, 
+    keeping everything else constant from this set: (MPI task count,
     number of ruler lengths, ruler min/max, number of functions,
     number of point pairs per ruler length). Default: 0.
   * ``theta``, float: For random pairs of points, the second point is found by
@@ -387,7 +387,7 @@ For example, for 3 functions, each with two outputs, with 1000 point
 separation lengths set for the TPF, and with 5000 PDF bins per output dimension,
 the PDF bins will cost: 3*1000*(5000)^2*8=600 GB of memory *per task*!
 
-Note: ``bin_number`` actually specifies the number of *bin edges* to make, 
+Note: ``bin_number`` actually specifies the number of *bin edges* to make,
 rather than the number of bins to make. The number of bins will actually be
 ``bin_number``-1 because values are dropped into bins between the two closest
 bin edge values,
@@ -425,29 +425,29 @@ There are two ways to output data from the TPF for structure functions.
      "rms_vel.txt".
      In the example above, the ``sqrt=True`` option is turned on, which square-roots
      the mean values. Here is some example output for the RMS velocity example::
-     
-       # length    count       RMSvdiff    
-       7.81250e-03 95040       8.00152e+04 
-       1.24016e-02 100000      1.07115e+05 
-       1.96863e-02 100000      1.53741e+05 
-       3.12500e-02 100000      2.15070e+05 
-       4.96063e-02 100000      2.97069e+05 
-       7.87451e-02 99999       4.02917e+05 
-       1.25000e-01 100000      5.54454e+05 
-       1.98425e-01 100000      7.53650e+05 
-       3.14980e-01 100000      9.57470e+05 
-       5.00000e-01 100000      1.12415e+06 
+
+       # length    count       RMSvdiff
+       7.81250e-03 95040       8.00152e+04
+       1.24016e-02 100000      1.07115e+05
+       1.96863e-02 100000      1.53741e+05
+       3.12500e-02 100000      2.15070e+05
+       4.96063e-02 100000      2.97069e+05
+       7.87451e-02 99999       4.02917e+05
+       1.25000e-01 100000      5.54454e+05
+       1.98425e-01 100000      7.53650e+05
+       3.14980e-01 100000      9.57470e+05
+       5.00000e-01 100000      1.12415e+06
 
      The ``count`` column lists the number of pair points successfully binned
      at that point separation length.
-     
+
      If the output is multidimensional, pass a list of bools to control the
      sqrt column by column (``sqrt=[False, True]``) to ``add_function``.
      For multidimensional functions, the means are calculated by first
      collapsing the values in the PDF matrix in the other
      dimensions, before multiplying the result by the bin edges for that output
      dimension. So in the extremely simple fabricated case of:
-     
+
      .. code-block:: python
 
        # Temperature difference bin edges
@@ -456,19 +456,19 @@ There are two ways to output data from the TPF for structure functions.
        # Density difference bin edges
        # dimension 1
        Ddiff_bins = [50,500,5000]
-       
+
        # 2-D PDF for a point pair length of 0.05
        PDF = [ [ 0.3, 0.1],
                [ 0.4, 0.2] ]
-    
+
      What the PDF is recording is that there is a 30% probability of getting a
      temperature difference between [10, 100), at the same time of getting a
      density difference between [50, 500). There is a 40% probability for Tdiff
      in [10, 100) and Ddiff in [500, 5000). The text output of this PDF is
      calculated like this:
-    
+
      .. code-block:: python
-    
+
         # Temperature
         T_PDF = PDF.sum(axis=0)
         # ... which gets ...
@@ -480,7 +480,7 @@ There are two ways to output data from the TPF for structure functions.
         mean = sum(means)
         # ... which gets ...
         mean = 203.5
-        
+
         # Density
         D_PDF = PDF.sum(axis=1)
         # ... which gets ...
@@ -490,17 +490,17 @@ There are two ways to output data from the TPF for structure functions.
         mean = sum(means)
         # ... which gets ...
         mean = 1760
-    
+
      The text file would look something like this::
-    
+
       # length    count       Tdiff    Ddiff
       0.05        980242      2.03500e+02 1.76000e+3
-    
+
   #. The command ``write_out_arrays()`` writes the raw PDF bins, as well as the
      bin edges for each output dimension to a HDF5 file named
      ``function_name.h5``.
      Here is example content for the RMS velocity script above::
-     
+
        $ h5ls rms_vel.h5
        bin_edges_00_RMSvdiff    Dataset {1000}
        bin_edges_names          Dataset {1}
@@ -516,7 +516,7 @@ There are two ways to output data from the TPF for structure functions.
        prob_bins_00007          Dataset {999}
        prob_bins_00008          Dataset {999}
        prob_bins_00009          Dataset {999}
-     
+
      Every HDF5 file produced will have the datasets ``lengths``,
      ``bin_edges_names``, and ``counts``.
      ``lengths`` contains the list of the pair separation
@@ -528,7 +528,7 @@ There are two ways to output data from the TPF for structure functions.
      point separation length, and is equivalent to the second column in the
      text output file.
      In the HDF5 file above, the ``lengths`` dataset looks like this::
-     
+
        $ h5dump -d lengths rms_vel.h5
        HDF5 "rms_vel.h5" {
        DATASET "lengths" {
@@ -549,9 +549,9 @@ There are two ways to output data from the TPF for structure functions.
      for that point separation length.
      If the function has multiple outputs, the arrays stored in the datasets
      are multidimensional.
-     
+
      ``bin_edges_names`` looks like this::
-     
+
        $ h5dump -d bin_edges_names rms_vel.h5
        HDF5 "rms_vel.h5" {
        DATASET "bin_edges_names" {
@@ -605,14 +605,14 @@ run as quickly as possible, in particular when running in parallel.
     as possible.
 
   * The ideal ``comm_size`` appears to be around 1e5 or 1e6 in size.
-  
+
   * If possible, write the functions using only Numpy functions and methods.
     The input and output must be in array format, but the logic inside the function
     need not be. However, it will run much slower if optimized methods are not used.
-  
+
   * Run a few test runs before doing a large run so that the PDF parameters can
     be correctly set.
-  
+
 
 Advanced Two Point Function Techniques
 --------------------------------------
@@ -644,13 +644,13 @@ requires a gas density of at least 1e-26 g cm^-3 at each point:
       # pairs unchanged.
       vdiff *= both_good
       return vdiff
-    
+
     ...
     tpf = TwoPointFunctions(ds, ["velocity_x", "velocity_y", "velocity_z", "density"],
-        total_values=1e5, comm_size=10000, 
+        total_values=1e5, comm_size=10000,
         length_number=10, length_range=[1./128, .5],
         length_type="log")
-    
+
     tpf.add_function(rms_vel, ['RMSvdiff'], [False])
     tpf[0].set_pdf_params(bin_type='log', bin_range=[5e4, 5.5e13], bin_number=1000)
 
@@ -673,9 +673,9 @@ the same time as the velocity differences.
 
     from yt.mods import *
     from yt.analysis_modules.two_point_functions.api import *
-    
+
     ds = load("data0005")
-    
+
     # Calculate the S in RMS velocity difference between the two points.
     # Also store the ratio of densities (keeping them >= 1).
     # All functions have four inputs. The first two are containers
@@ -690,29 +690,29 @@ the same time as the velocity differences.
       # Density ratio
       Dratio = np.max(a[:,3]/b[:,3], b[:,3]/a[:,3])
       return [vdiff, Dratio]
-    
+
     # Initialize a function generator object.
     # Set the number of pairs of points to calculate, how big a data queue to
-    # use, the range of pair separations and how many lengths to use, 
+    # use, the range of pair separations and how many lengths to use,
     # and how to divide that range (linear or log).
     tpf = TwoPointFunctions(ds, ["velocity_x", "velocity_y", "velocity_z", "density"],
-        total_values=1e5, comm_size=10000, 
+        total_values=1e5, comm_size=10000,
         length_number=10, length_range=[1./128, .5],
         length_type="log")
-    
+
     # Adds the function to the generator.
     f1 = tpf.add_function(rms_vel, ['RMSvdiff', 'Dratio'], [True, False])
-    
+
     # Define the bins used to store the results of the function.
     # Note that the bin edges can have different division, "lin" and "log".
     # In particular, a bin edge of 0 doesn't play well with "log".
-    f1.set_pdf_params(bin_type=['log', 'lin'], 
+    f1.set_pdf_params(bin_type=['log', 'lin'],
         bin_range=[[5e4, 5.5e13], [1., 10000.]],
         bin_number=[1000, 1000])
-    
+
     # Runs the functions.
     tpf.run_generator()
-    
+
     # This calculates the M in RMS and writes out a text file with
     # the RMS values and the lengths. The R happens because sqrt=[True, False]
     # in add_function.
@@ -766,14 +766,14 @@ Unlike the figure above, the volumes are spherical.
 This script can be run in parallel.
 
 .. code-block:: python
-    
+
     from yt.mods import *
     from yt.utilities.kdtree import *
     from yt.analysis_modules.two_point_functions.api import *
-    
+
     # Specify the dataset on which we want to base our work.
     ds = load('data0005')
-    
+
     # Read in the halo centers of masses.
     CoM = []
     data = file('HopAnalysis.out', 'r')
@@ -785,20 +785,20 @@ This script can be run in parallel.
         zp = float(line[9])
         CoM.append(np.array([xp, yp, zp]))
     data.close()
-    
+
     # This is the same dV as in the formulation of the two-point correlation.
     dV = 0.05
     radius = (3./4. * dV / np.pi)**(2./3.)
-    
+
     # Instantiate our TPF object.
     # For technical reasons (hopefully to be fixed someday) `vol_ratio`
     # needs to be equal to the number of tasks used if this is run
     # in parallel. A value of -1 automatically does this.
     tpf = TwoPointFunctions(ds, ['x'],
-        total_values=1e7, comm_size=10000, 
+        total_values=1e7, comm_size=10000,
         length_number=11, length_range=[2*radius, .5],
         length_type="lin", vol_ratio=-1)
-    
+
     # Build the kD tree of halos. This will be built on all
     # tasks so it shouldn't be too large.
     # All of these need to be set even if they're not used.
@@ -814,7 +814,7 @@ This script can be run in parallel.
     fKD.t1.nn_tags = np.empty((fKD.t1.radius_n, tpf.comm_size), dtype='int64')
     # Makes the kD tree.
     create_tree(1)
-    
+
     # Remembering that two of the arguments for a function are the raw
     # coordinates, we define a two-point correlation function as follows.
     def tpcorr(a, b, r1, r2, vec):
@@ -830,26 +830,26 @@ This script can be run in parallel.
         # Now we simply multiply these two arrays together. The rest comes later.
         nn = nfirst * nsecond
         return nn
-    
+
     # Now we add the function to the TPF.
     # ``corr_norm`` is used to normalize the correlation function.
-    tpf.add_function(function=tpcorr, out_labels=['tpcorr'], sqrt=[False], 
+    tpf.add_function(function=tpcorr, out_labels=['tpcorr'], sqrt=[False],
         corr_norm=dV**2 * len(CoM)**2)
-    
+
     # And define how we want to bin things.
     # It has to be linear bin_type because we want 0 to be in the range.
     # The big end of bin_range should correspond to the square of the maximum
     # number of halos expected inside dV in the volume.
     tpf[0].set_pdf_params(bin_type='lin', bin_range=[0, 2500000], bin_number=1000)
-    
+
     # Runs the functions.
     tpf.run_generator()
-    
+
     # Write out the data to "tpcorr_correlation.txt"
     # The file has two columns, the first is radius, and the second is
     # the value of \xi.
     tpf.write_out_correlation()
-    
+
     # Empty the kdtree
     del fKD.t1.pos, fKD.t1.nfound_many, fKD.t1.nn_dist, fKD.t1.nn_tags
     free_tree(1)
@@ -873,17 +873,17 @@ the volume of the cells.
     from yt.mods import *
     from yt.utilities.kdtree import *
     from yt.analysis_modules.two_point_functions.api import *
-    
+
     # Specify the dataset on which we want to base our work.
     ds = load('data0005')
-    
+
     # We work in simulation's units, these are for conversion.
     vol_conv = ds['cm'] ** 3
     sm = ds.index.get_smallest_dx()**3
-    
+
     # Our density limit, in gm/cm**3
     dens = 2e-31
-    
+
     # We need to find out how many cells (equivalent to the most refined level)
     # are denser than our limit overall.
     def _NumDens(data):
@@ -896,15 +896,15 @@ the volume of the cells.
         combine_function=_combNumDens, n_ret=1)
     all = ds.all_data()
     n = all.quantities["TotalNumDens"]()
-    
+
     print(n,'n')
-    
+
     # Instantiate our TPF object.
     tpf = TwoPointFunctions(ds, ['density', 'cell_volume'],
         total_values=1e5, comm_size=10000,
         length_number=11, length_range=[-1, .5],
         length_type="lin", vol_ratio=1)
-    
+
     # Define the density threshold two point correlation function.
     def dens_tpcorr(a, b, r1, r2, vec):
         # We want to find out which pairs of Densities from a and b are both
@@ -916,21 +916,21 @@ the volume of the cells.
         both = both.astype('float')
         both *= a[:,1] * b[:,1] / vol_conv**2 / sm**2
         return both
-    
+
     # Now we add the function to the TPF.
     # ``corr_norm`` is used to normalize the correlation function.
     tpf.add_function(function=dens_tpcorr, out_labels=['tpcorr'], sqrt=[False],
         corr_norm=n**2 * sm**2)
-    
+
     # And define how we want to bin things.
     # It has to be linear bin_type because we want 0 to be in the range.
     # The top end of bin_range should be 2^(2l)+1, where l is the number of
     # levels, and bin_number=2^(2l)+2
     tpf[0].set_pdf_params(bin_type='lin', bin_range=[0, 2], bin_number=3)
-    
+
     # Runs the functions.
     tpf.run_generator()
-    
+
     # Write out the data to "dens_tpcorr_correlation.txt"
     # The file has two columns, the first is radius, and the second is
     # the value of \xi.

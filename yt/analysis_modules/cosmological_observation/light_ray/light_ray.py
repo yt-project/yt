@@ -480,6 +480,9 @@ class LightRay(CosmologySplice):
 
                     sub_vel_mag = sub_ray['velocity_magnitude']
                     cos_theta = np.dot(line_of_sight, sub_vel) / sub_vel_mag
+                    # Protect against stituations where velocity mag is exactly
+                    # zero, in which case zero / zero = NaN.
+                    cos_theta = np.nan_to_num(cos_theta)
                     redshift_dopp = \
                         (1 + sub_vel_mag * cos_theta / speed_of_light_cgs) / \
                          np.sqrt(1 - sub_vel_mag**2 / speed_of_light_cgs**2) - 1

@@ -97,7 +97,8 @@ or to output just a few colormaps to an image file, try:
 .. code-block:: python
 
     import yt
-    yt.show_colormaps(subset=['algae', 'kamae', 'spectral'], 
+    yt.show_colormaps(subset=['algae', 'kamae', 'spectral',
+                              'arbre', 'dusk', 'octarine', 'kelp'], 
                       filename="yt_native.png")
 
 Applying a Colormap to your Rendering

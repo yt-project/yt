@@ -1,3 +1,4 @@
+from __future__ import print_function
 import hglib
 import requests
 import shutil
@@ -6,6 +7,7 @@ import tempfile
 from datetime import datetime
 from distutils.version import LooseVersion
 from time import strptime, mktime
+from yt.extern.six.moves import input
 
 MERGED_PR_ENDPOINT = ("http://bitbucket.org/api/2.0/repositories/yt_analysis/"
                       "yt/pullrequests/?state=MERGED")
@@ -280,17 +282,17 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
             if commit_already_on_stable(repo_path, commits[0]) is True:
                 continue
             message = "hg graft %s\n" % commits[0]
-        print "PR #%s\nTitle: %s\nCreated on: %s\nLink: %s\n%s" % pr_desc
-        print "To backport, issue the following command(s):\n"
-        print message
-        raw_input('Press any key to continue')
+        print("PR #%s\nTitle: %s\nCreated on: %s\nLink: %s\n%s" % pr_desc)
+        print("To backport, issue the following command(s):\n")
+        print(message)
+        input('Press any key to continue')
 
 
 if __name__ == "__main__":
-    print ""
-    print "Gathering PR information, this may take a minute."
-    print "Don't worry, yt loves you."
-    print ""
+    print("")
+    print("Gathering PR information, this may take a minute.")
+    print("Don't worry, yt loves you.")
+    print("")
     repo_path = clone_new_repo()
     try:
         last_major_release = get_first_commit_after_last_major_release(repo_path)
@@ -308,11 +310,11 @@ if __name__ == "__main__":
         del inv_map[None]
 
         inv_map = screen_already_backported(repo_path, inv_map)
-        print "In another terminal window, navigate to the following path:"
-        print "%s" % repo_path
-        raw_input("Press any key to continue")
+        print("In another terminal window, navigate to the following path:")
+        print("%s" % repo_path)
+        input("Press any key to continue")
         backport_pr_commits(repo_path, inv_map, last_stable, prs)
-        raw_input(
+        input(
             "Now you need to push your backported changes. The temporary\n"
             "repository currently being used will be deleted as soon as you\n"
             "press any key.")

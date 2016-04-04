@@ -76,7 +76,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     factor : float
         Factor to be multiplied by the base radius for defining 
         the radius of the sphere.
-        Defautl: 1.0.
+        Default: 1.0.
     field_parameters : dict
         Dictionary of field parameters to be set with the sphere 
         created.
@@ -166,8 +166,7 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
     bin_fields : list of strings
         The binning fields for the profile.
     profile_fields : string or list of strings
-        The fields to be propython
-        filed.
+        The fields to be profiled.
     n_bins : int or list of ints
         The number of bins in each dimension.  If None, 32 bins for
         each bin are used for each bin field.

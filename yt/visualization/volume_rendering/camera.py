@@ -24,6 +24,7 @@ from .lens import \
     Lens
 import numpy as np
 from numbers import Number as numeric_type
+import weakref
 
 def _sanitize_camera_property_units(value, scene):
     if iterable(value):
@@ -126,18 +127,20 @@ class Camera(Orientation):
             raise RuntimeError(
                 'The first argument passed to the Camera initializer is a '
                 '%s object, expected a %s object' % (type(scene), Scene))
-        self.scene = scene
+        self.scene = weakref.proxy(scene)
         self.lens = None
         self.north_vector = None
         self.normal_vector = None
         self.light = None
         self.data_source = data_source_or_all(data_source)
         self._resolution = (512, 512)
+
         if self.data_source is not None:
             self.scene.set_new_unit_registry(self.data_source.ds.unit_registry)
             self._focus = self.data_source.ds.domain_center
             self._position = self.data_source.ds.domain_right_edge
-            self._width = 1.5*self.data_source.ds.domain_width
+            self._width = self.data_source.ds.arr(
+                [1.5*self.data_source.ds.domain_width.max()]*3)
             self._domain_center = self.data_source.ds.domain_center
             self._domain_width = self.data_source.ds.domain_width
         else:
@@ -175,7 +178,8 @@ class Camera(Orientation):
                 raise RuntimeError(
                     'Cannot set the camera focus and position to the same value')
             self._position = position
-            self.switch_orientation()
+            self.switch_orientation(normal_vector=self.focus - self._position,
+                                    north_vector=None)
 
         def fdel(self):
             del self._position
@@ -232,7 +236,8 @@ class Camera(Orientation):
                 raise RuntimeError(
                     'Cannot set the camera focus and position to the same value')
             self._focus = focus
-            self.switch_orientation()
+            self.switch_orientation(normal_vector=self.focus - self._position,
+                                    north_vector=None)
 
         def fdel(self):
             del self._focus
@@ -276,6 +281,10 @@ class Camera(Orientation):
     def _get_sampler_params(self, render_source):
         lens_params = self.lens._get_sampler_params(self, render_source)
         lens_params.update(width=self.width)
+        pos = self.position.in_units("code_length").d
+        width = self.width.in_units("code_length").d
+        lens_params.update(camera_data=np.vstack(
+            (pos, width, self.unit_vectors.d)))
         return lens_params
 
     def set_lens(self, lens_type):
@@ -327,7 +336,7 @@ class Camera(Orientation):
         if not isinstance(width, YTArray):
             width = data_source.ds.arr(width, input_units="code_length")
         if not isinstance(focus, YTArray):
-            focus = self.ds.arr(focus, input_units="code_length")
+            focus = data_source.ds.arr(focus, input_units="code_length")
 
         # We can't use the property setters yet, since they rely on attributes
         # that will not be set up until the base class initializer is called.
