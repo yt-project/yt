@@ -374,9 +374,11 @@ class MeshSource(OpaqueSource):
         if self.engine == 'embree':
             self.volume = mesh_traversal.YTEmbreeScene()
             self.build_volume_embree()
-
         elif self.engine == 'bvh':
             self.build_volume_bvh()
+        else:
+            raise NotImplementedError("Invalid ray-tracing engine selected. "
+                                      "Choices are 'embree' and 'bvh'.")
 
     def cmap():
         '''
