@@ -112,17 +112,8 @@ cdef void sample_hex(void* userPtr,
 
     # we use ray.instID to pass back whether the ray is near the
     # element boundary or not (used to annotate mesh lines)
-    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-        fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    else:
-        ray.instID = -1
+    ray.instID = Q1Sampler.check_mesh_lines(mapped_coord)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -165,28 +156,7 @@ cdef void sample_wedge(void* userPtr,
     val = W1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
 
-    cdef double r, s, t
-    cdef double thresh = 5.0e-2
-    r = mapped_coord[0]
-    s = mapped_coord[1]
-    t = mapped_coord[2]
-
-    cdef int near_edge_r, near_edge_s, near_edge_t
-    near_edge_r = (r < thresh) or (fabs(r + s - 1.0) < thresh)
-    near_edge_s = (s < thresh)
-    near_edge_t = fabs(fabs(mapped_coord[2]) - 1.0) < thresh
-    
-    # we use ray.instID to pass back whether the ray is near the
-    # element boundary or not (used to annotate mesh lines)
-    if (near_edge_r and near_edge_s):
-        ray.instID = 1
-    elif (near_edge_r and near_edge_t):
-        ray.instID = 1
-    elif (near_edge_s and near_edge_t):
-        ray.instID = 1
-    else:
-        ray.instID = -1
-
+    ray.instID = W1Sampler.check_mesh_lines(mapped_coord)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -223,20 +193,8 @@ cdef void sample_hex20(void* userPtr,
     val = S2Sampler.sample_at_unit_point(mapped_coord, patch.field_data)
     ray.time = val
 
-    # we use ray.instID to pass back whether the ray is near the
-    # element boundary or not (used to annotate mesh lines)
-    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-        fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    else:
-        ray.instID = -1
-
+    ray.instID = S2Sampler.check_mesh_lines(mapped_coord)
+    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

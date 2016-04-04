@@ -246,11 +246,13 @@ cdef class BVH:
         cdef np.float64_t* field_ptr         
         vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
         field_ptr = self.field_data + ray.elem_id*self.num_verts_per_elem
-        ray.data_val = self.sampler.sample_at_real_point(vertex_ptr,
-                                                         field_ptr,
-                                                         position)
 
-        ray.near_boundary = -1
+        cdef np.float64_t[4] mapped_coord
+        self.sampler.map_real_to_unit(mapped_coord, vertex_ptr, position)
+        ray.data_val = self.sampler.sample_at_unit_point(mapped_coord,
+                                                         field_ptr)
+
+        ray.near_boundary = self.sampler.check_mesh_lines(mapped_coord)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

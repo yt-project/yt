@@ -131,7 +131,7 @@ cdef class BVHMeshSampler(ImageSampler):
         ny = im.nv[1]
         size = nx * ny
         cdef Ray* ray
-        with nogil, parallel(num_threads = num_threads):
+        with nogil, parallel():
             ray = <Ray *> malloc(sizeof(Ray))
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
             v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
