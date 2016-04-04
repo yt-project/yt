@@ -235,23 +235,8 @@ cdef void sample_tetra(void* userPtr,
     P1Sampler.map_real_to_unit(mapped_coord, vertices, position)
     val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
-
-    cdef double u, v, w
-    cdef double thresh = 2.0e-2
-    u = ray.u
-    v = ray.v
-    w = 1.0 - u - v
-    # we use ray.instID to pass back whether the ray is near the
-    # element boundary or not (used to annotate mesh lines)
-    if ((u < thresh) or 
-        (v < thresh) or 
-        (w < thresh) or
-        (fabs(u - 1) < thresh) or 
-        (fabs(v - 1) < thresh) or 
-        (fabs(w - 1) < thresh)):
-        ray.instID = 1
-    else:
-        ray.instID = -1
+    
+    ray.instID = P1Sampler.check_mesh_lines(mapped_coord)
 
 
 @cython.boundscheck(False)

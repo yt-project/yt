@@ -273,7 +273,33 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_mesh_lines(self, double* mapped_coord) nogil:
-        pass
+        cdef double u, v, w
+        cdef double thresh = 2.0e-2
+        if mapped_coord[0] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+            w = mapped_coord[3]
+        elif mapped_coord[1] == 0:
+            u = mapped_coord[2]
+            v = mapped_coord[3]
+            w = mapped_coord[0]
+        elif mapped_coord[2] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[3]
+            w = mapped_coord[0]
+        else:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+            w = mapped_coord[0]
+        if ((u < thresh) or 
+            (v < thresh) or 
+            (w < thresh) or
+            (fabs(u - 1) < thresh) or 
+            (fabs(v - 1) < thresh) or 
+            (fabs(w - 1) < thresh)):
+            return 1
+        return -1
+
 
 cdef class NonlinearSolveSampler3D(ElementSampler):
 
