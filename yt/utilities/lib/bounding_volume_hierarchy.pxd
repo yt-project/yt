@@ -45,6 +45,7 @@ cdef class BVH:
     cdef np.int64_t num_tri
     cdef np.int64_t num_elem
     cdef np.int64_t num_verts_per_elem
+    cdef np.int64_t num_field_per_elem
     cdef ElementSampler sampler
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil

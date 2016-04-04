@@ -124,6 +124,7 @@ cdef class BVH:
 
         self.num_elem = indices.shape[0]
         self.num_verts_per_elem = indices.shape[1]
+        self.num_field_per_elem = field_data.shape[1]
 
         # We need to figure out what kind of elements we've been handed.
         cdef int[MAX_NUM_TRI][3] tri_array
@@ -142,20 +143,22 @@ cdef class BVH:
         self.num_tri = self.num_tri_per_elem*self.num_elem
 
         # allocate storage
-        cdef np.int64_t size = self.num_verts_per_elem * self.num_elem
-        self.vertices = <np.float64_t*> malloc(size * 3 * sizeof(np.float64_t))
-        self.field_data = <np.float64_t*> malloc(size * sizeof(np.float64_t))
+        cdef np.int64_t v_size = self.num_verts_per_elem * self.num_elem * 3
+        self.vertices = <np.float64_t*> malloc(v_size * sizeof(np.float64_t))
+        cdef np.int64_t f_size = self.num_field_per_elem * self.num_elem
+        self.field_data = <np.float64_t*> malloc(f_size * sizeof(np.float64_t))
 
         # create data buffers
         cdef np.int64_t i, j, k
         cdef np.int64_t field_offset, vertex_offset
         for i in range(self.num_elem):
-            field_offset = i*self.num_verts_per_elem
             for j in range(self.num_verts_per_elem):
                 vertex_offset = i*self.num_verts_per_elem*3 + j*3
-                self.field_data[field_offset + j] = field_data[i][j]
                 for k in range(3):
                     self.vertices[vertex_offset + k] = vertices[indices[i,j]][k]
+            field_offset = i*self.num_field_per_elem
+            for j in range(self.num_field_per_elem):
+                self.field_data[field_offset + j] = field_data[i][j]                
 
         # fill our array of triangles
         cdef np.int64_t offset, tri_index
@@ -245,13 +248,15 @@ cdef class BVH:
         cdef np.float64_t* vertex_ptr
         cdef np.float64_t* field_ptr         
         vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
-        field_ptr = self.field_data + ray.elem_id*self.num_verts_per_elem
+        field_ptr = self.field_data + ray.elem_id*self.num_field_per_elem
 
         cdef np.float64_t[4] mapped_coord
         self.sampler.map_real_to_unit(mapped_coord, vertex_ptr, position)
-        ray.data_val = self.sampler.sample_at_unit_point(mapped_coord,
-                                                         field_ptr)
-
+        if self.num_field_per_elem == 1:
+            ray.data_val = field_ptr[0]
+        else:
+            ray.data_val = self.sampler.sample_at_unit_point(mapped_coord,
+                                                             field_ptr)
         ray.near_boundary = self.sampler.check_mesh_lines(mapped_coord)
 
     @cython.boundscheck(False)

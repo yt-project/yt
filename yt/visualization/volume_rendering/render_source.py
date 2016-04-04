@@ -486,9 +486,9 @@ class MeshSource(OpaqueSource):
         vertices = index.meshes[mesh_id].connectivity_coords
         indices = index.meshes[mesh_id].connectivity_indices - offset
 
+        # if this is an element field, promote to 2D here
         if len(field_data.shape) == 1:
-            raise NotImplementedError("Element-centered fields are "
-                                      "only supported by Embree. ")
+            field_data = np.expand_dims(field_data, 1)
 
         # Here, we decide whether to render based on high-order or 
         # low-order geometry. Right now, high-order geometry is only
