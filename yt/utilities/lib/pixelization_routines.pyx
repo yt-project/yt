@@ -20,6 +20,7 @@ cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import YTPixelizeError, \
     YTElementTypeNotRecognized
+from libc.stdlib cimport malloc, free
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
@@ -29,9 +30,6 @@ from yt.utilities.lib.element_mappings cimport \
     Q1Sampler2D, \
     W1Sampler3D
 
-cdef extern from "stdlib.h":
-    # NOTE that size_t might not be int
-    void *alloca(int)
 
 cdef extern from "pixelization_constants.h":
     enum:
@@ -578,8 +576,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nvertices = conn.shape[1]
     cdef int ndim = coords.shape[1]
     cdef int num_field_vals = field.shape[1]
-    cdef double* mapped_coord
-    cdef int num_mapped_coords
+    cdef double[4] mapped_coord
     cdef ElementSampler sampler
 
     # Pick the right sampler and allocate storage for the mapped coordinate
@@ -622,10 +619,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         raise RuntimeError
 
     # allocate temporary storage
-    num_mapped_coords = sampler.num_mapped_coords
-    mapped_coord = <double*> alloca(sizeof(double) * num_mapped_coords)
-    vertices = <np.float64_t *> alloca(ndim * sizeof(np.float64_t) * nvertices)
-    field_vals = <np.float64_t *> alloca(sizeof(np.float64_t) * num_field_vals)
+    vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
+    field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
 
     # fill the image bounds and pixel size informaton here
     for i in range(ndim):
@@ -696,4 +691,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                             img[pi, pj, pk] = 1.0
                         elif sampler.check_near_edge(mapped_coord, thresh, yax):
                             img[pi, pj, pk] = 1.0
+
+    free(vertices)
+    free(field_vals)
     return img
