@@ -20,6 +20,7 @@ _frontends = [
     'art',
     'artio',
     'athena',
+    'athena_pp',
     'boxlib',
     'chombo',
     'eagle',

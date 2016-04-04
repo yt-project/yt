@@ -16,8 +16,6 @@ Data structures for Athena.
 import numpy as np
 import os
 import weakref
-import glob
-import lxml
 
 from yt.funcs import \
     mylog, \
@@ -180,7 +178,6 @@ class AthenaPPDataset(Dataset):
                  storage_filename=None, parameters=None,
                  units_override=None, unit_system="cgs"):
         self.fluid_types += ("athena++",)
-        if self._handle is not None: return
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters
@@ -223,7 +220,8 @@ class AthenaPPDataset(Dataset):
         self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def _parse_parameter_file(self):
-        tree = lxml.etree.parse(self.parameter_filename)
+        from lxml import etree
+        tree = etree.parse(self.parameter_filename)
         root = tree.getroot()
         grids = root.findall("./Domain/Grid")[0]
         grid0 = grids[0]
@@ -276,7 +274,7 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5./3.
-        self.geometry = self.geometry_map.get(geometry, "cartesian")
+        self.geometry = geometry_map.get(geometry, "cartesian")
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
