@@ -30,6 +30,10 @@ for subdir in MAPSERVER_DIRS:
         files += glob.glob("%s/*.%s" % (dir_name, ext))
     MAPSERVER_FILES.append((dir_name, files))
 
+SHADERS_DIR = os.path.join("yt", "visualization", "volume_rendering", "shaders")
+SHADERS_FILES = glob.glob(os.path.join(SHADERS_DIR, "*.vertexshader")) + \
+    glob.glob(os.path.join(SHADERS_DIR, "*.fragmentshader"))
+
 VERSION = "3.3.dev0"
 
 if os.path.exists('MANIFEST'):
@@ -385,7 +389,7 @@ setup(
     license="BSD",
     zip_safe=False,
     scripts=["scripts/iyt"],
-    data_files=MAPSERVER_FILES,
+    data_files=MAPSERVER_FILES + SHADERS_FILES,
     ext_modules=cython_extensions + extensions
 )
 
