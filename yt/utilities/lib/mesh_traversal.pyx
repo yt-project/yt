@@ -27,8 +27,6 @@ from cython.parallel import prange, parallel, threadid
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray
 
-cdef np.float64_t INF = np.inf
-
 rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
 
@@ -144,7 +142,7 @@ cdef class BVHMeshSampler(ImageSampler):
                     ray.origin[i] = v_pos[i]
                     ray.direction[i] = v_dir[i]
                     ray.inv_dir[i] = 1.0 / v_dir[i]
-                ray.t_far = INF
+                ray.t_far = 1e37
                 ray.t_near = 0.0
                 ray.data_val = 0
                 ray.elem_id = -1
