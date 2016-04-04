@@ -279,7 +279,7 @@ class AthenaPPDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            if 'athdf5.xdmf' in args[0]:
+            if 'athdf.xdmf' in args[0]:
                 return True
         except:
             pass
