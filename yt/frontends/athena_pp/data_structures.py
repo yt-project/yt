@@ -93,16 +93,16 @@ class AthenaPPHierarchy(GridIndex):
         self.grid_left_edge = np.zeros((num_grids, 3), dtype='float64')
         self.grid_right_edge = np.zeros((num_grids, 3), dtype='float64')
         self.grid_dimensions = np.zeros((num_grids, 3), dtype='int32')
-        dds = np.zeros((num_grids, 3), dtype='float64')
+        levels = np.zeros(num_grids, dtype='int32')
 
         for i in range(num_grids):
             x = self._handle["MeshBlock%d" % i][coord_fields[0]]
             y = self._handle["MeshBlock%d" % i][coord_fields[1]]
             z = self._handle["MeshBlock%d" % i][coord_fields[2]]
-            dds[i] = np.array([x[1]-x[0], y[1]-y[0], z[1]-z[0]], dtype='float64')
             self.grid_left_edge[i] = np.array([x[0], y[0], z[0]], dtype='float64')
+            self.grid_right_edge[i] = np.array([x[-1], y[-1], z[-1]], dtype='float64')
             self.grid_dimensions[i] = self._handle.attrs["MeshBlockSize"]
-        self.grid_right_edge = self.grid_left_edge + self.grid_dimensions*dds
+            levels[i] = self._handle["MeshBlock%d" % i].attrs["Level"][0]
 
         new_dle = np.min(self.grid_left_edge, axis=0)
         new_dre = np.max(self.grid_right_edge, axis=0)
@@ -114,12 +114,6 @@ class AthenaPPHierarchy(GridIndex):
         self.dataset.domain_center = \
                 0.5*(self.dataset.domain_left_edge +
                      self.dataset.domain_right_edge)
-
-        dx_root = (self.dataset.domain_right_edge-
-                   self.dataset.domain_left_edge)/self.dataset.domain_dimensions
-
-        # This next line assumes refine_by == 2!!
-        levels = np.round(np.log2(dds[:,0]/dx_root[0])).astype('int')
 
         self.grid_left_edge = self.ds.arr(self.grid_left_edge, "code_length")
         self.grid_right_edge = self.ds.arr(self.grid_right_edge, "code_length")
