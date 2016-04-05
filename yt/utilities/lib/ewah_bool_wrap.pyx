@@ -117,7 +117,8 @@ cdef class FileBitmasks:
         cr = self._find_collisions_refined(coll, verbose)
         return cc, cr
 
-    cdef tuple _find_collisions_coarse(self, BoolArrayCollection coll, bint verbose = 0):
+    cdef tuple _find_collisions_coarse(self, BoolArrayCollection coll, bint
+                        verbose = 0, file_list = None):
         cdef np.int32_t ifile
         cdef ewah_bool_array arr_two, arr_swap, arr_keys, arr_refn
         cdef ewah_bool_array* iarr
@@ -125,7 +126,9 @@ cdef class FileBitmasks:
         cdef ewah_bool_array* coll_refn
         coll_keys = (<ewah_bool_array*> coll.ewah_keys)
         coll_refn = (<ewah_bool_array*> coll.ewah_refn)
-        for ifile in range(self.nfiles):
+        if file_list is None:
+            file_list = range(self.nfiles)
+        for ifile in file_list:
             iarr = (<ewah_bool_array **>self.ewah_keys)[ifile]
             arr_keys.logicaland(iarr[0], arr_two)
             arr_keys.logicalor(iarr[0], arr_swap)

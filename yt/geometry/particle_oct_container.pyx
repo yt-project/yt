@@ -581,10 +581,10 @@ cdef class ParticleForest:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_coarse(self, verbose=True):
+    def find_collisions_coarse(self, verbose=True, file_list = None):
         cdef int nc, nm
         IF UseCythonBitmasks == 1:
-            nc, nm = self.bitmasks._find_collisions_coarse(self.collisions,verbose)
+            nc, nm = self.bitmasks._find_collisions_coarse(self.collisions, verbose, file_list)
         ELSE:
             cdef ewah_bool_array* coll_keys
             cdef ewah_bool_array* coll_refn
@@ -593,7 +593,9 @@ cdef class ParticleForest:
             cdef ewah_bool_array arr_two, arr_swap, arr_keys, arr_refn
             coll_keys = (<ewah_bool_array*> self.collisions.ewah_keys)
             coll_refn = (<ewah_bool_array*> self.collisions.ewah_refn)
-            for ifile in range(self.nfiles):
+            if file_list is None:
+                file_list = range(self.nfiles)
+            for ifile in file_list:
                 bitmask = self.bitmasks[ifile]
                 arr_keys.logicaland((<ewah_bool_array*> bitmask.ewah_keys)[0], arr_two)
                 arr_keys.logicalor((<ewah_bool_array*> bitmask.ewah_keys)[0], arr_swap)
@@ -885,21 +887,11 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def construct_forest(self, np.uint64_t file_id, SelectorObject selector,
-                         io_handler, data_files, data_file_info = None):
-        if file_id in self._cached_octrees:
-            iv = self._cached_octrees[file_id]
-            rv = ParticleForestOctreeContainer.load_octree(iv)
-            return rv
-        cdef np.ndarray[np.uint8_t, ndim=3] omask
-        if data_file_info is None:
-            data_file_info = self.identify_data_files(selector) 
-        _, _, omask, _ = data_file_info
-        # cdef np.float64_t LE[3], RE[3]
+    def construct_forest(self, SelectorObject selector,
+                         io_handler, data_files):
         cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t fcheck, fmask
         cdef np.ndarray[np.uint64_t, ndim=3] counts
-        cdef np.ndarray[np.uint64_t, ndim=3] mask 
         cdef np.ndarray[np.int32_t, ndim=3] forest_nodes
         forest_nodes = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
             dtype="int32") - 1
@@ -908,43 +900,12 @@ cdef class ParticleForest:
         nm = len(self.masks)
         cdef np.uint64_t **masks = <np.uint64_t **> malloc(
             sizeof(np.uint64_t *) * nm)
-        for n in range(nm):
-            mask = self.masks[n]
-            masks[n] = <np.uint64_t *> mask.data
-        cdef int file_mask_id = <int> (file_id / 64.0)
-        cdef np.uint64_t index, file_mask = (ONEBIT << (file_id % 64))
-        cdef np.uint8_t *file_ids = <np.uint8_t*> malloc(
-            sizeof(np.uint8_t) * self.nfiles)
-        for i in range(self.nfiles):
-            file_ids[i] = 0
         index = -1
         cdef int dims[3]
         for i in range(3):
             dims[i] = self.dims[i]
-        cdef np.ndarray[np.int32_t, ndim=3] owners = self.owners
-        cdef int nroot = 0
-        for i in range(self.dims[0]):
-            for j in range(self.dims[1]):
-                for k in range(self.dims[2]):
-                    index += 1
-                    ii = gind(i, j, k, dims)
-                    if owners[i,j,k] != file_id or \
-                       omask[i,j,k] == 0 or \
-                        (masks[file_mask_id][ii] & file_mask) == 0:
-                        continue
-                    forest_nodes[i,j,k] = nroot
-                    nroot += 1
-                    total_pcount += counts[i,j,k]
-                    # multiple will be 0 for use this zone, 1 for skip it
-                    # We get this one, so we'll continue ...
-                    for n in range(nm):
-                        # First we count
-                        fmask = masks[n][ii]
-                        for fcheck in range(64):
-                            if ((fmask >> fcheck) & ONEBIT) == ONEBIT:
-                                # First to arrive gets it
-                                file_ids[fcheck + n * 64] = 1
         # Now we can actually create a sparse octree.
+        _, nroot = self.find_collisions_coarse(False, file_list = [_.file_id for _ in data_files])
         cdef ParticleForestOctreeContainer octree
         octree = ParticleForestOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
@@ -977,10 +938,9 @@ cdef class ParticleForest:
         cdef np.float64_t DLE[3]
         cdef np.float64_t DRE[3]
         cdef int bitsize = 0
-        for i in range(self.nfiles):
-            if file_ids[i] == 0: continue
+        for data_file in data_files:
             # We now get our particle positions
-            for pos in io_handler._yield_coordinates(data_files[i]):
+            for pos in io_handler._yield_coordinates(data_file):
                 pos32 = pos64 = None
                 bitsize = 0
                 if pos.dtype == np.float32:
@@ -1021,13 +981,10 @@ cdef class ParticleForest:
                     end += particle_count[arri]
                     morton_view = morton_ind[start:end]
                     morton_view.sort()
-                    octree.add(morton_view, i, j, k, owners[i,j,k])
+                    octree.add(morton_view, i, j, k)
         octree.finalize()
         free(particle_index)
         free(particle_count)
-        free(file_ids)
-        free(masks)
-        self._cached_octrees[file_id] = octree.save_octree()
         return octree
 
 cdef class ParticleForestSelector:
@@ -1832,7 +1789,7 @@ cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
             domain_dimensions, domain_left_edge, domain_right_edge,
             over_refine)
         self.loaded = 0
-        self.fill_func = oct_visitors.fill_file_indices_oind
+        self.fill_style = "o"
 
         # Now the overrides
         self.max_root = num_root

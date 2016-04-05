@@ -75,6 +75,7 @@ class ParticleIndex(Index):
         self.ds.domain_dimensions[:] = N*(1<<self.ds.over_refine_factor)
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
+        self._initialize_index()
 
     def _initialize_index(self, fname=None, noref=False,
                           order1=None, order2=None):
@@ -149,7 +150,7 @@ class ParticleIndex(Index):
             data_files = getattr(dobj, "data_files", None)
             buffer_files = getattr(dobj, "buffer_files", None)
             if data_files is None:
-                dfi, = np.where(self.regions.identify_data_files(dobj.selector))
+                dfi, gzi = self.regions.identify_data_files(dobj.selector)
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
                 #mylog.debug("Maximum particle count of %s identified", count)
