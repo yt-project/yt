@@ -33,6 +33,7 @@ cdef extern from "<sstream>" namespace "std":
         string str()
         ostream write(char *, size_t)
         istream read(char *, size_t)
+        bint eof()
 
 cdef extern from "ewah.h":
     cdef cppclass EWAHBoolArray[uword]:

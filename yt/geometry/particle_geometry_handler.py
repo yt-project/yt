@@ -88,12 +88,18 @@ class ParticleIndex(Index):
                 len(self.data_files), ds.over_refine_factor,
                 ds.n_ref, index_order1=order1, index_order2=order2)
         # Load indices from file if provided
+        rflag = 0
         if fname is not None and os.path.isfile(fname):
-            self.regions.load_bitmasks(fname=fname)
+            rflag = self.regions.load_bitmasks(fname=fname)
+            if rflag == 0:
+                self._initialize_owners()
         else:
             self._initialize_coarse_index()
             if not noref:
                 self._initialize_refined_index()
+                self.regions.set_owners()
+            else:
+                self._initialize_owners()
             if fname is not None:
                 self.regions.save_bitmasks(fname=fname)
         # These are now invalid, but I don't know what to replace them with:
@@ -123,6 +129,15 @@ class ParticleIndex(Index):
                     sub_mi1, sub_mi2, data_file.file_id)
         pb.finish()
         self.regions.find_collisions_refined()
+
+    def _initialize_owners(self):
+        pb = get_pbar("Initializing owners", len(self.data_files))
+        for i, data_file in enumerate(self.data_files):
+            pb.update(i)
+            for pos in self.io._yield_coordinates(data_file):
+                self.regions._owners_data_file(pos, data_file.file_id)
+        pb.finish()
+        self.regions.set_owners()
             
     def _detect_output_fields(self):
         # TODO: Add additional fields

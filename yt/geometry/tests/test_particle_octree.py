@@ -229,67 +229,43 @@ def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE,
         pos[:,i] = np.random.uniform(DLE[i], DRE[i], inp)
     return pos
 
-def sample_decomp_hilbert(npart, nfiles, ifile, DLE, DRE,
-                          buff=0.0, order=6, verbose=False):
+def fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE,
+                                 buff=0.0, order=6, verbose=False):
     np.random.seed(int(0x4d3d3d3))
     DW = DRE - DLE
-    nbuff = int((buff**3)*npart)
     dim_hilbert = (1<<order)
     nH = dim_hilbert**3
     if nH < nfiles:
         raise Exception('Fewer hilbert cells than files.')
     nHPF = nH/nfiles
     rHPF = nH%nfiles
-    # Do random
-    nPH = nbuff/nH
-    nRH = nbuff%nH
-    hind = np.arange(nH, dtype='int64')
-    hpos = get_hilbert_points(order, hind)
     hdiv = DW/dim_hilbert
     if ifile == 0:
-        hlist = range(0,nHPF+rHPF)
-        nptot = nPH*len(hlist)+nRH
+        hlist = np.arange(0,nHPF+rHPF, dtype='int64')
     else:
-        hlist = range(ifile*nHPF+rHPF,(ifile+1)*nHPF+rHPF)
-        nptot = nPH*len(hlist)
-    pos = np.empty((nptot,3), dtype='float')
-    pc = 0
-    for i in hlist:
-        iLE = DLE + hdiv*hpos[i,:]
-        iRE = iLE + hdiv
-        for k in range(3): # Don't add buffer past domain bounds
-            if hpos[i,k] != 0:
-                iLE -= buff*hdiv
-            if hpos[i,k] != (dim_hilbert-1):
-                iRE += buff*hdiv
-        inp = nPH
-        if (ifile == 0) and (i == 0): inp += nRH
-        for k in range(3):
-            pos[pc:(pc+inp),k] = np.random.uniform(iLE[k], iRE[k], inp)
-        pc += inp
-    # Add gauss
-    pos_tot = np.empty((npart-nbuff,3), dtype='float')
-    for i in range(3):
-        pos_tot[:,i] = np.random.normal(DLE[i]+DW[i]/2.0, DW/10.0, npart-nbuff)
-        np.clip(pos_tot[:,i], DLE[i], DRE[i], pos_tot[:,i])
-    for i in hlist:
-        iLE = DLE + hdiv*hpos[i,:]
-        iRE = iLE + hdiv
-        for k in range(3): # Don't add buffer past domain bounds
-            if hpos[i,k] != 0:
-                iLE -= buff*hdiv
-            if hpos[i,k] != (dim_hilbert-1):
-                iRE += buff*hdiv
-        inp = nPH
-        if (ifile == 0) and (i == 0): inp += nRH
-        for k in range(3):
-            pos[pc:(pc+inp),k] = np.random.uniform(iLE[k], iRE[k], inp)
-        pc += inp
-    return pos
+        hlist = np.arange(ifile*nHPF+rHPF,(ifile+1)*nHPF+rHPF, dtype='int64')
+    hpos = get_hilbert_points(order, hlist)
+    iLE = np.empty((len(hlist),3), dtype='float')
+    iRE = np.empty((len(hlist),3), dtype='float')
+    count = np.zeros(3,dtype='int')
+    pos = np.empty((npart,3), dtype='float')
+    for k in range(3):
+        iLE[:,k] = DLE[k] + hdiv[k]*hpos[:,k]
+        iRE[:,k] = iLE[:,k] + hdiv[k]
+        iLE[hpos[:,k]!=0,k] -= buff*hdiv[k]
+        iRE[hpos[:,k]!=(dim_hilbert-1),k] += buff*hdiv[k]
+        ipos = np.random.normal(DLE[k]+DW[k]/2.0, DW[k]/10.0, npart)
+        np.clip(ipos, DLE[k], DRE[k], ipos)
+        for i in range(len(hlist)):
+            if np.any(np.logical_and(np.greater_equal(ipos,iLE[i,k]),
+                                     np.less(ipos,iRE[i,k]))):
+                pos[count[k],k] = ipos
+                count[k] += 1
+    return pos[:count.max(),:]
     
 
-def fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE,
-                        buff=0.0, order=6, verbose=False):
+def fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE,
+                                buff=0.0, order=6, verbose=False):
     np.random.seed(int(0x4d3d3d3)+ifile)
     DW = DRE - DLE
     dim_hilbert = (1<<order)
@@ -316,9 +292,9 @@ def fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE,
         iRE = iLE + hdiv
         for k in range(3): # Don't add buffer past domain bounds
             if hpos[i,k] != 0:
-                iLE -= buff*hdiv
+                iLE[k] -= buff*hdiv[k]
             if hpos[i,k] != (dim_hilbert-1):
-                iRE += buff*hdiv
+                iRE[k] += buff*hdiv[k]
         inp = nPH
         if (ifile == 0) and (i == 0): inp += nRH
         for k in range(3):
@@ -354,9 +330,9 @@ def fake_decomp_morton(npart, nfiles, ifile, DLE, DRE,
         iRE = iLE + hdiv
         for k in range(3): # Don't add buffer past domain bounds
             if hpos[i,k] != 0:
-                iLE -= buff*hdiv
+                iLE[k] -= buff*hdiv[k]
             if hpos[i,k] != (dim_morton-1):
-                iRE += buff*hdiv
+                iRE[k] += buff*hdiv[k]
         inp = nPH
         if (ifile == 0) and (i == 0): inp += nRH
         for k in range(3):
@@ -382,18 +358,19 @@ def yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, **kws):
     for ifile in range(nfiles):
         yield fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws)
 
-def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
+def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, 
+                distrib='uniform', **kws):
     if decomp.startswith('zoom_'):
         zoom_factor = 5
         decomp_zoom = decomp.split('zoom_')[-1]
         zoom_npart = npart/2
         zoom_rem = npart%2
         pos1 = fake_decomp(decomp_zoom, zoom_npart+zoom_rem, 
-                           nfiles, ifile, DLE, DRE, **kws)
+                           nfiles, ifile, DLE, DRE, distrib=distrib, **kws)
         DLE_zoom = DLE + 0.5*DW*(1.0 - 1.0/float(zoom_factor))
         DRE_zoom = DLE_zoom + DW/zoom_factor
         pos2 = fake_decomp(decomp_zoom, zoom_npart, nfiles, ifile,
-                                  DLE_zoom, DRE_zoom, **kws)
+                                  DLE_zoom, DRE_zoom, distrib=distrib, **kws)
         pos = np.concatenate((pos1,pos2),axis=0)
     elif '_' in decomp:
         decomp_list = decomp.split('_')
@@ -404,7 +381,8 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
             inp = decomp_np
             if i == 0:
                 inp += decomp_nr
-            ipos = fake_decomp(idecomp, inp, nfiles, ifile, DLE, DRE, **kws)
+            ipos = fake_decomp(idecomp, inp, nfiles, ifile, DLE, DRE, 
+                               distrib=distrib, **kws)
             pos = np.concatenate((pos,ipos),axis=0)
     # A perfect grid, no overlap between files
     elif decomp == 'grid':
@@ -412,10 +390,16 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
         pos = fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, **kws)
     # Completely random data set
     elif decomp == 'random':
-        pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Each file contains a slab (part of x domain, all of y/z domain)
     elif decomp == 'sliced':
-        pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
     # Peano-Hilbert curve of order 6
     elif decomp.startswith('hilbert'):
@@ -423,7 +407,12 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
             kws['order'] = 6
         else:
             kws['order'] = int(decomp.split('hilbert')[-1])
-        pos = fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE, **kws)
+        elif distrib == 'gaussian':
+            pos = fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
     # Morton ordered Z-curve of order 6
     elif decomp.startswith('morton'):
@@ -431,14 +420,17 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
             kws['order'] = 6
         else:
             kws['order'] = int(decomp.split('morton')[-1])
-        pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     else:
         raise ValueError("Unsupported value {} for input parameter 'decomp'".format(decomp))
     return pos
 
 def FakeForest(npart, nfiles, order1, order2, decomp='grid', 
-               buff=0.5, DLE=None, DRE=None, fname=None,
-               verbose=False, really_verbose=False):
+               buff=0.5, DLE=None, DRE=None, distrib='uniform',
+               fname=None, verbose=False, really_verbose=False):
     from yt.funcs import get_pbar
     N = (1<<order1)
     if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
@@ -453,8 +445,8 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
         rc = reg.find_collisions_refined(verbose=verbose)
     else:
         # Create positions for each file
-        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, 
-                                   buff=buff, verbose=really_verbose)
+        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, buff=buff,
+                                   distrib=distrib, verbose=really_verbose)
         # Coarse index
         cp = 0
         pb = get_pbar("Initializing coarse index ",nfiles)
@@ -472,8 +464,8 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
         # Refined index
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
-        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, 
-                                   buff=buff, verbose=really_verbose)
+        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, buff=buff, 
+                                   distrib=distrib, verbose=really_verbose)
         pb = get_pbar("Initializing refined index ",nfiles)
         for i,pos in enumerate(posgen):
             pb.update(i)
@@ -482,6 +474,8 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
                                          sub_mi1, sub_mi2, i)
         pb.finish()
         rc = reg.find_collisions_refined(verbose=verbose)
+        # Owners
+        reg.set_owners()
         # Save if file name provided
         if isinstance(fname,str):
             reg.save_bitmasks(fname=fname)
@@ -496,12 +490,15 @@ def vary_selection_stats(var, varlist, verbose=False, plot=False,
     import pickle
     kwsDEF = dict(decomp='hilbert',
                   buff=0.1,
+                  distrib='uniform',
                   ngz=0,
                   nreps=10)
     for k in kwsDEF: kws.setdefault(k,kwsDEF[k])
     testtag = "vary_{}_np{}_nf{}_{}_buff{}_{}ngz_{}reps".format(var,npart_dim,nfiles,
                                                                 kws['decomp'],str(kws['buff']).replace('.','p'),
                                                                 kws['ngz'],kws['nreps'])
+    if kws['distrib'] != 'uniform':
+        testtag += '_{}'.format(kws['distrib'])
     if extendtag is not None:
         testtag += extendtag
     fname = testtag+'.dat'
@@ -617,8 +614,8 @@ def plot_vary_selection_stats(var, varlist, result, fname=None):
 def time_selection(npart_dim, nfiles, fake_regions, 
                    verbose=False, really_verbose=False,
                    decomp='hilbert', order1=6, order2=4, ngz=0,
-                   buff=0.5, total_order=10, total_regions=True,
-                   nreps=10):
+                   buff=0.5, total_order=10, distrib='uniform',
+                   total_regions=True,nreps=10):
     # Set order
     if order2 is None:
         if order1 is None:
@@ -630,10 +627,12 @@ def time_selection(npart_dim, nfiles, fake_regions,
     fname = "forest_{}_np{}_nf{}_oc{}_or{}_buff{}".format(decomp,npart_dim,nfiles,
                                                           order1,order2,
                                                           str(buff).replace('.','p'))
+    if distrib != 'uniform':
+        fname += '_{}'.format(distrib)
     # Fake forest
     npart = npart_dim**3
     reg, cc, rc, mem = FakeForest(npart, nfiles, order1, order2, decomp=decomp, 
-                                  buff=buff, fname=fname,
+                                  buff=buff, distrib=distrib, fname=fname,
                                   verbose=verbose, really_verbose=really_verbose)
     if total_regions:
         times = np.empty(nreps,dtype='float')
@@ -1179,6 +1178,8 @@ def test_save_load_bitmap():
         pos[:,0] += (DW[0]/nfiles)
     pos[:,0] = (DW[0]/nfiles)/2
     rc = reg0.find_collisions_refined(verbose=verbose)
+    # Owners
+    reg0.set_owners()
     # Save
     reg0.save_bitmasks(fname)
     # Load

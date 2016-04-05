@@ -46,14 +46,21 @@ cdef class FileBitmasks:
         self.nfiles = nfiles
         cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
         cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
+        cdef ewah_bool_array **ewah_owns = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
         cdef ewah_map **ewah_coll = <ewah_map **>malloc(nfiles*sizeof(ewah_map*))
         for i in range(nfiles):
             ewah_keys[i] = new ewah_bool_array()
             ewah_refn[i] = new ewah_bool_array()
+            ewah_owns[i] = new ewah_bool_array()
             ewah_coll[i] = new ewah_map()
         self.ewah_keys = <void **>ewah_keys
         self.ewah_refn = <void **>ewah_refn
+        self.ewah_owns = <void **>ewah_owns
         self.ewah_coll = <void **>ewah_coll
+
+    def reset(self):
+        self.__dealloc__()
+        self.__init__(self.nfiles)
 
     cdef bint _iseq(self, FileBitmasks solf):
         cdef np.int32_t ifile
@@ -104,9 +111,11 @@ cdef class FileBitmasks:
         cdef BoolArrayCollection out = BoolArrayCollection()
         cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>self.ewah_keys
         cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>self.ewah_refn
+        cdef ewah_bool_array **ewah_owns = <ewah_bool_array **>self.ewah_owns
         cdef ewah_map **ewah_coll = <ewah_map **>self.ewah_coll
         out.ewah_keys = <void *>ewah_keys[ifile]
         out.ewah_refn = <void *>ewah_refn[ifile]
+        out.ewah_owns = <void *>ewah_owns[ifile]
         out.ewah_coll = <void *>ewah_coll[ifile]
         # TODO: make sure ewah arrays are not deallocated when out is clean up
         return out
@@ -213,6 +222,17 @@ cdef class FileBitmasks:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
+    cdef void _set_owners(self, np.uint32_t[:,:] arr):
+        cdef ewah_bool_array **ewah_owns = <ewah_bool_array **> self.ewah_owns
+        cdef np.uint64_t i1
+        for i1 in range(arr.shape[0]):
+            if arr[i1][0] != 0:
+                ewah_owns[arr[i1][1]][0].set(i1)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef np.uint64_t i1
@@ -240,6 +260,10 @@ cdef class FileBitmasks:
     cdef void _set_refn(self, np.uint32_t ifile, np.uint64_t i1):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         ewah_refn[0].set(i1)
+
+    cdef void _set_owns(self, np.uint32_t ifile, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
+        ewah_owns[0].set(i1)
 
     cdef bint _get(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2 = FLAG):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
@@ -271,6 +295,12 @@ cdef class FileBitmasks:
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef int out
         out = ewah_refn.numberOfOnes()
+        return out
+
+    cdef int _count_owned(self, np.uint32_t ifile):
+        cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
+        cdef int out
+        out = ewah_owns.numberOfOnes()
         return out
 
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf):
@@ -420,6 +450,7 @@ cdef class FileBitmasks:
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
         cdef np.uint64_t nrefn, mi1
@@ -438,14 +469,17 @@ cdef class FileBitmasks:
             ss.write(<const char *> &mi1, sizeof(mi1))
             mi1_ewah.write(ss,1)
             preincrement(it_map)
+        # Owners EWAH
+        ewah_owns[0].write(ss,1)
         # Return type cast python bytes string
         return <bytes>ss.str()
 
-    cdef void _loads(self, np.uint32_t ifile, bytes s):
+    cdef bint _loads(self, np.uint32_t ifile, bytes s):
         # TODO: write word size
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
         cdef np.uint64_t nrefn, mi1
@@ -467,6 +501,10 @@ cdef class FileBitmasks:
             # or...
             #mi1_ewah.read(ss,1)
             #ewah_coll[0][mi1].swap(mi1_ewah)
+        # Owners
+        if ss.eof() == 1: return 0
+        ewah_owns[0].read(ss,1)
+        return 1
 
     def save(self, fname):
         cdef bytes serial_BAC
@@ -482,25 +520,32 @@ cdef class FileBitmasks:
     def load(self, fname):
         cdef np.uint64_t nfiles
         cdef np.uint64_t size_serial
+        cdef bint read_flag = 1
+        cdef bint irflag
         f = open(fname,'rb')
         nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
         if nfiles != self.nfiles:
             raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
         for ifile in range(nfiles):
             size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-            self._loads(ifile, f.read(size_serial))
+            irflag = self._loads(ifile, f.read(size_serial))
+            if irflag == 0: read_flag = 0
         f.close()
+        return read_flag
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys
         cdef ewah_bool_array *ewah_refn
+        cdef ewah_bool_array *ewah_owns
         cdef ewah_map *ewah_coll
         for ifile in range(self.nfiles):
             ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
             ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+            ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
             ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
             del ewah_keys
             del ewah_refn
+            del ewah_owns
             del ewah_coll
 
     def print_info(self, ifile, prefix=''):
@@ -515,11 +560,17 @@ cdef class BoolArrayCollection:
         cdef ewah_bool_array *ewah_keys = new ewah_bool_array()
         cdef ewah_bool_array *ewah_refn = new ewah_bool_array()
         cdef ewah_bool_array *ewah_coar = new ewah_bool_array()
+        cdef ewah_bool_array *ewah_owns = new ewah_bool_array()
         cdef ewah_map *ewah_coll = new ewah_map()
         self.ewah_keys = <void *> ewah_keys
         self.ewah_refn = <void *> ewah_refn
         self.ewah_coar = <void *> ewah_coar
+        self.ewah_owns = <void *> ewah_owns
         self.ewah_coll = <void *> ewah_coll
+
+    def reset(self):
+        self.__dealloc__()
+        self.__init__()
 
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1:
 
@@ -639,6 +690,13 @@ cdef class BoolArrayCollection:
     def set_refn(self, i1):
         self._set_refn(i1)
 
+    cdef void _set_owns(self, np.uint64_t i1):
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
+        ewah_owns[0].set(i1)
+
+    def set_owns(self, i1):
+        self._set_owns(i1)
+
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
@@ -712,12 +770,23 @@ cdef class BoolArrayCollection:
     def count_coarse(self):
         return self._count_coarse()
 
+    cdef int _count_owned(self):
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
+        cdef int out
+        out = ewah_owns.numberOfOnes()
+        return out
+
+    def count_owned(self):
+        return self._count_owned()
+
     cdef void _append(self, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns1 = <ewah_bool_array *> self.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef ewah_bool_array *ewah_owns2 = <ewah_bool_array *> solf.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
@@ -728,6 +797,9 @@ cdef class BoolArrayCollection:
         # Refined
         ewah_refn1[0].logicalor(ewah_refn2[0], swap)
         ewah_refn1[0].swap(swap)
+        # Owners
+        ewah_owns1[0].logicalor(ewah_owns2[0], swap)
+        ewah_owns1[0].swap(swap)
         # Map
         it_map2 = ewah_coll2[0].begin()
         while it_map2 != ewah_coll2[0].end():
@@ -783,12 +855,15 @@ cdef class BoolArrayCollection:
     cdef void _logicalxor(self, BoolArrayCollection solf, BoolArrayCollection out):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns1 = <ewah_bool_array *> self.ewah_owns
         cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef ewah_bool_array *ewah_owns2 = <ewah_bool_array *> solf.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_bool_array *ewah_owns_out = <ewah_bool_array *> out.ewah_owns
         cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
@@ -798,6 +873,8 @@ cdef class BoolArrayCollection:
         ewah_keys1[0].logicalxor(ewah_keys2[0],ewah_keys_out[0])
         # Refn
         ewah_refn1[0].logicalxor(ewah_refn2[0],ewah_refn_out[0])
+        # Owns
+        ewah_owns1[0].logicalxor(ewah_owns2[0],ewah_owns_out[0])
         # Coll
         it_map1 = ewah_coll1[0].begin()
         while (it_map1 != ewah_coll1[0].end()):
@@ -826,12 +903,15 @@ cdef class BoolArrayCollection:
     cdef void _logicaland(self, BoolArrayCollection solf, BoolArrayCollection out):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns1 = <ewah_bool_array *> self.ewah_owns
         cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
         cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef ewah_bool_array *ewah_owns2 = <ewah_bool_array *> solf.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
         cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_bool_array *ewah_owns_out = <ewah_bool_array *> out.ewah_owns
         cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2, swap
@@ -841,6 +921,8 @@ cdef class BoolArrayCollection:
         ewah_keys1[0].logicaland(ewah_keys2[0],ewah_keys_out[0])
         # Refn
         ewah_refn1[0].logicaland(ewah_refn2[0],ewah_refn_out[0])
+        # Owns
+        ewah_owns1[0].logicaland(ewah_owns2[0],ewah_owns_out[0])
         # Coll
         if ewah_refn_out[0].numberOfOnes() > 0:
             it_map1 = ewah_coll1[0].begin()
@@ -862,6 +944,7 @@ cdef class BoolArrayCollection:
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
         cdef np.uint64_t nrefn, mi1
@@ -880,17 +963,20 @@ cdef class BoolArrayCollection:
             ss.write(<const char *> &mi1, sizeof(mi1))
             mi1_ewah.write(ss,1)
             preincrement(it_map)
+        # Owners
+        ewah_owns[0].write(ss,1)
         # Return type cast python bytes string
         return <bytes>ss.str()
 
     def dumps(self):
         return self._dumps()
 
-    cdef void _loads(self, bytes s):
+    cdef bint _loads(self, bytes s):
         # TODO: write word size
         cdef sstream ss
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
         cdef np.uint64_t nrefn, mi1
@@ -912,6 +998,10 @@ cdef class BoolArrayCollection:
             # or...
             #mi1_ewah.read(ss,1)
             #ewah_coll[0][mi1].swap(mi1_ewah)
+        # Owners
+        if ss.eof() == 1: return 0
+        ewah_owns[0].read(ss,1)
+        return 1
 
     def loads(self, s):
         return self._loads(s)
@@ -926,19 +1016,23 @@ cdef class BoolArrayCollection:
 
     def load(self, fname):
         cdef np.uint64_t size_serial
+        cdef bint flag_read
         f = open(fname,'rb')
         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-        self._loads(f.read(size_serial))
+        flag_read = self._loads(f.read(size_serial))
         f.close()
+        return flag_read
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef ewah_bool_array *ewah_coar = <ewah_bool_array *> self.ewah_coar
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         del ewah_keys
         del ewah_refn
         del ewah_coar
+        del ewah_owns
         del ewah_coll
 
     def print_info(self, prefix=''):
@@ -958,35 +1052,50 @@ cdef class BoolArrayCollectionUncompressed:
         IF UncompressedFormat == 'MemoryView':
             self.ewah_keys = malloc(sizeof(bitarrtype)*nele1)
             self.ewah_refn = malloc(sizeof(bitarrtype)*nele1)
+            self.ewah_owns = malloc(sizeof(bitarrtype)*nele1)
             cdef bitarrtype[:] ewah_keys = <bitarrtype[:nele1]>self.ewah_keys
             cdef bitarrtype[:] ewah_refn = <bitarrtype[:nele1]>self.ewah_refn
+            cdef bitarrtype[:] ewah_owns = <bitarrtype[:nele1]>self.ewah_owns
             for i in range(nele1):
                 ewah_keys[i] = 0
                 ewah_refn[i] = 0
+                ewah_owns[i] = 0
         ELIF UncompressedFormat == 'Pointer':
             cdef bitarrtype *ewah_keys = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
             cdef bitarrtype *ewah_refn = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
+            cdef bitarrtype *ewah_owns = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
             for i in range(nele1):
                 ewah_keys[i] = 0
                 ewah_refn[i] = 0
+                ewah_owns[i] = 0
             self.ewah_keys = <void *> ewah_keys
             self.ewah_refn = <void *> ewah_refn
+            self.ewah_owns = <void *> ewah_owns
+
+    def reset(self):
+        self.__dealloc__()
+        self.__init__(self.nele1,self.nele2)
 
     cdef void _compress(self, BoolArrayCollection solf):
         cdef np.uint64_t i
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> solf.ewah_refn
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> solf.ewah_owns
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] bool_keys = <bitarrtype[:self.nele1]>self.ewah_keys
             cdef bitarrtype[:] bool_refn = <bitarrtype[:self.nele1]>self.ewah_refn
+            cdef bitarrtype[:] bool_owns = <bitarrtype[:self.nele1]>self.ewah_owns
         ELIF UncompressedFormat == 'Pointer':
             cdef bitarrtype *bool_keys = <bitarrtype *> self.ewah_keys
             cdef bitarrtype *bool_refn = <bitarrtype *> self.ewah_refn
+            cdef bitarrtype *bool_owns = <bitarrtype *> self.ewah_owns
         for i in range(self.nele1):
             if bool_keys[i] == 1:
                 ewah_keys[0].set(i)
             if bool_refn[i] == 1:
                 ewah_refn[0].set(i)
+            if bool_owns[i] == 1:
+                ewah_owns[0].set(i)
         cdef ewah_map *ewah_coll1 = <ewah_map *> self.ewah_coll
         cdef ewah_map *ewah_coll2 = <ewah_map *> solf.ewah_coll
         ewah_coll2[0] = ewah_coll1[0]
@@ -1078,6 +1187,13 @@ cdef class BoolArrayCollectionUncompressed:
             cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         ewah_refn[i1] = 1
 
+    cdef void _set_owns(self, np.uint64_t i1):
+        IF UncompressedFormat == 'MemoryView':
+            cdef bitarrtype[:] ewah_owns = <bitarrtype[:self.nele1]>self.ewah_owns
+        ELIF UncompressedFormat == 'Pointer':
+            cdef bitarrtype *ewah_owns = <bitarrtype *> self.ewah_owns
+        ewah_owns[i1] = 1
+
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
@@ -1130,17 +1246,32 @@ cdef class BoolArrayCollectionUncompressed:
             out += ewah_refn[i]
         return out
 
+    cdef int _count_owned(self):
+        IF UncompressedFormat == 'MemoryView':
+            cdef bitarrtype[:] ewah_owns = <bitarrtype[:self.nele1]>self.ewah_owns
+        ELIF UncompressedFormat == 'Pointer':
+            cdef bitarrtype *ewah_owns = <bitarrtype *> self.ewah_owns
+        cdef np.uint64_t i
+        cdef int out = 0
+        for i in range(self.nele1):
+            out += ewah_owns[i]
+        return out
+
     cdef void _append(self, BoolArrayCollectionUncompressed solf):
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] ewah_keys1 = <bitarrtype[:self.nele1]>self.ewah_keys
             cdef bitarrtype[:] ewah_refn1 = <bitarrtype[:self.nele1]>self.ewah_refn
+            cdef bitarrtype[:] ewah_owns1 = <bitarrtype[:self.nele1]>self.ewah_owns
             cdef bitarrtype[:] ewah_keys2 = <bitarrtype[:solf.nele1]>solf.ewah_keys
             cdef bitarrtype[:] ewah_refn2 = <bitarrtype[:solf.nele1]>solf.ewah_refn
+            cdef bitarrtype[:] ewah_owns2 = <bitarrtype[:solf.nele1]>solf.ewah_owns
         ELIF UncompressedFormat == 'Pointer':
             cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
             cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
+            cdef bitarrtype *ewah_owns1 = <bitarrtype *> self.ewah_owns
             cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
             cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
+            cdef bitarrtype *ewah_owns2 = <bitarrtype *> solf.ewah_owns
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
         cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
@@ -1155,6 +1286,10 @@ cdef class BoolArrayCollectionUncompressed:
         for mi1 in range(solf.nele1):
             if ewah_refn2[mi1] == 1:
                 ewah_refn1[mi1] = 1
+        # Owners
+        for mi1 in range(solf.nele1):
+            if ewah_owns2[mi1] == 1:
+                ewah_owns1[mi1] = 1
         # Map
         it_map2 = ewah_coll2[0].begin()
         while it_map2 != ewah_coll2[0].end():
@@ -1214,11 +1349,14 @@ cdef class BoolArrayCollectionUncompressed:
         IF UncompressedFormat == 'MemoryView':
             free(self.ewah_keys)
             free(self.ewah_refn)
+            free(self.ewah_owns)
         ELIF UncompressedFormat == 'Pointer':
             cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
             cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+            cdef bitarrtype *ewah_owns = <bitarrtype *> self.ewah_owns
             free(ewah_keys)
             free(ewah_refn)
+            free(ewah_owns)
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         del ewah_coll
 
