@@ -847,8 +847,8 @@ cdef class VolumeRenderSampler(ImageSampler):
         for i in range(self.vra.n_fits):
             free(self.vra.fits[i].d0)
             free(self.vra.fits[i].dy)
-        #free(self.vra.fits)
-        #free(self.vra)
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -910,11 +910,10 @@ cdef class LightSourceRenderSampler(ImageSampler):
         for i in range(self.vra.n_fits):
             free(self.vra.fits[i].d0)
             free(self.vra.fits[i].dy)
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
-        #free(self.light_dir)
-        #free(self.light_rgba)
+        free(self.vra.light_dir)
+        free(self.vra.light_rgba)
+        free(self.vra.fits)
+        free(self.vra)
 
 
 @cython.boundscheck(False)
