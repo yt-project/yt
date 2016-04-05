@@ -155,9 +155,7 @@ class ParticleIndex(Index):
                 data_files = [self.data_files[i] for i in dfi]
                 #mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
-            dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
-                over_refine_factor = self.ds.over_refine_factor)
-                for df in data_files]
+            dobj._chunk_info = [ParticleContainer(dobj, df) for df in data_files]
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _chunk_all(self, dobj):
