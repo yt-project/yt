@@ -47,7 +47,8 @@ from yt.utilities.exceptions import \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
-    YTDimensionalityError
+    YTDimensionalityError, \
+    YTNonIndexedDataContainer
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -332,7 +333,14 @@ class YTDataContainer(object):
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
-        rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
+        try:
+            rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
+            accumulate = False
+        except YTNonIndexedDataContainer:
+            # In this case, we'll generate many tiny arrays of unknown size and
+            # then concatenate them.
+            outputs = []
+            accumulate = True
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial = True)
@@ -341,6 +349,10 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
                                                     preload_fields = deps)):
                     o = self._current_chunk.objs[0]
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
+                                         units)
+                        outputs.append(rv)
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
@@ -350,10 +362,16 @@ class YTDataContainer(object):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
                     wogz = gz._base_grid
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(wogz.ires.size,
+                                dtype="float64"), units)
+                        outputs.append(rv)
                     ind += wogz.select(
                         self.selector,
                         gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
                         rv, ind)
+        if accumulate:
+            rv = uconcatenate(outputs)
         return rv
 
     def _generate_particle_field(self, field):

@@ -155,8 +155,15 @@ class ParticleIndex(Index):
                 data_files = [self.data_files[i] for i in dfi]
                 #mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
+            # NOTE: One fun thing about the way IO works is that it
+            # consolidates things quite nicely.  So we should feel free to
+            # create as many objects as part of the chunk as we want, since
+            # it'll take the set() of them.  So if we break stuff up like this
+            # here, we end up in a situation where we have the ability to break
+            # things down further later on for buffer zones and the like.
             dobj._chunk_info = [ParticleContainer(dobj, df) for df in data_files]
-        dobj._current_chunk = list(self._chunk_all(dobj))[0]
+            # We should also cache the buffer zones here; TODO: that.
+        dobj._current_chunk, = self._chunk_all(dobj)
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
