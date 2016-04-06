@@ -251,6 +251,18 @@ conda environment:
 
   conda install cython mercurial sympy ipython h5py matplotlib
 
+.. note::
+  
+  If you are using a python3 environment, ``conda`` will not be able to install
+  *mercurial*, which works only with python2. You can circumvent this issue by
+  creating a dedicated python2 environment and symlinking *hg* in your current
+  environment:
+
+  .. code-block:: bash
+     export CONDA_DIR=$(python -c 'import sys; print(sys.executable.split("/bin/python")[0])')
+     conda create -y -n py27 python=2.7 mercurial
+     ln -s ${CONDA_DIR}/envs/py27/bin/hg ${CONDA_DIR}/bin
+
 Clone the yt repository with:
 
 .. code-block:: bash
