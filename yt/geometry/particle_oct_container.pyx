@@ -73,7 +73,8 @@ DEF FillChildCellsRefined = 1
 # Must be set to 1 if OnlyGhostsAtEdges, OnlyRefineEdges,
 # FillChildCellCoarse, or FilleChildCellRefined is 1
 DEF DetectEdges = 1
-DEF SaveCollisions = 1
+
+DEF _bitmask_output_format = 0
 
 IF BoolType == 'Vector':
     from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
@@ -753,6 +754,7 @@ cdef class ParticleBitmap:
         cdef int ifile
         cdef int out = 0
         out += struct.calcsize('Q')
+        # Bitmaps for each file
         for ifile in range(self.nfiles):
             IF UseCythonBitmasks == 1:
                 serial_BAC = self.bitmasks._dumps(ifile)
@@ -761,10 +763,10 @@ cdef class ParticleBitmap:
                 serial_BAC = b1._dumps()
             out += struct.calcsize('Q')
             out += len(serial_BAC)
-        IF SaveCollisions:
-            serial_BAC = self.collisions._dumps()
-            out += struct.calcsize('Q')
-            out += len(serial_BAC)
+        # Bitmap for collisions
+        serial_BAC = self.collisions._dumps()
+        out += struct.calcsize('Q')
+        out += len(serial_BAC)
         return out
 
     def get_bitmasks(self):
@@ -800,10 +802,9 @@ cdef class ParticleBitmap:
                 serial_BAC = self.bitmasks._dumps(ifile)
                 f.write(struct.pack('Q',len(serial_BAC)))
                 f.write(serial_BAC)
-            IF SaveCollisions == 1:
-                serial_BAC = self.collisions._dumps()
-                f.write(struct.pack('Q',len(serial_BAC)))
-                f.write(serial_BAC)
+            serial_BAC = self.collisions._dumps()
+            f.write(struct.pack('Q',len(serial_BAC)))
+            f.write(serial_BAC)
             f.close()
             # self.bitmasks.save(fname)
         ELSE:
@@ -817,11 +818,10 @@ cdef class ParticleBitmap:
                 serial_BAC = b1._dumps()
                 f.write(struct.pack('Q',len(serial_BAC)))
                 f.write(serial_BAC)
-            IF SaveCollisions == 1:
-                b1 = self.collisions
-                serial_BAC = b1._dumps()
-                f.write(struct.pack('Q',len(serial_BAC)))
-                f.write(serial_BAC)
+            b1 = self.collisions
+            serial_BAC = b1._dumps()
+            f.write(struct.pack('Q',len(serial_BAC)))
+            f.write(serial_BAC)
             f.close()
 
     def load_bitmasks(self,fname=None):
@@ -841,13 +841,9 @@ cdef class ParticleBitmap:
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
                 irflag = self.bitmasks._loads(ifile, f.read(size_serial))
                 if irflag == 0: read_flag = 0
-            IF SaveCollisions == 1:
-                size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-                irflag = self.collisions._loads(f.read(size_serial))
+            size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            irflag = self.collisions._loads(f.read(size_serial))
             f.close()
-            IF SaveCollisions == 0:
-                self.find_collisions()
-            # self.bitmasks.load(fname)
         ELSE:
             cdef BoolArrayCollection b1
             cdef np.uint64_t nfiles
@@ -861,12 +857,9 @@ cdef class ParticleBitmap:
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
                 irflag = b1._loads(f.read(size_serial))
                 if irflag == 0: read_flag = 0
-            IF SaveCollisions == 1:
-                size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-                irflag = self.collisions._loads(f.read(size_serial))
+            size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            irflag = self.collisions._loads(f.read(size_serial))
             f.close()
-            IF SaveCollisions == 0:
-                self.find_collisions()
         return read_flag
 
     def check(self):

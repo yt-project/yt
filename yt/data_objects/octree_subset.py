@@ -470,7 +470,7 @@ class ParticleOctreeSubset(OctreeSubset):
             self.data_files = [self._index.data_files[i] for i in dfi]
         else:
             dfi = bfi = None
-        oct_handler = self._index.regions.construct_forest(self.base_selector,
+        oct_handler = self._index.regions.construct_octree(self.base_selector,
             self._index.io, self.data_files)
         self._index.regions._last_octree_subset = id(self)
         self._index.regions._last_oct_handler = oct_handler

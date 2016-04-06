@@ -89,7 +89,6 @@ class ParticleIndex(Index):
                 len(self.data_files), ds.over_refine_factor,
                 ds.n_ref, index_order1=order1, index_order2=order2)
         # Load indices from file if provided
-        rflag = 0
         if fname is not None and os.path.isfile(fname):
             rflag = self.regions.load_bitmasks(fname=fname)
             if rflag == 0:
@@ -160,7 +159,7 @@ class ParticleIndex(Index):
 
     def _identify_base_chunk(self, dobj):
         if self.regions is None:
-            self._initialize_coarse_index()
+            self._initialize_index()
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
             buffer_files = getattr(dobj, "buffer_files", None)

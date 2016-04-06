@@ -509,32 +509,32 @@ cdef class FileBitmasks:
         ewah_owns[0].read(ss,1)
         return 1
 
-    def save(self, fname):
-        cdef bytes serial_BAC
-        cdef int ifile
-        f = open(fname,'wb')
-        f.write(struct.pack('Q',self.nfiles))
-        for ifile in range(self.nfiles):
-            serial_BAC = self._dumps(ifile)
-            f.write(struct.pack('Q',len(serial_BAC)))
-            f.write(serial_BAC)
-        f.close()
+    # def save(self, fname):
+    #     cdef bytes serial_BAC
+    #     cdef int ifile
+    #     f = open(fname,'wb')
+    #     f.write(struct.pack('Q',self.nfiles))
+    #     for ifile in range(self.nfiles):
+    #         serial_BAC = self._dumps(ifile)
+    #         f.write(struct.pack('Q',len(serial_BAC)))
+    #         f.write(serial_BAC)
+    #     f.close()
 
-    def load(self, fname):
-        cdef np.uint64_t nfiles
-        cdef np.uint64_t size_serial
-        cdef bint read_flag = 1
-        cdef bint irflag
-        f = open(fname,'rb')
-        nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-        if nfiles != self.nfiles:
-            raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
-        for ifile in range(nfiles):
-            size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-            irflag = self._loads(ifile, f.read(size_serial))
-            if irflag == 0: read_flag = 0
-        f.close()
-        return read_flag
+    # def load(self, fname):
+    #     cdef np.uint64_t nfiles
+    #     cdef np.uint64_t size_serial
+    #     cdef bint read_flag = 1
+    #     cdef bint irflag
+    #     f = open(fname,'rb')
+    #     nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+    #     if nfiles != self.nfiles:
+    #         raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+    #     for ifile in range(nfiles):
+    #         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+    #         irflag = self._loads(ifile, f.read(size_serial))
+    #         if irflag == 0: read_flag = 0
+    #     f.close()
+    #     return read_flag
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys
