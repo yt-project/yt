@@ -23,7 +23,7 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer, ParticleForest
+    ParticleOctreeContainer, ParticleBitmap
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -84,7 +84,7 @@ class ParticleIndex(Index):
           self.total_particles)
         # No more than 256^3 in the region finder.
         N = self.ds.domain_dimensions / (1<<self.ds.over_refine_factor)
-        self.regions = ParticleForest(
+        self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
                 len(self.data_files), ds.over_refine_factor,
                 ds.n_ref, index_order1=order1, index_order2=order2)
@@ -213,7 +213,7 @@ class ParticleIndex(Index):
             if ngz > 0:
                 raise NotImplementedError
             else:
-                oct_handler = self.regions.construct_forest(
+                oct_handler = self.regions.construct_octree(
                         df.file_id, dobj.selector, self.io, self.data_files,
                         (dfi, count, omask))
                 g = ParticleOctreeSubset(dobj, df, self.ds,

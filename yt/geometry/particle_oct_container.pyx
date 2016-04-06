@@ -344,7 +344,7 @@ ctypedef fused anyfloat:
 cdef np.uint64_t ONEBIT=1
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
-cdef class ParticleForest:
+cdef class ParticleBitmap:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t dds[3]
@@ -952,8 +952,8 @@ cdef class ParticleForest:
         cdef BoolArrayCollection cmask_s = BoolArrayCollection()
         cdef BoolArrayCollection cmask_g = BoolArrayCollection()
         # Find mask of selected morton indices
-        cdef ParticleForestSelector morton_selector
-        morton_selector = ParticleForestSelector(selector,self,ngz=ngz)
+        cdef ParticleBitmapSelector morton_selector
+        morton_selector = ParticleBitmapSelector(selector,self,ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
         return morton_selector.masks_to_files(cmask_s, cmask_g)
         # Other version
@@ -972,7 +972,7 @@ cdef class ParticleForest:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def construct_forest(self, SelectorObject selector,
+    def construct_octree(self, SelectorObject selector,
                          io_handler, data_files):
         cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t fcheck, fmask
@@ -991,8 +991,8 @@ cdef class ParticleForest:
             dims[i] = self.dims[i]
         # Now we can actually create a sparse octree.
         _, nroot = self.find_collisions_coarse(False, file_list = [_.file_id for _ in data_files])
-        cdef ParticleForestOctreeContainer octree
-        octree = ParticleForestOctreeContainer(
+        cdef ParticleBitmapOctreeContainer octree
+        octree = ParticleBitmapOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
             (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
             (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
@@ -1072,9 +1072,9 @@ cdef class ParticleForest:
         free(particle_count)
         return octree
 
-cdef class ParticleForestSelector:
+cdef class ParticleBitmapSelector:
     cdef SelectorObject selector
-    cdef ParticleForest forest
+    cdef ParticleBitmap forest
     cdef np.uint32_t ngz
     cdef np.float64_t DLE[3]
     cdef np.float64_t DRE[3]
@@ -1863,14 +1863,14 @@ cdef class ParticleForestSelector:
                         mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
                         self.set_files_refined(mi1,mi2)
 
-cdef class ParticleForestOctreeContainer(SparseOctreeContainer):
+cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef Oct** oct_list
     cdef public int max_level
     cdef public int n_ref
     cdef int loaded # Loaded with load_octree?
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
                  int num_root, over_refine = 1):
-        super(ParticleForestOctreeContainer, self).__init__(
+        super(ParticleBitmapOctreeContainer, self).__init__(
             domain_dimensions, domain_left_edge, domain_right_edge,
             over_refine)
         self.loaded = 0

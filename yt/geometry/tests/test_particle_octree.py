@@ -24,7 +24,7 @@ from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, \
-    ParticleForest
+    ParticleBitmap
 from yt.geometry.oct_container import _ORDER_MAX
 from yt.geometry.selection_routines import RegionSelector, AlwaysSelector
 from yt.testing import \
@@ -230,7 +230,14 @@ def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE,
     return pos
 
 def fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE,
-                                 buff=0.0, order=6, verbose=False):
+                                 buff=0.0, order=6, verbose=False,
+                                 fname=None):
+    import pickle
+    if fname is not None and os.path.isfile(fname):
+        fd = open(fname,'rb')
+        pos = pickle.load(fd)
+        fd.close()
+        return pos
     np.random.seed(int(0x4d3d3d3))
     DW = DRE - DLE
     dim_hilbert = (1<<order)
@@ -254,14 +261,25 @@ def fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE,
         iRE[:,k] = iLE[:,k] + hdiv[k]
         iLE[hpos[:,k]!=0,k] -= buff*hdiv[k]
         iRE[hpos[:,k]!=(dim_hilbert-1),k] += buff*hdiv[k]
-        ipos = np.random.normal(DLE[k]+DW[k]/2.0, DW[k]/10.0, npart)
-        np.clip(ipos, DLE[k], DRE[k], ipos)
-        for i in range(len(hlist)):
-            if np.any(np.logical_and(np.greater_equal(ipos,iLE[i,k]),
-                                     np.less(ipos,iRE[i,k]))):
-                pos[count[k],k] = ipos
-                count[k] += 1
-    return pos[:count.max(),:]
+        print 'sampling'
+        gpos = np.clip(np.random.normal(DLE[k]+DW[k]/2.0, DW[k]/10.0, npart),
+                       DLE[k], DRE[k])
+        print 'sampled'
+        # for p in range(npart):
+        #     ipos = np.clip(np.random.normal(DLE[k]+DW[k]/2.0, DW[k]/10.0, 1),
+        #                    DLE[k], DRE[k])
+        for p,ipos in enumerate(gpos):
+            if (p%(10**8))==0: print "    dim {}, part {} ({})".format(k,p,ipos)
+            for i in range(len(hlist)):
+                if iLE[i,k] <= ipos < iRE[i,k]:
+                    pos[count[k],k] = ipos
+                    count[k] += 1
+                    break
+    pos = pos[:count.min(),:]
+    if fname is not None:
+        fd = open(fname,'wb')
+        pickle.dump(pos,fd)
+    return pos
     
 
 def fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE,
@@ -360,6 +378,7 @@ def yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, **kws):
 
 def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, 
                 distrib='uniform', **kws):
+    fnameDEF = '{}_{}_np{}_nf{}_file{}'.format(decomp,distrib,npart,nfiles,ifile)
     if decomp.startswith('zoom_'):
         zoom_factor = 5
         decomp_zoom = decomp.split('zoom_')[-1]
@@ -410,7 +429,8 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         if distrib == 'uniform':
             pos = fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE, **kws)
         elif distrib == 'gaussian':
-            pos = fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE, **kws)
+            pos = fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE, 
+                                               fname=fnameDEF, **kws)
         else:
             raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
@@ -428,14 +448,14 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         raise ValueError("Unsupported value {} for input parameter 'decomp'".format(decomp))
     return pos
 
-def FakeForest(npart, nfiles, order1, order2, decomp='grid', 
+def FakeBitmap(npart, nfiles, order1, order2, decomp='grid', 
                buff=0.5, DLE=None, DRE=None, distrib='uniform',
                fname=None, verbose=False, really_verbose=False):
     from yt.funcs import get_pbar
     N = (1<<order1)
     if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
     if DRE is None: DRE = np.array([1.0, 1.0, 1.0])
-    reg = ParticleForest(DLE, DRE, nfiles,
+    reg = ParticleBitmap(DLE, DRE, nfiles,
                          index_order1 = order1,
                          index_order2 = order2)
     # Load from file if it exists
@@ -624,14 +644,14 @@ def time_selection(npart_dim, nfiles, fake_regions,
     elif order1 is None:
         order1 = total_order - order2
     # File name
-    fname = "forest_{}_np{}_nf{}_oc{}_or{}_buff{}".format(decomp,npart_dim,nfiles,
+    fname = "bitmap_{}_np{}_nf{}_oc{}_or{}_buff{}".format(decomp,npart_dim,nfiles,
                                                           order1,order2,
                                                           str(buff).replace('.','p'))
     if distrib != 'uniform':
         fname += '_{}'.format(distrib)
-    # Fake forest
+    # Fake bitmap
     npart = npart_dim**3
-    reg, cc, rc, mem = FakeForest(npart, nfiles, order1, order2, decomp=decomp, 
+    reg, cc, rc, mem = FakeBitmap(npart, nfiles, order1, order2, decomp=decomp, 
                                   buff=buff, distrib=distrib, fname=fname,
                                   verbose=verbose, really_verbose=really_verbose)
     if total_regions:
@@ -1084,13 +1104,12 @@ def test_particle_regions():
         # Note: we set order1 to log2(nfiles) here for testing purposes. 
         # Inside the code we set it to min(log2(nfiles), 8)?
         # langmm: this is not strictly true anymore
-        # TODO: remove the dims parameter (no longer used by Forest)
         N = nfiles
         order1 = int(np.ceil(np.log2(N))) # Ensures zero collisions
         order2 = 1 # No overlap for N = nfiles
         exact_division = (N == (1 << order1))
         div = float(nfiles)/float(1 << order1)
-        reg, cc, rc, mem = FakeForest(nfiles**3, nfiles, order1, order2, decomp='grid',
+        reg, cc, rc, mem = FakeBitmap(nfiles**3, nfiles, order1, order2, decomp='grid',
                                       DLE=np.array([0.0, 0.0, 0.0]),
                                       DRE=np.array([nfiles, nfiles, nfiles]), 
                                       verbose=verbose)
@@ -1159,7 +1178,7 @@ def test_save_load_bitmap():
     pos[:,0] = (DW[0]/nfiles)/2
     for i in range(3):
         np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
-    reg0 = ParticleForest(DLE, DRE, nfiles,
+    reg0 = ParticleBitmap(DLE, DRE, nfiles,
                           index_order1 = order1,
                           index_order2 = order2)
     # Coarse index
@@ -1183,7 +1202,7 @@ def test_save_load_bitmap():
     # Save
     reg0.save_bitmasks(fname)
     # Load
-    reg1 = ParticleForest(DLE, DRE, nfiles,
+    reg1 = ParticleBitmap(DLE, DRE, nfiles,
                           index_order1 = order1,
                           index_order2 = order2)
     reg1.load_bitmasks(fname)
@@ -1216,7 +1235,7 @@ def test_initialize_index():
     ds = yt.GadgetDataset(bc94, long_ids = True)
     ds.index._initialize_index(order1=order1, order2=order2)
     reg1 = ds.index.regions
-    reg0 = ParticleForest(ds.domain_left_edge, ds.domain_right_edge,
+    reg0 = ParticleBitmap(ds.domain_left_edge, ds.domain_right_edge,
                           len(ds.index.data_files), ds.over_refine_factor,
                           ds.n_ref, index_order1=order1, index_order2=order2)
     reg0.load_bitmasks(fname=bc94_coll)
@@ -1259,7 +1278,7 @@ class FakeBC94DS:
 @requires_file(bc94_coll)
 def test_fill_masks():
     from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
-    from yt.geometry.particle_oct_container import ParticleForestSelector
+    from yt.geometry.particle_oct_container import ParticleBitmapSelector
     from yt.data_objects.selection_data_containers import YTSphere
     ds_empty = FakeBC94DS()
 
@@ -1270,7 +1289,7 @@ def test_fill_masks():
     ds.index._initialize_index(fname=bc94_coll, order1=order1, order2=order2)
     print "default_fluid_type",getattr(ds,"default_fluid_type")
     reg = ds.index.regions
-    reg0 = ParticleForest(ds_empty.domain_left_edge, ds_empty.domain_right_edge,
+    reg0 = ParticleBitmap(ds_empty.domain_left_edge, ds_empty.domain_right_edge,
                           ds_empty.nfiles, ds_empty.over_refine_factor,
                           ds_empty.n_ref, index_order1=ds_empty.order1, index_order2=ds_empty.order2)
     reg0.load_bitmasks(fname=bc94_coll)
@@ -1296,8 +1315,8 @@ def test_fill_masks():
         sp = ds.sphere(center, radius)
         #sp0 = FakeBC94SphericalRegion(c, r)
         sp0 = YTSphere(center, radius, ds=ds_empty)
-        ms = ParticleForestSelector(sp.selector, reg, ngz=ngz)
-        ms0 = ParticleForestSelector(sp0.selector, reg0, ngz=ngz)
+        ms = ParticleBitmapSelector(sp.selector, reg, ngz=ngz)
+        ms0 = ParticleBitmapSelector(sp0.selector, reg0, ngz=ngz)
         ms.fill_masks(mm_s, mm_g)
         ms0.fill_masks(mm_s0, mm_g0)
         yield assert_equal, mm_s.count_coarse(), nc_s
