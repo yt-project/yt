@@ -366,10 +366,3 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.runner.run(self.handler, self.workgroup)
         self.comm.barrier()
         self.pool.free_all()
-    
-    def halo_list(self,file_name='out_0.list'):
-        """
-        Reads in the out_0.list file and generates RockstarHaloList
-        and RockstarHalo objects.
-        """
-        return RockstarHaloList(self.ts[0], self.outbase+'/%s'%file_name)
