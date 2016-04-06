@@ -404,6 +404,7 @@ cdef class ParticleForest:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
+        self.owners = np.zeros((1 << (index_order1 * 3), 2), dtype='uint32')
         IF UseCythonBitmasks == 1:
             self.bitmasks = FileBitmasks(self.nfiles)
         ELSE:
@@ -510,6 +511,8 @@ cdef class ParticleForest:
         cdef np.float64_t dds2[3]
         cdef np.int32_t order1 = self.index_order1
         cdef np.int32_t order2 = self.index_order2
+        cdef np.ndarray[np.uint32_t, ndim=1] pcount = np.zeros(1 << (order1**3), dtype='uint32')
+        cdef np.ndarray[np.uint32_t, ndim=2] owners = self.owners
         IF UseCythonBitmasks == 1:
             cdef FileBitmasks bitmasks = self.bitmasks
         ELSE:
@@ -540,6 +543,10 @@ cdef class ParticleForest:
                 sub_mi2[nsub_mi] = bounded_morton_relative_dds(ppos[0], ppos[1], ppos[2],
                                                                LE, dds1, dds2)
                 nsub_mi += 1
+                pcount[mi] += 1
+                if pcount[mi] > owners[mi][0]:
+                    owners[mi][0] = pcount[mi]
+                    owners[mi][1] = file_id
         # Only subs of particles in the mask
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
@@ -559,10 +566,83 @@ cdef class ParticleForest:
             # last_mi = sub_mi1[p]
             # Set bitmasks
             IF UseCythonBitmasks == 1:
-                bitmasks._set_refined(file_id, sub_mi1[p],sub_mi2[p])
+                bitmasks._set_refined(file_id, sub_mi1[p], sub_mi2[p])
             ELSE:
-                bitmasks._set_refined(sub_mi1[p],sub_mi2[p])
+                bitmasks._set_refined(sub_mi1[p], sub_mi2[p])
         return nsub_mi
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    def _owners_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                          np.uint64_t file_id):
+        return self.__owners_data_file(pos, file_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef np.uint64_t __owners_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                        np.uint64_t file_id):
+        # Initialize
+        cdef np.uint64_t i, p, mi
+        cdef np.float64_t ppos[3]
+        cdef int skip
+        cdef np.float64_t LE[3]
+        cdef np.float64_t RE[3]
+        cdef np.float64_t dds1[3]
+        cdef np.int32_t order1 = self.index_order1
+        cdef np.ndarray[np.uint32_t, ndim=1] pcount = np.zeros(1 << (order1**3), dtype='uint32')
+        cdef np.ndarray[np.uint32_t, ndim=2] owners = self.owners
+        cdef bint isref
+        IF UseCythonBitmasks == 1:
+            cdef FileBitmasks bitmasks = self.bitmasks
+        ELSE:
+            cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
+        # Copy things from structure (type cast)
+        for i in range(3):
+            LE[i] = self.left_edge[i]
+            RE[i] = self.right_edge[i]
+            dds1[i] = self.dds_mi1[i]
+        # Loop over positions skipping those outside the domain
+        for p in range(pos.shape[0]):
+            skip = 0
+            for i in range(3):
+                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
+                    skip = 1
+                    break
+                ppos[i] = pos[p,i]
+            if skip==1: continue
+            # Only look if collision at coarse index
+            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
+            IF UseCythonBitmasks == 1:
+                isref = bitmasks._isref(file_id, mi)
+            ELSE:
+                isref = bitmasks._isref(mi)
+            if isref:
+                pcount[mi] += 1
+                if pcount[mi] > owners[mi][0]:
+                    owners[mi][0] = pcount[mi]
+                    owners[mi][1] = file_id
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    def set_owners(self):
+        cdef np.ndarray[np.uint32_t, ndim=2] owners = self.owners
+        IF UseCythonBitmasks == 1:
+            self.bitmasks._set_owners(owners)
+        ELSE:
+            cdef np.uint64_t i1
+            cdef np.uint32_t ifile
+            cdef BoolArrayCollection bitmask
+            for i1 in range(owners.shape[0]):
+                if owners[i1][0] > 0:
+                    ifile = owners[i1][1]
+                    bitmask = self.bitmasks[ifile]
+                    bitmask._set_owns(i1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -746,6 +826,8 @@ cdef class ParticleForest:
 
     def load_bitmasks(self,fname=None):
         # TODO: default file name
+        cdef bint read_flag = 1
+        cdef bint irflag
         if fname is None:
             raise NotImplementedError("Default filename for bitmask not set.")
         IF UseCythonBitmasks == 1:
@@ -757,10 +839,11 @@ cdef class ParticleForest:
                 raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
             for ifile in range(nfiles):
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-                self.bitmasks._loads(ifile, f.read(size_serial))
+                irflag = self.bitmasks._loads(ifile, f.read(size_serial))
+                if irflag == 0: read_flag = 0
             IF SaveCollisions == 1:
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-                self.collisions._loads(f.read(size_serial))
+                irflag = self.collisions._loads(f.read(size_serial))
             f.close()
             IF SaveCollisions == 0:
                 self.find_collisions()
@@ -776,13 +859,15 @@ cdef class ParticleForest:
             for ifile in range(nfiles):
                 b1 = self.bitmasks[ifile]
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-                b1._loads(f.read(size_serial))
+                irflag = b1._loads(f.read(size_serial))
+                if irflag == 0: read_flag = 0
             IF SaveCollisions == 1:
                 size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-                self.collisions._loads(f.read(size_serial))
+                irflag = self.collisions._loads(f.read(size_serial))
             f.close()
             IF SaveCollisions == 0:
                 self.find_collisions()
+        return read_flag
 
     def check(self):
         cdef np.uint64_t mi1

@@ -229,8 +229,43 @@ def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE,
         pos[:,i] = np.random.uniform(DLE[i], DRE[i], inp)
     return pos
 
-def fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE,
-                        buff=0.0, order=6, verbose=False):
+def fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE,
+                                 buff=0.0, order=6, verbose=False):
+    np.random.seed(int(0x4d3d3d3))
+    DW = DRE - DLE
+    dim_hilbert = (1<<order)
+    nH = dim_hilbert**3
+    if nH < nfiles:
+        raise Exception('Fewer hilbert cells than files.')
+    nHPF = nH/nfiles
+    rHPF = nH%nfiles
+    hdiv = DW/dim_hilbert
+    if ifile == 0:
+        hlist = np.arange(0,nHPF+rHPF, dtype='int64')
+    else:
+        hlist = np.arange(ifile*nHPF+rHPF,(ifile+1)*nHPF+rHPF, dtype='int64')
+    hpos = get_hilbert_points(order, hlist)
+    iLE = np.empty((len(hlist),3), dtype='float')
+    iRE = np.empty((len(hlist),3), dtype='float')
+    count = np.zeros(3,dtype='int')
+    pos = np.empty((npart,3), dtype='float')
+    for k in range(3):
+        iLE[:,k] = DLE[k] + hdiv[k]*hpos[:,k]
+        iRE[:,k] = iLE[:,k] + hdiv[k]
+        iLE[hpos[:,k]!=0,k] -= buff*hdiv[k]
+        iRE[hpos[:,k]!=(dim_hilbert-1),k] += buff*hdiv[k]
+        ipos = np.random.normal(DLE[k]+DW[k]/2.0, DW[k]/10.0, npart)
+        np.clip(ipos, DLE[k], DRE[k], ipos)
+        for i in range(len(hlist)):
+            if np.any(np.logical_and(np.greater_equal(ipos,iLE[i,k]),
+                                     np.less(ipos,iRE[i,k]))):
+                pos[count[k],k] = ipos
+                count[k] += 1
+    return pos[:count.max(),:]
+    
+
+def fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE,
+                                buff=0.0, order=6, verbose=False):
     np.random.seed(int(0x4d3d3d3)+ifile)
     DW = DRE - DLE
     dim_hilbert = (1<<order)
@@ -257,9 +292,9 @@ def fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE,
         iRE = iLE + hdiv
         for k in range(3): # Don't add buffer past domain bounds
             if hpos[i,k] != 0:
-                iLE -= buff*hdiv
+                iLE[k] -= buff*hdiv[k]
             if hpos[i,k] != (dim_hilbert-1):
-                iRE += buff*hdiv
+                iRE[k] += buff*hdiv[k]
         inp = nPH
         if (ifile == 0) and (i == 0): inp += nRH
         for k in range(3):
@@ -295,9 +330,9 @@ def fake_decomp_morton(npart, nfiles, ifile, DLE, DRE,
         iRE = iLE + hdiv
         for k in range(3): # Don't add buffer past domain bounds
             if hpos[i,k] != 0:
-                iLE -= buff*hdiv
+                iLE[k] -= buff*hdiv[k]
             if hpos[i,k] != (dim_morton-1):
-                iRE += buff*hdiv
+                iRE[k] += buff*hdiv[k]
         inp = nPH
         if (ifile == 0) and (i == 0): inp += nRH
         for k in range(3):
@@ -323,18 +358,19 @@ def yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, **kws):
     for ifile in range(nfiles):
         yield fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws)
 
-def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
+def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, 
+                distrib='uniform', **kws):
     if decomp.startswith('zoom_'):
         zoom_factor = 5
         decomp_zoom = decomp.split('zoom_')[-1]
         zoom_npart = npart/2
         zoom_rem = npart%2
         pos1 = fake_decomp(decomp_zoom, zoom_npart+zoom_rem, 
-                           nfiles, ifile, DLE, DRE, **kws)
+                           nfiles, ifile, DLE, DRE, distrib=distrib, **kws)
         DLE_zoom = DLE + 0.5*DW*(1.0 - 1.0/float(zoom_factor))
         DRE_zoom = DLE_zoom + DW/zoom_factor
         pos2 = fake_decomp(decomp_zoom, zoom_npart, nfiles, ifile,
-                                  DLE_zoom, DRE_zoom, **kws)
+                                  DLE_zoom, DRE_zoom, distrib=distrib, **kws)
         pos = np.concatenate((pos1,pos2),axis=0)
     elif '_' in decomp:
         decomp_list = decomp.split('_')
@@ -345,7 +381,8 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
             inp = decomp_np
             if i == 0:
                 inp += decomp_nr
-            ipos = fake_decomp(idecomp, inp, nfiles, ifile, DLE, DRE, **kws)
+            ipos = fake_decomp(idecomp, inp, nfiles, ifile, DLE, DRE, 
+                               distrib=distrib, **kws)
             pos = np.concatenate((pos,ipos),axis=0)
     # A perfect grid, no overlap between files
     elif decomp == 'grid':
@@ -353,10 +390,16 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
         pos = fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, **kws)
     # Completely random data set
     elif decomp == 'random':
-        pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Each file contains a slab (part of x domain, all of y/z domain)
     elif decomp == 'sliced':
-        pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
     # Peano-Hilbert curve of order 6
     elif decomp.startswith('hilbert'):
@@ -364,7 +407,12 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
             kws['order'] = 6
         else:
             kws['order'] = int(decomp.split('hilbert')[-1])
-        pos = fake_decomp_hilbert(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE, **kws)
+        elif distrib == 'gaussian':
+            pos = fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
     # Morton ordered Z-curve of order 6
     elif decomp.startswith('morton'):
@@ -372,14 +420,17 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws):
             kws['order'] = 6
         else:
             kws['order'] = int(decomp.split('morton')[-1])
-        pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
+        if distrib == 'uniform':
+            pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
+        else:
+            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     else:
         raise ValueError("Unsupported value {} for input parameter 'decomp'".format(decomp))
     return pos
 
 def FakeForest(npart, nfiles, order1, order2, decomp='grid', 
-               buff=0.5, DLE=None, DRE=None, fname=None,
-               verbose=False, really_verbose=False):
+               buff=0.5, DLE=None, DRE=None, distrib='uniform',
+               fname=None, verbose=False, really_verbose=False):
     from yt.funcs import get_pbar
     N = (1<<order1)
     if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
@@ -394,8 +445,8 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
         rc = reg.find_collisions_refined(verbose=verbose)
     else:
         # Create positions for each file
-        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, 
-                                   buff=buff, verbose=really_verbose)
+        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, buff=buff,
+                                   distrib=distrib, verbose=really_verbose)
         # Coarse index
         cp = 0
         pb = get_pbar("Initializing coarse index ",nfiles)
@@ -413,8 +464,8 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
         # Refined index
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
-        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, 
-                                   buff=buff, verbose=really_verbose)
+        posgen = yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, buff=buff, 
+                                   distrib=distrib, verbose=really_verbose)
         pb = get_pbar("Initializing refined index ",nfiles)
         for i,pos in enumerate(posgen):
             pb.update(i)
@@ -423,19 +474,33 @@ def FakeForest(npart, nfiles, order1, order2, decomp='grid',
                                          sub_mi1, sub_mi2, i)
         pb.finish()
         rc = reg.find_collisions_refined(verbose=verbose)
+        # Owners
+        reg.set_owners()
         # Save if file name provided
         if isinstance(fname,str):
             reg.save_bitmasks(fname=fname)
-    return reg, cc, rc
+    mem = reg.calcsize_bitmasks()
+    return reg, cc, rc, mem
 
-def time_selection_vary(var, varlist, verbose=False, plot=True,
-                        nfiles=512, npart_dim=1024,
-                        DLE = [0.0, 0.0, 0.0],
-                        DRE = [1.0, 1.0, 1.0], 
-                        overwrite=False, testtag=None, **kws):
+def vary_selection_stats(var, varlist, verbose=False, plot=False,
+                         nfiles=512, npart_dim=1024, 
+                         DLE = [0.0, 0.0, 0.0],
+                         DRE = [1.0, 1.0, 1.0], 
+                         overwrite=False, extendtag=None, **kws):
     import pickle
-    if testtag is None:
-        testtag = "vary_{}_np{}_nf{}".format(var,npart_dim,nfiles)
+    kwsDEF = dict(decomp='hilbert',
+                  buff=0.1,
+                  distrib='uniform',
+                  ngz=0,
+                  nreps=10)
+    for k in kwsDEF: kws.setdefault(k,kwsDEF[k])
+    testtag = "vary_{}_np{}_nf{}_{}_buff{}_{}ngz_{}reps".format(var,npart_dim,nfiles,
+                                                                kws['decomp'],str(kws['buff']).replace('.','p'),
+                                                                kws['ngz'],kws['nreps'])
+    if kws['distrib'] != 'uniform':
+        testtag += '_{}'.format(kws['distrib'])
+    if extendtag is not None:
+        testtag += extendtag
     fname = testtag+'.dat'
     # Create regions
     fake_regions = []
@@ -459,20 +524,22 @@ def time_selection_vary(var, varlist, verbose=False, plot=True,
     # Get stats
     if verbose: print("Timing differences due to '{}'".format(var))
     if var == 'selector':
-        t,ndf,ngf,nf,cc,rc = time_selection(npart_dim, nfiles, fake_regions, 
-                                            verbose=verbose, total_regions=False,
-                                            nreps=10, **copy.copy(kws))
+        iout = time_selection(npart_dim, nfiles, fake_regions, 
+                              verbose=verbose, total_regions=False,
+                              **copy.copy(kws))
+        outkws = iout.keys()
         for i,v in enumerate(varlist):
-            if verbose: print("{} = {}: {} s, {}/{} files, {}/{} ghost files".format(var,v,t[i],ndf[i],nf[i],ngf[i],nf[i]))
-            out[v] = dict(t=t[i], ndf=ndf[i], ngf=ngf[i], nf=nf[i], cc=cc, rc=rc)
+            out[v] = {}
+            for k in outkws: out[v][k] = iout[k][i]
+            if verbose: print("{var} = {v}: {tm} s, {ndf}/{nf} files, {ngf}/{nf} ghost files".format(var=var,v=v,**out[v]))
     else:
         for v in varlist:
             if v in out: continue
             kws[var] = v
-            t,ndf,ngf,nf,cc,rc = time_selection(npart_dim, nfiles, fake_regions, 
-                                                verbose=verbose, **copy.copy(kws))
-            if verbose: print("{} = {}: {} s, {}/{} files, {}/{} ghost files".format(var,v,t,ndf,nf,ngf,nf))
-            out[v] = dict(t=t, ndf=ndf, ngf=ngf, nf=nf, cc=cc, rc=rc)
+            out[v] = time_selection(npart_dim, nfiles, fake_regions, 
+                                    verbose=verbose, total_regions=True,
+                                    **copy.copy(kws))
+            if verbose: print("{var} = {v}: {tm} s, {ndf}/{nf} files, {ngf}/{nf} ghost files".format(var=var,v=v,**out[v]))
     # Save
     fd = open(fname,'wb')
     pickle.dump(out,fd)
@@ -480,10 +547,10 @@ def time_selection_vary(var, varlist, verbose=False, plot=True,
     # Plot
     if plot:
         plotfile = os.path.join(os.getcwd(),testtag+'.png')
-        plot_time_selection_vary(var, varlist, out, fname=plotfile)
+        plot_vary_selection_stats(var, varlist, out, fname=plotfile)
     return out
 
-def plot_time_selection_vary(var, varlist, result, fname=None):
+def plot_vary_selection_stats(var, varlist, result, fname=None):
     import matplotlib.pyplot as plt
     Nvar = len(varlist)
     t = np.empty(Nvar, dtype='float')
@@ -493,7 +560,7 @@ def plot_time_selection_vary(var, varlist, result, fname=None):
     cc = np.empty(Nvar, dtype='float')
     rc = np.empty(Nvar, dtype='float')
     for i,v in enumerate(varlist):
-        t[i] = result[v]['t']
+        t[i] = result[v]['tm']
         df[i] = result[v]['ndf']
         gf[i] = result[v]['ngf']
         nf[i] = result[v]['nf']
@@ -547,8 +614,8 @@ def plot_time_selection_vary(var, varlist, result, fname=None):
 def time_selection(npart_dim, nfiles, fake_regions, 
                    verbose=False, really_verbose=False,
                    decomp='hilbert', order1=6, order2=4, ngz=0,
-                   buff=0.5,total_order=10,total_regions=True,
-                   nreps=10):
+                   buff=0.5, total_order=10, distrib='uniform',
+                   total_regions=True,nreps=10):
     # Set order
     if order2 is None:
         if order1 is None:
@@ -558,55 +625,72 @@ def time_selection(npart_dim, nfiles, fake_regions,
         order1 = total_order - order2
     # File name
     fname = "forest_{}_np{}_nf{}_oc{}_or{}_buff{}".format(decomp,npart_dim,nfiles,
-                                                                order1,order2,
-                                                                str(buff).replace('.','p'))
+                                                          order1,order2,
+                                                          str(buff).replace('.','p'))
+    if distrib != 'uniform':
+        fname += '_{}'.format(distrib)
     # Fake forest
     npart = npart_dim**3
-    reg, cc, rc = FakeForest(npart, nfiles, order1, order2, decomp=decomp, 
-                             buff=buff, fname=fname,
-                             verbose=verbose, really_verbose=really_verbose)
+    reg, cc, rc, mem = FakeForest(npart, nfiles, order1, order2, decomp=decomp, 
+                                  buff=buff, distrib=distrib, fname=fname,
+                                  verbose=verbose, really_verbose=really_verbose)
     if total_regions:
-        ndf = 0
-        ngf = 0
-        nf = 0
-        t1 = time.time()
-        for fr in fake_regions:
-            selector = RegionSelector(fr)
-            for k in range(nreps):
+        times = np.empty(nreps,dtype='float')
+        for k in range(nreps):
+            ndf = 0
+            ngf = 0
+            nf = 0
+            times[k] = 0.0
+            for fr in fake_regions:
+                selector = RegionSelector(fr)
+                t1 = time.time()
                 df, gf = reg.identify_data_files(selector, ngz=ngz)
-            ndf += len(df)
-            ngf += len(gf)
-            nf += nfiles
-        t2 = time.time()
+                t2 = time.time()
+                ndf += len(df)
+                ngf += len(gf)
+                nf += nfiles
+                times[k] += t2-t1
+        tt = np.sum(times)
+        tm = np.mean(times)
+        ts = np.std(times)
     else:
         Nfr = len(fake_regions)
         ndf = np.empty(Nfr, dtype='int32')
         ngf = np.empty(Nfr, dtype='int32')
         nf = np.empty(Nfr, dtype='int32')
-        t1 = np.empty(Nfr, dtype='float')
-        t2 = np.empty(Nfr, dtype='float')
+        tt = np.empty(Nfr, dtype='float')
+        tm = np.empty(Nfr, dtype='float')
+        ts = np.empty(Nfr, dtype='float')
+        cc = Nfr*[cc]
+        rc = Nfr*[rc]
+        mem = Nfr*[mem]
+        times = np.empty(nreps,dtype='float')
         for i,fr in enumerate(fake_regions):
             selector = RegionSelector(fr)
-            t1[i] = time.time()
             for k in range(nreps):
+                t1 = time.time()
                 df, gf = reg.identify_data_files(selector, ngz=ngz)
-            t2[i] = time.time()
+                t2 = time.time()
+                times[k] = t2-t1
+            tt[i] = np.sum(times)
+            tm[i] = np.mean(times)
+            ts[i] = np.std(times)
             ndf[i] = len(df)
             ngf[i] = len(gf)
             nf[i] = nfiles
-            
-    return t2-t1, ndf, ngf, nf, cc, rc
+    out = dict(tt=tt, tm=tm, ts=ts, ndf=ndf, ngf=ngf, nf=nf, cc=cc, rc=rc, mem=mem)
+    return out
 
 def time_selection_decomp(**kws):
     vlist = ['hilbert','morton','sliced','random','zoom_hilbert']
-    out = time_selection_vary('decomp', vlist, verbose=True, **kws)
+    out = vary_selection_stats('decomp', vlist, verbose=True, **kws)
 
 def time_selection_selector(**kws):
     vlist = np.logspace(-1,0,num=20,endpoint=True)
     # vlist = [0.01,0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.75,1.0]
-    out = time_selection_vary('selector', vlist, verbose=True, **kws)
+    out = vary_selection_stats('selector', vlist, verbose=True, **kws)
 
-def plot_vary_selector(**kws):
+def plot_vary_selector(plot_mem=False,**kws):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     lw = 5
@@ -615,22 +699,19 @@ def plot_vary_selector(**kws):
     mpl.rc('axes',linewidth=4)
     order1 = 4
     order2 = 2
-    testtag = "vary_{}_np{}_nf{}".format('selector',kws['npart_dim'],kws['nfiles'])
-    if kws['decomp']!='hilbert' or kws['buff']!=0.1:
-        testtag += '_{}_buff{}'.format(kws['decomp'],str(kws['buff']).replace('.','p'))
-    fname = testtag+'.png'
+    fname = "vary_selector.png"
     # Set up plot
     plt.close('all')
     f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
+    ax1.set_yscale('log')
     # Loop over total_order
     for ngz in [0,1]:
         kws['ngz'] = ngz
         kws['order1'] = order1
         kws['order2'] = order2
         kws['plot'] = False
-        kws['testtag'] = testtag+'_ngz{}'.format(ngz)
         vlist = np.logspace(-1,0,num=20,endpoint=True)
-        result = time_selection_vary('selector', vlist, verbose=True, **kws)
+        result = vary_selection_stats('selector', vlist, verbose=True, **kws)
         Nvar = len(vlist)
         t = np.empty(Nvar, dtype='float')
         df = np.empty(Nvar, dtype='float')
@@ -638,29 +719,39 @@ def plot_vary_selector(**kws):
         nf = np.empty(Nvar, dtype='float')
         cc = np.empty(Nvar, dtype='float')
         rc = np.empty(Nvar, dtype='float')
+        ts = np.empty(Nvar, dtype='float')
+        mem = np.empty(Nvar, dtype='float')
         for i,v in enumerate(vlist):
-            t[i] = result[v]['t']
+            t[i] = result[v]['tm']
             df[i] = result[v]['ndf']
             gf[i] = result[v]['ngf']
             nf[i] = result[v]['nf']
             cc[i] = float(result[v]['cc'][0])/float(result[v]['cc'][1])
             rc[i] = float(result[v]['rc'][0])/float(result[v]['rc'][1])
+            ts[i] = result[v].get('ts',0.0)
+            mem[i] = result[v].get('mem',0.0)
         # Plot
         if ngz == 0:
-            ax1.semilogy(vlist,t,'-k',linewidth=lw,label='Time w/o Ghost Zones')
-            ax2.plot(vlist,df/nf,'-k',linewidth=lw,label='Primary Files')
+            pfargs = (vlist,df/nf)
+            ptkws = dict(linestyle='-',color='k',label='Time w/o Ghost Zones')
+            pfkws = dict(linestyle='-',color='k',label='Primary Files')
         else:
-            ax1.semilogy(vlist,t,'--b',linewidth=lw,label='Time w/ Ghost Zones')
-            ax2.plot(vlist,gf/nf,'--b',linewidth=lw,label='Ghost Files')
-            #ax2.plot(vlist,cc,'-b',linewidth=lw,label='Collisions')
+            pfargs = (vlist,gf/nf)
+            ptkws = dict(linestyle='--',color='b',label='Time w/ Ghost Zones')
+            pfkws = dict(linestyle='--',color='b',label='Ghost Files')
+            # pckws = dict(linestyle='-.',color='r',label='Collisions')
+        if kws.get('plot_errors',False):
+            ax1.errorbar(vlist,t,yerr=ts,**ptkws)
+        else:
+            ax1.plot(vlist,t,**ptkws)
+        ax2.plot(*pfargs,**pfkws)
+        # ax2.plot(vlist,cc,**pckws)
     # Formatting
     ax1.set_ylabel('Time (s)',fontsize=14, fontweight='bold')
     ax2.set_xlabel('Width of Selector', fontsize=14, fontweight='bold')
     ax2.set_ylabel('% Files Identified', fontsize=14, fontweight='bold')
     ax2.set_ylim((-0.1,1.1))
     for ax in [ax1,ax2]:
-        # for axis in ['top','bottom','left','right']:
-        #     ax.spines[axis].set_linewidth(4)
         ax.tick_params(width=4)
     plt.legend(loc=3,bbox_to_anchor=(0., 1.02, 1., .102),
                ncol=2,mode="expand", borderaxespad=0.,
@@ -669,7 +760,7 @@ def plot_vary_selector(**kws):
     plt.savefig(fname)
     print(fname)
 
-def plot_vary_order1(**kws):
+def plot_vary_order1(plot_mem=False,**kws):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     lw = 5
@@ -678,22 +769,25 @@ def plot_vary_order1(**kws):
     mpl.rc('axes',linewidth=4)
     order2 = 0
     total_order = 7
-    testtag = "vary_{}_np{}_nf{}".format('order1',kws['npart_dim'],kws['nfiles'])
-    if kws['decomp']!='hilbert' or kws['buff']!=0.1:
-        testtag += '_{}{}'.format(kws['decomp'],str(kws['buff']).replace('.','p'))
-    fname = testtag+'_or{}.png'.format(order2)
+    fname = 'vary_order1_or{}.png'.format(order2)
     # Set up plot
     plt.close('all')
-    f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
+    if plot_mem:
+        f, (ax1,ax2,ax3) = plt.subplots(3,1,sharex=True)
+        f.set_figheight(f.get_figheight()*3.0/2.0)
+        ax3.set_yscale('log')
+    else:
+        f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
+    ax1.set_yscale('log')
     # Loop over total_order
     for ngz in [0,1]:
-        kws['total_order'] = total_order
+        kws['total_order'] = None
         kws['order2'] = order2
         kws['ngz'] = ngz
         kws['plot'] = False
-        kws['testtag'] = testtag+'_or{}_ngz{}'.format(order2,ngz)
-        vlist = range(1,kws['total_order']+1)
-        result = time_selection_vary('order1', vlist, verbose=True, **kws)
+        kws['extendtag'] = '_or{}'.format(order2)
+        vlist = np.arange(1,total_order+1)
+        result = vary_selection_stats('order1', vlist, verbose=True, **kws)
         Nvar = len(vlist)
         t = np.empty(Nvar, dtype='float')
         df = np.empty(Nvar, dtype='float')
@@ -701,30 +795,76 @@ def plot_vary_order1(**kws):
         nf = np.empty(Nvar, dtype='float')
         cc = np.empty(Nvar, dtype='float')
         rc = np.empty(Nvar, dtype='float')
+        ts = np.empty(Nvar, dtype='float')
+        mem = np.empty(Nvar, dtype='float')
         for i,v in enumerate(vlist):
-            t[i] = result[v]['t']
+            t[i] = result[v]['tm']
             df[i] = result[v]['ndf']
             gf[i] = result[v]['ngf']
             nf[i] = result[v]['nf']
             cc[i] = float(result[v]['cc'][0])/float(result[v]['cc'][1])
             rc[i] = float(result[v]['rc'][0])/float(result[v]['rc'][1])
+            ts[i] = result[v].get('ts',0.0)
+            mem[i] = result[v].get('mem',0.0)/(1024.0*1024.0) # MB
         # Plot
         if ngz == 0:
-            ax1.semilogy(vlist,t,'-k',linewidth=lw,label='Time w/o Ghost Zones')
-            ax2.plot(vlist,df/nf,'-k',linewidth=lw,label='Primary Files')
+            pfargs = (vlist,df/nf)
+            ptkws = dict(linestyle='-',color='k',label='Time w/o Ghost Zones')
+            pfkws = dict(linestyle='-',color='k',label='Primary Files')
         else:
-            ax1.semilogy(vlist,t,'--b',linewidth=lw,label='Time w/ Ghost Zones')
-            ax2.plot(vlist,gf/nf,'--b',linewidth=lw,label='Ghost Files')
-            ax2.plot(vlist,cc,'-.r',linewidth=lw,label='Collisions')
+            pfargs = (vlist,gf/nf)
+            pcargs = (vlist,cc)
+            ptkws = dict(linestyle='--',color='b',label='Time w/ Ghost Zones')
+            pfkws = dict(linestyle='--',color='b',label='Ghost Files')
+            pckws = dict(linestyle='-.',color='r',label='Collisions')
+        if kws.get('plot_errors',False):
+            ax1.errorbar(vlist,t,yerr=ts,**ptkws)
+        else:
+            ax1.plot(vlist,t,**ptkws)
+        ax2.plot(*pfargs,**pfkws)
+        if ngz == 1:
+            ax2.plot(*pcargs,**pckws)
+        # Fitting
+        if 0:
+            def func_mem(x,a,b=2,c=3):#1.81906043):
+                return a*(b**(c*x))
+            def func_time(x,a,b=1.0,c=1.0):
+                return a*(b**(c*(4**x)))
+                # return a*(b**(c*0.004*(2**(2*x))))
+            def func_pow(x,a,b):
+                return a*(b**x)
+            import scipy.optimize as optimization
+            print 'fitting memory'
+            # print optimization.curve_fit(func_pow, vlist, mem, np.zeros(3))
+            fit_mem = optimization.curve_fit(func_mem, vlist, mem, [0.004,2.0,2.0])#,1.0])
+            print fit_mem
+            ax3.plot(vlist,func_mem(vlist,*fit_mem[0]),'m--')
+            fit_mem = optimization.curve_fit(func_pow, vlist, mem, [0.004,4.0])
+            print fit_mem
+            ax3.plot(vlist,func_pow(vlist,*fit_mem[0]),'c--')
+            fmem = func_pow(vlist,*fit_mem[0])
+            print 'fitting time'
+            fit_time = optimization.curve_fit(func_time, vlist, t, [1.0,1.0])#,1.0])
+            print fit_time
+            ax1.plot(vlist,func_time(vlist,*fit_time[0]),'m--')
+            fit_time = optimization.curve_fit(func_pow, mem, t, [0.003,1.0])
+            print fit_time
+            ax1.plot(vlist,func_pow(mem,*fit_time[0]),'c--')
     # Formatting
+    if plot_mem:
+        ax3.plot(vlist,mem,linestyle='-',color='k')
+        ax3.set_xlabel('Order of Index', fontsize=14, fontweight='bold')
+        ax3.set_ylabel('Size of Index (MB)', fontsize=14, fontweight='bold')
+    else:
+        ax2.set_xlabel('Order of Index', fontsize=14, fontweight='bold')
     ax1.set_ylabel('Time (s)',fontsize=14, fontweight='bold')
-    ax2.set_xlabel('Order of Index', fontsize=14, fontweight='bold')
     ax2.set_ylabel('% Files Identified/\n Cells with Collisions', fontsize=14, fontweight='bold')
     ax2.set_ylim((-0.1,1.1))
     for ax in [ax1,ax2]:
         for axis in ['top','bottom','left','right']:
             ax.spines[axis].set_linewidth(4)
         ax.tick_params(width=4)
+    plt.sca(ax2)
     plt.legend(loc=3,bbox_to_anchor=(0., 1.02, 1., .102),
                ncol=3,mode="expand", borderaxespad=0.,
                frameon=False)
@@ -732,78 +872,7 @@ def plot_vary_order1(**kws):
     plt.savefig(fname)
     print(fname)
 
-def plot_vary_decomp(plot_collisions=False,**kws):
-    import matplotlib as mpl
-    import matplotlib.pyplot as plt
-    mpl.rc('font', weight='bold')
-    mpl.rc('lines',linewidth=5)
-    mpl.rc('axes',linewidth=4)
-    list_decomp = ['random','sliced','morton','hilbert']
-    order2 = 0
-    total_order = 6
-    testtag = "vary_{}_np{}_nf{}".format('decomp',kws['npart_dim'],kws['nfiles'])
-    fname = testtag+'_or{}.png'.format(order2)
-    # Set up plot
-    plt.close('all')
-    cmap = plt.get_cmap('jet') 
-    cnorm = mpl.colors.Normalize(vmin=0, vmax=len(list_decomp)-1)
-    smap = mpl.cm.ScalarMappable(norm=cnorm, cmap=cmap)
-    clrs = ['m','c','r','b']
-    stys = [':','-.','--','-']
-    f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
-    # Loop over total_order
-    for o,decomp in enumerate(list_decomp):
-        kws['total_order'] = total_order
-        kws['decomp'] = decomp
-        kws['order2'] = order2
-        kws['ngz'] = 0
-        kws['plot'] = False
-        kws['testtag'] = testtag+'_or{}_{}'.format(order2,decomp)
-        vlist = range(1,kws['total_order']+1)
-        result = time_selection_vary('order1', vlist, verbose=True, **kws)
-        Nvar = len(vlist)
-        t = np.empty(Nvar, dtype='float')
-        df = np.empty(Nvar, dtype='float')
-        gf = np.empty(Nvar, dtype='float')
-        nf = np.empty(Nvar, dtype='float')
-        cc = np.empty(Nvar, dtype='float')
-        # rc = np.empty(Nvar, dtype='float')
-        for i,v in enumerate(vlist):
-            t[i] = result[v]['t']
-            df[i] = result[v]['ndf']
-            gf[i] = result[v]['ngf']
-            nf[i] = result[v]['nf']
-            cc[i] = float(result[v]['cc'][0])/float(result[v]['cc'][1])
-            # rc[i] = float(result[v]['rc'][0])/float(result[v]['rc'][1])
-        # Plot
-        clr = clrs[o]
-        sty = stys[o]
-        #clr = smap.to_rgba(o)
-        if plot_collisions:
-            ax1.semilogy(vlist,t,'-',color=clr,label='{} Time'.format(decomp.title()))
-            ax2.plot(vlist,df/nf,'-',color=clr,label='{} Files'.format(decomp.title()))
-            ax2.plot(vlist,cc,'--',color=clr,label='{} Collisions'.format(decomp.title()))
-        else:
-            ax1.semilogy(vlist,t,sty,color=clr,label=decomp.title())
-            ax2.plot(vlist,df/nf,sty,color=clr,label=decomp.title())
-    # Formatting
-    ax1.set_ylabel('Time (s)',fontsize=14, fontweight='bold')
-    ax2.set_xlabel('Order of Index', fontsize=14, fontweight='bold')
-    if plot_collisions:
-        ax2.set_ylabel('% files/collisions', fontsize=14, fontweight='bold')
-    else:
-        ax2.set_ylabel('% Files Identified', fontsize=14, fontweight='bold')
-    ax2.set_ylim((-0.1,1.1))
-    for ax in [ax1,ax2]:
-        ax.tick_params(width=4)
-    plt.legend(loc=9,bbox_to_anchor=(0., 2.07, 1., .102),
-               ncol=2,mode="expand", borderaxespad=0.,
-               frameon=False)
-    # Save
-    plt.savefig(fname)
-    print(fname)
-
-def plot_vary_order2(**kws):
+def plot_vary_order2(plot_mem=False, **kws):
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     lw = 5
@@ -812,41 +881,48 @@ def plot_vary_order2(**kws):
     mpl.rc('axes',linewidth=4)
     orders = [6]
     # orders = range(2,9)
-    testtag = "vary_{}_np{}_nf{}".format('order2',kws['npart_dim'],kws['nfiles'])
-    if kws['decomp']!='hilbert' or kws['buff']!=0.1:
-        testtag += '_{}{}'.format(kws['decomp'],str(kws['buff']).replace('.','p'))
     if len(orders)>1:
-        fname = testtag+'_mult.png'
+        fname = 'vary_order2_mult.png'
     else:
-        fname = testtag+'.png'
+        fname = 'vary_order2_to{}.png'.format(orders[0])
     # Set up plot
     plt.close('all')
     cmap = plt.get_cmap('jet') 
     cnorm = mpl.colors.Normalize(vmin=orders[0], vmax=orders[-1])
     smap = mpl.cm.ScalarMappable(norm=cnorm, cmap=cmap)
     smap.set_array(orders)
-    f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
+    if plot_mem:
+        f, (ax1,ax2,ax3) = plt.subplots(3,1,sharex=True)
+        f.set_figheight(f.get_figheight()*3.0/2.0)
+        ax3.set_yscale('log')
+    else:
+        f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
+    ax1.set_yscale('log')
     # Loop over total_order
     for o in orders:
         kws['total_order'] = o
         kws['order1'] = None
         kws['plot'] = False
         kws['ngz'] = 0
-        kws['testtag'] = testtag+'_to{}'.format(o)
+        kws['extendtag'] = '_to{}'.format(o)
         vlist = range(0,kws['total_order'])
-        result = time_selection_vary('order2',vlist,verbose=True,**kws)
+        result = vary_selection_stats('order2',vlist,verbose=True,**kws)
         Nvar = len(vlist)
         t = np.empty(Nvar, dtype='float')
         df = np.empty(Nvar, dtype='float')
         nf = np.empty(Nvar, dtype='float')
         cc = np.empty(Nvar, dtype='float')
         rc = np.empty(Nvar, dtype='float')
+        ts = np.empty(Nvar, dtype='float')
+        mem = np.empty(Nvar, dtype='float')
         for i,v in enumerate(vlist):
-            t[i] = result[v]['t']
+            t[i] = result[v]['tm']
             df[i] = result[v]['ndf']
             nf[i] = result[v]['nf']
             cc[i] = float(result[v]['cc'][0])/float(result[v]['cc'][1])
             rc[i] = float(result[v]['rc'][0])/float(result[v]['rc'][1])
+            ts[i] = result[v].get('ts',0.0)
+            mem[i] = result[v].get('mem',0.0)/(1024.0*1024.0)
         # Plot
         if len(orders) == 1:
             clr_f = 'k'
@@ -856,24 +932,36 @@ def plot_vary_order2(**kws):
             clr_f = smap.to_rgba(o)
             clr_cc = smap.to_rgba(o)
             clr_rc = smap.to_rgba(o)
-        ax1.semilogy(vlist,t,'-',color=clr_f,linewidth=lw,label='Time')
+        ptkws = dict(linestyle='-',color=clr_f,label='Time')
+        pfkws = dict(linestyle='-',color=clr_f)
+        pcckws = dict(linestyle='-.',color=clr_cc)
+        prckws = dict(linestyle=':',color=clr_rc)
         if o == orders[0]:
-            ax2.plot(vlist,df/nf,'-',color=clr_f,linewidth=lw,label='Files')
-            ax2.plot(vlist,cc,'-.',color=clr_cc,linewidth=lw,label='Coarse Coll.')
-            ax2.plot(vlist,rc,':',color=clr_rc,linewidth=lw,label='Refined Coll.')
+            pfkws['label'] = 'Files'
+            pcckws['label'] = 'Coarse Coll.'
+            prckws['label'] = 'Refined Coll.'
+        if kws.get('plot_errors',False):
+            ax1.errorbar(vlist,t,yerr=ts,**ptkws)
         else:
-            ax2.plot(vlist,df/nf,'-',color=clr_f,linewidth=lw)
-            ax2.plot(vlist,cc,'-.',color=clr_cc,linewidth=lw)
-            ax2.plot(vlist,rc,':',color=clr_rc,linewidth=lw)
+            ax1.plot(vlist,t,**ptkws)
+        ax2.plot(vlist,df/nf,**pfkws)
+        ax2.plot(vlist,cc,**pcckws)
+        ax2.plot(vlist,rc,**prckws)
     # Formatting
+    if plot_mem:
+        ax3.plot(vlist,mem,linestyle='-',color='k')
+        ax3.set_xlabel('Order of Refined Index', fontsize=14, fontweight='bold')
+        ax3.set_ylabel('Size of Index (MB)', fontsize=14, fontweight='bold')
+    else:
+        ax2.set_xlabel('Order of Refined Index', fontsize=14, fontweight='bold')
     ax1.set_ylabel('Time (s)',fontsize=14, fontweight='bold')
-    ax2.set_xlabel('Order of Refined Index', fontsize=14, fontweight='bold')
     ax2.set_ylabel('% Files Identified/\n Cells with Collisions', fontsize=14, fontweight='bold')
     ax2.set_ylim((-0.1,1.1))
     for ax in [ax1,ax2]:
         for axis in ['top','bottom','left','right']:
             ax.spines[axis].set_linewidth(4)
         ax.tick_params(width=4)
+    plt.sca(ax2)
     plt.legend(loc=3,bbox_to_anchor=(0., 1.02, 1., .102),
                ncol=3,mode="expand", borderaxespad=0.,
                frameon=False)
@@ -882,6 +970,102 @@ def plot_vary_order2(**kws):
                           orientation='horizontal')
         cbar.set_label('Total Order of Combined Indices', 
                        fontsize=14, fontweight='bold')
+    # Save
+    plt.savefig(fname)
+    print(fname)
+
+def plot_vary_decomp(plot_collisions=False,plot_mem=False,**kws):
+    import matplotlib as mpl
+    import matplotlib.pyplot as plt
+    mpl.rc('font', weight='bold')
+    mpl.rc('lines',linewidth=5)
+    mpl.rc('axes',linewidth=4)
+    list_decomp = ['random','sliced','morton','hilbert']
+    order2 = 0
+    total_order = 7
+    fname = 'vary_decomp_to{}.png'.format(order2)
+    # Set up plot
+    plt.close('all')
+    cmap = plt.get_cmap('jet') 
+    cnorm = mpl.colors.Normalize(vmin=0, vmax=len(list_decomp)-1)
+    smap = mpl.cm.ScalarMappable(norm=cnorm, cmap=cmap)
+    clrs = ['m','c','r','b']
+    stys = [':','-.','--','-']
+    if plot_mem:
+        f, (ax1,ax2,ax3) = plt.subplots(3,1,sharex=True)
+        f.set_figheight(f.get_figheight()*3.0/2.0)
+        ax3.set_yscale('log')
+    else:
+        f, (ax1,ax2) = plt.subplots(2,1,sharex=True)
+    ax1.set_yscale('log')
+    # Loop over total_order
+    for o,decomp in enumerate(list_decomp):
+        kws['total_order'] = None
+        kws['decomp'] = decomp
+        kws['order2'] = order2
+        kws['ngz'] = 0
+        kws['plot'] = False
+        kws['extendtag'] = '_or{}'.format(order2)
+        vlist = range(1,total_order+1)
+        result = vary_selection_stats('order1', vlist, verbose=True, **kws)
+        Nvar = len(vlist)
+        t = np.empty(Nvar, dtype='float')
+        df = np.empty(Nvar, dtype='float')
+        gf = np.empty(Nvar, dtype='float')
+        nf = np.empty(Nvar, dtype='float')
+        cc = np.empty(Nvar, dtype='float')
+        mem = np.empty(Nvar, dtype='float')
+        # rc = np.empty(Nvar, dtype='float')
+        ts = np.empty(Nvar, dtype='float')
+        for i,v in enumerate(vlist):
+            t[i] = result[v]['tm']
+            df[i] = result[v]['ndf']
+            gf[i] = result[v]['ngf']
+            nf[i] = result[v]['nf']
+            cc[i] = float(result[v]['cc'][0])/float(result[v]['cc'][1])
+            # rc[i] = float(result[v]['rc'][0])/float(result[v]['rc'][1])
+            ts[i] = result[v].get('ts',0.0)
+            mem[i] = result[v].get('mem',0.0)
+        # Plot
+        clr = clrs[o]
+        sty = stys[o]
+        #clr = smap.to_rgba(o)
+        if plot_collisions:
+            ptkws = dict(linestyle='-',color=clr,label='{} Time'.format(decomp.title()))
+            pfkws = dict(linestyle='-',color=clr,label='{} Files'.format(decomp.title()))
+            pckws = dict(linestyle='--',color=clr,label='{} Collisions'.format(decomp.title()))
+            pmkws = dict(linestyle='-',color=clr,label='{} Memory'.format(decomp.title()))
+        else:
+            ptkws = dict(linestyle=sty,color=clr,label=decomp.title())
+            pfkws = dict(linestyle=sty,color=clr,label=decomp.title())
+            pmkws = dict(linestyle=sty,color=clr,label=decomp.title())
+        if kws.get('plot_errors',False):
+            ax1.errorbar(vlist,t,yerr=ts,**ptkws)
+        else:
+            ax1.plot(vlist,t,**ptkws)
+        ax2.plot(vlist,df/nf,**pfkws)
+        if plot_collisions:
+            ax2.plot(vlist,cc,**pckws)
+        if plot_mem:
+            ax3.plot(vlist,mem,**pmkws)
+    # Formatting
+    if plot_mem:
+        ax3.set_xlabel('Order of Index', fontsize=14, fontweight='bold')
+        ax3.set_ylabel('Size of Index (MB)', fontsize=14, fontweight='bold')
+    else:
+        ax2.set_xlabel('Order of Index', fontsize=14, fontweight='bold')
+    ax1.set_ylabel('Time (s)',fontsize=14, fontweight='bold')
+    if plot_collisions:
+        ax2.set_ylabel('% files/collisions', fontsize=14, fontweight='bold')
+    else:
+        ax2.set_ylabel('% Files Identified', fontsize=14, fontweight='bold')
+    ax2.set_ylim((-0.1,1.1))
+    for ax in [ax1,ax2]:
+        ax.tick_params(width=4)
+    plt.sca(ax2)
+    plt.legend(loc=9,bbox_to_anchor=(0., 2.07, 1., .102),
+               ncol=2,mode="expand", borderaxespad=0.,
+               frameon=False)
     # Save
     plt.savefig(fname)
     print(fname)
@@ -906,10 +1090,10 @@ def test_particle_regions():
         order2 = 1 # No overlap for N = nfiles
         exact_division = (N == (1 << order1))
         div = float(nfiles)/float(1 << order1)
-        reg, cc, rc = FakeForest(nfiles**3, nfiles, order1, order2, decomp='grid',
-                                 DLE=np.array([0.0, 0.0, 0.0]),
-                                 DRE=np.array([nfiles, nfiles, nfiles]), 
-                                 verbose=verbose)
+        reg, cc, rc, mem = FakeForest(nfiles**3, nfiles, order1, order2, decomp='grid',
+                                      DLE=np.array([0.0, 0.0, 0.0]),
+                                      DRE=np.array([nfiles, nfiles, nfiles]), 
+                                      verbose=verbose)
         # Loop over regions selecting single files
         fr = FakeRegion(nfiles)
         for i in range(nfiles):
@@ -994,6 +1178,8 @@ def test_save_load_bitmap():
         pos[:,0] += (DW[0]/nfiles)
     pos[:,0] = (DW[0]/nfiles)/2
     rc = reg0.find_collisions_refined(verbose=verbose)
+    # Owners
+    reg0.set_owners()
     # Save
     reg0.save_bitmasks(fname)
     # Load
