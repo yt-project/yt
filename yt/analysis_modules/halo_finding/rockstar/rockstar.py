@@ -21,8 +21,6 @@ from yt.funcs import \
     is_root, mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, ProcessorPool
-from yt.analysis_modules.halo_finding.halo_objects import \
-    RockstarHaloList
 from yt.utilities.exceptions import YTRockstarMultiMassNotSupported
 
 from . import rockstar_interface
