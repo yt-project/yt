@@ -30,7 +30,7 @@ def h5rd( fname, path, dtype=None ):
     data = None
     fid = h5py.h5f.open(fname, h5py.h5f.ACC_RDONLY)
     dg = h5py.h5d.open(fid, path.encode('ascii'))
-    if dtype == None:
+    if dtype is None:
        dtype = dg.dtype
     data = np.zeros(dg.shape, dtype=dtype)
     dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
