@@ -77,8 +77,12 @@ class ParticleIndex(Index):
                 sum(d.total_particles.values()) for d in self.data_files)
         self._initialize_index()
 
+    def _index_filename(self,o1,o2):
+        return os.path.join(self.dataset.fullpath, 
+                            "index{}_{}.ewah".format(o1,o2))
+
     def _initialize_index(self, fname=None, noref=False,
-                          order1=None, order2=None):
+                          order1=None, order2=None, dont_cache=False):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
           self.total_particles)
@@ -89,19 +93,23 @@ class ParticleIndex(Index):
                 len(self.data_files), ds.over_refine_factor,
                 ds.n_ref, index_order1=order1, index_order2=order2)
         # Load indices from file if provided
-        if fname is not None and os.path.isfile(fname):
-            rflag = self.regions.load_bitmasks(fname=fname)
+        if fname is None: 
+            fname = self._index_filename(self.regions.index_order1,
+                                         self.regions.index_order2)
+        try:
+            rflag = self.regions.load_bitmasks(fname)
             if rflag == 0:
                 self._initialize_owners()
-        else:
+                self.regions.save_bitmasks(fname)
+        except IOError:
             self._initialize_coarse_index()
             if not noref:
                 self._initialize_refined_index()
-                self.regions.set_owners()
             else:
                 self._initialize_owners()
-            if fname is not None:
-                self.regions.save_bitmasks(fname=fname)
+            self.regions.set_owners()
+            if not dont_cache:
+                self.regions.save_bitmasks(fname)
         # These are now invalid, but I don't know what to replace them with:
         #self.max_level = self.oct_handler.max_level
         #self.dataset.max_level = self.max_level
@@ -137,7 +145,6 @@ class ParticleIndex(Index):
             for pos in self.io._yield_coordinates(data_file):
                 self.regions._owners_data_file(pos, data_file.file_id)
         pb.finish()
-        self.regions.set_owners()
             
     def _detect_output_fields(self):
         # TODO: Add additional fields
