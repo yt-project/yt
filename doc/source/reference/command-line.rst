@@ -80,6 +80,7 @@ This will print the list of available subcommands,
                         requested), for one or more datasets (default field is
                         Density)
     update              Update the yt installation to the most recent version
+    delete_image        Delete image from imgur.com.
     upload_image        Upload an image to imgur.com. Must be PNG.
 
 
@@ -264,3 +265,9 @@ a breeze.  By specifying the image to share, ``upload_image`` automatically
 uploads it anonymously to the website `imgur.com <http://imgur.com/>`_ and
 provides you with a link to share with your collaborators.  Note that the
 image *must* be in the PNG format in order to use this function.
+
+delete_image
+++++++++++++
+The image uploaded using ``upload_image`` is assigned with a unique hash that
+can be used to remove it. This subcommand provides an easy way to send a delete
+request directly to the `imgur.com <http://imgur.com/>`_.
