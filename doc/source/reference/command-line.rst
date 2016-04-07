@@ -268,6 +268,7 @@ image *must* be in the PNG format in order to use this function.
 
 delete_image
 ++++++++++++
+
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
 request directly to the `imgur.com <http://imgur.com/>`_.
