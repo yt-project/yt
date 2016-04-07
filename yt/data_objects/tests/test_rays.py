@@ -1,9 +1,12 @@
 import numpy as np
 
+from yt import \
+    load
 from yt.testing import \
     fake_random_ds, \
     assert_equal, \
-    assert_rel_equal
+    assert_rel_equal, \
+    requires_file
 from yt.units.yt_array import \
     uconcatenate
 
