@@ -1091,6 +1091,7 @@ class YTDeleteImageCmd(YTCommand):
             print()
             print("Something has gone wrong!  Here is the server response:")
             print()
+            pprint.pprint(rv)
 
 
 class YTUploadImageCmd(YTCommand):
