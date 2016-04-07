@@ -17,7 +17,10 @@ import numpy as np
 
 from yt.config import \
     ytcfg
-from yt.funcs import mylog, get_image_suffix
+from yt.funcs import \
+    mylog, \
+    get_image_suffix, \
+    get_brewer_cmap
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 from .color_maps import mcm
@@ -25,17 +28,6 @@ from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
-import warnings
-try:
-    import palettable
-    has_palettable = True
-except:
-    has_palettable = False
-try:
-    import brewer2mpl
-    has_brewer = True
-except:
-    has_brewer = False
 
 
 def scale_image(image, mi=None, ma=None):
@@ -268,27 +260,17 @@ def map_to_colors(buff, cmap_name):
         try:
             # if cmap is tuple, then we're using palettable or brewer2mpl cmaps
             if isinstance(cmap_name, tuple):
-                if has_palettable:
-                    bmap = palettable.colorbrewer.get_map(*cmap_name)
-                elif has_brewer:
-                    warnings.warn("Using brewer2mpl colormaps is deprecated. "
-                                  "Please install the successor to brewer2mpl, "
-                                  "palettable, with `pip install palettable`. "
-                                  "Colormap tuple names remain unchanged.")
-                    bmap = brewer2mpl.get_map(*cmap_name)
-                else:
-                    raise RuntimeError("Please install palettable to use colorbrewer colormaps")
-                cmap = bmap.get_mpl_colormap(N=cmap_name[2])
+                cmap = get_brewer_cmap(cmap_name)
             else:
                 cmap = mcm.get_cmap(cmap_name)
             cmap(0.0)
             lut = cmap._lut.T
         except ValueError:
-            print("Your color map was not found in either the extracted" +\
-                " colormap file or matplotlib colormaps")
-            raise KeyError(cmap_name)
+            raise KeyError(
+                "Your color map (%s) was not found in either the extracted"
+                " colormap file or matplotlib colormaps" % cmap_name)
 
-    if isinstance(cmap_name, tuple) and (has_palettable or has_brewer):
+    if isinstance(cmap_name, tuple):
         # If we are using the colorbrewer maps, don't interpolate
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
