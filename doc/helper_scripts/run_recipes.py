@@ -19,7 +19,7 @@ BADF = ['cloudy_emissivity.h5', 'apec_emissivity.h5',
 CWD = os.getcwd()
 ytcfg["yt", "serialize"] = "False"
 PARALLEL_TEST = {"rockstar_nest": "3"}
-BLACKLIST = []
+BLACKLIST = ["opengl_ipython", "opengl_vr"]
 
 
 def prep_dirs():
