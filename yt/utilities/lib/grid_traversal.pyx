@@ -853,9 +853,11 @@ cdef class VolumeRenderSampler(ImageSampler):
             self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -914,11 +916,13 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
-        #free(self.light_dir)
-        #free(self.light_rgba)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.light_dir)
+        free(self.vra.light_rgba)
+        free(self.vra.fits)
+        free(self.vra)
 
 
 @cython.boundscheck(False)

@@ -21,6 +21,7 @@ from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, f
 from yt.utilities.exceptions import YTPixelizeError, \
     YTElementTypeNotRecognized
 from libc.stdlib cimport malloc, free
+from vec3_ops cimport dot, cross, subtract
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
@@ -518,17 +519,11 @@ cdef int check_face_dot(int nvertices,
         vi2a = faces[n][1][0]
         vi2b = faces[n][1][1]
         # Shared vertex is vi1a and vi2a
-        for i in range(3):
-            vec1[i] = vertices[vi1b][i] - vertices[vi1a][i]
-            vec2[i] = vertices[vi2b][i] - vertices[vi2a][i]
-            npoint[i] = point[i] - vertices[vi1b][i]
-        # Now the cross product of vec1 x vec2
-        cp_vec[0] = vec1[1] * vec2[2] - vec1[2] * vec2[1]
-        cp_vec[1] = vec1[2] * vec2[0] - vec1[0] * vec2[2]
-        cp_vec[2] = vec1[0] * vec2[1] - vec1[1] * vec2[0]
-        dp = 0.0
-        for j in range(3):
-            dp += cp_vec[j] * npoint[j]
+        subtract(vertices[vi1b], vertices[vi1a], vec1)
+        subtract(vertices[vi2b], vertices[vi2a], vec2)
+        subtract(point, vertices[vi1b], npoint)
+        cross(vec1, vec2, cp_vec)
+        dp = dot(cp_vec, npoint)
         if match == 0:
             if dp < 0:
                 signs[n] = -1
