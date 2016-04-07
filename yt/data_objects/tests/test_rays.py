@@ -58,4 +58,5 @@ def test_ray_in_particle_octree():
     start = ds.arr([31995.63476562, 31473.6640625, 28969.88671875], "code_length")
     end = ds.arr([31995.63476562, 31473.6640625, 29219.88671875], "code_length")
     ray = ds.ray(start, end)
+    ray["t"]
     assert_equal(ray["dts"].sum(dtype="f8"), 1.0)
