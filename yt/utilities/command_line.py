@@ -1061,6 +1061,37 @@ class YTUpdateCmd(YTCommand):
             print("updating to the newest changeset.")
             print()
 
+class YTDeleteImageCmd(YTCommand):
+    args = (dict(short="delete_hash", type=str),)
+    description = \
+        """
+        Delete image from imgur.com.
+
+        """
+    name = "delete_image"
+    def __call__(self, args):
+        delete_hash = args.delete_hash
+        api_key = 'e1977d9195fe39e'
+        headers = {'Authorization': 'Client-ID %s' % api_key}
+        delete_url = 'https://api.imgur.com/3/image/{delete_hash}'
+        req = urllib.request.Request(
+            delete_url.format(delete_hash=delete_hash),
+            headers=headers, method='DELETE')
+        try:
+            response = urllib.request.urlopen(req).read().decode()
+        except urllib.error.HTTPError as e:
+            print("ERROR", e)
+            return {'deleted': False}
+
+        rv = json.loads(response)
+        if 'success' in rv and rv["success"]:
+            print("\nImage successfully deleted!\n")
+        else:
+            print()
+            print("Something has gone wrong!  Here is the server response:")
+            print()
+
+
 class YTUploadImageCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
@@ -1090,18 +1121,12 @@ class YTUploadImageCmd(YTCommand):
             return {'uploaded':False}
         rv = json.loads(response)
         if 'data' in rv and 'link' in rv['data']:
-            delete_cmd = (
-                "curl -X DELETE -H 'Authorization: Client-ID {secret}'"
-                " https://api.imgur.com/3/image/{delete_hash}"
-            )
             print()
             print("Image successfully uploaded!  You can find it at:")
             print("    %s" % (rv['data']['link']))
             print()
             print("If you'd like to delete it, use the following")
-            print("    %s" % 
-                  delete_cmd.format(secret=api_key,
-                                    delete_hash=rv['data']['deletehash']))
+            print("    yt delete_image %s" % rv['data']['deletehash'])
             print()
         else:
             print()
