@@ -1061,6 +1061,7 @@ class YTUpdateCmd(YTCommand):
             print("updating to the newest changeset.")
             print()
 
+
 class YTDeleteImageCmd(YTCommand):
     args = (dict(short="delete_hash", type=str),)
     description = \
@@ -1070,12 +1071,12 @@ class YTDeleteImageCmd(YTCommand):
         """
     name = "delete_image"
     def __call__(self, args):
-        delete_hash = args.delete_hash
-        api_key = 'e1977d9195fe39e'
-        headers = {'Authorization': 'Client-ID %s' % api_key}
-        delete_url = 'https://api.imgur.com/3/image/{delete_hash}'
+        headers = {'Authorization':
+            'Client-ID {}'.format(ytcfg.get("yt", "imagebin_api_key"))}
+
+        delete_url = ytcfg.get("yt", "imagebin_delete_url")
         req = urllib.request.Request(
-            delete_url.format(delete_hash=delete_hash),
+            delete_url.format(delete_hash=args.delete_hash),
             headers=headers, method='DELETE')
         try:
             response = urllib.request.urlopen(req).read().decode()
@@ -1105,15 +1106,16 @@ class YTUploadImageCmd(YTCommand):
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
             return 1
+        headers = {'Authorization':
+            'Client-ID {}'.format(ytcfg.get("yt", "imagebin_api_key"))}
+
         image_data = base64.b64encode(open(filename, 'rb').read())
-        api_key = 'e1977d9195fe39e'
-        headers = {'Authorization': 'Client-ID %s' % api_key}
         parameters = {'image': image_data, type: 'base64',
                       'name': filename,
                       'title': "%s uploaded by yt" % filename}
         data = urllib.parse.urlencode(parameters).encode('utf-8')
-        req = urllib.request.Request('https://api.imgur.com/3/upload', data=data,
-                                     headers=headers)
+        req = urllib.request.Request(
+            ytcfg.get("yt", "imagebin_upload_url"), data=data, headers=headers)
         try:
             response = urllib.request.urlopen(req).read().decode()
         except urllib.error.HTTPError as e:
