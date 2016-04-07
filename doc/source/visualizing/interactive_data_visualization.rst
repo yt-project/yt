@@ -85,7 +85,7 @@ dynamically modified using the following keybindings:
 1
    Switch to MIP fragment shader
 2
-   Switch to integration fragement shader
+   Switch to integration fragment shader
 L
    Switch between linear and logarithmic scales
 W
