@@ -627,6 +627,9 @@ cdef class ParticleBitmap:
                 if pcount[mi] > owners[mi][0]:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
+            # else:
+            #     owners[mi][0] += 1
+            #     owners[mi][1] = file_id
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1010,6 +1013,11 @@ cdef class ParticleBitmap:
         cdef int dims[3]
         for i in range(3):
             dims[i] = self.dims[i]
+        # Must populate owners if pcounts not saved
+        # cdef np.ndarray pos
+        # for data_file in data_files:
+        #     for pos in io_handler._yield_coordinates(data_file):
+        #         self._owners_data_file(pos, data_file.file_id)
         # Now we can actually create a sparse octree.
         cdef np.ndarray[np.uint8_t, ndim=1] uncontaminated 
         uncontaminated = self.find_uncontaminated(selector_mask,
@@ -1022,8 +1030,6 @@ cdef class ParticleBitmap:
             uncontaminated.sum(), self.oref)
         octree.n_ref = self.n_ref
         octree.allocate_domains()
-        cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
-        morton_ind = np.empty(total_pcount, dtype="uint64")
         cdef np.int32_t *particle_index = <np.int32_t *> malloc(
             sizeof(np.int32_t) * uncontaminated.size)
         cdef np.int32_t *particle_count = <np.int32_t *> malloc(
@@ -1034,8 +1040,12 @@ cdef class ParticleBitmap:
             particle_index[i] = total_pcount
             particle_count[i] = self.owners[i,0]
             total_pcount += particle_count[i]
+        cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
+        morton_ind = np.empty(total_pcount, dtype="uint64")
         # Okay, now just to filter based on our mask.
         cdef int ind[3]
+        cdef np.uint64_t ind64[3]
+        cdef np.uint64_t mi
         cdef int arri
         cdef np.ndarray pos
         cdef np.ndarray[np.float32_t, ndim=2] pos32
@@ -1065,29 +1075,27 @@ cdef class ParticleBitmap:
                         else:
                             ppos[k] = pos64[j,k]
                         ind[k] = <int> ((ppos[k] - self.left_edge[k])*self.idds[k])
-                    arri = bitmap_nodes[ind[0], ind[1], ind[2]]
-                    if arri == -1: continue
+                    mi = encode_morton_64bit(np.uint64(ind[0]), np.uint64(ind[1]), np.uint64(ind[2]))
+                    if uncontaminated[mi] != 1: continue
                     # Now we have decided it's worth filtering, so let's toss
                     # it in.
                     for i in range(3):
                         DLE[i] = self.left_edge[i] + self.dds[i]*ind[i]
                         DRE[i] = DLE[i] + self.dds[i]
-                    morton_ind[particle_index[arri]] = bounded_morton(
+                    morton_ind[particle_index[mi]] = bounded_morton(
                         ppos[0], ppos[1], ppos[2], DLE, DRE, ORDER_MAX)
-                    particle_index[arri] += 1
+                    particle_index[mi] += 1
                     octree.next_root(1, ind)
         cdef int start, end = 0
         # We should really allocate a 3-by nroot array
-        for i in range(self.dims[0]):
-            for j in range(self.dims[1]):
-                for k in range(self.dims[2]):
-                    arri = bitmap_nodes[i,j,k]
-                    if arri == -1: continue
-                    start = end
-                    end += particle_count[arri]
-                    morton_view = morton_ind[start:end]
-                    morton_view.sort()
-                    octree.add(morton_view, i, j, k)
+        for i in range(uncontaminated.size):
+            if uncontaminated[i] != 1: continue
+            start = end
+            end += particle_count[i]
+            morton_view = morton_ind[start:end]
+            morton_view.sort()
+            decode_morton_64bit(np.uint64(i), ind64)
+            octree.add(morton_view, ind64[0], ind64[1], ind64[2])
         octree.finalize()
         free(particle_index)
         free(particle_count)

@@ -101,6 +101,8 @@ class ParticleIndex(Index):
             if rflag == 0:
                 self._initialize_owners()
                 self.regions.save_bitmasks(fname)
+            else: # Save pcounts in file?
+                self._initialize_owners()
         except IOError:
             self._initialize_coarse_index()
             if not noref:
