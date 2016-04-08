@@ -549,9 +549,9 @@ cdef class ParticleBitmap:
                 if pcount[mi] > owners[mi][0]:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
-                else:
-                    owners[mi][1] = file_id
-                    owners[mi][2] += 1
+            else:
+                owners[mi][1] = file_id
+                owners[mi][2] += 1
         # Only subs of particles in the mask
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
@@ -630,9 +630,9 @@ cdef class ParticleBitmap:
                 if pcount[mi] > owners[mi][0]:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
-                else:
-                    owners[mi][1] = file_id
-                    owners[mi][2] += 1
+            else:
+                owners[mi][1] = file_id
+                owners[mi][2] += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1036,7 +1036,8 @@ cdef class ParticleBitmap:
         for i in range(uncontaminated.size):
             if uncontaminated[i] != 1: continue
             particle_index[i] = total_pcount
-            particle_count[i] = self.owners[i,2]
+            if self.owners[i,1] == data_files[0].file_id:
+                particle_count[i] = self.owners[i,2]
             total_pcount += particle_count[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
         morton_ind = np.empty(total_pcount, dtype="uint64")
