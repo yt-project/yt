@@ -367,6 +367,23 @@ the official repo:
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
   if you are curious why ``--prefix=`` is neccessary on some systems.
 
+.. note::
+
+   yt requires version 18.0 or higher of ``setuptools``. If you get an error of the form
+   
+   .. code-block:: bash
+
+      error: unknown file type '.pyx' (from 'yt/analysis_modules/photon_simulator/utils.pyx')
+
+   then that means ``setuptools`` is out of date. You can update it, e.g., with pip via
+
+   .. code-block:: bash
+
+      pip install --upgrade setuptools
+
+   or your preferred method.
+   
+
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
 ``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
