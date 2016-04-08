@@ -171,7 +171,7 @@ class ParticleIndex(Index):
             data_files = getattr(dobj, "data_files", None)
             buffer_files = getattr(dobj, "buffer_files", None)
             if data_files is None:
-                dfi, gzi = self.regions.identify_data_files(dobj.selector)
+                (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(dobj.selector)
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
                 #mylog.debug("Maximum particle count of %s identified", count)

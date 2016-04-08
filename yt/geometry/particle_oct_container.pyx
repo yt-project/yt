@@ -977,7 +977,7 @@ cdef class ParticleBitmap:
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector,self,ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
-        return morton_selector.masks_to_files(cmask_s, cmask_g)
+        return morton_selector.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
         # Other version
         # cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
         # cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
