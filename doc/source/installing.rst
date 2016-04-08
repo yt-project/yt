@@ -369,26 +369,17 @@ the official repo:
 
 .. note::
 
-   yt requires version 18.0 or higher of ``setuptools`` and version
-   0.7.3 of ``distribtute``. If you get an error of the form
-   
-   .. code-block:: bash
-
-      error: unknown file type '.pyx' (from 'yt/analysis_modules/photon_simulator/utils.pyx')
-
-   then that means ``setuptools`` is out of date. You can update it, e.g., with pip via
+   yt requires version 18.0 or higher of ``setuptools``. If you see
+   error messages about this package, you may need to update it. For
+   example, with pip via
 
    .. code-block:: bash
 
       pip install --upgrade setuptools
 
-   or your preferred method. If you get an error of the form
-
-   .. code-block:: bash
-
-      NameError: name 'sys_platform' is not defined
-
-   then ``distribute`` is out of date. You can update with pip via
+   or your preferred method. If you have ``distribute`` installed, you
+   may also see error messages for it if it's out of date. You can
+   update with pip via
 
    .. code-block:: bash
 
