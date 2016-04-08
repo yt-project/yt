@@ -36,6 +36,14 @@ cdef extern from "<sstream>" namespace "std":
         bint eof()
 
 cdef extern from "ewah.h":
+    cppclass EWAHBoolArraySetBitForwardIterator[uword]:
+        # EWAHBoolArraySetBitForwardIterator()
+        EWAHBoolArraySetBitForwardIterator(const EWAHBoolArraySetBitForwardIterator &o)
+        size_t operator*()
+        EWAHBoolArraySetBitForwardIterator &operator++()
+        bint operator==(EWAHBoolArraySetBitForwardIterator &x)
+        bint operator!=(EWAHBoolArraySetBitForwardIterator &x)
+    # ctypedef EWAHBoolArraySetBitForwardIterator[unsigned long long] const_iterator
     cdef cppclass EWAHBoolArray[uword]:
         # We are going to skip the varargs here; it is too tricky to assemble.
         bint get(const size_t pos)
@@ -63,8 +71,15 @@ cdef extern from "ewah.h":
         void readBuffer(stringstream &incoming, const size_t buffersize)
         void write(stringstream &out, bint savesizeinbits)
         void writeBuffer(stringstream &out)
+        vector[uword] &getBuffer()
+        # const_iterator begin()
+        # const_iterator end()
+        EWAHBoolArraySetBitForwardIterator begin()
+        EWAHBoolArraySetBitForwardIterator end()
 
 ctypedef EWAHBoolArray[np.uint64_t] ewah_bool_array
+#ctypedef EWAHBoolArray[np.uint64_t].EWAHBoolArraySetBitForwardIterator ewah_bool_iterator
+ctypedef EWAHBoolArraySetBitForwardIterator[np.uint64_t] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
 ctypedef map[np.uint64_t, ewah_bool_array] ewah_map
 ctypedef stringstream sstream

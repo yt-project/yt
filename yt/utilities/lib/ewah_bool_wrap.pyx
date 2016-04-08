@@ -22,7 +22,7 @@ from libcpp.map cimport map
 from libcpp.algorithm cimport sort
 from libc.stdlib cimport malloc, free, qsort
 from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_map, ewah_bool_array, sstream
+    sstream, ewah_map, ewah_bool_array, ewah_bool_iterator
 from cython.operator cimport dereference, preincrement
 import numpy as np
 cimport numpy as np
@@ -38,6 +38,11 @@ DEF UncompressedFormat = 'Pointer'
 
 #ctypedef np.uint8_t bitarrtype
 ctypedef bint bitarrtype
+
+# cdef class EwahIterator:
+
+#     def __cinit__(self void* citer):
+        
 
 cdef class FileBitmasks:
 
@@ -447,6 +452,37 @@ cdef class FileBitmasks:
 
     def logicaland(self, ifile, solf, out):
         return self._logicaland(ifile, solf, out)
+
+    cdef void _select_contaminated(self, np.uint32_t ifile, 
+                                   BoolArrayCollection mask, np.uint8_t[:] out):
+        cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
+        cdef ewah_bool_array *ewah_mask = <ewah_bool_array *> mask.ewah_keys
+        cdef ewah_bool_array ewah_slct
+        cdef np.uint64_t iset
+        ewah_owns[0].logicaland(ewah_mask[0],ewah_slct)
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            out[iset] = 1
+            preincrement(iter_set[0])
+        
+    cdef void _select_uncontaminated(self, np.uint32_t ifile, 
+                                     BoolArrayCollection mask, np.uint8_t[:] out):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_bool_array *ewah_mask = <ewah_bool_array *> mask.ewah_keys
+        cdef ewah_bool_array ewah_slct
+        cdef ewah_bool_array ewah_coar
+        ewah_keys[0].logicalxor(ewah_refn[0],ewah_coar)
+        ewah_coar.logicaland(ewah_mask[0],ewah_slct)
+        cdef np.uint64_t iset
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            out[iset] = 1
+            preincrement(iter_set[0])
 
     cdef bytes _dumps(self, np.uint32_t ifile):
         # TODO: write word size
@@ -941,6 +977,35 @@ cdef class BoolArrayCollection:
 
     def logicaland(self, solf, out):
         return self._logicaland(solf, out)
+
+    cdef void _select_contaminated(self, BoolArrayCollection mask, np.uint8_t[:] out):
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
+        cdef ewah_bool_array *ewah_mask = <ewah_bool_array *> mask.ewah_keys
+        cdef ewah_bool_array ewah_slct
+        ewah_owns[0].logicaland(ewah_mask[0],ewah_slct)
+        cdef np.uint64_t iset
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            out[iset] = 1
+            preincrement(iter_set[0])
+        
+    cdef void _select_uncontaminated(self, BoolArrayCollection mask, np.uint8_t[:] out):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_mask = <ewah_bool_array *> mask.ewah_keys
+        cdef ewah_bool_array ewah_slct
+        cdef ewah_bool_array ewah_coar
+        ewah_keys[0].logicalxor(ewah_refn[0],ewah_coar)
+        ewah_coar.logicaland(ewah_mask[0],ewah_slct)
+        cdef np.uint64_t iset
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            out[iset] = 1
+            preincrement(iter_set[0])
 
     cdef bytes _dumps(self):
         # TODO: write word size

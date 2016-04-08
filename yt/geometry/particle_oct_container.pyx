@@ -696,6 +696,34 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
+    def find_uncontaminated(self, mask, ifile):
+        cdef np.ndarray[np.uint8_t, ndim=1] arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
+        cdef np.uint8_t[:] arr_view = arr
+        IF UseCythonBitmasks == 1:
+            self.bitmasks._select_uncontaminated(ifile, mask, arr_view)
+        ELSE:
+            cdef BoolArrayCollection bitmask = self.bitmasks[ifile]
+            bitmask._select_uncontaminated(mask, arr_view)
+        return arr
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    def find_contaminated(self, mask, ifile):
+        cdef np.ndarray[np.uint8_t, ndim=1] arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
+        cdef np.uint8_t[:] arr_view = arr
+        IF UseCythonBitmasks == 1:
+            self.bitmasks._select_contaminated(ifile, mask, arr_view)
+        ELSE:
+            cdef BoolArrayCollection bitmask = self.bitmasks[ifile]
+            bitmask._select_contaminated(mask, arr_view)
+        return arr
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def find_collisions_refined(self, verbose=True):
         cdef np.int32_t nc, nm
         IF UseCythonBitmasks == 1:
