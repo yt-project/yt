@@ -28,7 +28,7 @@ try:
         print("If for some reason you cannot do it, you'll need to upgrade it")
         print("to latest version before proceeding:")
         print("    pip install -U distribute")
-        sys.exit()
+        sys.exit(1)
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
