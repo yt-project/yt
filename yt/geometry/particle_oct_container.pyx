@@ -994,15 +994,14 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def construct_octree(self, SelectorObject selector,
+    def construct_octree(self, SelectorObject selector, 
+                         BoolArrayCollection selector_mask,
                          io_handler, data_files):
         cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t fcheck, fmask
-        cdef np.ndarray[np.uint64_t, ndim=3] counts
-        cdef np.ndarray[np.int32_t, ndim=3] bitmap_nodes
-        bitmap_nodes = np.zeros((self.dims[0], self.dims[1], self.dims[2]),
+        cdef np.ndarray[np.int32_t, ndim=1] bitmap_nodes
+        bitmap_nodes = np.zeros((self.dims[0]*self.dims[1]*self.dims[2]),
             dtype="int32") - 1
-        counts = self.counts
         cdef int i, j, k, n, nm, ii
         nm = len(self.masks)
         cdef np.uint64_t **masks = <np.uint64_t **> malloc(
@@ -1012,29 +1011,29 @@ cdef class ParticleBitmap:
         for i in range(3):
             dims[i] = self.dims[i]
         # Now we can actually create a sparse octree.
-        _, nroot = self.find_collisions_coarse(False, file_list = [_.file_id for _ in data_files])
+        cdef np.ndarray[np.uint8_t, ndim=1] uncontaminated 
+        uncontaminated = self.find_uncontaminated(selector_mask,
+                            data_files[0].file_id)
         cdef ParticleBitmapOctreeContainer octree
         octree = ParticleBitmapOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
             (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
             (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
-            nroot, self.oref)
+            uncontaminated.sum(), self.oref)
         octree.n_ref = self.n_ref
         octree.allocate_domains()
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
         morton_ind = np.empty(total_pcount, dtype="uint64")
         cdef np.int32_t *particle_index = <np.int32_t *> malloc(
-            sizeof(np.int32_t) * nroot)
+            sizeof(np.int32_t) * uncontaminated.size)
         cdef np.int32_t *particle_count = <np.int32_t *> malloc(
-            sizeof(np.int32_t) * nroot)
+            sizeof(np.int32_t) * uncontaminated.size)
         total_pcount = 0
-        for i in range(self.dims[0]):
-            for j in range(self.dims[1]):
-                for k in range(self.dims[2]):
-                    if bitmap_nodes[i,j,k] == -1: continue
-                    particle_index[bitmap_nodes[i,j,k]] = total_pcount
-                    particle_count[bitmap_nodes[i,j,k]] = counts[i,j,k]
-                    total_pcount += counts[i,j,k]
+        for i in range(uncontaminated.size):
+            if uncontaminated[i] != 1: continue
+            particle_index[i] = total_pcount
+            particle_count[i] = self.owners[i,0]
+            total_pcount += particle_count[i]
         # Okay, now just to filter based on our mask.
         cdef int ind[3]
         cdef int arri

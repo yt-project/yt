@@ -39,8 +39,12 @@ class ParticleContainer(YTSelectionContainer):
         self.field_parameters = {}
         self.ds = self.data_files[0].ds
         self._current_particle_type = 'all'
-        self.base_region = base_region
-        self.base_selector = base_region.selector
+        if hasattr(base_region, "base_selector"):
+            self.base_selector = base_region.base_selector
+            self.base_region = base_region.base_region
+        else:
+            self.base_region = base_region
+            self.base_selector = base_region.selector
 
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x,y,z)
