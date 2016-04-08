@@ -406,7 +406,7 @@ cdef class ParticleBitmap:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
-        self.owners = np.zeros((1 << (index_order1 * 3), 2), dtype='uint32')
+        self.owners = np.zeros((1 << (index_order1 * 3), 3), dtype='uint32')
         IF UseCythonBitmasks == 1:
             self.bitmasks = FileBitmasks(self.nfiles)
         ELSE:
@@ -549,6 +549,9 @@ cdef class ParticleBitmap:
                 if pcount[mi] > owners[mi][0]:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
+                else:
+                    owners[mi][1] = file_id
+                    owners[mi][2] += 1
         # Only subs of particles in the mask
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
@@ -627,9 +630,9 @@ cdef class ParticleBitmap:
                 if pcount[mi] > owners[mi][0]:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
-            # else:
-            #     owners[mi][0] += 1
-            #     owners[mi][1] = file_id
+                else:
+                    owners[mi][1] = file_id
+                    owners[mi][2] += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1013,11 +1016,6 @@ cdef class ParticleBitmap:
         cdef int dims[3]
         for i in range(3):
             dims[i] = self.dims[i]
-        # Must populate owners if pcounts not saved
-        # cdef np.ndarray pos
-        # for data_file in data_files:
-        #     for pos in io_handler._yield_coordinates(data_file):
-        #         self._owners_data_file(pos, data_file.file_id)
         # Now we can actually create a sparse octree.
         cdef np.ndarray[np.uint8_t, ndim=1] uncontaminated 
         uncontaminated = self.find_uncontaminated(selector_mask,
@@ -1038,7 +1036,7 @@ cdef class ParticleBitmap:
         for i in range(uncontaminated.size):
             if uncontaminated[i] != 1: continue
             particle_index[i] = total_pcount
-            particle_count[i] = self.owners[i,0]
+            particle_count[i] = self.owners[i,2]
             total_pcount += particle_count[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
         morton_ind = np.empty(total_pcount, dtype="uint64")
