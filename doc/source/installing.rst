@@ -369,7 +369,8 @@ the official repo:
 
 .. note::
 
-   yt requires version 18.0 or higher of ``setuptools``. If you get an error of the form
+   yt requires version 18.0 or higher of ``setuptools`` and version
+   0.7.3 of ``distribtute``. If you get an error of the form
    
    .. code-block:: bash
 
@@ -381,7 +382,19 @@ the official repo:
 
       pip install --upgrade setuptools
 
-   or your preferred method.
+   or your preferred method. If you get an error of the form
+
+   .. code-block:: bash
+
+      NameError: name 'sys_platform' is not defined
+
+   then ``distribute`` is out of date. You can update with pip via
+
+   .. code-block:: bash
+
+      pip install --upgrade distribute
+
+   or via your preferred method.
    
 
 This will install yt into a folder in your home directory
