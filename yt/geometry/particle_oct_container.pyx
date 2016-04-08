@@ -1075,7 +1075,9 @@ cdef class ParticleBitmap:
                         else:
                             ppos[k] = pos64[j,k]
                         ind[k] = <int> ((ppos[k] - self.left_edge[k])*self.idds[k])
-                    mi = encode_morton_64bit(np.uint64(ind[0]), np.uint64(ind[1]), np.uint64(ind[2]))
+                    mi = encode_morton_64bit(<np.uint64_t>ind[0], 
+                                             <np.uint64_t>ind[1], 
+                                             <np.uint64_t>ind[2])
                     if uncontaminated[mi] != 1: continue
                     # Now we have decided it's worth filtering, so let's toss
                     # it in.
@@ -1094,7 +1096,7 @@ cdef class ParticleBitmap:
             end += particle_count[i]
             morton_view = morton_ind[start:end]
             morton_view.sort()
-            decode_morton_64bit(np.uint64(i), ind64)
+            decode_morton_64bit(<np.uint64_t>i, ind64)
             octree.add(morton_view, ind64[0], ind64[1], ind64[2])
         octree.finalize()
         free(particle_index)
