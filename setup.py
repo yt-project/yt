@@ -10,10 +10,34 @@ from setuptools.command.build_py import build_py as _build_py
 from setupext import \
     check_for_openmp, check_for_pyembree, read_embree_location, \
     get_mercurial_changeset_id, in_conda_env
+from distutils.version import LooseVersion
+import pkg_resources
+
 
 if sys.version_info < (2, 7):
     print("yt currently requires Python version 2.7")
     print("certain features may fail unexpectedly and silently with older versions.")
+    sys.exit(1)
+
+try:
+    distribute_ver = \
+        LooseVersion(pkg_resources.get_distribution("distribute").version)
+    if distribute_ver < LooseVersion("0.7.3"):
+        print("Distribute is a legacy package obsoleted by setuptools.")
+        print("We strongly recommend that you just uninstall it.")
+        print("If for some reason you cannot do it, you'll need to upgrade it")
+        print("to latest version before proceeding:")
+        print("    pip install -U distribute")
+        sys.exit()
+except pkg_resources.DistributionNotFound:
+    pass  # yay!
+
+setuptools_ver = \
+    LooseVersion(pkg_resources.get_distribution("setuptools").version)
+if setuptools_ver < LooseVersion("18.0"):
+    print("Your setuptools version is too old to properly handle cython extensions.")
+    print("Please update setuptools before proceeding:")
+    print("    pip install -U setuptools")
     sys.exit(1)
 
 MAPSERVER_FILES = []
