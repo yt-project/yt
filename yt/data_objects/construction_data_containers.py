@@ -221,7 +221,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
                  style = None, method = "integrate",
-                 field_parameters = None):
+                 field_parameters = None, max_level = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
@@ -243,6 +243,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         self._set_center(center)
         self._projected_units = {}
         if data_source is None: data_source = self.ds.all_data()
+        if max_level is not None:
+            data_source.max_level = max_level
         for k, v in data_source.field_parameters.items():
             if k not in self.field_parameters or \
               self._is_default_field_parameter(k):

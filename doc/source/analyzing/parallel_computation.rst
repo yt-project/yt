@@ -4,9 +4,9 @@ Parallel Computation With yt
 ============================
 
 yt has been instrumented with the ability to compute many -- most, even --
-quantities in parallel.  This utilizes the package 
+quantities in parallel.  This utilizes the package
 `mpi4py <https://bitbucket.org/mpi4py/mpi4py>`_ to parallelize using the Message
-Passing Interface, typically installed on clusters.  
+Passing Interface, typically installed on clusters.
 
 .. _capabilities:
 
@@ -64,7 +64,7 @@ multi-core machine.  Here is an example on an 8-core desktop:
     $ mpirun -np 8 python script.py
 
 Throughout its normal operation, yt keeps you aware of what is happening with
-regular messages to the stderr usually prefaced with: 
+regular messages to the stderr usually prefaced with:
 
 .. code-block:: bash
 
@@ -95,7 +95,7 @@ in the simulation and then makes a plot of the projected density:
 
    import yt
    yt.enable_parallelism()
- 
+
    ds = yt.load("RD0035/RedshiftOutput0035")
    v, c = ds.find_max("density")
    print(v, c)
@@ -119,9 +119,9 @@ processes using the following Bash command:
 How do I run my yt job on a subset of available processes
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-You can set the ``communicator`` keyword in the 
-:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism` 
-call to a specific MPI communicator to specify a subset of available MPI 
+You can set the ``communicator`` keyword in the
+:func:`~yt.utilities.parallel_tools.parallel_analysis_interface.enable_parallelism`
+call to a specific MPI communicator to specify a subset of available MPI
 processes.  If none is specified, it defaults to ``COMM_WORLD``.
 
 Creating Parallel and Serial Sections in a Script
@@ -217,10 +217,10 @@ The following operations use chunk decomposition:
 Parallelization over Multiple Objects and Datasets
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
-If you have a set of computational steps that need to apply identically and 
-independently to several different objects or datasets, a so-called 
+If you have a set of computational steps that need to apply identically and
+independently to several different objects or datasets, a so-called
 `embarrassingly parallel <http://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
-task, yt can do that easily.  See the sections below on 
+task, yt can do that easily.  See the sections below on
 :ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
 
 Use of ``piter()``
@@ -245,13 +245,13 @@ a different processor:
     for dataset in dataset_series.piter():
         <process>
 
-In order to store information from the parallel processing step to 
+In order to store information from the parallel processing step to
 a data structure that exists on all of the processors operating in parallel
 we offer the ``storage`` keyword in the ``piter`` function.
-You may define an empty dictionary and include it as the keyword argument 
+You may define an empty dictionary and include it as the keyword argument
 ``storage`` to ``piter()``.  Then, during the processing step, you can access
-this dictionary as the ``sto`` object.  After the 
-loop is finished, the dictionary is re-aggregated from all of the processors, 
+this dictionary as the ``sto`` object.  After the
+loop is finished, the dictionary is re-aggregated from all of the processors,
 and you can access the contents:
 
 .. code-block:: python
@@ -277,7 +277,7 @@ will automatically split up a list of tasks over the specified number of
 processors (or cores).  Please see this heavily-commented example:
 
 .. code-block:: python
-   
+
    # As always...
    import yt
    yt.enable_parallelism()
@@ -379,9 +379,9 @@ of processors.  When running in parallel, each output is given to a different
 processor.
 
 You can also request a fixed number of processors to calculate each
-angular momentum vector.  For example, the following script will calculate each 
-angular momentum vector using 4 workgroups, splitting up the pool available 
-processors.  Note that parallel=1 implies that the analysis will be run using 
+angular momentum vector.  For example, the following script will calculate each
+angular momentum vector using 4 workgroups, splitting up the pool available
+processors.  Note that parallel=1 implies that the analysis will be run using
 1 workgroup, whereas parallel=True will run with Nprocs workgroups.
 
 .. code-block:: python
@@ -483,7 +483,7 @@ memory, which may mean using fewer than the maximum number of tasks per compute
 node, and increasing the number of nodes.
 The memory used per processor should be calculated, compared to the memory
 on each compute node, which dictates how many tasks per node.
-After that, the number of processors used overall is dictated by the 
+After that, the number of processors used overall is dictated by the
 disk system or CPU-intensity of the job.
 
 
@@ -529,25 +529,25 @@ Additional Tips
   the job scheduler queue; it may be worth trying to find it.
 
 * If you are using object-based parallelism but doing CPU-intensive computations
-  on each object, you may find that setting ``num_procs`` equal to the 
+  on each object, you may find that setting ``num_procs`` equal to the
   number of processors per compute node can lead to significant speedups.
   By default, most mpi implementations will assign tasks to processors on a
   'by-slot' basis, so this setting will tell yt to do computations on a single
   object using only the processors on a single compute node.  A nice application
-  for this type of parallelism is calculating a list of derived quantities for 
+  for this type of parallelism is calculating a list of derived quantities for
   a large number of simulation outputs.
 
 * It is impossible to tune a parallel operation without understanding what's
   going on. Read the documentation, look at the underlying code, or talk to
   other yt users. Get informed!
-    
+
 * Sometimes it is difficult to know if a job is cpu, memory, or disk
   intensive, especially if the parallel job utilizes several of the kinds of
   parallelism discussed above. In this case, it may be worthwhile to put
   some simple timers in your script (as below) around different parts.
-  
+
 .. code-block:: python
-    
+
    import yt
    import time
 
@@ -566,16 +566,16 @@ Additional Tips
 
    if yt.is_root()
        print("BigStuff took %.5e sec, TinyStuff took %.5e sec" % (t1 - t0, t2 - t1))
-  
+
 * Remember that if the script handles disk IO explicitly, and does not use
   a built-in yt function to write data to disk,
   care must be taken to
   avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
   Be explicit about which MPI task writes to disk using a construction
   something like this:
-  
+
 .. code-block:: python
-       
+
    if yt.is_root()
        file = open("out.txt", "w")
        file.write(stuff)
@@ -590,7 +590,7 @@ Additional Tips
   real-time as the job runs (using ``top``, for example),
   and can give valuable feedback about the
   resources the task requires.
-    
+
 An Advanced Worked Example
 --------------------------
 

@@ -159,7 +159,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \
-    off_axis_projection
+    off_axis_projection, interactive_render
 import yt.visualization.volume_rendering.api as volume_rendering
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection

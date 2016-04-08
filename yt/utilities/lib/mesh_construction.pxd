@@ -2,6 +2,7 @@ from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
     Vec3f
+cimport numpy as np
 
 ctypedef struct MeshDataContainer:
     Vertex* vertices       # array of triangle vertices
@@ -14,6 +15,5 @@ ctypedef struct MeshDataContainer:
 ctypedef struct Patch:
     float[8][3] v
     unsigned int geomID
-    long [:,:] indices
-    double [:,:] vertices
-    double [:,:] field_data
+    np.float64_t* vertices
+    np.float64_t* field_data

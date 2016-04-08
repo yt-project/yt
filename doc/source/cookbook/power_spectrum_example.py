@@ -9,20 +9,20 @@ look Kolmogorov (if the turbulence were fully developed).
 
 Ultimately, we aim to compute:
 
-                      1  ^      ^*                                           
-     E(k) = integral  -  V(k) . V(k) dS                                      
-                      2                                                      
- 
-             n                                               ^               
+                      1  ^      ^*
+     E(k) = integral  -  V(k) . V(k) dS
+                      2
+
+             n                                               ^
 where V = rho  U is the density-weighted velocity field, and V is the
 FFT of V.
- 
+
 (Note: sometimes we normalize by 1/volume to get a spectral
 energy density spectrum).
 
 
 """
- 
+
 
 def doit(ds):
 
@@ -42,7 +42,7 @@ def doit(ds):
 
     Kk = np.zeros( (nx/2+1, ny/2+1, nz/2+1))
 
-    for vel in [("gas", "velocity_x"), ("gas", "velocity_y"), 
+    for vel in [("gas", "velocity_x"), ("gas", "velocity_y"),
                 ("gas", "velocity_z")]:
 
         Kk += 0.5*fft_comp(ds, ("gas", "density"), vel,
@@ -54,11 +54,11 @@ def doit(ds):
     kx = np.fft.rfftfreq(nx)*nx/L[0]
     ky = np.fft.rfftfreq(ny)*ny/L[1]
     kz = np.fft.rfftfreq(nz)*nz/L[2]
-    
+
     # physical limits to the wavenumbers
     kmin = np.min(1.0/L)
     kmax = np.min(0.5*dims/L)
-    
+
     kbins = np.arange(kmin, kmax, kmin)
     N = len(kbins)
 
@@ -68,7 +68,7 @@ def doit(ds):
 
     whichbin = np.digitize(k.flat, kbins)
     ncount = np.bincount(whichbin)
-    
+
     E_spectrum = np.zeros(len(ncount)-1)
 
     for n in range(1,len(ncount)):

@@ -1,13 +1,13 @@
 #
 # Hi there!  Welcome to the yt installation script.
 #
-# First things first, if you experience problems, please visit the Help 
+# First things first, if you experience problems, please visit the Help
 # section at http://yt-project.org.
 #
 # This script is designed to create a fully isolated Python installation
 # with the dependencies you need to run yt.
 #
-# There are a few options, but you only need to set *one* of them, which is 
+# There are a few options, but you only need to set *one* of them, which is
 # the next one, DEST_DIR:
 
 DEST_SUFFIX="yt-`uname -m`"
@@ -307,7 +307,7 @@ function host_specific
         echo "  * gcc-{,c++,gfortran}"
         echo "  * make"
         echo "  * patch"
-        echo 
+        echo
         echo "You can accomplish this by executing:"
         echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
@@ -495,7 +495,7 @@ function do_exit
 if [ $INST_PY3 -eq 1 ]
 then
      PYTHON_EXEC='python3.4'
-else 
+else
      PYTHON_EXEC='python2.7'
 fi
 
@@ -513,7 +513,7 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
-    if [[ $LIB =~ .*mercurial.* ]] 
+    if [[ $LIB =~ .*mercurial.* ]]
     then
         PYEXE="python2.7"
     else
@@ -620,9 +620,9 @@ PYTHON3='Python-3.4.3'
 CYTHON='Cython-0.22'
 PYX='PyX-0.12.1'
 BZLIB='bzip2-1.0.6'
-FREETYPE_VER='freetype-2.4.12' 
+FREETYPE_VER='freetype-2.4.12'
 H5PY='h5py-2.5.0'
-HDF5='hdf5-1.8.14' 
+HDF5='hdf5-1.8.14'
 LAPACK='lapack-3.4.2'
 PNG=libpng-1.6.3
 MATPLOTLIB='matplotlib-1.4.3'
@@ -880,7 +880,7 @@ fi
 
 # This fixes problems with gfortran linking.
 unset LDFLAGS
- 
+
 echo "Installing pip"
 ( ${GETFILE} https://bootstrap.pypa.io/get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
 ( ${DEST_DIR}/bin/${PYTHON_EXEC} get-pip.py 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -1006,7 +1006,7 @@ touch done
 cd $MY_PWD
 
 if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import readline" 2>&1 )>> ${LOG_FILE}) || \
-    [[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]] 
+    [[ "${MYOS##Darwin}" != "${MYOS}" && $INST_PY3 -eq 1 ]]
 then
     if !( ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import gnureadline" 2>&1 )>> ${LOG_FILE})
     then

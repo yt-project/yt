@@ -29,3 +29,4 @@ from .render_source import VolumeSource, OpaqueSource, LineSource, \
     BoxSource, PointSource, CoordinateVectorSource, GridSource, \
     MeshSource
 from .zbuffer_array import ZBuffer
+from .interactive_vr_helpers import interactive_render

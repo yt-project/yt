@@ -20,6 +20,7 @@ cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import YTPixelizeError, \
     YTElementTypeNotRecognized
+from vec3_ops cimport dot, cross, subtract
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
@@ -61,10 +62,12 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                        int cols, int rows, bounds,
                        int antialias = 1,
                        period = None,
-                       int check_period = 1):
+                       int check_period = 1,
+                       np.float64_t line_width = 0.0):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t period_x = 0.0, period_y = 0.0
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
+    cdef np.float64_t ld_x, ld_y, cx, cy
     cdef int i, j, p, xi, yi
     cdef int lc, lr, rc, rr
     cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
@@ -170,13 +173,29 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                         for j in range(lc, rc):
                             lxpx = px_dx * j + x_min
                             rxpx = px_dx * (j+1) + x_min
-                            if antialias == 1:
+                            if line_width > 0:
+                                # Here, we figure out if we're within
+                                # line_width*px_dx of the cell edge
+                                # Midpoint of x:
+                                cx = (rxpx+lxpx)*0.5
+                                ld_x = fmin(fabs(cx - (xsp+dxsp)),
+                                            fabs(cx - (xsp-dxsp)))
+                                ld_x *= ipx_dx
+                                # Midpoint of y:
+                                cy = (rypx+lypx)*0.5
+                                ld_y = fmin(fabs(cy - (ysp+dysp)),
+                                            fabs(cy - (ysp-dysp)))
+                                ld_y *= ipx_dy
+                                if ld_x <= line_width or ld_y <= line_width:
+                                    my_array[j,i] = 1.0
+                            elif antialias == 1:
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
                                 if overlap1 < 0.0: continue
                                 my_array[j,i] += (dsp * overlap1) * overlap2
                             else:
                                 my_array[j,i] = dsp
+                            
     return my_array
 
 @cython.cdivision(True)
@@ -502,17 +521,11 @@ cdef int check_face_dot(int nvertices,
         vi2a = faces[n][1][0]
         vi2b = faces[n][1][1]
         # Shared vertex is vi1a and vi2a
-        for i in range(3):
-            vec1[i] = vertices[vi1b][i] - vertices[vi1a][i]
-            vec2[i] = vertices[vi2b][i] - vertices[vi2a][i]
-            npoint[i] = point[i] - vertices[vi1b][i]
-        # Now the cross product of vec1 x vec2
-        cp_vec[0] = vec1[1] * vec2[2] - vec1[2] * vec2[1]
-        cp_vec[1] = vec1[2] * vec2[0] - vec1[0] * vec2[2]
-        cp_vec[2] = vec1[0] * vec2[1] - vec1[1] * vec2[0]
-        dp = 0.0
-        for j in range(3):
-            dp += cp_vec[j] * npoint[j]
+        subtract(vertices[vi1b], vertices[vi1a], vec1)
+        subtract(vertices[vi2b], vertices[vi2a], vec2)
+        subtract(point, vertices[vi1b], npoint)
+        cross(vec1, vec2, cp_vec)
+        dp = dot(cp_vec, npoint)
         if match == 0:
             if dp < 0:
                 signs[n] = -1
