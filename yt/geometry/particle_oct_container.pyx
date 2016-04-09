@@ -1032,8 +1032,6 @@ cdef class ParticleBitmap:
         octree.n_ref = self.n_ref
         octree.allocate_domains()
         total_pcount = 0
-        for i in range(uncontaminated.size):
-            if uncontaminated[i] != 1: continue
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
         # Okay, now just to filter based on our mask.
         cdef np.uint64_t ind64[3]
@@ -1990,25 +1988,27 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef np.int64_t no = indices.shape[0], p, index
         cdef int i, level, new_root
         cdef int ind[3], last_ind[3]
+        cdef np.uint64_t ind64[3]
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         # Note what we're doing here: we have decided the root will always be
         # zero, since we're in a forest of octrees, where the root_mesh node is
         # the level 0.  This means our morton indices should be made with
         # respect to that, which means we need to keep a few different arrays
         # of them.
+        cdef int max_level = -1
         for i in range(3):
             last_ind[i] = -1
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
-            new_root = 0
             index = indices[p]
-            for i in range(3):
-                ind[i] = (index >> ((ORDER_MAX - order1)*3) + (2 - i))
-                if ind[i] != last_ind[i]: new_root = 1
-            if new_root == 1:
-                self.get_root(ind, &root)
-                for i in range(3): last_ind[i] = ind[i]
+            decode_morton_64bit(index >> ((ORDER_MAX - order1)*3), ind64)
+            if ind64[0] != last_ind[0] or \
+               ind64[1] != last_ind[1] or \
+               ind64[2] != last_ind[2]:
+                for i in range(3):
+                    last_ind[i] = ind64[i]
+                self.get_root(last_ind, &root)
             if root == NULL:
                 continue
             level = 0
@@ -2016,6 +2016,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             while (cur.file_ind + 1) > self.n_ref:
                 if level >= ORDER_MAX: break # Just dump it here.
                 level += 1
+                if level > max_level: max_level = level
                 for i in range(3):
                     ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
                 if cur.children == NULL or \
