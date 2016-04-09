@@ -12,7 +12,7 @@ the input and output routines. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#if defined(WIN32) || defined(WIN64) || defined(_WIN32) || defined(_WIN64)
+#ifdef _WIN32
 #include <windows.h> 
 #else
 #include <sys/time.h>
@@ -31,7 +31,7 @@ the input and output routines. */
 void kdTime(KD kd,int *puSecond,int *puMicro)
 {
 
-#if defined(WIN32) || defined(WIN64)
+#ifdef _WIN32
         int secs, usecs;
         HANDLE hProcess = GetCurrentProcess();
 	FILETIME ftCreation, ftExit, ftKernel, ftUser;
