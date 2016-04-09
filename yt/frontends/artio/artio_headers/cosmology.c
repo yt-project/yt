@@ -216,7 +216,7 @@ void cosmology_fill_table_integrate(CosmologyParameters *c, double a, double y[]
   f[3] = 1.5*c->OmegaM*y[2]/mu;
 }
 
-#ifdef MS_WIN32
+#ifdef _WIN32
 double asinh(double x){
     return log(x + sqrt((x * x) + 1.0));
 }

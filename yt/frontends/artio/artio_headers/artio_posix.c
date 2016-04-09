@@ -29,7 +29,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <assert.h>
-#ifdef MS_WIN32
+#ifdef _WIN32
 typedef __int64 int64_t;
 typedef __int32 int32_t;
 #else
@@ -45,7 +45,7 @@ struct ARTIO_FH {
 	int bfend;
 };
 
-#ifdef MS_WIN32
+#ifdef _WIN32
 #define FOPEN_FLAGS "b"
 #define fseek _fseeki64
 #else

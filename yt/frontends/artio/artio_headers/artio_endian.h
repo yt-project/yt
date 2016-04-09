@@ -23,7 +23,7 @@
 #ifndef __ARTIO_EDIAN_H__
 #define __ARTIO_EDIAN_H__
 
-#ifdef MS_WIN32
+#ifdef _WIN32
 typedef __int64 int64_t;
 typedef __int32 int32_t;
 #else

@@ -26,7 +26,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
-#ifdef MS_WIN32
+#ifdef _WIN32
 typedef __int64 int64_t;
 typedef __int32 int32_t;
 #else
