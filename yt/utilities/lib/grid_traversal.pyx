@@ -31,6 +31,8 @@ from fixed_interpolator cimport *
 from cython.parallel import prange, parallel, threadid
 from vec3_ops cimport dot, subtract, L2_norm, fma
 
+from cpython.exc cimport PyErr_CheckSignals
+
 DEF Nch = 4
 
 cdef class PartitionedGrid:
@@ -279,6 +281,8 @@ cdef void calculate_extent_perspective(ImageContainer *image,
         vertex[1] = corners[1][iv]
         vertex[2] = corners[2][iv]
 
+        cam_width[1] = cam_width[0] * image.nv[1] / image.nv[0]
+
         subtract(vertex, cam_pos, sight_vector)
         fma(cam_width[2], normal_vector, cam_pos, sight_center)
 
@@ -399,7 +403,7 @@ cdef class ImageSampler:
                     vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
                 raise RuntimeError(msg)
 
-            if camera_data is not None and "perspective" in self.lens_type:
+            if camera_data is not None and self.lens_type == 'perspective':
                 self.extent_function = calculate_extent_perspective
             else:
                 self.extent_function = calculate_extent_null
@@ -456,6 +460,7 @@ cdef class ImageSampler:
         size = nx * ny
         cdef ImageAccumulator *idata
         cdef np.float64_t width[3]
+        cdef int chunksize = 100
         for i in range(3):
             width[i] = self.width[i]
         with nogil, parallel(num_threads = num_threads):
@@ -463,7 +468,7 @@ cdef class ImageSampler:
             idata.supp_data = self.supp_data
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
             v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            for j in prange(size, schedule="static", chunksize=100):
+            for j in prange(size, schedule="static", chunksize=chunksize):
                 vj = j % ny
                 vi = (j - vj) / ny + iter[0]
                 vj = vj + iter[2]
@@ -474,6 +479,9 @@ cdef class ImageSampler:
                 max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
+                if (j % (10*chunksize)) == 0:
+                    with gil:
+                        PyErr_CheckSignals()
                 for i in range(Nch):
                     im.image[vi, vj, i] = idata.rgba[i]
             free(idata)
@@ -483,6 +491,15 @@ cdef class ImageSampler:
 
     cdef void setup(self, PartitionedGrid pg):
         return
+
+    def __dealloc__(self):
+        self.image.image = None
+        self.image.vp_pos = None
+        self.image.vp_dir = None
+        self.image.zbuffer = None
+        self.image.camera_data = None
+        free(self.image)
+
 
 cdef void projection_sampler(
                  VolumeContainer *vc,
@@ -827,9 +844,11 @@ cdef class VolumeRenderSampler(ImageSampler):
             self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -888,11 +907,13 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
-        #free(self.light_dir)
-        #free(self.light_rgba)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.light_dir)
+        free(self.vra.light_rgba)
+        free(self.vra.fits)
+        free(self.vra)
 
 
 @cython.boundscheck(False)

@@ -82,12 +82,12 @@ def read_embree_location():
         except IOError:
             rd = '/usr/local'
 
-    fail_msg = "Pyembree is installed, but I could not compile Embree test code. \n" + \
-               "Attempted to find Embree headers in %s. \n" % rd + \
-               "If this is not correct, please set your correct embree location \n" + \
-               "using EMBREE_DIR environment variable or your embree.cfg file. \n" + \
-               "Please see http://yt-project.org/docs/dev/visualizing/unstructured_mesh_rendering.html " + \
-               "for more information."
+    fail_msg = ("Pyembree is installed, but I could not compile Embree test code. \n"
+               "I attempted to find Embree headers in %s. \n"
+               "If this is not correct, please set your correct embree location \n"
+               "using EMBREE_DIR environment variable or your embree.cfg file. \n"
+               "Please see http://yt-project.org/docs/dev/visualizing/unstructured_mesh_rendering.html "
+                "for more information." % rd)
 
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
@@ -118,14 +118,14 @@ def read_embree_location():
         file.close()
 
     except OSError:
-        print fail_msg
+        print(fail_msg)
 
     finally:
         os.chdir(curdir)
         shutil.rmtree(tmpdir)
 
     if exit_code != 0:
-        print fail_msg
+        print(fail_msg)
 
     return rd
 
@@ -138,6 +138,10 @@ def get_mercurial_changeset_id(target_dir):
         import hglib
     except ImportError:
         return None
-    with hglib.open(target_dir) as repo:
-        changeset = repo.identify(id=True, branch=True).strip().decode('utf8')
+    try:
+        with hglib.open(target_dir) as repo:
+            changeset = repo.identify(
+                id=True, branch=True).strip().decode('utf8')
+    except hglib.error.ServerError:
+        return None
     return changeset

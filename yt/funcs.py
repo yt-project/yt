@@ -838,6 +838,17 @@ def deprecated_class(cls):
     return _func
 
 def enable_plugins():
+    """Forces the plugins file to be parsed.
+
+    This plugin file is a means of creating custom fields, quantities,
+    data objects, colormaps, and other code classes and objects to be used
+    in yt scripts without modifying the yt source directly.
+
+    The file must be located at ``$HOME/.yt/my_plugins.py``.
+
+    Warning: when you use this function, your script will only be reproducible
+    if you also provide the ``my_plugins.py`` file.
+    """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg

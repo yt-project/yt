@@ -36,7 +36,8 @@ def test_bounding_volume_hierarchy():
 
     bvh = BVH(vertices, indices, field_data)
 
-    cam = Camera(Scene())
+    sc = Scene()
+    cam = Camera(sc)
     cam.set_position(np.array([8.0, 8.0, 8.0]))
     cam.focus = np.array([0.0, 0.0, 0.0])
     origins, direction = get_rays(cam)

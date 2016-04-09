@@ -523,7 +523,9 @@ class Dataset(object):
         fields = [ (union.name, field) for field in fields]
         new_fields = [_ for _ in fields if _ not in self.field_list]
         self.field_list.extend(new_fields)
-        self.field_info.field_list.extend(new_fields)
+        new_field_info_fields = [
+            _ for _ in fields if _ not in self.field_info.field_list]
+        self.field_info.field_list.extend(new_field_info_fields)
         self.index.field_list = sorted(self.field_list)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.

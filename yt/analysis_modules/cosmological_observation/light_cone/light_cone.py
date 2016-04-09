@@ -17,6 +17,8 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     mylog, \
     only_on_root
@@ -233,7 +235,7 @@ class LightCone(CosmologySplice):
                            weight_field=None, photon_field=False,
                            save_stack=True, save_final_image=True,
                            save_slice_images=False,
-                           cmap_name="algae",
+                           cmap_name=None,
                            njobs=1, dynamic=False):
         r"""Create projections for light cone, then add them together.
 
@@ -266,7 +268,7 @@ class LightCone(CosmologySplice):
             Default: False.
         cmap_name : string
             color map for images.
-            Default: "algae".
+            Default: your default colormap.
         njobs : int
             The number of parallel jobs over which the light cone projection
             will be split.  Choose -1 for one processor per individual
@@ -278,6 +280,9 @@ class LightCone(CosmologySplice):
             Default: False.
 
         """
+
+        if cmap_name is None:
+            cmap_name = ytcfg.get("yt", "default_colormap")
 
         if isinstance(field_of_view, tuple) and len(field_of_view) == 2:
             field_of_view = self.simulation.quan(field_of_view[0],

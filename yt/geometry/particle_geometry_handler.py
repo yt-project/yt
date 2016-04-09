@@ -77,6 +77,7 @@ class ParticleIndex(Index):
         self._initialize_indices()
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
+        self.dataset.max_level = self.max_level
         tot = sum(self.oct_handler.recursively_count().values())
         only_on_root(mylog.info, "Identified %0.3e octs", tot)
 

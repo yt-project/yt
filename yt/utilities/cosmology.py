@@ -4,7 +4,6 @@ Cosmology calculator based originally on http://www.kempner.net/cosmic.php
 and featuring time and redshift conversion functions from Enzo.
 
 """
-from __future__ import print_function
 
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013-2014, yt Development Team.
@@ -58,7 +57,7 @@ class Cosmology(object):
 
     >>> from yt.utilities.cosmology import Cosmology
     >>> co = Cosmology()
-    >>> print co.hubble_time(0.0).in_units("Gyr")
+    >>> print(co.hubble_time(0.0).in_units("Gyr"))
     
     """
     def __init__(self, hubble_constant = 0.71,
@@ -104,8 +103,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.comoving_radial_distance(0., 1.).in_units("Mpccm")
+        >>> print(co.comoving_radial_distance(0., 1.).in_units("Mpccm"))
         
         """
         return (self.hubble_distance() *
@@ -127,8 +127,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.comoving_transverse_distance(0., 1.).in_units("Mpccm")
+        >>> print(co.comoving_transverse_distance(0., 1.).in_units("Mpccm"))
         
         """
         if (self.omega_curvature > 0):
@@ -161,8 +162,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.comoving_volume(0., 1.).in_units("Gpccm**3")
+        >>> print(co.comoving_volume(0., 1.).in_units("Gpccm**3"))
 
         """
         if (self.omega_curvature > 0):
@@ -209,8 +211,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.angular_diameter_distance(0., 1.).in_units("Mpc")
+        >>> print(co.angular_diameter_distance(0., 1.).in_units("Mpc"))
         
         """
         
@@ -232,8 +235,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.angular_scale(0., 1.).in_units("kpc / arcsec")
+        >>> print(co.angular_scale(0., 1.).in_units("kpc / arcsec"))
         
         """
 
@@ -256,8 +260,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.luminosity_distance(0., 1.).in_units("Mpc")
+        >>> print(co.luminosity_distance(0., 1.).in_units("Mpc"))
         
         """
 
@@ -279,8 +284,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.lookback_time(0., 1.).in_units("Gyr")
+        >>> print(co.lookback_time(0., 1.).in_units("Gyr"))
 
         """
         return (trapzint(self.age_integrand, z_i, z_f) / \
@@ -301,8 +307,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.hubble_time(0.).in_units("Gyr")
+        >>> print(co.hubble_time(0.).in_units("Gyr"))
 
         See Also
         --------
@@ -326,9 +333,10 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.critical_density(0.).in_units("g/cm**3")
-        >>> print co.critical_density(0).in_units("Msun/Mpc**3")
+        >>> print(co.critical_density(0.).in_units("g/cm**3"))
+        >>> print(co.critical_density(0).in_units("Msun/Mpc**3"))
         
         """
         return (3.0 / 8.0 / np.pi * 
@@ -348,8 +356,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.hubble_parameter(1.0).in_units("km/s/Mpc")
+        >>> print(co.hubble_parameter(1.0).in_units("km/s/Mpc"))
 
         """
         return self.hubble_constant.in_base(self.unit_system) * self.expansion_factor(z)
@@ -393,8 +402,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.z_from_t(4.e17)
+        >>> print(co.z_from_t(4.e17))
 
         """
 
@@ -484,8 +494,9 @@ class Cosmology(object):
         Examples
         --------
 
+        >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
-        >>> print co.t_from_z(0.).in_units("Gyr")
+        >>> print(co.t_from_z(0.).in_units("Gyr"))
 
         See Also
         --------

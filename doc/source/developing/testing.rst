@@ -19,7 +19,7 @@ The testing suite should be run locally by developers to make sure they aren't
 checking in any code that breaks existing functionality.  To further this goal,
 an automatic buildbot runs the test suite after each code commit to confirm
 that yt hasn't broken recently.  To supplement this effort, we also maintain a
-`continuous integration server <http://tests.yt-project.org>`_ that runs the
+`continuous integration server <https://tests.yt-project.org>`_ that runs the
 tests with each commit to the yt version control repository.
 
 .. _unit_testing:
@@ -400,9 +400,9 @@ considered canonical.  Do these things:
 
   * The test routine itself should be decorated with
     ``@requires_ds(test_dataset_name)``. This decorator can accept the
-    argument ``big_data=True`` if the test is expensive. The 
+    argument ``big_data=True`` if the test is expensive. The
     ``test_dataset_name`` should be a string containing the path you would pass
-    to the ``yt.load`` function. It does not need to be the full path to the 
+    to the ``yt.load`` function. It does not need to be the full path to the
     dataset, since the path will be automatically prepended with the location of
     the test data directory.  See :ref:`configuration-file` for more information
     about the ``test_data-dir`` configuration option.
@@ -424,12 +424,12 @@ of some functionality from matplotlib to automatically compare images and detect
 differences, if any. Image comparison tests are used in the plotting and volume
 rendering machinery.
 
-The easiest way to use the image comparison tests is to make use of the 
+The easiest way to use the image comparison tests is to make use of the
 ``GenericImageTest`` class. This class takes three arguments:
 
-* A dataset instance (e.g. something you load with ``yt.load`` or 
-  ``data_dir_load``) 
-* A function the test machinery can call which will save an image to disk. The 
+* A dataset instance (e.g. something you load with ``yt.load`` or
+  ``data_dir_load``)
+* A function the test machinery can call which will save an image to disk. The
   test class will then find any images that get created and compare them with the
   stored "correct" answer.
 * An integer specifying the number of decimal places to use when comparing
@@ -438,7 +438,7 @@ The easiest way to use the image comparison tests is to make use of the
   this is not a pixel-by-pixel measure, and surprisingly large variations will
   still pass the test if the strictness of the comparison is not high enough.
 
-You *must* decorate your test function with ``requires_ds``, otherwise the 
+You *must* decorate your test function with ``requires_ds``, otherwise the
 answer testing machinery will not be properly set up.
 
 Here is an example test function:
@@ -476,3 +476,97 @@ of a complicated class using the same test class. This sort of image comparison
 test is more useful if you are finding yourself writing a ton of boilerplate
 code to get your image comparison test working.  The ``GenericImageTest`` is
 more useful if you only need to do a one-off image comparison test.
+
+Enabling Answer Tests on Jenkins
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Before any code is added to or modified in the yt codebase, each incoming
+changeset is run against all available unit and answer tests on our `continuous
+integration server <http://tests.yt-project.org>`_. While unit tests are
+autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
+answer tests require definition of which set of tests constitute to a given
+answer. Configuration for the integration server is stored in
+*tests/tests.yaml* in the main yt repository:
+
+.. code-block:: yaml
+
+   answer_tests:
+      local_artio_000:
+         - yt/frontends/artio/tests/test_outputs.py
+   # ...
+   other_tests:
+      unittests:
+         - '-v'
+         - '-s'
+
+Each element under *answer_tests* defines answer name (*local_artio_000* in above
+snippet) and specifies a list of files/classes/methods that will be validated
+(*yt/frontends/artio/tests/test_outputs.py* in above snippet). On the testing
+server it is translated to:
+
+.. code-block:: bash
+
+   $ nosetests --with-answer-testing --local --local-dir ... --answer-big-data \
+      --answer-name=local_artio_000 \
+      yt/frontends/artio/tests/test_outputs.py
+
+If the answer doesn't exist on the server yet, ``nosetests`` is run twice and
+during first pass ``--answer-store`` is added to the commandline.
+
+Updating Answers
+~~~~~~~~~~~~~~~~
+
+In order to regenerate answers for a particular set of tests it is sufficient to
+change the answer name in *tests/tests.yaml* e.g.:
+
+.. code-block:: diff
+
+   --- a/tests/tests.yaml
+   +++ b/tests/tests.yaml
+   @@ -25,7 +25,7 @@
+        - yt/analysis_modules/halo_finding/tests/test_rockstar.py
+        - yt/frontends/owls_subfind/tests/test_outputs.py
+
+   -  local_owls_000:
+   +  local_owls_001:
+        - yt/frontends/owls/tests/test_outputs.py
+
+      local_pw_000:
+
+would regenerate answers for OWLS frontend.
+
+Adding New Answer Tests
+~~~~~~~~~~~~~~~~~~~~~~~
+
+In order to add a new set of answer tests, it is sufficient to extend the
+*answer_tests* list in *tests/tests.yaml* e.g.:
+
+.. code-block:: diff
+
+   --- a/tests/tests.yaml
+   +++ b/tests/tests.yaml
+   @@ -60,6 +60,10 @@
+        - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
+        - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
+
+   +  local_gdf_000:
+   +    - yt/frontends/gdf/tests/test_outputs.py
+   +
+   +
+    other_tests:
+      unittests:
+
+Restricting Python Versions for Answer Tests
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If for some reason a test can be run only for a specific version of python it is
+possible to indicate this by adding a ``[py2]`` or ``[py3]`` tag. For example:
+
+.. code-block:: yaml
+
+   answer_tests:
+      local_test_000:
+         - yt/test_A.py  # [py2]
+         - yt/test_B.py  # [py3]
+
+would result in ``test_A.py`` being run only for *python2* and ``test_B.py``
+being run only for *python3*.

@@ -28,6 +28,8 @@ from matplotlib.font_manager import FontProperties
 from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     get_image_suffix, \
     get_ipython_api_version, iterable, \
@@ -190,7 +192,8 @@ class ImagePlotContainer(object):
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
-        self._colormaps = defaultdict(lambda: 'algae')
+        self._colormaps = defaultdict(
+            lambda: ytcfg.get("yt", "default_colormap"))
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
