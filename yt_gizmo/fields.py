@@ -15,7 +15,7 @@ Gizmo-specific fields
 #-----------------------------------------------------------------------------
 
 from yt.fields.species_fields import \
-    add_species_field_by_fraction
+    add_species_field_by_density
 from yt.frontends.gadget.fields import \
     GadgetFieldInfo
 
@@ -24,5 +24,28 @@ class GizmoFieldInfo(GadgetFieldInfo):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
         self.alias((ptype, "temperature"), (ptype, "Temperature"))
 
-        self.alias((ptype, "H_fraction"), (ptype, "NeutralHydrogenAbundance"))
-        add_species_field_by_fraction(self, ptype, "H", particle_type=True)
+        def _h_density(field, data):
+            x_H = 1.0 - data[(ptype, "He_fraction")] - \
+              data[(ptype, "metallicity")]
+            return x_H * data[(ptype, "density")] * \
+              data[(ptype, "NeutralHydrogenAbundance")]
+
+        self.add_field(
+            (ptype, "H_density"),
+            function=_h_density,
+            particle_type=True,
+            units=self.ds.unit_system["density"])
+        add_species_field_by_density(self, ptype, "H", particle_type=True)
+
+        def _h_p1_density(field, data):
+            x_H = 1.0 - data[(ptype, "He_fraction")] - \
+              data[(ptype, "metallicity")]
+            return x_H * data[(ptype, "density")] * \
+              (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
+
+        self.add_field(
+            (ptype, "H_p1_density"),
+            function=_h_p1_density,
+            particle_type=True,
+            units=self.ds.unit_system["density"])
+        add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
