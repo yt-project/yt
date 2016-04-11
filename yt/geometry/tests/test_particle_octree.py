@@ -36,7 +36,8 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.lib.geometry_utils import get_morton_indices, \
     get_morton_points, \
-    get_hilbert_points
+    get_hilbert_points, \
+    get_hilbert_indices
 
 import yt.units.dimensions as dimensions
 import yt.data_objects.api
@@ -229,15 +230,77 @@ def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE,
         pos[:,i] = np.random.uniform(DLE[i], DRE[i], inp)
     return pos
 
+def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
+                                    buff=0.0, order=6, verbose=False,
+                                    fname_base=None, nchunk=10,
+                                    width=None, center=None,
+                                    frac_random=0.1):
+    import pickle
+    np.random.seed(int(0x4d3d3d3))
+    DW = DRE - DLE
+    if fname_base is None:
+        fname_base = 'hilbert{}_gaussian_np{}_nf{}_'.format(order,npart,nfiles)
+    if width is None:
+        width = 0.1*DW
+    if center is None:
+        center = DLE+0.5*DW
+    def load_pos(file_id):
+        filename = fname_base+'file{}'.format(file_id)
+        if os.path.isfile(filename):
+            fd = open(filename,'rb')
+            positions = pickle.load(fd)
+            fd.close()
+        else:
+            positions = np.empty((0,3), dtype='float64')
+        return positions
+    def save_pos(file_id,positions):
+        filename = fname_base+'file{}'.format(file_id)
+        fd = open(filename,'wb')
+        pickle.dump(positions,fd)
+        fd.close()
+    npart_rnd = int(frac_random*npart)
+    npart_gau = npart - npart_rnd
+    dim_hilbert = (1<<order)
+    nH = dim_hilbert**3
+    if nH < nfiles:
+        raise ValueError('Fewer hilbert cells than files.')
+    nHPF = nH/nfiles
+    rHPF = nH%nfiles
+    hdiv = DW/dim_hilbert
+    for ichunk in range(nchunk):
+        print "Chunk {}...".format(ichunk)
+        inp = npart_gau/nchunk
+        if ichunk == 0: inp += (npart_gau % nchunk)
+        pos = np.empty((inp,3), dtype='float64')
+        ind = np.empty((inp,3), dtype='int64')
+        for k in range(3):
+            pos[:,k] = np.clip(np.random.normal(center[k], width[k], inp),
+                               DLE[k], DRE[k])
+            ind[:,k] = (pos[:,k]-DLE[k])/(DW[k]/dim_hilbert)
+        harr = get_hilbert_indices(order, ind)
+        farr = (harr-rHPF)/nHPF
+        for ifile in range(nfiles):
+            print "Chunk {}, file {}...".format(ichunk,ifile)
+            ipos = load_pos(ifile)
+            if ifile == 0:
+                idx = (farr <= ifile) # Put remainders in first file
+            else:
+                idx = (farr == ifile)
+            ipos = np.concatenate((ipos,pos[idx,:]),axis=0)
+            save_pos(ifile,ipos)
+    # Random
+    print "Random..."
+    for ifile in range(nfiles):
+        # print 'Random, file {}'.format(ifile)
+        ipos = load_pos(ifile)
+        ipos_rnd = fake_decomp_hilbert_uniform(npart_rnd, nfiles, ifile, DLE, DRE,
+                                               buff=buff, order=order, verbose=verbose)
+        ipos = np.concatenate((ipos,ipos_rnd),axis=0)
+        save_pos(ifile,ipos)
+    
 def fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE,
                                  buff=0.0, order=6, verbose=False,
                                  fname=None):
-    import pickle
-    if fname is not None and os.path.isfile(fname):
-        fd = open(fname,'rb')
-        pos = pickle.load(fd)
-        fd.close()
-        return pos
     np.random.seed(int(0x4d3d3d3))
     DW = DRE - DLE
     dim_hilbert = (1<<order)
@@ -275,13 +338,8 @@ def fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE,
                     pos[count[k],k] = ipos
                     count[k] += 1
                     break
-    pos = pos[:count.min(),:]
-    if fname is not None:
-        fd = open(fname,'wb')
-        pickle.dump(pos,fd)
-    return pos
+    return pos[:count.min(),:]
     
-
 def fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE,
                                 buff=0.0, order=6, verbose=False):
     np.random.seed(int(0x4d3d3d3)+ifile)
@@ -377,8 +435,15 @@ def yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, **kws):
         yield fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, **kws)
 
 def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE, 
-                distrib='uniform', **kws):
-    fnameDEF = '{}_{}_np{}_nf{}_file{}'.format(decomp,distrib,npart,nfiles,ifile)
+                distrib='uniform', fname=None, **kws):
+    import pickle
+    if fname is None and distrib == 'gaussian':
+        fname = '{}_{}_np{}_nf{}_file{}'.format(decomp,distrib,npart,nfiles,ifile)
+    if fname is not None and os.path.isfile(fname):
+        fd = open(fname,'rb')
+        pos = pickle.load(fd)
+        fd.close()
+        return pos
     if decomp.startswith('zoom_'):
         zoom_factor = 5
         decomp_zoom = decomp.split('zoom_')[-1]
@@ -429,8 +494,11 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         if distrib == 'uniform':
             pos = fake_decomp_hilbert_uniform(npart, nfiles, ifile, DLE, DRE, **kws)
         elif distrib == 'gaussian':
-            pos = fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE, 
-                                               fname=fnameDEF, **kws)
+            makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE, 
+                                            fname_base=fname.split('file')[0], **kws)
+            pos = fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
+                              distrib=distrib, fname=fname, **kws)
+            # pos = fake_decomp_hilbert_gaussian(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
             raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
@@ -446,6 +514,11 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
             raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
     else:
         raise ValueError("Unsupported value {} for input parameter 'decomp'".format(decomp))
+    # Save
+    if fname is not None:
+        fd = open(fname,'wb')
+        pickle.dump(pos,fd)
+        fd.close()
     return pos
 
 def FakeBitmap(npart, nfiles, order1, order2, decomp='grid', 

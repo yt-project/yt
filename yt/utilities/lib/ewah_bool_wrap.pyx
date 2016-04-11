@@ -454,10 +454,12 @@ cdef class FileBitmasks:
         return self._logicaland(ifile, solf, out)
 
     cdef void _select_contaminated(self, np.uint32_t ifile, 
-                                   BoolArrayCollection mask, np.uint8_t[:] out):
+                                   BoolArrayCollection mask, np.uint8_t[:] out,
+                                   np.uint8_t[:] secondary_files):
         cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
         cdef ewah_bool_array *ewah_mask = <ewah_bool_array *> mask.ewah_keys
         cdef ewah_bool_array ewah_slct
+        cdef ewah_bool_array *ewah_file
         cdef np.uint64_t iset
         ewah_owns[0].logicaland(ewah_mask[0],ewah_slct)
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
@@ -466,6 +468,12 @@ cdef class FileBitmasks:
             iset = dereference(iter_set[0])
             out[iset] = 1
             preincrement(iter_set[0])
+        cdef np.uint32_t isfile
+        for isfile in range(self.nfiles):
+            if isfile == ifile: continue
+            ewah_file = (<ewah_bool_array **> self.ewah_keys)[isfile]
+            if ewah_slct.intersects(ewah_file[0]) == 1:
+                secondary_files[isfile] = 1
         
     cdef void _select_uncontaminated(self, np.uint32_t ifile, 
                                      BoolArrayCollection mask, np.uint8_t[:] out):

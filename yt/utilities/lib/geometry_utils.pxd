@@ -152,6 +152,15 @@ cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q
     return sqrt(rad)
 
 #-----------------------------------------------------------------------------
+# 21 bits spread over 64 with 3 bits in between
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline np.uint64_t spread_64bits_by3(np.uint64_t x):
+    x=(x&(<np.uint64_t>0x00000000001FFFFF))
+    x=(x|(x<<20))*(<np.uint64_t>0x000001FFC00003FF)
+
+#-----------------------------------------------------------------------------
 # 21 bits spread over 64 with 2 bits in between
 @cython.cdivision(True)
 @cython.boundscheck(False)
