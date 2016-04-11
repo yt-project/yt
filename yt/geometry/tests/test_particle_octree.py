@@ -438,7 +438,7 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
                 distrib='uniform', fname=None, **kws):
     import pickle
     if fname is None and distrib == 'gaussian':
-        fname = '{}_{}_np{}_nf{}_file{}'.format(decomp,distrib,npart,nfiles,ifile)
+        fname = '{}6_{}_np{}_nf{}_file{}'.format(decomp,distrib,npart,nfiles,ifile)
     if fname is not None and os.path.isfile(fname):
         fd = open(fname,'rb')
         pos = pickle.load(fd)

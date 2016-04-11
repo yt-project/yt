@@ -42,6 +42,7 @@ class ParticleIndex(Index):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self.index_filename = self.dataset.parameter_filename
+        print self.index_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
@@ -101,15 +102,15 @@ class ParticleIndex(Index):
             if rflag == 0:
                 self._initialize_owners()
                 self.regions.save_bitmasks(fname)
-            else: # Save pcounts in file?
-                self._initialize_owners()
+            # else: # Save pcounts in file?
+            #     self._initialize_owners()
         except IOError:
             self._initialize_coarse_index()
             if not noref:
                 self._initialize_refined_index()
+                self.regions.set_owners()
             else:
                 self._initialize_owners()
-            self.regions.set_owners()
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
         # These are now invalid, but I don't know what to replace them with:
@@ -147,6 +148,7 @@ class ParticleIndex(Index):
             for pos in self.io._yield_coordinates(data_file):
                 self.regions._owners_data_file(pos, data_file.file_id)
         pb.finish()
+        self.regions.set_owners()
             
     def _detect_output_fields(self):
         # TODO: Add additional fields
@@ -172,10 +174,12 @@ class ParticleIndex(Index):
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
             buffer_files = getattr(dobj, "buffer_files", None)
+            dmask = getattr(dobj, "selector_mask", None)
             if data_files is None:
                 (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(dobj.selector)
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
+                buffer_files = [self.data_files[i] for i in gzi]
                 #mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
             # NOTE: One fun thing about the way IO works is that it
