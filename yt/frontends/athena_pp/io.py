@@ -19,7 +19,6 @@ from itertools import groupby
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.geometry.selection_routines import AlwaysSelector
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def grid_sequences(grids):
@@ -42,28 +41,24 @@ class IOHandlerAthenaPP(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "flash" for ftype, fname in fields)):
+        if any((ftype != "athena++" for ftype, fname in fields)):
             raise NotImplementedError
         f = self._handle
         rv = {}
         for field in fields:
-            ftype, fname = field
             # Always use *native* 64-bit float.
             rv[field] = np.empty(size, dtype="=f8")
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
-            ftype, fname = field
-            ds = f["/%s" % fname]
+            f_fname = self.ds._field_map[field[1]]
             ind = 0
             for chunk in chunks:
                 for gs in grid_sequences(chunk.objs):
-                    start = gs[0].id - gs[0]._id_offset
-                    end = gs[-1].id - gs[-1]._id_offset + 1
-                    data = ds[start:end,:,:,:].transpose()
                     for i, g in enumerate(gs):
-                        ind += g.select(selector, data[...,i], rv[field], ind)
+                        data = f["MeshBlock%d" % g.id][f_fname][:,:,:].transpose()
+                        ind += g.select(selector, data, rv[field], ind)
         return rv
 
     def _read_chunk_data(self, chunk, fields):
@@ -71,26 +66,13 @@ class IOHandlerAthenaPP(BaseIOHandler):
         rv = {}
         for g in chunk.objs:
             rv[g.id] = {}
-        # Split into particles and non-particles
-        fluid_fields, particle_fields = [], []
-        for ftype, fname in fields:
-            if ftype in self.ds.particle_types:
-                particle_fields.append((ftype, fname))
-            else:
-                fluid_fields.append((ftype, fname))
-        if len(particle_fields) > 0:
-            selector = AlwaysSelector(self.ds)
-            rv.update(self._read_particle_selection(
-                [chunk], selector, particle_fields))
-        if len(fluid_fields) == 0: return rv
-        for field in fluid_fields:
-            ftype, fname = field
-            ds = f["/%s" % fname]
+        if len(fields) == 0:
+            return rv
+        for field in fields:
+            f_fname = self.ds._field_map[field[1]]
             for gs in grid_sequences(chunk.objs):
-                start = gs[0].id - gs[0]._id_offset
-                end = gs[-1].id - gs[-1]._id_offset + 1
-                data = ds[start:end,:,:,:].transpose()
                 for i, g in enumerate(gs):
-                    rv[g.id][field] = np.asarray(data[...,i], "=f8")
+                    data = f["MeshBlock%d" % g.id][f_fname][:,:,:].transpose()
+                    rv[g.id][field] = np.asarray(data, "=f8")
         return rv
 
