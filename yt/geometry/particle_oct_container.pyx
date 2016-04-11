@@ -1003,7 +1003,6 @@ cdef class ParticleBitmap:
     def construct_octree(self, SelectorObject selector, 
                          BoolArrayCollection selector_mask,
                          io_handler, data_files):
-        cdef np.uint64_t total_pcount = 0
         cdef np.uint64_t fcheck, fmask
         cdef np.ndarray[np.int32_t, ndim=1] bitmap_nodes
         bitmap_nodes = np.zeros((self.dims[0]*self.dims[1]*self.dims[2]),
@@ -1029,19 +1028,7 @@ cdef class ParticleBitmap:
             uncontaminated.sum(), self.oref)
         octree.n_ref = self.n_ref
         octree.allocate_domains()
-        total_pcount = 0
-<<<<<<< local
-        for i in range(uncontaminated.size):
-            if uncontaminated[i] != 1: continue
-            particle_index[i] = total_pcount
-            if self.owners[i,1] == data_files[0].file_id:
-                particle_count[i] = self.owners[i,2]
-            total_pcount += particle_count[i]
-        cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
-        morton_ind = np.empty(total_pcount, dtype="uint64")
-=======
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
->>>>>>> other
         # Okay, now just to filter based on our mask.
         cdef np.uint64_t ind64[3]
         cdef np.uint64_t mi
@@ -1085,37 +1072,11 @@ cdef class ParticleBitmap:
                         else:
                             ppos[k] = pos64[j,k]
                         ind[k] = <int> ((ppos[k] - self.left_edge[k])*self.idds[k])
-<<<<<<< local
-                    mi = encode_morton_64bit(<np.uint64_t>ind[0], 
-                                             <np.uint64_t>ind[1], 
-                                             <np.uint64_t>ind[2])
-                    if uncontaminated[mi] != 1: continue
-                    # Now we have decided it's worth filtering, so let's toss
-                    # it in.
-                    for i in range(3):
-                        DLE[i] = self.left_edge[i] + self.dds[i]*ind[i]
-                        DRE[i] = DLE[i] + self.dds[i]
-                    morton_ind[particle_index[mi]] = bounded_morton(
-                        ppos[0], ppos[1], ppos[2], DLE, DRE, ORDER_MAX)
-                    particle_index[mi] += 1
-                    octree.next_root(1, ind)
-        cdef int start, end = 0
-        # We should really allocate a 3-by nroot array
-        for i in range(uncontaminated.size):
-            if uncontaminated[i] != 1: continue
-            start = end
-            end += particle_count[i]
-            morton_view = morton_ind[start:end]
-            morton_view.sort()
-            decode_morton_64bit(<np.uint64_t>i, ind64)
-            octree.add(morton_view, ind64[0], ind64[1], ind64[2])
-=======
                     mi = bounded_morton(ppos[0], ppos[1], ppos[2], DLE, DRE,
                                         ORDER_MAX)
                     morton_ind[j] = mi
         morton_ind.sort()
         octree.add(morton_ind, self.index_order1)
->>>>>>> other
         octree.finalize()
         return octree
 
