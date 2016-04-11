@@ -18,6 +18,7 @@ from yt.fields.field_info_container import \
 from yt.utilities.physical_constants import \
     kboltz, mh
 
+b_units = "code_magnetic"
 pres_units = "code_mass/(code_length*code_time**2)"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_length / code_time"
@@ -29,6 +30,9 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         ("gas_velocity_x1", (vel_units, ["velocity_x"], None)),
         ("gas_velocity_x2", (vel_units, ["velocity_y"], None)),
         ("gas_velocity_x3", (vel_units, ["velocity_z"], None)),
+        ("bfield_x1", (b_units, [], None)),
+        ("bfield_x2", (b_units, [], None)),
+        ("bfield_x3", (b_units, [], None)),
     )
 
     def setup_fluid_fields(self):
