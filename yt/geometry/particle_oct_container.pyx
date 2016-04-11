@@ -74,6 +74,8 @@ DEF FillChildCellsRefined = 1
 # Must be set to 1 if OnlyGhostsAtEdges, OnlyRefineEdges,
 # FillChildCellCoarse, or FilleChildCellRefined is 1
 DEF DetectEdges = 1
+# If set, the number of particles in each cell are tracked
+DEF CellParticleCount = 0
 
 _bitmask_version = np.uint64(0)
 
@@ -406,7 +408,10 @@ cdef class ParticleBitmap:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
-        self.owners = np.zeros((1 << (index_order1 * 3), 3), dtype='uint32')
+        IF CellParticleCount == 1:
+            self.owners = np.zeros((1 << (index_order1 * 3), 3), dtype='uint32')
+        ELSE: 
+            self.owners = np.zeros((1 << (index_order1 * 3), 2), dtype='uint32')
         IF UseCythonBitmasks == 1:
             self.bitmasks = FileBitmasks(self.nfiles)
         ELSE:
@@ -550,8 +555,11 @@ cdef class ParticleBitmap:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
             else:
-                owners[mi][1] = file_id
-                owners[mi][2] += 1
+                IF CellParticleCount == 1:
+                    owners[mi][1] = file_id
+                    owners[mi][2] += 1
+                ELSE:
+                    pass
         # Only subs of particles in the mask
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
@@ -631,8 +639,11 @@ cdef class ParticleBitmap:
                     owners[mi][0] = pcount[mi]
                     owners[mi][1] = file_id
             else:
-                owners[mi][1] = file_id
-                owners[mi][2] += 1
+                IF CellParticleCount == 1:
+                    owners[mi][1] = file_id
+                    owners[mi][2] += 1
+                ELSE:
+                    pass
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
