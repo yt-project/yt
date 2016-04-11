@@ -694,3 +694,90 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     free(vertices)
     free(field_vals)
     return img
+
+from libc.math cimport sqrt, ceil
+import numpy as np
+cimport numpy as np
+cimport cython
+
+def weight_function(q):
+    if 0. <= q and q < 1.:
+        return 1. - 3./2.*q*q + 3./4.*q*q*q
+    elif 1. <= q and q < 2.:
+        return 1./4.*(2.-q)*(2.-q)*(2.-q)
+    else:
+        return 0
+
+
+# This should take qxy2, not qxy, and take weight_function(sqrt(qxy2 + qz*qz))
+def evaluate_integrate(float qxy2, int n_steps):
+    def F_func(qz):
+        return weight_function( sqrt(qxy2 + qz*qz) )
+    
+    cdef float R, integral
+    R = 2.
+
+# Similarly here: qxy*qxy => qxy2
+    qz_vals = np.linspace(-sqrt(R*R - qxy2), sqrt(R*R - qxy2), n_steps)
+    F_vals = np.array( [F_func(qz) for qz in qz_vals] )
+    integral = np.trapz(F_vals, qz_vals)
+    return integral
+
+
+@cython.cdivision(True)
+def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
+         np.ndarray[np.float64_t, ndim=2] buff,
+         np.ndarray[np.float64_t, ndim=1] posx,
+         np.ndarray[np.float64_t, ndim=1] posy,
+         np.ndarray[np.float64_t, ndim=1] hsml,
+         np.ndarray[np.float64_t, ndim=1] dens):
+
+    cdef int xi, yi
+    cdef float x, y, dx, dy, dqxy, qxy_range
+    cdef float qxy, qz, h_j, val, this_val, F_interpolate
+    cdef int index, i, j
+    cdef float table[1000]
+
+    dx = (bounds[0,1] - bounds[0,0]) / buff.shape[0]
+    dy = (bounds[1,1] - bounds[1,0]) / buff.shape[1]
+
+# Make this qxy2_vals from 0 .. 4, or just do qxy2_vals = qxy_vals**2
+    qxy_vals = np.linspace(0,2,1000)
+    qxy2_vals = qxy_vals*qxy_vals
+    
+    for i in range(1000):
+        table[i] = evaluate_integrate(qxy2_vals[i], 200)
+
+# This should be dqxy2, which can be computed identically but using qxy2_vals
+    dqxy2 = (qxy2_vals[-1] - qxy2_vals[0])/qxy2_vals.shape[0]
+# Same here: qxy2_range from qxy2_vals
+    qxy2_range = qxy2_vals[-1] - qxy2_vals[0]
+    
+    for j in range(0,posx.shape[0],1000):
+
+        val = 0.0
+        for xi in range( <int> (2*hsml[j]/dx) + 1):
+            x = posx[j] - hsml[j] + dx * xi
+
+            for yi in range( <int> (ceil(2*hsml[j]/dy))):
+                y = posy[j] - hsml[j] + dy * yi
+
+                h_j = fmax( <float> (hsml[j]), 1/(2.*buff.shape[0]))
+# Here, assign qxy2, and don't take the sqrt
+                qxy2 = ( (<float> (posx[j]) - x)*(<float> (posx[j]) - x)
+                        + (<float> (posy[j]) - y)*(<float> (posy[j]) - y) ) / h_j
+# Should qxy2 >= 2 or 4?
+                if qxy2 >= 4:
+                    continue
+
+# Here you can just replace all the qxy with qxy2
+                index = <int> ((qxy2 - qxy2_vals[0])/qxy2_range * qxy2_vals.shape[0])
+                F_interpolate = table[index-1] +(table[index] - table[index-1])\
+                    *(qxy2 - qxy2_vals[index-1])/(qxy2_vals[index] - qxy2_vals[index-1])
+
+                # sum(j) from Equation 32
+                this_val = <float> (dens[j]) * <float> (hsml[j]) * <float> (dens[j] )* F_interpolate
+                val += this_val
+
+        buff[ <int> ((posx[j] - hsml[j] - bounds[0,0])/dx),
+              <int> ((posy[j] - hsml[j] - bounds[1,0])/dy) ] += val
