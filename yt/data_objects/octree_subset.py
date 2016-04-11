@@ -464,7 +464,7 @@ class ParticleOctreeSubset(OctreeSubset):
             return self._index.regions._last_oct_handler
         cache = self._index.regions._cached_octrees
         # TODO Change this to use a primary file ID for forest owners
-        oct_handler = self._index.regions.construct_octree(self.base_selector,
+        oct_handler = self._index.regions.construct_octree(self.ds,
             self.selector_mask, self._index.io, self.data_files)
         self._index.regions._last_octree_subset = id(self)
         self._index.regions._last_oct_handler = oct_handler

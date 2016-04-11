@@ -1010,7 +1010,7 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def construct_octree(self, SelectorObject selector, 
+    def construct_octree(self, ds, 
                          BoolArrayCollection selector_mask,
                          io_handler, data_files):
         cdef np.uint64_t total_pcount
@@ -1057,7 +1057,7 @@ cdef class ParticleBitmap:
         # contaminating cells it has majority control of.
         assert(len(data_files) == 1)
         files_touched = [data_files[0]]  # datafile object from ID goes here
-        files_touched += [_ for _ in self.ds.data_files if _.file_id in secondary_files]
+        files_touched += [_ for _ in ds.data_files if _.file_id in secondary_files]
         total_pcount = 0
         for data_file in files_touched:
             total_pcount += sum(data_file.total_particles.values())
