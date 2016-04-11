@@ -1008,7 +1008,8 @@ cdef class ParticleBitmap:
         cdef np.ndarray[np.int32_t, ndim=1] bitmap_nodes
         bitmap_nodes = np.zeros((self.dims[0]*self.dims[1]*self.dims[2]),
             dtype="int32") - 1
-        cdef int i, j, k, n, nm, ii
+        cdef np.uint64_t i, j, k, n, nm, ii, particle_index
+        cdef int ind[3]
         nm = len(self.masks)
         cdef np.uint64_t **masks = <np.uint64_t **> malloc(
             sizeof(np.uint64_t *) * nm)
@@ -1028,11 +1029,8 @@ cdef class ParticleBitmap:
             uncontaminated.sum(), self.oref)
         octree.n_ref = self.n_ref
         octree.allocate_domains()
-        cdef np.int32_t *particle_index = <np.int32_t *> malloc(
-            sizeof(np.int32_t) * uncontaminated.size)
-        cdef np.int32_t *particle_count = <np.int32_t *> malloc(
-            sizeof(np.int32_t) * uncontaminated.size)
         total_pcount = 0
+<<<<<<< local
         for i in range(uncontaminated.size):
             if uncontaminated[i] != 1: continue
             particle_index[i] = total_pcount
@@ -1041,8 +1039,10 @@ cdef class ParticleBitmap:
             total_pcount += particle_count[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind, morton_view
         morton_ind = np.empty(total_pcount, dtype="uint64")
+=======
+        cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
+>>>>>>> other
         # Okay, now just to filter based on our mask.
-        cdef int ind[3]
         cdef np.uint64_t ind64[3]
         cdef np.uint64_t mi
         cdef int arri
@@ -1053,7 +1053,18 @@ cdef class ParticleBitmap:
         cdef np.float64_t DLE[3]
         cdef np.float64_t DRE[3]
         cdef int bitsize = 0
+        for i in range(3):
+            DLE[i] = self.left_edge[i]
+            DRE[i] = self.right_edge[i]
+        for i in range(uncontaminated.size):
+            if uncontaminated[i] != 1: continue
+            decode_morton_64bit(<np.uint64_t> i, ind64)
+            for j in range(3):
+                ind[j] = ind64[j]
+            octree.next_root(1, ind)
+        assert(len(data_files) == 1)
         for data_file in data_files:
+            morton_ind = np.empty(sum(data_file.total_particles.values()), dtype="uint64")
             # We now get our particle positions
             for pos in io_handler._yield_coordinates(data_file):
                 pos32 = pos64 = None
@@ -1074,6 +1085,7 @@ cdef class ParticleBitmap:
                         else:
                             ppos[k] = pos64[j,k]
                         ind[k] = <int> ((ppos[k] - self.left_edge[k])*self.idds[k])
+<<<<<<< local
                     mi = encode_morton_64bit(<np.uint64_t>ind[0], 
                                              <np.uint64_t>ind[1], 
                                              <np.uint64_t>ind[2])
@@ -1097,9 +1109,14 @@ cdef class ParticleBitmap:
             morton_view.sort()
             decode_morton_64bit(<np.uint64_t>i, ind64)
             octree.add(morton_view, ind64[0], ind64[1], ind64[2])
+=======
+                    mi = bounded_morton(ppos[0], ppos[1], ppos[2], DLE, DRE,
+                                        ORDER_MAX)
+                    morton_ind[j] = mi
+        morton_ind.sort()
+        octree.add(morton_ind, self.index_order1)
+>>>>>>> other
         octree.finalize()
-        free(particle_index)
-        free(particle_count)
         return octree
 
 cdef class ParticleBitmapSelector:
@@ -1997,39 +2014,44 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     def add(self, np.ndarray[np.uint64_t, ndim=1] indices,
-             int root_i, int root_j, int root_k, int domain_id = -1):
+             np.uint64_t order1, int domain_id = -1):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
         cdef Oct *cur
         cdef Oct *root = NULL
         cdef np.int64_t no = indices.shape[0], p, index
-        cdef int i, level
-        cdef int ind[3]
-        ind[0] = root_i
-        ind[1] = root_j
-        ind[2] = root_k
-        self.get_root(ind, &root)
-        if root == NULL:
-            raise RuntimeError
-        root.domain = domain_id
+        cdef int i, level, new_root
+        cdef int ind[3], last_ind[3]
+        cdef np.uint64_t ind64[3]
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         # Note what we're doing here: we have decided the root will always be
         # zero, since we're in a forest of octrees, where the root_mesh node is
         # the level 0.  This means our morton indices should be made with
         # respect to that, which means we need to keep a few different arrays
         # of them.
+        cdef int max_level = -1
         for i in range(3):
-            ind[i] = 0
+            last_ind[i] = -1
         for p in range(no):
             # We have morton indices, which means we choose left and right by
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
-            level = 0
             index = indices[p]
+            decode_morton_64bit(index >> ((ORDER_MAX - order1)*3), ind64)
+            if ind64[0] != last_ind[0] or \
+               ind64[1] != last_ind[1] or \
+               ind64[2] != last_ind[2]:
+                for i in range(3):
+                    last_ind[i] = ind64[i]
+                self.get_root(last_ind, &root)
+            if root == NULL:
+                continue
+            level = 0
             cur = root
             while (cur.file_ind + 1) > self.n_ref:
                 if level >= ORDER_MAX: break # Just dump it here.
                 level += 1
+                if level > max_level: max_level = level
                 for i in range(3):
                     ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
                 if cur.children == NULL or \
