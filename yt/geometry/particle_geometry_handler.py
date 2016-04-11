@@ -184,7 +184,9 @@ class ParticleIndex(Index):
             # it'll take the set() of them.  So if we break stuff up like this
             # here, we end up in a situation where we have the ability to break
             # things down further later on for buffer zones and the like.
-            dobj._chunk_info = [ParticleContainer(dobj, df) for df in data_files]
+            dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
+              over_refine_factor = self.ds.over_refine_factor,
+              selector_mask = dmask) for df in data_files]
             # We should also cache the buffer zones here; TODO: that.
         dobj._current_chunk, = self._chunk_all(dobj)
 
