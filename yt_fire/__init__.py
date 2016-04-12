@@ -1,5 +1,5 @@
 """
-API for gadget_fof_plus frontend.
+API for FIRE frontend.
 
 
 
@@ -17,10 +17,8 @@ API for gadget_fof_plus frontend.
 from yt.funcs import \
     mylog
 
-mylog.warn("GizmoDataset dataset overrides GadgetHDF5Dataset.")
-
 from .data_structures import \
-    GizmoDataset
+    FIREDataset
 
 from .fields import \
-    GizmoFieldInfo
+    FIREFieldInfo

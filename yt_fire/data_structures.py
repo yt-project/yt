@@ -1,5 +1,5 @@
 """
-Data structures for gizmo frontend.
+Data structures for FIRE frontend.
 
 
 
@@ -20,10 +20,10 @@ from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
 
 from .fields import \
-    GizmoFieldInfo
+    FIREFieldInfo
 
-class GizmoDataset(GadgetHDF5Dataset):
+class FIREDataset(GadgetHDF5Dataset):
     _file_class = ParticleFile
-    _field_info_class = GizmoFieldInfo
+    _field_info_class = FIREFieldInfo
     _particle_mass_name = "Masses"
     _suffix = ".hdf5"

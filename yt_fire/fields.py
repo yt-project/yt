@@ -1,5 +1,5 @@
 """
-Gizmo-specific fields
+FIRE-specific fields
 
 
 
@@ -19,9 +19,9 @@ from yt.fields.species_fields import \
 from yt.frontends.gadget.fields import \
     GadgetFieldInfo
 
-class GizmoFieldInfo(GadgetFieldInfo):
+class FIREFieldInfo(GadgetFieldInfo):
     def setup_gas_particle_fields(self, ptype):
-        super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
+        super(FIREFieldInfo, self).setup_gas_particle_fields(ptype)
         self.alias((ptype, "temperature"), (ptype, "Temperature"))
 
         def _h_density(field, data):
