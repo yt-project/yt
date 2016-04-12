@@ -357,8 +357,6 @@ cdef class ParticleBitmap:
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
     cdef public np.uint64_t nfiles
-    cdef int oref
-    cdef public int n_ref
     cdef public np.int32_t index_order1
     cdef public np.int32_t index_order2
     cdef public object masks
@@ -379,8 +377,8 @@ cdef class ParticleBitmap:
         cdef BoolArrayCollection[:] bitmasks
     cdef public BoolArrayCollection collisions
 
-    def __init__(self, left_edge, right_edge, nfiles, oref = 1,
-                 n_ref = 64, index_order1 = None, index_order2 = None):
+    def __init__(self, left_edge, right_edge, nfiles, 
+                 index_order1 = None, index_order2 = None):
         # TODO: Set limit on maximum orders?
         if index_order1 is None: index_order1 = 7
         if index_order2 is None: index_order2 = 5
@@ -390,9 +388,7 @@ cdef class ParticleBitmap:
         self._last_return_values = None
         self._last_octree_subset = None
         self._last_oct_handler = None
-        self.oref = oref
         self.nfiles = nfiles
-        self.n_ref = n_ref
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
@@ -473,7 +469,8 @@ cdef class ParticleBitmap:
             skip = 0
             for i in range(3):
                 # Skip particles outside the domain
-                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
+                if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
+                    # print '{} <= {} < {}'.format(LE[i],pos[p,i],RE[i])
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
@@ -536,7 +533,7 @@ cdef class ParticleBitmap:
         for p in range(pos.shape[0]):
             skip = 0
             for i in range(3):
-                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
+                if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
@@ -709,30 +706,32 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_uncontaminated(self, mask, ifile):
+    def find_uncontaminated(self, np.uint32_t ifile, BoolArrayCollection mask,
+                            BoolArrayCollection mask2 = None):
         cdef np.ndarray[np.uint8_t, ndim=1] arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
         cdef np.uint8_t[:] arr_view = arr
         IF UseCythonBitmasks == 1:
-            self.bitmasks._select_uncontaminated(ifile, mask, arr_view)
+            self.bitmasks._select_uncontaminated(ifile, mask, arr_view, mask2)
         ELSE:
             cdef BoolArrayCollection bitmask = self.bitmasks[ifile]
-            bitmask._select_uncontaminated(mask, arr_view)
+            bitmask._select_uncontaminated(mask, arr_view, mask2)
         return arr
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_contaminated(self, mask, ifile):
+    def find_contaminated(self, np.uint32_t ifile, BoolArrayCollection mask,
+                          BoolArrayCollection mask2 = None):
         cdef np.ndarray[np.uint8_t, ndim=1] arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
         cdef np.uint8_t[:] arr_view = arr
         cdef np.ndarray[np.uint8_t, ndim=1] sfiles = np.zeros(self.nfiles,'uint8')
         cdef np.uint8_t[:] sfiles_view = sfiles
         IF UseCythonBitmasks == 1:
-            self.bitmasks._select_contaminated(ifile, mask, arr_view, sfiles_view)
+            self.bitmasks._select_contaminated(ifile, mask, arr_view, sfiles_view, mask2)
         ELSE:
             cdef BoolArrayCollection bitmask = self.bitmasks[ifile]
-            bitmask._select_contaminated(mask, arr_view)
+            bitmask._select_contaminated(mask, arr_view, mask2)
             raise NotImplementedError("TODO: Return secondary fiels from _select_contaminated")
         return arr, np.where(sfiles)[0].astype('uint32')
 
@@ -1010,9 +1009,10 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def construct_octree(self, index, 
+    def construct_octree(self, index, io_handler, data_files,
+                         over_refine_factor, 
                          BoolArrayCollection selector_mask,
-                         io_handler, data_files):
+                         BoolArrayCollection buffer_mask = None):
         cdef np.uint64_t total_pcount
         cdef np.uint64_t i, j, k, n
         cdef int ind[3]
@@ -1034,17 +1034,17 @@ cdef class ParticleBitmap:
             DRE[i] = self.right_edge[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
         # Determine cells that need to be added to the octree
-        uncontaminated = self.find_uncontaminated(selector_mask,
-            data_files[0].file_id)
-        contaminated, secondary_files = self.find_contaminated(selector_mask,
-            data_files[0].file_id)
+        uncontaminated = self.find_uncontaminated(data_files[0].file_id,
+            selector_mask, mask2=buffer_mask)
+        contaminated, secondary_files = self.find_contaminated(data_files[0].file_id,
+            selector_mask, mask2=buffer_mask)
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
             (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
             (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
-            uncontaminated.sum()+contaminated.sum(), self.oref)
-        octree.n_ref = self.n_ref
+            uncontaminated.sum()+contaminated.sum(), over_refine_factor)
+        octree.n_ref = index.dataset.n_ref
         octree.allocate_domains()
         # Add roots based on the mask
         for i in range(uncontaminated.size):

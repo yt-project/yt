@@ -42,7 +42,6 @@ class ParticleIndex(Index):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self.index_filename = self.dataset.parameter_filename
-        print self.index_filename
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
@@ -79,8 +78,14 @@ class ParticleIndex(Index):
         self._initialize_index()
 
     def _index_filename(self,o1,o2):
-        return os.path.join(self.dataset.fullpath, 
-                            "index{}_{}.ewah".format(o1,o2))
+        import shutil
+        # Uses parameter file
+        fname_old = os.path.join(self.dataset.fullpath, 
+                                 "index{}_{}.ewah".format(o1,o2))
+        fname_new = self.index_filename + ".index{}_{}.ewah".format(o1,o2)
+        if os.path.isfile(fname_old):
+            shutil.move(fname_old,fname_new)
+        return fname_new
 
     def _initialize_index(self, fname=None, noref=False,
                           order1=None, order2=None, dont_cache=False):
@@ -91,8 +96,8 @@ class ParticleIndex(Index):
         N = self.ds.domain_dimensions / (1<<self.ds.over_refine_factor)
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
-                len(self.data_files), ds.over_refine_factor,
-                ds.n_ref, index_order1=order1, index_order2=order2)
+                len(self.data_files), 
+                index_order1=order1, index_order2=order2)
         # Load indices from file if provided
         if fname is None: 
             fname = self._index_filename(self.regions.index_order1,
@@ -168,18 +173,18 @@ class ParticleIndex(Index):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
-    def _identify_base_chunk(self, dobj):
+    def _identify_base_chunk(self, dobj, ngz=0):
         if self.regions is None:
             self._initialize_index()
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
-            buffer_files = getattr(dobj, "buffer_files", None)
             dmask = getattr(dobj, "selector_mask", None)
+            gmask = getattr(dobj, "buffer_mask", None)
             if data_files is None:
-                (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(dobj.selector)
+                (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(dobj.selector, ngz=ngz)
                 #n_cells = omask.sum()
                 data_files = [self.data_files[i] for i in dfi]
-                buffer_files = [self.data_files[i] for i in gzi]
+                assert(len(gzi)==0) # No ghost zones
                 #mylog.debug("Maximum particle count of %s identified", count)
             base_region = getattr(dobj, "base_region", dobj)
             # NOTE: One fun thing about the way IO works is that it
@@ -190,7 +195,7 @@ class ParticleIndex(Index):
             # things down further later on for buffer zones and the like.
             dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
               over_refine_factor = self.ds.over_refine_factor,
-              selector_mask = dmask) for df in data_files]
+              selector_mask = dmask, buffer_mask = gmask) for df in data_files]
             # We should also cache the buffer zones here; TODO: that.
         dobj._current_chunk, = self._chunk_all(dobj)
 
@@ -201,7 +206,7 @@ class ParticleIndex(Index):
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None,
                        ghost_particles = False):
         (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(
-                                dobj.selector)
+                                dobj.selector, ngz=ngz)
         ghost_particles = False
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # We actually do not really use the data files except as input to the

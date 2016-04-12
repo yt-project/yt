@@ -415,7 +415,8 @@ class ParticleOctreeSubset(OctreeSubset):
     domain_id = -1
     def __init__(self, base_region, data_files, ds, 
                  min_ind = 0, max_ind = 0, over_refine_factor = 1,
-                 buffer_files = None, selector_mask = None):
+                 buffer_files = None, selector_mask = None, 
+                 buffer_mask = None):
         # The first attempt at this will not work in parallel.
         if buffer_files is None: buffer_files = []
         self._num_zones = 1 << (over_refine_factor)
@@ -439,6 +440,7 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
         self.selector_mask = selector_mask
+        self.buffer_mask = buffer_mask
 
     @contextlib.contextmanager
     def _expand_data_files(self, ghost_particles):
@@ -465,7 +467,8 @@ class ParticleOctreeSubset(OctreeSubset):
         cache = self._index.regions._cached_octrees
         # TODO Change this to use a primary file ID for forest owners
         oct_handler = self._index.regions.construct_octree(self._index,
-            self.selector_mask, self._index.io, self.data_files)
+            self._index.io, self.data_files, self._oref,
+            self.selector_mask, buffer_mask = self.buffer_mask)
         self._index.regions._last_octree_subset = id(self)
         self._index.regions._last_oct_handler = oct_handler
         return oct_handler

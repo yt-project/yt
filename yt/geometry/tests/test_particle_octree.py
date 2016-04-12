@@ -230,6 +230,39 @@ def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE,
         pos[:,i] = np.random.uniform(DLE[i], DRE[i], inp)
     return pos
 
+def filter_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
+                                   fname_base=None):
+    import pickle
+    np.random.seed(int(0x4d3d3d3))
+    DW = DRE - DLE
+    if fname_base is None:
+        fname_base = 'hilbert{}_gaussian_np{}_nf{}_'.format(order,npart,nfiles)
+    def load_pos(file_id):
+        filename = fname_base+'file{}'.format(file_id)
+        if os.path.isfile(filename):
+            fd = open(filename,'rb')
+            positions = pickle.load(fd)
+            fd.close()
+        else:
+            positions = np.empty((0,3), dtype='float64')
+        return positions
+    def save_pos(file_id,positions):
+        filename = fname_base+'file{}'.format(file_id)
+        fd = open(filename,'wb')
+        pickle.dump(positions,fd)
+        fd.close()
+    # Random
+    for ifile in range(nfiles):
+        print 'Fixing file {}'.format(ifile)
+        # print 'Random, file {}'.format(ifile)
+        ipos = load_pos(ifile)
+        for k in range(3):
+            ipos[:,k] += 0.999999*DW[k]
+            idx = (ipos[:,k]>=DRE[k])
+            ipos[idx,k] -= (1.0e-9)*DW[k]
+        save_pos(ifile,ipos)
+
+
 def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
                                     buff=0.0, order=6, verbose=False,
                                     fname_base=None, nchunk=10,
@@ -275,7 +308,7 @@ def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
         ind = np.empty((inp,3), dtype='int64')
         for k in range(3):
             pos[:,k] = np.clip(np.random.normal(center[k], width[k], inp),
-                               DLE[k], DRE[k])
+                               DLE[k], DRE[k]-(1.0e-9)*DW[k])
             ind[:,k] = (pos[:,k]-DLE[k])/(DW[k]/dim_hilbert)
         harr = get_hilbert_indices(order, ind)
         farr = (harr-rHPF)/nHPF
@@ -443,6 +476,9 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         fd = open(fname,'rb')
         pos = pickle.load(fd)
         fd.close()
+        filter_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
+                                       fname_base=fname.split('file')[0])
+        raise Exception('Stop')
         return pos
     if decomp.startswith('zoom_'):
         zoom_factor = 5
