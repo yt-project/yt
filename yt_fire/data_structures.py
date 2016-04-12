@@ -16,8 +16,6 @@ Data structures for FIRE frontend.
 
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from yt.data_objects.static_output import \
-    ParticleFile
 from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
 
@@ -25,10 +23,7 @@ from .fields import \
     FIREFieldInfo
 
 class FIREDataset(GadgetHDF5Dataset):
-    _file_class = ParticleFile
     _field_info_class = FIREFieldInfo
-    _particle_mass_name = "Masses"
-    _suffix = ".hdf5"
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
