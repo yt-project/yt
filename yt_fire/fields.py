@@ -41,16 +41,16 @@ class FIREFieldInfo(GadgetFieldInfo):
         ("StarFormationRate", ("Msun / yr", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
         ("Metallicity_00", ("", ["metallicity"], None)),
-        ("Metallicity_01", ("", ["He_nuclei_fraction"], None)),
-        ("Metallicity_02", ("", ["C_nuclei_fraction"], None)),
-        ("Metallicity_03", ("", ["N_nuclei_fraction"], None)),
-        ("Metallicity_04", ("", ["O_nuclei_fraction"], None)),
-        ("Metallicity_05", ("", ["Ne_nuclei_fraction"], None)),
-        ("Metallicity_06", ("", ["Mg_nuclei_fraction"], None)),
-        ("Metallicity_07", ("", ["Si_nuclei_fraction"], None)),
-        ("Metallicity_08", ("", ["S_nuclei_fraction"], None)),
-        ("Metallicity_09", ("", ["Ca_nuclei_fraction"], None)),
-        ("Metallicity_10", ("", ["Fe_nuclei_fraction"], None)),
+        ("Metallicity_01", ("", ["He_metallicity"], None)),
+        ("Metallicity_02", ("", ["C_metallicity"], None)),
+        ("Metallicity_03", ("", ["N_metallicity"], None)),
+        ("Metallicity_04", ("", ["O_metallicity"], None)),
+        ("Metallicity_05", ("", ["Ne_metallicity"], None)),
+        ("Metallicity_06", ("", ["Mg_metallicity"], None)),
+        ("Metallicity_07", ("", ["Si_metallicity"], None)),
+        ("Metallicity_08", ("", ["S_metallicity"], None)),
+        ("Metallicity_09", ("", ["Ca_metallicity"], None)),
+        ("Metallicity_10", ("", ["Fe_metallicity"], None)),
     )
 
     def __init__(self, *args, **kwargs):
@@ -64,7 +64,7 @@ class FIREFieldInfo(GadgetFieldInfo):
         self.alias((ptype, "temperature"), (ptype, "Temperature"))
 
         def _h_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_nuclei_fraction")] - \
+            x_H = 1.0 - data[(ptype, "He_metallicity")] - \
               data[(ptype, "metallicity")]
             return x_H * data[(ptype, "density")] * \
               data[(ptype, "NeutralHydrogenAbundance")]
@@ -79,7 +79,7 @@ class FIREFieldInfo(GadgetFieldInfo):
             self.alias((ptype, "H_%s" % suffix), (ptype, "H_p0_%s" % suffix))
 
         def _h_p1_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_nuclei_fraction")] - \
+            x_H = 1.0 - data[(ptype, "He_metallicity")] - \
               data[(ptype, "metallicity")]
             return x_H * data[(ptype, "density")] * \
               (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
@@ -91,13 +91,14 @@ class FIREFieldInfo(GadgetFieldInfo):
             units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
 
-        for species in self.nuclei_names:
-            def _nuclei_density_field(field, data):
-                return data[ptype, "density"] * \
-                  data[ptype, "%s_nuclei_fraction" % species]
+        def _nuclei_mass_density_field(field, data):
+            species = field.name[1][:field.name[1].find("_")]
+            return data[ptype, "density"] * \
+              data[ptype, "%s_metallicity" % species]
 
+        for species in self.nuclei_names:
             self.add_field(
-                (ptype, "%s_nuclei_density" % species),
-                function=_h_p1_density,
+                (ptype, "%s_nuclei_mass_density" % species),
+                function=_nuclei_mass_density_field,
                 particle_type=True,
                 units=self.ds.unit_system["density"])
