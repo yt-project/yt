@@ -36,6 +36,8 @@ class FIREFieldInfo(GadgetFieldInfo):
             particle_type=True,
             units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H", particle_type=True)
+        for suffix in ["density", "fraction", "mass", "number_density"]:
+            self.alias((ptype, "H_%s" % suffix), (ptype, "H_p0_%s" % suffix))
 
         def _h_p1_density(field, data):
             x_H = 1.0 - data[(ptype, "He_fraction")] - \
