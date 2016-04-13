@@ -768,7 +768,12 @@ then
     PYTHON2='Python-2.7.11'
     PYTHON3='Python-3.5.1'
     CYTHON='Cython-0.23.5'
-    PYX='PyX-0.12.1'
+    if [ $INST_PY3 -eq 0 ]
+    then
+        PYX='PyX-0.12.1'
+    else
+        PYX='PyX-0.14.1'
+    fi
     BZLIB='bzip2-1.0.6'
     FREETYPE_VER='freetype-2.4.12' 
     H5PY='h5py-2.5.0'
@@ -790,7 +795,12 @@ then
     
     # Now we dump all our SHA512 files out.
     echo '9052d74bbd0c93757fd916939cc3c39eb1aba6c9692b48887ae577256bec64b39b1fd25b6c751e6c8fe723de4c0ddf9a1a207de39f75b0839500dfcdde69f925  Cython-0.23.5.tar.gz' > Cython-0.23.5.tar.gz.sha512
-    echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
+    if [ $INST_PY3 -eq 0 ]
+    then
+        echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
+    else
+        echo '16265bbdcaf28ce194189a2987b32952f296c850b829454bcccce0abd23838bfca0276c3e9c8e96b8cbfaf1473bf14669f9b7f2032ee039b61ae59ea3aa45a20  PyX-0.14.1.tar.gz' > PyX-0.14.1.tar.gz.sha512
+    fi
     echo 'f21df53da87e9e3c14599a34388976e7dd09b951dff3c4b978fe224beeff07e749c0059ffd94f68ca9b75ecaef142b285d579b8dfaad4eab85aca33957114937  Python-2.7.11.tgz' > Python-2.7.11.tgz.sha512
     echo '73f1477f3d3f5bd978c4ea1d1b679467b45e9fd2f443287b88c5c107a9ced580c56e0e8f33acea84e06b11a252e2a4e733120b721a9b6e1bb3d34493a3353bfb  Python-3.5.1.tgz' > Python-3.5.1.tgz.sha512
     echo 'b83c4a1415a3eb8c016507705d0d2f22971e4da937bb97953eec08f8f856933d8fa76ce8c536122235b19e7879b16add2e20fd2fee3e488f9b2b4bf1b9f4dbdb  astropy-1.1.2.tar.gz' > astropy-1.1.2.tar.gz.sha512
