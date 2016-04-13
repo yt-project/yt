@@ -606,7 +606,10 @@ then
 fi
 echo "========================================================================"
 echo
-read -p "[hit enter] "
+if [[ $1 != "--yes" ]]
+then
+    read -p "[hit enter] "
+fi
 echo
 echo "Awesome!  Here we go."
 echo
