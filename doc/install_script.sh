@@ -804,7 +804,7 @@ then
     [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
     [ $INST_HG -eq 1 ] && get_ytproject $MERCURIAL.tar.gz
     [ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
-    [ $INST_H5PY -eq 1 ] && get_ytproject $H5PY.tat.gz
+    [ $INST_H5PY -eq 1 ] && get_ytproject $H5PY.tar.gz
     [ $INST_NOSE -eq 1 ] && get_ytproject $NOSE.tar.gz
     [ $INST_ASTROPY -eq 1 ] && get_ytproject $ASTROPY.tar.gz
     get_ytproject $PYTHON2.tgz
