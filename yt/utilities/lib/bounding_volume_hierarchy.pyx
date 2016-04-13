@@ -9,7 +9,6 @@ from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     Q1Sampler3D, \
     P1Sampler3D, \
-    Q1Sampler3D, \
     W1Sampler3D
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
