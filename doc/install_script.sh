@@ -1376,7 +1376,10 @@ else # INST_CONDA -eq 1
     then
         
         echo "Installing embree"
-        mkdir ${DEST_DIR}/src
+        if [ ! -d ${DEST_DIR}/src ]
+        then
+            mkdir ${DEST_DIR}/src
+        fi
         cd ${DEST_DIR}/src
         ( ${GETFILE} "$EMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
         log_cmd tar xfz ${EMBREE}.tar.gz
