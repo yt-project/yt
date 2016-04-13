@@ -467,6 +467,12 @@ then
         echo "and re-run the install script."
         exit 1
     fi
+    if [ $INST_CONDA -eq 0 ]
+    then
+        echo "unstructured mesh rendering support has not yet been implemented"
+        echo "for INST_CONDA=0."
+        exit 1
+    fi
     if [ `uname` = "Darwin" ]
     then
         EMBREE="embree-2.8.0.x86_64.macosx"
