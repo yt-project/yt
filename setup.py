@@ -42,26 +42,26 @@ else:
     omp_args = None
 
 if os.name == "nt":
-    libs = []
+    std_libs = []
 else:
-    libs = ["m"]
+    std_libs = ["m"]
 
 cython_extensions = [
     Extension("yt.analysis_modules.photon_simulator.utils",
               ["yt/analysis_modules/photon_simulator/utils.pyx"]),
     Extension("yt.analysis_modules.ppv_cube.ppv_utils",
               ["yt/analysis_modules/ppv_cube/ppv_utils.pyx"],
-              libraries=libs),
+              libraries=std_libs),
     Extension("yt.geometry.grid_visitors",
               ["yt/geometry/grid_visitors.pyx"],
               include_dirs=["yt/utilities/lib"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/grid_visitors.pxd"]),
     Extension("yt.geometry.grid_container",
               ["yt/geometry/grid_container.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/grid_container.pxd",
                        "yt/geometry/grid_visitors.pxd"]),
@@ -69,28 +69,28 @@ cython_extensions = [
               ["yt/geometry/oct_container.pyx",
                "yt/utilities/lib/tsearch.c"],
               include_dirs=["yt/utilities/lib"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.oct_visitors",
               ["yt/geometry/oct_visitors.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.particle_oct_container",
               ["yt/geometry/particle_oct_container.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.selection_routines",
               ["yt/geometry/selection_routines.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/utilities/lib/grid_traversal.pxd",
                        "yt/geometry/oct_container.pxd",
@@ -101,7 +101,7 @@ cython_extensions = [
     Extension("yt.geometry.particle_deposit",
               ["yt/geometry/particle_deposit.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd",
@@ -109,7 +109,7 @@ cython_extensions = [
     Extension("yt.geometry.particle_smooth",
               ["yt/geometry/particle_smooth.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd",
@@ -118,30 +118,30 @@ cython_extensions = [
     Extension("yt.geometry.fake_octree",
               ["yt/geometry/fake_octree.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.utilities.spatial.ckdtree",
               ["yt/utilities/spatial/ckdtree.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs),
+              libraries=std_libs),
     Extension("yt.utilities.lib.bitarray",
               ["yt/utilities/lib/bitarray.pyx"],
-              libraries=libs, depends=["yt/utilities/lib/bitarray.pxd"]),
+              libraries=std_libs, depends=["yt/utilities/lib/bitarray.pxd"]),
     Extension("yt.utilities.lib.bounding_volume_hierarchy",
               ["yt/utilities/lib/bounding_volume_hierarchy.pyx"],
               include_dirs=["yt/utilities/lib/"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd",
                        "yt/utilities/lib/vec3_ops.pxd"]),
     Extension("yt.utilities.lib.contour_finding",
               ["yt/utilities/lib/contour_finding.pyx"],
               include_dirs=["yt/utilities/lib/",
                             "yt/geometry/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/utilities/lib/amr_kdtools.pxd",
                        "yt/utilities/lib/grid_traversal.pxd",
@@ -151,12 +151,12 @@ cython_extensions = [
               ["yt/utilities/lib/geometry_utils.pyx"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
-              libraries=libs, depends=["yt/utilities/lib/fp_utils.pxd"]),
+              libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd"]),
     Extension("yt.utilities.lib.marching_cubes",
               ["yt/utilities/lib/marching_cubes.pyx",
                "yt/utilities/lib/fixed_interpolator.c"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/utilities/lib/fixed_interpolator.pxd",
                        "yt/utilities/lib/fixed_interpolator.h",
@@ -166,7 +166,7 @@ cython_extensions = [
                "yt/utilities/lib/pixelization_constants.c"],
               include_dirs=["yt/utilities/lib/"],
               language="c++",
-              libraries=libs, depends=["yt/utilities/lib/fp_utils.pxd",
+              libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd",
                                         "yt/utilities/lib/pixelization_constants.h",
                                         "yt/utilities/lib/element_mappings.pxd"]),
     Extension("yt.utilities.lib.origami",
@@ -179,7 +179,7 @@ cython_extensions = [
                "yt/utilities/lib/fixed_interpolator.c",
                "yt/utilities/lib/kdtree.c"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=libs,
+              libraries=std_libs,
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
               depends=["yt/utilities/lib/fp_utils.pxd",
@@ -190,10 +190,10 @@ cython_extensions = [
                        "yt/utilities/lib/vec3_ops.pxd"]),
     Extension("yt.utilities.lib.element_mappings",
               ["yt/utilities/lib/element_mappings.pyx"],
-              libraries=libs, depends=["yt/utilities/lib/element_mappings.pxd"]),
+              libraries=std_libs, depends=["yt/utilities/lib/element_mappings.pxd"]),
     Extension("yt.utilities.lib.alt_ray_tracers",
               ["yt/utilities/lib/alt_ray_tracers.pyx"],
-              libraries=libs),
+              libraries=std_libs),
 ]
 
 lib_exts = [
@@ -206,7 +206,7 @@ for ext_name in lib_exts:
     cython_extensions.append(
         Extension("yt.utilities.lib.{}".format(ext_name),
                   ["yt/utilities/lib/{}.pyx".format(ext_name)],
-                  libraries=libs, depends=["yt/utilities/lib/fp_utils.pxd"]))
+                  libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd"]))
 
 lib_exts = ["write_array", "ragged_arrays", "line_integral_convolution"]
 for ext_name in lib_exts:
@@ -218,7 +218,7 @@ extensions = [
     Extension("yt.analysis_modules.halo_finding.fof.EnzoFOF",
               ["yt/analysis_modules/halo_finding/fof/EnzoFOF.c",
                "yt/analysis_modules/halo_finding/fof/kd.c"],
-              libraries=libs),
+              libraries=std_libs),
     Extension("yt.analysis_modules.halo_finding.hop.EnzoHop",
               glob.glob("yt/analysis_modules/halo_finding/hop/*.c")),
     Extension("yt.frontends.artio._artio_caller",
@@ -236,10 +236,10 @@ extensions = [
               glob.glob("yt/utilities/spatial/src/*.c")),
     Extension("yt.visualization._MPL",
               ["yt/visualization/_MPL.c"],
-              libraries=libs),
+              libraries=std_libs),
     Extension("yt.utilities.data_point_utilities",
               ["yt/utilities/data_point_utilities.c"],
-              libraries=libs),
+              libraries=std_libs),
 ]
 
 # EMBREE
@@ -280,7 +280,7 @@ if check_for_pyembree() is not None:
         ext.include_dirs += embree_inc_dir
         ext.library_dirs += embree_lib_dir
         ext.language = "c++"
-        ext.libraries += libs
+        ext.libraries += std_libs
         ext.libraries += [embree_lib_name]
 
     cython_extensions += embree_extensions
