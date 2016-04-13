@@ -1369,6 +1369,8 @@ else # INST_CONDA -eq 1
         echo "Installing $YT_DEP"
         log_cmd conda install --yes ${YT_DEP}
     done
+
+    log_cmd pip install python-hglib
     
     if [ $INST_UNSTRUCTURED -eq 1 ]
     then
