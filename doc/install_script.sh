@@ -791,7 +791,6 @@ then
     echo '977db6e9bc6a5918cceb255981a57e85e7060c0922aefd2968b004d25d704e25a5cb5bbe09eb387e8695581e23e2825d9c40310068fe25ece7e9c23037a21f39  sympy-1.0.tar.gz' > sympy-1.0.tar.gz.sha512
     echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
     echo '91a212b5007f9fdfacb4341e06dc0355c5c29897eb8ea407dd4864091f845ba1417bb0d33b5ed6897869d0233e2d0ec6548898d3dbe9eda23f751829bd51a104  setuptools-20.6.7.tar.gz' > setuptools-20.6.7.tar.gz.sha512
-    echo 'b83c4a1415a3eb8c016507705d0d2f22971e4da937bb97953eec08f8f856933d8fa76ce8c536122235b19e7879b16add2e20fd2fee3e488f9b2b4bf1b9f4dbdb  astropy-1.1.2.tar.gz' > astropy-1.1.2.tar.gz
     # Individual processes
     [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
     [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
