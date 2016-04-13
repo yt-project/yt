@@ -367,6 +367,27 @@ the official repo:
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
   if you are curious why ``--prefix=`` is neccessary on some systems.
 
+.. note::
+
+   yt requires version 18.0 or higher of ``setuptools``. If you see
+   error messages about this package, you may need to update it. For
+   example, with pip via
+
+   .. code-block:: bash
+
+      pip install --upgrade setuptools
+
+   or your preferred method. If you have ``distribute`` installed, you
+   may also see error messages for it if it's out of date. You can
+   update with pip via
+
+   .. code-block:: bash
+
+      pip install --upgrade distribute
+
+   or via your preferred method.
+   
+
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
 ``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
