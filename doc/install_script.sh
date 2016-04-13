@@ -483,6 +483,17 @@ then
     PYEMBREE_URL="https://github.com/scopatz/pyembree/archive/master.zip"
 fi
 
+if [ $INST_ROCKSTAR -ne 0 ]
+then
+    if [ $INST_YT_SOURCE -eq 0 ]
+    then
+        echo "yt must be compiled from source to install support for"
+        echo "the rockstar halo finder. Please set INST_YT_SOURCE to 1"
+        echo "and re-run the install script"
+        exit 1
+    fi
+fi
+
 echo
 echo
 echo "========================================================================"
@@ -1319,11 +1330,6 @@ else # INST_CONDA -eq 1
     then
         YT_DEPS+=('astropy')
     fi
-    if [ $INST_ROCKSTAR -ne 0 ]
-    then
-        echo "Installing with rockstar and conda hasn't been implemented yet"
-        exit 1
-    fi
     YT_DEPS+=('conda-build')
     if [ $INST_PY3 -eq 0 ]
     then
@@ -1369,6 +1375,43 @@ else # INST_CONDA -eq 1
         pushd ${DEST_DIR}/src/pyembree-master &> /dev/null
         log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
         popd &> /dev/null
+    fi
+
+    if [ $INST_ROCKSTAR -eq 1 ]
+    then
+        if [ ! -d ${DEST_DIR}/src ]
+        then
+            mkdir ${DEST_DIR}/src
+        fi
+        cd ${DEST_DIR}/src
+        if [ ! -e rockstar/done ]
+        then
+            echo "Building Rockstar"
+            if [ ! -e rockstar ]
+            then
+                ( hg clone http://bitbucket.org/MatthewTurk/rockstar 2>&1 ) 1>> ${LOG_FILE}
+            fi
+            cd rockstar
+            ( hg pull 2>&1 ) 1>> ${LOG_FILE}
+            ( hg up -C tip 2>&1 ) 1>> ${LOG_FILE}
+            ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            cp librockstar.so ${DEST_DIR}/lib
+            ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
+            echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
+            touch done
+            cd ..
+        fi
+    fi
+
+    # conda doesn't package pyx, so we install manually with pip
+    if [ $INST_PYX -eq 1 ]
+    then
+        if [ $INST_PY3 -eq 1 ]
+        then
+            log_cmd pip install pyx
+        else
+            log_cmd pip install pyx==0.12.1
+        fi
     fi
 
     if [ $INST_PY3 -eq 1 ]
