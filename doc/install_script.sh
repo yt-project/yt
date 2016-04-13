@@ -460,7 +460,7 @@ function log_cmd
 
 if [ $INST_UNSTRUCTURED -ne 0 ]
 then
-    if [$INST_YT_SOURCE -eq 0 ]
+    if [ $INST_YT_SOURCE -eq 0 ]
     then
         echo "yt must be compiled from source to install support for"
         echo "unstructured mesh rendering. Please set INST_YT_SOURCE to 1"
@@ -807,7 +807,7 @@ then
     [ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
     [ $INST_H5PY -eq 1 ] && get_ytproject $H5PY.tat.gz
     [ $INST_NOSE -eq 1 ] && get_ytproject $NOSE.tar.gz
-    [ $INST_ASTROPY -eq 1] && get_ytproject $ASTROPY.tar.gz
+    [ $INST_ASTROPY -eq 1 ] && get_ytproject $ASTROPY.tar.gz
     get_ytproject $PYTHON2.tgz
     get_ytproject $NUMPY.tar.gz
     get_ytproject $MATPLOTLIB.tar.gz
@@ -1107,7 +1107,7 @@ then
     then
         do_setup_py $NOSE
     fi
-    if [ $INST_ASTROPY -eq 1]
+    if [ $INST_ASTROPY -eq 1 ]
     then
         do_setup_py $ASTROPY
     fi
