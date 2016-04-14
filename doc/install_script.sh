@@ -108,6 +108,16 @@ fi
 
 if [ $INST_CONDA -ne 0 ]
 then
+    if [ ! -z "${CONDA_DEFAULT_ENV}" ]
+    then
+        echo "Aborting the yt installation because you appear to already"
+        echo "have a conda environment activated. Either deactivate it with:"
+        echo
+        echo "    $ source deactivate"
+        echo
+        echo "or install yt into your current environment"
+        exit 1
+    fi
     DEST_SUFFIX="yt-conda"
 else
     if [ $INST_YT_SOURCE -eq 0 ]
