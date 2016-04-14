@@ -470,7 +470,6 @@ cdef class ParticleBitmap:
             for i in range(3):
                 # Skip particles outside the domain
                 if pos[p,i] >= RE[i] or pos[p,i] < LE[i]:
-                    # print '{} <= {} < {}'.format(LE[i],pos[p,i],RE[i])
                     skip = 1
                     break
                 ppos[i] = pos[p,i]
@@ -985,6 +984,28 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def get_ghost_zones(self, SelectorObject selector, int ngz,
+                        BoolArrayCollection dmask = None):
+        cdef BoolArrayCollection gmask, gmask2
+        cdef np.ndarray[np.uint8_t, ndim=1] periodic = selector.get_periodicity()
+        cdef bint periodicity[3]
+        cdef int i
+        for i in range(3):
+            periodicity[i] = periodic[i]
+        if dmask is None:
+            dmask = BoolArrayCollection()
+            gmask2 = BoolArrayCollection()
+            morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
+            morton_selector.fill_masks(dmask, gmask2)
+        gmask = BoolArrayCollection()
+        dmask._get_ghost_zones(ngz, self.index_order1, self.index_order2,
+                               periodicity, gmask)
+        dfiles, gfiles = self.masks_to_files(dmask, gmask)
+        return gfiles, gmask
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     def identify_data_files(self, SelectorObject selector, int ngz = 0):
         cdef BoolArrayCollection cmask_s = BoolArrayCollection()
         cdef BoolArrayCollection cmask_g = BoolArrayCollection()
@@ -993,18 +1014,39 @@ cdef class ParticleBitmap:
         morton_selector = ParticleBitmapSelector(selector,self,ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
         return morton_selector.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
-        # Other version
-        # cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
-        # cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
-        # file_mask_p = np.zeros(self.nfiles, dtype="uint8")
-        # file_mask_g = np.zeros(self.nfiles, dtype="uint8")
-        # morton_selector.find_files(file_mask_p,file_mask_g)
-        # cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
-        # cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
-        # print "After: {}, {}".format(np.sum(file_mask_p>0),np.sum(file_mask_g>0))
-        # file_idx_p = np.where(file_mask_p)[0].astype('int32')
-        # file_idx_g = np.where(file_mask_g)[0].astype('int32')
-        # return file_idx_p, file_idx_g
+
+    def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+        IF UseCythonBitmasks == 1:
+            cdef FileBitmasks mm_d = self.bitmasks
+        ELSE:
+            cdef BoolArrayCollection mm_d
+        cdef np.int32_t ifile
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
+        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
+        file_mask_g = np.zeros(self.nfiles, dtype="uint8")
+        # Compare with mask of particles
+        for ifile in range(self.nfiles):
+            # Only continue if the file is not already selected
+            if file_mask_p[ifile] == 0:
+                IF UseCythonBitmasks == 1:
+                    if mm_d._intersects(ifile, mm_s):
+                        file_mask_p[ifile] = 1
+                        file_mask_g[ifile] = 0 # No intersection
+                    elif mm_d._intersects(ifile, mm_g):
+                        file_mask_g[ifile] = 1
+                ELSE:
+                    mm_d = self.bitmasks[ifile]
+                    if mm_d._intersects(mm_s):
+                        file_mask_p[ifile] = 1
+                        file_mask_g[ifile] = 0 # No intersection
+                    elif mm_d._intersects(mm_g):
+                        file_mask_g[ifile] = 1
+        cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
+        cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
+        file_idx_p = np.where(file_mask_p)[0].astype('int32')
+        file_idx_g = np.where(file_mask_g)[0].astype('int32')
+        return file_idx_p, file_idx_g
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

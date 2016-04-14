@@ -361,15 +361,18 @@ class YTDataContainer(object):
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
-                    wogz = gz._base_grid
-                    if accumulate:
-                        rv = self.ds.arr(np.empty(wogz.ires.size,
-                                dtype="float64"), units)
-                        outputs.append(rv)
-                    ind += wogz.select(
-                        self.selector,
-                        gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                        rv, ind)
+                    if hasattr(gz,'_base_grid'):
+                        wogz = gz._base_grid
+                        if accumulate:
+                            rv = self.ds.arr(np.empty(wogz.ires.size,
+                                    dtype="float64"), units)
+                            outputs.append(rv)
+                        ind += wogz.select(
+                            self.selector,
+                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                            rv, ind)
+                    else:
+                        raise NotImplementedError
         if accumulate:
             rv = uconcatenate(outputs)
         return rv

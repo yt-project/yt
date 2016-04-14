@@ -27,6 +27,8 @@ from cython.operator cimport dereference, preincrement
 import numpy as np
 cimport numpy as np
 cimport cython
+from yt.utilities.lib.geometry_utils cimport \
+    morton_neighbors_coarse, morton_neighbors_refined
 
 cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)
@@ -1050,6 +1052,94 @@ cdef class BoolArrayCollection:
             iset = dereference(iter_set[0])
             out[iset] = 1
             preincrement(iter_set[0])
+
+    cdef void _get_ghost_zones(self, int ngz, int order1, int order2, 
+                               bint periodicity[3], BoolArrayCollection out_ewah):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map
+        cdef ewah_bool_iterator *iter_set1 = new ewah_bool_iterator(ewah_keys.begin())
+        cdef ewah_bool_iterator *iter_end1 = new ewah_bool_iterator(ewah_keys.end())
+        cdef ewah_bool_iterator *iter_set2
+        cdef ewah_bool_iterator *iter_end2
+        cdef np.uint64_t max_index1 = <np.uint64_t>(1 << order1)
+        cdef np.uint64_t max_index2 = <np.uint64_t>(1 << order2)
+        cdef np.uint64_t nele1 = <np.uint64_t>(max_index1**3)
+        cdef np.uint64_t nele2 = <np.uint64_t>(max_index2**3)
+        cdef BoolArrayCollectionUncompressed temp_bool = BoolArrayCollectionUncompressed(nele1, nele2)
+        cdef BoolArrayCollectionUncompressed out_bool = BoolArrayCollectionUncompressed(nele1, nele2)
+        cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
+        cdef np.uint32_t ntot, i
+        cdef void* pointers[7]
+        pointers[0] = malloc( sizeof(np.int32_t) * (2*ngz+1)*3)
+        pointers[1] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
+        pointers[2] = malloc( sizeof(np.uint64_t) * (2*ngz+1)*3)
+        pointers[3] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
+        pointers[4] = malloc( sizeof(np.uint64_t) * (2*ngz+1)**3)
+        pointers[5] = malloc( sizeof(np.uint8_t) * nele1)
+        pointers[6] = malloc( sizeof(np.uint8_t) * nele2)
+        cdef np.uint32_t[:,:] index = <np.uint32_t[:2*ngz+1,:3]> pointers[0]
+        cdef np.uint64_t[:,:] ind1_n = <np.uint64_t[:2*ngz+1,:3]> pointers[1]
+        cdef np.uint64_t[:,:] ind2_n = <np.uint64_t[:2*ngz+1,:3]> pointers[2]
+        cdef np.uint64_t[:] neighbor_list1 = <np.uint64_t[:((2*ngz+1)**3)]> pointers[3]
+        cdef np.uint64_t[:] neighbor_list2 = <np.uint64_t[:((2*ngz+1)**3)]> pointers[4]
+        cdef np.uint8_t *bool_keys = <np.uint8_t *> pointers[5]
+        cdef np.uint8_t *bool_coll = <np.uint8_t *> pointers[6]
+        cdef SparseUnorderedRefinedBitmaskSet list_coll = SparseUnorderedRefinedBitmaskSet()
+        for i in range(nele1):
+            bool_keys[i] = 0
+        while iter_set1[0] != iter_end1[0]:
+            mi1 = dereference(iter_set1[0])
+            if ewah_refn[0].get(mi1) == 0:
+                # Coarse neighbors
+                ntot = morton_neighbors_coarse(mi1, max_index1, periodicity, ngz,
+                                               index, ind1_n, neighbor_list1)
+                for i in range(ntot):
+                    mi1_n = neighbor_list1[i]
+                    if ewah_keys[0].get(mi1_n) == 0:
+                        bool_keys[mi1_n] = 1
+            else:
+                for i in range(nele2):
+                    bool_coll[i] = 0
+                # Refined neighbors
+                iter_set2 = new ewah_bool_iterator(ewah_coll[0][mi1].begin())
+                iter_end2 = new ewah_bool_iterator(ewah_coll[0][mi1].end())
+                while iter_set2[0] != iter_end2[0]:
+                    mi2 = dereference(iter_set2[0])
+                    ntot = morton_neighbors_refined(mi1, mi2, 
+                                                    max_index1, max_index2, 
+                                                    periodicity, ngz, index, 
+                                                    ind1_n, ind2_n, 
+                                                    neighbor_list1,
+                                                    neighbor_list2)
+                    for i in range(ntot):
+                        mi1_n = neighbor_list1[i]
+                        mi2_n = neighbor_list2[i]
+                        if mi1_n == mi1:
+                            if ewah_coll[0][mi1].get(mi2_n) == 0:
+                                bool_keys[mi1_n] = 1
+                                bool_coll[mi2_n] = 1
+                        else:
+                            if ewah_refn[0].get(mi1_n) == 1:
+                                if ewah_coll[0][mi1_n].get(mi2_n) == 0:
+                                    bool_keys[mi1_n] = 1
+                                    list_coll._set(mi1_n, mi2_n)
+                            else:
+                                if ewah_keys[0].get(mi1_n) == 0:
+                                    bool_keys[mi1_n] = 1
+                    preincrement(iter_set2[0])
+                # Add to running list
+                temp_bool._set_refined_array_ptr(mi1, bool_coll)
+            preincrement(iter_set1[0])
+        # Set keys
+        out_bool._set_coarse_array_ptr(bool_keys)
+        list_coll._fill_bool(out_bool)
+        out_bool._append(temp_bool)
+        out_bool._compress(out_ewah)
+        # Free things
+        for i in range(7):
+            free(pointers[i])
 
     cdef bytes _dumps(self):
         # TODO: write word size

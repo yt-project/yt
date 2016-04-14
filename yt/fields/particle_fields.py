@@ -808,7 +808,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         rv = data.apply_units(rv, field_units)
         return rv
     registry.add_field(field_name, function = _vol_weight,
-                       validators = [ValidateSpatial(0)],
+                       validators = [ValidateSpatial(1)],
                        units = field_units)
     registry.find_dependencies((field_name,))
     return [field_name]

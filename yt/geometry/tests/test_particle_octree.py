@@ -476,9 +476,9 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         fd = open(fname,'rb')
         pos = pickle.load(fd)
         fd.close()
-        filter_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
-                                       fname_base=fname.split('file')[0])
-        raise Exception('Stop')
+        # filter_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
+        #                                fname_base=fname.split('file')[0])
+        # raise Exception('Stop')
         return pos
     if decomp.startswith('zoom_'):
         zoom_factor = 5
@@ -607,7 +607,7 @@ def FakeBitmap(npart, nfiles, order1, order2, decomp='grid',
         reg.set_owners()
         # Save if file name provided
         if isinstance(fname,str):
-            reg.save_bitmasks(fname=fname)
+            reg.save_bitmasks(fname)
     mem = reg.calcsize_bitmasks()
     return reg, cc, rc, mem
 

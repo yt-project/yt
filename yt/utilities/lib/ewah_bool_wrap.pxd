@@ -73,6 +73,8 @@ cdef class BoolArrayCollection:
         BoolArrayCollection mask2=*)
     cdef void _select_uncontaminated(self, BoolArrayCollection mask, np.uint8_t[:] out,
         BoolArrayCollection mask2=*)
+    cdef void _get_ghost_zones(self, int ngz, int order1, int order2,
+                               bint periodicity[3], BoolArrayCollection out_ewah)
     cdef bytes _dumps(self)
     cdef bint _loads(self, bytes s)
 
