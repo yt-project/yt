@@ -1,8 +1,9 @@
 import contextlib
 import glob
 import os
-import subprocess
 import shutil
+import subprocess
+import sys
 import tempfile
 
 # dependencies that are always installed
@@ -38,6 +39,12 @@ YT_SOURCE_ONLY_DEPS = [
 YT_SOURCE_CONDA_ONLY_DEPS = [
     'unstructured'
 ]
+
+DEPENDENCY_IMPORT_TESTS = {
+    'unstructured': "from yt.utilities.lib import mesh_traversal",
+    'rockstar': ("from yt.analysis_modules.halo_finding.rockstar "
+                 "import rockstar_interface")
+}
 
 
 def call_unix_command(command):
@@ -99,7 +106,7 @@ def run_install_script(install_script_path, inst_py3,
     call_unix_command('bash install_script.sh --yes')
 
 
-def verify_yt_installation(binary_yt):
+def verify_yt_installation(binary_yt, conda):
     yt_dir = glob.glob('yt-*')
     ndirs = len(yt_dir)
     if ndirs != 1:
@@ -110,12 +117,20 @@ def verify_yt_installation(binary_yt):
     for dep in OPTIONAL_DEPS + REQUIRED_DEPS:
         if binary_yt is True and dep in YT_SOURCE_ONLY_DEPS:
             continue
+        if conda is False and dep in YT_SOURCE_CONDA_ONLY_DEPS:
+            continue
         elif dep == 'mercurial':
             hg_path = os.sep.join([yt_dir, 'bin', 'hg'])
             call_unix_command('{} --version'.format(hg_path))
-        elif dep in ['unstructured', 'rockstar']:
-            # FIXME, how do we test these?
-            pass
+        elif dep in DEPENDENCY_IMPORT_TESTS:
+            cmd = "{} -c '{}'"
+            if dep == 'rockstar':
+                cmd = 'LD_LIBRARY_PATH={} '.format(
+                    os.sep.join([os.curdir, yt_dir, 'lib'])) + cmd
+                if sys.platform == 'darwin':
+                    cmd = 'DY' + cmd
+            call_unix_command(cmd.format(
+                python_path, DEPENDENCY_IMPORT_TESTS[dep]))
         else:
             call_unix_command("{} -c 'import {}'".format(python_path, dep))
     return yt_dir
@@ -129,15 +144,18 @@ if __name__ == '__main__':
         with working_directory(tmpdir):
             run_install_script(
                 install_script_path, inst_py3, conda=True, binary_yt=True)
-            conda_binary_path = verify_yt_installation(binary_yt=True)
+            conda_binary_path = verify_yt_installation(
+                binary_yt=True, conda=True)
             shutil.rmtree(conda_binary_path)
 
             run_install_script(
                 install_script_path, inst_py3, conda=True, binary_yt=False)
-            conda_source_path = verify_yt_installation(binary_yt=False)
+            conda_source_path = verify_yt_installation(
+                binary_yt=False, conda=True)
             shutil.rmtree(conda_source_path)
 
             run_install_script(
                 install_script_path, inst_py3, conda=False, binary_yt=False)
-            source_path = verify_yt_installation(binary_yt=False)
+            source_path = verify_yt_installation(
+                binary_yt=False, conda=False)
             shutil.rmtree(source_path)

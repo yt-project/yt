@@ -1371,6 +1371,8 @@ else # INST_CONDA -eq 1
     done
 
     log_cmd pip install python-hglib
+
+    log_cmd hg clone https://bitbucket.org/yt_analysis/yt_conda ${DEST_DIR}/src/yt_conda
     
     if [ $INST_UNSTRUCTURED -eq 1 ]
     then
@@ -1403,28 +1405,12 @@ else # INST_CONDA -eq 1
 
     if [ $INST_ROCKSTAR -eq 1 ]
     then
-        if [ ! -d ${DEST_DIR}/src ]
-        then
-            mkdir ${DEST_DIR}/src
-        fi
-        cd ${DEST_DIR}/src
-        if [ ! -e rockstar/done ]
-        then
-            echo "Building Rockstar"
-            if [ ! -e rockstar ]
-            then
-                ( hg clone http://bitbucket.org/MatthewTurk/rockstar 2>&1 ) 1>> ${LOG_FILE}
-            fi
-            cd rockstar
-            ( hg pull 2>&1 ) 1>> ${LOG_FILE}
-            ( hg up -C tip 2>&1 ) 1>> ${LOG_FILE}
-            ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
-            cp librockstar.so ${DEST_DIR}/lib
-            ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
-            echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
-            touch done
-            cd ..
-        fi
+        echo "Building Rockstar"
+        ( hg clone http://bitbucket.org/MatthewTurk/rockstar ${DEST_DIR}/src/rockstar/ 2>&1 ) 1>> ${LOG_FILE}
+        ROCKSTAR_PACKAGE=$(conda build ${DEST_DIR}/src/yt_conda/rockstar --output)
+        log_cmd conda build ${DEST_DIR}/src/yt_conda/rockstar
+        log_cmd conda install $ROCKSTAR_PACKAGE
+        ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
     fi
 
     # conda doesn't package pyx, so we install manually with pip
@@ -1440,6 +1426,7 @@ else # INST_CONDA -eq 1
 
     if [ $INST_PY3 -eq 1 ]
     then
+        echo "Installing mercurial"
         log_cmd conda create -y -n py27 python=2.7 mercurial
         log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
     fi
@@ -1449,15 +1436,20 @@ else # INST_CONDA -eq 1
         echo "Installing yt"
         log_cmd conda install --yes yt
     else
-        echo "Installing yt from source"
+        echo "Building yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
         log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
         if [ $INST_UNSTRUCTURED -eq 1 ]
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg
         fi
+        if [ $INST_ROCKSTAR -eq 1 ]
+        then
+            echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
+            ROCKSTAR_LIBRARY_PATH=${DEST_DIR}/lib
+        fi
         pushd ${YT_DIR} &> /dev/null
-        log_cmd python setup.py develop
+        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE}
         popd &> /dev/null
     fi
 
@@ -1496,6 +1488,21 @@ else # INST_CONDA -eq 1
     echo "(e.g. .bashrc, .bash_profile, .cshrc, or .zshrc) to include"
     echo "the same command."
     echo
+    if [ $INST_ROCKSTAR -eq 1 ]
+    then
+        if [ $MYOS = "Darwin" ]
+        then
+            LD_NAME="DYLD_LIBRARY_PATH"
+        else
+            LD_NAME="LD_LIBRARY_PATH"
+        fi
+        echo
+        echo "For rockstar to work, you must also set $LD_NAME:"
+        echo
+        echo "    export $LD_NAME=$DEST_DIR/lib:\$$LD_NAME"
+        echo
+        echo "or whichever invocation is appropriate for your shell."
+    fi
     echo "========================================================================"
     echo
     echo "Oh, look at me, still talking when there's science to do!"
