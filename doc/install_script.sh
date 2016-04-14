@@ -701,13 +701,13 @@ function do_setup_py
     cd ..
 }
 
-if type -P wget &>/dev/null
+if type -P curl &>/dev/null
 then
-    echo "Using wget"
-    export GETFILE="wget -nv"
-else
     echo "Using curl"
     export GETFILE="curl -sSO"
+else
+    echo "Using wget"
+    export GETFILE="wget -nv"
 fi
 
 if type -P sha512sum &> /dev/null
