@@ -8,7 +8,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 # center of the simulation box
 slc = yt.SlicePlot(ds, 'z', 'density')
 
-# Create a list of a couple of widths and units. 
+# Create a list of a couple of widths and units.
 # (N.B. Mpc (megaparsec) != mpc (milliparsec)
 widths = [(1, 'Mpc'),
           (15, 'kpc')]

@@ -24,7 +24,7 @@ cam = sc.add_camera(ds, lens_type='plane-parallel')
 cam.resolution = [250, 250]
 # Set the location of the camera to be (x=0.2, y=0.5, z=0.5)
 # For plane-parallel lens, the location info along the normal_vector (here
-# is x=0.2) is ignored. 
+# is x=0.2) is ignored.
 cam.position = ds.arr(np.array([0.2, 0.5, 0.5]), 'code_length')
 # Set the orientation of the camera.
 cam.switch_orientation(normal_vector=normal_vector,

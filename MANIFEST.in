@@ -1,4 +1,4 @@
-include README* CREDITS COPYING.txt CITATION requirements.txt optional-requirements.txt setupext.py
+include README* CREDITS COPYING.txt CITATION requirements.txt optional-requirements.txt setupext.py CONTRIBUTING.rst
 include yt/visualization/mapserver/html/map_index.html
 include yt/visualization/mapserver/html/leaflet/*.css
 include yt/visualization/mapserver/html/leaflet/*.js
@@ -12,4 +12,5 @@ include doc/extensions/README doc/Makefile
 prune doc/source/reference/api/generated
 prune doc/build
 recursive-include yt/analysis_modules/halo_finding/rockstar *.py *.pyx
+recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 prune yt/frontends/_skeleton

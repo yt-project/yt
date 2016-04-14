@@ -21,6 +21,7 @@ cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
 from yt.utilities.lib.mesh_samplers cimport sample_hex20
+from vec3_ops cimport dot, subtract, cross, distance
 
 
 @cython.boundscheck(False)
@@ -80,30 +81,6 @@ cdef void patchSurfaceDerivV(const Patch& patch,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef float dot(const float* a, 
-               const float* b,
-               size_t N) nogil:
-    cdef int i
-    cdef float rv = 0.0
-    for i in range(N):
-        rv += a[i]*b[i]
-    return rv
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void cross(const float* a, 
-                const float* b,
-                float* c) nogil:
-    c[0] = a[1]*b[2] - a[2]*b[1]
-    c[1] = a[2]*b[0] - a[0]*b[2]
-    c[2] = a[0]*b[1] - a[1]*b[0]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef void patchBoundsFunc(Patch* patches, 
                           size_t item,
                           rtcg.RTCBounds* bounds_o) nogil:
@@ -146,7 +123,7 @@ cdef void patchIntersectFunc(Patch* patches,
 
     # first we compute the two planes that define the ray.
     cdef float[3] n, N1, N2
-    cdef float A = dot(ray.dir, ray.dir, 3)
+    cdef float A = dot(ray.dir, ray.dir)
     for i in range(3):
         n[i] = ray.dir[i] / A
 
@@ -160,16 +137,16 @@ cdef void patchIntersectFunc(Patch* patches,
         N1[2] =-n[1]
     cross(N1, n, N2)
 
-    cdef float d1 = -dot(N1, ray.org, 3)
-    cdef float d2 = -dot(N2, ray.org, 3)
+    cdef float d1 = -dot(N1, ray.org)
+    cdef float d2 = -dot(N2, ray.org)
 
     # the initial guess is set to zero
     cdef float u = 0.0
     cdef float v = 0.0
     cdef float[3] S
     patchSurfaceFunc(patch, u, v, S)
-    cdef float fu = dot(N1, S, 3) + d1
-    cdef float fv = dot(N2, S, 3) + d2
+    cdef float fu = dot(N1, S) + d1
+    cdef float fv = dot(N2, S) + d2
     cdef float err = fmax(fabs(fu), fabs(fv))
     
     # begin Newton interation
@@ -183,10 +160,10 @@ cdef void patchIntersectFunc(Patch* patches,
         # compute the Jacobian
         patchSurfaceDerivU(patch, u, v, Su)
         patchSurfaceDerivV(patch, u, v, Sv)
-        J11 = dot(N1, Su, 3)
-        J12 = dot(N1, Sv, 3)
-        J21 = dot(N2, Su, 3)
-        J22 = dot(N2, Sv, 3)
+        J11 = dot(N1, Su)
+        J12 = dot(N1, Sv)
+        J21 = dot(N2, Su)
+        J22 = dot(N2, Sv)
         det = (J11*J22 - J12*J21)
         
         # update the u, v values
@@ -194,17 +171,14 @@ cdef void patchIntersectFunc(Patch* patches,
         v -= (-J21*fu + J11*fv) / det
         
         patchSurfaceFunc(patch, u, v, S)
-        fu = dot(N1, S, 3) + d1
-        fv = dot(N2, S, 3) + d2
+        fu = dot(N1, S) + d1
+        fv = dot(N2, S) + d2
 
         err = fmax(fabs(fu), fabs(fv))
         iterations += 1
 
     # t is the distance along the ray to this hit
-    cdef float t = 0.0
-    for i in range(3):
-        t += (S[i] - ray.org[i])**2
-    t = sqrt(t)
+    cdef float t = distance(S, ray.org)
 
     # only count this is it's the closest hit
     if (t < ray.tnear or t > ray.Ng[0]):

@@ -17,7 +17,7 @@ Star Formation Rate
 -------------------
 
 This tool can calculate various star formation statistics binned over time.
-As input it can accept either a yt ``data_source``, such as a region or 
+As input it can accept either a yt ``data_source``, such as a region or
 sphere (see :ref:`available-objects`), or arrays containing the data for
 the stars you wish to analyze.
 
@@ -95,7 +95,7 @@ In the file ``StarFormationRate.out``, there are seven columns of data:
   6. Stars formed in this time bin :math:`(\mathrm{\rm{M}_\odot})`
   7. Cumulative stars formed up to this time bin :math:`(\mathrm{\rm{M}_\odot})`
 
-The output is easily plotted. This is a plot for some test data (that may or may not 
+The output is easily plotted. This is a plot for some test data (that may or may not
 correspond to anything physical) using columns #2 and #4 for the x and y
 axes, respectively:
 
@@ -154,7 +154,7 @@ The models are chosen with the ``model`` parameter, which is either
   spec = SpectrumBuilder(ds, bcdir="bc", model="chabrier")
 
 In order to analyze a set of stars, use the ``calculate_spectrum`` command.
-It accepts either a ``data_source``, or a set of YTarrays with the star 
+It accepts either a ``data_source``, or a set of YTarrays with the star
 information. Continuing from the above example:
 
 .. code-block:: python
@@ -210,7 +210,7 @@ There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
 
   1. Wavelength :math:`(\text{\AA})`
-  2. Flux (Luminosity per unit wavelength :math:`(\mathrm{\rm{L}_\odot} / \text{\AA})` , where 
+  2. Flux (Luminosity per unit wavelength :math:`(\mathrm{\rm{L}_\odot} / \text{\AA})` , where
        :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^{33}\, \mathrm{ergs / s}` ).
 
 and can be called simply, specifying the output file:
@@ -221,7 +221,7 @@ and can be called simply, specifying the output file:
 
 The other way is to output a spectral energy density plot. Along with the
 ``name`` parameter, this command can also take the ``flux_norm`` option,
-which is the wavelength in Angstroms of the flux to normalize the 
+which is the wavelength in Angstroms of the flux to normalize the
 distribution to. The default is 5200 Angstroms. This command outputs the data
 in two columns:
 
@@ -232,7 +232,7 @@ in two columns:
 
   spec.write_out_SED(name="SED.out", flux_norm=5200)
 
-Below is an example of an absurd SED for universe-old stars all with 
+Below is an example of an absurd SED for universe-old stars all with
 solar metallicity at a redshift of zero. Note that even in this example,
 a ``ds`` is required.
 

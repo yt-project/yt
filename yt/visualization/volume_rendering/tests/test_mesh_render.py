@@ -52,6 +52,7 @@ def compare(ds, im, test_prefix, decimals=12):
     def mesh_render_image_func(filename_prefix):
         return im.write_image(filename_prefix)
 
+    mesh_render_image_func.__name__ = "func_{}".format(test_prefix)
     test = GenericImageTest(ds, mesh_render_image_func, decimals)
     test.prefix = test_prefix
     return test

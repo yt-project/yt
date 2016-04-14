@@ -341,6 +341,25 @@ def test_grids_callback():
             max_level=3, cmap="gist_stern")
         p.save(prefix)
 
+def test_cell_edges_callback():
+    with _cleanup_fname() as prefix:
+        ds = fake_amr_ds(fields = ("density",))
+        for ax in 'xyz':
+            p = ProjectionPlot(ds, ax, "density")
+            p.annotate_cell_edges()
+            yield assert_fname, p.save(prefix)[0]
+            p = ProjectionPlot(ds, ax, "density", weight_field="density")
+            p.annotate_cell_edges()
+            yield assert_fname, p.save(prefix)[0]
+            p = SlicePlot(ds, ax, "density")
+            p.annotate_cell_edges()
+            yield assert_fname, p.save(prefix)[0]
+        # Now we'll check a few additional minor things
+        p = SlicePlot(ds, "x", "density")
+        p.annotate_cell_edges(alpha=0.7, line_width=0.9,
+                              color=(0.0, 1.0, 1.0))
+        p.save(prefix)
+
 def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =

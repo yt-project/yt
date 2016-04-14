@@ -51,7 +51,7 @@ but ``yt.frontends.chombo.data_structures.ChomboDataset``, as a
 slightly newer addition, can also be used as an instructive example.
 
 A new set of fields must be added in the file ``fields.py`` in your
-new directory.  For the most part this means subclassing 
+new directory.  For the most part this means subclassing
 ``FieldInfoContainer`` and adding the necessary fields specific to
 your code. Here is a snippet from the base BoxLib field container:
 
@@ -111,11 +111,11 @@ Creating Aliases for Magnetic Fields
 
 Setting up access to the magnetic fields in your dataset requires special
 handling, because in different unit systems magnetic fields have different
-dimensions (see :ref:`bfields` for an explanation). If your dataset includes 
+dimensions (see :ref:`bfields` for an explanation). If your dataset includes
 magnetic fields, you should include them in ``known_other_fields``, but do
-not set up aliases for them--instead use the special handling function 
+not set up aliases for them--instead use the special handling function
 :meth:`~yt.fields.magnetic_fields.setup_magnetic_field_aliases`. It takes
-as arguments the ``FieldInfoContainer`` instance, the field type of the 
+as arguments the ``FieldInfoContainer`` instance, the field type of the
 frontend, and the list of magnetic fields from the frontend. Here is an
 example of how this is implemented in the FLASH frontend:
 
@@ -134,12 +134,12 @@ example of how this is implemented in the FLASH frontend:
             from yt.fields.magnetic_field import \
                 setup_magnetic_field_aliases
             ...
-            setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])    
+            setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
 
-This function should always be imported and called from within the 
-``setup_fluid_fields`` method of the ``FieldInfoContainer``. If this 
-function is used, converting between magnetic fields in different 
-:ref:`unit systems <unit_systems>` will be handled automatically. 
+This function should always be imported and called from within the
+``setup_fluid_fields`` method of the ``FieldInfoContainer``. If this
+function is used, converting between magnetic fields in different
+:ref:`unit systems <unit_systems>` will be handled automatically.
 
 Data Localization Structures
 ----------------------------
@@ -172,7 +172,7 @@ added in the file ``data_structures.py``. Examples of these different
 types of ``Index`` can be found in, for example, the
 ``yt.frontends.chombo.data_structures.ChomboHierarchy`` for patch-based
 codes and ``yt.frontends.ramses.data_structures.RAMSESIndex`` for
-octree-based codes.  
+octree-based codes.
 
 For the most part, the ``GridIndex`` subclass must override (at a
 minimum) the following methods:
@@ -183,12 +183,12 @@ minimum) the following methods:
    of grids (equivalently ``AMRGridPatch``'es) in the simulation.
  * ``_parse_index()``: this must fill in ``grid_left_edge``,
    ``grid_right_edge``, ``grid_particle_count``, ``grid_dimensions`` and
-   ``grid_levels`` with the appropriate information.  Each of these variables 
-   is an array, with an entry for each of the ``self.num_grids`` grids.  
-   Additionally, ``grids``  must be an array of ``AMRGridPatch`` objects that 
+   ``grid_levels`` with the appropriate information.  Each of these variables
+   is an array, with an entry for each of the ``self.num_grids`` grids.
+   Additionally, ``grids``  must be an array of ``AMRGridPatch`` objects that
    already know their IDs.
  * ``_populate_grid_objects()``: this initializes the grids by calling
-   ``_prepare_grid()`` and ``_setup_dx()`` on all of them.  Additionally, it 
+   ``_prepare_grid()`` and ``_setup_dx()`` on all of them.  Additionally, it
    should set up ``Children`` and ``Parent`` lists on each grid object.
 
 The ``OctreeIndex`` has somewhat analogous methods, but often with
@@ -249,15 +249,15 @@ registry.  For example:
 
 At a minimum, one should also override the following methods
 
-* ``_read_fluid_selection()``: this receives a collection of data "chunks", a 
+* ``_read_fluid_selection()``: this receives a collection of data "chunks", a
   selector describing which "chunks" you are concerned with, a list of fields,
-  and the size of the data to read.  It should create and return a dictionary 
-  whose keys are the fields, and whose values are numpy arrays containing the 
-  data.  The data should actually be read via the ``_read_chunk_data()`` 
+  and the size of the data to read.  It should create and return a dictionary
+  whose keys are the fields, and whose values are numpy arrays containing the
+  data.  The data should actually be read via the ``_read_chunk_data()``
   method.
-* ``_read_chunk_data()``: this method receives a "chunk" of data along with a 
-  list of fields we want to read.  It loops over all the grid objects within 
-  the "chunk" of data and reads from disk the specific fields, returning a 
+* ``_read_chunk_data()``: this method receives a "chunk" of data along with a
+  list of fields we want to read.  It loops over all the grid objects within
+  the "chunk" of data and reads from disk the specific fields, returning a
   dictionary whose keys are the fields and whose values are numpy arrays of
   the data.
 

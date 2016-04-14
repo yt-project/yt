@@ -26,8 +26,8 @@ Pastebin
 A pastebin is a website where you can easily copy source code and error
 messages to share with yt developers or your collaborators. At
 http://paste.yt-project.org/ a pastebin is available for placing scripts.  With
-yt the script ``yt_lodgeit.py`` is distributed and wrapped with 
-the ``pastebin`` and ``pastebin_grab`` commands, which allow for commandline 
+yt the script ``yt_lodgeit.py`` is distributed and wrapped with
+the ``pastebin`` and ``pastebin_grab`` commands, which allow for commandline
 uploading and downloading of pasted snippets.  To upload a script you
 would supply it to the command:
 
@@ -61,7 +61,7 @@ Signaling yt to Do Something
 During startup, yt inserts handlers for two operating system-level signals.
 These provide two diagnostic methods for interacting with a running process.
 Signalling the python process that is running your script with these signals
-will induce the requested behavior.  
+will induce the requested behavior.
 
    SIGUSR1
      This will cause the python code to print a stack trace, showing exactly
@@ -90,7 +90,7 @@ Remote and Disconnected Debugging
 If you are running a parallel job that fails, often it can be difficult to do a
 post-mortem analysis to determine what went wrong.  To facilitate this, yt
 has implemented an `XML-RPC <http://en.wikipedia.org/wiki/XML-RPC>`_ interface
-to the Python debugger (``pdb``) event loop.  
+to the Python debugger (``pdb``) event loop.
 
 Running with the ``--rpdb`` command will cause any uncaught exception during
 execution to spawn this interface, which will sit and wait for commands,

@@ -16,14 +16,14 @@ N = 30
 scale = ds.quan(15, 'kpc').in_units('code_length')  # 15 kpc in code units
 pos_dx = np.random.random((N,3))*scale-scale/2.
 pos = c+pos_dx
- 
+
 # Create the streamlines from these positions with the velocity fields as the
 # fields to be traced
-streamlines = Streamlines(ds, pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+streamlines = Streamlines(ds, pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0)
 streamlines.integrate_through_volume()
 
 # Create a 3D matplotlib figure for visualizing the streamlines
-fig=pl.figure() 
+fig=pl.figure()
 ax = Axes3D(fig)
 
 # Trace the streamlines through the volume of the 3D figure
@@ -35,7 +35,7 @@ for stream in streamlines.streamlines:
     # can omit and just set streamline colors to a fixed color
     x_start_pos = ds.arr(stream[0,0], 'code_length')
     x_start_pos -= ds.arr(0.5, 'code_length')
-    x_start_pos /= scale 
+    x_start_pos /= scale
     x_start_pos += 0.5
     color = np.array([x_start_pos, 0, 1-x_start_pos])
 
@@ -52,7 +52,7 @@ surface = ds.surface(sphere, "density", 1e-24)
 # Color this isodensity surface according to the log of the temperature field
 colors = yt.apply_colormap(np.log10(surface["temperature"]), cmap_name="hot")
 
-# Render this surface 
+# Render this surface
 p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 colors = colors[0,:,:]/255.  # scale to [0,1]
 colors[:,3] = 0.3            # alpha = 0.3
