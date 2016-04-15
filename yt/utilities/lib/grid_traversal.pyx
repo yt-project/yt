@@ -21,12 +21,15 @@ cdef extern from "limits.h":
     cdef int SHRT_MAX
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    lrint, fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
+    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
+
+cdef extern from "platform_dep.h":
+    long int lrint(double x) nogil
 
 from cython.parallel import prange, parallel, threadid
 from vec3_ops cimport dot, subtract, L2_norm, fma
@@ -844,9 +847,11 @@ cdef class VolumeRenderSampler(ImageSampler):
             self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -905,11 +910,13 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
-        #free(self.light_dir)
-        #free(self.light_rgba)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.light_dir)
+        free(self.vra.light_rgba)
+        free(self.vra.fits)
+        free(self.vra)
 
 
 @cython.boundscheck(False)

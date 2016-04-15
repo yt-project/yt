@@ -1,48 +1,91 @@
 .. _absorption_spectrum:
 
-Absorption Spectrum
-===================
+Creating Absorption Spectra
+===========================
 
 .. sectionauthor:: Britton Smith <brittonsmith@gmail.com>
 
-Absorption line spectra, such as shown below, can be made with data created
-by the (:ref:`light-ray-generator`).  For each element of the ray, column
-densities are calculated multiplying the number density within a grid cell
-with the path length of the ray through the cell.  Line profiles are
-generated using a voigt profile based on the temperature field.  The lines
-are then shifted according to the redshift recorded by the light ray tool
-and (optionally) the peculiar velocity of gas along the ray.  Inclusion of the
-peculiar velocity requires setting ``use_peculiar_velocity`` to True in the call to
-:meth:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`.
+Absorption line spectra are spectra generated using bright background sources
+to illuminate tenuous foreground material and are primarily used in studies
+of the circumgalactic medium and intergalactic medium.  These spectra can
+be created using the
+:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum`
+and
+:class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`
+analysis modules.
 
-The spectrum generator will output a file containing the wavelength and
-normalized flux.  It will also output a text file listing all important lines.
+The 
+:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum` class
+and its workhorse method
+:meth:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum.make_spectrum`
+return two arrays, one with wavelengths, the other with the normalized
+flux values at each of the wavelength values.  It can also output a text file
+listing all important lines.
+
+For example, here is an absorption spectrum for the wavelength range from 900 
+to 1800 Angstroms made with a light ray extending from z = 0 to z = 0.4:
 
 .. image:: _images/spectrum_full.png
    :width: 500
 
-An absorption spectrum for the wavelength range from 900 to 1800 Angstroms
-made with a light ray extending from z = 0 to z = 0.4.
+And a zoom-in on the 1425-1450 Angstrom window:
 
 .. image:: _images/spectrum_zoom.png
    :width: 500
 
-A zoom-in of the above spectrum.
+Method for Creating Absorption Spectra
+--------------------------------------
 
-Creating an Absorption Spectrum
--------------------------------
+Once a
+:class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`
+has been created traversing a dataset using the :ref:`light-ray-generator`,
+a series of arrays store the various fields of the gas parcels (represented
+as cells) intersected along the ray.
+:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum`
+steps through each element of the
+:class:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay`'s
+arrays and calculates the column density for desired ion by multiplying its
+number density with the path length through the cell.  Using these column
+densities along with temperatures to calculate thermal broadening, voigt
+profiles are deposited on to a featureless background spectrum.  By default,
+the peculiar velocity of the gas is included as a doppler redshift in addition
+to any cosmological redshift of the data dump itself.
 
-To instantiate an AbsorptionSpectrum object, the arguments required are the
-minimum and maximum wavelengths, and the number of wavelength bins.
+Subgrid Deposition
+^^^^^^^^^^^^^^^^^^
+
+For features not resolved (i.e. possessing narrower width than the spectral
+resolution),
+:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum`
+performs subgrid deposition.  The subgrid deposition algorithm creates a number
+of smaller virtual bins, by default the width of the virtual bins is 1/10th
+the width of the spectral feature.  The Voigt profile is then deposited
+into these virtual bins where it is resolved, and then these virtual bins
+are numerically integrated back to the resolution of the original spectral bin
+size, yielding accurate equivalent widths values.
+:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum`
+informs the user how many spectral features are deposited in this fashion.
+
+Tutorial on Creating an Absorption Spectrum
+-------------------------------------------
+
+Initializing `AbsorptionSpectrum` Class
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To instantiate an
+:class:`~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum`
+object, the arguments required are the
+minimum and maximum wavelengths (assumed to be in Angstroms), and the number
+of wavelength bins to span this range (including the endpoints)
 
 .. code-block:: python
 
   from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
 
-  sp = AbsorptionSpectrum(900.0, 1800.0, 10000)
+  sp = AbsorptionSpectrum(900.0, 1800.0, 10001)
 
 Adding Features to the Spectrum
--------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Absorption lines and continuum features can then be added to the spectrum.
 To add a line, you must know some properties of the line: the rest wavelength,
@@ -67,8 +110,8 @@ In the above example, the *field* argument tells the spectrum generator which
 field from the ray data to use to calculate the column density.  The
 ``label_threshold`` keyword tells the spectrum generator to add all lines
 above a column density of 10 :superscript:`10` cm :superscript:`-2` to the
-text line list.  If None is provided, as is the default, no lines of this
-type will be added to the text list.
+text line list output at the end.  If None is provided, as is the default,
+no lines of this type will be added to the text list.
 
 Continuum features with optical depths that follow a power law can also be
 added.  Like adding lines, you must specify details like the wavelength
@@ -86,7 +129,7 @@ Below, we will add H Lyman continuum.
   sp.add_continuum(my_label, field, wavelength, normalization, index)
 
 Making the Spectrum
--------------------
+^^^^^^^^^^^^^^^^^^^
 
 Once all the lines and continuum are added, it is time to make a spectrum out
 of some light ray data.
@@ -95,12 +138,12 @@ of some light ray data.
 
   wavelength, flux = sp.make_spectrum('lightray.h5',
                                       output_file='spectrum.fits',
-                                      line_list_file='lines.txt',
-                                      use_peculiar_velocity=True)
+                                      line_list_file='lines.txt')
 
 A spectrum will be made using the specified ray data and the wavelength and
-flux arrays will also be returned.  If ``use_peculiar_velocity`` is set to
-False, the lines will only be shifted according to the redshift.
+flux arrays will also be returned.  If you set the optional
+``use_peculiar_velocity`` keyword to False, the lines will not incorporate
+doppler redshifts to shift the deposition of the line features.
 
 Three output file formats are supported for writing out the spectrum: fits,
 hdf5, and ascii.  The file format used is based on the extension provided
@@ -112,15 +155,16 @@ in the ``output_file`` keyword: ``.fits`` for a fits file,
 Generating Spectra in Parallel
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The spectrum generator can be run in parallel simply by following the procedures
-laid out in :ref:`parallel-computation` for running yt scripts in parallel.
-Spectrum generation is parallelized using a multi-level strategy where each
-absorption line is deposited by a different processor.  If the number of available
-processors is greater than the number of lines, then the deposition of
-individual lines will be divided over multiple processors.
+The `AbsorptionSpectrum` analysis module can be run in parallel simply by
+following the procedures laid out in :ref:`parallel-computation` for running
+yt scripts in parallel.  Spectrum generation is parallelized using a multi-level
+strategy where each absorption line is deposited by a different processor.
+If the number of available processors is greater than the number of lines,
+then the deposition of individual lines will be divided over multiple
+processors.
 
-Fitting an Absorption Spectrum
-------------------------------
+Fitting Absorption Spectra
+==========================
 
 .. sectionauthor:: Hilary Egan <hilary.egan@colorado.edu>
 

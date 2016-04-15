@@ -1075,25 +1075,33 @@ class YTUploadImageCmd(YTCommand):
             print("File must be a PNG file!")
             return 1
         image_data = base64.b64encode(open(filename, 'rb').read())
-        api_key = 'f62d550859558f28c4c214136bc797c7'
-        parameters = {'key':api_key, 'image':image_data, type:'base64',
-                      'caption': "",
+        api_key = 'e1977d9195fe39e'
+        headers = {'Authorization': 'Client-ID %s' % api_key}
+        parameters = {'image': image_data, type: 'base64',
+                      'name': filename,
                       'title': "%s uploaded by yt" % filename}
         data = urllib.parse.urlencode(parameters).encode('utf-8')
-        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
+        req = urllib.request.Request('https://api.imgur.com/3/upload', data=data,
+                                     headers=headers)
         try:
             response = urllib.request.urlopen(req).read().decode()
         except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
-        if 'upload' in rv and 'links' in rv['upload']:
+        if 'data' in rv and 'link' in rv['data']:
+            delete_cmd = (
+                "curl -X DELETE -H 'Authorization: Client-ID {secret}'"
+                " https://api.imgur.com/3/image/{delete_hash}"
+            )
             print()
             print("Image successfully uploaded!  You can find it at:")
-            print("    %s" % (rv['upload']['links']['original']))
+            print("    %s" % (rv['data']['link']))
             print()
-            print("If you'd like to delete it, visit this page:")
-            print("    %s" % (rv['upload']['links']['delete_page']))
+            print("If you'd like to delete it, use the following")
+            print("    %s" % 
+                  delete_cmd.format(secret=api_key,
+                                    delete_hash=rv['data']['deletehash']))
             print()
         else:
             print()

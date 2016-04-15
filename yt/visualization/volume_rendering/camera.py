@@ -165,7 +165,7 @@ class Camera(Orientation):
 
         position : number, YTQuantity, iterable, or 3 element YTArray
             If a scalar, assumes that the position is the same in all three
-            coordinates. If an interable, must contain only scalars or
+            coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
         '''
 
@@ -195,7 +195,7 @@ class Camera(Orientation):
         width : number, YTQuantity, iterable, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
-            all three directions. If an interable, must contain only scalars or
+            all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
         '''
 
@@ -223,7 +223,7 @@ class Camera(Orientation):
         focus : number, YTQuantity, iterable, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
-            all three directions. If an interable, must contain only scalars or
+            all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
         '''
 
@@ -360,7 +360,7 @@ class Camera(Orientation):
         width : number, YTQuantity, iterable, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
-            all three directions. If an interable, must contain only scalars or
+            all three directions. If an iterable, must contain only scalars or
             (length, unit) tuples.
         """
         self.width = width
@@ -378,7 +378,7 @@ class Camera(Orientation):
 
         width : number, YTQuantity, iterable, or 3 element YTArray
             If a scalar, assumes that the position is the same in all three
-            coordinates. If an interable, must contain only scalars or
+            coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
 
         north_vector : array_like, optional
@@ -402,7 +402,7 @@ class Camera(Orientation):
 
         focus : number, YTQuantity, iterable, or 3 element YTArray
             If a scalar, assumes that the focus is the same is all three
-            coordinates. If an interable, must contain only scalars or
+            coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
 
         """
@@ -470,7 +470,7 @@ class Camera(Orientation):
             occur.  Defaults to None, which sets rotation around
             `north_vector`
         rot_center  : array_like, optional
-            Specifiy the center around which rotation will occur. Defaults
+            Specify the center around which rotation will occur. Defaults
             to None, which sets rotation around the original camera position
             (i.e. the camera position does not change)
 
@@ -526,7 +526,7 @@ class Camera(Orientation):
         theta : float, in radians
              Angle (in radians) by which to pitch the view.
         rot_center  : array_like, optional
-            Specifiy the center around which rotation will occur.
+            Specify the center around which rotation will occur.
 
         Examples
         --------
@@ -554,7 +554,7 @@ class Camera(Orientation):
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
         rot_center  : array_like, optional
-            Specifiy the center around which rotation will occur.
+            Specify the center around which rotation will occur.
 
         Examples
         --------
@@ -582,7 +582,7 @@ class Camera(Orientation):
         theta : float, in radians
              Angle (in radians) by which to roll the view.
         rot_center  : array_like, optional
-            Specifiy the center around which rotation will occur.
+            Specify the center around which rotation will occur.
 
         Examples
         --------
@@ -617,7 +617,7 @@ class Camera(Orientation):
             occur.  Defaults to None, which sets rotation around the
             original `north_vector`
         rot_center  : array_like, optional
-            Specifiy the center around which rotation will occur. Defaults
+            Specify the center around which rotation will occur. Defaults
             to None, which sets rotation around the original camera position
             (i.e. the camera position does not change)
 

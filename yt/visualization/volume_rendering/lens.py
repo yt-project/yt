@@ -133,8 +133,8 @@ class PlaneParallelLens(Lens):
         dz = np.array(np.dot(pos - front_center, -camera.unit_vectors[2]))
         # Transpose into image coords.
 
-        py = (res[0]*(dx/width[0])).astype('int')
-        px = (res[1]*(dy/width[1])).astype('int')
+        py = (res[0]*(dx/width[0])).astype('int64')
+        px = (res[1]*(dy/width[1])).astype('int64')
         return px, py, dz
 
     def __repr__(self):

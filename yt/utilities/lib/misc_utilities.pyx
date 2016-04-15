@@ -30,7 +30,7 @@ from cython.view cimport memoryview
 from cpython cimport buffer
 
 
-cdef extern from "stdlib.h":
+cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 

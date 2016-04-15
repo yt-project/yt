@@ -244,6 +244,26 @@ installation.
 
 Option 1:
 
+Ensure that you have all build dependencies installed in your current
+conda environment:
+
+.. code-block:: bash
+
+  conda install cython mercurial sympy ipython h5py matplotlib
+
+.. note::
+  
+  If you are using a python3 environment, ``conda`` will not be able to install
+  *mercurial*, which works only with python2. You can circumvent this issue by
+  creating a dedicated python2 environment and symlinking *hg* in your current
+  environment:
+
+  .. code-block:: bash
+
+     export CONDA_DIR=$(python -c 'import sys; print(sys.executable.split("/bin/python")[0])')
+     conda create -y -n py27 python=2.7 mercurial
+     ln -s ${CONDA_DIR}/envs/py27/bin/hg ${CONDA_DIR}/bin
+
 Clone the yt repository with:
 
 .. code-block:: bash
@@ -346,6 +366,27 @@ the official repo:
   discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
   if you are curious why ``--prefix=`` is neccessary on some systems.
+
+.. note::
+
+   yt requires version 18.0 or higher of ``setuptools``. If you see
+   error messages about this package, you may need to update it. For
+   example, with pip via
+
+   .. code-block:: bash
+
+      pip install --upgrade setuptools
+
+   or your preferred method. If you have ``distribute`` installed, you
+   may also see error messages for it if it's out of date. You can
+   update with pip via
+
+   .. code-block:: bash
+
+      pip install --upgrade distribute
+
+   or via your preferred method.
+   
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,

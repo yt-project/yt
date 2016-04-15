@@ -1432,6 +1432,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.ds.arr(center, 'code_length')
         if iterable(width):
             w, u = width
+            if isinstance(w, tuple) and isinstance(u, tuple):
+                height = u
+                w, u = w
             width = self.ds.quan(w, input_units = u)
         elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')

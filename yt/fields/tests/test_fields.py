@@ -301,6 +301,19 @@ def test_array_like_field():
     u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
     assert u1 == u2
 
+def test_add_field_string():
+    ds = fake_random_ds(16)
+    ad = ds.all_data()
+
+    def density_alias(field, data):
+        return data['density']
+
+    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+
+    ad['density_alias']
+    assert ds.derived_field_list[0] == 'density_alias'
+
+
 if __name__ == "__main__":
     setup()
     for t in test_all_fields():
@@ -308,3 +321,4 @@ if __name__ == "__main__":
     test_add_deposited_particle_field()
     test_add_field_unit_semantics()
     test_array_like_field()
+    test_add_field_string()

@@ -16,6 +16,7 @@ interactively.
    manual_plotting
    volume_rendering
    unstructured_mesh_rendering
+   interactive_data_visualization
    sketchfab
    mapserver
    streamlines

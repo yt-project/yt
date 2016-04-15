@@ -2,11 +2,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from yt.utilities.physical_constants import kboltz
-
-cdef extern from "math.h":
-    double exp(double x) nogil
-    double fabs(double x) nogil
-    double sqrt(double x) nogil
+from libc.math cimport exp, fabs, sqrt
 
 cdef double kb = kboltz.v
 cdef double pi = np.pi

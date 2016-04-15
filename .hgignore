@@ -62,6 +62,7 @@ yt/utilities/lib/png_writer.h
 yt/utilities/lib/write_array.c
 syntax: glob
 *.pyc
+*.pyd
 .*.swp
 *.so
 .idea/*
