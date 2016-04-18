@@ -551,9 +551,13 @@ def get_hg_version(path):
         print("Updating and precise version information requires ")
         print("python-hglib to be installed.")
         print("Try: pip install python-hglib")
-        return -1
-    repo = hglib.open(path)
-    return repo.identify()
+        return None
+    try:
+        repo = hglib.open(path)
+        return repo.identify()
+    except hglib.error.ServerError:
+        # path is not an hg repository
+        return None
 
 def get_yt_version():
     try:
@@ -564,8 +568,11 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)[:12]
-    return version
+    version = get_hg_version(path)
+    if version is None:
+        return version
+    else:
+        return version[:12].strip().decode('utf-8')
 
 def get_version_stack():
     version_info = {}
