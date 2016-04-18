@@ -13,14 +13,13 @@ A wrapper class for h5py file objects.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.on_demand_imports import _h5py as h5py
-
 from distutils.version import LooseVersion
 
 class HDF5FileHandler(object):
     handle = None
 
     def __init__(self, filename):
+        from yt.utilities.on_demand_imports import _h5py as h5py
         self.handle = h5py.File(filename, 'r')
 
     def __del__(self):
@@ -50,6 +49,10 @@ class HDF5FileHandler(object):
 
     def items(self):
         return list(self.handle.items())
+
+    def close(self):
+        if self.handle is not None:
+            self.handle.close()
 
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
