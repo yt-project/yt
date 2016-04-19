@@ -323,7 +323,8 @@ class YTDataContainer(object):
         try:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
-            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
+            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones,
+                ngt_exception.ghost_particles)
         else:
             rv = finfo(gen_obj)
         return rv
@@ -347,7 +348,8 @@ class YTDataContainer(object):
             deps = self._determine_fields(deps)
             for io_chunk in self.chunks([], "io", cache = False):
                 for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
-                                                    preload_fields = deps)):
+                                                    preload_fields = deps,
+                                                    ghost_particles = ghost_particles)):
                     o = self._current_chunk.objs[0]
                     if accumulate:
                         rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
@@ -371,7 +373,7 @@ class YTDataContainer(object):
                     if gz._type_name == 'octree_subset':
                         print gz.oct_handler._index_base_octs.shape, np.sum(gz.oct_handler._index_base_octs)
                         print field
-                        raise NotImplementedError
+                        #raise NotImplementedError
                         print self[field].shape
                         ind += wogz.select(
                             self.selector,

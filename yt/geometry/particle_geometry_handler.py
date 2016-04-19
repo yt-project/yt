@@ -252,6 +252,8 @@ class ParticleIndex(Index):
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None,
                        ghost_particles = False):
         import time
+        if ngz == 0 and ghost_particles:
+            ngz = 1
         print 'ngz = {}, ghost_particles = {}'.format(ngz, ghost_particles)
         # We actually do not really use the data files except as input to the
         # ParticleOctreeSubset.
