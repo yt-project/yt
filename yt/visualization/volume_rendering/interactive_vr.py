@@ -18,6 +18,7 @@ import OpenGL.GL as GL
 from collections import OrderedDict
 import matplotlib.cm as cm
 import numpy as np
+import ctypes
 
 from yt.utilities.math_utils import \
     get_translate_matrix, \
@@ -28,7 +29,8 @@ from yt.utilities.math_utils import \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
 from .shader_objects import known_shaders, ShaderProgram
-
+from yt.convenience import load
+from yt.visualization.image_writer import apply_colormap
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -75,6 +77,15 @@ FULLSCREEN_QUAD = np.array(
      -1.0, +1.0, 0.0,
      +1.0, -1.0, 0.0,
      +1.0, +1.0, 0.0], dtype=np.float32
+)
+
+triangulate_hex = np.array([
+    [0, 2, 1], [0, 3, 2],
+    [4, 5, 6], [4, 6, 7],
+    [0, 1, 5], [0, 5, 4],
+    [1, 2, 6], [1, 6, 5],
+    [0, 7, 3], [0, 4, 7],
+    [3, 6, 2], [3, 7, 6]]
 )
 
 
@@ -534,8 +545,107 @@ class BlockCollection(SceneComponent):
 
 
 class MeshScene(SceneComponent):
+
     def __init__(self):
         super(MeshScene, self).__init__()
+        self.set_shader("mesh.v")
+        self.set_shader("mesh.f")
+
+        self.data_source = None
+        self.redraw = True
+        self.camera = None
+
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LESS)
+        GL.glEnable(GL.GL_CULL_FACE)
+
+        fn = "MOOSE_sample_data/out.e-s010"
+        vertices, colors, indices = self.read_mesh_data(fn)
+
+        self._initialize_vertex_array("mesh_info")
+        GL.glBindVertexArray(self.vert_arrays["mesh_info"])
+
+        self.add_vert_attrib("vertex_buffer", vertices, vertices.size)
+        self.add_vert_attrib("color_buffer", colors, colors.size)
+
+        self.vert_attrib["element_buffer"] = (GL.glGenBuffers(1), indices.size)
+        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
+        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW)
+
+        self.transform_matrix = GL.glGetUniformLocation(self.program.program,
+                                                        "model_to_clip")
+
+    def set_camera(self, camera):
+        r""" Sets the camera orientation for the entire scene.
+
+        Parameters
+        ----------
+        camera : Camera
+
+        """
+        self.camera = camera
+        self.redraw = True
+
+    def update_minmax(self):
+        pass
+
+    def read_mesh_data(self, fn):
+        """
+        
+        This reads in the ExodusII output file specified by fn and converts
+        the data to form that can be fed in to OpenGL.
+        
+        """
+
+        ds = load(fn)
+
+        vertices = ds.index.meshes[0].connectivity_coords
+        indices  = ds.index.meshes[0].connectivity_indices - 1
+        data = ds._vars['vals_nod_var2'][:]
+
+        colors = apply_colormap(data, (0.0, 2.0), 'algae') / 255.0
+        colors = colors.squeeze()
+        colors = colors[:, 0:3]
+
+        tri_indices = []
+        for elem in indices:
+            for tri in triangulate_hex:
+                tri_indices.append(elem[tri])
+
+        tri_indices = np.array(tri_indices)
+
+        v = vertices.astype(np.float32).flatten()
+        c = colors.astype(np.float32).flatten()
+        i = tri_indices.astype(np.uint32).flatten()
+
+        return v, c, i
+
+    def run_program(self):
+        """ Renders one frame of the scene. """
+        with self.program.enable():
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+            projection_matrix = self.camera.projection_matrix
+            view_matrix = self.camera.view_matrix
+            model_to_clip = np.dot(projection_matrix, view_matrix)
+            GL.glUniformMatrix4fv(self.transform_matrix, 1, True, model_to_clip)
+
+            GL.glEnableVertexAttribArray(0)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["vertex_buffer"][0])
+            GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
+            GL.glEnableVertexAttribArray(1)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["color_buffer"][0])
+            GL.glVertexAttribPointer(1, 3, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
+            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
+            GL.glDrawElements(GL.GL_TRIANGLES, self.vert_attrib["element_buffer"][1],
+                              GL.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+
+            GL.glDisableVertexAttribArray(0)
+            GL.glDisableVertexAttribArray(1)
+
+    render = run_program
+
 
 class SceneGraph(SceneComponent):
     """A basic OpenGL render for IDV.
