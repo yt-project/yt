@@ -1089,12 +1089,23 @@ cdef class ParticleBitmap:
         octree.n_ref = index.dataset.n_ref
         octree.allocate_domains()
         # Add roots based on the mask
+        cdef np.uint64_t nroot = 0
         for i in range(uncontaminated.size):
             if uncontaminated[i] != 1 and contaminated[i] != 1: continue
             decode_morton_64bit(<np.uint64_t> i, ind64)
             for j in range(3):
                 ind[j] = ind64[j]
             octree.next_root(1, ind)
+            nroot += 1
+        assert(nroot == uncontaminated.sum()+contaminated.sum())
+        if buffer_mask is not None:
+            nroot = 0
+            for i in range(uncontaminated.size):
+                if uncontaminated[i] != 1 and contaminated[i] != 1: continue
+                if selector_mask._get(i) == 0: 
+                    octree._index_base_octs[nroot] = 1
+                nroot += 1
+        # print nroot
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
         assert(len(data_files) == 1)
@@ -1128,6 +1139,9 @@ cdef class ParticleBitmap:
                     mi = bounded_morton(ppos[0], ppos[1], ppos[2], DLE, DRE,
                                         ORDER_MAX)
                     mi_root = mi >> (3*(ORDER_MAX-self.index_order1))
+                    if mi_root>uncontaminated.shape[0]:
+                        print mi_root, uncontaminated.shape[0]
+                        raise Exception
                     if uncontaminated[mi_root] == 1 or contaminated[mi_root] == 1:
                         morton_ind[total_pcount] = mi
                         total_pcount += 1
@@ -1933,6 +1947,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef public int max_level
     cdef public int n_ref
     cdef int loaded # Loaded with load_octree?
+    cdef np.uint8_t* _ptr_index_base_octs
+    cdef public np.uint8_t[:] _index_base_octs
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
                  int num_root, over_refine = 1):
         super(ParticleBitmapOctreeContainer, self).__init__(
@@ -1944,9 +1960,12 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         # Now the overrides
         self.max_root = num_root
         self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * num_root)
+        self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t) * num_root)
         for i in range(num_root):
             self.root_nodes[i].key = -1
             self.root_nodes[i].node = NULL
+            self._ptr_index_base_octs[i] = 0
+        self._index_base_octs = <np.uint8_t[:num_root]> self._ptr_index_base_octs
 
     def allocate_domains(self, counts = None):
         if counts is None:
@@ -2012,6 +2031,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             free(self.cont)
             self.cont = self.root_nodes = NULL
         free(self.oct_list)
+        free(self._ptr_index_base_octs)
         self.oct_list = NULL
 
     cdef void visit_free(self, Oct *o, int free_this):

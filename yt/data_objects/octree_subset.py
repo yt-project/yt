@@ -416,7 +416,7 @@ class ParticleOctreeSubset(OctreeSubset):
     def __init__(self, base_region, data_files, ds, 
                  min_ind = 0, max_ind = 0, over_refine_factor = 1,
                  buffer_files = None, selector_mask = None, 
-                 buffer_mask = None):
+                 buffer_mask = None, base_grid = None):
         # The first attempt at this will not work in parallel.
         if buffer_files is None: buffer_files = []
         self._num_zones = 1 << (over_refine_factor)
@@ -441,6 +441,14 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_selector = base_region.selector
         self.selector_mask = selector_mask
         self.buffer_mask = buffer_mask
+        if base_grid is not None:
+            self._base_grid = base_grid
+        elif buffer_mask is None:
+            self._base_grid = self
+        else:
+            self._base_grid = ParticleOctreeSubset(
+                base_region, data_files, ds, min_ind, max_ind,
+                over_refine_factor, selector_mask = selector_mask)
 
     @contextlib.contextmanager
     def _expand_data_files(self, ghost_particles):

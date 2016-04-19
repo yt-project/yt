@@ -354,6 +354,7 @@ class YTDataContainer(object):
                                          units)
                         outputs.append(rv)
                     with o._activate_cache():
+                        print field,self[field].shape
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz,
@@ -361,18 +362,26 @@ class YTDataContainer(object):
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
-                    if hasattr(gz,'_base_grid'):
-                        wogz = gz._base_grid
-                        if accumulate:
-                            rv = self.ds.arr(np.empty(wogz.ires.size,
-                                    dtype="float64"), units)
-                            outputs.append(rv)
+                    wogz = gz._base_grid
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(wogz.ires.size,
+                                dtype="float64"), units)
+                        outputs.append(rv)
+                        ind = 0
+                    if gz._type_name == 'octree_subset':
+                        print gz.oct_handler._index_base_octs.shape, np.sum(gz.oct_handler._index_base_octs)
+                        print field
+                        raise NotImplementedError
+                        print self[field].shape
+                        ind += wogz.select(
+                            self.selector,
+                            self[field][gz.oct_handler._index_base_octs],
+                            rv, ind)
+                    else:
                         ind += wogz.select(
                             self.selector,
                             gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
                             rv, ind)
-                    else:
-                        raise NotImplementedError
         if accumulate:
             rv = uconcatenate(outputs)
         return rv

@@ -459,20 +459,25 @@ cdef class FileBitmasks:
                                    BoolArrayCollection mask, np.uint8_t[:] out,
                                    np.uint8_t[:] secondary_files,
                                    BoolArrayCollection mask2 = None):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
-        cdef ewah_bool_array *ewah_mask
+        cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
         cdef ewah_bool_array *ewah_mask2
         if mask2 is None:
-            ewah_mask = <ewah_bool_array *> mask.ewah_keys
+            ewah_mask = (<ewah_bool_array *> mask.ewah_keys)[0]
         else:
             ewah_mask1 = <ewah_bool_array *> mask.ewah_keys
             ewah_mask2 = <ewah_bool_array *> mask2.ewah_keys
-            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask[0])
+            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask)
+        cdef ewah_bool_array ewah_swap1, ewah_swap2
         cdef ewah_bool_array ewah_slct
         cdef ewah_bool_array *ewah_file
         cdef np.uint64_t iset
-        ewah_owns[0].logicaland(ewah_mask[0],ewah_slct)
+        ewah_keys[0].logicaland(ewah_refn[0],ewah_swap1)
+        ewah_owns[0].logicaland(ewah_swap1,ewah_swap2)
+        ewah_swap2.logicaland(ewah_mask,ewah_slct)
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
         while iter_set[0] != iter_end[0]:
@@ -491,19 +496,21 @@ cdef class FileBitmasks:
                                      BoolArrayCollection mask2 = None):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
-        cdef ewah_bool_array *ewah_mask
+        cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
         cdef ewah_bool_array *ewah_mask2
         if mask2 is None:
-            ewah_mask = <ewah_bool_array *> mask.ewah_keys
+            ewah_mask = (<ewah_bool_array *> mask.ewah_keys)[0]
         else:
             ewah_mask1 = <ewah_bool_array *> mask.ewah_keys
             ewah_mask2 = <ewah_bool_array *> mask2.ewah_keys
-            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask[0])
+            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask)
         cdef ewah_bool_array ewah_slct
         cdef ewah_bool_array ewah_coar
-        ewah_keys[0].logicalxor(ewah_refn[0],ewah_coar)
-        ewah_coar.logicaland(ewah_mask[0],ewah_slct)
+        cdef ewah_bool_array ewah_swap
+        ewah_keys[0].logicaland(ewah_refn[0],ewah_swap)
+        ewah_keys[0].logicalxor(ewah_swap,ewah_coar)
+        ewah_coar.logicaland(ewah_mask,ewah_slct)
         cdef np.uint64_t iset
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
@@ -1009,17 +1016,17 @@ cdef class BoolArrayCollection:
     cdef void _select_contaminated(self, BoolArrayCollection mask, np.uint8_t[:] out,
                                    BoolArrayCollection mask2 = None):
         cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
-        cdef ewah_bool_array *ewah_mask
+        cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
         cdef ewah_bool_array *ewah_mask2
         if mask2 is None:
-            ewah_mask = <ewah_bool_array *> mask.ewah_keys
+            ewah_mask = (<ewah_bool_array *> mask.ewah_keys)[0]
         else:
             ewah_mask1 = <ewah_bool_array *> mask.ewah_keys
             ewah_mask2 = <ewah_bool_array *> mask2.ewah_keys
-            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask[0])
+            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask)
         cdef ewah_bool_array ewah_slct
-        ewah_owns[0].logicaland(ewah_mask[0],ewah_slct)
+        ewah_owns[0].logicaland(ewah_mask,ewah_slct)
         cdef np.uint64_t iset
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
@@ -1032,19 +1039,19 @@ cdef class BoolArrayCollection:
                                      BoolArrayCollection mask2 = None):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef ewah_bool_array *ewah_mask
+        cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
         cdef ewah_bool_array *ewah_mask2
         if mask2 is None:
-            ewah_mask = <ewah_bool_array *> mask.ewah_keys
+            ewah_mask = (<ewah_bool_array *> mask.ewah_keys)[0]
         else:
             ewah_mask1 = <ewah_bool_array *> mask.ewah_keys
             ewah_mask2 = <ewah_bool_array *> mask2.ewah_keys
-            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask[0])
+            ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask)
         cdef ewah_bool_array ewah_slct
         cdef ewah_bool_array ewah_coar
         ewah_keys[0].logicalxor(ewah_refn[0],ewah_coar)
-        ewah_coar.logicaland(ewah_mask[0],ewah_slct)
+        ewah_coar.logicaland(ewah_mask,ewah_slct)
         cdef np.uint64_t iset
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
