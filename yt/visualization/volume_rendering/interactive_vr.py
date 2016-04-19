@@ -558,7 +558,7 @@ class BlockCollection(SceneComponent):
 
 class MeshScene(SceneComponent):
 
-    def __init__(self):
+    def __init__(self, ds, field):
         super(MeshScene, self).__init__()
         self.set_shader("mesh.v")
         self.set_shader("mesh.f")
@@ -571,8 +571,7 @@ class MeshScene(SceneComponent):
         GL.glDepthFunc(GL.GL_LESS)
         GL.glEnable(GL.GL_CULL_FACE)
 
-        fn = "MOOSE_sample_data/out.e-s010"
-        vertices, colors, indices = self.read_mesh_data(fn)
+        vertices, colors, indices = self.read_mesh_data(ds, field)
 
         self._initialize_vertex_array("mesh_info")
         GL.glBindVertexArray(self.vert_arrays["mesh_info"])
@@ -601,27 +600,38 @@ class MeshScene(SceneComponent):
     def update_minmax(self):
         pass
 
-    def read_mesh_data(self, fn):
+    def read_mesh_data(self, ds, field):
         """
         
-        This reads in the ExodusII output file specified by fn and converts
-        the data to form that can be fed in to OpenGL.
+        This reads the mesh data into a form that can be fed in to OpenGL.
         
         """
 
-        ds = load(fn)
+        ftype, fname = field
+        mesh_id = int(ftype[-1])
+        offset = ds.index.io._INDEX_OFFSET
+        field_ind = ds.index.io.node_fields.index(fname)
 
-        vertices = ds.index.meshes[0].connectivity_coords
-        indices  = ds.index.meshes[0].connectivity_indices - 1
-        data = ds._vars['vals_nod_var2'][:]
+        vertices = ds.index.meshes[mesh_id-1].connectivity_coords
+        indices  = ds.index.meshes[mesh_id-1].connectivity_indices - offset
+        data = ds._vars['vals_nod_var%d' % (field_ind + 1)][:]
 
         colors = apply_colormap(data, (0.0, 2.0), 'algae') / 255.0
         colors = colors.squeeze()
         colors = colors[:, 0:3]
 
+        if indices.shape[1] == 8:
+            tri_array = triangulate_hex
+        elif indices.shape[1] == 4:
+            tri_array = triangulate_tetra
+        elif indices.shape[1] == 6:
+            tri_array = triangulate_wedge
+        else:
+            raise NotImplementedError
+
         tri_indices = []
         for elem in indices:
-            for tri in triangulate_hex:
+            for tri in tri_array:
                 tri_indices.append(elem[tri])
 
         tri_indices = np.array(tri_indices)

@@ -52,8 +52,8 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
 
     '''
 
-    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera
-    from .interactive_vr import MeshScene
+    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera, \
+        MeshScene
     from .interactive_loop import RenderingContext
 
     if isinstance(data_source, Dataset):
@@ -73,21 +73,23 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     if cam_focus is None:
         cam_focus = dobj.ds.domain_center
 
+    rc = RenderingContext(*window_size)
+
+    if hasattr(dobj.ds.index, "meshes"):
+        cam_position = 3.0*dobj.ds.domain_right_edge
+        scene = MeshScene(data_source, field)
+    else:
+        scene = SceneGraph()
+        collection = BlockCollection()
+        collection.add_data(dobj, field)
+        scene.add_collection(collection)
+
     aspect_ratio = window_size[1] / window_size[0]
     far_plane = np.linalg.norm(cam_focus - cam_position) * 2.0
     near_plane = 0.01 * far_plane
 
-    rc = RenderingContext(*window_size)
-#    scene = SceneGraph()
-#    collection = BlockCollection()
-#    collection.add_data(dobj, field)
-#    scene.add_collection(collection)
-
-    scene = MeshScene()
-
     c = TrackballCamera(position=cam_position, focus=cam_focus, near_plane=near_plane,
                         far_plane=far_plane, aspect_ratio=aspect_ratio)
-    c = TrackballCamera(position=np.array([np.sqrt(100.0/3.0), np.sqrt(100.0/3.0) + 1.0, np.sqrt(100.0/3.0)]), focus=np.array([0.0, 0.0, 0.0]))
     rc.start_loop(scene, c)
 
 
