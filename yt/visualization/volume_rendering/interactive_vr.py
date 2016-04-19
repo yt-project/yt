@@ -571,7 +571,7 @@ class MeshScene(SceneComponent):
         GL.glDepthFunc(GL.GL_LESS)
         GL.glEnable(GL.GL_CULL_FACE)
 
-        vertices, colors, indices = self.read_mesh_data(ds, field)
+        vertices, colors, indices = self.get_mesh_data(ds, field)
 
         self._initialize_vertex_array("mesh_info")
         GL.glBindVertexArray(self.vert_arrays["mesh_info"])
@@ -600,7 +600,7 @@ class MeshScene(SceneComponent):
     def update_minmax(self):
         pass
 
-    def read_mesh_data(self, ds, field):
+    def get_mesh_data(self, ds, field):
         """
         
         This reads the mesh data into a form that can be fed in to OpenGL.
@@ -616,7 +616,7 @@ class MeshScene(SceneComponent):
         indices  = ds.index.meshes[mesh_id-1].connectivity_indices - offset
         data = ds._vars['vals_nod_var%d' % (field_ind + 1)][:]
 
-        colors = apply_colormap(data, (0.0, 2.0), 'algae') / 255.0
+        colors = apply_colormap(data, (data.min(), data.max()), 'algae') / 255.0
         colors = colors.squeeze()
         colors = colors[:, 0:3]
 
