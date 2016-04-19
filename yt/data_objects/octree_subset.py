@@ -125,7 +125,7 @@ class OctreeSubset(YTSelectionContainer):
         # memory usage.
         dts, ts = [], []
         for sl, mask in self.select_blocks(dobj.selector):
-            sl.child_mask = mask
+            sl.child_mask = np.asfortranarray(mask)
             dt, t = dobj.selector.get_dt(sl)
             dts.append(dt)
             ts.append(t)
