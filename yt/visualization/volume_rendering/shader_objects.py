@@ -29,7 +29,7 @@ known_shaders = {}
 class ShaderProgram(object):
     '''
     Wrapper class that compiles and links vertex and fragment shaders
-    into shader program.
+    into a shader program.
 
     Parameters
     ----------
@@ -269,3 +269,13 @@ class PassthroughVertexShader(VertexShader):
     '''A second pass vertex shader that performs no operations on vertices'''
     _source = "passthrough.vertexshader"
     _shader_name = "passthrough.v"
+
+class MeshVertexShader(VertexShader):
+    '''A vertex shader used for unstructured mesh rendering.'''
+    _source = "mesh.vertexshader"
+    _shader_name = "mesh.v"
+
+class MeshFragmentShader(FragmentShader):
+    '''A vertex shader used for unstructured mesh rendering.'''
+    _source = "mesh.fragmentshader"
+    _shader_name = "mesh.f"

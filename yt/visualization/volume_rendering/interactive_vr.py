@@ -533,6 +533,10 @@ class BlockCollection(SceneComponent):
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
 
+class MeshScene(SceneComponent):
+    def __init__(self):
+        super(MeshScene, self).__init__()
+
 class SceneGraph(SceneComponent):
     """A basic OpenGL render for IDV.
 
