@@ -89,15 +89,15 @@ triangulate_hex = np.array([
 )
 
 triangulate_tetra = np.array([
-    [0, 1, 2], [0, 1, 3],
-    [0, 2, 3], [1, 2, 3]]
+    [0, 1, 3], [2, 3, 1],
+    [0, 3, 2], [0, 2, 1]]
 )
 
 triangulate_wedge = np.array([
-    [0, 1, 2], [0, 3, 1],
-    [1, 3, 4], [0, 2, 3],
-    [2, 5, 3], [1, 4, 2],
-    [2, 4, 5], [3, 5, 4]]
+    [3, 0, 1], [4, 3, 1],
+    [2, 5, 4], [2, 4, 1],
+    [0, 3, 2], [2, 3, 5],
+    [3, 4, 5], [0, 2, 1]]
 )
 
 
@@ -570,6 +570,7 @@ class MeshScene(SceneComponent):
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthFunc(GL.GL_LESS)
         GL.glEnable(GL.GL_CULL_FACE)
+        GL.glCullFace(GL.GL_BACK)
 
         vertices, colors, indices = self.get_mesh_data(ds, field)
 
@@ -614,7 +615,7 @@ class MeshScene(SceneComponent):
 
         vertices = ds.index.meshes[mesh_id-1].connectivity_coords
         indices  = ds.index.meshes[mesh_id-1].connectivity_indices - offset
-        data = ds._vars['vals_nod_var%d' % (field_ind + 1)][:]
+        data = ds._vars['vals_nod_var%d' % (field_ind + 1)][ds.step]
 
         colors = apply_colormap(data, (data.min(), data.max()), 'algae') / 255.0
         colors = colors.squeeze()
