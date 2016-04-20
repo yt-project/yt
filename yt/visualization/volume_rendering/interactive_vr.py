@@ -29,7 +29,6 @@ from yt.utilities.math_utils import \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
 from .shader_objects import known_shaders, ShaderProgram
-from yt.convenience import load
 from yt.visualization.image_writer import apply_colormap
 
 bbox_vertices = np.array(
@@ -753,7 +752,7 @@ class SceneGraph(SceneComponent):
 
 
     def setup_fb(self, width, height):
-        '''Setups FrameBuffer that will be used as container
+        '''Sets up FrameBuffer that will be used as container
            for 1 pass of rendering'''
         # Clean up old FB and Texture
         if self.fb_texture is not None and \
