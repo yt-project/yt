@@ -749,13 +749,13 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
     for j in range(0,posx.shape[0],100):
 
         val = 0.0
-        for xi in range( <int> (2*hsml[j]*idx) + 1):
-            x = posx[j] - hsml[j] + dx * xi
+        for xi in range( <int> ( (posx[j] - hsml[j] - bounds[0,0]) * idx), <int> ( (posx[j] + hsml[j] - bounds[0,0]) * idx) ):
+            x = xi * dx + bounds[0,0]
 
             posx_diff = (<float> (posx[j]) - x)*(<float> (posx[j]) - x)
 
-            for yi in range( <int> (2*hsml[j]*idy) + 1):
-                y = posy[j] - hsml[j] + dy * yi
+            for yi in range( <int> ( (posy[j] - hsml[j] - bounds[0,0]) * idy), <int> ( ( posy[j] + hsml[j] - bounds[0,0]) * idy) ):
+                y = yi * dy + bounds[0,0]
 
                 h_j = fmax( <float> (hsml[j]), dx)
                 qxy2 = ( posx_diff + (<float> (posy[j]) - y)*(<float> (posy[j]) - y) ) / h_j
@@ -769,5 +769,4 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                 this_val = <float> (dens[j]) * <float> (hsml[j]) * <float> (dens[j] )* F_interpolate
                 val += this_val
 
-        buff[ <int> ((posx[j] - hsml[j] - bounds[0,0])*idx),
-              <int> ((posy[j] - hsml[j] - bounds[1,0])*idy) ] += val
+        buff[xi, yi] += val
