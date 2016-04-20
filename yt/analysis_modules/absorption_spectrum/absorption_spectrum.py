@@ -54,7 +54,7 @@ class AbsorptionSpectrum(object):
         # lambda, flux, and tau are wavelength, flux, and optical depth
         self.lambda_min = lambda_min
         self.lambda_max = lambda_max
-        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max, 
+        self.lambda_field = YTArray(np.linspace(lambda_min, lambda_max,
                                     n_lambda), "angstrom")
         self.tau_field = None
         self.flux_field = None
@@ -237,7 +237,7 @@ class AbsorptionSpectrum(object):
     def _apply_observing_redshift(self, field_data, use_peculiar_velocity,
                                  observing_redshift):
         """
-        Change the redshifts of individual absorbers to account for the 
+        Change the redshifts of individual absorbers to account for the
         redshift at which the observer sits.
 
         The intermediate redshift that is seen by an observer
@@ -275,9 +275,9 @@ class AbsorptionSpectrum(object):
         """
         Add continuum features to the spectrum.
         """
-        # Change the redshifts of continuum sources to account for the 
+        # Change the redshifts of continuum sources to account for the
         # redshift at which the observer sits
-        redshift, redshift_eff = self._apply_observing_redshift(field_data, 
+        redshift, redshift_eff = self._apply_observing_redshift(field_data,
                                  use_peculiar_velocity, observing_redshift)
 
         # Only add continuum features down to tau of 1.e-4.
@@ -319,9 +319,9 @@ class AbsorptionSpectrum(object):
         Add the absorption lines to the spectrum.
         """
 
-        # Change the redshifts of individual absorbers to account for the 
+        # Change the redshifts of individual absorbers to account for the
         # redshift at which the observer sits
-        redshift, redshift_eff = self._apply_observing_redshift(field_data, 
+        redshift, redshift_eff = self._apply_observing_redshift(field_data,
                                  use_peculiar_velocity, observing_redshift)
 
         # Widen wavelength window until optical depth falls below this tau
@@ -349,13 +349,13 @@ class AbsorptionSpectrum(object):
             # we want to know the bin index in the lambda_field array
             # where each line has its central wavelength after being
             # redshifted.  however, because we don't know a priori how wide
-            # a line will be (ie DLAs), we have to include bin indices 
-            # *outside* the spectral range of the AbsorptionSpectrum 
+            # a line will be (ie DLAs), we have to include bin indices
+            # *outside* the spectral range of the AbsorptionSpectrum
             # object.  Thus, we find the "equivalent" bin index, which
             # may be <0 or >the size of the array.  In the end, we deposit
             # the bins that actually overlap with the AbsorptionSpectrum's
             # range in lambda.
-            
+
             # this equation gives us the "equivalent" bin index for each line
             # if it were placed into the self.lambda_field array
             center_index = (lambda_obs.in_units('Angstrom').d - self.lambda_min) \
@@ -399,10 +399,10 @@ class AbsorptionSpectrum(object):
 
             # a note to the user about which lines components are unresolved
             if (thermal_width < self.bin_width).any():
-                mylog.info(("%d out of %d line components will be " + \
-                            "deposited as unresolved lines.") %
-                           ((thermal_width < self.bin_width).sum(),
-                            n_absorbers))
+                mylog.info("%d out of %d line components will be " +
+                            "deposited as unresolved lines.",
+                            (thermal_width < self.bin_width).sum(),
+                            n_absorbers)
 
             # provide a progress bar with information about lines processsed
             pbar = get_pbar("Adding line - %s [%f A]: " % \
@@ -411,13 +411,13 @@ class AbsorptionSpectrum(object):
             # for a given transition, step through each location in the
             # observed spectrum where it occurs and deposit a voigt profile
             for i in parallel_objects(np.arange(n_absorbers), njobs=-1):
- 
-                # the virtual window into which the line is deposited initially 
-                # spans a region of 2 coarse spectral bins 
+
+                # the virtual window into which the line is deposited initially
+                # spans a region of 2 coarse spectral bins
                 # (one on each side of the center_index) but the window
                 # can expand as necessary.
                 # it will continue to expand until the tau value in the far
-                # edge of the wings is less than the min_tau value or it 
+                # edge of the wings is less than the min_tau value or it
                 # reaches the edge of the spectrum
                 window_width_in_bins = 2
 
@@ -425,18 +425,18 @@ class AbsorptionSpectrum(object):
                     left_index = (center_index[i] - window_width_in_bins/2)
                     right_index = (center_index[i] + window_width_in_bins/2)
                     n_vbins = (right_index - left_index) * n_vbins_per_bin[i]
-                    
+
                     # the array of virtual bins in lambda space
                     vbins = \
-                        np.linspace(self.lambda_min + self.bin_width.d * left_index, 
-                                    self.lambda_min + self.bin_width.d * right_index, 
+                        np.linspace(self.lambda_min + self.bin_width.d * left_index,
+                                    self.lambda_min + self.bin_width.d * right_index,
                                     n_vbins, endpoint=False)
 
                     # the virtual bins and their corresponding opacities
                     vbins, vtau = \
                         tau_profile(
-                            lambda_0, line['f_value'], line['gamma'], 
-                            thermb[i], cdens[i], 
+                            lambda_0, line['f_value'], line['gamma'],
+                            thermb[i], cdens[i],
                             delta_lambda=dlambda[i], lambda_bins=vbins)
 
                     # If tau has not dropped below min tau threshold by the
@@ -468,7 +468,7 @@ class AbsorptionSpectrum(object):
                     continue
 
                 # otherwise, determine how much of the original spectrum
-                # is intersected by the expanded line window to be deposited, 
+                # is intersected by the expanded line window to be deposited,
                 # and deposit the Equivalent Width data into that intersecting
                 # window in the original spectrum's tau
                 else:
@@ -517,7 +517,7 @@ class AbsorptionSpectrum(object):
         """
         if filename is None:
             return
-        mylog.info("Writing absorber list: %s." % filename)
+        mylog.info("Writing absorber list: %s.", filename)
         self.absorbers_list.sort(key=lambda obj: obj['wavelength'])
         f = open(filename, 'w')
         f.write('#%-14s %-14s %-12s %-14s %-15s %-9s %-10s\n' %
@@ -534,7 +534,7 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to an ascii file.
         """
-        mylog.info("Writing spectrum to ascii file: %s." % filename)
+        mylog.info("Writing spectrum to ascii file: %s.", filename)
         f = open(filename, 'w')
         f.write("# wavelength[A] tau flux\n")
         for i in range(self.lambda_field.size):
@@ -547,7 +547,7 @@ class AbsorptionSpectrum(object):
         """
         Write spectrum to a fits file.
         """
-        mylog.info("Writing spectrum to fits file: %s." % filename)
+        mylog.info("Writing spectrum to fits file: %s.", filename)
         col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_field)
         col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
         cols = pyfits.ColDefs([col1, col2])
@@ -560,7 +560,7 @@ class AbsorptionSpectrum(object):
         Write spectrum to an hdf5 file.
 
         """
-        mylog.info("Writing spectrum to hdf5 file: %s." % filename)
+        mylog.info("Writing spectrum to hdf5 file: %s.", filename)
         output = h5py.File(filename, 'w')
         output.create_dataset('wavelength', data=self.lambda_field)
         output.create_dataset('tau', data=self.tau_field)
