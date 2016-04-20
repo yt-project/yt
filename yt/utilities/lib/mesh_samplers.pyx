@@ -97,7 +97,9 @@ cdef void sample_hex(void* userPtr,
     
     for i in range(8):
         element_indices[i] = data.element_indices[elem_id*8+i]
-        field_data[i]      = data.field_data[elem_id*8+i]
+
+    for i in range(data.fpe):
+        field_data[i] = data.field_data[elem_id*data.fpe+i]
 
     for i in range(8):
         vertices[i*3]     = data.vertices[element_indices[i]].x
@@ -107,22 +109,16 @@ cdef void sample_hex(void* userPtr,
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
     Q1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
+    if data.fpe == 1:
+        val = field_data[0]
+    else:
+        val = Q1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
 
     # we use ray.instID to pass back whether the ray is near the
     # element boundary or not (used to annotate mesh lines)
-    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-        fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    else:
-        ray.instID = -1
+    ray.instID = Q1Sampler.check_mesh_lines(mapped_coord)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -152,7 +148,9 @@ cdef void sample_wedge(void* userPtr,
     
     for i in range(6):
         element_indices[i] = data.element_indices[elem_id*6+i]
-        field_data[i]      = data.field_data[elem_id*6+i]
+
+    for i in range(data.fpe):
+        field_data[i] = data.field_data[elem_id*data.fpe+i]
 
     for i in range(6):
         vertices[i*3]     = data.vertices[element_indices[i]].x
@@ -162,31 +160,12 @@ cdef void sample_wedge(void* userPtr,
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
     W1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = W1Sampler.sample_at_unit_point(mapped_coord, field_data)
-    ray.time = val
-
-    cdef double r, s, t
-    cdef double thresh = 5.0e-2
-    r = mapped_coord[0]
-    s = mapped_coord[1]
-    t = mapped_coord[2]
-
-    cdef int near_edge_r, near_edge_s, near_edge_t
-    near_edge_r = (r < thresh) or (fabs(r + s - 1.0) < thresh)
-    near_edge_s = (s < thresh)
-    near_edge_t = fabs(fabs(mapped_coord[2]) - 1.0) < thresh
-    
-    # we use ray.instID to pass back whether the ray is near the
-    # element boundary or not (used to annotate mesh lines)
-    if (near_edge_r and near_edge_s):
-        ray.instID = 1
-    elif (near_edge_r and near_edge_t):
-        ray.instID = 1
-    elif (near_edge_s and near_edge_t):
-        ray.instID = 1
+    if data.fpe == 1:
+        val = field_data[0]
     else:
-        ray.instID = -1
-
+        val = W1Sampler.sample_at_unit_point(mapped_coord, field_data)
+    ray.time = val
+    ray.instID = W1Sampler.check_mesh_lines(mapped_coord)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -222,21 +201,8 @@ cdef void sample_hex20(void* userPtr,
     S2Sampler.map_real_to_unit(mapped_coord, patch.vertices, position)
     val = S2Sampler.sample_at_unit_point(mapped_coord, patch.field_data)
     ray.time = val
-
-    # we use ray.instID to pass back whether the ray is near the
-    # element boundary or not (used to annotate mesh lines)
-    if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-        fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
-          fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
-        ray.instID = 1
-    else:
-        ray.instID = -1
-
+    ray.instID = S2Sampler.check_mesh_lines(mapped_coord)
+    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -267,54 +233,19 @@ cdef void sample_tetra(void* userPtr,
 
     for i in range(4):
         element_indices[i] = data.element_indices[elem_id*4+i]
-        field_data[i] = data.field_data[elem_id*4+i]
         vertices[i*3] = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
         vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
 
+    for i in range(data.fpe):
+        field_data[i] = data.field_data[elem_id*data.fpe+i]
+
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[4]
     P1Sampler.map_real_to_unit(mapped_coord, vertices, position)
-    val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
-    ray.time = val
-
-    cdef double u, v, w
-    cdef double thresh = 2.0e-2
-    u = ray.u
-    v = ray.v
-    w = 1.0 - u - v
-    # we use ray.instID to pass back whether the ray is near the
-    # element boundary or not (used to annotate mesh lines)
-    if ((u < thresh) or 
-        (v < thresh) or 
-        (w < thresh) or
-        (fabs(u - 1) < thresh) or 
-        (fabs(v - 1) < thresh) or 
-        (fabs(w - 1) < thresh)):
-        ray.instID = 1
+    if data.fpe == 1:
+        val = field_data[0]
     else:
-        ray.instID = -1
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void sample_element(void* userPtr,
-                         rtcr.RTCRay& ray) nogil:
-    cdef int ray_id, elem_id
-    cdef double val
-    cdef MeshDataContainer* data
-
-    data = <MeshDataContainer*> userPtr
-    ray_id = ray.primID
-    if ray_id == -1:
-        return
-
-    # ray_id records the id number of the hit according to
-    # embree, in which the primitives are triangles. Here,
-    # we convert this to the element id by dividing by the
-    # number of triangles per element.
-    elem_id = ray_id / data.tpe
-
-    val = data.field_data[elem_id]
+        val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
+    ray.instID = P1Sampler.check_mesh_lines(mapped_coord)
