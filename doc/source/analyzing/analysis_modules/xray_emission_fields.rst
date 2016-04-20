@@ -32,7 +32,7 @@ dataset object, and the minimum and maximum energies of the energy band.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0)
+  xray_fields = add_xray_emissivity_field(ds, 0.5, 7.0)
 
 Additional keyword arguments are:
 
@@ -60,7 +60,7 @@ the created fields in a Python list.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0, filename="apec_emissivity.h5")
+  xray_fields = add_xray_emissivity_field(ds, 0.5, 7.0, filename="apec_emissivity.h5")
 
   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
   plot = yt.SlicePlot(ds, 'x', 'xray_luminosity_0.5_7.0_keV')
