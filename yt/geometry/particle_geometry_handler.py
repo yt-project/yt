@@ -18,7 +18,7 @@ import numpy as np
 import os
 import weakref
 
-from yt.funcs import get_pbar, only_on_root
+from yt.funcs import get_pbar, only_on_root, ensure_list
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import Index, YTDataChunk
@@ -173,76 +173,41 @@ class ParticleIndex(Index):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
-    # def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
-    #     if ngz != 0 and chunking_style != "spatial":
-    #         raise NotImplementedError
-    #     if dobj._current_chunk is None:
-    #         self._identify_base_chunk(dobj, ngz=ngz)
-    #     if chunking_style == "all":
-    #         return self._chunk_all(dobj, **kwargs)
-    #     elif chunking_style == "spatial":
-    #         return self._chunk_spatial(dobj, ngz, **kwargs)
-    #     elif chunking_style == "io":
-    #         return self._chunk_io(dobj, **kwargs)
-    #     else:
-    #         raise NotImplementedError
-
-    def _identify_base_chunk(self, dobj, ngz=0):
+    def _identify_base_chunk(self, dobj):
         if self.regions is None:
             self._initialize_index()
         # Must check that chunk_info contains the right number of ghost zones
-        buffer_ngz = getattr(dobj, "_buffer_ngz", ngz)
-        chunk_ngz = getattr(dobj, "_chunk_ngz", ngz)
-        if (getattr(dobj, "_chunk_info", None) is None) or (chunk_ngz != ngz):
-            # Check for cached selector/buffer octtree subsets
-            _chunk_info_selector = getattr(dobj, "_chunk_info_selector", None) 
-            _chunk_info_buffer = getattr(dobj, "_chunk_info_buffer", None)
-            if (ngz == 0) and (_chunk_info_selector is not None):
-                dobj._chunk_info = _chunk_info_selector
-            elif (ngz == buffer_ngz) and (_chunk_info_buffer is not None):
-                dobj._chunk_info = _chunk_info_buffer
-            else:
-                data_files = getattr(dobj, "data_files", None)
-                buffer_files = getattr(dobj, "buffer_files", None)
-                dmask = getattr(dobj, "selector_mask", None)
-                gmask = getattr(dobj, "buffer_mask", None)
-                # Get info for new buffer
-                if (data_files is None) or (ngz not in [buffer_ngz,0]):
-                    (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(dobj.selector, ngz=ngz)
-                    data_files = [self.data_files[i] for i in dfi]
-                    buffer_files = [self.data_files[i] for i in gzi]
-                    dobj.data_files = data_files
-                    dobj.buffer_files = buffer_files
-                    dobj.selector_mask = dmask
-                    dobj.buffer_mask = gmask
-                    dobj._buffer_ngz = ngz
-                # NOTE: One fun thing about the way IO works is that it
-                # consolidates things quite nicely.  So we should feel free to
-                # create as many objects as part of the chunk as we want, since
-                # it'll take the set() of them.  So if we break stuff up like this
-                # here, we end up in a situation where we have the ability to break
-                # things down further later on for buffer zones and the like.
-                #
-                # If the _current_chunk should never include ghost zones, 
-                # _chunk_info should be set to _chunk_info_selector every time.
-                # However, if creating the ParticleOctreeSubsets is costly,
-                # this should remain to skip creating the _chunk_info_selector 
-                # when it is not needed.
-                dobj._chunk_info_selector = [ParticleOctreeSubset(dobj, df, self.ds,
-                    over_refine_factor = self.ds.over_refine_factor,
-                    selector_mask = dmask) for df in data_files]
-                dobj._chunk_info = dobj._chunk_info_selector
-                if ngz != 0:
-                    dobj._chunk_info_buffer = [ParticleOctreeSubset(dobj, df, self.ds,
-                        over_refine_factor = self.ds.over_refine_factor,
-                        selector_mask = dmask, buffer_mask = gmask, 
-                        base_grid = dobj._chunk_info_selector[i]) for i,df in enumerate(data_files)]
-                    # No base_grid for files that only touch ghost zones
-                    # dobj._chunk_info_buffer += [ParticleOctreeSubset(dobj, df, self.ds,
-                    #     over_refine_factor = self.ds.over_refine_factor,
-                    #     selector_mask = dmask, buffer_mask = gmask, 
-                    #     base_grid = False) for i,df in enumerate(buffer_files)]
-            dobj._chunk_ngz = 0
+        if getattr(dobj, "_chunk_info", None) is None:
+            data_files = getattr(dobj, "data_files", None)
+            selector_mask = getattr(dobj, "selector_mask", None)
+            # Get info for new buffer
+            if data_files is None:
+                dfi, file_masks = self.regions.identify_file_masks(dobj.selector)
+                selector_mask = list(file_masks)
+                data_files = [self.data_files[i] for i in dfi]
+                dobj.data_files = data_files
+                dobj.selector_mask = selector_mask
+            dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
+                over_refine_factor = self.ds.over_refine_factor,
+                selector_mask = fm) for df,fm in zip(data_files,ensure_list(selector_mask))]
+            # Version using identify_data_files
+            # data_files = getattr(dobj, "data_files", None)
+            # dmask = getattr(dobj, "selector_mask", None)
+            # # Get info for new buffer
+            # if data_files is None:
+            #     (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(dobj.selector)
+            #     data_files = [self.data_files[i] for i in dfi]
+            #     dobj.data_files = data_files
+            #     dobj.selector_mask = dmask
+            #     # NOTE: One fun thing about the way IO works is that it
+            #     # consolidates things quite nicely.  So we should feel free to
+            #     # create as many objects as part of the chunk as we want, since
+            #     # it'll take the set() of them.  So if we break stuff up like this
+            #     # here, we end up in a situation where we have the ability to break
+            #     # things down further later on for buffer zones and the like.
+            # dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
+            #     over_refine_factor = self.ds.over_refine_factor,
+            #     selector_mask = dmask) for df in data_files]
         dobj._current_chunk, = self._chunk_all(dobj)
 
     def _chunk_all(self, dobj):
@@ -254,60 +219,59 @@ class ParticleIndex(Index):
         import time
         if ngz == 0 and ghost_particles:
             ngz = 1
-        print 'ngz = {}, ghost_particles = {}'.format(ngz, ghost_particles)
         # We actually do not really use the data files except as input to the
         # ParticleOctreeSubset.
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.
-        if dobj._chunk_ngz == ngz:
+        if not ghost_particles:
             sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
             for obj in sobjs:
                 yield YTDataChunk(dobj, "spatial", [obj])
         else:
-            if getattr(dobj,'_buffer_ngz',None) != ngz:
-                t1 = time.time()
-                gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
-                    ngz, dobj.selector_mask)
-                t2 = time.time()
-                print "{} seconds to get_ghost_zones".format(t2-t1)
-                dobj.buffer_mask = gmask
-                dobj.buffer_files = [self.data_files[i] for i in gzi]
-                dobj._buffer_ngz = ngz
-                dobj._chunk_info_buffer = None
-            if getattr(dobj, "_chunk_info_buffer", None) is None:
-                dobj._chunk_info_buffer = [ParticleOctreeSubset(dobj, df, self.ds,
-                    over_refine_factor = self.ds.over_refine_factor,
-                    selector_mask = dobj.selector_mask, 
-                    buffer_mask = dobj.buffer_mask,
-                    base_grid = dobj._chunk_info_selector[i]) for i,df in enumerate(dobj.data_files)]
-                # No base_grid for files that only touch ghost zones
-                # dobj._chunk_info_buffer += [ParticleOctreeSubset(dobj, df, self.ds,
-                #     over_refine_factor = self.ds.over_refine_factor,
-                #     selector_mask = dobj.selector_mask, 
-                #     buffer_mask = dobj.buffer_mask,
-                #     base_grid = False) for df in dobj.buffer_files]
-            for obj in dobj._chunk_info_buffer:
-                yield YTDataChunk(dobj, "spatial", [obj])
-
-    def old_chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
-        (dfi, gzi), (dmask, gmask) = self.regions.identify_data_files(
-                                dobj.selector)
-        # We actually do not really use the data files except as input to the
-        # ParticleOctreeSubset.
-        # This is where we will perform cutting of the Octree and
-        # load-balancing.  That may require a specialized selector object to
-        # cut based on some space-filling curve index.
-        for df in (self.data_files[i] for i in dfi):
-            if ngz > 0:
-                raise NotImplementedError
-            else:
-                oct_handler = self.regions.construct_octree(
-                        df.file_id, dobj.selector, self.io, self.data_files,
-                        (dfi, count, omask))
-                g = ParticleOctreeSubset(dobj, df, self.ds,
-                        over_refine_factor = self.ds.over_refine_factor)
-            yield YTDataChunk(dobj, "spatial", [g])
+            sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+            for obj in sobjs:
+                bobj = getattr(obj, '_chunk_with_buffer', None)
+                if (bobj is None) or (getattr(bobj, '_buffer_ngz', None) != ngz):
+                    t1 = time.time()
+                    gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
+                        ngz, obj.selector_mask)
+                    t2 = time.time()
+                    buffer_files = [self.data_files[i] for i in gzi]
+                    #print "File {}: {} seconds to get_ghost_zones ({} additional files required)".format(obj.data_files[0].file_id,t2-t1,len(buffer_files))
+                    bobj = ParticleOctreeSubset(obj.base_region, obj.data_files, 
+                        obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
+                        over_refine_factor = obj._oref,
+                        selector_mask = obj.selector_mask,
+                        buffer_mask = gmask, buffer_files = buffer_files,
+                        base_grid = obj)
+                    bobj._buffer_ngz = ngz
+                    bobj._chunk_with_buffer = bobj
+                    obj._chunk_with_buffer = bobj
+                yield YTDataChunk(dobj, "spatial", [bobj])
+            # Version using dobj.selector_mask from identify_data_files
+            # if getattr(dobj,'_buffer_ngz',None) != ngz:
+            #     t1 = time.time()
+            #     gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
+            #         ngz, dobj.selector_mask)
+            #     t2 = time.time()
+            #     print "{} seconds to get_ghost_zones".format(t2-t1)
+            #     dobj.buffer_mask = gmask
+            #     dobj.buffer_files = [self.data_files[i] for i in gzi]
+            #     dobj._buffer_ngz = ngz
+            # sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+            # for obj in sobjs:
+            #     bobj = getattr(obj, '_chunk_with_buffer', None)
+            #     if (bobj is None) or (getattr(bobj, '_buffer_ngz', None) != ngz):
+            #         bobj = ParticleOctreeSubset(obj.base_region, obj.data_files, obj.ds,
+            #                                     min_ind = obj.min_ind, max_ind = obj.max_ind,
+            #                                     over_refine_factor = obj._oref,
+            #                                     selector_mask = obj.selector_mask,
+            #                                     buffer_mask = dobj.buffer_mask,
+            #                                     base_grid = obj)
+            #         bobj._buffer_ngz = dobj._buffer_ngz
+            #         obj._chunk_with_buffer = bobj
+            #     yield YTDataChunk(dobj, "spatial", [bobj])
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)

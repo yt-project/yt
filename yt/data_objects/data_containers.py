@@ -356,8 +356,9 @@ class YTDataContainer(object):
                                          units)
                         outputs.append(rv)
                     with o._activate_cache():
-                        print field,self[field].shape
-                        ind += o.select(self.selector, self[field], rv, ind)
+                        with o._expand_data_files(ghost_particles):
+                            farr = self[field]
+                            ind += o.select(self.selector, farr, rv, ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz,
                                        ghost_particles = ghost_particles)
@@ -369,16 +370,8 @@ class YTDataContainer(object):
                         rv = self.ds.arr(np.empty(wogz.ires.size,
                                 dtype="float64"), units)
                         outputs.append(rv)
-                        ind = 0
                     if gz._type_name == 'octree_subset':
-                        print gz.oct_handler._index_base_octs.shape, np.sum(gz.oct_handler._index_base_octs)
-                        print field
-                        #raise NotImplementedError
-                        print self[field].shape
-                        ind += wogz.select(
-                            self.selector,
-                            self[field][gz.oct_handler._index_base_octs],
-                            rv, ind)
+                        raise NotImplementedError
                     else:
                         ind += wogz.select(
                             self.selector,

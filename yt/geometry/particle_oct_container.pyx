@@ -17,7 +17,7 @@ Oct container tuned for Particles
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     SparseOctreeContainer, OctKey, OctAllocationContainer
 cimport oct_visitors
-from oct_visitors cimport cind
+from oct_visitors cimport cind, OctVisitor
 from libc.stdlib cimport malloc, free, qsort
 from libc.math cimport floor, ceil, fmod
 from yt.utilities.lib.fp_utils cimport *
@@ -33,7 +33,7 @@ from collections import defaultdict
 
 from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_bool_array
+    ewah_bool_array, ewah_bool_iterator
 #from yt.utilities.lib.ewah_bool_wrap cimport \
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
 from libcpp.map cimport map
@@ -368,6 +368,8 @@ cdef class ParticleBitmap:
     cdef public object _cached_octrees
     cdef public object _last_octree_subset
     cdef public object _last_oct_handler
+    cdef public object _prev_octree_subset
+    cdef public object _prev_oct_handler
     cdef np.uint32_t *file_markers
     cdef np.uint64_t n_file_markers
     cdef np.uint64_t file_marker_i
@@ -388,6 +390,8 @@ cdef class ParticleBitmap:
         self._last_return_values = None
         self._last_octree_subset = None
         self._last_oct_handler = None
+        self._prev_octree_subset = None
+        self._prev_oct_handler = None
         self.nfiles = nfiles
         for i in range(3):
             self.left_edge[i] = left_edge[i]
@@ -986,7 +990,7 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     def get_ghost_zones(self, SelectorObject selector, int ngz,
                         BoolArrayCollection dmask = None):
-        cdef BoolArrayCollection gmask, gmask2
+        cdef BoolArrayCollection gmask, gmask2, out
         cdef np.ndarray[np.uint8_t, ndim=1] periodic = selector.get_periodicity()
         cdef bint periodicity[3]
         cdef int i
@@ -1001,7 +1005,34 @@ cdef class ParticleBitmap:
         dmask._get_ghost_zones(ngz, self.index_order1, self.index_order2,
                                periodicity, gmask)
         dfiles, gfiles = self.masks_to_files(dmask, gmask)
-        return gfiles, gmask
+        out = BoolArrayCollection()
+        gmask._logicalor(dmask, out)
+        return gfiles, out
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def identify_file_masks(self, SelectorObject selector):
+        cdef BoolArrayCollection cmask_s = BoolArrayCollection()
+        cdef BoolArrayCollection cmask_g = BoolArrayCollection()
+        cdef BoolArrayCollection fmask, temp_mask
+        cdef np.int32_t fid
+        cdef np.ndarray[object, ndim=1] file_masks
+        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_s
+        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
+        # Get bitmask for selector
+        cdef ParticleBitmapSelector morton_selector
+        morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
+        morton_selector.fill_masks(cmask_s, cmask_g)
+        # Get bitmasks for parts of files touching the selector
+        file_idx_s, file_idx_g = self.masks_to_files(cmask_s, cmask_g)
+        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx_s))],
+                              dtype="object")
+        for fid,fmask in zip(file_idx_s,file_masks):
+            temp_mask = BoolArrayCollection()
+            self.bitmasks._select_owned(<np.uint32_t> fid, temp_mask)
+            self.bitmasks._logicaland(<np.uint32_t> fid, temp_mask, fmask)
+        return file_idx_s.astype('uint32'), file_masks
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1013,7 +1044,7 @@ cdef class ParticleBitmap:
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector,self,ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
-        return morton_selector.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
+        return self.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
 
     def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
         IF UseCythonBitmasks == 1:
@@ -1046,7 +1077,7 @@ cdef class ParticleBitmap:
         cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
         file_idx_p = np.where(file_mask_p)[0].astype('int32')
         file_idx_g = np.where(file_mask_g)[0].astype('int32')
-        return file_idx_p, file_idx_g
+        return file_idx_p.astype('uint32'), file_idx_g.astype('uint32')
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1059,9 +1090,6 @@ cdef class ParticleBitmap:
         cdef np.uint64_t i, j, k, n
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
-        cdef np.ndarray[np.uint8_t, ndim=1] uncontaminated 
-        cdef np.ndarray[np.uint8_t, ndim=1] contaminated 
-        cdef np.ndarray[np.uint32_t, ndim=1] secondary_files
         cdef ParticleBitmapOctreeContainer octree
         cdef np.uint64_t mi, mi_root
         cdef np.ndarray pos
@@ -1076,41 +1104,49 @@ cdef class ParticleBitmap:
             DRE[i] = self.right_edge[i]
         cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
         # Determine cells that need to be added to the octree
-        uncontaminated = self.find_uncontaminated(data_files[0].file_id,
-            selector_mask, mask2=buffer_mask)
-        contaminated, secondary_files = self.find_contaminated(data_files[0].file_id,
-            selector_mask, mask2=buffer_mask)
+        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_p
+        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
+        cdef BoolArrayCollection total_mask
+        cdef BoolArrayCollection empty_mask = BoolArrayCollection()
+        if buffer_mask is None:
+            total_mask = selector_mask
+        else:
+            total_mask = buffer_mask
+            # total_mask = BoolArrayCollection()
+            # selector_mask._logicalor(buffer_mask, total_mask)
+        cdef np.uint64_t nroot = total_mask._count_total()
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
             (self.dims[0], self.dims[1], self.dims[2]),
             (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
             (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
-            uncontaminated.sum()+contaminated.sum(), over_refine_factor)
+            nroot, over_refine_factor)
         octree.n_ref = index.dataset.n_ref
         octree.allocate_domains()
         # Add roots based on the mask
-        cdef np.uint64_t nroot = 0
-        for i in range(uncontaminated.size):
-            if uncontaminated[i] != 1 and contaminated[i] != 1: continue
-            decode_morton_64bit(<np.uint64_t> i, ind64)
+        cdef np.uint64_t croot = 0
+        cdef ewah_bool_array *ewah_slct = <ewah_bool_array *> total_mask.ewah_keys
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct[0].begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct[0].end())
+        cdef np.ndarray[np.uint8_t, ndim=1] total_arr
+        total_arr = np.zeros((1 << (self.index_order1 * 3)),'uint8')
+        while iter_set[0] != iter_end[0]:
+            mi = dereference(iter_set[0])
+            total_arr[mi] = 1
+            decode_morton_64bit(mi, ind64)
             for j in range(3):
                 ind[j] = ind64[j]
             octree.next_root(1, ind)
-            nroot += 1
-        assert(nroot == uncontaminated.sum()+contaminated.sum())
-        if buffer_mask is not None:
-            nroot = 0
-            for i in range(uncontaminated.size):
-                if uncontaminated[i] != 1 and contaminated[i] != 1: continue
-                if selector_mask._get(i) == 0: 
-                    octree._index_base_octs[nroot] = 1
-                nroot += 1
-        # print nroot
+            if selector_mask._get(mi) == 1:
+                octree._index_base_octs[croot] = 1
+            croot += 1
+            preincrement(iter_set[0])
+        assert(croot == nroot)
+        # print '{}/{} roots are base'.format(np.sum(octree._index_base_octs),nroot)
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
-        assert(len(data_files) == 1)
-        files_touched = [data_files[0]]  # datafile object from ID goes here
-        files_touched += [_ for _ in index.data_files if _.file_id in secondary_files]
+        #assert(len(data_files) == 1)
+        files_touched = data_files #+ buffer_files  # datafile object from ID goes here
         total_pcount = 0
         for data_file in files_touched:
             total_pcount += sum(data_file.total_particles.values())
@@ -1139,10 +1175,7 @@ cdef class ParticleBitmap:
                     mi = bounded_morton(ppos[0], ppos[1], ppos[2], DLE, DRE,
                                         ORDER_MAX)
                     mi_root = mi >> (3*(ORDER_MAX-self.index_order1))
-                    if mi_root>uncontaminated.shape[0]:
-                        print mi_root, uncontaminated.shape[0]
-                        raise Exception
-                    if uncontaminated[mi_root] == 1 or contaminated[mi_root] == 1:
+                    if total_arr[mi_root] == 1:
                         morton_ind[total_pcount] = mi
                         total_pcount += 1
         morton_ind = morton_ind[:total_pcount]
@@ -1150,6 +1183,106 @@ cdef class ParticleBitmap:
         octree.add(morton_ind, self.index_order1)
         octree.finalize()
         return octree
+
+    # Version using contaminated
+    # @cython.boundscheck(False)
+    # @cython.wraparound(False)
+    # @cython.cdivision(True)
+    # def construct_octree(self, index, io_handler, data_files,
+    #                      over_refine_factor, 
+    #                      BoolArrayCollection selector_mask,
+    #                      BoolArrayCollection buffer_mask = None):
+    #     cdef np.uint64_t total_pcount
+    #     cdef np.uint64_t i, j, k, n
+    #     cdef int ind[3]
+    #     cdef np.uint64_t ind64[3]
+    #     cdef np.ndarray[np.uint8_t, ndim=1] uncontaminated 
+    #     cdef np.ndarray[np.uint8_t, ndim=1] contaminated 
+    #     cdef np.ndarray[np.uint32_t, ndim=1] secondary_files
+    #     cdef ParticleBitmapOctreeContainer octree
+    #     cdef np.uint64_t mi, mi_root
+    #     cdef np.ndarray pos
+    #     cdef np.ndarray[np.float32_t, ndim=2] pos32
+    #     cdef np.ndarray[np.float64_t, ndim=2] pos64
+    #     cdef np.float64_t ppos[3]
+    #     cdef np.float64_t DLE[3]
+    #     cdef np.float64_t DRE[3]
+    #     cdef int bitsize = 0
+    #     for i in range(3):
+    #         DLE[i] = self.left_edge[i]
+    #         DRE[i] = self.right_edge[i]
+    #     cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
+    #     # Determine cells that need to be added to the octree
+    #     uncontaminated = self.find_uncontaminated(data_files[0].file_id,
+    #         selector_mask, mask2=buffer_mask)
+    #     contaminated, secondary_files = self.find_contaminated(data_files[0].file_id,
+    #         selector_mask, mask2=buffer_mask)
+    #     # Now we can actually create a sparse octree.
+    #     octree = ParticleBitmapOctreeContainer(
+    #         (self.dims[0], self.dims[1], self.dims[2]),
+    #         (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
+    #         (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
+    #         uncontaminated.sum()+contaminated.sum(), over_refine_factor)
+    #     octree.n_ref = index.dataset.n_ref
+    #     octree.allocate_domains()
+    #     # Add roots based on the mask
+    #     cdef np.uint64_t nroot = 0
+    #     for i in range(uncontaminated.size):
+    #         if uncontaminated[i] != 1 and contaminated[i] != 1: continue
+    #         decode_morton_64bit(<np.uint64_t> i, ind64)
+    #         for j in range(3):
+    #             ind[j] = ind64[j]
+    #         octree.next_root(1, ind)
+    #         nroot += 1
+    #     assert(nroot == uncontaminated.sum()+contaminated.sum())
+    #     if buffer_mask is not None:
+    #         nroot = 0
+    #         for i in range(uncontaminated.size):
+    #             if uncontaminated[i] != 1 and contaminated[i] != 1: continue
+    #             if selector_mask._get(i) == 0: 
+    #                 octree._index_base_octs[nroot] = 1
+    #             nroot += 1
+    #     # Get morton indices for all particles in this file and those
+    #     # contaminating cells it has majority control of.
+    #     assert(len(data_files) == 1)
+    #     files_touched = [data_files[0]]  # datafile object from ID goes here
+    #     files_touched += [_ for _ in index.data_files if _.file_id in secondary_files]
+    #     total_pcount = 0
+    #     for data_file in files_touched:
+    #         total_pcount += sum(data_file.total_particles.values())
+    #     morton_ind = np.empty(total_pcount, dtype='uint64')
+    #     total_pcount = 0
+    #     for data_file in files_touched:
+    #         # We now get our particle positions
+    #         for pos in io_handler._yield_coordinates(data_file):
+    #             pos32 = pos64 = None
+    #             bitsize = 0
+    #             if pos.dtype == np.float32:
+    #                 pos32 = pos
+    #                 bitsize = 32
+    #             elif pos.dtype == np.float64:
+    #                 pos64 = pos
+    #                 bitsize = 64
+    #             else:
+    #                 raise RuntimeError
+    #             for j in range(pos.shape[0]):
+    #                 # First we get our cell index.
+    #                 for k in range(3):
+    #                     if bitsize == 32:
+    #                         ppos[k] = pos32[j,k]
+    #                     else:
+    #                         ppos[k] = pos64[j,k]
+    #                 mi = bounded_morton(ppos[0], ppos[1], ppos[2], DLE, DRE,
+    #                                     ORDER_MAX)
+    #                 mi_root = mi >> (3*(ORDER_MAX-self.index_order1))
+    #                 if uncontaminated[mi_root] == 1 or contaminated[mi_root] == 1:
+    #                     morton_ind[total_pcount] = mi
+    #                     total_pcount += 1
+    #     morton_ind = morton_ind[:total_pcount]
+    #     morton_ind.sort()
+    #     octree.add(morton_ind, self.index_order1)
+    #     octree.finalize()
+    #     return octree
 
 cdef class ParticleBitmapSelector:
     cdef SelectorObject selector
@@ -1343,40 +1476,6 @@ cdef class ParticleBitmapSelector:
         IF UseUncompressed == 1:
             mm_s0._compress(mm_s)
             mm_g0._compress(mm_g)
-
-    def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
-        IF UseCythonBitmasks == 1:
-            cdef FileBitmasks mm_d = self.bitmap.bitmasks
-        ELSE:
-            cdef BoolArrayCollection mm_d
-        cdef np.int32_t ifile
-        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
-        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_g
-        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
-        file_mask_g = np.zeros(self.nfiles, dtype="uint8")
-        # Compare with mask of particles
-        for ifile in range(self.nfiles):
-            # Only continue if the file is not already selected
-            if file_mask_p[ifile] == 0:
-                IF UseCythonBitmasks == 1:
-                    if mm_d._intersects(ifile, mm_s):
-                        file_mask_p[ifile] = 1
-                        file_mask_g[ifile] = 0 # No intersection
-                    elif mm_d._intersects(ifile, mm_g):
-                        file_mask_g[ifile] = 1
-                ELSE:
-                    mm_d = self.bitmap.bitmasks[ifile]
-                    if mm_d._intersects(mm_s):
-                        file_mask_p[ifile] = 1
-                        file_mask_g[ifile] = 0 # No intersection
-                    elif mm_d._intersects(mm_g):
-                        file_mask_g[ifile] = 1
-        cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
-        cdef np.ndarray[np.int32_t, ndim=1] file_idx_g
-        file_idx_p = np.where(file_mask_p)[0].astype('int32')
-        file_idx_g = np.where(file_mask_g)[0].astype('int32')
-        return file_idx_p, file_idx_g
-
 
     def find_files(self,
                    np.ndarray[np.uint8_t, ndim=1] file_mask_p,
@@ -2047,6 +2146,96 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             free(o.children)
         if free_this == 1:
             free(o)
+
+    @cython.cdivision(True)
+    cdef void visit_base_octs(self, SelectorObject selector,
+                        OctVisitor visitor,
+                        int vc = -1,
+                        np.int64_t *indices = NULL):
+        cdef int i, j, k, n
+        cdef np.int64_t key, ukey
+        visitor.global_index = -1
+        visitor.level = 0
+        if vc == -1:
+            vc = self.partial_coverage
+        cdef np.float64_t pos[3]
+        cdef np.float64_t dds[3]
+        # This dds is the oct-width
+        for i in range(3):
+            dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
+        # Pos is the center of the octs
+        cdef Oct *o
+        for i in range(self.num_root):
+            if self._index_base_octs[i] == 0: continue
+            o = self.root_nodes[i].node
+            key = self.root_nodes[i].key
+            self.key_to_ipos(key, visitor.pos)
+            for j in range(3):
+                pos[j] = self.DLE[j] + (visitor.pos[j] + 0.5) * dds[j]
+            selector.recursively_visit_octs(
+                o, pos, dds, 0, visitor, vc)
+            if indices != NULL:
+                indices[i] = visitor.index
+
+    def selector_fill_base(self, SelectorObject selector,
+                           np.ndarray source,
+                           np.ndarray dest = None,
+                           np.int64_t offset = 0, int dims = 1,
+                           int domain_id = -1):
+        # This is actually not correct.  The hard part is that we need to 
+        # iterate the same way visit_all_octs does, but we need to track the 
+        # number of octs total visited. 
+        cdef np.int64_t num_cells = -1
+        if dest is None:
+            # Note that RAMSES can have partial refinement inside an Oct.  This 
+            # means we actually do want the number of Octs, not the number of 
+            # cells.
+            num_cells = selector.count_oct_cells(self, domain_id)
+            dest = np.zeros((num_cells, dims), dtype=source.dtype,
+                            order='C')
+        if dims != 1:
+            raise RuntimeError
+        # Just make sure that we're in the right shape.  Ideally this will not 
+        # duplicate memory.  Since we're in Cython, we want to avoid modifying 
+        # the .shape attributes directly. 
+        dest = dest.reshape((num_cells, 1))
+        source = source.reshape((source.shape[0], source.shape[1],
+                    source.shape[2], source.shape[3], dims))
+        cdef OctVisitor visitor
+        cdef oct_visitors.CopyArrayI64 visitor_i64
+        cdef oct_visitors.CopyArrayF64 visitor_f64
+        if source.dtype != dest.dtype:
+            raise RuntimeError
+        if source.dtype == np.int64:
+            visitor_i64 = oct_visitors.CopyArrayI64(self, domain_id)
+            visitor_i64.source = source
+            visitor_i64.dest = dest
+            visitor = visitor_i64
+        elif source.dtype == np.float64:
+            visitor_f64 = oct_visitors.CopyArrayF64(self, domain_id)
+            visitor_f64.source = source
+            visitor_f64.dest = dest
+            visitor = visitor_f64
+        else:
+            raise NotImplementedError
+        visitor.index = offset
+        # We only need this so we can continue calculating the offset 
+        visitor.dims = dims
+        self.visit_base_octs(selector, visitor)
+        if (visitor.global_index + 1) * visitor.nz * visitor.dims > source.size:
+            print "GLOBAL INDEX RAN AHEAD.",
+            print (visitor.global_index + 1) * visitor.nz * visitor.dims - source.size
+            print dest.size, source.size, num_cells
+            raise RuntimeError
+        if visitor.index > dest.size:
+            print "DEST INDEX RAN AHEAD.",
+            print visitor.index - dest.size
+            print (visitor.global_index + 1) * visitor.nz * visitor.dims, source.size
+            print num_cells
+            raise RuntimeError
+        if num_cells >= 0:
+            return dest
+        return visitor.index - offset
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

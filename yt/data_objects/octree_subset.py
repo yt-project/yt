@@ -450,12 +450,17 @@ class ParticleOctreeSubset(OctreeSubset):
                 base_region, data_files, ds, min_ind, max_ind,
                 over_refine_factor, selector_mask = selector_mask)
 
+    def select(self, selector, source, dest, offset):
+        n = self.oct_handler.selector_fill_base(selector, source, dest, offset,
+                                                domain_id = self.domain_id)
+        return n
+
     @contextlib.contextmanager
     def _expand_data_files(self, ghost_particles):
         if ghost_particles:
             old_data_files = self.data_files
-            self.data_files = list(set(self.data_files + self.buffer_files))
-            self.data_files.sort()
+            self.data_files = list(self.data_files + self.buffer_files)
+            # self.data_files.sort()
             yield self
             self.data_files = old_data_files
         else:
@@ -472,11 +477,15 @@ class ParticleOctreeSubset(OctreeSubset):
     def oct_handler(self):
         if self._index.regions._last_octree_subset == id(self):
             return self._index.regions._last_oct_handler
+        if self._index.regions._prev_octree_subset == id(self):
+            return self._index.regions._prev_oct_handler
         cache = self._index.regions._cached_octrees
         # TODO Change this to use a primary file ID for forest owners
         oct_handler = self._index.regions.construct_octree(self._index,
             self._index.io, self.data_files, self._oref,
             self.selector_mask, buffer_mask = self.buffer_mask)
+        self._index.regions._prev_octree_subset = self._index.regions._last_octree_subset
+        self._index.regions._prev_oct_handler = self._index.regions._last_oct_handler
         self._index.regions._last_octree_subset = id(self)
         self._index.regions._last_oct_handler = oct_handler
         return oct_handler

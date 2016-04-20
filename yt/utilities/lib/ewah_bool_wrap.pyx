@@ -455,6 +455,33 @@ cdef class FileBitmasks:
     def logicaland(self, ifile, solf, out):
         return self._logicaland(ifile, solf, out)
 
+    cdef void _select_owned(self, np.uint32_t ifile, BoolArrayCollection out):
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *> out.ewah_keys
+        cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_bool_array *ewah_owns_out = <ewah_bool_array *> out.ewah_owns
+        cdef ewah_map *ewah_coll_out = <ewah_map *> out.ewah_coll
+        cdef np.uint64_t iset
+        cdef ewah_bool_iterator *iter_set
+        cdef ewah_bool_iterator *iter_end
+        cdef ewah_bool_array ewah_slct, ewah_refn_strict, ewah_owns_strict, ewah_coar_strict
+        # Ensure that refn contains strictly keys
+        ewah_keys[0].logicaland(ewah_refn[0], ewah_refn_strict)
+        ewah_keys[0].logicalxor(ewah_refn_strict, ewah_coar_strict)
+        # Set output
+        ewah_owns[0].logicaland(ewah_refn_strict, ewah_owns_out[0])
+        ewah_coar_strict.logicalor(ewah_owns_out[0], ewah_keys_out[0])
+        ewah_refn_strict.logicaland(ewah_keys_out[0], ewah_refn_out[0])
+        iter_set = new ewah_bool_iterator(ewah_refn_out[0].begin())
+        iter_end = new ewah_bool_iterator(ewah_refn_out[0].end())
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            ewah_coll_out[0][iset] = ewah_coll[0][iset]
+            preincrement(iter_set[0])
+
     cdef void _select_contaminated(self, np.uint32_t ifile, 
                                    BoolArrayCollection mask, np.uint8_t[:] out,
                                    np.uint8_t[:] secondary_files,
@@ -852,6 +879,45 @@ cdef class BoolArrayCollection:
 
     def count_owned(self):
         return self._count_owned()
+
+    cdef void _logicalor(self, BoolArrayCollection solf, BoolArrayCollection out):
+        cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns1 = <ewah_bool_array *> self.ewah_owns
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll1 = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
+        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
+        cdef ewah_bool_array *ewah_owns2 = <ewah_bool_array *> solf.ewah_owns
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll2 = <cmap[np.uint64_t, ewah_bool_array] *> solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys3 = <ewah_bool_array *> out.ewah_keys
+        cdef ewah_bool_array *ewah_refn3 = <ewah_bool_array *> out.ewah_refn
+        cdef ewah_bool_array *ewah_owns3 = <ewah_bool_array *> out.ewah_owns
+        cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll3 = <cmap[np.uint64_t, ewah_bool_array] *> out.ewah_coll
+        cdef cmap[np.uint64_t, ewah_bool_array].iterator it_map1, it_map2
+        cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
+        cdef np.uint64_t nrefn, mi1
+        # Keys
+        ewah_keys1[0].logicalor(ewah_keys2[0], ewah_keys3[0])
+        # Refined
+        ewah_refn1[0].logicalor(ewah_refn2[0], ewah_refn3[0])
+        # Owners
+        ewah_owns1[0].logicalor(ewah_owns2[0], ewah_owns3[0])
+        # Map
+        it_map1 = ewah_coll1[0].begin()
+        while it_map1 != ewah_coll1[0].end():
+            mi1 = dereference(it_map1).first
+            mi1_ewah1 = dereference(it_map1).second
+            ewah_coll3[0][mi1] = mi1_ewah1
+            preincrement(it_map1)
+        it_map2 = ewah_coll2[0].begin()
+        while it_map2 != ewah_coll2[0].end():
+            mi1 = dereference(it_map2).first
+            mi1_ewah2 = dereference(it_map2).second
+            it_map1 = ewah_coll1[0].find(mi1)
+            if it_map1 != ewah_coll1[0].end():
+                mi1_ewah1 = dereference(it_map1).second
+                mi1_ewah1.logicalor(mi1_ewah2, ewah_coll3[0][mi1])
+            preincrement(it_map2)
 
     cdef void _append(self, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys

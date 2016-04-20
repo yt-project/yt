@@ -33,6 +33,7 @@ cdef class FileBitmasks:
     cdef bint _intersects(self, np.uint32_t ifile, BoolArrayCollection solf)
     cdef void _logicalxor(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
     cdef void _logicaland(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
+    cdef void _select_owned(self, np.uint32_t ifile, BoolArrayCollection out)
     cdef void _select_contaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out, 
                np.uint8_t[:] secondary_files, BoolArrayCollection mask2=*)
     cdef void _select_uncontaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out,
@@ -66,6 +67,7 @@ cdef class BoolArrayCollection:
     cdef int _count_owned(self)
     cdef int _count_coarse(self)
     cdef void _append(self, BoolArrayCollection solf)
+    cdef void _logicalor(self, BoolArrayCollection solf, BoolArrayCollection out)
     cdef bint _intersects(self, BoolArrayCollection solf)
     cdef void _logicalxor(self, BoolArrayCollection solf, BoolArrayCollection out)
     cdef void _logicaland(self, BoolArrayCollection solf, BoolArrayCollection out)
