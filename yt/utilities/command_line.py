@@ -32,6 +32,7 @@ from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
     ensure_list, \
     get_hg_version, \
+    get_yt_version, \
     mylog, \
     ensure_dir_exists, \
     update_hg, \
@@ -73,6 +74,48 @@ def _add_arg(sc, arg):
     if "short" in argc: argnames.append(argc.pop('short'))
     if "longname" in argc: argnames.append(argc.pop('longname'))
     sc.add_argument(*argnames, **argc)
+
+def _print_failed_source_update(reinstall=False):
+    print()
+    print("The yt package is not installed from a mercurial repository,")
+    print("so you must update this installation manually.")
+    if 'Continuum Analytics' in sys.version or 'Anaconda' in sys.version:
+        # see http://stackoverflow.com/a/21318941/1382869 for why we need
+        # to check both Continuum *and* Anaconda
+        print()
+        print("Since it looks like you are using a python installation")
+        print("that is managed by conda, you may want to do:")
+        print()
+        print("    $ conda update yt")
+        print()
+        print("to update your yt installation.")
+        if reinstall is True:
+            print()
+            print("To update all of your packages, you can do:")
+            print()
+            print("    $ conda update --all")
+
+def _print_installation_information(path):
+    import yt
+    print()
+    print("yt module located at:")
+    print("    %s" % (path))
+    if "YT_DEST" in os.environ:
+        spath = os.path.join(
+            os.environ["YT_DEST"], "src", "yt-supplemental")
+        if os.path.isdir(spath):
+            print("The supplemental repositories are located at:")
+            print("    %s" % (spath))
+    print()
+    print("The current version of yt is:")
+    print()
+    print("---")
+    print("Version = %s" % yt.__version__)
+    vstring = get_hg_version(path)
+    if vstring is not None:
+        print("Changeset = %s" % vstring.strip().decode("utf-8"))
+    print("---")
+    return vstring
 
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
@@ -334,6 +377,13 @@ def _get_yt_stack_date():
 def _update_yt_stack(path):
     "Rerun the install script to updated all dependencies."
 
+    if "YT_DEST" not in os.environ:
+        print()
+        print("This yt installation does not appear to be managed by the")
+        print("source-based install script, but 'update --all' was specified.")
+        print("You will need to update your dependencies manually.")
+        return
+
     install_script = os.path.join(path, "doc/install_script.sh")
     if not os.path.exists(install_script):
         print()
@@ -360,19 +410,6 @@ def _update_yt_stack(path):
     else:
         print("The yt stack has been updated successfully.")
         print("Now get back to work!")
-
-def get_yt_version():
-    try:
-        from yt.__hg_version__ import hg_version
-        return hg_version
-    except ImportError:
-        pass
-    import pkg_resources
-    yt_provider = pkg_resources.get_provider("yt")
-    path = os.path.dirname(yt_provider.module_path)
-    if not os.path.isdir(os.path.join(path, ".hg")): return None
-    version = get_hg_version(path)
-    return version
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
@@ -605,43 +642,17 @@ class YTInstInfoCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
-        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
-        print()
-        print("yt module located at:")
-        print("    %s" % (path))
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print("The supplemental repositories are located at:")
-                print("    %s" % (spath))
-        vstring = get_yt_version()
-        if vstring == -1:
-            vstring = "unknown"
+        vstring = _print_installation_information(path)
         if vstring is not None:
-            print()
-            print("The current version and changeset for the code is:")
-            print()
-            print("---")
-            print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip().decode("utf-8"))
-            print("---")
-            print()
-            if "site-packages" not in path:
-                print("This installation CAN be automatically updated.")
-                if opts.update_source:
-                    update_hg(path)
-                    print("Updated successfully.")
+            print("This installation CAN be automatically updated.")
+            if opts.update_source:
+                update_hg(path)
+                print("Updated successfully.")
                 _get_yt_stack_date()
         elif opts.update_source:
-            print()
-            print("YT site-packages not in path, so you must")
-            print("update this installation manually by committing and")
-            print("merging your modifications to the code before")
-            print("updating to the newest changeset.")
-            print()
+            _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
@@ -1024,28 +1035,10 @@ class YTUpdateCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
-        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
-        print()
-        print("yt module located at:")
-        print("    %s" % (path))
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print("The supplemental repositories are located at:")
-                print("    %s" % (spath))
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
-            print()
-            print("The current version and changeset for the code is:")
-            print()
-            print("---")
-            print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip().decode("utf-8"))
-            print("---")
+        vstring = _print_installation_information(path)
+        if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
             update_hg(path, skip_rebuild=opts.reinstall)
@@ -1054,12 +1047,7 @@ class YTUpdateCmd(YTCommand):
             if opts.reinstall:
                 _update_yt_stack(path)
         else:
-            print()
-            print("YT site-packages not in path, so you must")
-            print("update this installation manually by committing and")
-            print("merging your modifications to the code before")
-            print("updating to the newest changeset.")
-            print()
+            _print_failed_source_update(opts.reinstall)
 
 class YTUploadImageCmd(YTCommand):
     args = (dict(short="file", type=str),)
