@@ -14,7 +14,6 @@ A wrapper class for h5py file objects.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
-
 from distutils.version import LooseVersion
 
 class HDF5FileHandler(object):
@@ -50,6 +49,10 @@ class HDF5FileHandler(object):
 
     def items(self):
         return list(self.handle.items())
+
+    def close(self):
+        if self.handle is not None:
+            self.handle.close()
 
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
