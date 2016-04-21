@@ -596,8 +596,12 @@ class ColorBarSceneComponent(SceneComponent):
                            GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
         self.camera.cmap_new = False
     
-
 class MeshSceneComponent(ColorBarSceneComponent):
+    '''
+
+    A scene component for representing unstructured mesh data.
+
+    '''
 
     def __init__(self, ds, field):
         super(MeshSceneComponent, self).__init__()
