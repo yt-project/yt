@@ -603,7 +603,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
     '''
 
-    def __init__(self, ds, field):
+    def __init__(self, data_source, field):
         super(MeshSceneComponent, self).__init__()
         self.set_shader("mesh.v")
         self.set_shader("mesh.f")
@@ -616,7 +616,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
         GL.glEnable(GL.GL_CULL_FACE)
         GL.glCullFace(GL.GL_BACK)
 
-        vertices, data, indices = self.get_mesh_data(ds, field)
+        vertices, data, indices = self.get_mesh_data(data_source, field)
 
         self._initialize_vertex_array("mesh_info")
         GL.glBindVertexArray(self.vert_arrays["mesh_info"])
@@ -647,21 +647,25 @@ class MeshSceneComponent(ColorBarSceneComponent):
         self.camera.cmap_max = float(self.cmax)
         self.redraw = True
 
-    def get_mesh_data(self, ds, field):
+    def get_mesh_data(self, data_source, field):
         """
         
         This reads the mesh data into a form that can be fed in to OpenGL.
         
         """
 
+        # get mesh information
         ftype, fname = field
         mesh_id = int(ftype[-1])
-        offset = ds.index.io._INDEX_OFFSET
-        field_ind = ds.index.io.node_fields.index(fname)
+        mesh = data_source.ds.index.meshes[mesh_id-1]
+        offset = mesh._index_offset
+        vertices = mesh.connectivity_coords
+        indices  = mesh.connectivity_indices - offset
 
-        vertices = ds.index.meshes[mesh_id-1].connectivity_coords
-        indices  = ds.index.meshes[mesh_id-1].connectivity_indices - offset
-        data = ds._vars['vals_nod_var%d' % (field_ind + 1)][ds.step]
+        # get vertex data
+        data = data_source[field]
+        vertex_data = np.zeros(vertices.shape[0], dtype=data.dtype)
+        vertex_data[indices.flatten()] = data.flatten()
 
         if indices.shape[1] == 8:
             tri_array = triangulate_hex
@@ -676,11 +680,10 @@ class MeshSceneComponent(ColorBarSceneComponent):
         for elem in indices:
             for tri in tri_array:
                 tri_indices.append(elem[tri])
-
         tri_indices = np.array(tri_indices)
 
         v = vertices.astype(np.float32).flatten()
-        d = data.astype(np.float32).flatten()
+        d = vertex_data.astype(np.float32).flatten()
         i = tri_indices.astype(np.uint32).flatten()
 
         return v, d, i

@@ -81,7 +81,7 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
         # unstructured mesh datasets tend to have tight
         # domain boundaries, do some extra padding here.
         cam_position = 3.0*dobj.ds.domain_right_edge
-        scene = MeshSceneComponent(data_source, field)
+        scene = MeshSceneComponent(dobj, field)
     else:
         scene = SceneGraph()
         collection = BlockCollection()
