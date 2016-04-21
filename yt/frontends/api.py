@@ -25,6 +25,7 @@ _frontends = [
     'eagle',
     'enzo',
     'exodus_ii',
+    'fire',
     'fits',
     'flash',
     'gadget',
