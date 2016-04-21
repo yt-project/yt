@@ -154,18 +154,14 @@ at the last few hundred lines (i.e. ``tail -500 yt_install.log``), you can
 potentially figure out what went wrong.  If you have problems, though, do not
 hesitate to :ref:`contact us <asking-for-help>` for assistance.
 
-If the install script errors out with the following message:
-
-.. code-block:: none
-
-  ImportError: cannot import name HTTPSHandler
-
-This means that Python was unable to link against the OpenSSL library. This
-likely means that you installed with ``INST_CONDA=0`` on a recent version of
-OSX, or on a cluster that has a very out of date installation of OpenSSL. In
-both of these cases you will either need to install OpenSSL yourself from the
-system package manager, or conisder using ``INST_CONDA=1``, since conda-based
-installs can install the conda package for OpenSSL.
+If the install script errors out with a message about being unable to import the
+python SSL bindings, this means that the Python built by the install script was
+unable to link against the OpenSSL library. This likely means that you installed
+with ``INST_CONDA=0`` on a recent version of OSX, or on a cluster that has a
+very out of date installation of OpenSSL. In both of these cases you will either
+need to install OpenSSL yourself from the system package manager or consider
+using ``INST_CONDA=1``, since conda-based installs can install the conda package
+for OpenSSL.
 
 .. _activating-yt:
 
