@@ -52,8 +52,10 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
 
     '''
 
-    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera, \
-        MeshScene
+    from .interactive_vr import SceneGraph, \
+        BlockCollection, \
+        TrackballCamera, \
+        MeshSceneComponent
     from .interactive_loop import RenderingContext
 
     if isinstance(data_source, Dataset):
@@ -76,8 +78,10 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     rc = RenderingContext(*window_size)
 
     if hasattr(dobj.ds.index, "meshes"):
+        # unstructured mesh datasets tend to have tight
+        # domain boundaries, do some extra padding here.
         cam_position = 3.0*dobj.ds.domain_right_edge
-        scene = MeshScene(data_source, field)
+        scene = MeshSceneComponent(data_source, field)
     else:
         scene = SceneGraph()
         collection = BlockCollection()

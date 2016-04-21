@@ -553,18 +553,59 @@ class BlockCollection(SceneComponent):
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
+class ColorBarSceneComponent(SceneComponent):
+    ''' 
 
-class MeshScene(SceneComponent):
+    A class for scene components that apply colorbars using a 1D texture. 
+
+    '''
+
+    def __init__(self):
+        super(ColorBarSceneComponent, self).__init__()
+        self.camera = None
+        self.cmap_texture = None
+
+    def set_camera(self, camera):
+        pass
+
+    def update_minmax(self):
+        pass
+
+    def setup_cmap_tex(self):
+        '''Creates 1D texture that will hold colormap in framebuffer'''
+        self.cmap_texture = GL.glGenTextures(1)   # create target texture
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
+                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+
+    def update_cmap_tex(self):
+        '''Updates 1D texture with colormap that's used in framebuffer'''
+        if self.camera is None or not self.camera.cmap_new:
+            return
+
+        if self.cmap_texture is None:
+            self.setup_cmap_tex()
+
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
+                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        self.camera.cmap_new = False
+    
+
+class MeshSceneComponent(ColorBarSceneComponent):
 
     def __init__(self, ds, field):
-        super(MeshScene, self).__init__()
+        super(MeshSceneComponent, self).__init__()
         self.set_shader("mesh.v")
         self.set_shader("mesh.f")
 
         self.data_source = None
         self.redraw = True
-        self.camera = None
-        self.cmap_texture = None
 
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthFunc(GL.GL_LESS)
@@ -601,34 +642,6 @@ class MeshScene(SceneComponent):
         self.camera.cmap_min = float(self.cmin)
         self.camera.cmap_max = float(self.cmax)
         self.redraw = True
-
-    def setup_cmap_tex(self):
-        '''Creates 1D texture that will hold colormap in framebuffer'''
-        self.cmap_texture = GL.glGenTextures(1)   # create target texture
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
-                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-
-    def update_cmap_tex(self):
-        '''Updates 1D texture with colormap that's used in framebuffer'''
-        if self.camera is None or not self.camera.cmap_new:
-            return
-
-        if self.cmap_texture is None:
-            self.setup_cmap_tex()
-
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
-                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        self.camera.cmap_new = False
-
-    def update_minmax(self):
-        pass
 
     def get_mesh_data(self, ds, field):
         """
@@ -706,7 +719,7 @@ class MeshScene(SceneComponent):
     render = run_program
 
 
-class SceneGraph(SceneComponent):
+class SceneGraph(ColorBarSceneComponent):
     """A basic OpenGL render for IDV.
 
     The SceneGraph class is the primary driver behind creating a IDV rendering.
@@ -727,8 +740,6 @@ class SceneGraph(SceneComponent):
         self.collections = []
         self.fbo = None
         self.fb_texture = None
-        self.cmap_texture = None
-        self.camera = None
         self.shader_program = None
         self.fb_shader_program = None
         self.min_val, self.max_val = 1e60, -1e60
@@ -759,32 +770,6 @@ class SceneGraph(SceneComponent):
         GL.glBindVertexArray(0)
 
         self.setup_fb(self.width, self.height)
-
-    def setup_cmap_tex(self):
-        '''Creates 1D texture that will hold colormap in framebuffer'''
-        self.cmap_texture = GL.glGenTextures(1)   # create target texture
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
-                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-
-    def update_cmap_tex(self):
-        '''Updates 1D texture with colormap that's used in framebuffer'''
-        if self.camera is None or not self.camera.cmap_new:
-            return
-
-        if self.cmap_texture is None:
-            self.setup_cmap_tex()
-
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
-                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-        self.camera.cmap_new = False
 
     def setup_fb(self, width, height):
         '''Sets up FrameBuffer that will be used as container
@@ -840,7 +825,6 @@ class SceneGraph(SceneComponent):
         # verify that everything went well
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         assert status == GL.GL_FRAMEBUFFER_COMPLETE, status
-
 
     def add_collection(self, collection):
         r"""Adds a block collection to the scene. Collections must not overlap.
