@@ -33,12 +33,12 @@ cdef struct Triangle:
     np.float64_t p1[3]
     np.float64_t p2[3]
     np.int64_t elem_id
-    np.float64_t centroid[3]
-    BBox bbox
 
 cdef class BVH:
     cdef BVHNode* root
     cdef Triangle* triangles
+    cdef np.float64_t** centroids
+    cdef BBox* bboxes
     cdef np.float64_t* vertices
     cdef np.float64_t* field_data
     cdef np.int64_t num_tri_per_elem

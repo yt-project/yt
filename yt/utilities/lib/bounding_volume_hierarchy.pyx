@@ -199,6 +199,10 @@ cdef class BVH:
         cdef np.int64_t v0, v1, v2
         cdef Triangle* tri
         self.triangles = <Triangle*> malloc(self.num_tri * sizeof(Triangle))
+        self.centroids = <np.float64_t**> malloc(self.num_tri * sizeof(np.float64_t*))
+        for i in range(self.num_tri):
+            self.centroids[i] = <np.float64_t*> malloc(3*sizeof(np.float64_t))
+        self.bboxes = <BBox*> malloc(self.num_tri * sizeof(BBox))
         for i in range(self.num_elem):
             offset = self.num_tri_per_elem*i
             for j in range(self.num_tri_per_elem):
@@ -212,8 +216,8 @@ cdef class BVH:
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
-                    triangle_centroid(self.triangles, tri_index, tri.centroid)
-                    triangle_bbox(self.triangles, tri_index, &(tri.bbox))
+                    triangle_centroid(self.triangles, tri_index, self.centroids[tri_index])
+                    triangle_bbox(self.triangles, tri_index, &(self.bboxes[tri_index]))
 
         self.root = self._recursive_build(0, self.num_tri)
 
@@ -226,6 +230,11 @@ cdef class BVH:
     def __dealloc__(self):
         self._recursive_free(self.root)
         free(self.triangles)
+        cdef np.int64_t i
+        for i in range(self.num_tri):
+            free(self.centroids[i])
+        free(self.centroids)
+        free(self.bboxes)
         free(self.field_data)
         free(self.vertices)
 
@@ -240,11 +249,15 @@ cdef class BVH:
         # will have centroids *greater* than "split" along "ax".
         cdef np.int64_t mid = begin
         while (begin != end):
-            if self.triangles[mid].centroid[ax] > split:
+            if self.centroids[mid][ax] > split:
                 mid += 1
-            elif self.triangles[begin].centroid[ax] > split:
+            elif self.centroids[begin][ax] > split:
                 self.triangles[mid], self.triangles[begin] = \
                 self.triangles[begin], self.triangles[mid]
+                self.centroids[mid], self.centroids[begin] = \
+                self.centroids[begin], self.centroids[mid]
+                self.bboxes[mid], self.bboxes[begin] = \
+                self.bboxes[begin], self.bboxes[mid]
                 mid += 1
             begin += 1
         return mid
@@ -255,13 +268,13 @@ cdef class BVH:
     cdef void _get_node_bbox(self, BVHNode* node, 
                              np.int64_t begin, np.int64_t end) nogil:
         cdef np.int64_t i, j
-        cdef BBox box = self.triangles[begin].bbox
+        cdef BBox box = self.bboxes[begin]
         for i in range(begin+1, end):
             for j in range(3):
                 box.left_edge[j] = fmin(box.left_edge[j],
-                                        self.triangles[i].bbox.left_edge[j])
+                                        self.bboxes[i].left_edge[j])
                 box.right_edge[j] = fmax(box.right_edge[j], 
-                                         self.triangles[i].bbox.right_edge[j])
+                                         self.bboxes[i].right_edge[j])
         node.bbox = box
 
     @cython.boundscheck(False)
