@@ -42,8 +42,12 @@ cdef np.int64_t   LEAF_SIZE = 16
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
+cdef np.int64_t ray_triangle_intersect(const void* primitives,
+                                       const np.int64_t item,
+                                       Ray* ray) nogil:
 # https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+
+    cdef Triangle tri = (<Triangle*> primitives)[item]
 
     # edge vectors
     cdef np.float64_t e1[3]
@@ -82,6 +86,33 @@ cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
         return True
 
     return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void triangle_centroid(const void *primitives, 
+                            const np.int64_t item,
+                            np.float64_t[3] centroid) nogil:
+
+    cdef Triangle tri = (<Triangle*> primitives)[item]
+    cdef np.int64_t i
+    for i in range(3):
+        centroid[i] = (tri.p0[i] + tri.p1[i] + tri.p2[i]) / 3.0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void triangle_bbox(const void *primitives, 
+                        const np.int64_t item,
+                        BBox* bbox) nogil:
+
+    cdef Triangle tri = (<Triangle*> primitives)[item]
+    cdef np.int64_t i
+    for i in range(3):
+        bbox.left_edge[i] = fmin(fmin(tri.p0[i], tri.p1[i]), tri.p2[i])
+        bbox.right_edge[i] = fmax(fmax(tri.p0[i], tri.p1[i]), tri.p2[i])
 
 
 @cython.boundscheck(False)
@@ -181,9 +212,8 @@ cdef class BVH:
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
-                    tri.centroid[k] = (tri.p0[k] + tri.p1[k] + tri.p2[k]) / 3.0
-                    tri.bbox.left_edge[k]  = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
-                    tri.bbox.right_edge[k] = fmax(fmax(tri.p0[k], tri.p1[k]), tri.p2[k])
+                    triangle_centroid(self.triangles, tri_index, tri.centroid)
+                    triangle_bbox(self.triangles, tri_index, &(tri.bbox))
 
         self.root = self._recursive_build(0, self.num_tri)
 
@@ -276,8 +306,7 @@ cdef class BVH:
         cdef Triangle* tri
         if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
-                tri = &(self.triangles[i])
-                hit = ray_triangle_intersect(ray, tri)
+                hit = ray_triangle_intersect(self.triangles, i, ray)
             return
 
         # if not leaf, intersect with left and right children
