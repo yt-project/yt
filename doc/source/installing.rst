@@ -432,7 +432,7 @@ source include:
 - A C compiler such as ``gcc`` or ``clang``
 - ``Python 2.7``, ``Python 3.4``, or ``Python 3.5``
 
-In addition, ``yt`` building yt from source requires several python packages
+In addition, building yt from source requires several python packages
 which can be installed with ``pip``:
 
 .. code-block:: bash
