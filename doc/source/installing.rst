@@ -119,10 +119,17 @@ and will install yt's dependencies using the `conda
 compilation environment to run the install script, yt itself will also be
 installed using `conda`.
 
+If you would like to customize your yt installation, you can edit the values of
+several variables that are defined at the top of the script.
+
 If you would like to build yt from source, you will need to edit the install
-script and set ``INST_YT_SOURCE=1`` near the top. The install script can also
-build python and all yt dependencies from source. To switch to this mode, set
-``INST_CONDA=0`` at the top of the install script.
+script and set ``INST_YT_SOURCE=1`` near the top. This will clone a copy of the
+yt mercurial repository and build yt form source. The default is
+``INST_YT_SOURCE=0``, which installs yt from a binary conda package.
+
+The install script can also build python and all yt dependencies from source. To
+switch to this mode, set ``INST_CONDA=0`` at the top of the install script. If
+you choose this mode, you must also set ``INST_YT_SOURCE=1``.
 
 In addition, you can tell the install script to download and install some
 additional packages --- currently these include
