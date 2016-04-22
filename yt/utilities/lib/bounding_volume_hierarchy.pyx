@@ -249,7 +249,7 @@ cdef class BVH:
             position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
             
         cdef np.float64_t* vertex_ptr
-        cdef np.float64_t* field_ptr         
+        cdef np.float64_t* field_ptr
         vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
         field_ptr = self.field_data + ray.elem_id*self.num_field_per_elem
 

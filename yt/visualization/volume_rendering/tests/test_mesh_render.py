@@ -31,8 +31,8 @@ def test_surface_mesh_render():
     images = []
 
     ds = fake_tetrahedral_ds()
-    sc = Scene()
     for field in ds.field_list:
+        sc = Scene()
         sc.add_source(MeshSource(ds, field))
         sc.add_camera()
         im = sc.render()
@@ -40,6 +40,7 @@ def test_surface_mesh_render():
 
     ds = fake_hexahedral_ds()
     for field in ds.field_list:
+        sc = Scene()
         sc.add_source(MeshSource(ds, field))
         sc.add_camera()
         im = sc.render()
