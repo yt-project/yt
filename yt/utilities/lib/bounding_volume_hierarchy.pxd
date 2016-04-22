@@ -2,6 +2,7 @@ cimport cython
 import numpy as np
 cimport numpy as np
 from yt.utilities.lib.element_mappings cimport ElementSampler
+from yt.utilities.lib.primitives cimport Triangle
 
 # ray data structure
 cdef struct Ray:
@@ -27,13 +28,6 @@ cdef struct BVHNode:
     BVHNode* right
     BBox bbox
     
-# triangle data structure
-cdef struct Triangle:
-    np.float64_t p0[3]
-    np.float64_t p1[3]
-    np.float64_t p2[3]
-    np.int64_t elem_id
-
 cdef class BVH:
     cdef BVHNode* root
     cdef Triangle* triangles
