@@ -176,7 +176,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
     constant_metallicity: float, optional
         If specified, assume a constant metallicity for the emission 
         from metals.  The *with_metals* keyword must be set to False 
-        to use this.
+        to use this. It should be given in unit of solar metallicity.
         Default: None.
 
     This will create three fields:

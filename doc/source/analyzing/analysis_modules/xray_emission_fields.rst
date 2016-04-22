@@ -49,7 +49,8 @@ Additional keyword arguments are:
 
  * **constant_metallicity** (*float*): If specified, assume a constant
    metallicity for the emission from metals.  The *with_metals* keyword
-   must be set to False to use this.  Default: None.
+   must be set to False to use this. It should be given in unit of solar metallicity.
+   Default: None.
 
 The resulting fields can be used like all normal fields. The function will return the names of
 the created fields in a Python list.
