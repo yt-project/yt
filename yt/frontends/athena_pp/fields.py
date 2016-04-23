@@ -25,14 +25,14 @@ vel_units = "code_length / code_time"
 
 class AthenaPPFieldInfo(FieldInfoContainer):
     known_other_fields = (
-        ("gas_density", (rho_units, ["density"], None)),
-        ("gas_pressure", (pres_units, ["pressure"], None)),
-        ("gas_velocity_x1", (vel_units, ["velocity_x"], None)),
-        ("gas_velocity_x2", (vel_units, ["velocity_y"], None)),
-        ("gas_velocity_x3", (vel_units, ["velocity_z"], None)),
-        ("bfield_x1", (b_units, [], None)),
-        ("bfield_x2", (b_units, [], None)),
-        ("bfield_x3", (b_units, [], None)),
+        ("rho", (rho_units, ["density"], None)),
+        ("pgas", (pres_units, ["pressure"], None)),
+        ("vel1", (vel_units, ["velocity_x"], None)),
+        ("vel2", (vel_units, ["velocity_y"], None)),
+        ("vel3", (vel_units, ["velocity_z"], None)),
+        ("B1", (b_units, [], None)),
+        ("B2", (b_units, [], None)),
+        ("B3", (b_units, [], None)),
     )
 
     def setup_fluid_fields(self):
@@ -48,6 +48,6 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         self.add_field(("gas","temperature"), function=_temperature,
                        units=unit_system["temperature"])
 
-        setup_magnetic_field_aliases(self, "athena++", ["bfield_x%d" % ax for ax in (1,2,3)])
+        setup_magnetic_field_aliases(self, "athena++", ["B%d" % ax for ax in (1,2,3)])
 
 

@@ -52,13 +52,17 @@ class IOHandlerAthenaPP(BaseIOHandler):
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)
         for field in fields:
-            f_fname = self.ds._field_map[field[1]]
+            ftype, fname = field
+            dname, fdi = self.ds._field_map[fname]
+            ds = f["/%s" % dname]
             ind = 0
             for chunk in chunks:
                 for gs in grid_sequences(chunk.objs):
+                    start = gs[0].id - gs[0]._id_offset
+                    end = gs[-1].id - gs[-1]._id_offset + 1
+                    data = ds[fdi,start:end,:,:,:].transpose()
                     for i, g in enumerate(gs):
-                        data = f["MeshBlock%d" % g.id][f_fname][:,:,:].transpose()
-                        ind += g.select(selector, data, rv[field], ind)
+                        ind += g.select(selector, data[...,i], rv[field], ind)
         return rv
 
     def _read_chunk_data(self, chunk, fields):
@@ -69,10 +73,13 @@ class IOHandlerAthenaPP(BaseIOHandler):
         if len(fields) == 0:
             return rv
         for field in fields:
-            f_fname = self.ds._field_map[field[1]]
+            ftype, fname = field
+            dname, fdi = self.ds._field_map[fname]
+            ds = f["/%s" % dname]
             for gs in grid_sequences(chunk.objs):
+                start = gs[0].id - gs[0]._id_offset
+                end = gs[-1].id - gs[-1]._id_offset + 1
+                data = ds[fdi,start:end,:,:,:].transpose()
                 for i, g in enumerate(gs):
-                    data = f["MeshBlock%d" % g.id][f_fname][:,:,:].transpose()
-                    rv[g.id][field] = np.asarray(data, "=f8")
+                    rv[g.id][field] = np.asarray(data[...,i], "=f8")
         return rv
-

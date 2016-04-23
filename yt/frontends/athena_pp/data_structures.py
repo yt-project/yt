@@ -35,8 +35,6 @@ from yt.utilities.file_handler import \
 
 from .fields import AthenaPPFieldInfo
 
-geometry_map = {"3DRectMesh": "cartesian"}
-
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
 
@@ -75,45 +73,31 @@ class AthenaPPHierarchy(GridIndex):
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
         # for now, the index file is the dataset!
-        self.index_filename = self.dataset.datafile
+        self.index_filename = self.dataset.filename
         self._handle = ds._handle
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
-        self._field_map = dict((("athena++", k), v) for k, v in self.dataset._field_map.items())
-        self.field_list = list(self._field_map.keys())
+        self.field_list = [("athena++", k) for k in self.dataset._field_map]
 
     def _count_grids(self):
-        self.num_grids = self._handle.attrs["TotalMeshBlock"][0]
+        self.num_grids = self._handle.attrs["NumMeshBlocks"]
 
     def _parse_index(self):
-        coord_fields = self.dataset._coord_fields
-        num_grids = self._handle.attrs["TotalMeshBlock"][0]
+        num_grids = self._handle.attrs["NumMeshBlocks"]
 
         self.grid_left_edge = np.zeros((num_grids, 3), dtype='float64')
         self.grid_right_edge = np.zeros((num_grids, 3), dtype='float64')
         self.grid_dimensions = np.zeros((num_grids, 3), dtype='int32')
-        levels = np.zeros(num_grids, dtype='int32')
 
         for i in range(num_grids):
-            x = self._handle["MeshBlock%d" % i][coord_fields[0]]
-            y = self._handle["MeshBlock%d" % i][coord_fields[1]]
-            z = self._handle["MeshBlock%d" % i][coord_fields[2]]
+            x = self._handle["x1f"][i,:]
+            y = self._handle["x2f"][i,:]
+            z = self._handle["x3f"][i,:]
             self.grid_left_edge[i] = np.array([x[0], y[0], z[0]], dtype='float64')
             self.grid_right_edge[i] = np.array([x[-1], y[-1], z[-1]], dtype='float64')
             self.grid_dimensions[i] = self._handle.attrs["MeshBlockSize"]
-            levels[i] = self._handle["MeshBlock%d" % i].attrs["Level"][0]
-
-        new_dle = np.min(self.grid_left_edge, axis=0)
-        new_dre = np.max(self.grid_right_edge, axis=0)
-        self.dataset.domain_left_edge[:] = np.round(new_dle, decimals=12)[:]
-        self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
-        self.dataset.domain_width = \
-                (self.dataset.domain_right_edge -
-                 self.dataset.domain_left_edge)
-        self.dataset.domain_center = \
-                0.5*(self.dataset.domain_left_edge +
-                     self.dataset.domain_right_edge)
+        levels = self._handle["Levels"][:]
 
         self.grid_left_edge = self.ds.arr(self.grid_left_edge, "code_length")
         self.grid_right_edge = self.ds.arr(self.grid_right_edge, "code_length")
@@ -133,7 +117,7 @@ class AthenaPPHierarchy(GridIndex):
             g._prepare_grid()
             g._setup_dx()
         self._reconstruct_parent_child()
-        self.max_level = self._handle.attrs["MaxLevel"][0]
+        self.max_level = self._handle.attrs["MaxLevel"]
 
     def _reconstruct_parent_child(self):
         mask = np.empty(len(self.grids), dtype='int32')
@@ -177,6 +161,7 @@ class AthenaPPDataset(Dataset):
         self.specified_parameters = parameters
         if units_override is None:
             units_override = {}
+        self._handle = HDF5FileHandler(filename)
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.filename = filename
@@ -184,10 +169,6 @@ class AthenaPPDataset(Dataset):
             storage_filename = '%s.yt' % filename.split('/')[-1]
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
-        # Unfortunately we now have to mandate that the index gets
-        # instantiated so that we can make sure we have the correct left
-        # and right domain edges.
-        self.index
 
     def _set_code_unit_attributes(self):
         """
@@ -214,38 +195,33 @@ class AthenaPPDataset(Dataset):
         self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def _parse_parameter_file(self):
-        from lxml import etree
-        tree = etree.parse(self.parameter_filename)
-        root = tree.getroot()
-        grids = root.findall("./Domain/Grid")[0]
-        grid0 = grids[0]
-        geometry = grid0.find("Topology").attrib["TopologyType"]
-        coords = grid0.find("Geometry")
-        self._coord_fields = [coord.text.split("/")[-1] for coord in coords]
-        self._field_map = {}
-        for field in grid0.findall("Attribute"):
-            self._field_map[field.attrib["Name"]] = field[0].text.split("/")[-1]
-        self.datafile = coords[0].text.split(":")[0]
-        self._handle = HDF5FileHandler(self.datafile)
 
-        xmin = self._handle["MeshBlock0"][self._coord_fields[0]][0]
-        ymin = self._handle["MeshBlock0"][self._coord_fields[1]][0]
-        zmin = self._handle["MeshBlock0"][self._coord_fields[2]][0]
-        mylog.info("Temporarily setting a likely bogus domain_right_edge and "
-                   "domain_left_edge. This will be corrected later.")
+        xmin, xmax = self._handle.attrs["RootGridX1"][:2]
+        ymin, ymax = self._handle.attrs["RootGridX2"][:2]
+        zmin, zmax = self._handle.attrs["RootGridX3"][:2]
+
         self.domain_left_edge = np.array([xmin, ymin, zmin], dtype='float64')
-        self.domain_right_edge = -self.domain_left_edge
+        self.domain_right_edge = np.array([xmax, ymax, zmax], dtype='float64')
         self.domain_width = self.domain_right_edge-self.domain_left_edge
         self.domain_dimensions = self._handle.attrs["RootGridSize"]
 
+        self._field_map = {}
+        k = 0
+        for (i, dname), num_var in zip(enumerate(self._handle.attrs["DatasetNames"]),
+                                       self._handle.attrs["NumVariables"]):
+            for j in range(num_var):
+                fname = self._handle.attrs["VariableNames"][k].decode("ascii","ignore")
+                self._field_map[fname] = (dname.decode("ascii","ignore"), j)
+                k += 1
+
         self.refine_by = 2
         dimensionality = 3
-        if self.domain_dimensions[2] == 1 :
+        if self.domain_dimensions[2] == 1:
             dimensionality = 2
-        if self.domain_dimensions[1] == 1 :
+        if self.domain_dimensions[1] == 1:
             dimensionality = 1
         self.dimensionality = dimensionality
-        self.current_time = self._handle.attrs["Time"][0]
+        self.current_time = self._handle.attrs["Time"]
         self.unique_identifier = self.parameter_filename.__hash__()
         self.cosmological_simulation = False
         self.num_ghost_zones = 0
@@ -268,12 +244,12 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5./3.
-        self.geometry = geometry_map.get(geometry, "cartesian")
+        self.geometry = self._handle.attrs["Coordinates"].decode('utf-8')
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            if 'athdf.xdmf' in args[0]:
+            if args[0].endswith('athdf'):
                 return True
         except:
             pass
