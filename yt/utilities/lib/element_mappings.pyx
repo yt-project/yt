@@ -95,6 +95,12 @@ cdef class ElementSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        pass
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef double sample_at_real_point(self,
                                      double* vertices,
                                      double* field_values,
@@ -265,6 +271,37 @@ cdef class P1Sampler3D(ElementSampler):
             return 1
         return 0
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        cdef double u, v, w
+        cdef double thresh = 2.0e-2
+        if mapped_coord[0] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+            w = mapped_coord[3]
+        elif mapped_coord[1] == 0:
+            u = mapped_coord[2]
+            v = mapped_coord[3]
+            w = mapped_coord[0]
+        elif mapped_coord[2] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[3]
+            w = mapped_coord[0]
+        else:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+            w = mapped_coord[0]
+        if ((u < thresh) or 
+            (v < thresh) or 
+            (w < thresh) or
+            (fabs(u - 1) < thresh) or 
+            (fabs(v - 1) < thresh) or 
+            (fabs(w - 1) < thresh)):
+            return 1
+        return -1
+
 
 cdef class NonlinearSolveSampler3D(ElementSampler):
 
@@ -373,7 +410,6 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
             return 0
         return 1
 
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -385,6 +421,23 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
             return 1
         else:
             return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+            fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
+            return 1
+        elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+              fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+            return 1
+        elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
+              fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+            return 1
+        else:
+            return -1
+
 
 
 @cython.boundscheck(False)
@@ -527,6 +580,22 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
             return 1
         else:
             return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        if (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+            fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1):
+            return 1
+        elif (fabs(fabs(mapped_coord[0]) - 1.0) < 1e-1 and
+              fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+            return 1
+        elif (fabs(fabs(mapped_coord[1]) - 1.0) < 1e-1 and
+              fabs(fabs(mapped_coord[2]) - 1.0) < 1e-1):
+            return 1
+        else:
+            return -1
 
 
 @cython.boundscheck(False)
@@ -709,7 +778,6 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
             return 0
         return 1
 
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -725,6 +793,32 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
                                   fabs(mapped_coord[0] + mapped_coord[1] - 1.0) < tolerance)):
             return 1
         return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        cdef double r, s, t
+        cdef double thresh = 5.0e-2
+        r = mapped_coord[0]
+        s = mapped_coord[1]
+        t = mapped_coord[2]
+
+        cdef int near_edge_r, near_edge_s, near_edge_t
+        near_edge_r = (r < thresh) or (fabs(r + s - 1.0) < thresh)
+        near_edge_s = (s < thresh)
+        near_edge_t = fabs(fabs(mapped_coord[2]) - 1.0) < thresh
+        
+        # we use ray.instID to pass back whether the ray is near the
+        # element boundary or not (used to annotate mesh lines)
+        if (near_edge_r and near_edge_s):
+            return 1
+        elif (near_edge_r and near_edge_t):
+            return 1
+        elif (near_edge_s and near_edge_t):
+            return 1
+        else:
+            return -1
 
 
 @cython.boundscheck(False)

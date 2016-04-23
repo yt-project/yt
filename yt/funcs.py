@@ -551,9 +551,13 @@ def get_hg_version(path):
         print("Updating and precise version information requires ")
         print("python-hglib to be installed.")
         print("Try: pip install python-hglib")
-        return -1
-    repo = hglib.open(path)
-    return repo.identify()
+        return None
+    try:
+        repo = hglib.open(path)
+        return repo.identify()
+    except hglib.error.ServerError:
+        # path is not an hg repository
+        return None
 
 def get_yt_version():
     try:
@@ -564,8 +568,11 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)[:12]
-    return version
+    version = get_hg_version(path)
+    if version is None:
+        return version
+    else:
+        return version[:12].strip().decode('utf-8')
 
 def get_version_stack():
     version_info = {}
@@ -923,3 +930,26 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
         pbar.finish()
 
     return hasher.hexdigest()
+
+def get_brewer_cmap(cmap):
+    """Returns a colorbrewer colormap from palettable"""
+    try:
+        import brewer2mpl
+    except ImportError:
+        brewer2mpl = None
+    try:
+        import palettable
+    except ImportError:
+        palettable = None
+    if palettable is not None:
+        bmap = palettable.colorbrewer.get_map(*cmap)
+    elif brewer2mpl is not None:
+        warnings.warn("Using brewer2mpl colormaps is deprecated. "
+                      "Please install the successor to brewer2mpl, "
+                      "palettable, with `pip install palettable`. "
+                      "Colormap tuple names remain unchanged.")
+        bmap = brewer2mpl.get_map(*cmap)
+    else:
+        raise RuntimeError(
+            "Please install palettable to use colorbrewer colormaps")
+    return bmap.get_mpl_colormap(N=cmap[2])

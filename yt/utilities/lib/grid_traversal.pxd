@@ -25,6 +25,8 @@ cdef struct ImageContainer:
     np.float64_t *center
     np.float64_t[:,:,:] image
     np.float64_t[:,:] zbuffer
+    np.int64_t[:,:] image_used
+    np.int64_t[:,:] mesh_lines
     np.float64_t pdx, pdy
     np.float64_t bounds[4]
     np.float64_t[:,:] camera_data   # position, width, unit_vec[0,2]
@@ -59,6 +61,8 @@ cdef class ImageSampler:
     cdef sampler_function *sampler
     cdef public object acenter, aimage, ax_vec, ay_vec
     cdef public object azbuffer
+    cdef public object aimage_used
+    cdef public object amesh_lines
     cdef void *supp_data
     cdef np.float64_t width[3]
     cdef public object lens_type

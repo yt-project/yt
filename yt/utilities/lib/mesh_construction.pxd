@@ -11,6 +11,7 @@ ctypedef struct MeshDataContainer:
     int* element_indices   # which vertices belong to which *element*
     int tpe                # the number of triangles per element
     int vpe                # the number of vertices per element
+    int fpe                # the number of field values per element
 
 ctypedef struct Patch:
     float[8][3] v
