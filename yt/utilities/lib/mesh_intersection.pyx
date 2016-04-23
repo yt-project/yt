@@ -21,61 +21,11 @@ cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
 from yt.utilities.lib.mesh_samplers cimport sample_hex20
+from yt.utilities.lib.primitives cimport \
+    patchSurfaceFunc, \
+    patchSurfaceDerivU, \
+    patchSurfaceDerivV
 from vec3_ops cimport dot, subtract, cross, distance
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void patchSurfaceFunc(const Patch& patch, 
-                           const float u, 
-                           const float v,
-                           float[3] S) nogil:
-
-  cdef int i
-  for i in range(3):
-      S[i] = 0.25*(1.0 - u)*(1.0 - v)*(-u - v - 1)*patch.v[0][i] + \
-             0.25*(1.0 + u)*(1.0 - v)*( u - v - 1)*patch.v[1][i] + \
-             0.25*(1.0 + u)*(1.0 + v)*( u + v - 1)*patch.v[2][i] + \
-             0.25*(1.0 - u)*(1.0 + v)*(-u + v - 1)*patch.v[3][i] + \
-             0.5*(1 - u)*(1 - v*v)*patch.v[4][i] + \
-             0.5*(1 - u*u)*(1 - v)*patch.v[5][i] + \
-             0.5*(1 + u)*(1 - v*v)*patch.v[6][i] + \
-             0.5*(1 - u*u)*(1 + v)*patch.v[7][i]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void patchSurfaceDerivU(const Patch& patch, 
-                             const float u, 
-                             const float v,
-                             float[3] Su) nogil: 
-  cdef int i
-  for i in range(3):
-      Su[i] = (-0.25*(v - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*patch.v[0][i] + \
-              (-0.25*(v - 1.0)*(u - v - 1) - 0.25*(u + 1.0)*(v - 1.0))*patch.v[1][i] + \
-              ( 0.25*(v + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*patch.v[2][i] + \
-              ( 0.25*(v + 1.0)*(u - v + 1) + 0.25*(u - 1.0)*(v + 1.0))*patch.v[3][i] + \
-              0.5*(v*v - 1.0)*patch.v[4][i] + u*(v - 1.0)*patch.v[5][i] - \
-              0.5*(v*v - 1.0)*patch.v[6][i] - u*(v + 1.0)*patch.v[7][i]
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef void patchSurfaceDerivV(const Patch& patch, 
-                             const float u, 
-                             const float v,
-                             float[3] Sv) nogil:
-    cdef int i 
-    for i in range(3):
-        Sv[i] = (-0.25*(u - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*patch.v[0][i] + \
-                (-0.25*(u + 1.0)*(u - v - 1) + 0.25*(u + 1.0)*(v - 1.0))*patch.v[1][i] + \
-                ( 0.25*(u + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*patch.v[2][i] + \
-                ( 0.25*(u - 1.0)*(u - v + 1) - 0.25*(u - 1.0)*(v + 1.0))*patch.v[3][i] + \
-                0.5*(u*u - 1.0)*patch.v[5][i] + v*(u - 1.0)*patch.v[4][i] - \
-                0.5*(u*u - 1.0)*patch.v[7][i] - v*(u + 1.0)*patch.v[6][i]
 
 
 @cython.boundscheck(False)
@@ -144,7 +94,7 @@ cdef void patchIntersectFunc(Patch* patches,
     cdef float u = 0.0
     cdef float v = 0.0
     cdef float[3] S
-    patchSurfaceFunc(patch, u, v, S)
+    patchSurfaceFunc(patch.v, u, v, S)
     cdef float fu = dot(N1, S) + d1
     cdef float fv = dot(N2, S) + d2
     cdef float err = fmax(fabs(fu), fabs(fv))
@@ -158,8 +108,8 @@ cdef void patchIntersectFunc(Patch* patches,
     cdef float J11, J12, J21, J22, det
     while ((err > tol) and (iterations < max_iter)):
         # compute the Jacobian
-        patchSurfaceDerivU(patch, u, v, Su)
-        patchSurfaceDerivV(patch, u, v, Sv)
+        patchSurfaceDerivU(patch.v, u, v, Su)
+        patchSurfaceDerivV(patch.v, u, v, Sv)
         J11 = dot(N1, Su)
         J12 = dot(N1, Sv)
         J21 = dot(N2, Su)
@@ -170,7 +120,7 @@ cdef void patchIntersectFunc(Patch* patches,
         u -= ( J22*fu - J12*fv) / det
         v -= (-J21*fu + J11*fv) / det
         
-        patchSurfaceFunc(patch, u, v, S)
+        patchSurfaceFunc(patch.v, u, v, S)
         fu = dot(N1, S) + d1
         fv = dot(N2, S) + d2
 

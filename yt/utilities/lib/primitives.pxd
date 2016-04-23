@@ -25,6 +25,21 @@ cdef inline void triangle_bbox(const void *primitives,
 cdef struct Patch:
     np.float64_t[8][3] v  # 8 vertices per patch
     np.int64_t elem_id
+
+cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
+                           const cython.floating u,
+                           const cython.floating v,
+                           cython.floating[3] S) nogil
+
+cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
+                             const cython.floating u,
+                             const cython.floating v,
+                             cython.floating[3] Su) nogil
+
+cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
+                             const cython.floating u,
+                             const cython.floating v,
+                             cython.floating[3] Sv) nogil
     
 cdef inline np.int64_t ray_patch_intersect(const void* primitives,
                                            const np.int64_t item,

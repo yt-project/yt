@@ -1,6 +1,7 @@
 cimport cython 
 import numpy as np
 cimport numpy as np
+cimport cython.floating
 from libc.math cimport fabs
 
 from yt.utilities.lib.vec3_ops cimport dot, subtract, cross, distance
@@ -91,55 +92,55 @@ cdef inline void triangle_bbox(const void *primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void patchSurfaceFunc(const Patch* patch,
-                           const np.float64_t u, 
-                           const np.float64_t v,
-                           np.float64_t[3] S) nogil:
+cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
+                           const cython.floating u, 
+                           const cython.floating v,
+                           cython.floating[3] S) nogil:
 
   cdef int i
   for i in range(3):
-      S[i] = 0.25*(1.0 - u)*(1.0 - v)*(-u - v - 1)*patch.v[0][i] + \
-             0.25*(1.0 + u)*(1.0 - v)*( u - v - 1)*patch.v[1][i] + \
-             0.25*(1.0 + u)*(1.0 + v)*( u + v - 1)*patch.v[2][i] + \
-             0.25*(1.0 - u)*(1.0 + v)*(-u + v - 1)*patch.v[3][i] + \
-             0.5*(1 - u)*(1 - v*v)*patch.v[4][i] + \
-             0.5*(1 - u*u)*(1 - v)*patch.v[5][i] + \
-             0.5*(1 + u)*(1 - v*v)*patch.v[6][i] + \
-             0.5*(1 - u*u)*(1 + v)*patch.v[7][i]
+      S[i] = 0.25*(1.0 - u)*(1.0 - v)*(-u - v - 1)*verts[0][i] + \
+             0.25*(1.0 + u)*(1.0 - v)*( u - v - 1)*verts[1][i] + \
+             0.25*(1.0 + u)*(1.0 + v)*( u + v - 1)*verts[2][i] + \
+             0.25*(1.0 - u)*(1.0 + v)*(-u + v - 1)*verts[3][i] + \
+             0.5*(1 - u)*(1 - v*v)*verts[4][i] + \
+             0.5*(1 - u*u)*(1 - v)*verts[5][i] + \
+             0.5*(1 + u)*(1 - v*v)*verts[6][i] + \
+             0.5*(1 - u*u)*(1 + v)*verts[7][i]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void patchSurfaceDerivU(const Patch* patch, 
-                             const np.float64_t u, 
-                             const np.float64_t v,
-                             np.float64_t[3] Su) nogil: 
+cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
+                             const cython.floating u, 
+                             const cython.floating v,
+                             cython.floating[3] Su) nogil: 
   cdef int i
   for i in range(3):
-      Su[i] = (-0.25*(v - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*patch.v[0][i] + \
-              (-0.25*(v - 1.0)*(u - v - 1) - 0.25*(u + 1.0)*(v - 1.0))*patch.v[1][i] + \
-              ( 0.25*(v + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*patch.v[2][i] + \
-              ( 0.25*(v + 1.0)*(u - v + 1) + 0.25*(u - 1.0)*(v + 1.0))*patch.v[3][i] + \
-              0.5*(v*v - 1.0)*patch.v[4][i] + u*(v - 1.0)*patch.v[5][i] - \
-              0.5*(v*v - 1.0)*patch.v[6][i] - u*(v + 1.0)*patch.v[7][i]
+      Su[i] = (-0.25*(v - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
+              (-0.25*(v - 1.0)*(u - v - 1) - 0.25*(u + 1.0)*(v - 1.0))*verts[1][i] + \
+              ( 0.25*(v + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*verts[2][i] + \
+              ( 0.25*(v + 1.0)*(u - v + 1) + 0.25*(u - 1.0)*(v + 1.0))*verts[3][i] + \
+              0.5*(v*v - 1.0)*verts[4][i] + u*(v - 1.0)*verts[5][i] - \
+              0.5*(v*v - 1.0)*verts[6][i] - u*(v + 1.0)*verts[7][i]
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void patchSurfaceDerivV(const Patch* patch, 
-                             const np.float64_t u, 
-                             const np.float64_t v,
-                             np.float64_t[3] Sv) nogil:
+cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
+                             const cython.floating u, 
+                             const cython.floating v,
+                             cython.floating[3] Sv) nogil:
     cdef int i 
     for i in range(3):
-        Sv[i] = (-0.25*(u - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*patch.v[0][i] + \
-                (-0.25*(u + 1.0)*(u - v - 1) + 0.25*(u + 1.0)*(v - 1.0))*patch.v[1][i] + \
-                ( 0.25*(u + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*patch.v[2][i] + \
-                ( 0.25*(u - 1.0)*(u - v + 1) - 0.25*(u - 1.0)*(v + 1.0))*patch.v[3][i] + \
-                0.5*(u*u - 1.0)*patch.v[5][i] + v*(u - 1.0)*patch.v[4][i] - \
-                0.5*(u*u - 1.0)*patch.v[7][i] - v*(u + 1.0)*patch.v[6][i]
+        Sv[i] = (-0.25*(u - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
+                (-0.25*(u + 1.0)*(u - v - 1) + 0.25*(u + 1.0)*(v - 1.0))*verts[1][i] + \
+                ( 0.25*(u + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*verts[2][i] + \
+                ( 0.25*(u - 1.0)*(u - v + 1) - 0.25*(u - 1.0)*(v + 1.0))*verts[3][i] + \
+                0.5*(u*u - 1.0)*verts[5][i] + v*(u - 1.0)*verts[4][i] - \
+                0.5*(u*u - 1.0)*verts[7][i] - v*(u + 1.0)*verts[6][i]
 
 
 @cython.boundscheck(False)
@@ -174,7 +175,7 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
     cdef np.float64_t u = 0.0
     cdef np.float64_t v = 0.0
     cdef np.float64_t[3] S
-    patchSurfaceFunc(&patch, u, v, S)
+    patchSurfaceFunc(patch.v, u, v, S)
     cdef np.float64_t fu = dot(N1, S) + d1
     cdef np.float64_t fv = dot(N2, S) + d2
     cdef np.float64_t err = fmax(fabs(fu), fabs(fv))
@@ -188,8 +189,8 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
     cdef np.float64_t J11, J12, J21, J22, det
     while ((err > tol) and (iterations < max_iter)):
         # compute the Jacobian
-        patchSurfaceDerivU(&patch, u, v, Su)
-        patchSurfaceDerivV(&patch, u, v, Sv)
+        patchSurfaceDerivU(patch.v, u, v, Su)
+        patchSurfaceDerivV(patch.v, u, v, Sv)
         J11 = dot(N1, Su)
         J12 = dot(N1, Sv)
         J21 = dot(N2, Su)
@@ -200,7 +201,7 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
         u -= ( J22*fu - J12*fv) / det
         v -= (-J21*fu + J11*fv) / det
         
-        patchSurfaceFunc(&patch, u, v, S)
+        patchSurfaceFunc(patch.v, u, v, S)
         fu = dot(N1, S) + d1
         fv = dot(N2, S) + d2
 
