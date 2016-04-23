@@ -154,7 +154,7 @@ class AthenaPPDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena++',
                  storage_filename=None, parameters=None,
-                 units_override=None, unit_system="cgs"):
+                 units_override=None, unit_system="code"):
         self.fluid_types += ("athena++",)
         if parameters is None:
             parameters = {}
