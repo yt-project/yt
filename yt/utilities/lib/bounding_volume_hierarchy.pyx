@@ -144,7 +144,28 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef void _set_up_patches(self, np.float64_t[:, :] vertices,
                               np.int64_t[:, :] indices) nogil:
-            pass
+        cdef Patch* patch
+        cdef np.ndarray[np.float64_t, ndim=2] element_vertices
+        cdef np.int64_t i, j, k, ind, idim
+        cdef np.int64_t offset, prim_index
+        for i in range(self.num_elem):
+            offset = self.num_prim_per_elem*i
+            element_vertices = vertices[indices[i]]
+            for j in range(self.num_prim_per_elem):  # for each face
+                prim_index = offset + j
+                patch = &( <Patch*> self.primitives)[prim_index]
+                self.prim_ids[prim_index] = prim_index
+                for k in range(8):  # for each vertex
+                    ind = hex20_faces[j][k]
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        patch.v[k][idim] = element_vertices[ind][idim]
+                self.get_centroid(self.primitives,
+                                  prim_index,
+                                  self.centroids[prim_index])
+                self.get_bbox(self.primitives,
+                              prim_index,
+                              &(self.bboxes[prim_index]))
+        
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -170,12 +191,12 @@ cdef class BVH:
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
-                    self.get_centroid(self.primitives,
-                                      tri_index,
-                                      self.centroids[tri_index])
-                    self.get_bbox(self.primitives,
-                                  tri_index, 
-                                  &(self.bboxes[tri_index]))
+                self.get_centroid(self.primitives,
+                                  tri_index,
+                                  self.centroids[tri_index])
+                self.get_bbox(self.primitives,
+                              tri_index, 
+                              &(self.bboxes[tri_index]))
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
         if node.end - node.begin > LEAF_SIZE:

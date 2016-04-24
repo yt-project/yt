@@ -17,6 +17,7 @@ cdef extern from "mesh_construction.h":
     int triangulate_hex[MAX_NUM_TRI][3]
     int triangulate_tetra[MAX_NUM_TRI][3]
     int triangulate_wedge[MAX_NUM_TRI][3]
+    int hex20_faces[6][8]
 
 # ray data structure
 cdef struct Ray:
