@@ -4,6 +4,20 @@ cimport numpy as np
 from yt.utilities.lib.element_mappings cimport ElementSampler
 from yt.utilities.lib.primitives cimport Triangle
 
+cdef extern from "mesh_construction.h":
+    enum:
+        MAX_NUM_TRI
+
+    int HEX_NV
+    int HEX_NT
+    int TETRA_NV
+    int TETRA_NT
+    int WEDGE_NV
+    int WEDGE_NT
+    int triangulate_hex[MAX_NUM_TRI][3]
+    int triangulate_tetra[MAX_NUM_TRI][3]
+    int triangulate_wedge[MAX_NUM_TRI][3]
+
 # ray data structure
 cdef struct Ray:
     np.float64_t origin[3]
@@ -43,24 +57,33 @@ ctypedef void (*bbox_func_type)(const void *primitives,
                                 const np.int64_t item,
                                 BBox* bbox) nogil
 
+
 cdef class BVH:
     cdef BVHNode* root
     cdef void* primitives
+    cdef np.int64_t* prim_ids
     cdef np.float64_t** centroids
     cdef BBox* bboxes
     cdef np.float64_t* vertices
     cdef np.float64_t* field_data
-    cdef np.int64_t num_tri_per_elem
+    cdef np.int64_t num_prim_per_elem
     cdef np.int64_t num_prim
     cdef np.int64_t num_elem
     cdef np.int64_t num_verts_per_elem
     cdef np.int64_t num_field_per_elem
+    cdef int[MAX_NUM_TRI][3] tri_array
     cdef ElementSampler sampler
     cdef centroid_func_type get_centroid
     cdef bbox_func_type get_bbox
     cdef intersect_func_type get_intersect
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil
+    cdef void _set_up_triangles(self,
+                                np.float64_t[:, :] vertices,
+                                np.int64_t[:, :] indices) nogil
+    cdef void _set_up_patches(self,
+                              np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil
     cdef void intersect(self, Ray* ray) nogil
     cdef void _get_node_bbox(self, BVHNode* node, 
                              np.int64_t begin, np.int64_t end) nogil
