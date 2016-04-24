@@ -45,13 +45,13 @@ ctypedef void (*bbox_func_type)(const void *primitives,
 
 cdef class BVH:
     cdef BVHNode* root
-    cdef Triangle* triangles
+    cdef void* primitives
     cdef np.float64_t** centroids
     cdef BBox* bboxes
     cdef np.float64_t* vertices
     cdef np.float64_t* field_data
     cdef np.int64_t num_tri_per_elem
-    cdef np.int64_t num_tri
+    cdef np.int64_t num_prim
     cdef np.int64_t num_elem
     cdef np.int64_t num_verts_per_elem
     cdef np.int64_t num_field_per_elem

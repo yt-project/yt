@@ -106,7 +106,7 @@ cdef class BVH:
             self.num_tri_per_elem = TETRA_NT
             tri_array = triangulate_tetra
             self.sampler = P1Sampler
-        self.num_tri = self.num_tri_per_elem*self.num_elem
+        self.num_prim = self.num_tri_per_elem*self.num_elem
 
         # allocate storage
         cdef np.int64_t v_size = self.num_verts_per_elem * self.num_elem * 3
@@ -130,16 +130,16 @@ cdef class BVH:
         cdef np.int64_t offset, tri_index
         cdef np.int64_t v0, v1, v2
         cdef Triangle* tri
-        self.triangles = <Triangle*> malloc(self.num_tri * sizeof(Triangle))
-        self.centroids = <np.float64_t**> malloc(self.num_tri * sizeof(np.float64_t*))
-        for i in range(self.num_tri):
+        self.primitives = malloc(self.num_prim * sizeof(Triangle))
+        self.centroids = <np.float64_t**> malloc(self.num_prim * sizeof(np.float64_t*))
+        for i in range(self.num_prim):
             self.centroids[i] = <np.float64_t*> malloc(3*sizeof(np.float64_t))
-        self.bboxes = <BBox*> malloc(self.num_tri * sizeof(BBox))
+        self.bboxes = <BBox*> malloc(self.num_prim * sizeof(BBox))
         for i in range(self.num_elem):
             offset = self.num_tri_per_elem*i
             for j in range(self.num_tri_per_elem):
                 tri_index = offset + j
-                tri = &(self.triangles[tri_index])
+                tri = &(<Triangle*> self.primitives)[tri_index]
                 tri.elem_id = i
                 v0 = indices[i][tri_array[j][0]]
                 v1 = indices[i][tri_array[j][1]]
@@ -148,14 +148,14 @@ cdef class BVH:
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
-                    self.get_centroid(self.triangles,
+                    self.get_centroid(self.primitives,
                                       tri_index,
                                       self.centroids[tri_index])
-                    self.get_bbox(self.triangles,
+                    self.get_bbox(self.primitives,
                                   tri_index, 
                                   &(self.bboxes[tri_index]))
 
-        self.root = self._recursive_build(0, self.num_tri)
+        self.root = self._recursive_build(0, self.num_prim)
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
         if node.end - node.begin > LEAF_SIZE:
@@ -165,9 +165,9 @@ cdef class BVH:
 
     def __dealloc__(self):
         self._recursive_free(self.root)
-        free(self.triangles)
+        free(self.primitives)
         cdef np.int64_t i
-        for i in range(self.num_tri):
+        for i in range(self.num_prim):
             free(self.centroids[i])
         free(self.centroids)
         free(self.bboxes)
@@ -183,13 +183,15 @@ cdef class BVH:
         # to the left of mid have centroids less than or equal to "split"
         # along the direction "ax". All the triangles to the right of mid
         # will have centroids *greater* than "split" along "ax".
+        cdef Triangle * triangles = <Triangle*> self.primitives
+
         cdef np.int64_t mid = begin
         while (begin != end):
             if self.centroids[mid][ax] > split:
                 mid += 1
             elif self.centroids[begin][ax] > split:
-                self.triangles[mid], self.triangles[begin] = \
-                self.triangles[begin], self.triangles[mid]
+                triangles[mid], triangles[begin] = \
+                triangles[begin], triangles[mid]
                 self.centroids[mid], self.centroids[begin] = \
                 self.centroids[begin], self.centroids[mid]
                 self.bboxes[mid], self.bboxes[begin] = \
@@ -255,7 +257,7 @@ cdef class BVH:
         cdef Triangle* tri
         if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
-                hit = self.get_intersect(self.triangles, i, ray)
+                hit = self.get_intersect(self.primitives, i, ray)
             return
 
         # if not leaf, intersect with left and right children
