@@ -4,6 +4,7 @@ cimport numpy as np
 from libc.math cimport fabs
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
+
 from yt.utilities.lib.primitives cimport \
     Triangle, \
     ray_triangle_intersect, \
@@ -87,6 +88,10 @@ cdef class BVH:
         self.num_verts_per_elem = indices.shape[1]
         self.num_field_per_elem = field_data.shape[1]
 
+        self.get_centroid = triangle_centroid
+        self.get_bbox = triangle_bbox
+        self.get_intersect = ray_triangle_intersect
+
         # We need to figure out what kind of elements we've been handed.
         cdef int[MAX_NUM_TRI][3] tri_array
         if self.num_verts_per_elem == 8:
@@ -121,7 +126,7 @@ cdef class BVH:
             for j in range(self.num_field_per_elem):
                 self.field_data[field_offset + j] = field_data[i][j]                
 
-        # fill our array of triangles
+        # fill our array of primitives
         cdef np.int64_t offset, tri_index
         cdef np.int64_t v0, v1, v2
         cdef Triangle* tri
@@ -143,8 +148,12 @@ cdef class BVH:
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
-                    triangle_centroid(self.triangles, tri_index, self.centroids[tri_index])
-                    triangle_bbox(self.triangles, tri_index, &(self.bboxes[tri_index]))
+                    self.get_centroid(self.triangles,
+                                      tri_index,
+                                      self.centroids[tri_index])
+                    self.get_bbox(self.triangles,
+                                  tri_index, 
+                                  &(self.bboxes[tri_index]))
 
         self.root = self._recursive_build(0, self.num_tri)
 
@@ -171,8 +180,8 @@ cdef class BVH:
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil:
         # this re-orders the triangle array so that all of the triangles 
-        # to the left of mid have centroids less than or equal to "split" 
-        # along the direction "ax". All the triangles to the right of mid 
+        # to the left of mid have centroids less than or equal to "split"
+        # along the direction "ax". All the triangles to the right of mid
         # will have centroids *greater* than "split" along "ax".
         cdef np.int64_t mid = begin
         while (begin != end):
@@ -246,7 +255,7 @@ cdef class BVH:
         cdef Triangle* tri
         if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
-                hit = ray_triangle_intersect(self.triangles, i, ray)
+                hit = self.get_intersect(self.triangles, i, ray)
             return
 
         # if not leaf, intersect with left and right children

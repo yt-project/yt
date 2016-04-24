@@ -27,7 +27,22 @@ cdef struct BVHNode:
     BVHNode* left
     BVHNode* right
     BBox bbox
-    
+
+# pointer to function that computes primitive intersection
+ctypedef np.int64_t (*intersect_func_type)(const void* primitives,
+                                           const np.int64_t item,
+                                           Ray* ray) nogil
+
+# pointer to function that computes primitive centroids
+ctypedef void (*centroid_func_type)(const void *primitives,
+                                    const np.int64_t item,
+                                    np.float64_t[3] centroid) nogil
+
+# pointer to function that computes primitive bounding boxes
+ctypedef void (*bbox_func_type)(const void *primitives,
+                                const np.int64_t item,
+                                BBox* bbox) nogil
+
 cdef class BVH:
     cdef BVHNode* root
     cdef Triangle* triangles
@@ -41,6 +56,9 @@ cdef class BVH:
     cdef np.int64_t num_verts_per_elem
     cdef np.int64_t num_field_per_elem
     cdef ElementSampler sampler
+    cdef centroid_func_type get_centroid
+    cdef bbox_func_type get_bbox
+    cdef intersect_func_type get_intersect
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil
     cdef void intersect(self, Ray* ray) nogil
