@@ -71,8 +71,6 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
-        N = min(len(4*self.data_files), 256) 
-        self.ds.domain_dimensions[:] = N*(1<<self.ds.over_refine_factor)
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
         self._initialize_index()
@@ -93,11 +91,12 @@ class ParticleIndex(Index):
         only_on_root(mylog.info, "Allocating for %0.3e particles",
           self.total_particles)
         # No more than 256^3 in the region finder.
-        N = self.ds.domain_dimensions / (1<<self.ds.over_refine_factor)
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
                 len(self.data_files), 
                 index_order1=order1, index_order2=order2)
+        N = 1<<(self.regions.index_order1 + self.ds.over_refine_factor)
+        self.ds.domain_dimensions[:] = N
         # Load indices from file if provided
         if fname is None: 
             fname = self._index_filename(self.regions.index_order1,
