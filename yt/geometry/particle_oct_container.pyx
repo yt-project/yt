@@ -1107,13 +1107,10 @@ cdef class ParticleBitmap:
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx_p
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
         cdef BoolArrayCollection total_mask
-        cdef BoolArrayCollection empty_mask = BoolArrayCollection()
         if buffer_mask is None:
             total_mask = selector_mask
         else:
             total_mask = buffer_mask
-            # total_mask = BoolArrayCollection()
-            # selector_mask._logicalor(buffer_mask, total_mask)
         cdef np.uint64_t nroot = total_mask._count_total()
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
@@ -1137,12 +1134,12 @@ cdef class ParticleBitmap:
             for j in range(3):
                 ind[j] = ind64[j]
             octree.next_root(1, ind)
-            if selector_mask._get(mi) == 1:
-                octree._index_base_octs[croot] = 1
+            if selector_mask._get(mi) == 0:
+                octree._index_base_roots[croot] = 0
             croot += 1
             preincrement(iter_set[0])
         assert(croot == nroot)
-        # print '{}/{} roots are base'.format(np.sum(octree._index_base_octs),nroot)
+        # print '{}/{} roots are base'.format(np.sum(octree._index_base_root),nroot)
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
         #assert(len(data_files) == 1)
@@ -1240,7 +1237,7 @@ cdef class ParticleBitmap:
     #         for i in range(uncontaminated.size):
     #             if uncontaminated[i] != 1 and contaminated[i] != 1: continue
     #             if selector_mask._get(i) == 0: 
-    #                 octree._index_base_octs[nroot] = 1
+    #                 octree._index_base_roots[nroot] = 1
     #             nroot += 1
     #     # Get morton indices for all particles in this file and those
     #     # contaminating cells it has majority control of.
@@ -2046,7 +2043,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef public int max_level
     cdef public int n_ref
     cdef int loaded # Loaded with load_octree?
+    cdef np.uint8_t* _ptr_index_base_roots
     cdef np.uint8_t* _ptr_index_base_octs
+    cdef public np.uint8_t[:] _index_base_roots
     cdef public np.uint8_t[:] _index_base_octs
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
                  int num_root, over_refine = 1):
@@ -2059,12 +2058,12 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         # Now the overrides
         self.max_root = num_root
         self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * num_root)
-        self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t) * num_root)
+        self._ptr_index_base_roots = <np.uint8_t*> malloc(sizeof(np.uint8_t) * num_root)
         for i in range(num_root):
             self.root_nodes[i].key = -1
             self.root_nodes[i].node = NULL
-            self._ptr_index_base_octs[i] = 0
-        self._index_base_octs = <np.uint8_t[:num_root]> self._ptr_index_base_octs
+            self._ptr_index_base_roots[i] = 1
+        self._index_base_roots = <np.uint8_t[:num_root]> self._ptr_index_base_roots
 
     def allocate_domains(self, counts = None):
         if counts is None:
@@ -2078,11 +2077,13 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         #every domain
         cdef int max_level = 0
         self.oct_list = <Oct**> malloc(sizeof(Oct*)*self.nocts)
+        self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t)*self.nocts)
+        self._index_base_octs = <np.uint8_t[:self.nocts]> self._ptr_index_base_octs
         cdef np.int64_t i, lpos = 0
         # Note that we now assign them in the same order they will be visited
         # by recursive visitors.
         for i in range(self.num_root):
-            self.visit_assign(self.root_nodes[i].node, &lpos, 0, &max_level)
+            self.visit_assign(self.root_nodes[i].node, &lpos, 0, &max_level, i)
         assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
@@ -2091,9 +2092,11 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             self.oct_list[i].file_ind = -1
         self.max_level = max_level
 
-    cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level):
+    cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level,
+                      np.int64_t index_root):
         cdef int i, j, k
         self.oct_list[lpos[0]] = o
+        self._index_base_octs[lpos[0]] = self._index_base_roots[index_root]
         lpos[0] += 1
         max_level[0] = imax(max_level[0], level)
         for i in range(2):
@@ -2102,7 +2105,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit_assign(o.children[cind(i,j,k)], lpos,
-                                level + 1, max_level)
+                                          level + 1, max_level, index_root)
         return
 
     cdef Oct* allocate_oct(self):
@@ -2130,6 +2133,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             free(self.cont)
             self.cont = self.root_nodes = NULL
         free(self.oct_list)
+        free(self._ptr_index_base_roots)
         free(self._ptr_index_base_octs)
         self.oct_list = NULL
 
@@ -2146,96 +2150,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             free(o.children)
         if free_this == 1:
             free(o)
-
-    @cython.cdivision(True)
-    cdef void visit_base_octs(self, SelectorObject selector,
-                        OctVisitor visitor,
-                        int vc = -1,
-                        np.int64_t *indices = NULL):
-        cdef int i, j, k, n
-        cdef np.int64_t key, ukey
-        visitor.global_index = -1
-        visitor.level = 0
-        if vc == -1:
-            vc = self.partial_coverage
-        cdef np.float64_t pos[3]
-        cdef np.float64_t dds[3]
-        # This dds is the oct-width
-        for i in range(3):
-            dds[i] = (self.DRE[i] - self.DLE[i]) / self.nn[i]
-        # Pos is the center of the octs
-        cdef Oct *o
-        for i in range(self.num_root):
-            if self._index_base_octs[i] == 0: continue
-            o = self.root_nodes[i].node
-            key = self.root_nodes[i].key
-            self.key_to_ipos(key, visitor.pos)
-            for j in range(3):
-                pos[j] = self.DLE[j] + (visitor.pos[j] + 0.5) * dds[j]
-            selector.recursively_visit_octs(
-                o, pos, dds, 0, visitor, vc)
-            if indices != NULL:
-                indices[i] = visitor.index
-
-    def selector_fill_base(self, SelectorObject selector,
-                           np.ndarray source,
-                           np.ndarray dest = None,
-                           np.int64_t offset = 0, int dims = 1,
-                           int domain_id = -1):
-        # This is actually not correct.  The hard part is that we need to 
-        # iterate the same way visit_all_octs does, but we need to track the 
-        # number of octs total visited. 
-        cdef np.int64_t num_cells = -1
-        if dest is None:
-            # Note that RAMSES can have partial refinement inside an Oct.  This 
-            # means we actually do want the number of Octs, not the number of 
-            # cells.
-            num_cells = selector.count_oct_cells(self, domain_id)
-            dest = np.zeros((num_cells, dims), dtype=source.dtype,
-                            order='C')
-        if dims != 1:
-            raise RuntimeError
-        # Just make sure that we're in the right shape.  Ideally this will not 
-        # duplicate memory.  Since we're in Cython, we want to avoid modifying 
-        # the .shape attributes directly. 
-        dest = dest.reshape((num_cells, 1))
-        source = source.reshape((source.shape[0], source.shape[1],
-                    source.shape[2], source.shape[3], dims))
-        cdef OctVisitor visitor
-        cdef oct_visitors.CopyArrayI64 visitor_i64
-        cdef oct_visitors.CopyArrayF64 visitor_f64
-        if source.dtype != dest.dtype:
-            raise RuntimeError
-        if source.dtype == np.int64:
-            visitor_i64 = oct_visitors.CopyArrayI64(self, domain_id)
-            visitor_i64.source = source
-            visitor_i64.dest = dest
-            visitor = visitor_i64
-        elif source.dtype == np.float64:
-            visitor_f64 = oct_visitors.CopyArrayF64(self, domain_id)
-            visitor_f64.source = source
-            visitor_f64.dest = dest
-            visitor = visitor_f64
-        else:
-            raise NotImplementedError
-        visitor.index = offset
-        # We only need this so we can continue calculating the offset 
-        visitor.dims = dims
-        self.visit_base_octs(selector, visitor)
-        if (visitor.global_index + 1) * visitor.nz * visitor.dims > source.size:
-            print "GLOBAL INDEX RAN AHEAD.",
-            print (visitor.global_index + 1) * visitor.nz * visitor.dims - source.size
-            print dest.size, source.size, num_cells
-            raise RuntimeError
-        if visitor.index > dest.size:
-            print "DEST INDEX RAN AHEAD.",
-            print visitor.index - dest.size
-            print (visitor.global_index + 1) * visitor.nz * visitor.dims, source.size
-            print num_cells
-            raise RuntimeError
-        if num_cells >= 0:
-            return dest
-        return visitor.index - offset
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

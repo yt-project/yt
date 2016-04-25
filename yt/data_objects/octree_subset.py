@@ -286,7 +286,6 @@ class OctreeSubset(YTSelectionContainer):
         # error.
         with np.errstate(invalid='ignore'):
             vals = op.finalize()
-        if vals is None: return
         if isinstance(vals, list):
             vals = [np.asfortranarray(v) for v in vals]
         else:
@@ -451,8 +450,36 @@ class ParticleOctreeSubset(OctreeSubset):
                 over_refine_factor, selector_mask = selector_mask)
 
     def select(self, selector, source, dest, offset):
-        n = self.oct_handler.selector_fill_base(selector, source, dest, offset,
-                                                domain_id = self.domain_id)
+        if self.buffer_mask is None:
+            n = super(ParticleOctreeSubset, self).select(selector, source,
+                                                         dest, offset)
+        else:
+            nsrc = np.sum(self.domain_ind >= 0)
+            ndst = np.sum(self._base_grid.domain_ind>=0)
+            if self.domain_ind.size != self.oct_handler._index_base_octs.size:
+                print 'domain_ind.size = {}'.format(self.domain_ind.size)
+                print '_index_base_octs.size = {}'.format(self.oct_handler._index_base_octs.size)
+                raise Exception('Indexes do not match.')
+            if source.shape[-1] != nsrc:
+                print 'source.shape = {}'.format(source.shape)
+                print 'sum(domain_ind >= 0) = {}'.format(nsrc)
+                raise Exception('Source size does not match.')
+            # Create map from indexes in buffered octree to indexes in base 
+            # octree. The order of the domain indexes should be the same,
+            # only the visit order map differ.
+            domain_ind2 = np.zeros(nsrc, 'int64') - 1
+            i_dom2 = 0
+            for i_dom1 in range(self.domain_ind.size):
+                if self.oct_handler._index_base_octs[i_dom1] == 1:
+                    if self.domain_ind[i_dom1] >= 0:
+                        domain_ind2[self._base_grid.domain_ind[i_dom2]] = self.domain_ind[i_dom1]
+                    i_dom2 += 1
+            idx = domain_ind2[domain_ind2 >= 0]
+            if ndst != idx.size:
+                print 'sum(_index_base_octs[domain_ind]) = {}'.format(idx.size)
+                print 'sum(base.domain_ind >= 0) = {}'.format(ndst)
+                raise Exception('Destination size does not match')
+            n = self._base_grid.select(selector, source[:,:,:,idx], dest, offset)
         return n
 
     @contextlib.contextmanager

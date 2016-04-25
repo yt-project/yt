@@ -335,7 +335,7 @@ class YTDataContainer(object):
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
         try:
-            rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
+            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
             accumulate = False
         except YTNonIndexedDataContainer:
             # In this case, we'll generate many tiny arrays of unknown size and
@@ -357,8 +357,7 @@ class YTDataContainer(object):
                         outputs.append(rv)
                     with o._activate_cache():
                         with o._expand_data_files(ghost_particles):
-                            farr = self[field]
-                            ind += o.select(self.selector, farr, rv, ind)
+                            ind += o.select(self.selector, self[field], rv, ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz,
                                        ghost_particles = ghost_particles)
