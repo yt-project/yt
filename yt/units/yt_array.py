@@ -36,6 +36,7 @@ from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
     YTInvalidUnitEquivalence, YTEquivalentDimsError
+from yt.utilities.lru_cache import lru_cache
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -64,24 +65,30 @@ def return_arr(func):
             return type(args[0])(ret, units)
     return wrapped
 
+@lru_cache(maxsize=128, typed=False)
 def sqrt_unit(unit):
     return unit**0.5
 
+@lru_cache(maxsize=128, typed=False)
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
 def preserve_units(unit1, unit2):
     return unit1
 
+@lru_cache(maxsize=128, typed=False)
 def power_unit(unit, power):
     return unit**power
 
+@lru_cache(maxsize=128, typed=False)
 def square_unit(unit):
     return unit*unit
 
+@lru_cache(maxsize=128, typed=False)
 def divide_units(unit1, unit2):
     return unit1/unit2
 
+@lru_cache(maxsize=128, typed=False)
 def reciprocal_unit(unit):
     return unit**-1
 
