@@ -21,7 +21,6 @@ import six
 import sys
 
 from distutils.version import LooseVersion
-from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
 from .base_plot_types import ImagePlotMPL

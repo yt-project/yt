@@ -15,8 +15,6 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 from io import BytesIO
 import matplotlib
-from ._mpl_imports import \
-    FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
     get_image_suffix, \
     mylog, \
@@ -57,6 +55,7 @@ class PlotMPL(object):
     """
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
+        from ._mpl_imports import FigureCanvasAgg
         self._plot_valid = True
         if figure is None:
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
@@ -73,6 +72,8 @@ class PlotMPL(object):
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
+        from ._mpl_imports import \
+            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if 'papertype' not in mpl_kwargs:
@@ -144,6 +145,7 @@ class ImagePlotMPL(PlotMPL):
             self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
+        from ._mpl_imports import FigureCanvasAgg
         canvas = FigureCanvasAgg(self.figure)
         f = BytesIO()
         canvas.print_figure(f)
