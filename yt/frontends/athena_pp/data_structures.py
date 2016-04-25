@@ -35,6 +35,9 @@ from yt.utilities.file_handler import \
 
 from .fields import AthenaPPFieldInfo
 
+geom_map = {"cartesian": "cartesian",
+            "spherical_polar": "spherical"}
+
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
 
@@ -244,7 +247,7 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5./3.
-        self.geometry = self._handle.attrs["Coordinates"].decode('utf-8')
+        self.geometry = geom_map[self._handle.attrs["Coordinates"].decode('utf-8')]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
