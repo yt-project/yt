@@ -265,10 +265,9 @@ cdef class BVH:
             return
 
         cdef np.float64_t[3] position
-        cdef np.float64_t length = L2_norm(ray.direction)
         cdef np.int64_t i
         for i in range(3):
-            position[i] = ray.origin[i] + ray.t_far*ray.direction[i] / length
+            position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
             
         cdef np.float64_t* vertex_ptr
         cdef np.float64_t* field_ptr

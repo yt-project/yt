@@ -49,7 +49,7 @@ def test_surface_mesh_render():
     return images
 
 
-def compare(ds, im, test_prefix, decimals=12):
+def compare(ds, im, test_prefix, decimals=2):
     def mesh_render_image_func(filename_prefix):
         return im.write_image(filename_prefix)
 

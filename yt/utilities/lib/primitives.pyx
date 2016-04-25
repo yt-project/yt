@@ -209,7 +209,7 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
         iterations += 1
 
     # t is the distance along the ray to this hit
-    cdef np.float64_t t = distance(S, ray.origin)
+    cdef np.float64_t t = distance(S, ray.origin) / L2_norm(ray.direction)
 
     # only count this is it's the closest hit
     if (t < ray.t_near or t > ray.t_far):

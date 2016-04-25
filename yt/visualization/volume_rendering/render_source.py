@@ -356,7 +356,7 @@ class MeshSource(OpaqueSource):
         self.field = field
         self.volume = None
         self.current_image = None
-        self.engine = 'bvh'
+        self.engine = 'embree'
 
         # default color map
         self._cmap = ytcfg.get("yt", "default_colormap")
