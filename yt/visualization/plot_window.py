@@ -961,6 +961,7 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    @invalidate_plot
     def annotate_clear(self, index=None):
         """
         Clear callbacks from the plot.  If index is not set, clear all 
