@@ -29,7 +29,7 @@ def new_mesh_sampler(camera, render_source, engine):
     kwargs = {'lens_type': params['lens_type']}
     if engine == 'embree':
         sampler = mesh_traversal.EmbreeMeshSampler(*args, **kwargs)
-    elif engine == 'bvh':
+    elif engine == 'yt':
         sampler = mesh_traversal.BVHMeshSampler(*args, **kwargs)
     return sampler
 
