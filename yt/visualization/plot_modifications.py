@@ -2312,6 +2312,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         self.const_alpha = const_alpha
 
     def __call__(self, plot):
+        from matplotlib import cm
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()

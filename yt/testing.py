@@ -20,7 +20,6 @@ import itertools as it
 import numpy as np
 import importlib
 import os
-import re
 import unittest
 from yt.funcs import iterable
 from yt.config import ytcfg
@@ -33,7 +32,6 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
-from unittest import TestCase
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError

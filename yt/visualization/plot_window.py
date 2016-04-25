@@ -686,6 +686,7 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
+        from matplotlib.mathtext import MathTextParser
         if self._plot_valid:
             return
         if not self._data_valid:
