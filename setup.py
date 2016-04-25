@@ -171,6 +171,7 @@ cython_extensions = [
               libraries=std_libs,
               depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd",
                        "yt/utilities/lib/element_mappings.pxd",
+                       "yt/utilities/lib/vec3_ops.pxd",
                        "yt/utilities/lib/primitives.pxd"]),
     Extension("yt.utilities.lib.contour_finding",
               ["yt/utilities/lib/contour_finding.pyx"],

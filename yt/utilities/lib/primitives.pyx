@@ -4,7 +4,7 @@ cimport numpy as np
 cimport cython.floating
 from libc.math cimport fabs
 
-from yt.utilities.lib.vec3_ops cimport dot, subtract, cross, distance
+from yt.utilities.lib.vec3_ops cimport dot, subtract, cross, distance, L2_norm
 from yt.utilities.lib.bounding_volume_hierarchy cimport Ray, BBox
 
 cdef np.float64_t DETERMINANT_EPS = 1.0e-10

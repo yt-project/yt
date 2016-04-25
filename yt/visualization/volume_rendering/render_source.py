@@ -356,7 +356,7 @@ class MeshSource(OpaqueSource):
         self.field = field
         self.volume = None
         self.current_image = None
-        self.engine = 'embree'
+        self.engine = 'bvh'
 
         # default color map
         self._cmap = ytcfg.get("yt", "default_colormap")
@@ -491,15 +491,8 @@ class MeshSource(OpaqueSource):
             field_data = np.expand_dims(field_data, 1)
 
         # Here, we decide whether to render based on high-order or 
-        # low-order geometry. Right now, high-order geometry is only
-        # supported by Embree.
-        if indices.shape[1] == 20:
-            # hexahedral
-            mylog.warning("20-node hexes not yet supported, " +
-                          "dropping to 1st order.")
-            field_data = field_data[:, 0:8]
-            indices = indices[:, 0:8]
-        elif indices.shape[1] == 27:
+        # low-order geometry.
+        if indices.shape[1] == 27:
             # hexahedral
             mylog.warning("27-node hexes not yet supported, " +
                           "dropping to 1st order.")

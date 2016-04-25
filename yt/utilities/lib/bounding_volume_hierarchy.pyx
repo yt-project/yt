@@ -20,6 +20,7 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler3D, \
     W1Sampler3D, \
     S2Sampler3D
+from yt.utilities.lib.vec3_ops cimport L2_norm
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
@@ -94,7 +95,7 @@ cdef class BVH:
             self.tri_array = triangulate_tetra
             self.sampler = P1Sampler
         elif self.num_verts_per_elem == 20:
-            self.num_prim_per_elem = 8
+            self.num_prim_per_elem = 6
             self.sampler = S2Sampler
         else:
             raise NotImplementedError
@@ -105,7 +106,6 @@ cdef class BVH:
         self.vertices = <np.float64_t*> malloc(v_size * sizeof(np.float64_t))
         cdef np.int64_t f_size = self.num_field_per_elem * self.num_elem
         self.field_data = <np.float64_t*> malloc(f_size * sizeof(np.float64_t))
-        self.primitives = malloc(self.num_prim * sizeof(Triangle))
         self.prim_ids = <np.int64_t*> malloc(self.num_prim * sizeof(np.int64_t))
         self.centroids = <np.float64_t**> malloc(self.num_prim * sizeof(np.float64_t*))
         cdef np.int64_t i
@@ -127,11 +127,13 @@ cdef class BVH:
 
         # set up primitives
         if self.num_verts_per_elem == 20:
+            self.primitives = malloc(self.num_prim * sizeof(Patch))
             self.get_centroid = patch_centroid
             self.get_bbox = patch_bbox
             self.get_intersect = ray_patch_intersect
             self._set_up_patches(vertices, indices)
         else:
+            self.primitives = malloc(self.num_prim * sizeof(Triangle))
             self.get_centroid = triangle_centroid
             self.get_bbox = triangle_bbox
             self.get_intersect = ray_triangle_intersect
@@ -145,27 +147,25 @@ cdef class BVH:
     cdef void _set_up_patches(self, np.float64_t[:, :] vertices,
                               np.int64_t[:, :] indices) nogil:
         cdef Patch* patch
-        cdef np.ndarray[np.float64_t, ndim=2] element_vertices
         cdef np.int64_t i, j, k, ind, idim
         cdef np.int64_t offset, prim_index
         for i in range(self.num_elem):
             offset = self.num_prim_per_elem*i
-            element_vertices = vertices[indices[i]]
             for j in range(self.num_prim_per_elem):  # for each face
                 prim_index = offset + j
                 patch = &( <Patch*> self.primitives)[prim_index]
                 self.prim_ids[prim_index] = prim_index
+                patch.elem_id = i
                 for k in range(8):  # for each vertex
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
-                        patch.v[k][idim] = element_vertices[ind][idim]
+                        patch.v[k][idim] = vertices[indices[i, ind]][idim]
                 self.get_centroid(self.primitives,
                                   prim_index,
                                   self.centroids[prim_index])
                 self.get_bbox(self.primitives,
                               prim_index,
                               &(self.bboxes[prim_index]))
-        
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -265,9 +265,10 @@ cdef class BVH:
             return
 
         cdef np.float64_t[3] position
+        cdef np.float64_t length = L2_norm(ray.direction)
         cdef np.int64_t i
         for i in range(3):
-            position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
+            position[i] = ray.origin[i] + ray.t_far*ray.direction[i] / length
             
         cdef np.float64_t* vertex_ptr
         cdef np.float64_t* field_ptr
