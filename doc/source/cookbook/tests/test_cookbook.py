@@ -15,6 +15,26 @@ import sys
 import subprocess
 
 
+def run_with_capture(*args, **kwargs):
+    sp = subprocess.Popen(*args,
+                          stdout=subprocess.PIPE,
+                          stderr=subprocess.PIPE,
+                          **kwargs)
+    out, err = sp.communicate()
+    if out:
+        sys.stdout.write(out.decode("UTF-8"))
+    if err:
+        sys.stderr.write(err.decode("UTF-8"))
+
+    if sp.returncode != 0:
+        retstderr = " ".join(args[0])
+        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n" 
+        retstderr += err.decode("UTF-8") + "\n"
+        raise subprocess.CalledProcessError(sp.returncode, retstderr)
+
+    return sp.returncode
+
+
 PARALLEL_TEST = {"rockstar_nest.py": "3"}
 BLACKLIST = ["opengl_ipython.py", "opengl_vr.py"]
 
@@ -37,10 +57,16 @@ def test_recipe():
 
 def check_recipe(cmd):
     '''Run single recipe'''
-    try:
-        subprocess.check_call(cmd)
-        result = True
-    except subprocess.CalledProcessError as e:
-        print(("Stdout output:\n", e.output))
-        result = False
-    assert result
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE)
+    out, err = proc.communicate()
+    if out:
+        sys.stdout.write(out.decode("utf8"))
+    if err:
+        sys.stderr.write(err.decode("utf8"))
+
+    if proc.returncode != 0:
+        retstderr = " ".join(cmd)
+        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n" 
+        retstderr += err.decode("UTF-8") + "\n"
+        raise subprocess.CalledProcessError(proc.returncode, retstderr)
