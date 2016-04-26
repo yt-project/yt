@@ -21,10 +21,13 @@ cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
 from yt.utilities.lib.mesh_samplers cimport sample_hex20
+from yt.utilities.lib.bounding_volume_hierarchy cimport BBox
 from yt.utilities.lib.primitives cimport \
     patchSurfaceFunc, \
     patchSurfaceDerivU, \
-    patchSurfaceDerivV
+    patchSurfaceDerivV, \
+    RayHitData, \
+    compute_patch_hit
 from vec3_ops cimport dot, subtract, cross, distance
 
 
@@ -71,77 +74,20 @@ cdef void patchIntersectFunc(Patch* patches,
 
     cdef Patch patch = patches[item]
 
-    # first we compute the two planes that define the ray.
-    cdef float[3] n, N1, N2
-    cdef float A = dot(ray.dir, ray.dir)
-    for i in range(3):
-        n[i] = ray.dir[i] / A
-
-    if ((fabs(n[0]) > fabs(n[1])) and (fabs(n[0]) > fabs(n[2]))):
-        N1[0] = n[1]
-        N1[1] =-n[0]
-        N1[2] = 0.0
-    else:
-        N1[0] = 0.0
-        N1[1] = n[2]
-        N1[2] =-n[1]
-    cross(N1, n, N2)
-
-    cdef float d1 = -dot(N1, ray.org)
-    cdef float d2 = -dot(N2, ray.org)
-
-    # the initial guess is set to zero
-    cdef float u = 0.0
-    cdef float v = 0.0
-    cdef float[3] S
-    patchSurfaceFunc(patch.v, u, v, S)
-    cdef float fu = dot(N1, S) + d1
-    cdef float fv = dot(N2, S) + d2
-    cdef float err = fmax(fabs(fu), fabs(fv))
-    
-    # begin Newton interation
-    cdef float tol = 1.0e-5
-    cdef int iterations = 0
-    cdef int max_iter = 10
-    cdef float[3] Su
-    cdef float[3] Sv
-    cdef float J11, J12, J21, J22, det
-    while ((err > tol) and (iterations < max_iter)):
-        # compute the Jacobian
-        patchSurfaceDerivU(patch.v, u, v, Su)
-        patchSurfaceDerivV(patch.v, u, v, Sv)
-        J11 = dot(N1, Su)
-        J12 = dot(N1, Sv)
-        J21 = dot(N2, Su)
-        J22 = dot(N2, Sv)
-        det = (J11*J22 - J12*J21)
-        
-        # update the u, v values
-        u -= ( J22*fu - J12*fv) / det
-        v -= (-J21*fu + J11*fv) / det
-        
-        patchSurfaceFunc(patch.v, u, v, S)
-        fu = dot(N1, S) + d1
-        fv = dot(N2, S) + d2
-
-        err = fmax(fabs(fu), fabs(fv))
-        iterations += 1
-
-    # t is the distance along the ray to this hit
-    cdef float t = distance(S, ray.org)
+    cdef RayHitData hd = compute_patch_hit(patch.v, ray.org, ray.dir)
 
     # only count this is it's the closest hit
-    if (t < ray.tnear or t > ray.Ng[0]):
+    if (hd.t < ray.tnear or hd.t > ray.Ng[0]):
         return
 
-    if (fabs(u) <= 1.0 and fabs(v) <= 1.0 and iterations < max_iter):
+    if (fabs(hd.u) <= 1.0 and fabs(hd.v) <= 1.0 and hd.converged):
 
         # we have a hit, so update ray information
-        ray.u = u
-        ray.v = v
+        ray.u = hd.u
+        ray.v = hd.v
         ray.geomID = patch.geomID
         ray.primID = item
-        ray.Ng[0] = t
+        ray.Ng[0] = hd.t
         
         # sample the solution at the calculated point
         sample_hex20(patches, ray)

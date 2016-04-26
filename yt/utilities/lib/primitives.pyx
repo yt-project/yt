@@ -1,4 +1,4 @@
-cimport cython 
+cimport cython
 import numpy as np
 cimport numpy as np
 cimport cython.floating
@@ -12,6 +12,7 @@ cdef np.float64_t DETERMINANT_EPS = 1.0e-10
 cdef extern from "platform_dep.h" nogil:
     double fmax(double x, double y)
     double fmin(double x, double y)
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -146,17 +147,15 @@ cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline np.int64_t ray_patch_intersect(const void* primitives,
-                                           const np.int64_t item,
-                                           Ray* ray) nogil:
-
-    cdef Patch patch = (<Patch*> primitives)[item]
+cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
+                                  cython.floating[3] ray_origin,
+                                  cython.floating[3] ray_direction) nogil:
 
     # first we compute the two planes that define the ray.
-    cdef np.float64_t[3] n, N1, N2
-    cdef np.float64_t A = dot(ray.direction, ray.direction)
+    cdef cython.floating[3] n, N1, N2
+    cdef cython.floating A = dot(ray_direction, ray_direction)
     for i in range(3):
-        n[i] = ray.direction[i] / A
+        n[i] = ray_direction[i] / A
 
     if ((fabs(n[0]) > fabs(n[1])) and (fabs(n[0]) > fabs(n[2]))):
         N1[0] = n[1]
@@ -168,29 +167,29 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
         N1[2] =-n[1]
     cross(N1, n, N2)
 
-    cdef np.float64_t d1 = -dot(N1, ray.origin)
-    cdef np.float64_t d2 = -dot(N2, ray.origin)
+    cdef cython.floating d1 = -dot(N1, ray_origin)
+    cdef cython.floating d2 = -dot(N2, ray_origin)
 
     # the initial guess is set to zero
-    cdef np.float64_t u = 0.0
-    cdef np.float64_t v = 0.0
-    cdef np.float64_t[3] S
-    patchSurfaceFunc(patch.v, u, v, S)
-    cdef np.float64_t fu = dot(N1, S) + d1
-    cdef np.float64_t fv = dot(N2, S) + d2
-    cdef np.float64_t err = fmax(fabs(fu), fabs(fv))
+    cdef cython.floating u = 0.0
+    cdef cython.floating v = 0.0
+    cdef cython.floating[3] S
+    patchSurfaceFunc(verts, u, v, S)
+    cdef cython.floating fu = dot(N1, S) + d1
+    cdef cython.floating fv = dot(N2, S) + d2
+    cdef cython.floating err = fmax(fabs(fu), fabs(fv))
     
     # begin Newton interation
-    cdef np.float64_t tol = 1.0e-5
+    cdef cython.floating tol = 1.0e-5
     cdef int iterations = 0
     cdef int max_iter = 10
-    cdef np.float64_t[3] Su
-    cdef np.float64_t[3] Sv
-    cdef np.float64_t J11, J12, J21, J22, det
+    cdef cython.floating[3] Su
+    cdef cython.floating[3] Sv
+    cdef cython.floating J11, J12, J21, J22, det
     while ((err > tol) and (iterations < max_iter)):
         # compute the Jacobian
-        patchSurfaceDerivU(patch.v, u, v, Su)
-        patchSurfaceDerivV(patch.v, u, v, Sv)
+        patchSurfaceDerivU(verts, u, v, Su)
+        patchSurfaceDerivV(verts, u, v, Sv)
         J11 = dot(N1, Su)
         J12 = dot(N1, Sv)
         J21 = dot(N2, Su)
@@ -201,7 +200,7 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
         u -= ( J22*fu - J12*fv) / det
         v -= (-J21*fu + J11*fv) / det
         
-        patchSurfaceFunc(patch.v, u, v, S)
+        patchSurfaceFunc(verts, u, v, S)
         fu = dot(N1, S) + d1
         fv = dot(N2, S) + d2
 
@@ -209,16 +208,35 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
         iterations += 1
 
     # t is the distance along the ray to this hit
-    cdef np.float64_t t = distance(S, ray.origin) / L2_norm(ray.direction)
+    cdef cython.floating t = distance(S, ray_origin) / L2_norm(ray_direction)
+    
+    # return hit data
+    cdef RayHitData hd
+    hd.u = u
+    hd.v = v
+    hd.t = t
+    hd.converged = (iterations < max_iter)
+    return hd
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline np.int64_t ray_patch_intersect(const void* primitives,
+                                           const np.int64_t item,
+                                           Ray* ray) nogil:
+
+    cdef Patch patch = (<Patch*> primitives)[item]
+
+    cdef RayHitData hd = compute_patch_hit(patch.v, ray.origin, ray.direction)
+    
     # only count this is it's the closest hit
-    if (t < ray.t_near or t > ray.t_far):
+    if (hd.t < ray.t_near or hd.t > ray.t_far):
         return False
 
-    if (fabs(u) <= 1.0 and fabs(v) <= 1.0 and iterations < max_iter):
-
+    if (fabs(hd.u) <= 1.0 and fabs(hd.v) <= 1.0 and hd.converged):
         # we have a hit, so update ray information
-        ray.t_far = t
+        ray.t_far = hd.t
         ray.elem_id = patch.elem_id
         return True
 
