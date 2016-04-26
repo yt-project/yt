@@ -1198,7 +1198,7 @@ class YTArray(np.ndarray):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            unit = self._ufunc_registry[context[0]](unit1, unit2)
+            unit = unit_operator(unit1, unit2)
             if unit_operator in (multiply_units, divide_units):
                 if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
