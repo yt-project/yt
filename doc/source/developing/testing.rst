@@ -532,7 +532,13 @@ change the answer name in *tests/tests.yaml* e.g.:
 
       local_pw_000:
 
-would regenerate answers for OWLS frontend.
+would regenerate answers for OWLS frontend. 
+
+When adding tests to an existing set of answers (like `local_owls_???` or `local_varia_???`), 
+it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing 
+the version number. Then, allow the tests to run (resulting in `no old answer` errors for the missing
+answers). If no other failures are present, you can then increment the version number to regenerate
+the answers. This way, we can avoid accidently covering up test breakages. 
 
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
