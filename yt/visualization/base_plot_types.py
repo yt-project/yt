@@ -55,6 +55,7 @@ class PlotMPL(object):
     """
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
+        import matplotlib.figure
         from ._mpl_imports import FigureCanvasAgg
         self._plot_valid = True
         if figure is None:
@@ -317,6 +318,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     can be instructure, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
+    import matplotlib.figure
     hf, wf = 1.0/ny, 1.0/nx
     fudge_x = fudge_y = 1.0
     if colorbar is None:

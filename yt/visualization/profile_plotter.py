@@ -65,7 +65,8 @@ class FigureContainer(OrderedDict):
         super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
-        figure = matplotlib.figure.Figure((10, 8))
+        from matplotlib.figure import Figure
+        figure = Figure((10, 8))
         self[key] = figure
         return self[key]
 
