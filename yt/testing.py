@@ -299,18 +299,16 @@ def fake_hexahedral_ds():
     from yt.frontends.stream.sample_data.hexahedral_mesh import \
         _connectivity, _coordinates
 
-    _connectivity -= 1  # this mesh has an offset of 1
-
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[('connect1', 'test')] = dist[_connectivity]
+    node_data[('connect1', 'test')] = dist[_connectivity-1]
 
     # each element gets a random number
     elem_data = {}
     elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(_connectivity,
+    ds = load_unstructured_mesh(_connectivity-1,
                                 _coordinates,
                                 node_data=node_data,
                                 elem_data=elem_data)
