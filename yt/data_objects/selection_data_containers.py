@@ -24,12 +24,13 @@ from yt.funcs import \
     iterable, \
     validate_width_tuple, \
     fix_length
+from yt.geometry.selection_routines import \
+    points_in_cells
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
-    YTMixedCutRegion, \
     YTEllipsoidOrdering
 from yt.utilities.minimal_representation import \
     MinimalSliceData
@@ -793,8 +794,10 @@ class YTCutRegion(YTSelectionContainer3D):
         for field in fields:
             f = self.base_object[field]
             if f.shape != ind.shape:
-                raise YTMixedCutRegion(self.conditionals, field)
-            self.field_data[field] = self.base_object[field][ind]
+                parent = getattr(self, "parent", self.base_object)
+                self.field_data[field] = parent[field][self._part_ind]
+            else:
+                self.field_data[field] = self.base_object[field][ind]
 
     @property
     def blocks(self):
@@ -809,18 +812,35 @@ class YTCutRegion(YTSelectionContainer3D):
             if not np.any(m): continue
             yield obj, m
 
+    _cell_mask = None
     @property
     def _cond_ind(self):
-        ind = None
-        obj = self.base_object
-        with obj._field_parameter_state(self.field_parameters):
-            for cond in self.conditionals:
-                res = eval(cond)
-                if ind is None: ind = res
-                if ind.shape != res.shape:
-                    raise YTIllDefinedCutRegion(self.conditionals)
-                np.logical_and(res, ind, ind)
-        return ind
+        if self._cell_mask is None:
+            ind = None
+            obj = self.base_object
+            with obj._field_parameter_state(self.field_parameters):
+                for cond in self.conditionals:
+                    res = eval(cond)
+                    if ind is None: ind = res
+                    if ind.shape != res.shape:
+                        raise YTIllDefinedCutRegion(self.conditionals)
+                    np.logical_and(res, ind, ind)
+            self._cell_mask = ind
+        return self._cell_mask
+
+    _particle_mask = None
+    @property
+    def _part_ind(self):
+        if self._particle_mask is None:
+            parent = getattr(self, "parent", self.base_object)
+            mask = points_in_cells(
+                self["x"], self["y"], self["z"],
+                self["dx"], self["dy"], self["dz"],
+                parent["particle_position_x"].to("code_length"),
+                parent["particle_position_y"].to("code_length"),
+                parent["particle_position_z"].to("code_length"))
+            self._particle_mask = mask
+        return self._particle_mask
 
     @property
     def icoords(self):

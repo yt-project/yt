@@ -59,6 +59,9 @@ class Clump(object):
         self.max_val = self.data[field].max()
         self.info = {}
 
+        if parent is not None:
+            self.data.parent = self.parent.data
+
         # List containing characteristics about clumps that are to be written 
         # out by the write routines.
         if clump_info is None:
