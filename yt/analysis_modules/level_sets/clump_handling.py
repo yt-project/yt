@@ -50,7 +50,8 @@ def add_contour_field(ds, contour_key):
 class Clump(object):
     children = None
     def __init__(self, data, field, parent=None,
-                 clump_info=None, validators=None):
+                 clump_info=None, validators=None,
+                 base=None):
         self.data = data
         self.field = field
         self.parent = parent
@@ -58,6 +59,13 @@ class Clump(object):
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
         self.info = {}
+
+        if base is None:
+            base = self
+            self.total_clumps = 0
+        self.base = base
+        self.clump_id = self.base.total_clumps
+        self.base.total_clumps += 1
 
         if parent is not None:
             self.data.parent = self.parent.data
@@ -162,7 +170,8 @@ class Clump(object):
                 continue
             self.children.append(Clump(new_clump, self.field, parent=self,
                                        clump_info=self.clump_info,
-                                       validators=self.validators))
+                                       validators=self.validators,
+                                       base=self.base))
 
     def pass_down(self,operation):
         """
