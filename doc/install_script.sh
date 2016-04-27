@@ -994,6 +994,17 @@ then
         cd ..
     fi
 
+    ( ${DEST_DIR}/bin/python -c "import _ssl" 2>&1 ) 1>> ${LOG_FILE}
+    RESULT=$?
+    if  [ $RESULT -ne 0 ]
+    then
+        echo "Unable to import the python SSL bindings."
+        echo "This means that OpenSSL is not installed or your system's OpenSSL"
+        echo "installation is out of date."
+        echo "Please install OpenSSL or set INST_CONDA=1"
+        do_exit
+    fi
+
     if [ $INST_PY3 -eq 1 ]
     then
         if [ ! -e $PYTHON3/done ]
