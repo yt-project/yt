@@ -2046,3 +2046,42 @@ cdef class HaloParticlesSelector(SelectorObject):
         return ("halo_particles", self.halo_id)
 
 halo_particles_selector = HaloParticlesSelector
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def points_in_cells(
+        np.float64_t[:] cx,
+        np.float64_t[:] cy,
+        np.float64_t[:] cz,
+        np.float64_t[:] dx,
+        np.float64_t[:] dy,
+        np.float64_t[:] dz,
+        np.float64_t[:] px,
+        np.float64_t[:] py,
+        np.float64_t[:] pz):
+    # Take a list of cells and particles and calculate which particles
+    # are enclosed within one of the cells.  This is used for querying
+    # particle fields on clump/contour objects.
+    # We use brute force since the cells are a relatively unordered collection.
+
+    cdef int p, c, n_p, n_c
+
+    n_p = px.size
+    n_c = cx.size
+    mask = np.ones(n_p, dtype="bool")
+
+    for p in range(n_p):
+        for c in range(n_c):
+            if fabs(px[p] - cx[c]) > 0.5 * dx[c]:
+                mask[p] = False
+                continue
+            if fabs(py[p] - cy[c]) > 0.5 * dy[c]:
+                mask[p] = False
+                continue
+            if fabs(pz[p] - cz[c]) > 0.5 * dz[c]:
+                mask[p] = False
+                continue
+            if mask[p]: break
+
+    return mask
