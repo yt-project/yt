@@ -453,8 +453,8 @@ class AbsorptionSpectrum(object):
                 EW = np.zeros(right_index - left_index)
                 EW_indices = np.arange(left_index, right_index)
                 for k, val in enumerate(EW_indices):
-                    EW[k] = vEW[n_vbins_per_bin[i] * k: \
-                                n_vbins_per_bin[i] * (k + 1)].sum()
+                    EW[k] = vEW[int(n_vbins_per_bin[i]) * k: \
+                                int(n_vbins_per_bin[i]) * (k + 1)].sum()
                 EW = EW/self.bin_width.d
 
                 # only deposit EW bins that actually intersect the original
