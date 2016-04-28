@@ -18,7 +18,7 @@ import numpy as np
 
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray
-
+from yt.utilities.exceptions import YTException
 
 def _aligned(a, b):    
     dot_product = np.abs(np.dot(a, b) / np.linalg.norm(a) / np.linalg.norm(b))
@@ -34,11 +34,10 @@ def _validate_unit_vectors(normal_vector, north_vector):
         normal_vector = YTArray(normal_vector, "", dtype='float64')
 
     if not np.dot(normal_vector, normal_vector) > 0:
-        mylog.error("Normal vector is null")
+        raise YTException("normal_vector cannot be the zero vector.")
 
     if north_vector is not None and _aligned(north_vector, normal_vector):
-        mylog.error("North vector and normal vector are aligned.  Disregarding north vector.")
-        north_vector = None
+        raise YTException("normal_vector and north_vector cannot be aligned.")
 
     return normal_vector, north_vector
 
