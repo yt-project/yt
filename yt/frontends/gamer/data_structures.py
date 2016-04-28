@@ -280,10 +280,14 @@ class GAMERDataset(Dataset):
             for v in t.dtype.names: self.parameters[v] = t[v]
 
         # reset 'Model' to be more readable
-        if KeyInfo['Model'] == 1:   self.parameters['Model'] = 'Hydro'
-        elif KeyInfo['Model'] == 2: self.parameters['Model'] = 'MHD'
-        elif KeyInfo['Model'] == 3: self.parameters['Model'] = 'ELBDM'
-        else:                       self.parameters['Model'] = 'Unknown'
+        if KeyInfo['Model'] == 1:
+            self.parameters['Model'] = 'Hydro'
+        elif KeyInfo['Model'] == 2:
+            self.parameters['Model'] = 'MHD'
+        elif KeyInfo['Model'] == 3:
+            self.parameters['Model'] = 'ELBDM'
+        else:
+            self.parameters['Model'] = 'Unknown'
 
         # make aliases to some frequently used variables
         if self.parameters['Model'] == 'Hydro' or \
