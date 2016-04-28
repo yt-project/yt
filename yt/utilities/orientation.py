@@ -20,6 +20,29 @@ from yt.funcs import mylog
 from yt.units.yt_array import YTArray
 
 
+def _aligned(a, b):    
+    dot_product = np.abs(np.dot(a, b) / np.linalg.norm(a) / np.linalg.norm(b))
+    return np.isclose(dot_product, 1.0, 1.0e-13)
+    
+
+def _validate_unit_vectors(normal_vector, north_vector):
+
+    # Make sure vectors are unitless
+    if north_vector is not None:
+        north_vector = YTArray(north_vector, "", dtype='float64')
+    if normal_vector is not None:
+        normal_vector = YTArray(normal_vector, "", dtype='float64')
+
+    if not np.dot(normal_vector, normal_vector) > 0:
+        mylog.error("Normal vector is null")
+
+    if north_vector is not None and _aligned(north_vector, normal_vector):
+        mylog.error("North vector and normal vector are aligned.  Disregarding north vector.")
+        north_vector = None
+
+    return normal_vector, north_vector
+
+
 class Orientation(object):
     def __init__(self, normal_vector, north_vector=None, steady_north=False):
         r"""An object that returns a set of basis vectors for orienting
@@ -41,18 +64,9 @@ class Orientation(object):
 
         """
 
-        # Make sure vectors are unitless
-        if north_vector is not None:
-            north_vector = YTArray(north_vector, "", dtype='float64')
-        if normal_vector is not None:
-            normal_vector = YTArray(normal_vector, "", dtype='float64')
-
+        normal_vector, north_vector = _validate_unit_vectors(normal_vector,
+                                                             north_vector)
         self.steady_north = steady_north
-        if not np.dot(normal_vector, normal_vector) > 0:
-            mylog.error("Normal vector is null")
-        if np.all(north_vector == normal_vector):
-            mylog.error("North vector and normal vector are the same.  Disregarding north vector.")
-            north_vector = None
         if north_vector is not None:
             self.steady_north = True
         self.north_vector = north_vector
@@ -61,15 +75,10 @@ class Orientation(object):
             self.north_vector = self.unit_vectors[1]
 
     def _setup_normalized_vectors(self, normal_vector, north_vector):
+        normal_vector, north_vector = _validate_unit_vectors(normal_vector,
+                                                             north_vector)
         mylog.debug('Setting normalized vectors' + str(normal_vector)
                     + str(north_vector))
-
-        # Make sure vectors are unitless
-        if north_vector is not None:
-            north_vector = YTArray(north_vector, "", dtype='float64')
-        if normal_vector is not None:
-            normal_vector = YTArray(normal_vector, "", dtype='float64')
-
         # Now we set up our various vectors
         normal_vector /= np.sqrt(np.dot(normal_vector, normal_vector))
         if north_vector is None:
