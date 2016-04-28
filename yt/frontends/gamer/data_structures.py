@@ -27,7 +27,6 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.file_handler import \
     HDF5FileHandler
-from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import GAMERFieldInfo
 from yt.testing import assert_equal
 
@@ -281,10 +280,11 @@ class GAMERDataset(Dataset):
             for v in t.dtype.names: self.parameters[v] = t[v]
 
         # reset 'Model' to be more readable
-        self.parameters['Model'] =      'Hydro' if KeyInfo['Model'] == 1 \
-                                   else 'MHD'   if KeyInfo['Model'] == 2 \
-                                   else 'ELBDM' if KeyInfo['Model'] == 3 \
-                                   else 'Unknown'
+        if KeyInfo['Model'] == 1:   self.parameters['Model'] = 'Hydro'
+        elif KeyInfo['Model'] == 2: self.parameters['Model'] = 'MHD'
+        elif KeyInfo['Model'] == 3: self.parameters['Model'] = 'ELBDM'
+        else:                       self.parameters['Model'] = 'Unknown'
+
         # make aliases to some frequently used variables
         if self.parameters['Model'] == 'Hydro' or \
            self.parameters['Model'] == 'MHD':
