@@ -806,6 +806,20 @@ consistent with the grid structure of the latter), its data may be loaded with t
 * Please be careful that the units are correctly utilized; yt assumes cgs by default, but conversion to
   other :ref:`unit systems <unit_systems>` is also possible.
 
+GAMER Data
+----------
+
+GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the data like this:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("InteractingJets/jet_000002")
+
+.. rubric:: Caveats
+
+* GAMER data in raw binary format is not supported.
+
 .. _loading-gadget-data:
 
 Gadget Data
