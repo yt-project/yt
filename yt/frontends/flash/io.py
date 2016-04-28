@@ -34,6 +34,16 @@ def grid_sequences(grids):
         seq = list(v[1] for v in g)
         yield seq
 
+def determine_particle_fields(handle):
+    try:
+        particle_fields = [s[0].decode("ascii","ignore").strip()
+                           for s in handle["/particle names"][:]]
+        _particle_fields = dict([("particle_" + s, i) for i, s in
+                                 enumerate(particle_fields)])
+    except KeyError:
+        _particle_fields = {}
+    return _particle_fields
+
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "flash_hdf5"
@@ -43,15 +53,7 @@ class IOHandlerFLASH(BaseIOHandler):
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_handle = ds._particle_handle
-        
-        try :
-            particle_fields = [s[0].decode("ascii","ignore").strip()
-                               for s in
-                               self._particle_handle["/particle names"][:]]
-            self._particle_fields = dict([("particle_" + s, i) for i, s in
-                                          enumerate(particle_fields)])
-        except KeyError:
-            self._particle_fields = {}
+        self._particle_fields = determine_particle_fields(self._particle_handle)
 
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
@@ -154,3 +156,15 @@ class IOHandlerFLASH(BaseIOHandler):
                     rv[g.id][field] = np.asarray(data[...,i], "=f8")
         return rv
 
+class IOHandlerFLASHParticle(BaseIOHandler):
+    _particle_reader = True
+    _dataset_type = "flash_particle_hdf5"
+
+    def __init__(self, ds):
+        super(IOHandlerFLASHParticle, self).__init__(ds)
+        # Now we cache the particle fields
+        self._handle = ds._handle
+        self._particle_fields = determine_particle_fields(self._handle)
+
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        raise NotImplementedError
