@@ -466,7 +466,7 @@ class ParticleOctreeSubset(OctreeSubset):
                 raise Exception('Source size does not match.')
             # Create map from indexes in buffered octree to indexes in base 
             # octree. The order of the domain indexes should be the same,
-            # only the visit order map differ.
+            # only the visit order may differ.
             domain_ind2 = np.zeros(nsrc, 'int64') - 1
             i_dom2 = 0
             for i_dom1 in range(self.domain_ind.size):
@@ -486,8 +486,8 @@ class ParticleOctreeSubset(OctreeSubset):
     def _expand_data_files(self, ghost_particles):
         if ghost_particles:
             old_data_files = self.data_files
-            self.data_files = list(self.data_files + self.buffer_files)
-            # self.data_files.sort()
+            self.data_files = list(set(self.data_files + self.buffer_files))
+            self.data_files.sort()
             yield self
             self.data_files = old_data_files
         else:
