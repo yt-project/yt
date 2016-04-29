@@ -192,6 +192,7 @@ class FLASHDataset(Dataset):
         self.particle_filename = particle_filename
 
         if self.particle_filename is None:
+            # try to guess the particle filename
             try:
                 self._particle_handle = HDF5FileHandler(filename.replace('plt_cnt', 'part'))
                 self.particle_filename = filename.replace('plt_cnt', 'part')
@@ -199,10 +200,18 @@ class FLASHDataset(Dataset):
             except:
                 self._particle_handle = self._handle
         else:
+            # particle_filename is specified by user
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
             except:
                 raise IOError(self.particle_filename)
+        # Check if the particle file has the same time
+        if self._particle_handle != self._handle:
+            part_time = self._particle_handle.handle.get('real scalars')[0][1]
+            plot_time = self._handle.handle.get('real scalars')[0][1]
+            if part_time != plot_time:
+                raise IOError('%s and  %s are not at the same time.' % (self.particle_filename, filename))
+
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
