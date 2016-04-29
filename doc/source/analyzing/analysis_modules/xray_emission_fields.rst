@@ -32,7 +32,7 @@ dataset object, and the minimum and maximum energies of the energy band.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0)
+  xray_fields = add_xray_emissivity_field(ds, 0.5, 7.0)
 
 Additional keyword arguments are:
 
@@ -49,7 +49,8 @@ Additional keyword arguments are:
 
  * **constant_metallicity** (*float*): If specified, assume a constant
    metallicity for the emission from metals.  The *with_metals* keyword
-   must be set to False to use this.  Default: None.
+   must be set to False to use this. It should be given in unit of solar metallicity.
+   Default: None.
 
 The resulting fields can be used like all normal fields. The function will return the names of
 the created fields in a Python list.
@@ -60,7 +61,7 @@ the created fields in a Python list.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0, filename="apec_emissivity.h5")
+  xray_fields = add_xray_emissivity_field(ds, 0.5, 7.0, filename="apec_emissivity.h5")
 
   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
   plot = yt.SlicePlot(ds, 'x', 'xray_luminosity_0.5_7.0_keV')
