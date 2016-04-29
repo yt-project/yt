@@ -17,7 +17,8 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
+    imax, fabs, iclip
 from yt.utilities.exceptions import \
     YTPixelizeError, \
     YTElementTypeNotRecognized
@@ -718,6 +719,10 @@ def evaluate_integrate(float qxy2, int n_steps):
     return integral
 
 
+DEF TABLE_NVALS=1000
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                         np.ndarray[np.float64_t, ndim=2] buff,
@@ -726,38 +731,51 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                         np.ndarray[np.float64_t, ndim=1] hsml,
                         np.ndarray[np.float64_t, ndim=1] dens):
 
-    cdef int xi, yi
+    cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef float x, y, dx, dy, idx, idy, dqxy2, qxy2_range
     cdef float posx_diff, qxy2, h_j, val, this_val, F_interpolate
     cdef int index, i, j
-    cdef float table[1000]
+    cdef float table[TABLE_NVALS]
 
     dx = (bounds[0,1] - bounds[0,0]) / buff.shape[0]
     dy = (bounds[1,1] - bounds[1,0]) / buff.shape[1]
     idx = 1/dx
     idy = 1/dy
-
-    qxy_vals = np.linspace(0,2,1000)
+    cdef np.ndarray[np.float64_t, ndim=1] qxy_val, qxy2_vals
+    qxy_vals = np.linspace(0,2,TABLE_NVALS)
     qxy2_vals = qxy_vals*qxy_vals
     
-    for i in range(1000):
+    for i in range(TABLE_NVALS):
         table[i] = evaluate_integrate(qxy2_vals[i], 200)
 
-    dqxy2 = (qxy2_vals[-1] - qxy2_vals[0])/qxy2_vals.shape[0]
-    qxy2_range = qxy2_vals[-1] - qxy2_vals[0]
+    dqxy2 = (qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0])/qxy2_vals.shape[0]
+    qxy2_range = qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0]
     
-    for j in range(0,posx.shape[0],100):
+    for j in range(0,posx.shape[0]):
 
         val = 0.0
-        for xi in range( <int> ( (posx[j] - hsml[j] - bounds[0,0]) * idx), <int> ( (posx[j] + hsml[j] - bounds[0,0]) * idx) ):
+
+        x0 = <np.int64_t> ( (posx[j] - hsml[j] - bounds[0,0]) * idx)
+        x1 = <np.int64_t> ( (posx[j] + hsml[j] - bounds[0,0]) * idx)
+        x0 = iclip(x0, 0, buff.shape[0]-1)
+        x1 = iclip(x1, 0, buff.shape[0]-1)
+
+        y0 = <np.int64_t> ( (posy[j] - hsml[j] - bounds[1,0]) * idy)
+        y1 = <np.int64_t> ( (posy[j] + hsml[j] - bounds[1,0]) * idy)
+        y0 = iclip(y0, 0, buff.shape[1]-1)
+        y1 = iclip(y1, 0, buff.shape[1]-1)
+
+        h_j = fmax( <float> (hsml[j]), dx)
+
+        for xi in range(x0, x1):
             x = xi * dx + bounds[0,0]
 
-            posx_diff = (<float> (posx[j]) - x)*(<float> (posx[j]) - x)
+            posx_diff = (<float> (posx[j]) - x)
+            posx_diff *= posx_diff
 
-            for yi in range( <int> ( (posy[j] - hsml[j] - bounds[0,0]) * idy), <int> ( ( posy[j] + hsml[j] - bounds[0,0]) * idy) ):
-                y = yi * dy + bounds[0,0]
+            for yi in range(y0, y1):
+                y = yi * dy + bounds[1,0]
 
-                h_j = fmax( <float> (hsml[j]), dx)
                 qxy2 = ( posx_diff + (<float> (posy[j]) - y)*(<float> (posy[j]) - y) ) / h_j
                 if qxy2 >= 4:
                     continue
