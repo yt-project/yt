@@ -196,7 +196,7 @@ class FLASHDataset(Dataset):
             try:
                 self._particle_handle = HDF5FileHandler(filename.replace('plt_cnt', 'part'))
                 self.particle_filename = filename.replace('plt_cnt', 'part')
-                mylog.info('Particle File Found: %s' % self.particle_filename.split('/')[-1])
+                mylog.info('Particle file found: %s' % self.particle_filename.split('/')[-1])
             except:
                 self._particle_handle = self._handle
         else:
@@ -209,7 +209,7 @@ class FLASHDataset(Dataset):
         if self._particle_handle != self._handle:
             part_time = self._particle_handle.handle.get('real scalars')[0][1]
             plot_time = self._handle.handle.get('real scalars')[0][1]
-            if part_time != plot_time:
+            if not np.isclose(part_time, plot_time):
                 raise IOError('%s and  %s are not at the same time.' % (self.particle_filename, filename))
 
         # These should be explicitly obtained from the file, but for now that
