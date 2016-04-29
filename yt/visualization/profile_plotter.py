@@ -248,6 +248,7 @@ class ProfilePlot(object):
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
+        fullname = False
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
@@ -259,6 +260,7 @@ class ProfilePlot(object):
             if sfx != '':
                 suffix = sfx
                 prefix = name[:name.rfind(suffix)]
+                fullname = True 
             else:
                 prefix = name
         xfn = self.profiles[0].x_field
@@ -270,7 +272,10 @@ class ProfilePlot(object):
             if isinstance(uid, tuple):
                 uid = uid[1]
             canvas = canvas_cls(fig)
-            fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+            if fullname:
+                fns.append("%s%s" % (prefix, suffix))
+            else:
+                fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
             mylog.info("Saving %s", fns[-1])
             canvas.print_figure(fns[-1])
         return fns
