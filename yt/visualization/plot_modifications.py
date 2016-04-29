@@ -309,8 +309,8 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("cutting_plane_bx",
-                                        "cutting_plane_by",
+            qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
+                                        "cutting_plane_magnetic_field_y",
                                         self.factor)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
