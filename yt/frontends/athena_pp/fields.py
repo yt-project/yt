@@ -23,13 +23,16 @@ pres_units = "code_mass/(code_length*code_time**2)"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_length / code_time"
 
+def velocity_field(comp):
+    def _velocity(field, data):
+        return data["athena++", "mom%d" % comp]/data["athena++","dens"]
+    return _velocity
+
 class AthenaPPFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("rho", (rho_units, ["density"], None)),
+        ("dens", (rho_units, ["density"], None)),
         ("pgas", (pres_units, ["pressure"], None)),
-        ("vel1", (vel_units, ["velocity_x"], None)),
-        ("vel2", (vel_units, ["velocity_y"], None)),
-        ("vel3", (vel_units, ["velocity_z"], None)),
         ("B1", (b_units, [], None)),
         ("B2", (b_units, [], None)),
         ("B3", (b_units, [], None)),
@@ -39,6 +42,22 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
+        # Add velocity fields
+        for i, comp in enumerate(self.ds.coordinates.axis_order):
+            vel_field = ("athena++", "vel%d" % (i+1))
+            mom_field = ("athena++", "mom%d" % (i+1))
+            if vel_field in self.field_list:
+                self.add_output_field(vel_field, units="code_length/code_time")
+                self.alias(("gas","velocity_%s" % comp), vel_field,
+                           units=unit_system["velocity"])
+            elif mom_field in self.field_list:
+                print("happy happy joy joy", mom_field)
+                self.add_output_field(mom_field,
+                                      units="code_mass/code_time/code_length**2")
+                print(comp)
+                self.add_field(("gas","velocity_%s" % comp),
+                               function=velocity_field(i+1), units=unit_system["velocity"])
+        # Add temperature field
         def _temperature(field, data):
             if data.has_field_parameter("mu"):
                 mu = data.get_field_parameter("mu")
