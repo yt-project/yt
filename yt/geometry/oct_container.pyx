@@ -317,6 +317,36 @@ cdef class OctreeContainer:
         oinfo.level = level
         return cur
 
+    def locate_positions(self, np.float64_t[:,:] positions):
+        cdef np.float64_t factor = (1 << self.oref)
+        cdef dict all_octs = {}
+        cdef OctInfo oi
+        cdef Oct* o = NULL
+        cdef np.float64_t pos[3]
+        cdef np.ndarray[np.uint8_t, ndim=1] recorded
+        cdef np.ndarray[np.int64_t, ndim=1] oct_id
+        oct_id = np.ones(positions.shape[0], dtype="int64") * -1
+        recorded = np.zeros(self.nocts, dtype="uint8")
+        cdef np.int64_t i, j, k
+        for i in range(positions.shape[0]):
+            for j in range(3):
+                pos[j] = positions[i,j]
+            o = self.get(pos, &oi)
+            if o == NULL:
+                raise RuntimeError
+            if recorded[o.domain_ind] == 0:
+                left_edge = np.asarray(<np.float64_t[:3]>oi.left_edge)
+                dds = np.asarray(<np.float64_t[:3]>oi.dds)
+                right_edge = left_edge + dds*factor
+                all_octs[o.domain_ind] = dict(
+                    left_edge = left_edge,
+                    right_edge = right_edge,
+                    level = oi.level
+                )
+                recorded[o.domain_ind] = 1
+            oct_id[i] = o.domain_ind
+        return oct_id, all_octs
+
     def domain_identify(self, SelectorObject selector):
         cdef np.ndarray[np.uint8_t, ndim=1] domain_mask
         domain_mask = np.zeros(self.num_domains, dtype="uint8")
