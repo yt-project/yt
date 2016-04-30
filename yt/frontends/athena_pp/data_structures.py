@@ -36,7 +36,13 @@ from yt.utilities.file_handler import \
 from .fields import AthenaPPFieldInfo
 
 geom_map = {"cartesian": "cartesian",
-            "spherical_polar": "spherical"}
+            "cylindrical": "cylindrical",
+            "spherical_polar": "spherical",
+            "minkowski": "cartesian",
+            "tilted": "cartesian",
+            "sinusoidal": "cartesian",
+            "schwarzschild": "spherical",
+            "kerr-schild": "spherical"}
 
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
