@@ -33,6 +33,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         ("rho", (rho_units, ["density"], None)),
         ("dens", (rho_units, ["density"], None)),
         ("pgas", (pres_units, ["pressure"], None)),
+        ("Etot", (pres_units, [], None)),
         ("B1", (b_units, [], None)),
         ("B2", (b_units, [], None)),
         ("B3", (b_units, [], None)),
