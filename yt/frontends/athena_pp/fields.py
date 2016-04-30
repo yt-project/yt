@@ -23,9 +23,9 @@ pres_units = "code_mass/(code_length*code_time**2)"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_length / code_time"
 
-def velocity_field(comp):
+def velocity_field(j):
     def _velocity(field, data):
-        return data["athena++", "mom%d" % comp]/data["athena++","dens"]
+        return data["athena++", "mom%d" % j]/data["athena++","dens"]
     return _velocity
 
 class AthenaPPFieldInfo(FieldInfoContainer):
@@ -43,19 +43,23 @@ class AthenaPPFieldInfo(FieldInfoContainer):
             setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
         # Add velocity fields
+        vel_prefix = "velocity"
+        if self.ds.geometry != "cartesian":
+            vel_prefix += "_"+self.ds.geometry
         for i, comp in enumerate(self.ds.coordinates.axis_order):
             vel_field = ("athena++", "vel%d" % (i+1))
             mom_field = ("athena++", "mom%d" % (i+1))
+            if comp == "r":
+                comp = "radius"
             if vel_field in self.field_list:
                 self.add_output_field(vel_field, units="code_length/code_time")
-                self.alias(("gas","velocity_%s" % comp), vel_field,
+                self.alias(("gas","%s_%s" % (vel_prefix, comp)), vel_field,
                            units=unit_system["velocity"])
             elif mom_field in self.field_list:
-                print("happy happy joy joy", mom_field)
                 self.add_output_field(mom_field,
                                       units="code_mass/code_time/code_length**2")
                 print(comp)
-                self.add_field(("gas","velocity_%s" % comp),
+                self.add_field(("gas","%s_%s" % (vel_prefix, comp)),
                                function=velocity_field(i+1), units=unit_system["velocity"])
         # Add temperature field
         def _temperature(field, data):
