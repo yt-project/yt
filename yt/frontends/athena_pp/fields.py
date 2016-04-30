@@ -57,7 +57,6 @@ class AthenaPPFieldInfo(FieldInfoContainer):
             elif mom_field in self.field_list:
                 self.add_output_field(mom_field,
                                       units="code_mass/code_time/code_length**2")
-                print(comp)
                 self.add_field(("gas","%s_%s" % (vel_prefix, comp)),
                                function=velocity_field(i+1), units=unit_system["velocity"])
         # Figure out thermal energy field
