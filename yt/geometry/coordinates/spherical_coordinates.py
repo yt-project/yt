@@ -271,7 +271,7 @@ class LogSphericalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "x"), function=_unknown_coord)
         registry.add_field(("index", "y"), function=_unknown_coord)
         registry.add_field(("index", "z"), function=_unknown_coord)
-        f1, f2 = _get_coord_fields(self.axis_id['logr'])
+        f1, f2 = _get_coord_fields(self.axis_id['logr'], "")
         registry.add_field(("index", "dlogr"), function = f1,
                            display_field = False,
                            units = "")
