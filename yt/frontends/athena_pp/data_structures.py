@@ -108,6 +108,10 @@ class AthenaPPHierarchy(GridIndex):
             self.grid_dimensions[i] = self._handle.attrs["MeshBlockSize"]
         levels = self._handle["Levels"][:]
 
+        if self.ds.geometry == "logspherical":
+            self.grid_left_edge[:,0] = np.log10(self.grid_left_edge[:,0])
+            self.grid_right_edge[:,0] = np.log10(self.grid_right_edge[:,0])
+
         self.grid_left_edge = self.ds.arr(self.grid_left_edge, "code_length")
         self.grid_right_edge = self.ds.arr(self.grid_right_edge, "code_length")
 
@@ -205,12 +209,20 @@ class AthenaPPDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        xmin, xmax = self._handle.attrs["RootGridX1"][:2]
-        ymin, ymax = self._handle.attrs["RootGridX2"][:2]
-        zmin, zmax = self._handle.attrs["RootGridX3"][:2]
+        xmin, xmax, xrat = self._handle.attrs["RootGridX1"][:]
+        ymin, ymax, yrat = self._handle.attrs["RootGridX2"][:]
+        zmin, zmax, yrat = self._handle.attrs["RootGridX3"][:]
 
         self.domain_left_edge = np.array([xmin, ymin, zmin], dtype='float64')
         self.domain_right_edge = np.array([xmax, ymax, zmax], dtype='float64')
+
+        self.geometry = geom_map[self._handle.attrs["Coordinates"].decode('utf-8')]
+
+        if xrat != 1.0 and self.geometry == "spherical":
+            self.geometry = "logspherical"
+            self.domain_left_edge[0] = np.log10(self.domain_left_edge[0])
+            self.domain_right_edge[0] = np.log10(self.domain_right_edge[0])
+
         self.domain_width = self.domain_right_edge-self.domain_left_edge
         self.domain_dimensions = self._handle.attrs["RootGridSize"]
 
@@ -253,7 +265,6 @@ class AthenaPPDataset(Dataset):
             self.parameters["Gamma"] = self.specified_parameters["gamma"]
         else:
             self.parameters["Gamma"] = 5./3.
-        self.geometry = geom_map[self._handle.attrs["Coordinates"].decode('utf-8')]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
