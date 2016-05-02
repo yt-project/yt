@@ -335,8 +335,8 @@ cdef class OctreeContainer:
             if o == NULL:
                 raise RuntimeError
             if recorded[o.domain_ind] == 0:
-                left_edge = np.asarray(<np.float64_t[:3]>oi.left_edge)
-                dds = np.asarray(<np.float64_t[:3]>oi.dds)
+                left_edge = np.asarray(<np.float64_t[:3]>oi.left_edge).copy()
+                dds = np.asarray(<np.float64_t[:3]>oi.dds).copy()
                 right_edge = left_edge + dds*factor
                 all_octs[o.domain_ind] = dict(
                     left_edge = left_edge,
