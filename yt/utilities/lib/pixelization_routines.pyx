@@ -732,7 +732,7 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                         np.ndarray[np.float64_t, ndim=1] dens):
 
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t x, y, dx, dy, idx, idy, dqxy2, qxy2_range
+    cdef np.float64_t x, y, dx, dy, idx, idy, qxy2_range
     cdef np.float64_t qxy2, h_j2, val, this_val, F_interpolate
     cdef np.float64_t posx_diff, posy_diff
     cdef int index, i, j
@@ -740,31 +740,27 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
 
     dx = (bounds[0,1] - bounds[0,0]) / buff.shape[0]
     dy = (bounds[1,1] - bounds[1,0]) / buff.shape[1]
-    idx = 1/dx
-    idy = 1/dy
-    cdef np.ndarray[np.float64_t, ndim=1] qxy_val, qxy2_vals
-    qxy_vals = np.linspace(0,2,TABLE_NVALS)
-    qxy2_vals = qxy_vals*qxy_vals
+    idx = 1.0/dx
+    idy = 1.0/dy
+    cdef np.ndarray[np.float64_t, ndim=1] qxy2_vals
+    qxy2_vals = np.linspace(0,4,TABLE_NVALS)
     
     for i in range(TABLE_NVALS):
         table[i] = evaluate_integrate(qxy2_vals[i], 200)
 
-    dqxy2 = (qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0])/qxy2_vals.shape[0]
     qxy2_range = qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0]
     
-    for j in range(0,posx.shape[0]):
-
-        val = 0.0
+    for j in range(0, posx.shape[0]):
 
         x0 = <np.int64_t> ( (posx[j] - hsml[j] - bounds[0,0]) * idx)
         x1 = <np.int64_t> ( (posx[j] + hsml[j] - bounds[0,0]) * idx)
-        x0 = iclip(x0, 0, buff.shape[0]-1)
-        x1 = iclip(x1, 0, buff.shape[0]-1)
+        x0 = iclip(x0-1, 0, buff.shape[0]-1)
+        x1 = iclip(x1+1, 0, buff.shape[0]-1)
 
         y0 = <np.int64_t> ( (posy[j] - hsml[j] - bounds[1,0]) * idy)
         y1 = <np.int64_t> ( (posy[j] + hsml[j] - bounds[1,0]) * idy)
-        y0 = iclip(y0, 0, buff.shape[1]-1)
-        y1 = iclip(y1, 0, buff.shape[1]-1)
+        y0 = iclip(y0-1, 0, buff.shape[1]-1)
+        y1 = iclip(y1+1, 0, buff.shape[1]-1)
 
         h_j2 = fmax(hsml[j], dx)
         h_j2 *= h_j2
