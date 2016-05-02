@@ -733,7 +733,7 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
 
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t x, y, dx, dy, idx, idy, dqxy2, qxy2_range
-    cdef np.float64_t qxy2, h_j, val, this_val, F_interpolate
+    cdef np.float64_t qxy2, h_j2, val, this_val, F_interpolate
     cdef np.float64_t posx_diff, posy_diff
     cdef int index, i, j
     cdef float table[TABLE_NVALS]
@@ -766,7 +766,8 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
         y0 = iclip(y0, 0, buff.shape[1]-1)
         y1 = iclip(y1, 0, buff.shape[1]-1)
 
-        h_j = fmax(hsml[j], dx)
+        h_j2 = fmax(hsml[j], dx)
+        h_j2 *= h_j2
 
         for xi in range(x0, x1):
             x = xi * dx + bounds[0,0]
@@ -780,7 +781,7 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                 posy_diff = posy[j] - y
                 posy_diff *= posy_diff
 
-                qxy2 = (posx_diff + posy_diff) / h_j
+                qxy2 = (posx_diff + posy_diff) / h_j2
                 if qxy2 >= 4:
                     continue
 
