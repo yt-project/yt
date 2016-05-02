@@ -706,12 +706,12 @@ def weight_function(q):
         return 0
 
 
-def evaluate_integrate(float qxy2, int n_steps):
+def evaluate_integrate(np.float64_t qxy2, int n_steps):
     def F_func(qz):
         return weight_function( math.sqrt(qxy2 + qz*qz) )
     
-    cdef float R, integral
-    R = 2.
+    cdef np.float64_t R, integral
+    R = 2.0
 
     qz_vals = np.linspace(-math.sqrt(R*R - qxy2), math.sqrt(R*R - qxy2), n_steps)
     F_vals = np.array( [F_func(qz) for qz in qz_vals] )
@@ -721,8 +721,8 @@ def evaluate_integrate(float qxy2, int n_steps):
 
 DEF TABLE_NVALS=1000
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
+#@cython.boundscheck(False)
+#@cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                         np.ndarray[np.float64_t, ndim=2] buff,
@@ -736,7 +736,7 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
     cdef np.float64_t qxy2, h_j2, val, this_val, F_interpolate
     cdef np.float64_t posx_diff, posy_diff
     cdef int index, i, j
-    cdef float table[TABLE_NVALS]
+    cdef np.float64_t table[TABLE_NVALS]
 
     dx = (bounds[0,1] - bounds[0,0]) / buff.shape[0]
     dy = (bounds[1,1] - bounds[1,0]) / buff.shape[1]
@@ -752,27 +752,26 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
     
     for j in range(0, posx.shape[0]):
 
-        x0 = <np.int64_t> ( (posx[j] - hsml[j] - bounds[0,0]) * idx)
-        x1 = <np.int64_t> ( (posx[j] + hsml[j] - bounds[0,0]) * idx)
+        x0 = <np.int64_t> ( (posx[j] - 2.0*hsml[j] - bounds[0,0]) * idx)
+        x1 = <np.int64_t> ( (posx[j] + 2.0*hsml[j] - bounds[0,0]) * idx)
         x0 = iclip(x0-1, 0, buff.shape[0]-1)
         x1 = iclip(x1+1, 0, buff.shape[0]-1)
 
-        y0 = <np.int64_t> ( (posy[j] - hsml[j] - bounds[1,0]) * idy)
-        y1 = <np.int64_t> ( (posy[j] + hsml[j] - bounds[1,0]) * idy)
+        y0 = <np.int64_t> ( (posy[j] - 2.0*hsml[j] - bounds[1,0]) * idy)
+        y1 = <np.int64_t> ( (posy[j] + 2.0*hsml[j] - bounds[1,0]) * idy)
         y0 = iclip(y0-1, 0, buff.shape[1]-1)
         y1 = iclip(y1+1, 0, buff.shape[1]-1)
 
-        h_j2 = fmax(hsml[j], dx)
-        h_j2 *= h_j2
+        h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
 
         for xi in range(x0, x1):
-            x = xi * dx + bounds[0,0]
+            x = (xi + 0.5) * dx + bounds[0,0]
 
             posx_diff = posx[j] - x
             posx_diff *= posx_diff
 
             for yi in range(y0, y1):
-                y = yi * dy + bounds[1,0]
+                y = (yi + 0.5) * dy + bounds[1,0]
 
                 posy_diff = posy[j] - y
                 posy_diff *= posy_diff
@@ -785,4 +784,4 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                 F_interpolate = table[index-1] +(table[index] - table[index-1])\
                     *(qxy2 - qxy2_vals[index-1])/(qxy2_vals[index] - qxy2_vals[index-1])
 
-                buff[xi, yi] += (dens[j]) * (hsml[j]) * (dens[j] )* F_interpolate
+                buff[xi, yi] += dens[j] * hsml[j] * dens[j] * F_interpolate
