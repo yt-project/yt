@@ -16,6 +16,7 @@ Geometry selection routine imports.
 
 cimport numpy as np
 from oct_visitors cimport Oct, OctVisitor
+from oct_container cimport OctreeContainer
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
 from yt.utilities.lib.ewah_bool_wrap cimport \

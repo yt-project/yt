@@ -414,16 +414,11 @@ class ParticleOctreeSubset(OctreeSubset):
     domain_id = -1
     def __init__(self, base_region, data_files, ds, 
                  min_ind = 0, max_ind = 0, over_refine_factor = 1,
-                 buffer_files = None, selector_mask = None, 
-                 buffer_mask = None, base_grid = None):
+                 selector_mask = None, base_grid = None):
         # The first attempt at this will not work in parallel.
-        if buffer_files is None: buffer_files = []
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
         self.data_files = ensure_list(data_files)
-        self.buffer_files = ensure_list(buffer_files)
-        if len(self.data_files) != 1:
-            raise NotImplementedError
         self.domain_id = -1
         self.field_data = YTFieldData()
         self.field_parameters = {}
@@ -439,18 +434,15 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
         self.selector_mask = selector_mask
-        self.buffer_mask = buffer_mask
         if base_grid is not None:
             self._base_grid = base_grid
-        elif buffer_mask is None:
-            self._base_grid = self
         else:
-            self._base_grid = ParticleOctreeSubset(
-                base_region, data_files, ds, min_ind, max_ind,
-                over_refine_factor, selector_mask = selector_mask)
+            self._base_grid = self
+            if id(self) != id(self._base_grid):
+                raise Exception('IDs do not match')
 
     def select(self, selector, source, dest, offset):
-        if self.buffer_mask is None:
+        if id(self) == id(self._base_grid):
             n = super(ParticleOctreeSubset, self).select(selector, source,
                                                          dest, offset)
         else:
@@ -486,8 +478,8 @@ class ParticleOctreeSubset(OctreeSubset):
     def _expand_data_files(self, ghost_particles):
         if ghost_particles:
             old_data_files = self.data_files
-            self.data_files = list(set(self.data_files + self.buffer_files))
-            self.data_files.sort()
+            # self.data_files = list(set(self.data_files + self.buffer_files))
+            # self.data_files.sort()
             yield self
             self.data_files = old_data_files
         else:
@@ -510,7 +502,7 @@ class ParticleOctreeSubset(OctreeSubset):
         # TODO Change this to use a primary file ID for forest owners
         oct_handler = self._index.regions.construct_octree(self._index,
             self._index.io, self.data_files, self._oref,
-            self.selector_mask, buffer_mask = self.buffer_mask)
+            self.selector_mask, base_mask = self._base_grid.selector_mask)
         self._index.regions._prev_octree_subset = self._index.regions._last_octree_subset
         self._index.regions._prev_oct_handler = self._index.regions._last_oct_handler
         self._index.regions._last_octree_subset = id(self)

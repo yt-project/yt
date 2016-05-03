@@ -76,6 +76,9 @@ DEF FillChildCellsRefined = 1
 DEF DetectEdges = 1
 # If set, the number of particles in each cell are tracked
 DEF CellParticleCount = 0
+# If set, orphan cells (those that do not contain any particles) are
+# added to the mask for the first file
+DEF AddOrphans = 0
 
 _bitmask_version = np.uint64(0)
 
@@ -1013,26 +1016,41 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def identify_file_masks(self, SelectorObject selector):
-        cdef BoolArrayCollection cmask_s = BoolArrayCollection()
-        cdef BoolArrayCollection cmask_g = BoolArrayCollection()
+        cdef BoolArrayCollection cmask = BoolArrayCollection()
         cdef BoolArrayCollection fmask, temp_mask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
-        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_s
-        cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
+        cdef np.ndarray[np.uint32_t, ndim=1] file_idx
+        cdef list addfile_idx
+        #cdef np.ndarray[object, ndim=1] addfile_idx
         # Get bitmask for selector
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
-        morton_selector.fill_masks(cmask_s, cmask_g)
+        morton_selector.fill_masks(cmask)
         # Get bitmasks for parts of files touching the selector
-        file_idx_s, file_idx_g = self.masks_to_files(cmask_s, cmask_g)
-        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx_s))],
+        file_idx = self.mask_to_files(cmask)
+        file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
                               dtype="object")
-        for fid,fmask in zip(file_idx_s,file_masks):
+        addfile_idx = len(file_idx)*[None]
+        # addfile_idx = np.array([np.array() for i in range(len(file_idx))],
+        #                        dtype="object")
+        for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
             temp_mask = BoolArrayCollection()
             self.bitmasks._select_owned(<np.uint32_t> fid, temp_mask)
-            self.bitmasks._logicaland(<np.uint32_t> fid, temp_mask, fmask)
-        return file_idx_s.astype('uint32'), file_masks
+            cmask._logicaland(temp_mask, fmask)
+            # self.bitmasks._logicaland(<np.uint32_t> fid, temp_mask, fmask)
+            addfile_idx[i] = self.mask_to_files(fmask).astype('uint32')
+        # Check for orphaned cells
+        IF AddOrphans == 1:
+            cdef BoolArrayCollection total_mask = BoolArrayCollection()
+            cdef BoolArrayCollection orphans = BoolArrayCollection()
+            for fmask in file_masks:
+                total_mask._append(fmask)
+            total_mask._logicalxor(cmask, orphans)
+            fmask = file_masks[0]
+            fmask._append(orphans)
+        # print orphans._count_total()
+        return file_idx.astype('uint32'), file_masks, addfile_idx
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1045,6 +1063,29 @@ cdef class ParticleBitmap:
         morton_selector = ParticleBitmapSelector(selector,self,ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
         return self.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
+
+    def mask_to_files(self, BoolArrayCollection mm_s):
+        IF UseCythonBitmasks == 1:
+            cdef FileBitmasks mm_d = self.bitmasks
+        ELSE:
+            cdef BoolArrayCollection mm_d
+        cdef np.int32_t ifile
+        cdef np.ndarray[np.uint8_t, ndim=1] file_mask_p
+        file_mask_p = np.zeros(self.nfiles, dtype="uint8")
+        # Compare with mask of particles
+        for ifile in range(self.nfiles):
+            # Only continue if the file is not already selected
+            if file_mask_p[ifile] == 0:
+                IF UseCythonBitmasks == 1:
+                    if mm_d._intersects(ifile, mm_s):
+                        file_mask_p[ifile] = 1
+                ELSE:
+                    mm_d = self.bitmasks[ifile]
+                    if mm_d._intersects(mm_s):
+                        file_mask_p[ifile] = 1
+        cdef np.ndarray[np.int32_t, ndim=1] file_idx_p
+        file_idx_p = np.where(file_mask_p)[0].astype('int32')
+        return file_idx_p.astype('uint32')
 
     def masks_to_files(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
         IF UseCythonBitmasks == 1:
@@ -1085,6 +1126,7 @@ cdef class ParticleBitmap:
     def construct_octree(self, index, io_handler, data_files,
                          over_refine_factor, 
                          BoolArrayCollection selector_mask,
+                         BoolArrayCollection base_mask = None,
                          BoolArrayCollection buffer_mask = None):
         cdef np.uint64_t total_pcount
         cdef np.uint64_t i, j, k, n
@@ -1107,10 +1149,13 @@ cdef class ParticleBitmap:
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx_p
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx_g
         cdef BoolArrayCollection total_mask
-        if buffer_mask is None:
-            total_mask = selector_mask
-        else:
-            total_mask = buffer_mask
+        if base_mask is None:
+            base_mask = selector_mask
+        total_mask = selector_mask
+        # if buffer_mask is None:
+        #     total_mask = selector_mask
+        # else:
+        #     total_mask = buffer_mask
         cdef np.uint64_t nroot = total_mask._count_total()
         # Now we can actually create a sparse octree.
         octree = ParticleBitmapOctreeContainer(
@@ -1134,7 +1179,7 @@ cdef class ParticleBitmap:
             for j in range(3):
                 ind[j] = ind64[j]
             octree.next_root(1, ind)
-            if selector_mask._get(mi) == 0:
+            if base_mask._get(mi) == 0:
                 octree._index_base_roots[croot] = 0
             croot += 1
             preincrement(iter_set[0])
@@ -1142,13 +1187,13 @@ cdef class ParticleBitmap:
         # print '{}/{} roots are base'.format(np.sum(octree._index_base_root),nroot)
         # Get morton indices for all particles in this file and those
         # contaminating cells it has majority control of.
-        #assert(len(data_files) == 1)
         files_touched = data_files #+ buffer_files  # datafile object from ID goes here
         total_pcount = 0
         for data_file in files_touched:
             total_pcount += sum(data_file.total_particles.values())
         morton_ind = np.empty(total_pcount, dtype='uint64')
         total_pcount = 0
+        cdef np.uint64_t base_pcount = 0
         for data_file in files_touched:
             # We now get our particle positions
             for pos in io_handler._yield_coordinates(data_file):
@@ -1175,111 +1220,15 @@ cdef class ParticleBitmap:
                     if total_arr[mi_root] == 1:
                         morton_ind[total_pcount] = mi
                         total_pcount += 1
+                        if base_mask._get(mi_root) == 1:
+                            base_pcount += 1
+        # print 'base/total pcount = {}/{}'.format(base_pcount,total_pcount)
+        # print '{} in primary file'.format(sum(files_touched[0].total_particles.values()))
         morton_ind = morton_ind[:total_pcount]
         morton_ind.sort()
         octree.add(morton_ind, self.index_order1)
         octree.finalize()
         return octree
-
-    # Version using contaminated
-    # @cython.boundscheck(False)
-    # @cython.wraparound(False)
-    # @cython.cdivision(True)
-    # def construct_octree(self, index, io_handler, data_files,
-    #                      over_refine_factor, 
-    #                      BoolArrayCollection selector_mask,
-    #                      BoolArrayCollection buffer_mask = None):
-    #     cdef np.uint64_t total_pcount
-    #     cdef np.uint64_t i, j, k, n
-    #     cdef int ind[3]
-    #     cdef np.uint64_t ind64[3]
-    #     cdef np.ndarray[np.uint8_t, ndim=1] uncontaminated 
-    #     cdef np.ndarray[np.uint8_t, ndim=1] contaminated 
-    #     cdef np.ndarray[np.uint32_t, ndim=1] secondary_files
-    #     cdef ParticleBitmapOctreeContainer octree
-    #     cdef np.uint64_t mi, mi_root
-    #     cdef np.ndarray pos
-    #     cdef np.ndarray[np.float32_t, ndim=2] pos32
-    #     cdef np.ndarray[np.float64_t, ndim=2] pos64
-    #     cdef np.float64_t ppos[3]
-    #     cdef np.float64_t DLE[3]
-    #     cdef np.float64_t DRE[3]
-    #     cdef int bitsize = 0
-    #     for i in range(3):
-    #         DLE[i] = self.left_edge[i]
-    #         DRE[i] = self.right_edge[i]
-    #     cdef np.ndarray[np.uint64_t, ndim=1] morton_ind
-    #     # Determine cells that need to be added to the octree
-    #     uncontaminated = self.find_uncontaminated(data_files[0].file_id,
-    #         selector_mask, mask2=buffer_mask)
-    #     contaminated, secondary_files = self.find_contaminated(data_files[0].file_id,
-    #         selector_mask, mask2=buffer_mask)
-    #     # Now we can actually create a sparse octree.
-    #     octree = ParticleBitmapOctreeContainer(
-    #         (self.dims[0], self.dims[1], self.dims[2]),
-    #         (self.left_edge[0], self.left_edge[1], self.left_edge[2]),
-    #         (self.right_edge[0], self.right_edge[1], self.right_edge[2]),
-    #         uncontaminated.sum()+contaminated.sum(), over_refine_factor)
-    #     octree.n_ref = index.dataset.n_ref
-    #     octree.allocate_domains()
-    #     # Add roots based on the mask
-    #     cdef np.uint64_t nroot = 0
-    #     for i in range(uncontaminated.size):
-    #         if uncontaminated[i] != 1 and contaminated[i] != 1: continue
-    #         decode_morton_64bit(<np.uint64_t> i, ind64)
-    #         for j in range(3):
-    #             ind[j] = ind64[j]
-    #         octree.next_root(1, ind)
-    #         nroot += 1
-    #     assert(nroot == uncontaminated.sum()+contaminated.sum())
-    #     if buffer_mask is not None:
-    #         nroot = 0
-    #         for i in range(uncontaminated.size):
-    #             if uncontaminated[i] != 1 and contaminated[i] != 1: continue
-    #             if selector_mask._get(i) == 0: 
-    #                 octree._index_base_roots[nroot] = 1
-    #             nroot += 1
-    #     # Get morton indices for all particles in this file and those
-    #     # contaminating cells it has majority control of.
-    #     assert(len(data_files) == 1)
-    #     files_touched = [data_files[0]]  # datafile object from ID goes here
-    #     files_touched += [_ for _ in index.data_files if _.file_id in secondary_files]
-    #     total_pcount = 0
-    #     for data_file in files_touched:
-    #         total_pcount += sum(data_file.total_particles.values())
-    #     morton_ind = np.empty(total_pcount, dtype='uint64')
-    #     total_pcount = 0
-    #     for data_file in files_touched:
-    #         # We now get our particle positions
-    #         for pos in io_handler._yield_coordinates(data_file):
-    #             pos32 = pos64 = None
-    #             bitsize = 0
-    #             if pos.dtype == np.float32:
-    #                 pos32 = pos
-    #                 bitsize = 32
-    #             elif pos.dtype == np.float64:
-    #                 pos64 = pos
-    #                 bitsize = 64
-    #             else:
-    #                 raise RuntimeError
-    #             for j in range(pos.shape[0]):
-    #                 # First we get our cell index.
-    #                 for k in range(3):
-    #                     if bitsize == 32:
-    #                         ppos[k] = pos32[j,k]
-    #                     else:
-    #                         ppos[k] = pos64[j,k]
-    #                 mi = bounded_morton(ppos[0], ppos[1], ppos[2], DLE, DRE,
-    #                                     ORDER_MAX)
-    #                 mi_root = mi >> (3*(ORDER_MAX-self.index_order1))
-    #                 if uncontaminated[mi_root] == 1 or contaminated[mi_root] == 1:
-    #                     morton_ind[total_pcount] = mi
-    #                     total_pcount += 1
-    #     morton_ind = morton_ind[:total_pcount]
-    #     morton_ind.sort()
-    #     octree.add(morton_ind, self.index_order1)
-    #     octree.finalize()
-    #     return octree
 
 cdef class ParticleBitmapSelector:
     cdef SelectorObject selector
@@ -1418,7 +1367,7 @@ cdef class ParticleBitmapSelector:
             for i in range(7):
                 free(self.pointers[i])
 
-    def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g):
+    def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g = None):
         # Normal variables
         cdef int i
         cdef np.int32_t level = 0
@@ -1429,6 +1378,8 @@ cdef class ParticleBitmapSelector:
         for i in range(3):
             pos[i] = self.DLE[i]
             dds[i] = self.DRE[i] - self.DLE[i]
+        if mm_g is None:
+            mm_g = BoolArrayCollection()
         # Uncompressed version
         cdef BoolArrayColl mm_s0
         cdef BoolArrayColl mm_g0

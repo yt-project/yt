@@ -20,7 +20,8 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport printf
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
-from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct, \
+    OctInfo
 cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.grid_traversal cimport \
@@ -2193,7 +2194,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
-        return 1
+        return self.base_selector.select_point(pos)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

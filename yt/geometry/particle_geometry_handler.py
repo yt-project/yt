@@ -181,14 +181,28 @@ class ParticleIndex(Index):
             selector_mask = getattr(dobj, "selector_mask", None)
             # Get info for new buffer
             if data_files is None:
-                dfi, file_masks = self.regions.identify_file_masks(dobj.selector)
+                dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
                 selector_mask = list(file_masks)
-                data_files = [self.data_files[i] for i in dfi]
+                data_files = len(dfi)*[[]]
+                for i in range(len(dfi)):
+                    data_files[i] = [self.data_files[dfi[i]]]
+                    data_files[i] += [
+                        self.data_files[k] for k in addfi[i] if (k != dfi[i])]
                 dobj.data_files = data_files
                 dobj.selector_mask = selector_mask
-            dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
-                over_refine_factor = self.ds.over_refine_factor,
-                selector_mask = fm) for df,fm in zip(data_files,ensure_list(selector_mask))]
+            if isinstance(selector_mask, list):
+                if len(selector_mask) != len(data_files):
+                    raise Exception("Number of selectors "+
+                                    "({}) ".format(len(selector_mask))+
+                                    "should match number of data files "+
+                                    "({}).".format(len(data_files)))
+                dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
+                    over_refine_factor = self.ds.over_refine_factor,
+                    selector_mask = fm) for df,fm in zip(data_files,ensure_list(selector_mask))]
+            else:
+                dobj._chunk_info = [ParticleOctreeSubset(dobj, data_files, self.ds,
+                    over_refine_factor = self.ds.over_refine_factor,
+                    selector_mask = selector_mask)]
             # Version using identify_data_files
             # data_files = getattr(dobj, "data_files", None)
             # dmask = getattr(dobj, "selector_mask", None)
@@ -236,14 +250,19 @@ class ParticleIndex(Index):
                     gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
                         ngz, obj.selector_mask)
                     t2 = time.time()
-                    buffer_files = [self.data_files[i] for i in gzi]
                     #print "File {}: {} seconds to get_ghost_zones ({} additional files required)".format(obj.data_files[0].file_id,t2-t1,len(buffer_files))
-                    bobj = ParticleOctreeSubset(obj.base_region, obj.data_files, 
+                    buffer_files = [self.data_files[i] for i in gzi]
+                    bobj = ParticleOctreeSubset(obj.base_region, 
+                        list(set(obj.data_files + buffer_files)), 
                         obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
                         over_refine_factor = obj._oref,
-                        selector_mask = obj.selector_mask,
-                        buffer_mask = gmask, buffer_files = buffer_files,
-                        base_grid = obj)
+                        selector_mask = gmask, base_grid = obj)
+                    # bobj = ParticleOctreeSubset(obj.base_region, obj.data_files, 
+                    #     obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
+                    #     over_refine_factor = obj._oref,
+                    #     selector_mask = obj.selector_mask,
+                    #     buffer_mask = gmask, buffer_files = buffer_files,
+                    #     base_grid = obj)
                     bobj._buffer_ngz = ngz
                     bobj._chunk_with_buffer = bobj
                     obj._chunk_with_buffer = bobj
