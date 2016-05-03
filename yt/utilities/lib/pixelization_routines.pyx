@@ -721,8 +721,8 @@ def evaluate_integrate(np.float64_t qxy2, int n_steps):
 
 DEF TABLE_NVALS=1000
 
-#@cython.boundscheck(False)
-#@cython.wraparound(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 @cython.cdivision(True)
 def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                         np.ndarray[np.float64_t, ndim=2] buff,
@@ -732,9 +732,9 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                         np.ndarray[np.float64_t, ndim=1] dens):
 
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t x, y, dx, dy, idx, idy, qxy2_range
+    cdef np.float64_t x, y, dx, dy, idx, idy, qxy2_range, iqxy2_range
     cdef np.float64_t qxy2, h_j2, val, this_val, F_interpolate
-    cdef np.float64_t posx_diff, posy_diff
+    cdef np.float64_t posx_diff, posy_diff, coeff, idqxy2, ih_j2
     cdef int index, i, j
     cdef np.float64_t table[TABLE_NVALS]
 
@@ -744,11 +744,13 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
     idy = 1.0/dy
     cdef np.ndarray[np.float64_t, ndim=1] qxy2_vals
     qxy2_vals = np.linspace(0,4,TABLE_NVALS)
+    idqxy2 = TABLE_NVALS/(qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0])
     
     for i in range(TABLE_NVALS):
         table[i] = evaluate_integrate(qxy2_vals[i], 200)
 
     qxy2_range = qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0]
+    iqxy2_range = TABLE_NVALS/qxy2_range
     
     for j in range(0, posx.shape[0]):
 
@@ -763,7 +765,8 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
         y1 = iclip(y1+1, 0, buff.shape[1]-1)
 
         h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-
+        ih_j2 = 1.0/h_j2
+        coeff = dens[j] * hsml[j] * dens[j]
         for xi in range(x0, x1):
             x = (xi + 0.5) * dx + bounds[0,0]
 
@@ -776,12 +779,12 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                 posy_diff = posy[j] - y
                 posy_diff *= posy_diff
 
-                qxy2 = (posx_diff + posy_diff) / h_j2
+                qxy2 = (posx_diff + posy_diff) * ih_j2
                 if qxy2 >= 4:
                     continue
 
-                index = <int> ((qxy2 - qxy2_vals[0])/qxy2_range * qxy2_vals.shape[0])
+                index = <int> ((qxy2 - qxy2_vals[0])*iqxy2_range)
                 F_interpolate = table[index-1] +(table[index] - table[index-1])\
-                    *(qxy2 - qxy2_vals[index-1])/(qxy2_vals[index] - qxy2_vals[index-1])
+                    *(qxy2 - qxy2_vals[index-1])*idqxy2
 
-                buff[xi, yi] += dens[j] * hsml[j] * dens[j] * F_interpolate
+                buff[xi, yi] += coeff * F_interpolate
