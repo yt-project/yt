@@ -20,6 +20,8 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import AlwaysSelector
+from yt.utilities.lib.geometry_utils import \
+    compute_morton
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def particle_sequences(grids):
@@ -165,6 +167,63 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_fields = determine_particle_fields(self._handle)
+        self._position_fields = [self._particle_fields["particle_pos%s" % ax]
+                                 for ax in 'xyz']
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
+
+    def _read_particle_coords(self, chunks, ptf):
+        chunks = list(chunks)
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        px, py, pz = self._position_fields
+        p_fields = self._handle["/tracer particles"]
+        for data_file in sorted(data_files):
+            # This double-reads
+            for ptype, field_list in sorted(ptf.items()):
+                x = np.asarray(p_fields[:, px], dtype="=f8")
+                y = np.asarray(p_fields[:, py], dtype="=f8")
+                z = np.asarray(p_fields[:, pz], dtype="=f8")
+                yield ptype, (x, y, z)
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        data_files = set([])
+        for chunk in chunks:
+            for obj in chunk.objs:
+                data_files.update(obj.data_files)
+        px, py, pz = self._position_fields
+        p_fields = self._handle["/tracer particles"]
+        for data_file in sorted(data_files):
+            for ptype, field_list in sorted(ptf.items()):
+                x = np.asarray(p_fields[:, px], dtype="=f8")
+                y = np.asarray(p_fields[:, py], dtype="=f8")
+                z = np.asarray(p_fields[:, pz], dtype="=f8")
+                mask = selector.select_points(x, y, z, 0.0)
+                if mask is None: continue
+                for field in field_list:
+                    fi = self._particle_fields[field]
+                    data = p_fields[:, fi]
+                    yield (ptype, field), data[mask]
+
+    def _initialize_index(self, data_file, regions):
+        p_fields = self._handle["/tracer particles"]
+        morton = []
+        pos = np.column_stack(np.asarray(p_fields[:, i], dtype="=f8")
+                              for i in self._position_fields)
+        regions.add_data_file(pos, data_file.file_id)
+        morton.append(compute_morton(
+                      pos[:,0], pos[:,1], pos[:,2],
+                      data_file.ds.domain_left_edge,
+                      data_file.ds.domain_right_edge))
+        return np.concatenate(morton)
+
+    def _count_particles(self, data_file):
+        pcount = {"io": self._handle["/localnp"][:].sum()}
+        return pcount
+
+    def _identify_fields(self, data_file):
+        fields = [("io", field) for field in self._particle_fields]
+        return fields, {}

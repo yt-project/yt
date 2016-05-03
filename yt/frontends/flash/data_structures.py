@@ -24,7 +24,7 @@ from yt.data_objects.grid_patch import \
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
-    Dataset
+    Dataset, ParticleFile
 from yt.utilities.file_handler import \
     HDF5FileHandler
 from yt.utilities.physical_ratios import cm_per_mpc
@@ -425,21 +425,24 @@ class FLASHDataset(Dataset):
     def close(self):
         self._handle.close()
 
+class FLASHParticleFile(ParticleFile):
+    pass
+
 class FLASHParticleDataset(FLASHDataset):
     _index_class = ParticleIndex
     over_refine_factor = 1
     filter_bbox = False
+    _file_class = FLASHParticleFile
 
     def __init__(self, filename, dataset_type='flash_particle_hdf5',
                  storage_filename = None,
                  units_override = None,
-                 unit_system = "cgs"):
+                 n_ref = 64, unit_system = "cgs"):
 
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)
-
+        self.n_ref = n_ref
         self.refine_by = 2
-
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
@@ -451,6 +454,8 @@ class FLASHParticleDataset(FLASHDataset):
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.zeros(3, "int32")
         self.domain_dimensions[:self.dimensionality] = nz
+        self.filename_template = self.parameter_filename
+        self.file_count = 1
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
