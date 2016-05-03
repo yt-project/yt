@@ -412,9 +412,10 @@ cdef class ParticleBitmap:
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
         IF CellParticleCount == 1:
-            self.owners = np.zeros((1 << (index_order1 * 3), 3), dtype='uint32')
+            self.owners = np.zeros((1 << (index_order1 * 3), 3), dtype='int32')
         ELSE: 
-            self.owners = np.zeros((1 << (index_order1 * 3), 2), dtype='uint32')
+            self.owners = np.zeros((1 << (index_order1 * 3), 2), dtype='int32')
+        self.owners[:,1] -= 1
         IF UseCythonBitmasks == 1:
             self.bitmasks = FileBitmasks(self.nfiles)
         ELSE:
@@ -451,20 +452,13 @@ cdef class ParticleBitmap:
     cdef void __coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
                                        np.uint64_t file_id):
         # Initialize
-        cdef np.uint64_t i
-        cdef np.int64_t p
+        cdef np.int64_t i, p
         cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds[3]
-        cdef np.int32_t order = self.index_order1
-        cdef np.int64_t total_hits = 0
-        IF UseCythonBitmasks == 1:
-            cdef FileBitmasks bitmasks = self.bitmasks
-        ELSE:
-            cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
         cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
@@ -483,6 +477,23 @@ cdef class ParticleBitmap:
             if skip==1: continue
             mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
             mask[mi] = 1
+            
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def _set_coarse_index_data_file(self, np.uint64_t file_id):
+        return self.__set_coarse_index_data_file(file_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void __set_coarse_index_data_file(self, np.uint64_t file_id):
+        cdef np.int64_t i
+        IF UseCythonBitmasks == 1:
+            cdef FileBitmasks bitmasks = self.bitmasks
+        ELSE:
+            cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
+        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
         # Add in order
         for i in range(mask.shape[0]):
             if mask[i] == 1:
@@ -497,10 +508,13 @@ cdef class ParticleBitmap:
     @cython.initializedcheck(False)
     def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
                                  np.ndarray[np.uint8_t, ndim=1] mask,
+                                 np.ndarray[np.uint32_t, ndim=1] pcount,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                 np.uint64_t file_id):
-        return self.__refined_index_data_file(pos, mask, sub_mi1, sub_mi2, file_id)
+                                 np.uint64_t file_id, np.uint64_t nsub_mi):
+        return self.__refined_index_data_file(pos, mask, pcount,
+                                              sub_mi1, sub_mi2, 
+                                              file_id, nsub_mi)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -508,33 +522,26 @@ cdef class ParticleBitmap:
     @cython.initializedcheck(False)
     cdef np.uint64_t __refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
                                                np.ndarray[np.uint8_t, ndim=1] mask,
+                                               np.ndarray[np.uint32_t, ndim=1] pcount,
                                                np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                                np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                               np.uint64_t file_id):
+                                               np.uint64_t file_id, np.uint64_t nsub_mi):
         # Initialize
-        cdef np.uint64_t i, p, mi, nsub_mi#, last_mi, last_submi
+        cdef np.int64_t i, p
+        cdef np.uint64_t mi
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds1[3]
         cdef np.float64_t dds2[3]
-        cdef np.int32_t order1 = self.index_order1
-        cdef np.int32_t order2 = self.index_order2
-        cdef np.ndarray[np.uint32_t, ndim=1] pcount = np.zeros(1 << (order1**3), dtype='uint32')
-        cdef np.ndarray[np.uint32_t, ndim=2] owners = self.owners
-        IF UseCythonBitmasks == 1:
-            cdef FileBitmasks bitmasks = self.bitmasks
-        ELSE:
-            cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
-        # cdef ewah_bool_array total_refn = (<ewah_bool_array*> self.collisions.ewah_refn)[0]
+        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             dds1[i] = self.dds_mi1[i]
             dds2[i] = self.dds_mi2[i]
-        nsub_mi = 0
         # Loop over positions skipping those outside the domain
         for p in range(pos.shape[0]):
             skip = 0
@@ -546,7 +553,6 @@ cdef class ParticleBitmap:
             if skip==1: continue
             # Only look if collision at coarse index
             mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
-            #if total_refn.get(mi): 
             if mask[mi] > 1:
                 # Determine sub index within cell of primary index
                 sub_mi1[nsub_mi] = mi
@@ -554,50 +560,72 @@ cdef class ParticleBitmap:
                                                                LE, dds1, dds2)
                 nsub_mi += 1
                 pcount[mi] += 1
-                if pcount[mi] > owners[mi][0]:
-                    owners[mi][0] = pcount[mi]
-                    owners[mi][1] = file_id
+                if <np.int32_t>pcount[mi] > owners[mi][0]:
+                    owners[mi][0] = <np.int32_t>pcount[mi]
+                    owners[mi][1] = <np.int32_t>file_id
             else:
-                owners[mi][1] = file_id
-                IF CellParticleCount == 1:
-                    owners[mi][2] += 1
+                owners[mi][0] += 1
+                owners[mi][1] = <np.int32_t>file_id
+            IF CellParticleCount == 1:
+                owners[mi][2] += 1
         # Only subs of particles in the mask
-        sub_mi1 = sub_mi1[:nsub_mi]
-        sub_mi2 = sub_mi2[:nsub_mi]
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2,sub_mi1))
-        # cdef np.ndarray[np.int64_t, ndim=1] ind = np.argsort(sub_mi2[:nsub_mi])
-        # last_submi = last_mi = 0
-        for i in range(nsub_mi):
-            p = ind[i]
-            # Make sure its sorted by second index
-            # if not (sub_mi2[p] >= last_submi):
-            #     print(last_mi, last_submi, sub_mi1[p], sub_mi2[p])
-            #     raise RuntimeError("Error in sort by refined index.")
-            # if last_mi == sub_mi1[p]:
-            #     last_submi = sub_mi2[p]
-            # else:
-            #     last_submi = 0
-            # last_mi = sub_mi1[p]
-            # Set bitmasks
-            IF UseCythonBitmasks == 1:
-                bitmasks._set_refined(file_id, sub_mi1[p], sub_mi2[p])
-            ELSE:
-                bitmasks._set_refined(sub_mi1[p], sub_mi2[p])
         return nsub_mi
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
+    def _set_refined_index_data_file(self, np.ndarray[np.uint8_t, ndim=1] mask,
+                                     np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                     np.ndarray[np.uint64_t, ndim=1] sub_mi2,
+                                     np.uint64_t file_id, np.uint64_t nsub_mi):
+        return self.__set_refined_index_data_file(mask, sub_mi1, sub_mi2, 
+                                                  file_id, nsub_mi)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef void __set_refined_index_data_file(self, np.ndarray[np.uint8_t, ndim=1] mask,
+                                            np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                            np.ndarray[np.uint64_t, ndim=1] sub_mi2,
+                                            np.uint64_t file_id, np.uint64_t nsub_mi):
+        # Initialize
+        cdef np.int64_t i, p
+        IF UseCythonBitmasks == 1:
+            cdef FileBitmasks bitmasks = self.bitmasks
+        ELSE:
+            cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
+        # Set bitmasks in order
+        sub_mi1 = sub_mi1[:nsub_mi]
+        sub_mi2 = sub_mi2[:nsub_mi]
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2,sub_mi1))
+        for i in range(<np.int64_t>nsub_mi):
+            p = ind[i]
+            IF UseCythonBitmasks == 1:
+                bitmasks._set_refined(file_id, sub_mi1[p], sub_mi2[p])
+            ELSE:
+                bitmasks._set_refined(sub_mi1[p], sub_mi2[p])
+
+        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
+        bitmasks.print_info(file_id)
+        print np.sum(owners[:,1] == file_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     def _owners_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                          np.ndarray[np.uint32_t, ndim=1] pcount,
                           np.uint64_t file_id):
-        return self.__owners_data_file(pos, file_id)
+        return self.__owners_data_file(pos, pcount, file_id)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef np.uint64_t __owners_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                        np.ndarray[np.uint32_t, ndim=1] pcount,
                                         np.uint64_t file_id):
         # Initialize
         cdef np.uint64_t i, p, mi
@@ -606,9 +634,8 @@ cdef class ParticleBitmap:
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds1[3]
-        cdef np.int32_t order1 = self.index_order1
-        cdef np.ndarray[np.uint32_t, ndim=1] pcount = np.zeros(1 << (order1**3), dtype='uint32')
-        cdef np.ndarray[np.uint32_t, ndim=2] owners = self.owners
+        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
+        #cdef np.int32_t[:,:] owners = self.owners
         cdef bint isref
         IF UseCythonBitmasks == 1:
             cdef FileBitmasks bitmasks = self.bitmasks
@@ -636,31 +663,37 @@ cdef class ParticleBitmap:
                 isref = bitmasks._isref(mi)
             if isref:
                 pcount[mi] += 1
-                if pcount[mi] > owners[mi][0]:
-                    owners[mi][0] = pcount[mi]
-                    owners[mi][1] = file_id
+                if <np.int32_t>pcount[mi] > owners[mi][0]:
+                    owners[mi][0] = <np.int32_t>pcount[mi]
+                    owners[mi][1] = <np.int32_t>file_id
             else:
-                owners[mi][1] = file_id
-                IF CellParticleCount == 1:
-                    owners[mi][2] += 1
+                owners[mi][0] += 1
+                owners[mi][1] = <np.int32_t>file_id
+            IF CellParticleCount == 1:
+                owners[mi][2] += 1
+        bitmasks.print_info(file_id)
+        print np.sum(owners[:,1] == file_id)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def set_owners(self):
-        cdef np.ndarray[np.uint32_t, ndim=2] owners = self.owners
+        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
         IF UseCythonBitmasks == 1:
             self.bitmasks._set_owners(owners)
         ELSE:
-            cdef np.uint64_t i1
+            cdef np.int64_t i1
             cdef np.uint32_t ifile
+            for ifile in range(self.nfiles):
+                self.bitmasks[ifile]._reset_owners()
             cdef BoolArrayCollection bitmask
             for i1 in range(owners.shape[0]):
-                if owners[i1][0] > 0:
+                if owners[i1][1] >= 0:
+                # if owners[i1][0] > 0:
                     ifile = owners[i1][1]
                     bitmask = self.bitmasks[ifile]
-                    bitmask._set_owns(i1)
+                    bitmask._set_owns(<np.uint64_t>i1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -865,6 +898,23 @@ cdef class ParticleBitmap:
         f.write(serial_BAC)
         f.close()
 
+    def check_bitmasks(self):
+        IF UseCythonBitmasks == 1:
+            return self.bitmasks._check()
+        ELSE:
+            cdef int ifile
+            for ifile in range(self.nfiles):
+                self.bitmasks[ifile]._check()
+        return 1
+
+    def reset_bitmasks(self):
+        IF UseCythonBitmasks == 1:
+            self.bitmasks._reset()
+        ELSE:
+            cdef int ifile
+            for ifile in range(self.nfiles):
+                self.bitmasks[ifile]._reset()
+
     def load_bitmasks(self,fname):
         cdef bint read_flag = 1
         cdef bint irflag
@@ -1022,7 +1072,6 @@ cdef class ParticleBitmap:
         cdef np.ndarray[object, ndim=1] file_masks
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx
         cdef list addfile_idx
-        #cdef np.ndarray[object, ndim=1] addfile_idx
         # Get bitmask for selector
         cdef ParticleBitmapSelector morton_selector
         morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
@@ -1032,19 +1081,16 @@ cdef class ParticleBitmap:
         file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
                               dtype="object")
         addfile_idx = len(file_idx)*[None]
-        # addfile_idx = np.array([np.array() for i in range(len(file_idx))],
-        #                        dtype="object")
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
             temp_mask = BoolArrayCollection()
             self.bitmasks._select_owned(<np.uint32_t> fid, temp_mask)
             cmask._logicaland(temp_mask, fmask)
-            # self.bitmasks._logicaland(<np.uint32_t> fid, temp_mask, fmask)
             addfile_idx[i] = self.mask_to_files(fmask).astype('uint32')
         # Check for orphaned cells
         IF AddOrphans == 1:
             cdef BoolArrayCollection total_mask = BoolArrayCollection()
             cdef BoolArrayCollection orphans = BoolArrayCollection()
-            for fmask in file_masks:
+            for i, fmask in enumerate(file_masks):
                 total_mask._append(fmask)
             total_mask._logicalxor(cmask, orphans)
             fmask = file_masks[0]
@@ -1338,10 +1384,10 @@ cdef class ParticleBitmapSelector:
                 self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
                 self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
                 cdef np.uint64_t mi
-                for mi in range(self.s2):
+                for mi in range(<np.int64_t>self.s2):
                     self.refined_select_bool[mi] = 0
                     self.refined_ghosts_bool[mi] = 0
-                for mi in range(self.s1):
+                for mi in range(<np.int64_t>self.s1):
                     self.coarse_select_bool[mi] = 0
                     self.coarse_ghosts_bool[mi] = 0
             self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
@@ -1397,7 +1443,7 @@ cdef class ParticleBitmapSelector:
             sbbox = self.selector.select_bbox_edge(pos, rpos)
             if sbbox == 1:
                 self.fill_subcells_mi1(pos, dds)
-                for mi1 in range(self.s1):
+                for mi1 in range(<np.int64_t>self.s1):
                     mm_s0._set_coarse(mi1)
                 IF UseUncompressed == 1:
                     mm_s0._compress(mm_s)
@@ -1589,7 +1635,7 @@ cdef class ParticleBitmapSelector:
                                        self.periodicity,
                                        self.ngz, self.neighbors,
                                        self.ind1_n, self.neighbor_list1)
-        for m in range(ntot):
+        for m in range(<np.int32_t>ntot):
             mi1_n = self.neighbor_list1[m]
             IF BoolType == 'Bool':
                 self.coarse_ghosts_bool[mi1_n] = 1
@@ -1610,7 +1656,7 @@ cdef class ParticleBitmapSelector:
                                        self.periodicity,
                                        self.ngz, self.neighbors,
                                        self.ind1_n, self.neighbor_list1)
-        for m in range(ntot):
+        for m in range(<np.int32_t>ntot):
             mi1_n = self.neighbor_list1[m]
             for i in range(self.nfiles):
                 if self.file_mask_g[i] == 0:
@@ -1635,7 +1681,7 @@ cdef class ParticleBitmapSelector:
                                         self.periodicity, self.ngz,
                                         self.neighbors, self.ind1_n, self.ind2_n,
                                         self.neighbor_list1, self.neighbor_list2)
-        for m in range(ntot):
+        for m in range(<np.int32_t>ntot):
             mi1_n = self.neighbor_list1[m]
             mi2_n = self.neighbor_list2[m]
             IF BoolType == 'Bool':
@@ -1673,7 +1719,7 @@ cdef class ParticleBitmapSelector:
                                         self.periodicity, self.ngz,
                                         self.neighbors, self.ind1_n, self.ind2_n,
                                         self.neighbor_list1, self.neighbor_list2)
-        for m in range(ntot):
+        for m in range(<np.int32_t>ntot):
             mi1_n = self.neighbor_list1[m]
             mi2_n = self.neighbor_list2[m]
             if self.is_refined(mi1_n) == 1:
@@ -1842,9 +1888,9 @@ cdef class ParticleBitmapSelector:
         for i in range(3):
             ind1[i] = <np.uint64_t>((pos[i] - self.DLE[i])/self.bitmap.dds_mi1[i])
             indexgap[i] = <np.uint64_t>(dds[i]/self.bitmap.dds_mi1[i])
-        for i in range(indexgap[0]):
-            for j in range(indexgap[1]):
-                for k in range(indexgap[2]):
+        for i in range(<np.int64_t>indexgap[0]):
+            for j in range(<np.int64_t>indexgap[1]):
+                for k in range(<np.int64_t>indexgap[2]):
                     mi = encode_morton_64bit(ind1[0]+i, ind1[1]+j, ind1[2]+k)
                     self.add_coarse(mi, 1)
 
@@ -1862,9 +1908,9 @@ cdef class ParticleBitmapSelector:
             ind2[i] = <np.uint64_t>((pos[i] - (self.DLE[i]+self.bitmap.dds_mi1[i]*ind1[i]))/self.bitmap.dds_mi2[i])
             indexgap[i] = <np.uint64_t>(dds[i]/self.bitmap.dds_mi2[i])
         mi1 = encode_morton_64bit(ind1[0], ind1[1], ind1[2])
-        for i in range(indexgap[0]):
-            for j in range(indexgap[1]):
-                for k in range(indexgap[2]):
+        for i in range(<np.int64_t>indexgap[0]):
+            for j in range(<np.int64_t>indexgap[1]):
+                for k in range(<np.int64_t>indexgap[2]):
                     mi2 = encode_morton_64bit(ind2[0]+i, ind2[1]+j, ind2[2]+k)
                     self.add_refined(mi1, mi2, 1)
 

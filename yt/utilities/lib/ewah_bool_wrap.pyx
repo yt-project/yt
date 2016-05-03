@@ -65,9 +65,23 @@ cdef class FileBitmasks:
         self.ewah_owns = <void **>ewah_owns
         self.ewah_coll = <void **>ewah_coll
 
-    def reset(self):
-        self.__dealloc__()
-        self.__init__(self.nfiles)
+    cdef void _reset(self):
+        cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>self.ewah_keys
+        cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>self.ewah_refn
+        cdef ewah_bool_array **ewah_owns = <ewah_bool_array **>self.ewah_owns
+        cdef ewah_map **ewah_coll = <ewah_map **>self.ewah_coll
+        cdef np.int32_t ifile
+        for ifile in range(self.nfiles):
+            ewah_keys[ifile][0].reset()
+            ewah_refn[ifile][0].reset()
+            ewah_owns[ifile][0].reset()
+            ewah_coll[ifile][0].clear()
+
+    cdef void _reset_owners(self):
+        cdef ewah_bool_array **ewah_owns = <ewah_bool_array **>self.ewah_owns
+        cdef np.int32_t ifile
+        for ifile in range(self.nfiles):
+            ewah_owns[ifile][0].reset()
 
     cdef bint _iseq(self, FileBitmasks solf):
         cdef np.int32_t ifile
@@ -232,11 +246,13 @@ cdef class FileBitmasks:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef void _set_owners(self, np.uint32_t[:,:] arr):
+    cdef void _set_owners(self, np.int32_t[:,:] arr):
         cdef ewah_bool_array **ewah_owns = <ewah_bool_array **> self.ewah_owns
         cdef np.uint64_t i1
+        self._reset_owners()
         for i1 in range(arr.shape[0]):
-            if arr[i1][0] != 0:
+            # if arr[i1][0] > 0:
+            if arr[i1][1] >= 0:
                 ewah_owns[arr[i1][1]][0].set(i1)
 
     @cython.boundscheck(False)
@@ -280,7 +296,7 @@ cdef class FileBitmasks:
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
         if (ewah_keys[0].get(i1) == 0): return 0
-        if (ewah_refn[0].get(i1) == 0) or (i2 == FLAG): 
+        if (i2 == FLAG) or (ewah_refn[0].get(i1) == 0):
             return 1
         return ewah_coll[0][i1].get(i2)
 
@@ -298,19 +314,20 @@ cdef class FileBitmasks:
     cdef int _count_total(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef int out
-        out = ewah_keys.numberOfOnes()
+        out = ewah_keys[0].numberOfOnes()
         return out
 
     cdef int _count_refined(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef int out
-        out = ewah_refn.numberOfOnes()
+        out = ewah_refn[0].numberOfOnes()
         return out
 
     cdef int _count_owned(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
         cdef int out
-        out = ewah_owns.numberOfOnes()
+        out = ewah_owns[0].sizeInBits()
+        # out = ewah_owns[0].numberOfOnes()
         return out
 
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf):
@@ -467,50 +484,68 @@ cdef class FileBitmasks:
         cdef np.uint64_t iset
         cdef ewah_bool_iterator *iter_set
         cdef ewah_bool_iterator *iter_end
-        cdef ewah_bool_array ewah_slct, ewah_refn_strict, ewah_owns_strict, ewah_coar_strict
-        # Ensure that refn contains strictly keys
-        ewah_keys[0].logicaland(ewah_refn[0], ewah_refn_strict)
-        ewah_keys[0].logicalxor(ewah_refn_strict, ewah_coar_strict)
+        cdef ewah_bool_array ewah_cross, swap
+        cdef np.int32_t i
+        cdef ewah_map *ewah_coll2
         # Set output
-        ewah_owns[0].logicaland(ewah_refn_strict, ewah_owns_out[0])
-        ewah_coar_strict.logicalor(ewah_owns_out[0], ewah_keys_out[0])
-        ewah_refn_strict.logicaland(ewah_keys_out[0], ewah_refn_out[0])
+        ewah_owns_out[0] = ewah_owns[0]
+        ewah_owns[0].logicaland(ewah_keys[0], ewah_keys_out[0])
+        ewah_owns[0].logicaland(ewah_refn[0], ewah_refn_out[0])
+        # Refinement in this file
         iter_set = new ewah_bool_iterator(ewah_refn_out[0].begin())
         iter_end = new ewah_bool_iterator(ewah_refn_out[0].end())
         while iter_set[0] != iter_end[0]:
             iset = dereference(iter_set[0])
             ewah_coll_out[0][iset] = ewah_coll[0][iset]
             preincrement(iter_set[0])
+        # Add collisions from other files
+        for i in range(self.nfiles):
+            if i == ifile: continue
+            ewah_refn2 = (<ewah_bool_array **> self.ewah_refn)[i]
+            ewah_coll2 = (<ewah_map **> self.ewah_coll)[i]
+            ewah_refn_out[0].logicaland(ewah_refn2[0], ewah_cross)
+            iter_set = new ewah_bool_iterator(ewah_cross.begin())
+            iter_end = new ewah_bool_iterator(ewah_cross.end())
+            while iter_set[0] != iter_end[0]:
+                iset = dereference(iter_set[0])
+                ewah_coll_out[0][iset].logicalor(ewah_coll2[0][iset], swap)
+                ewah_coll_out[0][iset].swap(swap)
+                preincrement(iter_set[0])
 
     cdef void _select_contaminated(self, np.uint32_t ifile, 
                                    BoolArrayCollection mask, np.uint8_t[:] out,
                                    np.uint8_t[:] secondary_files,
                                    BoolArrayCollection mask2 = None):
+        # Fill mask at indices owned by this file that are also contaminated by 
+        # other files.
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_bool_array *ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
         cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
         cdef ewah_bool_array *ewah_mask2
+        cdef ewah_bool_array swap
+        cdef ewah_bool_array ewah_slct
+        cdef ewah_bool_array *ewah_file
+        cdef np.uint64_t iset
+        # Merge masks as necessary
         if mask2 is None:
             ewah_mask = (<ewah_bool_array *> mask.ewah_keys)[0]
         else:
             ewah_mask1 = <ewah_bool_array *> mask.ewah_keys
             ewah_mask2 = <ewah_bool_array *> mask2.ewah_keys
             ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask)
-        cdef ewah_bool_array ewah_swap1, ewah_swap2
-        cdef ewah_bool_array ewah_slct
-        cdef ewah_bool_array *ewah_file
-        cdef np.uint64_t iset
-        ewah_keys[0].logicaland(ewah_refn[0],ewah_swap1)
-        ewah_owns[0].logicaland(ewah_swap1,ewah_swap2)
-        ewah_swap2.logicaland(ewah_mask,ewah_slct)
+        # Get just refined cells owned by this file
+        ewah_owns[0].logicaland(ewah_refn[0], swap)
+        ewah_mask.logicaland(swap, ewah_slct)
+        # Set array values
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
         while iter_set[0] != iter_end[0]:
             iset = dereference(iter_set[0])
             out[iset] = 1
             preincrement(iter_set[0])
+        # Find files that intersect this one
         cdef np.uint32_t isfile
         for isfile in range(self.nfiles):
             if isfile == ifile: continue
@@ -521,24 +556,26 @@ cdef class FileBitmasks:
     cdef void _select_uncontaminated(self, np.uint32_t ifile, 
                                      BoolArrayCollection mask, np.uint8_t[:] out,
                                      BoolArrayCollection mask2 = None):
+        # Fill mask at indices that are owned by this file and no other.
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_bool_array ewah_mask
         cdef ewah_bool_array *ewah_mask1
         cdef ewah_bool_array *ewah_mask2
+        cdef ewah_bool_array ewah_slct
+        cdef ewah_bool_array ewah_coar
+        cdef np.uint64_t iset
+        # Merge masks if necessary
         if mask2 is None:
             ewah_mask = (<ewah_bool_array *> mask.ewah_keys)[0]
         else:
             ewah_mask1 = <ewah_bool_array *> mask.ewah_keys
             ewah_mask2 = <ewah_bool_array *> mask2.ewah_keys
             ewah_mask1[0].logicalor(ewah_mask2[0],ewah_mask)
-        cdef ewah_bool_array ewah_slct
-        cdef ewah_bool_array ewah_coar
-        cdef ewah_bool_array ewah_swap
-        ewah_keys[0].logicaland(ewah_refn[0],ewah_swap)
-        ewah_keys[0].logicalxor(ewah_swap,ewah_coar)
+        # Get coarse cells owned by this file
+        ewah_keys[0].logicalxor(ewah_refn[0],ewah_coar)
         ewah_coar.logicaland(ewah_mask,ewah_slct)
-        cdef np.uint64_t iset
+        # Set array elements
         cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_slct.begin())
         cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_slct.end())
         while iter_set[0] != iter_end[0]:
@@ -607,32 +644,57 @@ cdef class FileBitmasks:
         ewah_owns[0].read(ss,1)
         return 1
 
-    # def save(self, fname):
-    #     cdef bytes serial_BAC
-    #     cdef int ifile
-    #     f = open(fname,'wb')
-    #     f.write(struct.pack('Q',self.nfiles))
-    #     for ifile in range(self.nfiles):
-    #         serial_BAC = self._dumps(ifile)
-    #         f.write(struct.pack('Q',len(serial_BAC)))
-    #         f.write(serial_BAC)
-    #     f.close()
-
-    # def load(self, fname):
-    #     cdef np.uint64_t nfiles
-    #     cdef np.uint64_t size_serial
-    #     cdef bint read_flag = 1
-    #     cdef bint irflag
-    #     f = open(fname,'rb')
-    #     nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-    #     if nfiles != self.nfiles:
-    #         raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
-    #     for ifile in range(nfiles):
-    #         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
-    #         irflag = self._loads(ifile, f.read(size_serial))
-    #         if irflag == 0: read_flag = 0
-    #     f.close()
-    #     return read_flag
+    cdef bint _check(self):
+        cdef np.uint32_t ifile
+        cdef ewah_bool_array *ewah_keys
+        cdef ewah_bool_array *ewah_refn
+        cdef ewah_bool_array *ewah_owns
+        cdef ewah_bool_array tmp1, tmp2
+        cdef np.uint64_t nchk
+        cdef str msg
+        cdef ewah_bool_array total, cross
+        # Check individual files
+        for ifile in range(self.nfiles):
+            ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+            ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+            ewah_owns = (<ewah_bool_array **> self.ewah_owns)[ifile]
+            # Check that there are not any refn that are not keys
+            ewah_keys[0].logicalxor(ewah_refn[0], tmp1)
+            ewah_refn[0].logicaland(tmp1, tmp2)
+            nchk = tmp2.numberOfOnes()
+            if nchk > 0:
+                msg = "File {}: There are {} refined cells that are not set on coarse level.".format(ifile,nchk)
+                print msg
+                return 0
+                # raise Exception(msg)
+            # Check that there are not an owns that are not keys
+            ewah_keys[0].logicalxor(ewah_owns[0], tmp1)
+            ewah_owns[0].logicaland(tmp1, tmp2)
+            nchk = tmp2.numberOfOnes()
+            if nchk > 0:
+                msg = "File {}: There are {} owned cells that are not set on coarse level.".format(ifile,nchk)
+                print msg
+                return 0
+                # raise Exception(msg)
+            # Get cross of owners
+            ewah_owns[0].logicaland(total, tmp1)
+            nchk = tmp1.numberOfOnes()
+            if nchk > 0:
+                print "File {} has {} overlapping owners with previous files.".format(ifile,nchk)
+            tmp1.logicalor(cross, tmp2)
+            cross.swap(tmp2)
+            ewah_owns[0].logicalor(total, tmp1)
+            total.swap(tmp1)
+        # Check for overlap in owners
+        nchk = cross.numberOfOnes()
+        if nchk > 0:
+            msg = "There are {} cells that are owned by multiple files.".format(nchk)
+            print msg
+            return 0
+        return 1
+        
+    def check(self):
+        return self._check()
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys
@@ -650,10 +712,12 @@ cdef class FileBitmasks:
             del ewah_coll
 
     def print_info(self, ifile, prefix=''):
-        print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(prefix,
-                                                                     self._count_coarse(ifile),
-                                                                     self._count_refined(ifile),
-                                                                     self._count_total(ifile)))
+        print("{}{: 8d} coarse, {: 8d} refined, {: 8d} owned {: 8d} total".format(
+            prefix,
+            self._count_coarse(ifile),
+            self._count_refined(ifile),
+            self._count_owned(ifile),
+            self._count_total(ifile)))
 
 cdef class BoolArrayCollection:
 
@@ -669,9 +733,21 @@ cdef class BoolArrayCollection:
         self.ewah_owns = <void *> ewah_owns
         self.ewah_coll = <void *> ewah_coll
 
-    def reset(self):
-        self.__dealloc__()
-        self.__init__()
+    cdef void _reset(self):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *>self.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *>self.ewah_refn
+        cdef ewah_bool_array *ewah_coar = <ewah_bool_array *>self.ewah_coar
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *>self.ewah_owns
+        cdef ewah_map *ewah_coll = <ewah_map *>self.ewah_coll
+        ewah_keys[0].reset()
+        ewah_refn[0].reset()
+        ewah_coar[0].reset()
+        ewah_owns[0].reset()
+        ewah_coll[0].clear()
+
+    cdef void _reset_owners(self):
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *>self.ewah_owns
+        ewah_owns[0].reset()
 
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1:
 
@@ -1297,6 +1373,33 @@ cdef class BoolArrayCollection:
         flag_read = self._loads(f.read(size_serial))
         f.close()
         return flag_read
+
+    cdef bint _check(self):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
+        cdef ewah_bool_array *ewah_owns = <ewah_bool_array *> self.ewah_owns
+        cdef ewah_bool_array tmp1, tmp2
+        cdef np.uint64_t nchk
+        cdef str msg
+        # Check that there are not any refn that are not keys
+        ewah_keys[0].logicalxor(ewah_refn[0], tmp1)
+        ewah_refn[0].logicaland(tmp1, tmp2)
+        nchk = tmp2.numberOfOnes()
+        if nchk > 0:
+            msg = "There are {} refined cells that are not set on coarse level.".format(nchk)
+            print msg
+            return 0
+            # raise Exception(msg)
+        # Check that there are not an owns that are not keys
+        ewah_keys[0].logicalxor(ewah_owns[0], tmp1)
+        ewah_owns[0].logicaland(tmp1, tmp2)
+        nchk = tmp2.numberOfOnes()
+        if nchk > 0:
+            msg = "There are {} owned cells that are not set on coarse level.".format(nchk)
+            print msg
+            return 0
+            # raise Exception(msg)
+        return 1
 
     def __dealloc__(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys

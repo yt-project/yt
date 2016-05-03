@@ -7,6 +7,8 @@ cdef class FileBitmasks:
     cdef void** ewah_refn
     cdef void** ewah_owns
 
+    cdef void _reset(self)
+    cdef void _reset_owners(self)
     cdef bint _iseq(self, FileBitmasks solf)
     cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile)
     cdef tuple _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
@@ -16,7 +18,7 @@ cdef class FileBitmasks:
     cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint32_t ifile, np.uint64_t i1)
     cdef void _set_refined(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
-    cdef void _set_owners(self, np.uint32_t[:,:] arr)
+    cdef void _set_owners(self, np.int32_t[:,:] arr)
     cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr)
     cdef void _set_refined_array(self, np.uint32_t ifile, np.uint64_t mi1, np.uint8_t[:] arr)
     cdef void _set_map(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
@@ -40,6 +42,7 @@ cdef class FileBitmasks:
                BoolArrayCollection mask2=*)
     cdef bytes _dumps(self, np.uint32_t ifile)
     cdef bint _loads(self, np.uint32_t ifile, bytes s)
+    cdef bint _check(self)
 
 cdef class BoolArrayCollection:
     cdef void* ewah_coll
@@ -48,6 +51,8 @@ cdef class BoolArrayCollection:
     cdef void* ewah_owns
     cdef void* ewah_coar
 
+    cdef void _reset(self)
+    cdef void _reset_owners(self)
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint64_t i1)
@@ -79,6 +84,7 @@ cdef class BoolArrayCollection:
                                bint periodicity[3], BoolArrayCollection out_ewah)
     cdef bytes _dumps(self)
     cdef bint _loads(self, bytes s)
+    cdef bint _check(self)
 
 cdef class BoolArrayCollectionUncompressed:
     cdef int nele1

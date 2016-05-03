@@ -106,9 +106,17 @@ class ParticleIndex(Index):
             if rflag == 0:
                 self._initialize_owners()
                 self.regions.save_bitmasks(fname)
+            rflag = self.regions.check_bitmasks()
+            if rflag == 0:
+                raise IOError()
+                # dont_cache = True
+                # raise IOError()
+            #     self._initialize_owners()
+            # rflag = self.regions.check_bitmasks()
             # else: # Save pcounts in file?
             #     self._initialize_owners()
         except IOError:
+            self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             if not noref:
                 self._initialize_refined_index()
@@ -117,6 +125,7 @@ class ParticleIndex(Index):
                 self._initialize_owners()
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
+            rflag = self.regions.check_bitmasks()
         # These are now invalid, but I don't know what to replace them with:
         #self.max_level = self.oct_handler.max_level
         #self.dataset.max_level = self.max_level
@@ -127,6 +136,7 @@ class ParticleIndex(Index):
             pb.update(i)
             for pos in self.io._yield_coordinates(data_file):
                 self.regions._coarse_index_data_file(pos, data_file.file_id)
+            self.regions._set_coarse_index_data_file(data_file.file_id)
         pb.finish()
         self.regions.find_collisions_coarse()
 
@@ -136,21 +146,30 @@ class ParticleIndex(Index):
                         for d in self.data_files)
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
+        pcount = np.zeros(1 << (self.regions.index_order1*3), 'uint32')
         pb = get_pbar("Initializing refined index", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
+            pcount[:] = 0
+            nsub_mi = 0
             for pos in self.io._yield_coordinates(data_file):
-                self.regions._refined_index_data_file(pos, mask, 
-                    sub_mi1, sub_mi2, data_file.file_id)
+                nsub_mi = self.regions._refined_index_data_file(pos, 
+                    mask, pcount, sub_mi1, sub_mi2,
+                    data_file.file_id, nsub_mi)
+            self.regions._set_refined_index_data_file(
+                mask, sub_mi1, sub_mi2,
+                data_file.file_id, nsub_mi)
         pb.finish()
         self.regions.find_collisions_refined()
 
     def _initialize_owners(self):
+        pcount = np.zeros(1 << (self.regions.index_order1*3), 'uint32')
         pb = get_pbar("Initializing owners", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
+            pcount[:] = 0
             for pos in self.io._yield_coordinates(data_file):
-                self.regions._owners_data_file(pos, data_file.file_id)
+                self.regions._owners_data_file(pos, pcount, data_file.file_id)
         pb.finish()
         self.regions.set_owners()
             
