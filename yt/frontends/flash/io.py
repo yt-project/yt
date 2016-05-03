@@ -210,15 +210,13 @@ class IOHandlerFLASHParticle(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         p_fields = self._handle["/tracer particles"]
-        morton = []
         pos = np.column_stack(np.asarray(p_fields[:, i], dtype="=f8")
                               for i in self._position_fields)
         regions.add_data_file(pos, data_file.file_id)
-        morton.append(compute_morton(
-                      pos[:,0], pos[:,1], pos[:,2],
-                      data_file.ds.domain_left_edge,
-                      data_file.ds.domain_right_edge))
-        return np.concatenate(morton)
+        morton = compute_morton(pos[:,0], pos[:,1], pos[:,2],
+                                data_file.ds.domain_left_edge,
+                                data_file.ds.domain_right_edge)
+        return morton
 
     def _count_particles(self, data_file):
         pcount = {"io": self._handle["/localnp"][:].sum()}
