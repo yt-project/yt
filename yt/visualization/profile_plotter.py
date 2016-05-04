@@ -38,15 +38,15 @@ from yt.frontends.ytdata.data_structures import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
     get_ipython_api_version
 
 def get_canvas(name):
+    from . import _mpl_imports as mpl
     suffix = get_image_suffix(name)
-    
+
     if suffix == '':
         suffix = '.png'
     if suffix == ".png":
@@ -65,7 +65,8 @@ class FigureContainer(OrderedDict):
         super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
-        figure = mpl.matplotlib.figure.Figure((10, 8))
+        from matplotlib.figure import Figure
+        figure = Figure((10, 8))
         self[key] = figure
         return self[key]
 
@@ -314,6 +315,7 @@ class ProfilePlot(object):
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
+        from . import _mpl_imports as mpl
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):

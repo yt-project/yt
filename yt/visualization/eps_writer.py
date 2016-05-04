@@ -17,7 +17,6 @@ import pyx
 import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from ._mpl_imports import FigureCanvasAgg
 
 from yt.config import \
     ytcfg
@@ -509,7 +508,8 @@ class DualEPS(object):
         For best results, set use_colorbar=False when creating the yt
         image.
         """
-        
+        from ._mpl_imports import FigureCanvasAgg
+
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
         force_square = False

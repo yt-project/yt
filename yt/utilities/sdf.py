@@ -2,12 +2,17 @@ from __future__ import print_function
 from yt.extern.six.moves import cStringIO
 import os
 import numpy as np
-try:
-    from thingking.httpmmap import HTTPArray
-    from thingking.arbitrary_page import PageCacheURL
-except ImportError:
-    HTTPArray = PageCacheURL = None
+
 from yt.funcs import mylog
+
+def get_thingking_deps():
+    try:
+        from thingking.httpmmap import HTTPArray
+        from thingking.arbitrary_page import PageCacheURL
+    except ImportError:
+        raise ImportError(
+            "This functionality requires the thingking package to be installed")
+    return HTTPArray, PageCacheURL
 
 _types = {
     'int16_t': 'int16',
@@ -216,8 +221,8 @@ class HTTPDataStruct(DataStruct):
 
     def __init__(self, *args, **kwargs):
         super(HTTPDataStruct, self).__init__(*args, **kwargs)
-        if None in (PageCacheURL, HTTPArray):
-            raise ImportError("'thingking' is required for loading of remote HTTP data.")
+        HTTPArray, PageCacheURL = get_thingking_deps()
+        self.HTTPArray = HTTPArray
         self.pcu = PageCacheURL(self.filename)
 
     def set_offset(self, offset):
@@ -232,7 +237,7 @@ class HTTPDataStruct(DataStruct):
     def build_memmap(self):
         assert(self.size != -1)
         mylog.info('Building memmap with offset: %i and size %i' % (self._offset, self.size))
-        self.handle = HTTPArray(self.filename, dtype=self.dtype,
+        self.handle = self.HTTPArray(self.filename, dtype=self.dtype,
                         shape=self.size, offset=self._offset)
         for k in self.dtype.names:
             self.data[k] = RedirectArray(self.handle, k)
@@ -457,14 +462,14 @@ class HTTPSDFRead(SDFRead):
     _data_struct = HTTPDataStruct
 
     def __init__(self, *args, **kwargs):
-        if None in (PageCacheURL, HTTPArray):
-            raise ImportError("thingking")
+        HTTPArray, _ = get_thingking_deps()
+        self.HTTPArray = HTTPArray
         super(HTTPSDFRead, self).__init__(*args, **kwargs)
 
     def parse_header(self):
         """docstring for parse_header"""
         # Pre-process
-        ascfile = HTTPArray(self.header)
+        ascfile = self.HTTPArray(self.header)
         max_header_size = 1024*1024
         lines = cStringIO(ascfile[:max_header_size].data[:])
         while True:
