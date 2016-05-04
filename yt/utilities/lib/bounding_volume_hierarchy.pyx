@@ -209,7 +209,6 @@ cdef class BVH:
         self._recursive_free(self.root)
         free(self.primitives)
         free(self.prim_ids)
-        cdef np.int64_t i
         for i in range(self.num_prim):
             free(self.centroids[i])
         free(self.centroids)
