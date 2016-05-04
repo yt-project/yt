@@ -42,7 +42,7 @@ from yt.testing import \
     assert_allclose_units
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
-    cm, m, g, degree, radian
+    cm, m, g, degree
 from yt.utilities.physical_ratios import \
     metallicity_sun
 
