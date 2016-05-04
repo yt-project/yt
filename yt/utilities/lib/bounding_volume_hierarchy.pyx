@@ -98,7 +98,8 @@ cdef class BVH:
             self.num_prim_per_elem = 6
             self.sampler = S2Sampler
         else:
-            raise NotImplementedError
+            raise NotImplementedError("Could not determine element type for "
+                                      "nverts = %d. " % self.num_verts_per_elem)
         self.num_prim = self.num_prim_per_elem*self.num_elem
 
         # allocate storage
