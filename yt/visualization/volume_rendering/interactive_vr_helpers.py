@@ -58,7 +58,8 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
         raise ImportError("This functionality requires the cyglfw3 and PyOpenGL "
                           "packages to be installed.")
 
-    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera
+    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera, \
+        MeshSceneComponent
     from .interactive_loop import RenderingContext
 
     if isinstance(data_source, Dataset):
