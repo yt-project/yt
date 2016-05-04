@@ -40,6 +40,8 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.extern.six import \
     string_types
+from yt.funcs import \
+    is_root
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -657,15 +659,15 @@ class YTProfileDataset(YTNonspatialDataset):
         self.domain_width = self.domain_right_edge - \
           self.domain_left_edge
 
-    @parallel_root_only
     def print_key_parameters(self):
-        mylog.info("YTProfileDataset")
-        for a in ["dimensionality", "profile_dimensions"] + \
-          ["%s_%s" % (ax, attr)
-           for ax in "xyz"[:self.dimensionality]
-           for attr in ["field", "range", "log"]]:
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+        if is_root():
+            mylog.info("YTProfileDataset")
+            for a in ["dimensionality", "profile_dimensions"] + \
+              ["%s_%s" % (ax, attr)
+               for ax in "xyz"[:self.dimensionality]
+               for attr in ["field", "range", "log"]]:
+                v = getattr(self, a)
+                mylog.info("Parameters: %-25s = %s", a, v)
         super(YTProfileDataset, self).print_key_parameters()
 
     @classmethod

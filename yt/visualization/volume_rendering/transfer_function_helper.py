@@ -18,8 +18,6 @@ from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
 from yt.visualization.volume_rendering.transfer_functions import \
     ColorTransferFunction
-from yt.visualization._mpl_imports import FigureCanvasAgg
-from matplotlib.figure import Figure
 from yt.extern.six import BytesIO
 import numpy as np
 
@@ -160,6 +158,8 @@ class TransferFunctionHelper(object):
         If fn is None, will return an image to an IPython notebook.
 
         """
+        from yt.visualization._mpl_imports import FigureCanvasAgg
+        from matplotlib.figure import Figure
         if self.tf is None:
             self.build_transfer_function()
         tf = self.tf

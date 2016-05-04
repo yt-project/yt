@@ -383,6 +383,8 @@ cdef class ImageSampler:
                   *args, **kwargs):
         self.image = <ImageContainer *> calloc(sizeof(ImageContainer), 1)
         cdef np.float64_t[:,:] zbuffer
+        cdef np.int64_t[:,:] image_used
+        cdef np.int64_t[:,:] mesh_lines
         cdef np.float64_t[:,:] camera_data
         cdef int i
 
@@ -393,6 +395,10 @@ cdef class ImageSampler:
         zbuffer = kwargs.pop("zbuffer", None)
         if zbuffer is None:
             zbuffer = np.ones((image.shape[0], image.shape[1]), "float64")
+
+        image_used = np.zeros((image.shape[0], image.shape[1]), "int64")
+        mesh_lines = np.zeros((image.shape[0], image.shape[1]), "int64")
+
         self.lens_type = kwargs.pop("lens_type", None)
         if self.lens_type == "plane-parallel":
             self.extent_function = calculate_extent_plane_parallel
@@ -400,7 +406,7 @@ cdef class ImageSampler:
         else:
             if not (vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0]) or \
                not (vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1]):
-                msg = "Bad lense shape / direction for %s\n" % (self.lens_type)
+                msg = "Bad lens shape / direction for %s\n" % (self.lens_type)
                 msg += "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
                     vp_pos.shape[0], vp_dir.shape[0], image.shape[0],
                     vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
@@ -426,7 +432,9 @@ cdef class ImageSampler:
         self.image.x_vec = <np.float64_t *> x_vec.data
         self.ay_vec = y_vec
         self.image.y_vec = <np.float64_t *> y_vec.data
-        self.image.zbuffer = zbuffer
+        self.image.zbuffer = self.azbuffer = zbuffer
+        self.image.image_used = self.aimage_used = image_used
+        self.image.mesh_lines = self.amesh_lines = mesh_lines
         self.image.nv[0] = image.shape[0]
         self.image.nv[1] = image.shape[1]
         for i in range(4): self.image.bounds[i] = bounds[i]
@@ -501,6 +509,7 @@ cdef class ImageSampler:
         self.image.vp_dir = None
         self.image.zbuffer = None
         self.image.camera_data = None
+        self.image.image_used = None
         free(self.image)
 
 

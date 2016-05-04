@@ -25,7 +25,6 @@ cimport pyembree.rtcore_geometry_user as rtcgu
 from mesh_samplers cimport \
     sample_hex, \
     sample_tetra, \
-    sample_element, \
     sample_wedge
 from pyembree.rtcore cimport \
     Vertex, \
@@ -104,7 +103,7 @@ cdef class LinearElementMesh:
                  np.ndarray indices,
                  np.ndarray data):
 
-        # We need now to figure out what kind of elements we've been handed.
+        # We need to figure out what kind of elements we've been handed.
         if indices.shape[1] == 8:
             self.vpe = HEX_NV
             self.tpe = HEX_NT
@@ -186,19 +185,18 @@ cdef class LinearElementMesh:
         datac.element_indices = self.element_indices
         datac.tpe = self.tpe
         datac.vpe = self.vpe
+        datac.fpe = self.fpe
         self.datac = datac
         
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.datac)
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene):
 
-        if self.fpe == 1:
-            self.filter_func = <rtcg.RTCFilterFunc> sample_element
-        elif self.fpe == 4:
+        if self.vpe == 4:
             self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
-        elif self.fpe == 6:
+        elif self.vpe == 6:
             self.filter_func = <rtcg.RTCFilterFunc> sample_wedge
-        elif self.fpe == 8:
+        elif self.vpe == 8:
             self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
             raise NotImplementedError("Sampler type not implemented.")

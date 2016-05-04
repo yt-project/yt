@@ -15,22 +15,12 @@ from __future__ import absolute_import
 #-----------------------------------------------------------------------------
 from io import BytesIO
 import matplotlib
-from ._mpl_imports import \
-    FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 from yt.funcs import \
-    get_image_suffix, mylog, iterable
+    get_image_suffix, \
+    mylog, \
+    iterable, \
+    get_brewer_cmap
 import numpy as np
-import warnings
-try:
-    import brewer2mpl
-    has_brewer = True
-except:
-    has_brewer = False
-try:
-    import palettable
-    has_palettable = True
-except:
-    has_palettable = False
 
 
 class CallbackWrapper(object):
@@ -65,6 +55,8 @@ class PlotMPL(object):
     """
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
+        import matplotlib.figure
+        from ._mpl_imports import FigureCanvasAgg
         self._plot_valid = True
         if figure is None:
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
@@ -81,6 +73,8 @@ class PlotMPL(object):
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
+        from ._mpl_imports import \
+            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if 'papertype' not in mpl_kwargs:
@@ -135,18 +129,7 @@ class ImagePlotMPL(PlotMPL):
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
-            if has_palettable:
-                bmap = palettable.colorbrewer.get_map(*cmap)
-            elif has_brewer:
-                warnings.warn("Using brewer2mpl colormaps is deprecated. "
-                              "Please install the successor to brewer2mpl, "
-                              "palettable, with `pip install palettable`. "
-                              "Colormap tuple names remain unchanged.")
-                bmap = brewer2mpl.get_map(*cmap)
-            else:
-                raise RuntimeError(
-                    "Please install palettable to use colorbrewer colormaps")
-            cmap = bmap.get_mpl_colormap(N=cmap[2])
+            cmap = get_brewer_cmap(cmap)
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap,
@@ -163,6 +146,7 @@ class ImagePlotMPL(PlotMPL):
             self.cb = self.figure.colorbar(self.image, self.cax)
 
     def _repr_png_(self):
+        from ._mpl_imports import FigureCanvasAgg
         canvas = FigureCanvasAgg(self.figure)
         f = BytesIO()
         canvas.print_figure(f)
@@ -334,6 +318,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     can be instructure, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
+    import matplotlib.figure
     hf, wf = 1.0/ny, 1.0/nx
     fudge_x = fudge_y = 1.0
     if colorbar is None:
