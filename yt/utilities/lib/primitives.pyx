@@ -5,14 +5,32 @@ cimport cython.floating
 from libc.math cimport fabs
 
 from yt.utilities.lib.vec3_ops cimport dot, subtract, cross, distance, L2_norm
-from yt.utilities.lib.bounding_volume_hierarchy cimport Ray, BBox
 
 cdef np.float64_t DETERMINANT_EPS = 1.0e-10
+cdef np.float64_t INF = np.inf
 
 cdef extern from "platform_dep.h" nogil:
     double fmax(double x, double y)
     double fmin(double x, double y)
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
+# https://tavianator.com/fast-branchless-raybounding-box-intersections/
+
+    cdef np.float64_t tmin = -INF
+    cdef np.float64_t tmax =  INF
+ 
+    cdef np.int64_t i
+    cdef np.float64_t t1, t2
+    for i in range(3):
+        t1 = (bbox.left_edge[i]  - ray.origin[i])*ray.inv_dir[i]
+        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i] 
+        tmin = fmax(tmin, fmin(t1, t2))
+        tmax = fmin(tmax, fmax(t1, t2))
+ 
+    return tmax >= fmax(tmin, 0.0)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

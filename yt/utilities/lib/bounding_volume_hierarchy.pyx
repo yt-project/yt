@@ -6,6 +6,9 @@ from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
 
 from yt.utilities.lib.primitives cimport \
+    BBox, \
+    Ray, \
+    ray_bbox_intersect, \
     Triangle, \
     ray_triangle_intersect, \
     triangle_centroid, \
@@ -34,26 +37,6 @@ cdef extern from "platform_dep.h" nogil:
 # define some constants
 cdef np.float64_t INF = np.inf
 cdef np.int64_t   LEAF_SIZE = 16
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
-# https://tavianator.com/fast-branchless-raybounding-box-intersections/
-
-    cdef np.float64_t tmin = -INF
-    cdef np.float64_t tmax =  INF
- 
-    cdef np.int64_t i
-    cdef np.float64_t t1, t2
-    for i in range(3):
-        t1 = (bbox.left_edge[i]  - ray.origin[i])*ray.inv_dir[i]
-        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i] 
-        tmin = fmax(tmin, fmin(t1, t2))
-        tmax = fmin(tmax, fmax(t1, t2))
- 
-    return tmax >= fmax(tmin, 0.0)
 
 
 cdef class BVH:

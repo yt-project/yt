@@ -3,7 +3,20 @@ cimport cython.floating
 import numpy as np
 cimport numpy as np
 from vec3_ops cimport dot, subtract, cross
-from yt.utilities.lib.bounding_volume_hierarchy cimport Ray, BBox
+
+cdef struct Ray:
+    np.float64_t origin[3]
+    np.float64_t direction[3]
+    np.float64_t inv_dir[3]
+    np.float64_t data_val
+    np.float64_t t_near
+    np.float64_t t_far
+    np.int64_t elem_id
+    np.int64_t near_boundary
+
+cdef struct BBox:
+    np.float64_t left_edge[3]
+    np.float64_t right_edge[3]
 
 cdef struct RayHitData:
     np.float64_t u
@@ -16,6 +29,8 @@ cdef struct Triangle:
     np.float64_t p1[3]
     np.float64_t p2[3]
     np.int64_t elem_id
+
+cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil
 
 cdef inline np.int64_t ray_triangle_intersect(const void* primitives,
                                               const np.int64_t item,

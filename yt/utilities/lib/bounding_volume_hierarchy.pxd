@@ -2,7 +2,7 @@ cimport cython
 import numpy as np
 cimport numpy as np
 from yt.utilities.lib.element_mappings cimport ElementSampler
-from yt.utilities.lib.primitives cimport Triangle
+from yt.utilities.lib.primitives cimport BBox, Ray
 
 cdef extern from "mesh_construction.h":
     enum:
@@ -18,22 +18,6 @@ cdef extern from "mesh_construction.h":
     int triangulate_tetra[MAX_NUM_TRI][3]
     int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
-
-# ray data structure
-cdef struct Ray:
-    np.float64_t origin[3]
-    np.float64_t direction[3]
-    np.float64_t inv_dir[3]
-    np.float64_t data_val
-    np.float64_t t_near
-    np.float64_t t_far
-    np.int64_t elem_id
-    np.int64_t near_boundary
-
-# axis-aligned bounding box
-cdef struct BBox:
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
 
 # node for the bounding volume hierarchy
 cdef struct BVHNode:
