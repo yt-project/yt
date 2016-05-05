@@ -72,6 +72,16 @@ cdef class CopyArrayF64(OctVisitor):
                 self.global_index, :]
         self.index += 1
 
+# This copies a bit array from source to the destination, based on file_ind
+cdef class CopyFileIndArrayI8(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        if self.last != o.domain_ind:
+            self.last = o.domain_ind
+            self.dest[o.domain_ind] = self.source[o.file_ind]
+            self.index += 1
+
 # This counts the number of octs, selected or not, that the selector hits.
 # Note that the selector will not recursively visit unselected octs, so this is
 # still useful.

@@ -27,7 +27,7 @@ from yt.utilities.lib.geometry_utils cimport bounded_morton, \
     morton_neighbors_coarse, morton_neighbors_refined
 import numpy as np
 cimport numpy as np
-from selection_routines cimport SelectorObject
+from selection_routines cimport SelectorObject, AlwaysSelector
 cimport cython
 from collections import defaultdict
 
@@ -611,7 +611,6 @@ cdef class ParticleBitmap:
 
         cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
         bitmasks.print_info(file_id)
-        print np.sum(owners[:,1] == file_id)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2059,9 +2058,10 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             self.partial_coverage = 1
             self.overlap_cells = 1
         ELSE:
-            self.partial_coverage = 0
+            self.partial_coverage = 2
             self.overlap_cells = 0
         # Now the overrides
+        self.max_level = -1
         self.max_root = num_root
         self.root_nodes = <OctKey*> malloc(sizeof(OctKey) * num_root)
         self._ptr_index_base_roots = <np.uint8_t*> malloc(sizeof(np.uint8_t) * num_root)
@@ -2077,6 +2077,24 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         OctreeContainer.allocate_domains(self, counts)
 
     def finalize(self):
+        # Assign domain ind
+        cdef SelectorObject selector = AlwaysSelector(None)
+        selector.overlap_cells = self.overlap_cells
+        cdef oct_visitors.AssignDomainInd visitor
+        visitor = oct_visitors.AssignDomainInd(self)
+        self.visit_all_octs(selector, visitor)
+        assert ((visitor.global_index+1)*visitor.nz == visitor.index)
+        # Copy indexes
+        self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t)*self.nocts)
+        self._index_base_octs = <np.uint8_t[:self.nocts]> self._ptr_index_base_octs
+        cdef oct_visitors.CopyFileIndArrayI8 visit_base
+        visit_base = oct_visitors.CopyFileIndArrayI8(self) # domain_id?
+        visit_base.source = self._index_base_roots
+        visit_base.dest = self._index_base_octs
+        self.visit_all_octs(selector, visit_base)
+        assert(visit_base.index == self.nocts)
+
+    def _old_finalize(self):
         #This will sort the octs in the oct list
         #so that domains appear consecutively
         #And then find the oct index/offset for
@@ -2090,7 +2108,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         # by recursive visitors.
         for i in range(self.num_root):
             self.visit_assign(self.root_nodes[i].node, &lpos, 0, &max_level, i)
-        print 'lpos, self.nocts', lpos, self.nocts
         assert(lpos == self.nocts)
         for i in range(self.nocts):
             self.oct_list[i].domain_ind = i
@@ -2167,8 +2184,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def old_add(self, np.ndarray[np.uint64_t, ndim=1] indices,
-             np.uint64_t order1, int domain_id = -1):
+    def _old_add(self, np.ndarray[np.uint64_t, ndim=1] indices,
+                 np.uint64_t order1, int domain_id = -1):
         #Add this particle to the root oct
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
@@ -2220,8 +2237,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void recursive_add(self, Oct *o, np.ndarray[np.uint64_t, ndim=1] indices,
-                            int level, int max_level = -1,
-                            int domain_id = -1):
+                            int level, int *max_level, int domain_id = -1):
         cdef np.int64_t no = indices.shape[0], beg, end, nind
         cdef np.int64_t index
         cdef int i, j, k
@@ -2229,7 +2245,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef Oct *noct
         cdef Oct *noct_ch
         beg = end = 0
-        if level > max_level: max_level = level
+        if level > max_level[0]: max_level[0] = level
         if level >= ORDER_MAX-1: return
         # Initialize children
         if o.children == NULL:
@@ -2240,10 +2256,14 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
                         IF InclPartialOcts == 1:
                             noct = self.allocate_oct()
                             noct.domain = o.domain
-                            noct.file_ind = 0
+                            noct.file_ind = o.file_ind
                             o.children[cind(i,j,k)] = noct
                         ELSE:
                             o.children[cind(i,j,k)] = NULL
+                            # noct = self.allocate_oct()
+                            # noct.domain = o.domain
+                            # noct.file_ind = 0
+                            # o.children[cind(i,j,k)] = noct
         # Loop through sets of particles with matching prefix at this level
         while end < no:
             beg = end
@@ -2257,19 +2277,21 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             IF InclPartialOcts == 1:
                 noct = o.children[cind(ind[0],ind[1],ind[2])]
             ELSE:
+                # noct = o.children[cind(ind[0],ind[1],ind[2])]
                 if o.children[cind(ind[0],ind[1],ind[2])] != NULL:
                     raise Exception('Child was already initialized...')
                 noct = self.allocate_oct()
                 noct.domain = o.domain
+                o.children[cind(ind[0],ind[1],ind[2])] = noct
                 # Don't add it to the list if it will be refined
                 if nind > self.n_ref:
                     self.nocts -= 1
                     noct.domain_ind = -1 # overwritten by finalize
-                o.children[cind(ind[0],ind[1],ind[2])] = noct
-            noct.file_ind = nind
-            o.file_ind = self.n_ref + 1
+                noct.file_ind = o.file_ind
+            # noct.file_ind = nind
+            # o.file_ind = self.n_ref + 1
             # Refine oct or add its children
-            if noct.file_ind > self.n_ref:
+            if nind > self.n_ref:
                 self.recursive_add(noct, indices[beg:end], 
                                    level+1, max_level, domain_id)
             # else:
@@ -2291,30 +2313,36 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         #Then if that oct has children, add it to them recursively
         #If the child needs to be refined because of max particles, do so
         cdef Oct *root = NULL
-        cdef np.int64_t no = indices.shape[0], beg, end, index
+        cdef np.int64_t no = indices.shape[0], beg, end, index, nind
         cdef int i, level
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
+        self.nocts = 0
         # Note what we're doing here: we have decided the root will always be
         # zero, since we're in a forest of octrees, where the root_mesh node is
         # the level 0.  This means our morton indices should be made with
         # respect to that, which means we need to keep a few different arrays
         # of them.
-        cdef int max_level = -1
+        cdef np.int64_t index_root = 0
         while end < no:
             beg = end
             index = (indices[beg] >> ((ORDER_MAX - self.level_offset)*3))
             while (end < no) and (index == (indices[end] >> ((ORDER_MAX - self.level_offset)*3))): 
                 end += 1
+            nind = (end - beg)
             decode_morton_64bit(index, ind64)
             for i in range(3):
                 ind[i] = ind64[i]
             self.get_root(ind, &root)
             if root != NULL:
-                root.file_ind = (end - beg)
+                root.file_ind = index_root
                 if (end - beg) > self.n_ref:
+                    # self.nocts -= 1
                     self.recursive_add(root, indices[beg:end], self.level_offset+1,
-                                       max_level, domain_id)
+                                       &self.max_level, domain_id)
+                else:
+                    self.nocts += 1
+                index_root += 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2373,5 +2401,4 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             prefix2 = arr[i] >> (ORDER_MAX - level)*3
             if (prefix1 == prefix2):
                 o.file_ind += 1
-        if o.file_ind > 1: print o.file_ind
         #print ind[0], ind[1], ind[2], o.file_ind, level

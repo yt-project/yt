@@ -92,6 +92,10 @@ cdef class CopyArrayF64(OctVisitor):
     cdef np.float64_t[:,:,:,:,:] source
     cdef np.float64_t[:,:] dest
 
+cdef class CopyFileIndArrayI8(OctVisitor):
+    cdef np.uint8_t[:] source
+    cdef np.uint8_t[:] dest
+
 cdef class IdentifyOcts(OctVisitor):
     cdef np.uint8_t[:] domain_mask
 

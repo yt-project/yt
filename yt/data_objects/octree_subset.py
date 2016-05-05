@@ -181,6 +181,9 @@ class OctreeSubset(YTSelectionContainer):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
+        if np.max(self.domain_ind) >= nvals[-1]:
+            print 'nocts, domain_ind >= 0, max', self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)
+            raise Exception()
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
@@ -487,7 +490,7 @@ class ParticleOctreeSubset(OctreeSubset):
 
     @property
     def domain_ind(self):
-        if self._domain_ind is None:
+        if 1:#self._domain_ind is None:
             di = self.oct_handler.domain_ind(self.selector, self.domain_id)
             self._domain_ind = di
         return self._domain_ind
