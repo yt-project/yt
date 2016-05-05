@@ -312,6 +312,7 @@ class YTDataContainer(object):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
+        # import pdb ; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
         if self._current_chunk is None or \
@@ -330,7 +331,6 @@ class YTDataContainer(object):
         return rv
 
     def _generate_spatial_fluid(self, field, ngz, ghost_particles = False):
-        import pdb
         finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
@@ -358,7 +358,7 @@ class YTDataContainer(object):
                         outputs.append(rv)
                     with o._activate_cache():
                         with o._expand_data_files(ghost_particles):
-                            # pdb.set_trace()
+                            # import pdb ; pdb.set_trace() ; o[field]
                             ind += o.select(self.selector, o[field], rv, ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz,

@@ -2167,7 +2167,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
         self.min_level = self.base_selector.min_level
         self.max_level = self.base_selector.max_level
         self.domain_id = dobj.domain_id
-        self.overlap_cells = 1
+        self.overlap_cells = getattr(dobj.oct_handler, 'overlap_cells', 1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
