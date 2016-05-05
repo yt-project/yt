@@ -5,7 +5,6 @@ from subprocess import Popen, PIPE, call
 import sys
 import tempfile
 
-from yt.utilities.exceptions import YTException
 
 def check_for_openmp():
     """Returns True if local setup supports OpenMP, False otherwise"""
