@@ -17,7 +17,6 @@ lr.make_light_ray(start_position=[0., 0., 0.],
 
 # Optionally, we can now overplot this ray on a projection of the source
 # dataset
-ds = yt.load(fn)
 p = yt.ProjectionPlot(ds, 'z', 'density')
 p.annotate_ray(lr)
 p.save()
