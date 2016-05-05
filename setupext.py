@@ -1,9 +1,11 @@
 import os
 from pkg_resources import resource_filename
 import shutil
-import subprocess
+from subprocess import Popen, PIPE, call
 import sys
 import tempfile
+
+from yt.utilities.exceptions import YTException
 
 def check_for_openmp():
     """Returns True if local setup supports OpenMP, False otherwise"""
@@ -37,13 +39,21 @@ def check_for_openmp():
             "}"
         )
         file.flush()
-        with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call(compiler + ['-fopenmp', filename],
-                                        stdout=fnull, stderr=fnull)
+        p = Popen(compiler + ['-fopenmp', filename],
+                  stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        output, err = p.communicate()
+        exit_code = p.returncode
+        
+        if exit_code != 0:
+            print("Compilation of OpenMP test code failed with the error: ")
+            print(err)
+            print("Disabling OpenMP support. ")
 
         # Clean up
         file.close()
     except OSError:
+        print("check_for_openmp() could not find your C compiler. "
+              "Attempted to use '%s'. " % compiler)
         return False
     finally:
         os.chdir(curdir)
@@ -111,7 +121,7 @@ def read_embree_location():
         )
         file.flush()
         with open(os.devnull, 'w') as fnull:
-            exit_code = subprocess.call(compiler + ['-I%s/include/' % rd, filename],
+            exit_code = call(compiler + ['-I%s/include/' % rd, filename],
                              stdout=fnull, stderr=fnull)
 
         # Clean up
