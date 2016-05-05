@@ -318,6 +318,11 @@ cdef class OctreeContainer:
         return cur
 
     def locate_positions(self, np.float64_t[:,:] positions):
+        """
+        This routine, meant to be called by other internal routines, returns a
+        list of oct IDs and a dictionary of Oct info for all the positions
+        supplied.  Positions must be in code_length.
+        """
         cdef np.float64_t factor = (1 << self.oref)
         cdef dict all_octs = {}
         cdef OctInfo oi
