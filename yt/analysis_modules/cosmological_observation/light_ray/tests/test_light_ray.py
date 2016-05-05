@@ -10,28 +10,16 @@ Unit test for the light_ray analysis module
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from yt.testing import \
-    assert_allclose_units, requires_file, requires_module, \
-    assert_almost_equal
-from yt.analysis_modules.absorption_spectrum.absorption_line import \
-    voigt_old, voigt_scipy
-from yt.analysis_modules.absorption_spectrum.api import AbsorptionSpectrum
+    requires_file
 from yt.analysis_modules.cosmological_observation.api import LightRay
-from yt.utilities.answer_testing.framework import \
-    GenericArrayTest, \
-    requires_answer_testing
-import tempfile
 import os
 import shutil
-from yt.utilities.on_demand_imports import \
-    _h5py as h5
 from yt import load
-
+import tempfile
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
 COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
-
 
 @requires_file(COSMO_PLUS)
 def test_light_ray_cosmo():
