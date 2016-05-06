@@ -15,7 +15,7 @@ from yt.testing import \
 from yt.analysis_modules.cosmological_observation.api import LightRay
 import os
 import shutil
-from yt import load
+from yt.utilities.answer_testing.framework import data_dir_load
 import tempfile
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
@@ -77,7 +77,7 @@ def test_light_ray_non_cosmo_from_dataset():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    ds = load(COSMO_PLUS_SINGLE)
+    ds = data_dir_load(COSMO_PLUS_SINGLE)
     lr = LightRay(ds)
 
     ray_start = [0,0,0]
