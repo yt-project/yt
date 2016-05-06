@@ -35,13 +35,6 @@ from yt.data_objects.static_output import Dataset
 
 class LightRay(CosmologySplice):
     """
-    LightRay(dataset/filename, simulation_type=None,
-             near_redshift=None, far_redshift=None,
-             use_minimum_datasets=True, deltaz_min=0.0,
-             minimum_coherent_box_fraction=0.0,
-             time_data=True, redshift_data=True,
-             find_outputs=False, load_kwargs=None):
-
     A LightRay object is a one-dimensional object representing the trajectory 
     of a ray of light as it passes through one or more datasets (simple and
     compound rays respectively).  One can sample any of the fields intersected
@@ -58,10 +51,10 @@ class LightRay(CosmologySplice):
 
     Parameters
     ----------
-    dataset/filename : string or dataset
-        For simple rays, one must pass either a loaded dataset object or
-        the path and filename of a dataset.
-        For compound rays, one must pass the path and filename of the simulation
+    parameter_filename : string or :class:`yt.data_objects.static_output.Dataset`
+        For simple rays, one may pass either a loaded dataset object or
+        the filename of a dataset.
+        For compound rays, one must pass the filename of the simulation
         parameter file.
     simulation_type : optional, string
         This refers to the simulation frontend type.  Do not use for simple 
@@ -144,11 +137,11 @@ class LightRay(CosmologySplice):
         # Make a light ray from a single, given dataset: #1, #2
         if simulation_type is None:     
             self.simulation_type = simulation_type
-            if isinstance(parameter_filename, Dataset):
-                self.ds = parameter_filename
+            if isinstance(self.parameter_filename, Dataset):
+                self.ds = self.parameter_filename
                 self.parameter_filename = self.ds.basename
-            elif isinstance(parameter_filename, str):
-                self.ds = load(parameter_filename, **self.load_kwargs)
+            elif isinstance(self.parameter_filename, str):
+                self.ds = load(self.parameter_filename, **self.load_kwargs)
             if self.ds.cosmological_simulation:
                 redshift = self.ds.current_redshift
                 self.cosmology = Cosmology(
@@ -158,14 +151,15 @@ class LightRay(CosmologySplice):
                     unit_registry=self.ds.unit_registry)
             else:
                 redshift = 0.
-            self.light_ray_solution.append({"filename": parameter_filename,
+            self.light_ray_solution.append({"filename": self.parameter_filename,
                                             "redshift": redshift})
 
         # Make a light ray from a simulation time-series. #3
         else:
             self.ds = None
+            assert isinstance(self.parameter_filename, str)
             # Get list of datasets for light ray solution.
-            CosmologySplice.__init__(self, parameter_filename, simulation_type,
+            CosmologySplice.__init__(self, self.parameter_filename, simulation_type,
                                      find_outputs=find_outputs)
             self.light_ray_solution = \
               self.create_cosmology_splice(self.near_redshift, self.far_redshift,
