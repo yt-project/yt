@@ -42,8 +42,6 @@ class GAMERGrid(AMRGridPatch):
         self.Parent   = None    # do NOT initialize Parent as []
         self.Children = []
         self.Level    = level
-        self.PID      = None    # patch ID adopted in GAMER
-        self.CID      = None    # cluster ID in the GAMER HDF5 output
 
     def __repr__(self):
         return 'GAMERGrid_%09i (dimension = %s)' % (self.id, self.ActiveDimensions)
@@ -64,18 +62,17 @@ class GAMERHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         # find all field names in the current dataset
-        # choose an arbitrary grid since they all have the same fields
-        Grid = self._handle['Level_00']['Cluster_%09i'%0]['Patch_%09i'%0]
-        self.field_list = [ ('gamer', v) for v in Grid.dtype.names ]
+        self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
     
     def _count_grids(self):
         # count the total number of patches at all levels  
         self.num_grids = self.dataset.parameters['NPatch'].sum()
         
     def _parse_index(self):
-        f    = self._handle
-        Para = self.dataset.parameters
-        GID0 = 0
+        Para   = self.dataset.parameters
+        GID0   = 0
+        CrList = self._handle['Tree/Corner'].value
+        Cr2Phy = self._handle['Tree/Corner'].attrs['Cvt2Phy']
 
         self.grid_dimensions    [:] = Para['PatchSize']
         self.grid_particle_count[:] = 0
@@ -84,16 +81,13 @@ class GAMERHierarchy(GridIndex):
             NP = Para['NPatch'][lv]
             if NP == 0: break
 
-            Scale  = Para['CellScale'][lv]
-            PScale = Para['PatchSize']*Scale
-            CrList = f['PatchMap'][ 'Level_%d%d'%(lv/10,lv%10) ]['CornerList'].value
-            Cr2Phy = f['PatchMap'][ 'Level_%d%d'%(lv/10,lv%10) ]['CornerList'].attrs['Cvt2Phy']
+            PScale = Para['PatchSize']*Para['CellScale'][lv]
 
             # set the level and edge of each grid
             # (left/right_edge are YT arrays in code units)
             self.grid_levels.flat[ GID0:GID0+NP ] = lv
-            self.grid_left_edge  [ GID0:GID0+NP ] = CrList[:]*Cr2Phy
-            self.grid_right_edge [ GID0:GID0+NP ] = (CrList[:] + PScale)*Cr2Phy
+            self.grid_left_edge  [ GID0:GID0+NP ] = CrList[ GID0:GID0+NP ]*Cr2Phy
+            self.grid_right_edge [ GID0:GID0+NP ] = (CrList[ GID0:GID0+NP ] + PScale)*Cr2Phy
 
             GID0 += NP
 
@@ -106,39 +100,21 @@ class GAMERHierarchy(GridIndex):
         self.max_level = self.grid_levels.max()
         
     def _populate_grid_objects(self):
-        f  = self._handle
-        NP = self.dataset.parameters['NPatch']
-        NC = f['SimuInfo']['KeyInfo']['H5_MaxDsetPerGroup']
+        son_list = self._handle["Tree/Son"].value
 
-        for lv in range(0, self.dataset.parameters['NLevel']):
-            if NP[lv] == 0: break
+        for gid in range(self.num_grids):
+            grid     = self.grids.flat[gid]
+            son_gid0 = son_list[gid]
 
-            # converting HDF5 dataset to numpy array in advance (using .value)
-            # is much faster than using h5py directly
-            SonList    = f['PatchMap'][ 'Level_%02i'%lv ]['SonList'].value
-#           SonList    = f['PatchMap'][ 'Level_%02i'%lv ]['SonList']
-            SonGID0    = NP[0:lv+1].sum()
-            GID0       = NP[0:lv  ].sum()
+            # set up the parent-children relationship
+            if son_gid0 >= 0:
+                grid.Children = [ self.grids.flat[son_gid0+s] for s in range(8) ]
 
-            # set the parent-children relationship
-            for PID in range(0, NP[lv]):
-                Grid   = self.grids.flat[GID0+PID]
-                CID    = PID / NC
-                SonPID = SonList[PID]
+            for son_grid in grid.Children: son_grid.Parent = grid
 
-                if SonPID >= 0:
-                    Grid.Children = [ self.grids.flat[SonGID0+SonPID+s] \
-                                      for s in range(0,8) ]
-
-                for SonGrid in Grid.Children: SonGrid.Parent = Grid
-
-                # record the patch and cluster indices
-                Grid.PID = PID
-                Grid.CID = CID
-
-                # set up other grid attributes
-                Grid._prepare_grid()
-                Grid._setup_dx()
+            # set up other grid attributes
+            grid._prepare_grid()
+            grid._setup_dx()
 
         # validate the parent-children relationship in the debug mode
         if self.dataset._debug:
@@ -148,47 +124,40 @@ class GAMERHierarchy(GridIndex):
     def _validate_parent_children_relasionship(self):
         mylog.info('Validating the parent-children relationship ...')
 
-        f    = self._handle
-        Para = self.dataset.parameters
+        Para        = self.dataset.parameters
+        father_list = self._handle["Tree/Father"].value
 
-        for Grid in self.grids:
+        for grid in self.grids:
             # parent->children == itself
-            if Grid.Parent is not None:
-                assert Grid.Parent.Children[0+Grid.id%8] is Grid, \
+            if grid.Parent is not None:
+                assert grid.Parent.Children[0+grid.id%8] is grid, \
                        'Grid %d, Parent %d, Parent->Children %d' % \
-                       (Grid.id, Grid.Parent.id, Grid.Parent.Children[0].id)
+                       (grid.id, grid.Parent.id, grid.Parent.Children[0].id)
 
             # children->parent == itself
-            for c in Grid.Children:
-                assert c.Parent is Grid, \
+            for c in grid.Children:
+                assert c.Parent is grid, \
                        'Grid %d, Children %d, Children->Parent %d' % \
-                       (Grid.id, c.id, c.Parent.id)
+                       (grid.id, c.id, c.Parent.id)
 
             # all refinement grids should have parent 
-            if Grid.Level > 0:
-                assert Grid.Parent is not None and Grid.Parent.id >= 0, \
+            if grid.Level > 0:
+                assert grid.Parent is not None and grid.Parent.id >= 0, \
                        'Grid %d, Level %d, Parent %d' % \
-                       (Grid.id, Grid.Level, \
-                        Grid.Parent.id if Grid.Parent is not None else -999)
+                       (grid.id, grid.Level, \
+                        grid.Parent.id if grid.Parent is not None else -999)
 
             # parent index is consistent with the loaded dataset
-            if Grid.Level > 0:
-                NC     = f['SimuInfo']['KeyInfo']['H5_MaxDsetPerGroup']
-                PID    = Grid.PID
-                CID    = PID / NC
-                LvName = 'Level_%02i'   % Grid.Level
-                CName  = 'Cluster_%09i' % CID
-                PName  = 'Patch_%09i'   % PID
-                FaGID  = f[LvName][CName][PName].attrs['Info']['Father'] \
-                         + Para['NPatch'][0:Grid.Level-1].sum()
-                assert FaGID == Grid.Parent.id, \
+            if grid.Level > 0:
+                father_gid = father_list[grid.id]
+                assert father_gid == grid.Parent.id, \
                        'Grid %d, Level %d, Parent_Found %d, Parent_Expect %d'%\
-                       (Grid.id, Grid.Level, Grid.Parent.id, FaGID)
+                       (grid.id, grid.Level, grid.Parent.id, FaGID)
 
             # edges between children and parent
-            if len(Grid.Children) > 0:
-                assert_equal(Grid.LeftEdge,  Grid.Children[0].LeftEdge )
-                assert_equal(Grid.RightEdge, Grid.Children[7].RightEdge)
+            if len(grid.Children) > 0:
+                assert_equal(grid.LeftEdge,  grid.Children[0].LeftEdge )
+                assert_equal(grid.RightEdge, grid.Children[7].RightEdge)
         mylog.info('Check passed')
                
 
@@ -196,8 +165,7 @@ class GAMERDataset(Dataset):
     _index_class      = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle           = None
-#   _debug            = True  # turn on the debug mode
-    _debug            = False # turn on the debug mode
+    _debug            = True  # turn on/off the debug mode
     
     def __init__(self, filename,
                  dataset_type      = 'gamer',
@@ -245,10 +213,10 @@ class GAMERDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # shortcuts for different simulation information
-        KeyInfo   = self._handle['SimuInfo']['KeyInfo']
-        InputPara = self._handle['SimuInfo']['InputPara']
-        Makefile  = self._handle['SimuInfo']['Makefile']
-        SymConst  = self._handle['SimuInfo']['SymConst']
+        KeyInfo   = self._handle['Info']['KeyInfo']
+        InputPara = self._handle['Info']['InputPara']
+        Makefile  = self._handle['Info']['Makefile']
+        SymConst  = self._handle['Info']['SymConst']
 
         # simulation time and domain
         self.current_time      = KeyInfo['Time'][0]
@@ -300,7 +268,7 @@ class GAMERDataset(Dataset):
         try:
             # define a unique way to identify GAMER datasets
             f = HDF5FileHandler(args[0])
-            if 'PatchMap' in f['/'].keys():
+            if 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys():
                 return True
         except:
             pass
