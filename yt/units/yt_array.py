@@ -1438,7 +1438,7 @@ def uhstack(arrs):
 
     This is a wrapper around np.hstack that preserves units.
     """
-    v = np.vstack(arrs)
+    v = np.hstack(arrs)
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
