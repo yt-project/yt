@@ -48,7 +48,8 @@ class GAMERGrid(AMRGridPatch):
 
 
 class GAMERHierarchy(GridIndex):
-    grid = GAMERGrid
+    grid                 = GAMERGrid
+    _preload_implemented = True # since gamer defines "_read_chunk_data" in io.py
     
     def __init__(self, ds, dataset_type = 'gamer'):
         self.dataset_type     = dataset_type
@@ -165,7 +166,7 @@ class GAMERDataset(Dataset):
     _index_class      = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle           = None
-    _debug            = True  # turn on/off the debug mode
+    _debug            = False # turn on/off the debug mode
     
     def __init__(self, filename,
                  dataset_type      = 'gamer',
