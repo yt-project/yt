@@ -80,7 +80,7 @@ class IOHandlerGAMER(BaseIOHandler):
         for g in chunk.objs: rv[g.id] = {}
 
         for field in fields:
-            ds = f[ "/Data/%s" % field[1] ]
+            ds = self._handle[ "/Data/%s" % field[1] ]
 
             for gs in grid_sequences(chunk.objs):
                 start = gs[ 0].id
