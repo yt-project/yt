@@ -34,12 +34,12 @@ class GAMERFieldInfo(FieldInfoContainer):
         ( "MomX", (mom_units, ["momentum_x"],              None   ) ),
         ( "MomY", (mom_units, ["momentum_y"],              None   ) ),
         ( "MomZ", (mom_units, ["momentum_z"],              None   ) ),
-        ( "Engy", (erg_units, ["total_energy"],            None   ) ),
+        ( "Engy", (erg_units, ["total_energy_per_volume"], None   ) ),
         ( "Pote", (pot_units, ["gravitational_potential"], None   ) ),
 
         # psiDM fields on disk
-        ( "Real", (psi_units, ["real_part"],               None   ) ),
-        ( "Imag", (psi_units, ["imaginary_part"],          None   ) ),
+        ( "Real", (psi_units, ["psidm_real_part"],         None   ) ),
+        ( "Imag", (psi_units, ["psidm_imaginary_part"],    None   ) ),
     )
 
     known_particle_fields = (
@@ -61,6 +61,15 @@ class GAMERFieldInfo(FieldInfoContainer):
             self.add_field( ("gas","velocity_%s"%v), function = velocity_xyz(v),
                             units = unit_system["velocity"] )
 
+        # ============================================================================
+        # note that yt internal fields assume
+        #    [thermal_energy]          = [energy per mass]
+        #    [kinetic_energy]          = [energy per volume]
+        # and we further adopt
+        #    [total_energy]            = [energy per mass]
+        #    [total_energy_per_volume] = [energy per volume]
+        # ============================================================================
+
         # kinetic energy per volume
         def ek(data):
             return 0.5*( data["gamer","MomX"]**2 +
@@ -70,6 +79,18 @@ class GAMERFieldInfo(FieldInfoContainer):
         # thermal energy per volume
         def et(data):
             return data["gamer","Engy"] - ek(data)
+
+        # thermal energy per mass (i.e., specific)
+        def _thermal_energy(field, data):
+            return et(data) / data["gamer","Dens"]
+        self.add_field( ("gas","thermal_energy"), function = _thermal_energy,
+                        units = unit_system["specific_energy"] )
+
+        # total energy per mass
+        def _total_energy(field, data):
+            return data["gamer","Engy"] / data["gamer","Dens"]
+        self.add_field( ("gas","total_energy"), function = _total_energy,
+                        units = unit_system["specific_energy"] )
 
         # pressure
         def _pressure(field, data):

@@ -58,7 +58,7 @@ class GAMERHierarchy(GridIndex):
         self.directory        = os.path.dirname(self.index_filename)
         self._handle          = ds._handle
         self.float_type       = 'float64' # fixed even when FLOAT8 is off
-#       self._particle_handle = ds._particle_handle
+        self._particle_handle = ds._particle_handle
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
@@ -70,27 +70,29 @@ class GAMERHierarchy(GridIndex):
         self.num_grids = self.dataset.parameters['NPatch'].sum()
         
     def _parse_index(self):
-        Para   = self.dataset.parameters
-        GID0   = 0
-        CrList = self._handle['Tree/Corner'].value
-        Cr2Phy = self._handle['Tree/Corner'].attrs['Cvt2Phy']
+        parameters       = self.dataset.parameters
+        gid0             = 0
+        grid_corner      = self._handle['Tree/Corner'].value
+        convert2physical = self._handle['Tree/Corner'].attrs['Cvt2Phy']
 
-        self.grid_dimensions    [:] = Para['PatchSize']
+        self.grid_dimensions    [:] = parameters['PatchSize']
         self.grid_particle_count[:] = 0
 
-        for lv in range(0, Para['NLevel']):
-            NP = Para['NPatch'][lv]
-            if NP == 0: break
+        for lv in range(0, parameters['NLevel']):
+            num_grids_level = parameters['NPatch'][lv]
+            if num_grids_level == 0: break
 
-            PScale = Para['PatchSize']*Para['CellScale'][lv]
+            patch_scale = parameters['PatchSize']*parameters['CellScale'][lv]
 
             # set the level and edge of each grid
             # (left/right_edge are YT arrays in code units)
-            self.grid_levels.flat[ GID0:GID0+NP ] = lv
-            self.grid_left_edge  [ GID0:GID0+NP ] = CrList[ GID0:GID0+NP ]*Cr2Phy
-            self.grid_right_edge [ GID0:GID0+NP ] = (CrList[ GID0:GID0+NP ] + PScale)*Cr2Phy
+            self.grid_levels.flat[ gid0:gid0 + num_grids_level ] = lv
+            self.grid_left_edge[ gid0:gid0 + num_grids_level ] \
+                = grid_corner[ gid0:gid0 + num_grids_level ]*convert2physical
+            self.grid_right_edge[ gid0:gid0 + num_grids_level ] \
+                = (grid_corner[ gid0:gid0 + num_grids_level ] + patch_scale)*convert2physical
 
-            GID0 += NP
+            gid0 += num_grids_level
 
         # allocate all grid objects
         self.grids = np.empty(self.num_grids, dtype='object')
@@ -125,7 +127,6 @@ class GAMERHierarchy(GridIndex):
     def _validate_parent_children_relasionship(self):
         mylog.info('Validating the parent-children relationship ...')
 
-        Para        = self.dataset.parameters
         father_list = self._handle["Tree/Father"].value
 
         for grid in self.grids:
@@ -153,7 +154,7 @@ class GAMERHierarchy(GridIndex):
                 father_gid = father_list[grid.id]
                 assert father_gid == grid.Parent.id, \
                        'Grid %d, Level %d, Parent_Found %d, Parent_Expect %d'%\
-                       (grid.id, grid.Level, grid.Parent.id, FaGID)
+                       (grid.id, grid.Level, grid.Parent.id, father_gid)
 
             # edges between children and parent
             if len(grid.Children) > 0:
@@ -166,7 +167,7 @@ class GAMERDataset(Dataset):
     _index_class      = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle           = None
-    _debug            = False # turn on/off the debug mode
+    _debug            = False # debug mode for the GAMER frontend
     
     def __init__(self, filename,
                  dataset_type      = 'gamer',
@@ -227,7 +228,7 @@ class GAMERDataset(Dataset):
         self.domain_dimensions = KeyInfo['NX0'].astype('int64')
 
         # periodicity
-        periodic = InputPara['Opt__BC_Flu'][0] == 0
+        periodic         = InputPara['Opt__BC_Flu'][0] == 0
         self.periodicity = (periodic,periodic,periodic)
 
         # cosmological parameters
