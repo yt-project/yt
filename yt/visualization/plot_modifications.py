@@ -27,7 +27,7 @@ from yt.config import \
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
-from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
@@ -1554,25 +1554,17 @@ class ParticleCallback(PlotCallback):
         #  duplicate particles if periodic in that direction AND if the plot
         #  extends outside the domain boundaries.
         if self.periodic_x and x0 > self.LE[0]:
-            particle_x = YTArray(np.hstack((particle_x, particle_x + period_x)),
-                            input_units = period_x.units)
-            particle_y = YTArray(np.hstack((particle_y, particle_y)),
-                            input_units = period_y.units)
+            particle_x = uhstack((particle_x, particle_x + period_x))
+            particle_y = uhstack((particle_y, particle_y))
         if self.periodic_x and x1 < self.RE[0]:
-            particle_x = YTArray(np.hstack((particle_x, particle_x - period_x)), 
-                                 input_units = period_x.units)
-            particle_y = YTArray(np.hstack((particle_y, particle_y)),
-                            input_units = period_y.units)
+            particle_x = uhstack((particle_x, particle_x - period_x))
+            particle_y = uhstack((particle_y, particle_y))
         if self.periodic_y and y0 > self.LE[1]:
-            particle_y = YTArray(np.hstack((particle_y, particle_y + period_y)),
-                                 input_units = period_y.units)
-            particle_x = YTArray(np.hstack((particle_x, particle_x)),
-                            input_units = period_x.units)
+            particle_y = uhstack((particle_y, particle_y + period_y))
+            particle_x = uhstack((particle_x, particle_x))
         if self.periodic_y and y1 < self.RE[1]:
-            particle_y = YTArray(np.hstack((particle_y, particle_y - period_y)), 
-                                 input_units = period_y.units)
-            particle_x = YTArray(np.hstack((particle_x, particle_x)),
-                            input_units = period_x.units)
+            particle_y = uhstack((particle_y, particle_y - period_y))
+            particle_x = uhstack((particle_x, particle_x))
         return particle_x, particle_y
 
     def _get_region(self, xlim, ylim, axis, data):
