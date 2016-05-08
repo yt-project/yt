@@ -393,7 +393,7 @@ class Unit(Expr):
 
     @property
     def is_dimensionless(self):
-        return self.dimensions == sympy_one
+        return self.dimensions is sympy_one
 
     @property
     def is_code_unit(self):

@@ -368,7 +368,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
-    import matplotlib
+    import matplotlib.figure
+    import matplotlib.colors
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.

@@ -106,9 +106,9 @@ class UnitRegistry:
                 "in this registry." % symbol)
 
         if hasattr(base_value, "in_base"):
-            base_value = float(base_value.in_base().value)
+            base_value = base_value.in_base().value
 
-        self.lut[symbol] = (base_value, ) + self.lut[symbol][1:]
+        self.lut[symbol] = (float(base_value), ) + self.lut[symbol][1:]
 
     def keys(self):
         """
