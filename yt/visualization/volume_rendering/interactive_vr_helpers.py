@@ -17,7 +17,6 @@ import numpy as np
 from yt.funcs import mylog
 from yt.data_objects.static_output import Dataset
 from yt.utilities.exceptions import YTSceneFieldNotFound
-from yt.utilities.on_demand_imports import NotAModule
 
 def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
                    cam_focus=None):
@@ -51,6 +50,13 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     >>> yt.interactive_render(ds)
 
     '''
+
+    try:
+        import cyglfw3  # NOQA
+        import OpenGL.GL  # NOQA
+    except ImportError:
+        raise ImportError("This functionality requires the cyglfw3 and PyOpenGL "
+                          "packages to be installed.")
 
     from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera
     from .interactive_loop import RenderingContext
@@ -87,9 +93,4 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     rc.start_loop(scene, c)
 
 
-try:
-    import cyglfw3 as glfw  # NOQA
-    import OpenGL.GL as GL  # NOQA
-    interactive_render = _render_opengl
-except ImportError:
-    interactive_render = NotAModule("opengl/cyglfw3")
+interactive_render = _render_opengl

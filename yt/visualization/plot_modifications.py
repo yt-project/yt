@@ -22,11 +22,6 @@ import numpy as np
 
 from distutils.version import LooseVersion
 
-from matplotlib.patches import Circle
-from matplotlib.colors import colorConverter
-from matplotlib import cm
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-
 from yt.config import \
     ytcfg
 from yt.funcs import \
@@ -309,8 +304,8 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("cutting_plane_bx",
-                                        "cutting_plane_by",
+            qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
+                                        "cutting_plane_magnetic_field_y",
                                         self.factor)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
@@ -561,6 +556,8 @@ class GridBoundaryCallback(PlotCallback):
         self.edgecolors = edgecolors
 
     def __call__(self, plot):
+        from matplotlib.colors import colorConverter
+
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
@@ -1409,6 +1406,7 @@ class HaloCatalogCallback(PlotCallback):
         self.factor = factor
 
     def __call__(self, plot):
+        from matplotlib.patches import Circle
         data = plot.data
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -2020,6 +2018,8 @@ class ScaleCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
+        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
         if plot.aspect != 1.0:
@@ -2312,6 +2312,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         self.const_alpha = const_alpha
 
     def __call__(self, plot):
+        from matplotlib import cm
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
