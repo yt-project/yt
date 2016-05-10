@@ -127,7 +127,7 @@ def read_embree_location():
             print("Pyembree is installed, but I could not compile Embree test code.")
             print("The error message was: ")
             print(err)
-            print fail_msg
+            print(fail_msg)
 
         # Clean up
         file.close()
