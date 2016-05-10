@@ -437,43 +437,25 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
         self.selector_mask = selector_mask
-        if base_grid is not None:
-            self._base_grid = base_grid
-        else:
-            self._base_grid = self
-            if id(self) != id(self._base_grid):
-                raise Exception('IDs do not match')
+        self._base_grid = base_grid
+        # if base_grid is not None:
+        #     self._base_grid = base_grid
+        #     if id(self) == id(self._base_grid):
+        #         raise Exception('IDs match')
+        # else:
+        #     self._base_grid = self
+        #     if id(self) != id(self._base_grid):
+        #         raise Exception('IDs do not match')
 
     def select(self, selector, source, dest, offset):
-        if id(self) == id(self._base_grid):
+        if self._base_grid is None or id(self) == id(self._base_grid):
             n = super(ParticleOctreeSubset, self).select(selector, source,
                                                          dest, offset)
         else:
-            nsrc = np.sum(self.domain_ind >= 0)
-            ndst = np.sum(self._base_grid.domain_ind>=0)
-            if self.domain_ind.size != self.oct_handler._index_base_octs.size:
-                print 'domain_ind.size = {}'.format(self.domain_ind.size)
-                print '_index_base_octs.size = {}'.format(self.oct_handler._index_base_octs.size)
-                raise Exception('Indexes do not match.')
-            if source.shape[-1] != nsrc:
-                print 'source.shape = {}'.format(source.shape)
-                print 'sum(domain_ind >= 0) = {}'.format(nsrc)
-                raise Exception('Source size does not match.')
             # Create map from indexes in buffered octree to indexes in base 
-            # octree. The order of the domain indexes should be the same,
-            # only the visit order may differ.
-            domain_ind2 = np.zeros(nsrc, 'int64') - 1
-            i_dom2 = 0
-            for i_dom1 in range(self.domain_ind.size):
-                if self.oct_handler._index_base_octs[i_dom1] == 1:
-                    if self.domain_ind[i_dom1] >= 0:
-                        domain_ind2[self._base_grid.domain_ind[i_dom2]] = self.domain_ind[i_dom1]
-                    i_dom2 += 1
-            idx = domain_ind2[domain_ind2 >= 0]
-            if ndst != idx.size:
-                print 'sum(_index_base_octs[domain_ind]) = {}'.format(idx.size)
-                print 'sum(base.domain_ind >= 0) = {}'.format(ndst)
-                raise Exception('Destination size does not match')
+            # octree. The order of the visit should be the same.
+            idx = self.oct_handler.get_index_base_octs()
+            assert(self._base_grid.oct_handler.nocts==idx.shape[0])
             n = self._base_grid.select(selector, source[:,:,:,idx], dest, offset)
         return n
 
@@ -503,9 +485,12 @@ class ParticleOctreeSubset(OctreeSubset):
             return self._index.regions._prev_oct_handler
         cache = self._index.regions._cached_octrees
         # TODO Change this to use a primary file ID for forest owners
+        base_mask = None
+        if self._base_grid is not None:
+            base_mask = self._base_grid.selector_mask
         oct_handler = self._index.regions.construct_octree(self._index,
             self._index.io, self.data_files, self._oref,
-            self.selector_mask, base_mask = self._base_grid.selector_mask)
+            self.selector_mask, base_mask = base_mask)
         self._index.regions._prev_octree_subset = self._index.regions._last_octree_subset
         self._index.regions._prev_oct_handler = self._index.regions._last_oct_handler
         self._index.regions._last_octree_subset = id(self)

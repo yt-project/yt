@@ -72,6 +72,11 @@ cdef class MaskOcts(OctVisitor):
 cdef class IndexOcts(OctVisitor):
     cdef np.int64_t[:] oct_index
 
+cdef class IndexMaskMapOcts(OctVisitor):
+    cdef np.int64_t[:] oct_index
+    cdef np.uint8_t[:] oct_mask
+    cdef np.uint64_t map_index
+
 cdef class ICoordsOcts(OctVisitor):
     cdef np.int64_t[:,:] icoords
 
@@ -93,6 +98,7 @@ cdef class CopyArrayF64(OctVisitor):
     cdef np.float64_t[:,:] dest
 
 cdef class CopyFileIndArrayI8(OctVisitor):
+    cdef np.int64_t root
     cdef np.uint8_t[:] source
     cdef np.uint8_t[:] dest
 

@@ -55,8 +55,8 @@ class ParticleIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        ML = self.oct_handler.max_level 
-        # ML = self.regions.index_order1 # was self.oct_handler.max_level
+        # ML = self.oct_handler.max_level 
+        ML = self.regions.index_order1 # was self.oct_handler.max_level
         dx = 1.0/(self.dataset.domain_dimensions*2**ML)
         dx = dx * (self.dataset.domain_right_edge -
                    self.dataset.domain_left_edge)
@@ -268,7 +268,7 @@ class ParticleIndex(Index):
                 if (bobj is None) or (getattr(bobj, '_buffer_ngz', None) != ngz):
                     t1 = time.time()
                     gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
-                        ngz, obj.selector_mask)
+                                                              ngz, obj.selector_mask, coarse_ghosts=False)
                     t2 = time.time()
                     #print "File {}: {} seconds to get_ghost_zones ({} additional files required)".format(obj.data_files[0].file_id,t2-t1,len(buffer_files))
                     buffer_files = [self.data_files[i] for i in gzi]

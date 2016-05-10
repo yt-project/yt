@@ -1203,7 +1203,8 @@ cdef class BoolArrayCollection:
             preincrement(iter_set[0])
 
     cdef void _get_ghost_zones(self, int ngz, int order1, int order2, 
-                               bint periodicity[3], BoolArrayCollection out_ewah):
+                               bint periodicity[3], BoolArrayCollection out_ewah,
+                               bint coarse_ghosts = 0):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef cmap[np.uint64_t, ewah_bool_array] *ewah_coll = <cmap[np.uint64_t, ewah_bool_array] *> self.ewah_coll
@@ -1240,7 +1241,7 @@ cdef class BoolArrayCollection:
             bool_keys[i] = 0
         while iter_set1[0] != iter_end1[0]:
             mi1 = dereference(iter_set1[0])
-            if ewah_refn[0].get(mi1) == 0:
+            if (coarse_ghosts == 1) or (ewah_refn[0].get(mi1) == 0):
                 # Coarse neighbors
                 ntot = morton_neighbors_coarse(mi1, max_index1, periodicity, ngz,
                                                index, ind1_n, neighbor_list1)
