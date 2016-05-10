@@ -1,7 +1,7 @@
 import os
 from pkg_resources import resource_filename
 import shutil
-from subprocess import Popen, PIPE, call
+from subprocess import Popen, PIPE
 import sys
 import tempfile
 
@@ -91,12 +91,11 @@ def read_embree_location():
         except IOError:
             rd = '/usr/local'
 
-    fail_msg = ("Pyembree is installed, but I could not compile Embree test code. \n"
-               "I attempted to find Embree headers in %s. \n"
+    fail_msg = ("I attempted to find Embree headers in %s. \n"
                "If this is not correct, please set your correct embree location \n"
                "using EMBREE_DIR environment variable or your embree.cfg file. \n"
                "Please see http://yt-project.org/docs/dev/visualizing/unstructured_mesh_rendering.html "
-                "for more information." % rd)
+                "for more information. \n" % rd)
 
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
@@ -119,22 +118,28 @@ def read_embree_location():
             '}'
         )
         file.flush()
-        with open(os.devnull, 'w') as fnull:
-            exit_code = call(compiler + ['-I%s/include/' % rd, filename],
-                             stdout=fnull, stderr=fnull)
+        p = Popen(compiler + ['-I%s/include/' % rd, filename], 
+                  stdin=PIPE, stdout=PIPE, stderr=PIPE)
+        output, err = p.communicate()
+        exit_code = p.returncode
+
+        if exit_code != 0:
+            print("Pyembree is installed, but I could not compile Embree test code.")
+            print("The error message was: ")
+            print(err)
+            print fail_msg
 
         # Clean up
         file.close()
 
     except OSError:
-        print(fail_msg)
+        print("read_embree_location() could not find your C compiler. "
+              "Attempted to use '%s'. " % compiler)
+        return False
 
     finally:
         os.chdir(curdir)
         shutil.rmtree(tmpdir)
-
-    if exit_code != 0:
-        print(fail_msg)
 
     return rd
 
