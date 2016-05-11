@@ -51,3 +51,7 @@ def test_stream_hexahedral() :
     yield assert_almost_equal, dd["dx"].to_ndarray(), 1.0/Nx
     yield assert_almost_equal, dd["dy"].to_ndarray(), 1.0/Ny
     yield assert_almost_equal, dd["dz"].to_ndarray(), 1.0/Nz
+
+    s = yt.SlicePlot(ds, "x", "random_field")
+    s._setup_plots()
+    s.frb["random_field"]
