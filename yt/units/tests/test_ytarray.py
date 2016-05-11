@@ -42,7 +42,7 @@ from yt.testing import \
     assert_allclose_units
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
-    cm, m, g
+    cm, m, g, degree
 from yt.utilities.physical_ratios import \
     metallicity_sun
 
@@ -1157,3 +1157,9 @@ def test_load_and_save():
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+def test_trig_ufunc_degrees():
+    for ufunc in (np.sin, np.cos, np.tan):
+        degree_values = np.random.random(10)*degree
+        radian_values = degree_values.in_units('radian')
+        assert_array_equal(ufunc(degree_values), ufunc(radian_values))

@@ -209,6 +209,24 @@ if __name__=="__main__":
         i[0](*i[1:])
     time.sleep(1)
 
+def test_position_location():
+    np.random.seed(int(0x4d3d3d3))
+    pos = np.random.normal(0.5, scale=0.05, size=(NPART,3)) * (DRE-DLE) + DLE
+    # Now convert to integers
+    data = {}
+    bbox = []
+    for i, ax in enumerate('xyz'):
+        np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
+        bbox.append([DLE[i], DRE[i]])
+        data["particle_position_%s" % ax] = pos[:,i]
+    bbox = np.array(bbox)
+    ds = load_particles(data, 1.0, bbox = bbox, over_refine_factor = 2)
+    oct_id, all_octs = ds.index.oct_handler.locate_positions(pos)
+    for oi in sorted(all_octs):
+        this_oct = pos[oct_id == oi]
+        assert(np.all(this_oct >= all_octs[oi]["left_edge"]))
+        assert(np.all(this_oct <= all_octs[oi]["right_edge"]))
+
 os33 = "snapshot_033/snap_033.0.hdf5"
 @requires_file(os33)
 def test_get_smallest_dx():

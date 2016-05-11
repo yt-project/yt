@@ -1021,6 +1021,34 @@ argument of this form:
 
 yt will utilize length, mass and time to set up all other units.
 
+GAMER Data
+----------
+
+GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the data like this:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("InteractingJets/jet_000002")
+
+Currently GAMER does not assume any unit for non-cosmological simulations. To specify the units for yt,
+you need to supply conversions for length, time, and mass to ``load`` using the ``units_override`` functionality:
+
+.. code-block:: python
+
+   import yt
+   code_units = { "length_unit":(1.0,"kpc"),
+                  "time_unit"  :(3.08567758096e+13,"s"),
+                  "mass_unit"  :(1.4690033e+36,"g") }
+   ds = yt.load("InteractingJets/jet_000002", units_override=code_units)
+
+This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, but the GAMER fields,
+e.g., ``("gamer","Dens")``, will be in code units.
+
+.. rubric:: Caveats
+
+* GAMER data in raw binary format (i.e., OPT__OUTPUT_TOTAL = C-binary) is not supported.
+
 .. _loading-amr-data:
 
 Generic AMR Data

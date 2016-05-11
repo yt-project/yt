@@ -597,7 +597,8 @@ class Dataset(object):
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
         if field == self._last_freq:
-            return self._last_finfo
+            if field not in self.field_info.field_aliases.values():
+                return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
