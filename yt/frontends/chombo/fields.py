@@ -78,6 +78,21 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("particle_id", ("", ["particle_index"], None)),
     )
 
+    def setup_particle_fields(self, ptype):
+
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["particle_momentum_%s" % axis]/data["particle_mass"]
+            return velocity
+
+        for ax in 'xyz':
+            self.add_field((ptype, "particle_velocity_%s" % ax), 
+                           function=_get_vel(ax),
+                           particle_type=True,
+                           units="code_length/code_time")
+
+        super(Orion2FieldInfo, self).setup_particle_fields(ptype)
+
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
