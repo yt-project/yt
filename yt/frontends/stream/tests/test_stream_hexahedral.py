@@ -6,6 +6,7 @@ from yt.frontends.stream.data_structures import \
 from yt.testing import \
     assert_almost_equal, \
     assert_equal
+from yt import SlicePlot
 # Field information
 
 def test_stream_hexahedral() :
@@ -52,6 +53,6 @@ def test_stream_hexahedral() :
     yield assert_almost_equal, dd["dy"].to_ndarray(), 1.0/Ny
     yield assert_almost_equal, dd["dz"].to_ndarray(), 1.0/Nz
 
-    s = yt.SlicePlot(ds, "x", "random_field")
+    s = SlicePlot(ds, "x", "random_field")
     s._setup_plots()
     s.frb["random_field"]
