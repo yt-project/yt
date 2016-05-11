@@ -31,24 +31,19 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, \
     parallel_root_only
 from yt.utilities.physical_constants import speed_of_light_cgs
+from yt.data_objects.static_output import Dataset
 
 class LightRay(CosmologySplice):
     """
-    LightRay(parameter_filename, simulation_type=None,
-             near_redshift=None, far_redshift=None,
-             use_minimum_datasets=True, deltaz_min=0.0,
-             minimum_coherent_box_fraction=0.0,
-             time_data=True, redshift_data=True,
-             find_outputs=False, load_kwargs=None):
-
-    Create a LightRay object.  A light ray is much like a light cone,
-    in that it stacks together multiple datasets in order to extend a
-    redshift interval.  Unlike a light cone, which does randomly
-    oriented projections for each dataset, a light ray consists of
-    randomly oriented single rays.  The purpose of these is to create
-    synthetic QSO lines of sight.
-
-    Light rays can also be made from single datasets.
+    A LightRay object is a one-dimensional object representing the trajectory 
+    of a ray of light as it passes through one or more datasets (simple and
+    compound rays respectively).  One can sample any of the fields intersected
+    by the LightRay object as it passed through the dataset(s).
+    
+    For compound rays, the LightRay stacks together multiple datasets in a time
+    series in order to approximate a LightRay's path through a volume
+    and redshift interval larger than a single simulation data output.
+    The outcome is something akin to a synthetic QSO line of sight.
 
     Once the LightRay object is set up, use LightRay.make_light_ray to
     begin making rays.  Different randomizations can be created with a
@@ -56,31 +51,32 @@ class LightRay(CosmologySplice):
 
     Parameters
     ----------
-    parameter_filename : string
-        The path to the simulation parameter file or dataset.
+    parameter_filename : string or :class:`yt.data_objects.static_output.Dataset`
+        For simple rays, one may pass either a loaded dataset object or
+        the filename of a dataset.
+        For compound rays, one must pass the filename of the simulation
+        parameter file.
     simulation_type : optional, string
-        The simulation type.  If None, the first argument is assumed to
-        refer to a single dataset.
+        This refers to the simulation frontend type.  Do not use for simple 
+        rays.
         Default: None
     near_redshift : optional, float
         The near (lowest) redshift for a light ray containing multiple
-        datasets.  Do not use if making a light ray from a single
-        dataset.
+        datasets.  Do not use for simple rays.
         Default: None
     far_redshift : optional, float
         The far (highest) redshift for a light ray containing multiple
-        datasets.  Do not use if making a light ray from a single
-        dataset.
+        datasets.  Do not use for simple rays.
         Default: None
     use_minimum_datasets : optional, bool
         If True, the minimum number of datasets is used to connect the
         initial and final redshift.  If false, the light ray solution
         will contain as many entries as possible within the redshift
-        interval.
+        interval.  Do not use for simple rays.
         Default: True.
     deltaz_min : optional, float
         Specifies the minimum :math:`\Delta z` between consecutive
-        datasets in the returned list.
+        datasets in the returned list.  Do not use for simple rays.
         Default: 0.0.
     minimum_coherent_box_fraction : optional, float
         Used with use_minimum_datasets set to False, this parameter
@@ -88,23 +84,26 @@ class LightRay(CosmologySplice):
         before rerandomizing the projection axis and center.  This
         was invented to allow light rays with thin slices to sample
         coherent large scale structure, but in practice does not work
-        so well.  Try setting this parameter to 1 and see what happens.
+        so well.  Try setting this parameter to 1 and see what happens.  
+        Do not use for simple rays.
         Default: 0.0.
     time_data : optional, bool
         Whether or not to include time outputs when gathering
-        datasets for time series.
+        datasets for time series.  Do not use for simple rays.
         Default: True.
     redshift_data : optional, bool
         Whether or not to include redshift outputs when gathering
-        datasets for time series.
+        datasets for time series.  Do not use for simple rays.
         Default: True.
     find_outputs : optional, bool
         Whether or not to search for datasets in the current
-        directory.
+        directory.  Do not use for simple rays.
         Default: False.
     load_kwargs : optional, dict
-        Optional dictionary of kwargs to be passed to the "load"
-        function, appropriate for use of certain frontends.  E.g.
+        If you are passing a filename of a dataset to LightRay rather than an 
+        already loaded dataset, then you can optionally provide this dictionary 
+        as keywords when the dataset is loaded by yt with the "load" function.
+        Necessary for use with certain frontends.  E.g.
         Tipsy using "bounding_box"
         Gadget using "unit_base", etc.
         Default : None
@@ -130,26 +129,37 @@ class LightRay(CosmologySplice):
         self.light_ray_solution = []
         self._data = {}
 
-        # Make a light ray from a single, given dataset.
-        if simulation_type is None:
+        # The options here are:
+        # 1) User passed us a dataset: use it to make a simple ray
+        # 2) User passed us a dataset filename: use it to make a simple ray
+        # 3) User passed us a simulation filename: use it to make a compound ray
+
+        # Make a light ray from a single, given dataset: #1, #2
+        if simulation_type is None:     
             self.simulation_type = simulation_type
-            ds = load(parameter_filename, **self.load_kwargs)
-            if ds.cosmological_simulation:
-                redshift = ds.current_redshift
+            if isinstance(self.parameter_filename, Dataset):
+                self.ds = self.parameter_filename
+                self.parameter_filename = self.ds.basename
+            elif isinstance(self.parameter_filename, str):
+                self.ds = load(self.parameter_filename, **self.load_kwargs)
+            if self.ds.cosmological_simulation:
+                redshift = self.ds.current_redshift
                 self.cosmology = Cosmology(
-                    hubble_constant=ds.hubble_constant,
-                    omega_matter=ds.omega_matter,
-                    omega_lambda=ds.omega_lambda,
-                    unit_registry=ds.unit_registry)
+                    hubble_constant=self.ds.hubble_constant,
+                    omega_matter=self.ds.omega_matter,
+                    omega_lambda=self.ds.omega_lambda,
+                    unit_registry=self.ds.unit_registry)
             else:
                 redshift = 0.
-            self.light_ray_solution.append({"filename": parameter_filename,
+            self.light_ray_solution.append({"filename": self.parameter_filename,
                                             "redshift": redshift})
 
-        # Make a light ray from a simulation time-series.
+        # Make a light ray from a simulation time-series. #3
         else:
+            self.ds = None
+            assert isinstance(self.parameter_filename, str)
             # Get list of datasets for light ray solution.
-            CosmologySplice.__init__(self, parameter_filename, simulation_type,
+            CosmologySplice.__init__(self, self.parameter_filename, simulation_type,
                                      find_outputs=find_outputs)
             self.light_ray_solution = \
               self.create_cosmology_splice(self.near_redshift, self.far_redshift,
@@ -270,7 +280,7 @@ class LightRay(CosmologySplice):
         Create a light ray and get field values for each lixel.  A light
         ray consists of a list of field values for cells intersected by
         the ray and the path length of the ray through those cells.
-        Light ray data can be written out to an hdf5 file.
+        Light ray data must be written out to an hdf5 file.
 
         Parameters
         ----------
@@ -383,8 +393,12 @@ class LightRay(CosmologySplice):
                                                        storage=all_ray_storage,
                                                        njobs=njobs):
 
-            # Load dataset for segment.
-            ds = load(my_segment['filename'], **self.load_kwargs)
+            # In case of simple rays, use the already loaded dataset: self.ds, 
+            # otherwise, load dataset for segment.
+            if self.ds is None:
+                ds = load(my_segment['filename'], **self.load_kwargs)
+            else:
+                ds = self.ds
 
             my_segment['unique_identifier'] = ds.unique_identifier
             if redshift is not None:
@@ -555,7 +569,7 @@ class LightRay(CosmologySplice):
         Write light ray data to hdf5 file.
         """
         if self.simulation_type is None:
-            ds = load(self.parameter_filename, **self.load_kwargs)
+            ds = self.ds
         else:
             ds = {}
             ds["dimensionality"] = self.simulation.dimensionality
