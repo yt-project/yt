@@ -1,5 +1,5 @@
 """
-FIRE-specific fields
+Gizmo-specific fields
 
 
 
@@ -21,7 +21,7 @@ from yt.frontends.gadget.fields import \
 from yt.frontends.sph.fields import \
     SPHFieldInfo
 
-class FIREFieldInfo(GadgetFieldInfo):
+class GizmoFieldInfo(GadgetFieldInfo):
     known_particle_fields = (
         ("Mass", ("code_mass", ["particle_mass"], None)),
         ("Masses", ("code_mass", ["particle_mass"], None)),
@@ -60,7 +60,7 @@ class FIREFieldInfo(GadgetFieldInfo):
                                  "Ca", "Fe"]
 
     def setup_gas_particle_fields(self, ptype):
-        super(FIREFieldInfo, self).setup_gas_particle_fields(ptype)
+        super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
         self.alias((ptype, "temperature"), (ptype, "Temperature"))
 
         def _h_density(field, data):

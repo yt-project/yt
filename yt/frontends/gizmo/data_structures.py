@@ -1,5 +1,5 @@
 """
-Data structures for FIRE frontend.
+Data structures for Gizmo frontend.
 
 
 
@@ -20,10 +20,10 @@ from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
 
 from .fields import \
-    FIREFieldInfo
+    GizmoFieldInfo
 
-class FIREDataset(GadgetHDF5Dataset):
-    _field_info_class = FIREFieldInfo
+class GizmoDataset(GadgetHDF5Dataset):
+    _field_info_class = GizmoFieldInfo
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

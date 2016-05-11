@@ -1,5 +1,5 @@
 """
-Gadget frontend tests
+Gizmo frontend tests
 
 
 
@@ -20,7 +20,7 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
     sph_answer
-from yt.frontends.fire.api import FIREDataset
+from yt.frontends.gizmo.api import GizmoDataset
 
 FIRE_m12i = 'FIRE_M12i_ref11/snapshot_600.hdf5'
 
@@ -39,10 +39,10 @@ fields = OrderedDict(
 )
 
 @requires_ds(FIRE_m12i)
-def test_FireDataset():
+def test_GizmoDataset():
     ds = data_dir_load(FIRE_m12i)
     assert isinstance(ds, FIREDataset)
     for test in sph_answer(ds, 'FIRE_m12i', 4786950, fields):
-        test_FireDataset.__name__ = test.description
+        test_GizmoDataset.__name__ = test.description
         yield test
     assert False

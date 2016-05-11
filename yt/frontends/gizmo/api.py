@@ -15,7 +15,7 @@ API for FIRE frontend.
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-    FIREDataset
+    GizmoDataset
 
 from .fields import \
-    FIREFieldInfo
+    GizmoFieldInfo
