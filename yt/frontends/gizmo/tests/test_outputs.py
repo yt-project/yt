@@ -41,7 +41,7 @@ fields = OrderedDict(
 @requires_ds(FIRE_m12i)
 def test_GizmoDataset():
     ds = data_dir_load(FIRE_m12i)
-    assert isinstance(ds, FIREDataset)
+    assert isinstance(ds, GizmoDataset)
     for test in sph_answer(ds, 'FIRE_m12i', 4786950, fields):
         test_GizmoDataset.__name__ = test.description
         yield test
