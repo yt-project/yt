@@ -15,6 +15,7 @@ Profile classes, to deal with generating and obtaining profiles
 
 import numpy as np
 
+from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
@@ -249,8 +250,11 @@ class ProfileND(ParallelAnalysisInterface):
 
     def __getitem__(self, field):
         fname = self.field_map.get(field, None)
-        if fname is None and isinstance(field, tuple):
-            fname = self.field_map.get(field[1], None)
+        if fname is None:
+            if isinstance(field, tuple):
+                fname = self.field_map.get(field[1], None)
+            elif isinstance(field, DerivedField):
+                fname = self.field_map.get(field.name[1], None)
         if fname is None:
             raise KeyError(field)
         else:
