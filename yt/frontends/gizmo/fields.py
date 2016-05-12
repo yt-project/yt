@@ -14,6 +14,8 @@ Gizmo-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.fields.particle_fields import \
+    add_volume_weighted_smoothed_field
 from yt.fields.species_fields import \
     add_species_field_by_density
 from yt.frontends.gadget.fields import \
@@ -96,9 +98,19 @@ class GizmoFieldInfo(GadgetFieldInfo):
             return data[ptype, "density"] * \
               data[ptype, "%s_metallicity" % species]
 
+        num_neighbors = 64
         for species in self.nuclei_names:
             self.add_field(
                 (ptype, "%s_nuclei_mass_density" % species),
                 function=_nuclei_mass_density_field,
                 particle_type=True,
                 units=self.ds.unit_system["density"])
+
+            for suf in ["_nuclei_mass_density", "_metallicity"]:
+                field = "%s%s" % (species, suf)
+                fn = add_volume_weighted_smoothed_field(
+                    ptype, "particle_position", "particle_mass",
+                    "smoothing_length", "density", field,
+                    self, num_neighbors)
+
+                self.alias(("gas", field), fn[0])
