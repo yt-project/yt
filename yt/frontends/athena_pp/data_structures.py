@@ -61,22 +61,21 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
 
 class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'athena++'):
-        super(AthenaPPLogarithmicIndex, self).__init__(ds, dataset_type)
         self._handle = ds._handle
+        super(AthenaPPLogarithmicIndex, self).__init__(ds, dataset_type)
         self.index_filename = self.dataset.filename
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
 
     def _initialize_mesh(self):
+        mylog.debug("Setting up grids.")
         num_grids = self._handle.attrs["NumMeshBlocks"]
         self.meshes = []
         for i in range(num_grids):
             x = self._handle["x1f"][i,:]
             y = self._handle["x2f"][i,:]
             z = self._handle["x3f"][i,:]
-            nx = len(x)
-            ny = len(y)
-            nz = len(z)
+            nx, ny, nz = self._handle.attrs["MeshBlockSize"]+1
             coords = np.zeros((nx, ny, nz, 3), dtype="float64", order="C")
             coords[:,:,:,0] = x[:,None,None]
             coords[:,:,:,1] = y[None,:,None]
@@ -92,6 +91,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                                            coords,
                                            self)
             self.meshes.append(mesh)
+        mylog.debug("Done setting up grids.")
 
     def _detect_output_fields(self):
         self.field_list = [("athena++", k) for k in self.ds._field_map]
@@ -226,7 +226,7 @@ class AthenaPPDataset(Dataset):
         yrat = self._handle.attrs["RootGridX2"][2]
         zrat = self._handle.attrs["RootGridX3"][2]
         if xrat != 1.0 or yrat != 1.0 or zrat != 1.0:
-            self._index_class = AthenaPPLogarithmicMesh
+            self._index_class = AthenaPPLogarithmicIndex
         else:
             self._index_class = AthenaPPHierarchy
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
