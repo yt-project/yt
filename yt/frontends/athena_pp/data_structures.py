@@ -32,6 +32,11 @@ from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.utilities.file_handler import \
     HDF5FileHandler
+from yt.geometry.unstructured_mesh_handler import \
+    UnstructuredIndex
+from yt.data_objects.unstructured_mesh import \
+    SemiStructuredMesh
+from itertools import chain, product
 
 from .fields import AthenaPPFieldInfo
 
@@ -43,6 +48,53 @@ geom_map = {"cartesian": "cartesian",
             "sinusoidal": "cartesian",
             "schwarzschild": "spherical",
             "kerr-schild": "spherical"}
+
+_cis = np.fromiter(chain.from_iterable(product([0,1], [0,1], [0,1])),
+                   dtype=np.int64, count = 8*3)
+_cis.shape = (8, 3)
+
+class AthenaPPLogarithmicMesh(SemiStructuredMesh):
+    _index_offset = 0
+
+    def __init__(self, *args, **kwargs):
+        super(AthenaPPLogarithmicMesh, self).__init__(*args, **kwargs)
+
+class AthenaPPLogarithmicIndex(UnstructuredIndex):
+    def __init__(self, ds, dataset_type = 'athena++'):
+        super(AthenaPPLogarithmicIndex, self).__init__(ds, dataset_type)
+        self._handle = ds._handle
+        self.index_filename = self.dataset.filename
+        self.directory = os.path.dirname(self.dataset.filename)
+        self.dataset_type = dataset_type
+
+    def _initialize_mesh(self):
+        num_grids = self._handle.attrs["NumMeshBlocks"]
+        self.meshes = []
+        for i in range(num_grids):
+            x = self._handle["x1f"][i,:]
+            y = self._handle["x2f"][i,:]
+            z = self._handle["x3f"][i,:]
+            nx = len(x)
+            ny = len(y)
+            nz = len(z)
+            coords = np.zeros((nx, ny, nz, 3), dtype="float64", order="C")
+            coords[:,:,:,0] = x[:,None,None]
+            coords[:,:,:,1] = y[None,:,None]
+            coords[:,:,:,2] = z[None,None,:]
+            coords.shape = (nx * ny * nz, 3)
+            cycle = np.rollaxis(np.indices((nx-1,ny-1,nz-1)), 0, 4)
+            cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
+            off = _cis + cycle[:, np.newaxis]
+            connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+            mesh = AthenaPPLogarithmicMesh(i,
+                                           self.index_filename,
+                                           connectivity,
+                                           coords,
+                                           self)
+            self.meshes.append(mesh)
+
+    def _detect_output_fields(self):
+        self.field_list = [("athena++", k) for k in self.ds._field_map]
 
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
@@ -108,10 +160,6 @@ class AthenaPPHierarchy(GridIndex):
             self.grid_dimensions[i] = self._handle.attrs["MeshBlockSize"]
         levels = self._handle["Levels"][:]
 
-        if self.ds.geometry == "logspherical":
-            self.grid_left_edge[:,0] = np.log10(self.grid_left_edge[:,0])
-            self.grid_right_edge[:,0] = np.log10(self.grid_right_edge[:,0])
-
         self.grid_left_edge = self.ds.arr(self.grid_left_edge, "code_length")
         self.grid_right_edge = self.ds.arr(self.grid_right_edge, "code_length")
 
@@ -161,7 +209,6 @@ class AthenaPPHierarchy(GridIndex):
                               cache = cache)
 
 class AthenaPPDataset(Dataset):
-    _index_class = AthenaPPHierarchy
     _field_info_class = AthenaPPFieldInfo
     _dataset_type = "athena++"
 
@@ -175,6 +222,13 @@ class AthenaPPDataset(Dataset):
         if units_override is None:
             units_override = {}
         self._handle = HDF5FileHandler(filename)
+        xrat = self._handle.attrs["RootGridX1"][2]
+        yrat = self._handle.attrs["RootGridX2"][2]
+        zrat = self._handle.attrs["RootGridX3"][2]
+        if xrat != 1.0 or yrat != 1.0 or zrat != 1.0:
+            self._index_class = AthenaPPLogarithmicMesh
+        else:
+            self._index_class = AthenaPPHierarchy
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.filename = filename
@@ -209,20 +263,14 @@ class AthenaPPDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        xmin, xmax, xrat = self._handle.attrs["RootGridX1"][:]
-        ymin, ymax, yrat = self._handle.attrs["RootGridX2"][:]
-        zmin, zmax, yrat = self._handle.attrs["RootGridX3"][:]
+        xmin, xmax = self._handle.attrs["RootGridX1"][:2]
+        ymin, ymax = self._handle.attrs["RootGridX2"][:2]
+        zmin, zmax = self._handle.attrs["RootGridX3"][:2]
 
         self.domain_left_edge = np.array([xmin, ymin, zmin], dtype='float64')
         self.domain_right_edge = np.array([xmax, ymax, zmax], dtype='float64')
 
         self.geometry = geom_map[self._handle.attrs["Coordinates"].decode('utf-8')]
-
-        if xrat != 1.0 and self.geometry == "spherical":
-            self.geometry = "logspherical"
-            self.domain_left_edge[0] = np.log10(self.domain_left_edge[0])
-            self.domain_right_edge[0] = np.log10(self.domain_right_edge[0])
-
         self.domain_width = self.domain_right_edge-self.domain_left_edge
         self.domain_dimensions = self._handle.attrs["RootGridSize"]
 
