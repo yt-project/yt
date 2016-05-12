@@ -169,6 +169,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         self._particle_fields = determine_particle_fields(self._handle)
         self._position_fields = [self._particle_fields["particle_pos%s" % ax]
                                  for ax in 'xyz']
+        self._chunksize = 32**3
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -176,46 +177,71 @@ class IOHandlerFLASHParticle(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
         data_files = set([])
+        assert(len(ptf) == 1)
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
+        assert(len(data_files) == 1)
         for data_file in sorted(data_files):
-            # This double-reads
+            pcount = self._count_particles(data_file)["io"]
             for ptype, field_list in sorted(ptf.items()):
-                x = np.asarray(p_fields[:, px], dtype="=f8")
-                y = np.asarray(p_fields[:, py], dtype="=f8")
-                z = np.asarray(p_fields[:, pz], dtype="=f8")
-                yield ptype, (x, y, z)
+                total = 0
+                while total < pcount:
+                    count = min(self._chunksize, pcount - total)
+                    x = np.asarray(p_fields[total:total+count, px], dtype="=f8")
+                    y = np.asarray(p_fields[total:total+count, py], dtype="=f8")
+                    z = np.asarray(p_fields[total:total+count, pz], dtype="=f8")
+                    total += count
+                    yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
+        chunks = list(chunks)
         data_files = set([])
+        assert(len(ptf) == 1)
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
+        assert(len(data_files) == 1)
         for data_file in sorted(data_files):
+            pcount = self._count_particles(data_file)["io"]
             for ptype, field_list in sorted(ptf.items()):
-                x = np.asarray(p_fields[:, px], dtype="=f8")
-                y = np.asarray(p_fields[:, py], dtype="=f8")
-                z = np.asarray(p_fields[:, pz], dtype="=f8")
-                mask = selector.select_points(x, y, z, 0.0)
-                if mask is None: continue
-                for field in field_list:
-                    fi = self._particle_fields[field]
-                    data = p_fields[:, fi]
-                    yield (ptype, field), data[mask]
+                total = 0
+                while total < pcount:
+                    count = min(self._chunksize, pcount - total)
+                    x = np.asarray(p_fields[total:total+count, px], dtype="=f8")
+                    y = np.asarray(p_fields[total:total+count, py], dtype="=f8")
+                    z = np.asarray(p_fields[total:total+count, pz], dtype="=f8")
+                    total += count
+                    mask = selector.select_points(x, y, z, 0.0)
+                    del x, y, z
+                    if mask is None: continue
+                    for field in field_list:
+                        fi = self._particle_fields[field]
+                        data = p_fields[total-count:total, fi]
+                        yield (ptype, field), data[mask]
 
     def _initialize_index(self, data_file, regions):
         p_fields = self._handle["/tracer particles"]
-        pos = np.column_stack(np.asarray(p_fields[:, i], dtype="=f8")
-                              for i in self._position_fields)
-        regions.add_data_file(pos, data_file.file_id)
-        morton = compute_morton(pos[:,0], pos[:,1], pos[:,2],
-                                data_file.ds.domain_left_edge,
-                                data_file.ds.domain_right_edge)
+        px, py, pz = self._position_fields
+        pcount = self._count_particles(data_file)["io"]
+        morton = np.empty(pcount, dtype='uint64')
+        ind = 0
+        while ind < pcount:
+            npart = min(self._chunksize, pcount - ind)
+            pos = np.empty((npart, 3), dtype="=f8")
+            pos[:,0] = p_fields[ind:ind+npart, px]
+            pos[:,1] = p_fields[ind:ind+npart, py]
+            pos[:,2] = p_fields[ind:ind+npart, pz]
+            regions.add_data_file(pos, data_file.file_id)
+            morton[ind:ind+npart] = \
+                compute_morton(pos[:,0], pos[:,1], pos[:,2],
+                               data_file.ds.domain_left_edge,
+                               data_file.ds.domain_right_edge)
+            ind += self._chunksize
         return morton
 
     def _count_particles(self, data_file):
