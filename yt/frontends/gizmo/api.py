@@ -1,5 +1,5 @@
 """
-API for FIRE frontend.
+API for Gizmo frontend.
 
 
 
