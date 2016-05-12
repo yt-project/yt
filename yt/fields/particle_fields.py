@@ -783,7 +783,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         mass = data[ptype, mass_name].in_base(unit_system.name)
         dens = data[ptype, density_name].in_base(unit_system.name)
         quan = data[ptype, smoothed_field]
-        quan = quan.convert_to_units(field_units)
+        if hasattr(quan, "units"):
+            quan = quan.convert_to_units(field_units)
 
         if smoothing_length_name is None:
             hsml = np.zeros(quan.shape, dtype='float64') - 1

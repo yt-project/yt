@@ -31,11 +31,16 @@ from numpy import \
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
-from yt.units.dimensions import dimensionless, current_mks, em_dimensions
+from yt.units.dimensions import \
+    angle, \
+    current_mks, \
+    dimensionless, \
+    em_dimensions
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
     YTInvalidUnitEquivalence, YTEquivalentDimsError
+from yt.utilities.lru_cache import lru_cache
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -64,24 +69,30 @@ def return_arr(func):
             return type(args[0])(ret, units)
     return wrapped
 
+@lru_cache(maxsize=128, typed=False)
 def sqrt_unit(unit):
     return unit**0.5
 
+@lru_cache(maxsize=128, typed=False)
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
 def preserve_units(unit1, unit2):
     return unit1
 
+@lru_cache(maxsize=128, typed=False)
 def power_unit(unit, power):
     return unit**power
 
+@lru_cache(maxsize=128, typed=False)
 def square_unit(unit):
     return unit*unit
 
+@lru_cache(maxsize=128, typed=False)
 def divide_units(unit1, unit2):
     return unit1/unit2
 
+@lru_cache(maxsize=128, typed=False)
 def reciprocal_unit(unit):
     return unit**-1
 
@@ -171,6 +182,10 @@ binary_operators = (
     left_shift, right_shift, greater, greater_equal, less, less_equal,
     not_equal, equal, logical_and, logical_or, logical_xor, maximum, minimum,
     fmax, fmin, copysign, nextafter, ldexp, fmod,
+)
+
+trigonometric_operators = (
+    sin, cos, tan,
 )
 
 class YTArray(np.ndarray):
@@ -1159,6 +1174,9 @@ class YTArray(np.ndarray):
             u = getattr(context[1][0], 'units', None)
             if u is None:
                 u = NULL_UNIT
+            if u.dimensions is angle and context[0] in trigonometric_operators:
+                out_arr = context[0](
+                    context[1][0].in_units('radian').view(np.ndarray))
             unit = self._ufunc_registry[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
@@ -1191,7 +1209,7 @@ class YTArray(np.ndarray):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
-            unit = self._ufunc_registry[context[0]](unit1, unit2)
+            unit = unit_operator(unit1, unit2)
             if unit_operator in (multiply_units, divide_units):
                 if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
@@ -1431,7 +1449,7 @@ def uhstack(arrs):
 
     This is a wrapper around np.hstack that preserves units.
     """
-    v = np.vstack(arrs)
+    v = np.hstack(arrs)
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 

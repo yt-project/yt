@@ -29,6 +29,7 @@ _frontends = [
     'flash',
     'gadget',
     'gadget_fof',
+    'gamer',
     'gdf',
     'halo_catalog',
     'http_stream',

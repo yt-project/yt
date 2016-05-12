@@ -34,7 +34,8 @@ If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_!
 
 To get started, make a new directory in ``yt/frontends`` with the name
-of your code.  Copying the contents of the ``yt/frontends/_skeleton``
+of your code and add the name into ``yt/frontends/api.py``.
+Copying the contents of the ``yt/frontends/_skeleton``
 directory will add a lot of boilerplate for the required classes and
 methods that are needed.  In particular, you'll have to create a
 subclass of ``Dataset`` in the data_structures.py file. This subclass

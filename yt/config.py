@@ -65,6 +65,7 @@ ytcfg_defaults = dict(
     chunk_size = '1000',
     xray_data_dir = '/does/not/exist',
     default_colormap = 'arbre',
+    ray_tracing_engine = 'embree',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

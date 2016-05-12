@@ -22,17 +22,12 @@ import numpy as np
 
 from distutils.version import LooseVersion
 
-from matplotlib.patches import Circle
-from matplotlib.colors import colorConverter
-from matplotlib import cm
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-
 from yt.config import \
     ytcfg
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
-from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
@@ -309,8 +304,8 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("cutting_plane_bx",
-                                        "cutting_plane_by",
+            qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
+                                        "cutting_plane_magnetic_field_y",
                                         self.factor)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
@@ -561,6 +556,8 @@ class GridBoundaryCallback(PlotCallback):
         self.edgecolors = edgecolors
 
     def __call__(self, plot):
+        from matplotlib.colors import colorConverter
+
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
@@ -1409,6 +1406,7 @@ class HaloCatalogCallback(PlotCallback):
         self.factor = factor
 
     def __call__(self, plot):
+        from matplotlib.patches import Circle
         data = plot.data
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -1521,21 +1519,53 @@ class ParticleCallback(PlotCallback):
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
         pt = self.ptype
-        gg = ( ( reg[pt, field_x] >= x0 ) & ( reg[pt, field_x] <= x1 )
-           &   ( reg[pt, field_y] >= y0 ) & ( reg[pt, field_y] <= y1 ) )
+        self.periodic_x = plot.data.ds.periodicity[xax]
+        self.periodic_y = plot.data.ds.periodicity[yax]
+        self.LE = plot.data.ds.domain_left_edge[xax], \
+                  plot.data.ds.domain_left_edge[yax]
+        self.RE = plot.data.ds.domain_right_edge[xax], \
+                  plot.data.ds.domain_right_edge[yax]
+        period_x = plot.data.ds.domain_width[xax]
+        period_y = plot.data.ds.domain_width[yax]
+        particle_x, particle_y = self._enforce_periodic(reg[pt, field_x],
+                                                        reg[pt, field_y],
+                                                        x0, x1, period_x,
+                                                        y0, y1, period_y)
+        gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
+           &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
         if self.minimum_mass is not None:
             gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
-                    [np.array(reg[pt, field_x][gg][::self.stride]),
-                     np.array(reg[pt, field_y][gg][::self.stride])])
+                    [np.array(particle_x[gg][::self.stride]),
+                     np.array(particle_y[gg][::self.stride])])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
+    def _enforce_periodic(self,
+                          particle_x,
+                          particle_y,
+                          x0, x1, period_x,
+                          y0, y1, period_y):
+        #  duplicate particles if periodic in that direction AND if the plot
+        #  extends outside the domain boundaries.
+        if self.periodic_x and x0 > self.LE[0]:
+            particle_x = uhstack((particle_x, particle_x + period_x))
+            particle_y = uhstack((particle_y, particle_y))
+        if self.periodic_x and x1 < self.RE[0]:
+            particle_x = uhstack((particle_x, particle_x - period_x))
+            particle_y = uhstack((particle_y, particle_y))
+        if self.periodic_y and y0 > self.LE[1]:
+            particle_y = uhstack((particle_y, particle_y + period_y))
+            particle_x = uhstack((particle_x, particle_x))
+        if self.periodic_y and y1 < self.RE[1]:
+            particle_y = uhstack((particle_y, particle_y - period_y))
+            particle_x = uhstack((particle_x, particle_x))
+        return particle_x, particle_y
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
@@ -2020,6 +2050,8 @@ class ScaleCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
+        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
         if plot.aspect != 1.0:
@@ -2312,6 +2344,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         self.const_alpha = const_alpha
 
     def __call__(self, plot):
+        from matplotlib import cm
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()

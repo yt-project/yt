@@ -4,104 +4,39 @@ cimport numpy as np
 from libc.math cimport fabs
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
-from vec3_ops cimport dot, subtract, cross
+
+from yt.utilities.lib.primitives cimport \
+    BBox, \
+    Ray, \
+    ray_bbox_intersect, \
+    Triangle, \
+    ray_triangle_intersect, \
+    triangle_centroid, \
+    triangle_bbox, \
+    Patch, \
+    ray_patch_intersect, \
+    patch_centroid, \
+    patch_bbox
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     Q1Sampler3D, \
     P1Sampler3D, \
-    W1Sampler3D
+    W1Sampler3D, \
+    S2Sampler3D
+from yt.utilities.lib.vec3_ops cimport L2_norm
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
 cdef ElementSampler W1Sampler = W1Sampler3D()
+cdef ElementSampler S2Sampler = S2Sampler3D()
 
 cdef extern from "platform_dep.h" nogil:
     double fmax(double x, double y)
     double fmin(double x, double y)
 
-cdef extern from "mesh_construction.h":
-    enum:
-        MAX_NUM_TRI
-
-    int HEX_NV
-    int HEX_NT
-    int TETRA_NV
-    int TETRA_NT
-    int WEDGE_NV
-    int WEDGE_NT
-    int triangulate_hex[MAX_NUM_TRI][3]
-    int triangulate_tetra[MAX_NUM_TRI][3]
-    int triangulate_wedge[MAX_NUM_TRI][3]
-
 # define some constants
-cdef np.float64_t DETERMINANT_EPS = 1.0e-10
 cdef np.float64_t INF = np.inf
 cdef np.int64_t   LEAF_SIZE = 16
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef np.int64_t ray_triangle_intersect(Ray* ray, const Triangle* tri) nogil:
-# https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
-
-    # edge vectors
-    cdef np.float64_t e1[3]
-    cdef np.float64_t e2[3]
-    subtract(tri.p1, tri.p0, e1)
-    subtract(tri.p2, tri.p0, e2)
-
-    cdef np.float64_t P[3]
-    cross(ray.direction, e2, P)
-
-    cdef np.float64_t det, inv_det
-    det = dot(e1, P)
-    if(det > -DETERMINANT_EPS and det < DETERMINANT_EPS): 
-        return False
-    inv_det = 1.0 / det
-
-    cdef np.float64_t T[3]
-    subtract(ray.origin, tri.p0, T)
-
-    cdef np.float64_t u = dot(T, P) * inv_det
-    if(u < 0.0 or u > 1.0):
-        return False
-
-    cdef np.float64_t Q[3]
-    cross(T, e1, Q)
-
-    cdef np.float64_t v = dot(ray.direction, Q) * inv_det
-    if(v < 0.0 or u + v  > 1.0):
-        return False
-
-    cdef np.float64_t t = dot(e2, Q) * inv_det
-
-    if(t > DETERMINANT_EPS and t < ray.t_far):
-        ray.t_far = t
-        ray.elem_id = tri.elem_id
-        return True
-
-    return False
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
-# https://tavianator.com/fast-branchless-raybounding-box-intersections/
-
-    cdef np.float64_t tmin = -INF
-    cdef np.float64_t tmax =  INF
- 
-    cdef np.int64_t i
-    cdef np.float64_t t1, t2
-    for i in range(3):
-        t1 = (bbox.left_edge[i]  - ray.origin[i])*ray.inv_dir[i]
-        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i] 
-        tmin = fmax(tmin, fmin(t1, t2))
-        tmax = fmin(tmax, fmax(t1, t2))
- 
-    return tmax >= fmax(tmin, 0.0)
 
 
 cdef class BVH:
@@ -130,29 +65,40 @@ cdef class BVH:
         self.num_field_per_elem = field_data.shape[1]
 
         # We need to figure out what kind of elements we've been handed.
-        cdef int[MAX_NUM_TRI][3] tri_array
         if self.num_verts_per_elem == 8:
-            self.num_tri_per_elem = HEX_NT
-            tri_array = triangulate_hex
+            self.num_prim_per_elem = HEX_NT
+            self.tri_array = triangulate_hex
             self.sampler = Q1Sampler
         elif self.num_verts_per_elem == 6:
-            self.num_tri_per_elem = WEDGE_NT
-            tri_array = triangulate_wedge
+            self.num_prim_per_elem = WEDGE_NT
+            self.tri_array = triangulate_wedge
             self.sampler = W1Sampler
         elif self.num_verts_per_elem == 4:
-            self.num_tri_per_elem = TETRA_NT
-            tri_array = triangulate_tetra
+            self.num_prim_per_elem = TETRA_NT
+            self.tri_array = triangulate_tetra
             self.sampler = P1Sampler
-        self.num_tri = self.num_tri_per_elem*self.num_elem
+        elif self.num_verts_per_elem == 20:
+            self.num_prim_per_elem = 6
+            self.sampler = S2Sampler
+        else:
+            raise NotImplementedError("Could not determine element type for "
+                                      "nverts = %d. " % self.num_verts_per_elem)
+        self.num_prim = self.num_prim_per_elem*self.num_elem
 
         # allocate storage
         cdef np.int64_t v_size = self.num_verts_per_elem * self.num_elem * 3
         self.vertices = <np.float64_t*> malloc(v_size * sizeof(np.float64_t))
         cdef np.int64_t f_size = self.num_field_per_elem * self.num_elem
         self.field_data = <np.float64_t*> malloc(f_size * sizeof(np.float64_t))
+        self.prim_ids = <np.int64_t*> malloc(self.num_prim * sizeof(np.int64_t))
+        self.centroids = <np.float64_t**> malloc(self.num_prim * sizeof(np.float64_t*))
+        cdef np.int64_t i
+        for i in range(self.num_prim):
+            self.centroids[i] = <np.float64_t*> malloc(3*sizeof(np.float64_t))
+        self.bboxes = <BBox*> malloc(self.num_prim * sizeof(BBox))
 
         # create data buffers
-        cdef np.int64_t i, j, k
+        cdef np.int64_t j, k
         cdef np.int64_t field_offset, vertex_offset
         for i in range(self.num_elem):
             for j in range(self.num_verts_per_elem):
@@ -163,29 +109,78 @@ cdef class BVH:
             for j in range(self.num_field_per_elem):
                 self.field_data[field_offset + j] = field_data[i][j]                
 
-        # fill our array of triangles
+        # set up primitives
+        if self.num_verts_per_elem == 20:
+            self.primitives = malloc(self.num_prim * sizeof(Patch))
+            self.get_centroid = patch_centroid
+            self.get_bbox = patch_bbox
+            self.get_intersect = ray_patch_intersect
+            self._set_up_patches(vertices, indices)
+        else:
+            self.primitives = malloc(self.num_prim * sizeof(Triangle))
+            self.get_centroid = triangle_centroid
+            self.get_bbox = triangle_bbox
+            self.get_intersect = ray_triangle_intersect
+            self._set_up_triangles(vertices, indices)
+        
+        self.root = self._recursive_build(0, self.num_prim)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _set_up_patches(self, np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil:
+        cdef Patch* patch
+        cdef np.int64_t i, j, k, ind, idim
+        cdef np.int64_t offset, prim_index
+        for i in range(self.num_elem):
+            offset = self.num_prim_per_elem*i
+            for j in range(self.num_prim_per_elem):  # for each face
+                prim_index = offset + j
+                patch = &( <Patch*> self.primitives)[prim_index]
+                self.prim_ids[prim_index] = prim_index
+                patch.elem_id = i
+                for k in range(8):  # for each vertex
+                    ind = hex20_faces[j][k]
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        patch.v[k][idim] = vertices[indices[i, ind]][idim]
+                self.get_centroid(self.primitives,
+                                  prim_index,
+                                  self.centroids[prim_index])
+                self.get_bbox(self.primitives,
+                              prim_index,
+                              &(self.bboxes[prim_index]))
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _set_up_triangles(self, np.float64_t[:, :] vertices,
+                                np.int64_t[:, :] indices) nogil:
+        # fill our array of primitives
         cdef np.int64_t offset, tri_index
         cdef np.int64_t v0, v1, v2
         cdef Triangle* tri
-        self.triangles = <Triangle*> malloc(self.num_tri * sizeof(Triangle))
+        cdef np.int64_t i, j, k
         for i in range(self.num_elem):
-            offset = self.num_tri_per_elem*i
-            for j in range(self.num_tri_per_elem):
+            offset = self.num_prim_per_elem*i
+            for j in range(self.num_prim_per_elem):
                 tri_index = offset + j
-                tri = &(self.triangles[tri_index])
+                self.prim_ids[tri_index] = tri_index
+                tri = &(<Triangle*> self.primitives)[tri_index]
                 tri.elem_id = i
-                v0 = indices[i][tri_array[j][0]]
-                v1 = indices[i][tri_array[j][1]]
-                v2 = indices[i][tri_array[j][2]]
+                v0 = indices[i][self.tri_array[j][0]]
+                v1 = indices[i][self.tri_array[j][1]]
+                v2 = indices[i][self.tri_array[j][2]]
                 for k in range(3):
                     tri.p0[k] = vertices[v0][k]
                     tri.p1[k] = vertices[v1][k]
                     tri.p2[k] = vertices[v2][k]
-                    tri.centroid[k] = (tri.p0[k] + tri.p1[k] + tri.p2[k]) / 3.0
-                    tri.bbox.left_edge[k]  = fmin(fmin(tri.p0[k], tri.p1[k]), tri.p2[k])
-                    tri.bbox.right_edge[k] = fmax(fmax(tri.p0[k], tri.p1[k]), tri.p2[k])
-
-        self.root = self._recursive_build(0, self.num_tri)
+                self.get_centroid(self.primitives,
+                                  tri_index,
+                                  self.centroids[tri_index])
+                self.get_bbox(self.primitives,
+                              tri_index, 
+                              &(self.bboxes[tri_index]))
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
         if node.end - node.begin > LEAF_SIZE:
@@ -195,7 +190,12 @@ cdef class BVH:
 
     def __dealloc__(self):
         self._recursive_free(self.root)
-        free(self.triangles)
+        free(self.primitives)
+        free(self.prim_ids)
+        for i in range(self.num_prim):
+            free(self.centroids[i])
+        free(self.centroids)
+        free(self.bboxes)
         free(self.field_data)
         free(self.vertices)
 
@@ -204,17 +204,21 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil:
-        # this re-orders the triangle array so that all of the triangles 
-        # to the left of mid have centroids less than or equal to "split" 
-        # along the direction "ax". All the triangles to the right of mid 
+        # this re-orders the primitive array so that all of the primitives
+        # to the left of mid have centroids less than or equal to "split"
+        # along the direction "ax". All the primitives to the right of mid
         # will have centroids *greater* than "split" along "ax".
         cdef np.int64_t mid = begin
         while (begin != end):
-            if self.triangles[mid].centroid[ax] > split:
+            if self.centroids[mid][ax] > split:
                 mid += 1
-            elif self.triangles[begin].centroid[ax] > split:
-                self.triangles[mid], self.triangles[begin] = \
-                self.triangles[begin], self.triangles[mid]
+            elif self.centroids[begin][ax] > split:
+                self.prim_ids[mid], self.prim_ids[begin] = \
+                self.prim_ids[begin], self.prim_ids[mid]
+                self.centroids[mid], self.centroids[begin] = \
+                self.centroids[begin], self.centroids[mid]
+                self.bboxes[mid], self.bboxes[begin] = \
+                self.bboxes[begin], self.bboxes[mid]
                 mid += 1
             begin += 1
         return mid
@@ -225,13 +229,13 @@ cdef class BVH:
     cdef void _get_node_bbox(self, BVHNode* node, 
                              np.int64_t begin, np.int64_t end) nogil:
         cdef np.int64_t i, j
-        cdef BBox box = self.triangles[begin].bbox
+        cdef BBox box = self.bboxes[begin]
         for i in range(begin+1, end):
             for j in range(3):
                 box.left_edge[j] = fmin(box.left_edge[j],
-                                        self.triangles[i].bbox.left_edge[j])
+                                        self.bboxes[i].left_edge[j])
                 box.right_edge[j] = fmax(box.right_edge[j], 
-                                         self.triangles[i].bbox.right_edge[j])
+                                         self.bboxes[i].right_edge[j])
         node.bbox = box
 
     @cython.boundscheck(False)
@@ -249,7 +253,7 @@ cdef class BVH:
             position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
             
         cdef np.float64_t* vertex_ptr
-        cdef np.float64_t* field_ptr         
+        cdef np.float64_t* field_ptr
         vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
         field_ptr = self.field_data + ray.elem_id*self.num_field_per_elem
 
@@ -273,11 +277,9 @@ cdef class BVH:
 
         # check for leaf
         cdef np.int64_t i, hit
-        cdef Triangle* tri
         if (node.end - node.begin) <= LEAF_SIZE:
             for i in range(node.begin, node.end):
-                tri = &(self.triangles[i])
-                hit = ray_triangle_intersect(ray, tri)
+                hit = self.get_intersect(self.primitives, self.prim_ids[i], ray)
             return
 
         # if not leaf, intersect with left and right children

@@ -478,7 +478,8 @@ for details on how to do this):
 
    import yt
    import numpy as np
-   from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
+   from yt.utilities.physical_ratios import cm_per_kpc, K_per_keV
+   from yt.units import mp
    from yt.utilities.cosmology import Cosmology
    from yt.analysis_modules.photon_simulator.api import *
    import aplpy

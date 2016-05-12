@@ -31,13 +31,14 @@ class SkeletonFieldInfo(FieldInfoContainer):
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
     )
 
-    def __init__(self, ds):
-        super(SkeletonFieldInfo, self).__init__(ds)
+    def __init__(self, ds, field_list):
+        super(SkeletonFieldInfo, self).__init__(ds, field_list)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):
         # Here we do anything that might need info about the dataset.
-        # You can use self.alias, self.add_output_field and self.add_field .
+        # You can use self.alias, self.add_output_field (for on-disk fields)
+        # and self.add_field (for derived fields).
         pass
 
     def setup_particle_fields(self, ptype):
