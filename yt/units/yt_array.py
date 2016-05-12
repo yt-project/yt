@@ -148,12 +148,18 @@ def sanitize_units_add(this_object, other_object, op_string):
     # attribute.
     if isinstance(ret, YTArray):
         if not inp.units.same_dimensions_as(ret.units):
+            # handle special case of adding or subtracting with zero or
+            # array filled with zero
+            if not np.any(other_object):
+                return ret.view(np.ndarray)
+            elif not np.any(this_object):
+                return ret
             raise YTUnitOperationError(op_string, inp.units, ret.units)
         ret = ret.in_units(inp.units)
-    # If the other object is not a YTArray, the only valid case is adding
-    # dimensionless things.
     else:
-        if not inp.units.is_dimensionless:
+        # If the other object is not a YTArray, then one of the arrays must be
+        # dimensionless or filled with zeros
+        if not inp.units.is_dimensionless and np.any(ret):
             raise YTUnitOperationError(op_string, inp.units, dimensionless)
     return ret
 
@@ -1202,13 +1208,21 @@ class YTArray(np.ndarray):
                     unit2 = 1.0
             unit_operator = self._ufunc_registry[context[0]]
             if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
-                # Allow comparisons with dimensionless quantities.
-                if (unit1 != unit2 and
-                    not unit2.is_dimensionless and not unit1.is_dimensionless):
-                    if not unit1.same_dimensions_as(unit2):
-                        raise YTUnitOperationError(context[0], unit1, unit2)
-                    else:
-                        raise YTUfuncUnitError(context[0], unit1, unit2)
+                # Allow comparisons, addition, and subtraction with
+                # dimensionless quantities or arrays filled with zeros.
+                u1d = unit1.is_dimensionless
+                u2d = unit2.is_dimensionless
+                if unit1 != unit2:
+                    any_nonzero = [np.any(oper1), np.any(oper2)]
+                    if any_nonzero[0] is np.bool_(False):
+                        unit1 = unit2
+                    elif any_nonzero[1] is np.bool_(False):
+                        unit2 = unit1
+                    elif not any([u1d, u2d]):
+                        if not unit1.same_dimensions_as(unit2):
+                            raise YTUnitOperationError(context[0], unit1, unit2)
+                        else:
+                            raise YTUfuncUnitError(context[0], unit1, unit2)
             unit = unit_operator(unit1, unit2)
             if unit_operator in (multiply_units, divide_units):
                 if unit.is_dimensionless and unit.base_value != 1.0:

@@ -112,6 +112,20 @@ def test_addition():
     yield assert_raises, YTUnitOperationError, operator.add, a1, a2
     yield assert_raises, YTUnitOperationError, operator.iadd, a1, a2
 
+    # adding with zero is allowed irrespective of the units
+    zeros = np.zeros(3)
+    zeros_yta_dimless = YTArray(zeros, 'dimensionless')
+    zeros_yta_length = YTArray(zeros, 'm')
+    zeros_yta_mass = YTArray(zeros, 'kg')
+    operands = [0, YTQuantity(0), YTQuantity(0, 'kg'), zeros, zeros_yta_dimless,
+                zeros_yta_length, zeros_yta_mass]
+
+    for op in [operator.add, np.add]:
+        for operand in operands:
+            yield operate_and_compare, a1, operand, op, a1
+            yield operate_and_compare, operand, a1, op, a1
+            yield operate_and_compare, 4*m, operand, op, 4*m
+            yield operate_and_compare, operand, 4*m, op, 4*m
 
 def test_subtraction():
     """
@@ -173,6 +187,20 @@ def test_subtraction():
     yield assert_raises, YTUnitOperationError, operator.sub, a1, a2
     yield assert_raises, YTUnitOperationError, operator.isub, a1, a2
 
+    # subtracting with zero is allowed irrespective of the units
+    zeros = np.zeros(3)
+    zeros_yta_dimless = YTArray(zeros, 'dimensionless')
+    zeros_yta_length = YTArray(zeros, 'm')
+    zeros_yta_mass = YTArray(zeros, 'kg')
+    operands = [0, YTQuantity(0), YTQuantity(0, 'kg'), zeros, zeros_yta_dimless,
+                zeros_yta_length, zeros_yta_mass]
+
+    for op in [operator.sub, np.subtract]:
+        for operand in operands:
+            yield operate_and_compare, a1, operand, op, a1
+            yield operate_and_compare, operand, a1, op, -a1
+            yield operate_and_compare, 4*m, operand, op, 4*m
+            yield operate_and_compare, operand, 4*m, op, -4*m
 
 def test_multiplication():
     """
@@ -1163,3 +1191,10 @@ def test_trig_ufunc_degrees():
         degree_values = np.random.random(10)*degree
         radian_values = degree_values.in_units('radian')
         assert_array_equal(ufunc(degree_values), ufunc(radian_values))
+
+def test_builtin_sum():
+    from yt.units import km
+
+    arr = [1, 2, 3]*km
+    assert_equal(sum(arr), 6*km)
+
