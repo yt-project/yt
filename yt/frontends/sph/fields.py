@@ -41,6 +41,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Phi", ("code_length", [], None)),
         ("StarFormationRate", ("Msun / yr", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
+        ("Metallicity_00", ("", ["metallicity"], None)),
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
