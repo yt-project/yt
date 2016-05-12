@@ -779,16 +779,23 @@ FLASH dataset, you can use the ``yt.load`` command and provide it the file name 
 a plot file, checkpoint file, or particle file. Particle files require special handling
 depending on the situation, the main issue being that they typically lack grid information. 
 The first case is when you have a plotfile and a particle file that you would like to 
-load together. For instance, if you were in a directory with the following files:
+load together. In the simplest case, this occurs automatically. For instance, if you
+were in a directory with the following files:
 
 .. code-block:: none
 
-   radio_halo_1kpc_hdf5_plt_cnt_0100
-   radio_halo_1kpc_hdf5_part_0100
+   radio_halo_1kpc_hdf5_plt_cnt_0100 # plotfile
+   radio_halo_1kpc_hdf5_part_0100 # particle file
 
 where the plotfile and the particle file were created at the same time (therefore having 
-particle data consistent with the grid structure of the former), its data may be loaded 
-with the ``particle_filename`` optional argument:
+particle data consistent with the grid structure of the former). Notice also that the 
+prefix ``"radio_halo_1kpc_"`` and the file number ``100`` are the same. In this special case,
+the particle file will be loaded automatically when ``yt.load`` is called on the plotfile.
+This also works when loading a number of files in a time series.
+
+If the two files do not have the same prefix and number, but they nevertheless have the same
+grid structure and are at the same simulation time, the particle data may be loaded with the
+``particle_filename`` optional argument to ``yt.load``:
 
 .. code-block:: python
 
