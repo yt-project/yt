@@ -55,9 +55,14 @@ _cis.shape = (8, 3)
 
 class AthenaPPLogarithmicMesh(SemiStructuredMesh):
     _index_offset = 0
+    _id_offset = 0
 
     def __init__(self, *args, **kwargs):
         super(AthenaPPLogarithmicMesh, self).__init__(*args, **kwargs)
+
+    @property
+    def id(self):
+        return self.mesh_id
 
 class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'athena++'):
@@ -95,6 +100,11 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
 
     def _detect_output_fields(self):
         self.field_list = [("athena++", k) for k in self.ds._field_map]
+
+    def _count_selection(self, dobj, meshes = None):
+        if meshes is None: meshes = dobj._chunk_info
+        count = np.sum([m.count(dobj.selector) for m in meshes])
+        return count
 
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
