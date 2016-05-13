@@ -28,13 +28,12 @@ FIRE_m12i = 'FIRE_M12i_ref11/snapshot_600.hdf5'
 fields = OrderedDict(
     [
         (("gas", "density"), None),
-        (("gas", "temperature"), None),
         (("gas", "temperature"), ('gas', 'density')),
+        (("gas", "metallicity"), ('gas', 'density')),
+        (("gas", "O_metallicity"), ('gas', 'density')),
         (('gas', 'velocity_magnitude'), None),
-        (("deposit", "all_density"), None),
         (("deposit", "all_count"), None),
         (("deposit", "all_cic"), None),
-        (("deposit", "PartType0_density"), None),
     ]
 )
 
