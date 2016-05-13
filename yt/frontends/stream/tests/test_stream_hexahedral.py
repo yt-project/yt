@@ -31,7 +31,7 @@ def test_stream_hexahedral() :
     cell_z[0] = 0.0
 
     coords, conn = hexahedral_connectivity(cell_x, cell_y, cell_z)
-    data = {'random_field': np.random.random(Nx*Ny*Nz)}
+    data = {'random_field': np.random.random((Nx, Ny, Nz))}
     bbox = np.array([ [0.0, 1.0], [0.0, 1.0], [0.0, 1.0] ])
     ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
     dd = ds.all_data()
@@ -43,7 +43,7 @@ def test_stream_hexahedral() :
     cell_y = np.linspace(0.0, 1.0, Ny+1)
     cell_z = np.linspace(0.0, 1.0, Nz+1)
     coords, conn = hexahedral_connectivity(cell_x, cell_y, cell_z)
-    data = {'random_field': np.random.random(Nx*Ny*Nz)}
+    data = {'random_field': np.random.random((Nx, Ny, Nz))}
     bbox = np.array([ [0.0, 1.0], [0.0, 1.0], [0.0, 1.0] ])
     ds = load_hexahedral_mesh(data, conn, coords, bbox=bbox)
     dd = ds.all_data()
