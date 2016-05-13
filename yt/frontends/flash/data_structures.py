@@ -18,20 +18,19 @@ import stat
 import numpy as np
 import weakref
 
-from yt.funcs import mylog
 from yt.data_objects.grid_patch import \
     AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
+from yt.funcs import mylog
+from yt.geometry.grid_geometry_handler import \
+    GridIndex
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
 from yt.utilities.file_handler import \
     HDF5FileHandler
 from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import FLASHFieldInfo
-
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
@@ -478,7 +477,7 @@ class FLASHParticleDataset(FLASHDataset):
             if "bounding box" not in fileh["/"].keys() \
                 and "localnp" in fileh["/"].keys():
                 return True
-        except:
+        except IOError:
             pass
         return False
 
