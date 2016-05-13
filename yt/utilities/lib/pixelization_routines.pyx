@@ -18,7 +18,9 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
-from yt.utilities.exceptions import YTPixelizeError, \
+from yt.utilities.exceptions import \
+    YTPixelizeError, \
+    YTException, \
     YTElementTypeNotRecognized
 from libc.stdlib cimport malloc, free
 from vec3_ops cimport dot, cross, subtract
@@ -544,8 +546,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           buff_size,
                           np.ndarray[np.float64_t, ndim=2] field,
                           extents, 
-                          int index_offset = 0,
-                          double thresh = -1.0):
+                          int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
     # Two steps:
@@ -592,27 +593,11 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
     # if we are in 2D land, the 1 cell thick dimension had better be 'z'
     if ndim == 2:
-        assert(buff_size[2] == 1)
+        try:
+            assert(buff_size[2] == 1)
+        except AssertionError:
+            raise YTException("2D datasets can only be sliced in the 'z' direction.")
     
-    ax = -1
-    for i in range(3):
-        if buff_size[i] == 1:
-            ax = i
-    if ax == -1:
-        raise RuntimeError
-    xax = yax = -1
-    if ax == 0:
-        xax = 1
-        yax = 2
-    elif ax == 1:
-        xax = 1
-        yax = 2
-    elif ax == 2:
-        xax = 0
-        yax = 1
-    if xax == -1 or yax == -1:
-        raise RuntimeError
-
     # allocate temporary storage
     vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
     field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
@@ -673,20 +658,11 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                     sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
                     if not sampler.check_inside(mapped_coord):
                         continue
-                    # if thresh is negative, we do the normal sample operation
-                    if thresh < 0.0:
-                        if (num_field_vals == 1):
-                            img[pi, pj, pk] = field_vals[0]
-                        else:
-                            img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
-                                                                           field_vals)
+                    if (num_field_vals == 1):
+                        img[pi, pj, pk] = field_vals[0]
                     else:
-                        # otherwise, we draw the element boundaries
-                        if sampler.check_near_edge(mapped_coord, thresh, xax):
-                            img[pi, pj, pk] = 1.0
-                        elif sampler.check_near_edge(mapped_coord, thresh, yax):
-                            img[pi, pj, pk] = 1.0
-
+                        img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
+                                                                       field_vals)
     free(vertices)
     free(field_vals)
     return img
