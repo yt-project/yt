@@ -245,8 +245,7 @@ class VelocityCallback(PlotCallback):
     True, the velocity fields will be scaled by their local
     (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field
-    strength (normalize is not implemented and thus ignored for
-    Cutting Planes).
+    strength.
     """
     _type_name = "velocity"
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
