@@ -200,7 +200,6 @@ cython_extensions = [
               ["yt/utilities/lib/pixelization_routines.pyx",
                "yt/utilities/lib/pixelization_constants.c"],
               include_dirs=["yt/utilities/lib/"],
-              language="c++",
               libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd",
                                         "yt/utilities/lib/pixelization_constants.h",
                                         "yt/utilities/lib/element_mappings.pxd"]),
