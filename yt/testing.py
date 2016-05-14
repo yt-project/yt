@@ -20,6 +20,7 @@ import itertools as it
 import numpy as np
 import importlib
 import os
+import unittest
 from yt.funcs import iterable
 from yt.config import ytcfg
 # we import this in a weird way from numpy.testing to avoid triggering
@@ -31,15 +32,21 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
-try:
-    from nose.tools import assert_true, assert_less_equal  # NOQA
-except ImportError:
-    # This means nose isn't installed, so the tests can't run and it's ok
-    # to not import these functions
-    pass
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
+
+# Expose assert_true and assert_less_equal from unittest.TestCase
+# this is adopted from nose. Doing this here allows us to avoid importing
+# nose at the top level.
+class _Dummy(unittest.TestCase):
+    def nop():
+        pass
+_t = _Dummy('nop')
+
+assert_true = getattr(_t, 'assertTrue')
+assert_less_equal = getattr(_t, 'assertLessEqual')
+
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -300,18 +307,16 @@ def fake_hexahedral_ds():
     from yt.frontends.stream.sample_data.hexahedral_mesh import \
         _connectivity, _coordinates
 
-    _connectivity -= 1  # this mesh has an offset of 1
-
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[('connect1', 'test')] = dist[_connectivity]
+    node_data[('connect1', 'test')] = dist[_connectivity-1]
 
     # each element gets a random number
     elem_data = {}
     elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(_connectivity,
+    ds = load_unstructured_mesh(_connectivity-1,
                                 _coordinates,
                                 node_data=node_data,
                                 elem_data=elem_data)

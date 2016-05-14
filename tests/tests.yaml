@@ -20,6 +20,9 @@ answer_tests:
   local_gadget_000:
     - yt/frontends/gadget/tests/test_outputs.py
 
+  local_gamer_000:
+    - yt/frontends/gamer/tests/test_outputs.py
+
   local_gdf_000:
     - yt/frontends/gdf/tests/test_outputs.py
 
@@ -44,7 +47,7 @@ answer_tests:
   local_tipsy_000:
     - yt/frontends/tipsy/tests/test_outputs.py
   
-  local_varia_000:
+  local_varia_001:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py

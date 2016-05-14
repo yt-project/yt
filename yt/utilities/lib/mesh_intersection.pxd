@@ -4,15 +4,10 @@ cimport pyembree.rtcore_geometry as rtcg
 from yt.utilities.lib.mesh_construction cimport Patch
 cimport cython
 
-cdef void patchIntersectFunc(Patch* patches, 
-                             rtcr.RTCRay& ray, 
+cdef void patchIntersectFunc(Patch* patches,
+                             rtcr.RTCRay& ray,
                              size_t item) nogil
 
-cdef void patchBoundsFunc(Patch* patches, 
-                          size_t item, 
+cdef void patchBoundsFunc(Patch* patches,
+                          size_t item,
                           rtcg.RTCBounds* bounds_o) nogil
-
-cdef void patchSurfaceFunc(const Patch& patch, 
-                           const float u, 
-                           const float v,
-                           float[3] S) nogil

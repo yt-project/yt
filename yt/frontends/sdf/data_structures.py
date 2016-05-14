@@ -27,17 +27,14 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
+from yt.funcs import \
+    get_requests
 from .fields import \
     SDFFieldInfo
 from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\
     HTTPSDFRead
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 @contextlib.contextmanager
 def safeopen(*args, **kwargs):
@@ -195,7 +192,9 @@ class SDFDataset(Dataset):
     def _is_valid(cls, *args, **kwargs):
         sdf_header = kwargs.get('sdf_header', args[0])
         if sdf_header.startswith("http"):
-            if requests is None: return False
+            requests = get_requests()
+            if requests is None: 
+                return False
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.
