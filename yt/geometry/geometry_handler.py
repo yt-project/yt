@@ -191,6 +191,10 @@ class Index(ParallelAnalysisInterface):
         except TypeError:
             return self._data_file[full_name]
 
+    def _get_particle_type_counts(self):
+        # this is implemented by subclasses
+        raise NotImplementedError
+
     def _close_data_file(self):
         if self._data_file:
             self._data_file.close()

@@ -337,6 +337,8 @@ class ARTDataset(Dataset):
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
             mylog.info("Particle populations: "+'%9i '*len(ls_nonzero),
                        *ls_nonzero)
+            self._particle_type_counts = dict(
+                zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
                     if not self.parameters[k] == v:
