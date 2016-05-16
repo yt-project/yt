@@ -35,9 +35,9 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline np.int64_t ray_triangle_intersect(const void* primitives,
-                                              const np.int64_t item,
-                                              Ray* ray) nogil:
+cdef np.int64_t ray_triangle_intersect(const void* primitives,
+                                       const np.int64_t item,
+                                       Ray* ray) nogil:
 # https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
     cdef Triangle tri = (<Triangle*> primitives)[item]
@@ -84,9 +84,9 @@ cdef inline np.int64_t ray_triangle_intersect(const void* primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void triangle_centroid(const void *primitives,
-                                   const np.int64_t item,
-                                   np.float64_t[3] centroid) nogil:
+cdef void triangle_centroid(const void *primitives,
+                            const np.int64_t item,
+                            np.float64_t[3] centroid) nogil:
         
     cdef Triangle tri = (<Triangle*> primitives)[item]
     cdef np.int64_t i
@@ -97,9 +97,9 @@ cdef inline void triangle_centroid(const void *primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void triangle_bbox(const void *primitives,
-                               const np.int64_t item,
-                               BBox* bbox) nogil:
+cdef void triangle_bbox(const void *primitives,
+                        const np.int64_t item,
+                        BBox* bbox) nogil:
 
     cdef Triangle tri = (<Triangle*> primitives)[item]
     cdef np.int64_t i
@@ -240,9 +240,9 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline np.int64_t ray_patch_intersect(const void* primitives,
-                                           const np.int64_t item,
-                                           Ray* ray) nogil:
+cdef np.int64_t ray_patch_intersect(const void* primitives,
+                                    const np.int64_t item,
+                                    Ray* ray) nogil:
 
     cdef Patch patch = (<Patch*> primitives)[item]
 
@@ -264,9 +264,9 @@ cdef inline np.int64_t ray_patch_intersect(const void* primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void patch_centroid(const void *primitives,
-                                const np.int64_t item,
-                                np.float64_t[3] centroid) nogil:
+cdef void patch_centroid(const void *primitives,
+                         const np.int64_t item,
+                         np.float64_t[3] centroid) nogil:
 
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
@@ -285,9 +285,9 @@ cdef inline void patch_centroid(const void *primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void patch_bbox(const void *primitives,
-                            const np.int64_t item,
-                            BBox* bbox) nogil:
+cdef void patch_bbox(const void *primitives,
+                    const np.int64_t item,
+                     BBox* bbox) nogil:
 
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
