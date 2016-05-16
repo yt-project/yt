@@ -21,7 +21,6 @@ import six
 import sys
 
 from distutils.version import LooseVersion
-from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
 from .base_plot_types import ImagePlotMPL
@@ -687,6 +686,7 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
+        from matplotlib.mathtext import MathTextParser
         if self._plot_valid:
             return
         if not self._data_valid:
@@ -961,6 +961,7 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    @invalidate_plot
     def annotate_clear(self, index=None):
         """
         Clear callbacks from the plot.  If index is not set, clear all 

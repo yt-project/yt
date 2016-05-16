@@ -394,7 +394,8 @@ class AbsorptionSpectrum(object):
             #    10; this will assure we don't get spikes in the deposited
             #    spectra from uneven numbers of vbins per bin
             resolution = thermal_width / self.bin_width
-            n_vbins_per_bin = 10**(np.ceil(np.log10(subgrid_resolution/resolution)).clip(0, np.inf))
+            n_vbins_per_bin = (10 ** (np.ceil( np.log10( subgrid_resolution / 
+                               resolution) ).clip(0, np.inf) ) ).astype('int')
             vbin_width = self.bin_width.d / n_vbins_per_bin
 
             # a note to the user about which lines components are unresolved

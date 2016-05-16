@@ -90,6 +90,21 @@ class BoxlibFieldInfo(FieldInfoContainer):
         # "luminosity",
     )
 
+    def setup_particle_fields(self, ptype):
+
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["particle_momentum_%s" % axis]/data["particle_mass"]
+            return velocity
+
+        for ax in 'xyz':
+            self.add_field((ptype, "particle_velocity_%s" % ax), 
+                           function=_get_vel(ax),
+                           particle_type=True,
+                           units="code_length/code_time")
+
+        super(BoxlibFieldInfo, self).setup_particle_fields(ptype)
+
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
         # Now, let's figure out what fields are included.

@@ -38,15 +38,15 @@ from yt.frontends.ytdata.data_structures import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
     get_ipython_api_version
 
 def get_canvas(name):
+    from . import _mpl_imports as mpl
     suffix = get_image_suffix(name)
-    
+
     if suffix == '':
         suffix = '.png'
     if suffix == ".png":
@@ -65,7 +65,8 @@ class FigureContainer(OrderedDict):
         super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
-        figure = mpl.matplotlib.figure.Figure((10, 8))
+        from matplotlib.figure import Figure
+        figure = Figure((10, 8))
         self[key] = figure
         return self[key]
 
@@ -248,6 +249,7 @@ class ProfilePlot(object):
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
+        fullname = False
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
@@ -259,6 +261,7 @@ class ProfilePlot(object):
             if sfx != '':
                 suffix = sfx
                 prefix = name[:name.rfind(suffix)]
+                fullname = True 
             else:
                 prefix = name
         xfn = self.profiles[0].x_field
@@ -270,7 +273,10 @@ class ProfilePlot(object):
             if isinstance(uid, tuple):
                 uid = uid[1]
             canvas = canvas_cls(fig)
-            fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+            if fullname:
+                fns.append("%s%s" % (prefix, suffix))
+            else:
+                fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
             mylog.info("Saving %s", fns[-1])
             canvas.print_figure(fns[-1])
         return fns
@@ -309,6 +315,7 @@ class ProfilePlot(object):
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
+        from . import _mpl_imports as mpl
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):

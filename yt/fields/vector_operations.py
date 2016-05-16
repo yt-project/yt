@@ -183,13 +183,15 @@ def create_vector_fields(registry, basename, field_units,
     def _cp_vectors(ax):
         def _cp_val(field, data):
             vec = data.get_field_parameter("cp_%s_vec" % (ax))
-            bv = data.get_field_parameter("bulk_%s" % basename)
-            if bv is None: bv = np.zeros(3)
-            tr  = (data[xn] - bv[0]) * vec[0]
-            tr += (data[yn] - bv[1]) * vec[1]
-            tr += (data[zn] - bv[2]) * vec[2]
+            bv = data.get_field_parameter("bulk_%s" % basename, None)
+            if bv is None:
+                bv = data.ds.arr(np.zeros(3), data[xn].units)
+            tr  = (data[xn] - bv[0]) * vec.d[0]
+            tr += (data[yn] - bv[1]) * vec.d[1]
+            tr += (data[zn] - bv[2]) * vec.d[2]
             return tr
         return _cp_val
+
     registry.add_field((ftype, "cutting_plane_%s_x" % basename),
                        function=_cp_vectors('x'),
                        units=field_units)

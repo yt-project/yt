@@ -953,3 +953,10 @@ def get_brewer_cmap(cmap):
         raise RuntimeError(
             "Please install palettable to use colorbrewer colormaps")
     return bmap.get_mpl_colormap(N=cmap[2])
+
+def get_requests():
+    try:
+        import requests
+    except ImportError:
+        requests = None
+    return requests
