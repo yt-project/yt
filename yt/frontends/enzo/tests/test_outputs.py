@@ -128,7 +128,7 @@ def test_active_particle_datasets():
     assert 'AccretingParticle' in two_sph.particle_types_raw
     assert 'io' not in two_sph.particle_types_raw
     assert 'all' in two_sph.particle_types
-    assert_equal(len(two_sph.particle_unions), 0)
+    assert_equal(len(two_sph.particle_unions), 1)
     pfields = ['GridID', 'creation_time', 'dynamical_time',
                'identifier', 'level', 'metallicity', 'particle_mass']
     pfields += ['particle_position_%s' % d for d in 'xyz']
