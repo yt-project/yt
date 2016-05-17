@@ -526,8 +526,7 @@ class YTArray(np.ndarray):
         new_units = self._unit_repr_check_same(units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
-        new_array = self * conversion_factor
-        new_array.units = new_units
+        new_array = type(self)(self.value * conversion_factor, new_units)
 
         if offset:
             np.subtract(new_array, offset*new_array.uq, new_array)
