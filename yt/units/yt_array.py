@@ -174,6 +174,7 @@ def validate_comparison_units(this, other, op_string):
 
     return other
 
+@lru_cache(maxsize=128, typed=False)
 def _unit_repr_check_same(my_units, other_units):
     """
     Takes a Unit object, or string of known unit symbol, and check that it
