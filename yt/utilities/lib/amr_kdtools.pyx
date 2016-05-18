@@ -438,7 +438,6 @@ cdef split_grid(Node node,
     # If best_dim is -1, then we have found a place where there are no choices.
     # Exit out and set the node to None.
     if best_dim == -1:
-        print 'Failed to split grid.'
         return -1
 
 
@@ -509,6 +508,11 @@ cdef kdtree_get_choices(int n_grids,
             best_dim = dim
             my_max = n_unique
             my_split = (n_unique-1)/2
+    if best_dim == -1:
+        for i in range(3):
+            free(uniquedims[i])
+        free(uniquedims)
+        return -1, 0, 0, 0
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):

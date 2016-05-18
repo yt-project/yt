@@ -14,7 +14,7 @@ answer_tests:
   local_fits_000:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_000:
+  local_flash_001:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_000:

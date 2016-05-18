@@ -692,7 +692,10 @@ class YTLoadCmd(YTCommand):
                   "\nHi there!  Welcome to yt.\n\nWe've loaded your dataset as 'ds'.  Enjoy!"
                   )
         else:
-            from IPython.config.loader import Config
+            try:
+                from traitlets.config.loader import Config
+            except ImportError:
+                from IPython.config.loader import Config
             import sys
             cfg = Config()
             # prepend sys.path with current working directory
