@@ -1826,5 +1826,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     sds._node_fields = node_data[0].keys()
     sds._elem_fields = elem_data[0].keys()
+    sds.default_field = [f for f in sds.field_list 
+                         if f[0] == 'connect1'][-1]
 
     return sds

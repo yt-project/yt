@@ -1,0 +1,17 @@
+#version 330 core
+
+in float fragmentData;
+out vec4 color;
+
+uniform sampler1D cmap;
+uniform float cmap_min;
+uniform float cmap_max;
+
+void main()
+{
+    float data = fragmentData;
+    float cm = cmap_min;
+    float cp = cmap_max;
+
+    color = texture(cmap, (data - cm) / (cp - cm));
+}
