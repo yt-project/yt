@@ -57,12 +57,13 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
     _index_offset = 0
     _id_offset = 0
 
-    def __init__(self, *args, **kwargs):
-        super(AthenaPPLogarithmicMesh, self).__init__(*args, **kwargs)
-
-    @property
-    def id(self):
-        return self.mesh_id
+    def __init__(self, mesh_id, filename, connectivity_indices,
+                 connectivity_coords, index, blocks, dims):
+        super(AthenaPPLogarithmicMesh, self).__init__(mesh_id, filename, 
+                                                      connectivity_indices,
+                                                      connectivity_coords, index)
+        self.mesh_blocks = blocks
+        self.mesh_dims = dims
 
 class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type = 'athena++'):
@@ -73,30 +74,76 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         self.dataset_type = dataset_type
 
     def _initialize_mesh(self):
-        mylog.debug("Setting up grids.")
-        num_grids = self._handle.attrs["NumMeshBlocks"]
+        mylog.debug("Setting up meshes.")
+        num_blocks = self._handle.attrs["NumMeshBlocks"]
+        log_loc = self._handle['LogicalLocations']
+        levels = self._handle["Levels"]
+        nx, ny, nz = self._handle.attrs["MeshBlockSize"]
+        x1f = self._handle["x1f"]
+        x2f = self._handle["x2f"]
+        x3f = self._handle["x3f"]
+        nblock_x = np.max(log_loc[:,0])+1
+        nblock_y = np.max(log_loc[:,1])+1
+        nblock_z = np.max(log_loc[:,2])+1
+
+        block_grid = -np.ones((nblock_x,nblock_y,nblock_z), dtype=np.int)
+        level_grid = -np.ones((nblock_x,nblock_y,nblock_z), dtype=np.int)
+
+        for i in range(num_blocks):
+            block_grid[log_loc[i][0],log_loc[i][1],log_loc[i][2]] = i
+            level_grid[log_loc[i][0],log_loc[i][1],log_loc[i][2]] = levels[i]
+
+        block_list = list(range(num_blocks))
+        bc = []
+        for i in range(num_blocks):
+            if i in block_list:
+                ii, jj, kk = log_loc[i]
+                loc_levels = level_grid[ii:ii+2,jj:jj+2,kk:kk+2]
+                if np.unique(loc_levels).size == 1:
+                    loc_ids = block_grid[ii:ii+2,jj:jj+2,kk:kk+2]
+                    bc.append(loc_ids)
+                    [block_list.remove(k) for k in loc_ids.flat]
+                else:
+                    bc.append(np.array([i]))
+                    block_list.remove(i)
+
+        num_meshes = len(bc)
+
         self.meshes = []
-        for i in range(num_grids):
-            x = self._handle["x1f"][i,:]
-            y = self._handle["x2f"][i,:]
-            z = self._handle["x3f"][i,:]
-            nx, ny, nz = self._handle.attrs["MeshBlockSize"]+1
-            coords = np.zeros((nx, ny, nz, 3), dtype="float64", order="C")
+        for i in range(num_meshes):
+            if bc[i].size > 1:
+                ob = bc[i][0,0,0]
+                xb = bc[i][1,0,0]
+                yb = bc[i][0,1,0]
+                zb = bc[i][0,0,1]
+                x = np.concatenate([x1f[ob,:-1], x1f[xb,:]])
+                y = np.concatenate([x2f[ob,:-1], x2f[yb,:]])
+                z = np.concatenate([x3f[ob,:-1], x3f[zb,:]])
+            else:
+                x = x1f[bc[i],:]
+                y = x2f[bc[i],:]
+                z = x3f[bc[i],:]
+            nxm = x.size
+            nym = y.size
+            nzm = z.size
+            coords = np.zeros((nxm, nym, nzm, 3), dtype="float64", order="C")
             coords[:,:,:,0] = x[:,None,None]
             coords[:,:,:,1] = y[None,:,None]
             coords[:,:,:,2] = z[None,None,:]
-            coords.shape = (nx * ny * nz, 3)
-            cycle = np.rollaxis(np.indices((nx-1,ny-1,nz-1)), 0, 4)
-            cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
+            coords.shape = (nxm * nym * nzm, 3)
+            cycle = np.rollaxis(np.indices((nxm-1,nym-1,nzm-1)), 0, 4)
+            cycle.shape = ((nxm-1)*(nym-1)*(nzm-1), 3)
             off = _cis + cycle[:, np.newaxis]
-            connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+            connectivity = ((off[:,:,0] * nym) + off[:,:,1]) * nzm + off[:,:,2]
             mesh = AthenaPPLogarithmicMesh(i,
                                            self.index_filename,
                                            connectivity,
                                            coords,
-                                           self)
+                                           self,
+                                           bc[i],
+                                           np.array([nxm-1, nym-1, nzm-1]))
             self.meshes.append(mesh)
-        mylog.debug("Done setting up grids.")
+        mylog.debug("Done setting up meshes.")
 
     def _detect_output_fields(self):
         self.field_list = [("athena++", k) for k in self.ds._field_map]
@@ -237,8 +284,10 @@ class AthenaPPDataset(Dataset):
         zrat = self._handle.attrs["RootGridX3"][2]
         if xrat != 1.0 or yrat != 1.0 or zrat != 1.0:
             self._index_class = AthenaPPLogarithmicIndex
+            self.logarithmic = True
         else:
             self._index_class = AthenaPPHierarchy
+            self.logarithmic = False
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.filename = filename

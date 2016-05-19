@@ -57,15 +57,34 @@ class IOHandlerAthenaPP(BaseIOHandler):
             ds = f["/%s" % dname]
             ind = 0
             for chunk in chunks:
-                for gs in grid_sequences(chunk.objs):
-                    start = gs[0].id - gs[0]._id_offset
-                    end = gs[-1].id - gs[-1]._id_offset + 1
-                    data = ds[fdi,start:end,:,:,:].transpose()
-                    for i, g in enumerate(gs):
-                        ind += g.select(selector, data[...,i], rv[field], ind)
+                if self.ds.logarithmic:
+                    for mesh in chunk.objs:
+                        if mesh.mesh_blocks.size == 1:
+                            id = mesh.mesh_blocks[0]
+                            data = ds[fdi,id,:,:,:].transpose()
+                        else:
+                            nx, ny, nz = mesh.mesh_dims/2
+                            data = np.empty(mesh.mesh_dims, dtype="=f8")
+                            for i in range(2):
+                                for j in range(2):
+                                    for k in range(2):
+                                        id = mesh.mesh_blocks[i,j,k]
+                                        data[i*nx:(i+1)*nx,j*ny:(j+1)*ny,k*nz:(k+1)*nz] = \
+                                            ds[fdi,id,:,:,:].transpose()
+                        ind += mesh.select(selector, data, rv[field], ind)  # caches
+
+                else:
+                    for gs in grid_sequences(chunk.objs):
+                        start = gs[0].id - gs[0]._id_offset
+                        end = gs[-1].id - gs[-1]._id_offset + 1
+                        data = ds[fdi,start:end,:,:,:].transpose()
+                        for i, g in enumerate(gs):
+                            ind += g.select(selector, data[...,i], rv[field], ind)
         return rv
 
     def _read_chunk_data(self, chunk, fields):
+        if self.ds.logarithmic:
+            pass
         f = self._handle
         rv = {}
         for g in chunk.objs:
