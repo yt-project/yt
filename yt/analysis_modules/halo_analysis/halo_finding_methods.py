@@ -17,8 +17,6 @@ import numpy as np
 
 from yt.analysis_modules.halo_finding.halo_objects import \
     FOFHaloFinder, HOPHaloFinder
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogDataset
 from yt.frontends.stream.data_structures import \
     load_particles
 from yt.units.dimensions import length

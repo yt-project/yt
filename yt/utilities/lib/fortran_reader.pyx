@@ -60,12 +60,12 @@ def count_art_octs(char *fn, long offset,
                    int nhydro_vars,
                    level_info):
     cdef int nchild = 8
-    cdef int i, Lev, next_record, nLevel
+    cdef int next_record = -1, nLevel = -1
     cdef int dummy_records[9]
-    cdef int readin
+    cdef int readin = -1
     cdef FILE *f = fopen(fn, "rb")
     fseek(f, offset, SEEK_SET)
-    for Lev in range(min_level + 1, max_level + 1):
+    for _ in range(min_level + 1, max_level + 1):
         fread(dummy_records, sizeof(int), 2, f);
         fread(&nLevel, sizeof(int), 1, f); FIX_LONG(nLevel)
         print level_info
@@ -101,24 +101,20 @@ def read_art_tree(char *fn, long offset,
     # nOct.  For those following along at home, we only need to read:
     #   iOctPr, iOctLv
     cdef int nchild = 8
-    cdef int i, Lev, cell_ind, iOct, nLevel, nLevCells, ic1
-    cdef np.int64_t next_record
+    cdef int iOct, nLevel, ic1
+    cdef np.int64_t next_record = -1
     cdef long long child_record
-    cdef int idc, cm
     cdef int iOctPs[3]
     cdef np.int64_t dummy_records[9]
-    cdef int readin
+    cdef int readin = -1
     cdef FILE *f = fopen(fn, "rb")
     fseek(f, offset, SEEK_SET)
-    cdef int Level
+    cdef int Level = -1
     cdef int * iNOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
     cdef int * iHOLL = <int *> alloca(sizeof(int)*(max_level-min_level+1))
-    cell_ind = 0
-    cdef int total_cells = 0, total_masked
     cdef int iOctMax = 0
     level_offsets = [0]
-    idc = 0
-    for Lev in range(min_level + 1, max_level + 1):
+    for _ in range(min_level + 1, max_level + 1):
         fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
         fread(&Level, sizeof(int), 1, f); FIX_LONG(Level)
         fread(&iNOLL[Level], sizeof(int), 1, f); FIX_LONG(iNOLL[Level])
@@ -154,7 +150,6 @@ def read_art_tree(char *fn, long offset,
             fread(&readin, sizeof(int), 1, f); FIX_LONG(readin)
             assert readin==52
 
-        total_masked = 0
         level_offsets.append(ftell(f))
 
         #skip over the hydro variables
@@ -194,7 +189,7 @@ def read_art_root_vars(char *fn, long root_grid_offset,
 
     cdef FILE *f = fopen(fn, "rb")
     cdef int j,l, cell_record_size = nhydro_vars * sizeof(float)
-    cdef float temp
+    cdef float temp = -1
     l=0
     fseek(f, root_grid_offset, SEEK_SET)
     # Now we seet out the cell we want
@@ -219,9 +214,9 @@ cdef void read_art_vars(FILE *f,
     # nhydro_vars is the number of columns- 3 (adjusting for vars)
     # this is normally 10=(8+2chem species)
     cdef int record_size = 2+1+1+nhydro_vars+2
-    cdef float temp
+    cdef float temp = -1.0
     cdef float varpad[2]
-    cdef int new_padding
+    cdef int new_padding = -1
     cdef int padding[3]
     cdef long offset = 8*grid_id*record_size*sizeof(float)
     fseek(f, level_offsets[grid_level] + offset, SEEK_SET)
@@ -251,7 +246,7 @@ def read_art_grid(int varindex,
               np.ndarray[np.float32_t, ndim=2] level_data,
               int level, int ref_factor,
               component_grid_info):
-    cdef int gi, i, j, k, domain, offset, grid_id
+    cdef int gi, i, j, k, grid_id
     cdef int ir, jr, kr
     cdef int offi, offj, offk, odind
     cdef np.int64_t di, dj, dk
@@ -267,8 +262,6 @@ def read_art_grid(int varindex,
         end_index[i] = start_index[i] + grid_dims[i]
     for gi in range(len(component_grid_info)):
         ogrid_info = component_grid_info[gi]
-        domain = ogrid_info[0]
-        #print "Loading", domain, ogrid_info
         grid_id = ogrid_info[1]
         og_start_index = ogrid_info[3:6] #the oct left edge
         for i in range(2*ref_factor):
@@ -331,21 +324,3 @@ def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
                 for z in range(2):
                     child_mask[lex+x,ley+y,lez+z] = art_child_masks[ioct,x,y,z]
 
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-def read_castro_particles(char *fn, int offset, int fieldindex, int nfields,
-                          np.ndarray[np.float64_t, ndim=1] tofill):
-    cdef int nparticles = tofill.shape[0]
-    cdef int i
-    cdef startskip = fieldindex*8
-    cdef endskip = (nfields - 1 - fieldindex)*8
-    cdef np.float64_t temp
-    cdef FILE *f = fopen(fn, 'r')
-    fseek(f, offset + 5*nparticles*4, 0) # 4 bytes
-    for i in range(nparticles):
-        fseek(f, startskip, SEEK_CUR)
-        fread(&temp, 8, 1, f)
-        tofill[i] = temp
-        fseek(f, endskip, SEEK_CUR)
-    fclose(f)

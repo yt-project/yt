@@ -17,7 +17,7 @@ is the location of a clone of the yt mercurial repository), and then start an
 IPython notebook server:
 
 .. code:: bash
-  
+
    $ ipython notebook
 
 .. warning:: The pre-filled out notebooks are *far* less fun than running them
@@ -34,6 +34,7 @@ Here are the notebooks, which have been filled in for inspection:
    comparing_units_from_different_datasets
    units_and_plotting
    unit_equivalencies
+   unit_systems
 
 .. note::
 

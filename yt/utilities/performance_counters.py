@@ -13,12 +13,16 @@ Minimalist performance counting for yt
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.config import ytcfg
-from yt.funcs import *
-import time
-from datetime import datetime as dt
-from bisect import insort
 import atexit
+import time
+
+from bisect import insort
+from collections import defaultdict
+from datetime import datetime as dt
+from functools import wraps
+
+from yt.config import ytcfg
+from yt.funcs import mylog
 
 class PerformanceCounters(object):
     _shared_state = {}

@@ -193,9 +193,13 @@ class mpi(object):
 """
 from __future__ import print_function
 
-import sys, imp, types
+import sys
+import imp
+import types
 from yt.extern.six.moves import builtins
 from mpi4py import MPI
+
+
 class mpi(object):
     rank = MPI.COMM_WORLD.Get_rank()
     @staticmethod
@@ -219,7 +223,7 @@ class mpi_import(object):
 
     def callAfterImport(self,f):
         "Add f to the list of functions to call on exit"
-        if type(f) != types.FunctionType:
+        if not isinstance(f, types.FunctionType):
             raise TypeError("Argument must be a function!")
         self.__funcs.append(f)
 
@@ -289,7 +293,7 @@ def __import_module__(partname, fqname, parent):
 # The remaining functions are taken unmodified (except for the names)
 # from knee.py.
 def __determine_parent__(globals, level):
-    if not globals or  "__name__" not in globals:
+    if not globals or "__name__" not in globals:
         return None
     pname = globals['__name__']
     if "__path__" in globals:
@@ -363,5 +367,5 @@ def __ensure_fromlist__(m, fromlist, recursive=0):
 # Now we import all the yt.mods items.
 with mpi_import():
     if MPI.COMM_WORLD.rank == 0: print("Beginning parallel import block.")
-    from yt.mods import *
+    from yt.mods import *  # NOQA
     if MPI.COMM_WORLD.rank == 0: print("Ending parallel import block.")

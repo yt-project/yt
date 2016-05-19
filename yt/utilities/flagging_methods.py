@@ -91,7 +91,7 @@ class ProtoSubgrid(object):
         self.sigs = []
         for dim in range(3):
             d1 = (dim + 1) % 3
-            d2 = (dim == 0)
+            d2 = int(dim == 0)
             self.sigs.append(self.flagged.sum(axis=d1).sum(axis=d2))
 
     @property
@@ -118,7 +118,7 @@ class ProtoSubgrid(object):
 
     def find_by_zero_signature(self, dim):
         sig = self.sigs[dim]
-        grid_ends = np.zeros((sig.size, 2))
+        grid_ends = np.zeros((sig.size, 2), dtype='int64')
         ng = 0
         i = 0
         while i < sig.size:
@@ -143,12 +143,11 @@ class ProtoSubgrid(object):
     def find_by_second_derivative(self):
         max_strength = 0
         max_axis = -1
-        max_ind = -1
         for dim in range(3):
             sig = self.sigs[dim]
             sd = sig[:-2] - 2.0*sig[1:-1] + sig[2:]
             center = int((self.flagged.shape[dim] - 1) / 2)
-            strength = zero_strength = 0
+            strength = zero_strength = zero_cross = 0
             for i in range(1, sig.size-2):
                 # Note that sd is offset by one
                 if sd[i-1] * sd[i] < 0:
@@ -162,7 +161,6 @@ class ProtoSubgrid(object):
                         zero_cross = i
             if zero_strength > max_strength:
                 max_axis = dim
-                max_ind = zero_cross
         dims = self.dimensions.copy()
         li = self.left_index.copy()
         dims[max_axis] = zero_cross

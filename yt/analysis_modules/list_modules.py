@@ -33,7 +33,7 @@ class AnalysisModuleLoader(object):
     def __getattr__(self, attr):
         try:
             name = "yt.analysis_modules.%s.api" % (attr)
-            nm = __import__(name, level=-1)
+            __import__(name, level=-1)
             setattr(self, attr, sys.modules[name])
         except ImportError:
             raise AttributeError(attr)

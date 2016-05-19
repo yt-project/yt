@@ -30,6 +30,7 @@ base_dimensions = [mass, length, time, temperature, angle, current_mks,
 #
 
 rate = 1 / time
+frequency = rate
 
 velocity     = length / time
 acceleration = length / time**2
@@ -49,6 +50,9 @@ flux     = power / area
 specific_flux = flux / rate
 number_density = 1/(length*length*length)
 density = mass * number_density
+angular_momentum = mass*length*velocity
+specific_angular_momentum = angular_momentum / mass
+specific_energy = energy / mass
 
 # Gaussian electromagnetic units
 charge_cgs  = (energy * length)**Rational(1, 2)  # proper 1/2 power

@@ -12,8 +12,22 @@ A registry for units that can be added to and modified.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import json
+import re
+
+from distutils.version import LooseVersion
 from yt.units.unit_lookup_table import \
-    default_unit_symbol_lut, latex_symbol_lut
+    default_unit_symbol_lut
+from yt.extern import six
+from sympy import \
+    sympify, \
+    srepr, \
+    __version__ as sympy_version
+
+SYMPY_VERSION = LooseVersion(sympy_version)
+
+def positive_symbol_replacer(match):
+    return match.group().replace(')\')', ')\', positive=True)')
 
 class SymbolNotFoundError(Exception):
     pass
@@ -39,7 +53,7 @@ class UnitRegistry:
     def __contains__(self, item):
         return item in self.lut
 
-    def add(self, symbol, base_value, dimensions, tex_repr=None):
+    def add(self, symbol, base_value, dimensions, tex_repr=None, offset=None):
         """
         Add a symbol to this registry.
 
@@ -48,18 +62,25 @@ class UnitRegistry:
 
         # Validate
         if not isinstance(base_value, float):
-            raise UnitParseError("base_value must be a float, got a %s."
-                                 % type(base_value))
+            raise UnitParseError("base_value (%s) must be a float, got a %s."
+                                 % (base_value, type(base_value)))
+
+        if offset is not None:
+            if not isinstance(offset, float):
+                raise UnitParseError(
+                    "offset value (%s) must be a float, got a %s."
+                    % (offset, type(offset)))
+        else:
+            offset = 0.0
 
         validate_dimensions(dimensions)
 
-        # Add to symbol lut
         if tex_repr is None:
-            tex_repr = "\\rm{" + symbol + "}"
-        latex_symbol_lut.setdefault(symbol, tex_repr)
+            # make educated guess that will look nice in most cases
+            tex_repr = r"\rm{" + symbol.replace('_', '\ ') + "}"
 
         # Add to lut
-        self.lut.update({symbol: (base_value, dimensions)})
+        self.lut.update({symbol: (base_value, dimensions, offset, tex_repr)})
 
     def remove(self, symbol):
         """
@@ -85,8 +106,9 @@ class UnitRegistry:
                 "in this registry." % symbol)
 
         if hasattr(base_value, "in_base"):
-            base_value = float(base_value.in_base().value)
-        self.lut[symbol] = (base_value, self.lut[symbol][1])
+            base_value = base_value.in_base().value
+
+        self.lut[symbol] = (float(base_value), ) + self.lut[symbol][1:]
 
     def keys(self):
         """
@@ -94,3 +116,34 @@ class UnitRegistry:
 
         """
         return self.lut.keys()
+
+    def to_json(self):
+        """
+        Returns a json-serialized version of the unit registry
+        """
+        sanitized_lut = {}
+        for k, v in six.iteritems(self.lut):
+            san_v = list(v)
+            repr_dims = srepr(v[1])
+            if SYMPY_VERSION < LooseVersion("1.0.0"):
+                # see https://github.com/sympy/sympy/issues/6131
+                repr_dims = re.sub("Symbol\('\([a-z_]*\)'\)",
+                                   positive_symbol_replacer, repr_dims)
+            san_v[1] = repr_dims
+            sanitized_lut[k] = tuple(san_v)
+
+        return json.dumps(sanitized_lut)
+
+    @classmethod
+    def from_json(cls, json_text):
+        """
+        Returns a UnitRegistry object from a json-serialized unit registry
+        """
+        data = json.loads(json_text)
+        lut = {}
+        for k, v in six.iteritems(data):
+            unsan_v = list(v)
+            unsan_v[1] = sympify(v[1])
+            lut[k] = tuple(unsan_v)
+
+        return cls(lut=lut, add_default_symbols=False)

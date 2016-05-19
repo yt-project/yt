@@ -13,13 +13,10 @@ FLASH-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
-    kboltz, mh, Na
-from yt.units.yt_array import \
-    YTArray
+    Na
 
 # Common fields in FLASH: (Thanks to John ZuHone for this list)
 #
@@ -82,9 +79,9 @@ class FLASHFieldInfo(FieldInfoContainer):
         ("targ", ("", [], "Target Material Fraction")),
         ("sumy", ("", [], None)),
         ("mgdc", ("", [], "Emission Minus Absorption Diffusion Terms")),
-        ("magx", (b_units, ["magnetic_field_x"], "B_x")),
-        ("magy", (b_units, ["magnetic_field_y"], "B_y")),
-        ("magz", (b_units, ["magnetic_field_z"], "B_z")),
+        ("magx", (b_units, [], "B_x")),
+        ("magy", (b_units, [], "B_y")),
+        ("magz", (b_units, [], "B_z")),
     )
 
     known_particle_fields = (
@@ -99,6 +96,9 @@ class FLASHFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
+        unit_system = self.ds.unit_system
         for i in range(1, 1000):
             self.add_output_field(("flash", "r{0:03}".format(i)), 
                 units = "",
@@ -115,7 +115,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             self.add_output_field(("flash","ener"),
                                   units="code_length**2/code_time**2")
             self.alias(("gas","total_energy"),("flash","ener"),
-                       units="erg/g")
+                       units=unit_system["specific_energy"])
         else:
             def _ener(field, data):
                 ener = data["flash","eint"]+ekin(data)
@@ -125,12 +125,12 @@ class FLASHFieldInfo(FieldInfoContainer):
                     pass
                 return ener
             self.add_field(("gas","total_energy"), function=_ener,
-                           units="erg/g")
+                           units=unit_system["specific_energy"])
         if ("flash","eint") in self.field_list:
             self.add_output_field(("flash","eint"),
                                   units="code_length**2/code_time**2")
             self.alias(("gas","thermal_energy"),("flash","eint"),
-                       units="erg/g")
+                       units=unit_system["specific_energy"])
         else:
             def _eint(field, data):
                 eint = data["flash","ener"]-ekin(data)
@@ -140,7 +140,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                     pass
                 return eint
             self.add_field(("gas","thermal_energy"), function=_eint,
-                           units="erg/g")
+                           units=unit_system["specific_energy"])
         ## Derived FLASH Fields
         def _nele(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
@@ -151,15 +151,19 @@ class FLASHFieldInfo(FieldInfoContainer):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
         self.add_field(('flash','nion'), function=_nion, units="code_length**-3")
-        def _abar(field, data):
-            try:
-                return data["flash","abar"]
-            except:
-                return 1.0/data["flash","sumy"]
-        self.add_field(("flash","abar"), function=_abar, units="1")
-        def _number_density(fields,data) :
+        
+        if ("flash", "abar") in self.field_list:
+            self.add_output_field(("flash", "abar"), units="1")
+        else:
+            def _abar(field, data):
+                return 1.0 / data["flash","sumy"]
+            self.add_field(("flash","abar"), function=_abar, units="1")
+
+        def _number_density(fields,data):
             return (data["nele"]+data["nion"])
         self.add_field(("gas","number_density"), function=_number_density,
-                       units="cm**-3")
+                       units=unit_system["number_density"])
+
+        setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
 
 

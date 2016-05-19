@@ -19,12 +19,12 @@ How can I tell what version of yt I'm using?
 
 If you run into problems with yt and you're writing to the mailing list
 or contacting developers on IRC, they will likely want to know what version of
-yt you're using.  Oftentimes, you'll want to know both the yt version, 
-as well as the last changeset that was committed to the branch you're using.  
+yt you're using.  Oftentimes, you'll want to know both the yt version,
+as well as the last changeset that was committed to the branch you're using.
 To reveal this, go to a command line and type:
 
 .. code-block:: bash
-    
+
     $ yt version
 
     yt module located at:
@@ -45,7 +45,7 @@ To reveal this, go to a command line and type:
 
     To update all dependencies, run "yt update --all".
 
-If the changeset is displayed followed by a "+", it means you have made 
+If the changeset is displayed followed by a "+", it means you have made
 modifications to the code since the last changeset.
 
 For more information on this topic, see :ref:`updating-yt`.
@@ -55,7 +55,7 @@ For more information on this topic, see :ref:`updating-yt`.
 I upgraded to yt 3.0 but my code no longer works.  What do I do?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Because there are a lot of backwards-incompatible changes in yt 3.0 (see 
+Because there are a lot of backwards-incompatible changes in yt 3.0 (see
 :ref:`yt3differences`, it can
 be a daunting effort in transitioning old scripts from yt 2.x to 3.0.
 We have tried to describe the basic process of making that transition
@@ -69,8 +69,8 @@ Code Errors and Failures
 yt fails saying that it cannot import yt modules
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-This is commonly exhibited with this error: 
-``ImportError: cannot import name obtain_rvec``.  This is likely because 
+This is commonly exhibited with this error:
+``ImportError: cannot import name obtain_rvec``.  This is likely because
 you need to rebuild the source.  You can do this automatically by running:
 
 .. code-block:: bash
@@ -78,11 +78,11 @@ you need to rebuild the source.  You can do this automatically by running:
     cd $YT_HG
     python setup.py develop
 
-where ``$YT_HG`` is the path to the yt mercurial repository.  
+where ``$YT_HG`` is the path to the yt mercurial repository.
 
 This error tends to occur when there are changes in the underlying cython
 files that need to be rebuilt, like after a major code update or in switching
-from 2.x to 3.x.  For more information on this, see 
+from 2.x to 3.x.  For more information on this, see
 :ref:`switching-between-yt-versions`.
 
 .. _faq-mpi4py:
@@ -90,11 +90,11 @@ from 2.x to 3.x.  For more information on this, see
 yt complains that it needs the mpi4py module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For yt to be able to incorporate parallelism on any of its analysis (see 
-:ref:`parallel-computation`), it needs to be able to use MPI libraries.  
-This requires the ``mpi4py`` module to be installed in your version of python.  
-Unfortunately, installation of ``mpi4py`` is *just* tricky enough to elude the 
-yt batch installer.  So if you get an error in yt complaining about mpi4py 
+For yt to be able to incorporate parallelism on any of its analysis (see
+:ref:`parallel-computation`), it needs to be able to use MPI libraries.
+This requires the ``mpi4py`` module to be installed in your version of python.
+Unfortunately, installation of ``mpi4py`` is *just* tricky enough to elude the
+yt batch installer.  So if you get an error in yt complaining about mpi4py
 like:
 
 .. code-block:: bash
@@ -121,7 +121,7 @@ If this is the case, you can specify them explicitly as per:
 
     env MPICC=/path/to/MPICC pip install mpi4py
 
-So for example, on Kraken, I switch to the gnu C compilers (because yt 
+So for example, on Kraken, I switch to the gnu C compilers (because yt
 doesn't work with the portland group C compilers), then I discover that
 cc is the mpi-enabled C compiler (and it is in my path), so I run:
 
@@ -130,10 +130,10 @@ cc is the mpi-enabled C compiler (and it is in my path), so I run:
     module swap PrgEnv-pgi PrgEnv-gnu
     env MPICC=cc pip install mpi4py
 
-And voila!  It installs!  If this *still* fails for you, then you can 
-build and install from source and specify the mpi-enabled c and c++ 
-compilers in the mpi.cfg file.  See the 
-`mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_ 
+And voila!  It installs!  If this *still* fails for you, then you can
+build and install from source and specify the mpi-enabled c and c++
+compilers in the mpi.cfg file.  See the
+`mpi4py installation page <http://mpi4py.scipy.org/docs/usrman/install.html>`_
 for details.
 
 
@@ -146,7 +146,7 @@ How do I get the convert between code units and physical units for my dataset?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Converting between physical units and code units is a common task.  In yt-2.x,
-the syntax for getting conversion factors was in the units dictionary 
+the syntax for getting conversion factors was in the units dictionary
 (``pf.units['kpc']``). So in order to convert a variable ``x`` in code units to
 kpc, you might run:
 
@@ -154,24 +154,24 @@ kpc, you might run:
 
     x = x*pf.units['kpc']
 
-In yt-3.0, this no longer works.  Conversion factors are tied up in the 
-``length_unit``, ``times_unit``, ``mass_unit``, and ``velocity_unit`` 
+In yt-3.0, this no longer works.  Conversion factors are tied up in the
+``length_unit``, ``times_unit``, ``mass_unit``, and ``velocity_unit``
 attributes, which can be converted to any arbitrary desired physical unit:
 
 .. code-block:: python
 
-    print "Length unit: ", ds.length_unit
-    print "Time unit: ", ds.time_unit
-    print "Mass unit: ", ds.mass_unit
-    print "Velocity unit: ", ds.velocity_unit
+    print("Length unit: ", ds.length_unit)
+    print("Time unit: ", ds.time_unit)
+    print("Mass unit: ", ds.mass_unit)
+    print("Velocity unit: ", ds.velocity_unit)
 
-    print "Length unit: ", ds.length_unit.in_units('code_length')
-    print "Time unit: ", ds.time_unit.in_units('code_time')
-    print "Mass unit: ", ds.mass_unit.in_units('kg')
-    print "Velocity unit: ", ds.velocity_unit.in_units('Mpc/year')
+    print("Length unit: ", ds.length_unit.in_units('code_length'))
+    print("Time unit: ", ds.time_unit.in_units('code_time'))
+    print("Mass unit: ", ds.mass_unit.in_units('kg'))
+    print("Velocity unit: ", ds.velocity_unit.in_units('Mpc/year'))
 
-So to accomplish the example task of converting a scalar variable ``x`` in 
-code units to kpc in yt-3.0, you can do one of two things.  If ``x`` is 
+So to accomplish the example task of converting a scalar variable ``x`` in
+code units to kpc in yt-3.0, you can do one of two things.  If ``x`` is
 already a YTQuantity with units in ``code_length``, you can run:
 
 .. code-block:: python
@@ -191,7 +191,7 @@ How do I make a YTQuantity tied to a specific dataset's units?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to create a variable or array that is tied to a particular dataset
-(and its specific conversion factor to code units), use the ``ds.quan`` (for 
+(and its specific conversion factor to code units), use the ``ds.quan`` (for
 individual variables) and ``ds.arr`` (for arrays):
 
 .. code-block:: python
@@ -205,9 +205,9 @@ You can then naturally exploit the units system:
 
 .. code-block:: python
 
-    print "One Mpc in code_units:", one_Mpc.in_units('code_length')
-    print "One Mpc in AU:", one_Mpc.in_units('AU')
-    print "One Mpc in comoving kpc:", one_Mpc.in_units('kpccm')
+    print("One Mpc in code_units:", one_Mpc.in_units('code_length'))
+    print("One Mpc in AU:", one_Mpc.in_units('AU'))
+    print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
 
 For more information about unit conversion, see :ref:`data_selection_and_fields`.
 
@@ -216,38 +216,38 @@ For more information about unit conversion, see :ref:`data_selection_and_fields`
 How do I access the unitless data in a YTQuantity or YTArray?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-While there are numerous benefits to having units tied to individual 
+While there are numerous benefits to having units tied to individual
 quantities in yt, they can also produce issues when simply trying to combine
 YTQuantities with numpy arrays or native python floats that lack units.  A
 simple example of this is::
 
-    # Create a YTQuantity that is 1 kpc in length and tied to the units of 
+    # Create a YTQuantity that is 1 kpc in length and tied to the units of
     # dataset ds
     >>> x = ds.quan(1, 'kpc')
 
     # Try to add this to some non-dimensional quantity
-    >>> print x + 1
-    
+    >>> print(x + 1)
+
     YTUnitOperationError: The addition operator for YTArrays with units (kpc) and (1) is not well defined.
 
-The solution to this means using the YTQuantity and YTArray objects for all 
-of one's computations, but this isn't always feasible.  A quick fix for this 
+The solution to this means using the YTQuantity and YTArray objects for all
+of one's computations, but this isn't always feasible.  A quick fix for this
 is to just grab the unitless data out of a YTQuantity or YTArray object with
-the ``value`` and ``v`` attributes, which return a copy, or with the ``d`` 
+the ``value`` and ``v`` attributes, which return a copy, or with the ``d``
 attribute, which returns the data itself:
 
 .. code-block:: python
 
     x = ds.quan(1, 'kpc')
     x_val = x.v
-    print x_val 
+    print(x_val)
 
     array(1.0)
 
     # Try to add this to some non-dimensional quantity
-    print x + 1
+    print(x + 1)
 
-    2.0 
+    2.0
 
 For more information about this functionality with units, see :ref:`data_selection_and_fields`.
 
@@ -265,13 +265,13 @@ in log or linear space. To override this behavior, you can modify the
 logged, you could type:
 
 .. code-block:: python
-    
+
     ds = load("my_data")
     ds.index
     ds.field_info['density'].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
-be presented in linear space. Note that you have to instantiate ds.index before 
+be presented in linear space. Note that you have to instantiate ds.index before
 you can access ds.field info.  For more information see the documentation on
 :ref:`fields` and :ref:`creating-derived-fields`.
 
@@ -298,26 +298,26 @@ available, look at the properties ``field_list`` and ``derived_field_list``:
 
 .. code-block:: python
 
-   print ds.field_list
-   print ds.derived_field_list
+   print(ds.field_list)
+   print(ds.derived_field_list)
 
 or for a more legible version, try:
 
 .. code-block:: python
 
-   for field in ds.derived_field_list: 
-       print field
+   for field in ds.derived_field_list:
+       print(field)
 
 .. _faq-add-field-diffs:
 
 What is the difference between ``yt.add_field()`` and ``ds.add_field()``?
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The global ``yt.add_field()`` 
-(:meth:`~yt.fields.field_info_container.FieldInfoContainer.add_field`) 
-function is for adding a field for every subsequent dataset that is loaded 
-in a particular python session, whereas ``ds.add_field()`` 
-(:meth:`~yt.data_objects.static_output.Dataset.add_field`) will only add it 
+The global ``yt.add_field()``
+(:meth:`~yt.fields.field_info_container.FieldInfoContainer.add_field`)
+function is for adding a field for every subsequent dataset that is loaded
+in a particular python session, whereas ``ds.add_field()``
+(:meth:`~yt.data_objects.static_output.Dataset.add_field`) will only add it
 to dataset ``ds``.
 
 Data Objects
@@ -328,16 +328,16 @@ Data Objects
 Why are the values in my Ray object out of order?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Using the Ray objects 
-(:class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase` and 
-:class:`~yt.data_objects.selection_data_containers.YTRayBase`) with AMR data 
-gives non-contiguous cell information in the Ray's data array. The 
-higher-resolution cells are appended to the end of the array.  Unfortunately, 
-due to how data is loaded by chunks for data containers, there is really no 
-easy way to fix this internally.  However, there is an easy workaround.  
+Using the Ray objects
+(:class:`~yt.data_objects.selection_data_containers.YTOrthoRay` and
+:class:`~yt.data_objects.selection_data_containers.YTRay`) with AMR data
+gives non-contiguous cell information in the Ray's data array. The
+higher-resolution cells are appended to the end of the array.  Unfortunately,
+due to how data is loaded by chunks for data containers, there is really no
+easy way to fix this internally.  However, there is an easy workaround.
 
-One can sort the ``Ray`` array data by the ``t`` field, which is the value of 
-the parametric variable that goes from 0 at the start of the ray to 1 at the 
+One can sort the ``Ray`` array data by the ``t`` field, which is the value of
+the parametric variable that goes from 0 at the start of the ray to 1 at the
 end. That way the data will always be ordered correctly. As an example you can:
 
 .. code-block:: python
@@ -346,7 +346,7 @@ end. That way the data will always be ordered correctly. As an example you can:
     ray_sort = np.argsort(my_ray["t"])
     density = my_ray["density"][ray_sort]
 
-There is also a full example in the :ref:`manual-line-plots` section of the 
+There is also a full example in the :ref:`manual-line-plots` section of the
 docs.
 
 Developing
@@ -368,7 +368,7 @@ please see :ref:`sharing-changes`.
 
 Someone asked me to file an issue or a bug report for a bug I found.  How?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-    
+
 See :ref:`reporting-a-bug` and :ref:`sharing-changes`.
 
 Miscellaneous
@@ -382,7 +382,7 @@ How can I get some sample data for yt?
 Many different sample datasets can be found at http://yt-project.org/data/ .
 These can be downloaded, unarchived, and they will each create their own
 directory.  It is generally straight forward to load these datasets, but if
-you have any questions about loading data from a code with which you are 
+you have any questions about loading data from a code with which you are
 unfamiliar, please visit :ref:`loading-data`.
 
 To make things easier to load these sample datasets, you can add the parent
@@ -424,53 +424,53 @@ be a persistent problem add the line:
 
    from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
 
-to the very top of your yt script.  Turning off serialization is the default 
+to the very top of your yt script.  Turning off serialization is the default
 behavior in yt-3.0.
 
 .. _faq-log-level:
 
-How can I change yt's log level? 
+How can I change yt's log level?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 yt's default log level is ``INFO``. However, you may want less voluminous logging, especially
 if you are in an IPython notebook or running a long or parallel script. On the other
-hand, you may want it to output a lot more, since you can't figure out exactly what's going 
-wrong, and you want to output some debugging information. The yt log level can be 
-changed using the :ref:`configuration-file`, either by setting it in the 
+hand, you may want it to output a lot more, since you can't figure out exactly what's going
+wrong, and you want to output some debugging information. The yt log level can be
+changed using the :ref:`configuration-file`, either by setting it in the
 ``$HOME/.yt/config`` file:
 
 .. code-block:: bash
 
    [yt]
    loglevel = 10 # This sets the log level to "DEBUG"
-   
+
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 
 .. code-block:: python
 
    from yt.config import ytcfg
    ytcfg["yt","loglevel"] = "40" # This sets the log level to "ERROR"
-   
-which in this case would suppress everything below error messages. For reference, the numerical 
+
+which in this case would suppress everything below error messages. For reference, the numerical
 values corresponding to different log levels are:
 
-.. csv-table:: 
+.. csv-table::
    :header: Level, Numeric Value
    :widths: 10, 10
-   
+
    ``CRITICAL``,50
    ``ERROR``,40
    ``WARNING``,30
    ``INFO``,20
    ``DEBUG``,10
    ``NOTSET``,0
-   
+
 Can I always load custom data objects, fields, quantities, and colormaps with every dataset?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The :ref:`plugin-file` provides a means for always running custom code whenever
-yt is loaded up.  This custom code can be new data objects, or fields, or 
-colormaps, which will then be accessible in any future session without having 
+yt is loaded up.  This custom code can be new data objects, or fields, or
+colormaps, which will then be accessible in any future session without having
 modified the source code directly.  See the description in :ref:`plugin-file`
 for more details.
 
@@ -483,7 +483,7 @@ should feel free to cite the `ApJS paper
 entry: ::
 
    @ARTICLE{2011ApJS..192....9T,
-      author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and 
+      author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and
    	{Skillman}, S.~W. and {Abel}, T. and {Norman}, M.~L.},
        title = "{yt: A Multi-code Analysis Toolkit for Astrophysical Simulation Data}",
      journal = {\apjs},

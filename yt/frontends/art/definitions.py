@@ -110,7 +110,7 @@ dmparticle_header_struct = [
 ]
 
 star_struct = [
-    ('>d', ('tdum', 'adum')),
+    ('>d', ('t_stars', 'a_stars')),
     ('>i', 'nstars'),
     ('>d', ('ws_old', 'ws_oldi')),
     ('>f', 'particle_mass'),

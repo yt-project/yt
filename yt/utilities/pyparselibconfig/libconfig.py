@@ -1,9 +1,9 @@
 from __future__ import print_function
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, Samuel Skillman 
+# Copyright (c) 2013, yt Development Team
 #
-# Distributed under the terms of the MIT License.
+# Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
@@ -74,7 +74,7 @@ class libconfig(dict):
         return eval(v)
 
     def write(self, filename):
-        f = file(filename, 'w')
+        f = open(filename, 'w')
 
         self.write_dict(f, self, 0)
 
@@ -82,7 +82,7 @@ class libconfig(dict):
         tab = ' '*4
 
         dict_dict = {}
-        for k, v in this_dict.iteritems():
+        for k, v in this_dict.items():
             if type(v) == dict:
                 dict_dict[k] = v
             else:
@@ -90,7 +90,7 @@ class libconfig(dict):
                     v = '"%s"' % v
                 f.writelines(tab*level + '%s = %s;\n' % (k, v))
 
-        for k, v in dict_dict.iteritems():
+        for k, v in dict_dict.items():
             f.writelines('\n')
             f.writelines(tab*level + '%s :\n' % k)
             f.writelines(tab*level+'{\n')

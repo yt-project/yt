@@ -27,11 +27,6 @@ from .particle_io import \
     particle_handler_registry
 
 from .profiles import \
-    YTEmptyProfileData, \
-    BinnedProfile, \
-    BinnedProfile1D, \
-    BinnedProfile2D, \
-    BinnedProfile3D, \
     create_profile, \
     Profile1D, \
     Profile2D, \

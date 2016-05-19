@@ -15,15 +15,10 @@ Data structures for a generic SDF frontend
 #-----------------------------------------------------------------------------
 
 
-import h5py
 import numpy as np
 import stat
-import weakref
-import struct
-import glob
 import time
 import os
-import types
 import sys
 import contextlib
 
@@ -32,23 +27,14 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
-from yt.utilities.physical_ratios import \
-    cm_per_kpc, \
-    mass_sun_grams, \
-    sec_per_Gyr
+from yt.funcs import \
+    get_requests
 from .fields import \
     SDFFieldInfo
-from .io import \
-    IOHandlerSDF
 from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\
     HTTPSDFRead
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 @contextlib.contextmanager
 def safeopen(*args, **kwargs):
@@ -86,7 +72,8 @@ class SDFDataset(Dataset):
                  midx_header = None,
                  midx_level = None,
                  field_map = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -112,7 +99,8 @@ class SDFDataset(Dataset):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type,
-                                         units_override=units_override)
+                                         units_override=units_override,
+                                         unit_system=unit_system)
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
@@ -136,17 +124,19 @@ class SDFDataset(Dataset):
         if None in (self.domain_left_edge, self.domain_right_edge):
             R0 = self.parameters['R0']
             if 'offset_center' in self.parameters and self.parameters['offset_center']:
-                self.domain_left_edge = np.array([0, 0, 0])
+                self.domain_left_edge = np.array([0, 0, 0], dtype=np.float64)
                 self.domain_right_edge = np.array([
-                 2.0 * self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                    2.0 * self.parameters.get("R%s" % ax, R0) for ax in 'xyz'],
+                    dtype=np.float64)
             else:
                 self.domain_left_edge = np.array([
-                    -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                    -self.parameters.get("R%s" % ax, R0) for ax in 'xyz'],
+                    dtype=np.float64)
                 self.domain_right_edge = np.array([
-                    +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'])
+                    +self.parameters.get("R%s" % ax, R0) for ax in 'xyz'],
+                    dtype=np.float64)
             self.domain_left_edge *= self.parameters.get("a", 1.0)
             self.domain_right_edge *= self.parameters.get("a", 1.0)
-
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(3, "int32") * nz
         if "do_periodic" in self.parameters and self.parameters["do_periodic"]:
@@ -202,7 +192,9 @@ class SDFDataset(Dataset):
     def _is_valid(cls, *args, **kwargs):
         sdf_header = kwargs.get('sdf_header', args[0])
         if sdf_header.startswith("http"):
-            if requests is None: return False
+            requests = get_requests()
+            if requests is None: 
+                return False
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.

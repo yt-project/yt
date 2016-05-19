@@ -13,21 +13,16 @@ Data structures for MOAB Hex8.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import os
 import numpy as np
 import weakref
-from yt.funcs import mylog
 from yt.data_objects.unstructured_mesh import \
-           SemiStructuredMesh
+    SemiStructuredMesh
 from yt.geometry.unstructured_mesh_handler import \
-           UnstructuredIndex
+    UnstructuredIndex
 from yt.data_objects.static_output import \
-           Dataset
-from yt.utilities.io_handler import \
-    io_registry
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    Dataset
 from yt.utilities.file_handler import HDF5FileHandler
 
 from .fields import MoabFieldInfo, PyneFieldInfo
@@ -70,10 +65,12 @@ class MoabHex8Dataset(Dataset):
     periodicity = (False, False, False)
 
     def __init__(self, filename, dataset_type='moab_hex8',
-                 storage_filename = None, units_override=None):
+                 storage_filename = None, units_override=None,
+                 unit_system="cgs"):
         self.fluid_types += ("moab",)
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.filename = filename
         self._handle = HDF5FileHandler(filename)
@@ -86,7 +83,7 @@ class MoabHex8Dataset(Dataset):
         self.mass_unit = self.quan(1.0, "g")
 
     def _parse_parameter_file(self):
-        self._handle = f = h5py.File(self.parameter_filename, "r")
+        self._handle = h5py.File(self.parameter_filename, "r")
         coords = self._handle["/tstt/nodes/coordinates"]
         self.domain_left_edge = coords[0]
         self.domain_right_edge = coords[-1]
@@ -150,12 +147,14 @@ class PyneMoabHex8Dataset(Dataset):
     periodicity = (False, False, False)
 
     def __init__(self, pyne_mesh, dataset_type='moab_hex8_pyne',
-                 storage_filename = None, units_override=None):
+                 storage_filename = None, units_override=None,
+                 unit_system="cgs"):
         self.fluid_types += ("pyne",)
         filename = "pyne_mesh_" + str(id(pyne_mesh))
         self.pyne_mesh = pyne_mesh
         Dataset.__init__(self, str(filename), dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.filename = filename
 
@@ -167,7 +166,8 @@ class PyneMoabHex8Dataset(Dataset):
         self.mass_unit = self.quan(1.0, "g")
 
     def _parse_parameter_file(self):
-        from itaps import iBase
+        #  not sure if this import has side-effects so I'm not deleting it
+        from itaps import iBase  # NOQA
 
         ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.getVtxCoords(ents)

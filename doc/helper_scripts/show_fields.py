@@ -68,18 +68,18 @@ Field List
 ==========
 
 This is a list of many of the fields available in yt.  We have attempted to
-include most of the fields that are accessible through the plugin system, as 
-well as the fields that are known by the frontends, however it is possible to 
-generate many more permutations, particularly through vector operations. For 
+include most of the fields that are accessible through the plugin system, as
+well as the fields that are known by the frontends, however it is possible to
+generate many more permutations, particularly through vector operations. For
 more information about the fields framework, see :ref:`fields`.
 
-Some fields are recognized by specific frontends only. These are typically 
-fields like density and temperature that have their own names and units in 
-the different frontend datasets. Often, these fields are aliased to their 
-yt-named counterpart fields (typically 'gas' fieldtypes). For example, in 
-the ``FLASH`` frontend, the ``dens`` field (i.e. ``(flash, dens)``) is aliased 
-to the gas field density (i.e. ``(gas, density)``), similarly ``(flash, velx)`` 
-is aliased to ``(gas, velocity_x)``, and so on. In what follows, if a field 
+Some fields are recognized by specific frontends only. These are typically
+fields like density and temperature that have their own names and units in
+the different frontend datasets. Often, these fields are aliased to their
+yt-named counterpart fields (typically 'gas' fieldtypes). For example, in
+the ``FLASH`` frontend, the ``dens`` field (i.e. ``(flash, dens)``) is aliased
+to the gas field density (i.e. ``(gas, density)``), similarly ``(flash, velx)``
+is aliased to ``(gas, velocity_x)``, and so on. In what follows, if a field
 is aliased it will be noted.
 
 Try using the ``ds.field_list`` and ``ds.derived_field_list`` to view the
@@ -91,7 +91,7 @@ to display the native fields in alphabetical order:
   import yt
   ds = yt.load("Enzo_64/DD0043/data0043")
   for i in sorted(ds.field_list):
-    print i
+    print(i)
 
 To figure out out what all of the field types here mean, see
 :ref:`known-field-types`.
@@ -112,7 +112,7 @@ footer = """
 Index of Fields
 ---------------
 
-.. contents:: 
+.. contents::
    :depth: 3
    :backlinks: none
 
@@ -198,11 +198,11 @@ for frontend in current_frontends:
     elif frontend == "boxlib":
         field_info_names = []
         for d in dataset_names:
-            if "Maestro" in d:  
+            if "Maestro" in d:
                 field_info_names.append("MaestroFieldInfo")
-            elif "Castro" in d: 
+            elif "Castro" in d:
                 field_info_names.append("CastroFieldInfo")
-            else: 
+            else:
                 field_info_names.append("BoxlibFieldInfo")
     elif frontend == "chombo":
         # remove low dimensional field info containters for ChomboPIC
@@ -273,7 +273,7 @@ for frontend in current_frontends:
                                   al=f.aliases, aw=len_aliases,
                                   pt=f.ptype, pw=len_part,
                                   dp=f.dname, dw=len_disp))
-                
+
             print(div)
             print("")
 

@@ -83,7 +83,7 @@ cdef class bitarray:
         arr : array, castable to uint8
             The array we set from.
         """
-        cdef np.uint64_t i, j, elem
+        cdef np.uint64_t i, j
         cdef np.uint8_t *btemp = self.buf
         arr = np.ascontiguousarray(arr)
         j = 0
@@ -108,7 +108,7 @@ cdef class bitarray:
             The uint8 values expanded into boolean values
 
         """
-        cdef np.uint64_t i, j, elem
+        cdef np.uint64_t i, j
         cdef np.uint8_t *btemp = self.buf
         cdef np.ndarray[np.uint8_t, ndim=1] output
         output = np.zeros(self.size, "uint8")

@@ -1,4 +1,14 @@
-from yt.testing import *
+import numpy as np
+
+from yt import \
+    load
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal, \
+    assert_rel_equal, \
+    requires_file
+from yt.units.yt_array import \
+    uconcatenate
 
 def test_ray():
     for nproc in [1, 2, 4, 8]:
@@ -36,9 +46,17 @@ def test_ray():
             tin = tin.max(axis=0)
             tout = tout.min(axis=0)
             my_cells = (tin < tout) & (tin < 1) & (tout > 0)
-            dts = np.clip(tout[my_cells], 0.0, 1.0) - np.clip(tin[my_cells], 0.0, 1.0)
 
             yield assert_equal, ray_cells.sum(), my_cells.sum()
             yield assert_rel_equal, my_ray['density'][ray_cells].sum(), \
                                     my_all['density'][my_cells].sum(), 14
             yield assert_rel_equal, my_ray['dts'].sum(), unitary, 14
+
+@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
+def test_ray_in_particle_octree():
+    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    start = ds.arr([31995.63476562, 31473.6640625, 28969.88671875], "code_length")
+    end = ds.arr([31995.63476562, 31473.6640625, 29219.88671875], "code_length")
+    ray = ds.ray(start, end)
+    ray["t"]
+    assert_equal(ray["dts"].sum(dtype="f8"), 1.0)

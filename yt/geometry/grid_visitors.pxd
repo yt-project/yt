@@ -27,6 +27,27 @@ cdef struct GridTreeNode:
     int dims[3]
     np.float64_t dds[3]
 
+cdef struct GridTreeNodePadded:
+    int num_children
+    int level
+    long int index
+    double left_edge_x
+    double left_edge_y
+    double left_edge_z
+    double right_edge_x
+    double right_edge_y
+    double right_edge_z
+    long int children_pointers
+    long int start_index_x
+    long int start_index_y
+    long int start_index_z
+    int dims_x
+    int dims_y
+    int dims_z
+    double dds_x
+    double dds_y
+    double dds_z
+
 cdef struct GridVisitorData:
     GridTreeNode *grid
     np.uint64_t index

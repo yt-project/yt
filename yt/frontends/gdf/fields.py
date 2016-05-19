@@ -13,9 +13,6 @@ GDF-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
@@ -36,3 +33,8 @@ class GDFFieldInfo(FieldInfoContainer):
         ("mag_field_z", ("gauss", ["magnetic_field_z"], None)),
     )
     known_particle_fields = ()
+
+    def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
+        setup_magnetic_field_aliases(self, "gdf", ["magnetic_field_%s" % ax for ax in "xyz"])

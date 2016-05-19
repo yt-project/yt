@@ -11,6 +11,124 @@ Contributors
 The `CREDITS file <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ contains the
 most up-to-date list of everyone who has contributed to the yt source code.
 
+Version 3.2
+-----------
+
+Major enhancements
+^^^^^^^^^^^^^^^^^^
+
+* Particle-Only Plots - a series of new plotting functions for visualizing
+  particle data.  See here for more information.
+* Late-stage beta support for Python 3 - unit tests and answer tests pass for
+  all the major frontends under python 3.4, and yt should now be mostly if not
+  fully usable.  Because many of the yt developers are still on Python 2 at
+  this point, this should be considered a "late stage beta" as there may be
+  remaining issues yet to be identified or worked out.
+* Now supporting Gadget Friend-of-Friends/Subfind catalogs - see here to learn
+  how to load halo catalogs as regular yt datasets.
+* Custom colormaps can now be easily defined and added - see here to learn how!
+* Now supporting Fargo3D data
+* Performance improvements throughout the code base for memory and speed
+
+Minor enhancements
+^^^^^^^^^^^^^^^^^^
+
+* Various updates to the following frontends: ART, Athena, Castro, Chombo,
+  Gadget, GDF, Maestro, Pluto, RAMSES, Rockstar, SDF, Tipsy
+* Numerous documentation updates
+* Generic hexahedral mesh pixelizer
+* Adding annotate_ray() callback for plots
+* AbsorptionSpectrum returned to full functionality and now using faster SciPy
+  Voigt profile
+* Add a color_field argument to annotate_streamline
+* Smoothing lengths auto-calculated for Tipsy Datasets
+* Adding SimulationTimeSeries support for Gadget and OWLS.
+* Generalizing derived quantity outputs to all be YTArrays or lists of
+  YTArrays as appropriate
+* Star analysis returned to full functionality
+* FITS image writing refactor
+* Adding gradient fields on the fly
+* Adding support for Gadget Nx4 metallicity fields
+* Updating value of solar metal mass fraction to be consistent with Cloudy.
+* Gadget raw binary snapshot handling & non-cosmological simulation units
+* Adding support for LightRay class to work with Gadget+Tipsy
+* Add support for subclasses of frontends
+* Dependencies updated
+* Serialization for projections using minimal representation
+* Adding Grid visitors in Cython
+* Improved semantics for derived field units
+* Add a yaw() method for the PerspectiveCamera + switch back to LHS
+* Adding annotate_clear() function to remove previous callbacks from a plot
+* Added documentation for hexahedral mesh on website
+* Speed up nearest neighbor evaluation
+* Add a convenience method to create deposited particle fields
+* UI and docs updates for 3D streamlines
+* Ensure particle fields are tested in the field unit tests
+* Allow a suffix to be specified to save()
+* Add profiling using airspeed velocity
+* Various plotting enhancements and bugfixes
+* Use hglib to update
+* Various minor updates to halo_analysis toolkit
+* Docker-based tests for install_script.sh
+* Adding support for single and non-cosmological datasets to LightRay
+* Adding the Pascal unit
+* Add weight_field to PPVCube
+* FITS reader: allow HDU in auxiliary
+* Fixing electromagnetic units
+* Specific Angular Momentum [xyz] computed relative to a normal vector
+
+Bugfixes
+^^^^^^^^
+
+* Adding ability to create union fields from alias fields
+* Small fix to allow enzo AP datasets to load in parallel when no APs present
+* Use proper cell dimension in gradient function.
+* Minor memory optimization for smoothed particle fields
+* Fix thermal_energy for Enzo HydroMethod==6
+* Make sure annotate_particles handles unitful widths properly
+* Improvements for add_particle_filter and particle_filter
+* Specify registry in off_axis_projection's image finalization
+* Apply fix for particle momentum units to the boxlib frontend
+* Avoid traceback in "yt version" when python-hglib is not installed
+* Expose no_ghost from export_sketchfab down to _extract_isocontours_from_grid
+* Fix broken magnetic_unit attribute
+* Fixing an off-by-one error in the set x/y lim methods for profile plots
+* Providing better error messages to PlotWindow callbacks
+* Updating annotate_timestamp to avoid auto-override
+* Updating callbacks to consistently define coordinate system
+* Fixing species fields for OWLS and tipsy
+* Fix extrapolation for vertex-centered data
+* Fix periodicity check in FRBs
+* Rewrote project_to_plane() in PerspectiveCamera for draw_domain()
+* Fix intermittent failure in test_add_deposited_particle_field
+* Improve minorticks for a symlog plot with one-sided data
+* Fix smoothed covering grid cell computation
+* Absorption spectrum generator now 3.0 compliant
+* Fix off-by-one-or-more in particle smallest dx
+* Fix dimensionality mismatch error in covering grid
+* Fix curvature term in cosmology calculator
+* Fix geographic axes and pixelization
+* Ensure axes aspect ratios respect the user-selected plot aspect ratio
+* Avoid clobbering field_map when calling profile.add_fields
+* Fixing the arbitrary grid deposit code
+* Fix spherical plotting centering
+* Make the behavior of to_frb consistent with the docstring
+* Ensure projected units are initialized when there are no chunks.
+* Removing "field already exists" warnings from the Owls and Gadget frontends
+* Various photon simulator bugs
+* Fixed use of LaTeX math mode
+* Fix upload_image
+* Enforce plot width in CSS when displayed in a notebook
+* Fix cStringIO.StringIO -> cStringIO in png_writer
+* Add some input sanitizing and error checking to covering_grid initializer
+* Fix for geographic plotting
+* Use the correct filename template for single-file OWLS datasets.
+* Fix Enzo IO performance for 32 bit datasets
+* Adding a number density field for Enzo MultiSpecies=0 datasets.
+* Fix RAMSES block ordering
+* Updating ragged array tests for NumPy 1.9.1
+* Force returning lists for HDF5FileHandler
+
 Version 3.1
 -----------
 
@@ -19,7 +137,7 @@ since version 3.0.
 
 
 Major changes:
-++++++++++++++
+^^^^^^^^^^^^^^
 
 * The RADMC-3D export analysis module has been updated. `PR 1358 <https://bitbucket.org/yt_analysis/yt/pull-request/1358>`_, `PR 1332 <https://bitbucket.org/yt_analysis/yt/pull-request/1332>`_.
 
@@ -41,7 +159,7 @@ Major changes:
 * The documentation has been reorganized and has seen substantial improvements. `PR 1383 <https://bitbucket.org/yt_analysis/yt/pull-request/1383>`_, `PR 1373 <https://bitbucket.org/yt_analysis/yt/pull-request/1373>`_, `PR 1364 <https://bitbucket.org/yt_analysis/yt/pull-request/1364>`_, `PR 1351 <https://bitbucket.org/yt_analysis/yt/pull-request/1351>`_, `PR 1345 <https://bitbucket.org/yt_analysis/yt/pull-request/1345>`_. `PR 1333 <https://bitbucket.org/yt_analysis/yt/pull-request/1333>`_, `PR 1342 <https://bitbucket.org/yt_analysis/yt/pull-request/1342>`_, `PR 1338 <https://bitbucket.org/yt_analysis/yt/pull-request/1338>`_, `PR 1330 <https://bitbucket.org/yt_analysis/yt/pull-request/1330>`_, `PR 1326 <https://bitbucket.org/yt_analysis/yt/pull-request/1326>`_, `PR 1323 <https://bitbucket.org/yt_analysis/yt/pull-request/1323>`_, `PR 1315 <https://bitbucket.org/yt_analysis/yt/pull-request/1315>`_, `PR 1305 <https://bitbucket.org/yt_analysis/yt/pull-request/1305>`_, `PR 1289 <https://bitbucket.org/yt_analysis/yt/pull-request/1289>`_, `PR 1276 <https://bitbucket.org/yt_analysis/yt/pull-request/1276>`_.
 
 Minor or bugfix changes:
-++++++++++++++++++++++++
+^^^^^^^^^^^^^^^^^^^^^^^^
 
 * The Ampere unit now accepts SI prefixes.  `PR 1393 <https://bitbucket.org/yt_analysis/yt/pull-request/1393>`_.
 
@@ -156,6 +274,7 @@ infrastructure will be extended in future versions for high-fidelity
 representation of unstructured mesh datasets.
 
 Highlighted changes in yt 3.0:
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
  * Units now permeate the code base, enabling self-consistent unit
    transformations of all arrays and quantities returned by yt.
@@ -193,8 +312,8 @@ rendering be viewed as a late-stage beta, with a series of additional
 releases (3.1, 3.2, etc) appearing over the course of the next year to
 improve support in these areas.
 
-For a description of how to bring your 2.x scripts up to date to 3.0, 
-and a summary of common gotchas in this transition, please see 
+For a description of how to bring your 2.x scripts up to date to 3.0,
+and a summary of common gotchas in this transition, please see
 :ref:`yt3differences`.
 
 Version 2.6
@@ -204,6 +323,7 @@ This is a scheduled release, bringing to a close the development in the 2.x
 series.  Below are the itemized, aggregate changes since version 2.5.
 
 Major changes:
+^^^^^^^^^^^^^^
 
   * yt is now licensed under the 3-clause BSD license.
   * HEALPix has been removed for the time being, as a result of licensing
@@ -227,6 +347,7 @@ Major changes:
   * ProjectionPlot now accepts a data_source keyword argument
 
 Minor or bugfix changes:
+^^^^^^^^^^^^^^^^^^^^^^^^
 
   * Fix for volume rendering on the command line
   * map_to_colormap will no longer return out-of-bounds errors
@@ -307,7 +428,7 @@ In this release, plots can be displayed inline.  The Reason HTML5 GUI will be
 merged with the IPython notebook in a future release.
 
 Install Script Changes:
-~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^
 
  * SciPy can now be installed
  * Rockstar can now be installed
@@ -326,7 +447,7 @@ Install Script Changes:
 We've also improved support for installing on OSX, Ubuntu and OpenSUSE.
 
 Most Visible Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
  * Nearly 200 pull requests and over 1000 changesets have been merged since yt
    2.4 was release on August 2nd, 2012.
@@ -382,17 +503,17 @@ Most Visible Improvements
  * Metallicity-dependent X-ray fields have now been added.
  * Grid lines can now be added to volume renderings.
  * Volume rendering backend has been updated to use an alpha channel, fixing
-   parallel opaque volume renderings.  This also enables easier blending of 
+   parallel opaque volume renderings.  This also enables easier blending of
    multiple images and annotations to the rendering. Users are encouraged
    to look at the capabilities of the ``ImageArray`` for writing out renders,
    as updated in the cookbook examples. Volume renders can now be saved with
    an arbitrary background color.
  * Periodicity, or alternately non-periodicity, is now a part of radius
    calculations.
- * The AMRKDTree has been rewritten.  This allows parallelism with other than 
+ * The AMRKDTree has been rewritten.  This allows parallelism with other than
    power-of-2 MPI processes, arbitrary sets of grids, and splitting of
-   unigrids. 
- * Fixed Resolution Buffers and volume rendering images now utilize a new 
+   unigrids.
+ * Fixed Resolution Buffers and volume rendering images now utilize a new
    ImageArray class that stores information such as data source, field names,
    and other information in a .info dictionary. See the ``ImageArray``
    docstrings for more information on how they can be used to save to a bitmap
@@ -409,7 +530,7 @@ a few of the changes to the scripting API.  You can
 `download it here <http://yt-project.org/files/yt24.ipynb>`_.
 
 Most Visible Improvements
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
  * Threaded volume renderer, completely refactored from the ground up for
    speed and parallelism.
@@ -432,9 +553,9 @@ Most Visible Improvements
    plot collections right from the yt command line!
 
 Other Changes
-~~~~~~~~~~~~~
+^^^^^^^^^^^^^
 
- * :class:`~yt.visualization.plot_window.ProjectionPlot` and 
+ * :class:`~yt.visualization.plot_window.ProjectionPlot` and
    :class:`~yt.visualization.plot_window.SlicePlot` supplant the functionality
    of PlotCollection.
  * Camera path creation from keyframes and splines
@@ -474,7 +595,7 @@ Other Changes
  * Light cone and light ray updates to fit with current best practices for
    parallelism
 
-Version 2.3 
+Version 2.3
 -----------
 
 `(yt 2.3 docs) <http://yt-project.org/docs/2.3>`_
@@ -523,14 +644,14 @@ Version 2.1
  * libconfig is now included
  * SQLite3 and Forthon now included by default in the install script
  * Development guide has been lengthened substantially and a development
-   bootstrap script (:ref:`bootstrap-dev`) is now included.
+   bootstrap script is now included.
  * Installation script now installs Python 2.7 and HDF5 1.8.6
  * iyt now tab-completes field names
  * Halos can now be stored on-disk much more easily between HaloFinding runs.
  * Halos found inline in Enzo can be loaded and merger trees calculated
  * Support for CASTRO particles has been added
  * Chombo support updated and fixed
- * New code contributions 
+ * New code contributions
  * Contour finder has been sped up by a factor of a few
  * Constrained two-point functions are now possible, for LOS power spectra
  * Time series analysis (:ref:`time-series-analysis`) now much easier
@@ -543,7 +664,7 @@ Version 2.1
  * ``yt-supplemental`` repository now checked out by default, containing
    cookbook, documentation, handy mercurial extensions, and advanced plotting
    examples and helper scripts.
- * Pasteboards now supported and available 
+ * Pasteboards now supported and available
  * Parallel yt efficiency improved by removal of barriers and improvement of
    collective operations
 
@@ -628,7 +749,7 @@ finder (see :ref:`halo_finding`)
  * Fixes for plots, including normalized phase plots
  * Better collective communication in parallel routines
  * Consolidation of optimized C routines into ``amr_utils``
- * Many bug fixes and minor optimizations 
+ * Many bug fixes and minor optimizations
 
 Version 1.5
 -----------

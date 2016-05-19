@@ -16,10 +16,8 @@ The data-file handling functions
 from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.funcs import mylog
-from yt.extern.six.moves import cPickle
 import os
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from yt.extern.six import add_metaclass
 
@@ -49,6 +47,10 @@ class BaseIOHandler(object):
         self._last_selector_counts = None
         self._array_fields = {}
         self._cached_fields = {}
+        # Make sure _vector_fields is a dict of fields and their dimension
+        # and assume all non-specified vector fields are 3D
+        if not isinstance(self._vector_fields, dict):
+            self._vector_fields = dict((field, 3) for field in self._vector_fields)
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
@@ -166,7 +168,7 @@ class BaseIOHandler(object):
                 fsize[field] += psize.get(field[0], 0)
         for field in fields:
             if field[1] in self._vector_fields:
-                shape = (fsize[field], 3)
+                shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
                 shape = (fsize[field],)+self._array_fields[field[1]]
             else:

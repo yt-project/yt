@@ -14,20 +14,38 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import hashlib
+from yt.extern.six import string_types
 from yt.extern.six.moves import cPickle
 import itertools as it
 import numpy as np
 import importlib
 import os
-from yt.funcs import *
+import unittest
+from yt.funcs import iterable
 from yt.config import ytcfg
-from numpy.testing import assert_array_equal, assert_almost_equal, \
-    assert_approx_equal, assert_array_almost_equal, assert_equal, \
-    assert_array_less, assert_string_equal, assert_array_almost_equal_nulp,\
-    assert_allclose, assert_raises
-from yt.units.yt_array import uconcatenate
-import yt.fields.api as field_api
+# we import this in a weird way from numpy.testing to avoid triggering
+# flake8 errors from the unused imports. These test functions are imported
+# elsewhere in yt from here so we want them to be imported here.
+from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA
+from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA
+from numpy.testing import assert_equal, assert_array_less  # NOQA
+from numpy.testing import assert_string_equal  # NOQA
+from numpy.testing import assert_array_almost_equal_nulp  # NOQA
+from numpy.testing import assert_allclose, assert_raises  # NOQA
 from yt.convenience import load
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTUnitOperationError
+
+# Expose assert_true and assert_less_equal from unittest.TestCase
+# this is adopted from nose. Doing this here allows us to avoid importing
+# nose at the top level.
+class _Dummy(unittest.TestCase):
+    def nop():
+        pass
+_t = _Dummy('nop')
+
+assert_true = getattr(_t, 'assertTrue')
+assert_less_equal = getattr(_t, 'assertLessEqual')
 
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
@@ -159,7 +177,8 @@ def fake_random_ds(
         fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
         units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
         particle_fields=None, particle_field_units=None,
-        negative = False, nprocs = 1, particles = 0, length_unit=1.0):
+        negative = False, nprocs = 1, particles = 0, length_unit=1.0,
+        unit_system="cgs", bbox=None):
     from yt.frontends.stream.api import load_uniform_grid
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
@@ -195,7 +214,8 @@ def fake_random_ds(
                 data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
             data['io', 'particle_mass'] = (np.random.random(particles), 'g')
         data['number_of_particles'] = particles
-    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs)
+    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
+                           unit_system=unit_system, bbox=bbox)
     return ug
 
 _geom_transforms = {
@@ -225,7 +245,7 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
             gdata[f] = np.random.random(dims)
         data.append(gdata)
     bbox = np.array([LE, RE]).T
-    return load_amr_grids(data, [32, 32, 32], 1.0, geometry=geometry, bbox=bbox)
+    return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
 
 def fake_particle_ds(
         fields = ("particle_position_x",
@@ -251,7 +271,7 @@ def fake_particle_ds(
     data = {}
     for field, offset, u in zip(fields, offsets, units):
         if "position" in field:
-            v = np.random.normal(npart, 0.5, 0.25)
+            v = np.random.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
         v = (np.random.random(npart) - offset)
         data[field] = (v, u)
@@ -259,7 +279,118 @@ def fake_particle_ds(
     ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
+
+def fake_tetrahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.tetrahedral_mesh import \
+        _connectivity, _coordinates
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
+
+def fake_hexahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.frontends.stream.sample_data.hexahedral_mesh import \
+        _connectivity, _coordinates
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity-1]
+
+    # each element gets a random number
+    elem_data = {}
+    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+
+    ds = load_unstructured_mesh(_connectivity-1,
+                                _coordinates,
+                                node_data=node_data,
+                                elem_data=elem_data)
+    return ds
+
+
+def fake_vr_orientation_test_ds(N = 96):
+    """
+    create a toy dataset that puts a sphere at (0,0,0), a single cube
+    on +x, two cubes on +y, and three cubes on +z in a domain from
+    [-1,1]**3.  The lower planes (x = -1, y = -1, z = -1) are also
+    given non-zero values.
+
+    This dataset allows you to easily explore orientations and
+    handiness in VR and other renderings
+
+    """
+    from yt.frontends.stream.api import load_uniform_grid
+
+    xmin = ymin = zmin = -1.0
+    xmax = ymax = zmax = 1.0
+
+    dcoord = (xmax - xmin)/N
+
+    arr = np.zeros((N,N,N), dtype=np.float64)
+    arr[:,:,:] = 1.e-4
+
+    bbox = np.array([ [xmin, xmax], [ymin, ymax], [zmin, zmax] ])
+
+    # coordinates -- in the notation data[i, j, k]
+    x = (np.arange(N) + 0.5)*dcoord + xmin
+    y = (np.arange(N) + 0.5)*dcoord + ymin
+    z = (np.arange(N) + 0.5)*dcoord + zmin
+
+    x3d, y3d, z3d = np.meshgrid(x, y, z, indexing="ij")
+
+    # sphere at the origin
+    c = np.array( [0.5*(xmin + xmax), 0.5*(ymin + ymax), 0.5*(zmin + zmax) ] )
+    r = np.sqrt((x3d - c[0])**2 + (y3d - c[1])**2 + (z3d - c[2])**2)
+    arr[r < 0.05] = 1.0
+
+    arr[abs(x3d - xmin) < 2*dcoord] = 0.3
+    arr[abs(y3d - ymin) < 2*dcoord] = 0.3
+    arr[abs(z3d - zmin) < 2*dcoord] = 0.3
+
+    # single cube on +x
+    xc = 0.75
+    dx = 0.05
+    idx = np.logical_and(np.logical_and(x3d > xc-dx, x3d < xc+dx),
+                         np.logical_and(np.logical_and(y3d > -dx, y3d < dx),
+                                        np.logical_and(z3d > -dx, z3d < dx)) )
+    arr[idx] = 1.0
+
+    # two cubes on +y
+    dy = 0.05
+    for yc in [0.65, 0.85]:
+        idx = np.logical_and(np.logical_and(y3d > yc-dy, y3d < yc+dy),
+                             np.logical_and(np.logical_and(x3d > -dy, x3d < dy),
+                                            np.logical_and(z3d > -dy, z3d < dy)) )
+        arr[idx] = 0.8
+
+    # three cubes on +z
+    dz = 0.05
+    for zc in [0.5, 0.7, 0.9]:
+        idx = np.logical_and(np.logical_and(z3d > zc-dz, z3d < zc+dz),
+                             np.logical_and(np.logical_and(x3d > -dz, x3d < dz),
+                                            np.logical_and(y3d > -dz, y3d < dz)) )
+        arr[idx] = 0.6
+
+    data = dict(density = (arr, "g/cm**3"))
+    ds = load_uniform_grid(data, arr.shape, bbox=bbox)
+    return ds
+
 def expand_keywords(keywords, full=False):
+
     """
     expand_keywords is a means for testing all possible keyword
     arguments in the nosetests.  Simply pass it a dictionary of all the
@@ -328,7 +459,7 @@ def expand_keywords(keywords, full=False):
         # Determine the maximum number of values any of the keywords has
         num_lists = 0
         for val in keywords.values():
-            if isinstance(val, str):
+            if isinstance(val, string_types):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
@@ -345,7 +476,7 @@ def expand_keywords(keywords, full=False):
             list_of_kwarg_dicts[i] = {}
             for key in keywords.keys():
                 # if it's a string, use it (there's only one)
-                if isinstance(keywords[key], str):
+                if isinstance(keywords[key], string_types):
                     list_of_kwarg_dicts[i][key] = keywords[key]
                 # if there are more options, use the i'th val
                 elif i < len(keywords[key]):
@@ -662,8 +793,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
@@ -686,8 +817,8 @@ def check_results(func):
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
-            if hasattr(rv, "convert_to_cgs"):
-                rv.convert_to_cgs()
+            if hasattr(rv, "convert_to_base"):
+                rv.convert_to_base()
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
@@ -728,8 +859,9 @@ def periodicity_cases(ds):
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
              call_pdb = False):
-    import nose, os, sys, yt
-    from yt.funcs import mylog
+    from yt.utilities.on_demand_imports import _nose
+    import sys
+    from yt.utilities.logger import ytLogger as mylog
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
@@ -743,11 +875,81 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
     if answer_big_data:
         nose_argv.append('--answer-big-data')
     initial_dir = os.getcwd()
-    yt_file = os.path.abspath(yt.__file__)
+    yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
+    if os.path.samefile(os.path.dirname(yt_dir), initial_dir):
+        # Provide a nice error message to work around nose bug
+        # see https://github.com/nose-devs/nose/issues/701
+        raise RuntimeError(
+            """
+    The yt.run_nose function does not work correctly when invoked in
+    the same directory as the installed yt package. Try starting
+    a python session in a different directory before invoking yt.run_nose
+    again. Alternatively, you can also run the "nosetests" executable in
+    the current directory like so:
+
+        $ nosetests
+            """
+            )
     os.chdir(yt_dir)
     try:
-        nose.run(argv=nose_argv)
+        _nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)
+
+def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
+    """Raise an error if two objects are not equal up to desired tolerance
+
+    This is a wrapper for :func:`numpy.testing.assert_allclose` that also
+    verifies unit consistency
+
+    Parameters
+    ----------
+    actual : array-like
+        Array obtained (possibly with attached units)
+    desired : array-like
+        Array to compare with (possibly with attached units)
+    rtol : float, oprtional
+        Relative tolerance, defaults to 1e-7
+    atol : float or quantity, optional
+        Absolute tolerance. If units are attached, they must be consistent
+        with the units of ``actual`` and ``desired``. If no units are attached,
+        assumes the same units as ``desired``. Defaults to zero.
+
+    Also accepts additional keyword arguments accepted by
+    :func:`numpy.testing.assert_allclose`, see the documentation of that
+    function for details.
+    """
+    # Create a copy to ensure this function does not alter input arrays
+    act = YTArray(actual)
+    des = YTArray(desired)
+
+    try:
+        des = des.in_units(act.units)
+    except YTUnitOperationError:
+        raise AssertionError("Units of actual (%s) and desired (%s) do not have "
+                             "equivalent dimensions" % (act.units, des.units))
+
+    rt = YTArray(rtol)
+    if not rt.units.is_dimensionless:
+        raise AssertionError("Units of rtol (%s) are not "
+                             "dimensionless" % rt.units)
+
+    if not isinstance(atol, YTArray):
+        at = YTQuantity(atol, des.units)
+
+    try:
+        at = at.in_units(act.units)
+    except YTUnitOperationError:
+        raise AssertionError("Units of atol (%s) and actual (%s) do not have "
+                             "equivalent dimensions" % (at.units, act.units))
+
+    # units have been validated, so we strip units before calling numpy
+    # to avoid spurious errors
+    act = act.value
+    des = des.value
+    rt = rt.value
+    at = at.value
+
+    return assert_allclose(act, des, rt, at, **kwargs)

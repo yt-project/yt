@@ -33,7 +33,6 @@ from .fields import \
     PlutoFieldInfo
 
 from .io import \
-    IOHandlerChomboHDF5,\
-    IOHandlerPlutoHDF5
+    IOHandlerChomboHDF5
 
 from . import tests

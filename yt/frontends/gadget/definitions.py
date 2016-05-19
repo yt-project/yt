@@ -65,5 +65,22 @@ gadget_field_specs = dict(
                    ("Electron_Number_Density", "Gas"),
                    ("HI_NumberDensity", "Gas"),
                    ("SmoothingLength", "Gas"),
-    )
+    ),
+    group0000 =  ( "Coordinates",
+                   "Velocities",
+                   "ParticleIDs",
+                   "Mass",
+                   "Potential",
+                   ("Temperature", "Gas"),
+                   ("Density", "Gas"),
+                   ("ElectronNumberDensity", "Gas"),
+                   ("HI_NumberDensity", "Gas"),
+                   ("SmoothingLength", "Gas"),
+                   ("StarFormationRate", "Gas"),
+                   ("DelayTime", "Gas"),
+                   ("FourMetalFractions", ("Gas", "Stars")),
+                   ("MaxTemperature", ("Gas", "Stars")),
+                   ("NStarsSpawned", ("Gas", "Stars")),
+                   ("StellarAge", "Stars")
+    ),
 )

@@ -28,9 +28,9 @@ def recursive_all_clumps(clump,list,level,parentnumber):
     counter += 1
     list.append(clump)
     clump.level = level
-    if clump.children != None:
+    if clump.children is not None:
         for child in clump.children:
-            x = recursive_all_clumps(child,list,level+1,clump.number)
+            recursive_all_clumps(child,list,level+1,clump.number)
     return list
 
 def return_all_clumps(clump):
@@ -64,8 +64,6 @@ def recursive_bottom_clumps(clump,clump_list, dbg = 0,level=0):
     Recursive. Prints the level and the number of cores to the screen."""
 
     global counter
-    if dbg > 0:
-        print(tabs(level), "l =",level, "n_core",counter)
 
     if ((clump.children is None) or (len(clump.children) == 0)):
         counter += 1

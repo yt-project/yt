@@ -43,9 +43,6 @@ from .plot_modifications import \
     PlotCallback, \
     callback_registry
 
-from .easy_plots import \
-    plot_type_registry
-
 from .streamlines import \
     Streamlines
 

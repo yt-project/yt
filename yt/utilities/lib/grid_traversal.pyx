@@ -17,27 +17,26 @@ import numpy as np
 cimport numpy as np
 cimport cython
 #cimport healpix_interface
-from libc.stdlib cimport malloc, free, abs
+cdef extern from "limits.h":
+    cdef int SHRT_MAX
+from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    lrint, fabs, atan, asin, cos, sin, sqrt
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
 
+cdef extern from "platform_dep.h":
+    long int lrint(double x) nogil
+
 from cython.parallel import prange, parallel, threadid
+from vec3_ops cimport dot, subtract, L2_norm, fma
+
+from cpython.exc cimport PyErr_CheckSignals
 
 DEF Nch = 4
-
-ctypedef void sampler_function(
-                VolumeContainer *vc,
-                np.float64_t v_pos[3],
-                np.float64_t v_dir[3],
-                np.float64_t enter_t,
-                np.float64_t exit_t,
-                int index[3],
-                void *data) nogil
 
 cdef class PartitionedGrid:
 
@@ -183,33 +182,198 @@ cdef class PartitionedGrid:
             for i in range(3):
                 vel[i] /= vel_mag[0]
 
-cdef struct ImageContainer:
-    np.float64_t *vp_pos
-    np.float64_t *vp_dir
-    np.float64_t *center
-    np.float64_t *image
-    np.float64_t pdx, pdy
-    np.float64_t bounds[4]
-    int nv[2]
-    int vp_strides[3]
-    int im_strides[3]
-    int vd_strides[3]
-    np.float64_t *x_vec
-    np.float64_t *y_vec
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void calculate_extent_plane_parallel(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+    # We do this for all eight corners
+    cdef np.float64_t temp
+    cdef np.float64_t *edges[2]
+    cdef np.float64_t cx, cy
+    cdef np.float64_t extrema[4]
+    cdef int i, j, k
+    edges[0] = vc.left_edge
+    edges[1] = vc.right_edge
+    extrema[0] = extrema[2] = 1e300; extrema[1] = extrema[3] = -1e300
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
+                # This should rotate it into the vector plane
+                temp  = edges[i][0] * image.x_vec[0]
+                temp += edges[j][1] * image.x_vec[1]
+                temp += edges[k][2] * image.x_vec[2]
+                if temp < extrema[0]: extrema[0] = temp
+                if temp > extrema[1]: extrema[1] = temp
+                temp  = edges[i][0] * image.y_vec[0]
+                temp += edges[j][1] * image.y_vec[1]
+                temp += edges[k][2] * image.y_vec[2]
+                if temp < extrema[2]: extrema[2] = temp
+                if temp > extrema[3]: extrema[3] = temp
+    cx = cy = 0.0
+    for i in range(3):
+        cx += image.center[i] * image.x_vec[i]
+        cy += image.center[i] * image.y_vec[i]
+    rv[0] = lrint((extrema[0] - cx - image.bounds[0])/image.pdx)
+    rv[1] = rv[0] + lrint((extrema[1] - extrema[0])/image.pdx)
+    rv[2] = lrint((extrema[2] - cy - image.bounds[2])/image.pdy)
+    rv[3] = rv[2] + lrint((extrema[3] - extrema[2])/image.pdy)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void calculate_extent_perspective(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+
+    cdef np.float64_t cam_pos[3]
+    cdef np.float64_t cam_width[3]
+    cdef np.float64_t north_vector[3]
+    cdef np.float64_t east_vector[3]
+    cdef np.float64_t normal_vector[3]
+    cdef np.float64_t vertex[3]
+    cdef np.float64_t pos1[3]
+    cdef np.float64_t sight_vector[3]
+    cdef np.float64_t sight_center[3]
+    cdef np.float64_t corners[3][8]
+    cdef float sight_vector_norm, sight_angle_cos, sight_length, dx, dy
+    cdef int i, iv, px, py
+    cdef int min_px, min_py, max_px, max_py
+
+    min_px = SHRT_MAX
+    min_py = SHRT_MAX
+    max_px = -SHRT_MAX
+    max_py = -SHRT_MAX
+
+    # calculate vertices for 8 corners of vc
+    corners[0][0] = vc.left_edge[0]
+    corners[0][1] = vc.right_edge[0]
+    corners[0][2] = vc.right_edge[0]
+    corners[0][3] = vc.left_edge[0]
+    corners[0][4] = vc.left_edge[0]
+    corners[0][5] = vc.right_edge[0]
+    corners[0][6] = vc.right_edge[0]
+    corners[0][7] = vc.left_edge[0]
+
+    corners[1][0] = vc.left_edge[1]
+    corners[1][1] = vc.left_edge[1]
+    corners[1][2] = vc.right_edge[1]
+    corners[1][3] = vc.right_edge[1]
+    corners[1][4] = vc.left_edge[1]
+    corners[1][5] = vc.left_edge[1]
+    corners[1][6] = vc.right_edge[1]
+    corners[1][7] = vc.right_edge[1]
+
+    corners[2][0] = vc.left_edge[2]
+    corners[2][1] = vc.left_edge[2]
+    corners[2][2] = vc.left_edge[2]
+    corners[2][3] = vc.left_edge[2]
+    corners[2][4] = vc.right_edge[2]
+    corners[2][5] = vc.right_edge[2]
+    corners[2][6] = vc.right_edge[2]
+    corners[2][7] = vc.right_edge[2]
+
+    # This code was ported from
+    #   yt.visualization.volume_rendering.lens.PerspectiveLens.project_to_plane()
+    for i in range(3):
+        cam_pos[i] = image.camera_data[0, i]
+        cam_width[i] = image.camera_data[1, i]
+        east_vector[i] = image.camera_data[2, i]
+        north_vector[i] = image.camera_data[3, i]
+        normal_vector[i] = image.camera_data[4, i]
+
+    for iv in range(8):
+        vertex[0] = corners[0][iv]
+        vertex[1] = corners[1][iv]
+        vertex[2] = corners[2][iv]
+
+        cam_width[1] = cam_width[0] * image.nv[1] / image.nv[0]
+
+        subtract(vertex, cam_pos, sight_vector)
+        fma(cam_width[2], normal_vector, cam_pos, sight_center)
+
+        sight_vector_norm = L2_norm(sight_vector)
+       
+        if sight_vector_norm != 0:
+            for i in range(3):
+                sight_vector[i] /= sight_vector_norm
+
+        sight_angle_cos = dot(sight_vector, normal_vector)
+        sight_angle_cos = fclip(sight_angle_cos, -1.0, 1.0)
+
+        if acos(sight_angle_cos) < 0.5 * M_PI and sight_angle_cos != 0.0:
+            sight_length = cam_width[2] / sight_angle_cos
+        else:
+            sight_length = sqrt(cam_width[0]**2 + cam_width[1]**2)
+            sight_length = sight_length / sqrt(1.0 - sight_angle_cos**2)
+
+        fma(sight_length, sight_vector, cam_pos, pos1)
+        subtract(pos1, sight_center, pos1)
+        dx = dot(pos1, east_vector)
+        dy = dot(pos1, north_vector)
+
+        px = int(image.nv[0] * 0.5 + image.nv[0] / cam_width[0] * dx)
+        py = int(image.nv[1] * 0.5 + image.nv[1] / cam_width[1] * dy)
+        min_px = min(min_px, px)
+        max_px = max(max_px, px)
+        min_py = min(min_py, py)
+        max_py = max(max_py, py)
+
+    rv[0] = max(min_px, 0)
+    rv[1] = min(max_px, image.nv[0])
+    rv[2] = max(min_py, 0)
+    rv[3] = min(max_py, image.nv[1])
+
+
+# We do this for a bunch of lenses.  Fallback is to grab them from the vector
+# info supplied.
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void calculate_extent_null(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+    rv[0] = 0
+    rv[1] = image.nv[0]
+    rv[2] = 0
+    rv[3] = image.nv[1]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void generate_vector_info_plane_parallel(ImageContainer *im,
+            np.int64_t vi, np.int64_t vj,
+            np.float64_t width[2],
+            # Now outbound
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+    cdef int i
+    cdef np.float64_t px, py
+    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
+    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
+    # atleast_3d will add to beginning and end
+    v_pos[0] = im.vp_pos[0,0,0]*px + im.vp_pos[0,3,0]*py + im.vp_pos[0,9,0]
+    v_pos[1] = im.vp_pos[0,1,0]*px + im.vp_pos[0,4,0]*py + im.vp_pos[0,10,0]
+    v_pos[2] = im.vp_pos[0,2,0]*px + im.vp_pos[0,5,0]*py + im.vp_pos[0,11,0]
+    for i in range(3): v_dir[i] = im.vp_dir[0,i,0]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void generate_vector_info_null(ImageContainer *im,
+            np.int64_t vi, np.int64_t vj,
+            np.float64_t width[2],
+            # Now outbound
+            np.float64_t v_dir[3], np.float64_t v_pos[3]) nogil:
+    cdef int i
+    for i in range(3):
+        # Here's a funny thing: we use vi here because our *image* will be
+        # flattened.  That means that im.nv will be a better one-d offset,
+        # since vp_pos has funny strides.
+        v_pos[i] = im.vp_pos[vi, vj, i]
+        v_dir[i] = im.vp_dir[vi, vj, i]
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
     void *supp_data
 
 cdef class ImageSampler:
-    cdef ImageContainer *image
-    cdef sampler_function *sampler
-    cdef public object avp_pos, avp_dir, acenter, aimage, ax_vec, ay_vec
-    cdef void *supp_data
-    cdef np.float64_t width[3]
     def __init__(self,
-                  np.ndarray vp_pos,
-                  np.ndarray vp_dir,
+                  np.float64_t[:,:,:] vp_pos,
+                  np.float64_t[:,:,:] vp_dir,
                   np.ndarray[np.float64_t, ndim=1] center,
                   bounds,
                   np.ndarray[np.float64_t, ndim=3] image,
@@ -217,84 +381,67 @@ cdef class ImageSampler:
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   *args, **kwargs):
-        self.image = <ImageContainer *> malloc(sizeof(ImageContainer))
-        cdef ImageContainer *imagec = self.image
-        self.sampler = NULL
-        cdef int i, j
-        # These assignments are so we can track the objects and prevent their
-        # de-allocation from reference counts.
-        self.avp_pos = vp_pos
-        self.avp_dir = vp_dir
-        self.acenter = center
-        self.aimage = image
-        self.ax_vec = x_vec
-        self.ay_vec = y_vec
-        imagec.vp_pos = <np.float64_t *> vp_pos.data
-        imagec.vp_dir = <np.float64_t *> vp_dir.data
-        imagec.center = <np.float64_t *> center.data
-        imagec.image = <np.float64_t *> image.data
-        imagec.x_vec = <np.float64_t *> x_vec.data
-        imagec.y_vec = <np.float64_t *> y_vec.data
-        imagec.nv[0] = image.shape[0]
-        imagec.nv[1] = image.shape[1]
-        for i in range(4): imagec.bounds[i] = bounds[i]
-        imagec.pdx = (bounds[1] - bounds[0])/imagec.nv[0]
-        imagec.pdy = (bounds[3] - bounds[2])/imagec.nv[1]
-        for i in range(3):
-            imagec.vp_strides[i] = vp_pos.strides[i] / 8
-            imagec.im_strides[i] = image.strides[i] / 8
-            self.width[i] = width[i]
-
-        if vp_dir.ndim > 1:
-            for i in range(3):
-                imagec.vd_strides[i] = vp_dir.strides[i] / 8
-        elif vp_pos.ndim == 1:
-            imagec.vd_strides[0] = imagec.vd_strides[1] = imagec.vd_strides[2] = -1
-        else:
-            raise RuntimeError
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef void get_start_stop(self, np.float64_t *ex, np.int64_t *rv):
-        # Extrema need to be re-centered
-        cdef np.float64_t cx, cy
-        cdef ImageContainer *im = self.image
+        self.image = <ImageContainer *> calloc(sizeof(ImageContainer), 1)
+        cdef np.float64_t[:,:] zbuffer
+        cdef np.int64_t[:,:] image_used
+        cdef np.int64_t[:,:] mesh_lines
+        cdef np.float64_t[:,:] camera_data
         cdef int i
-        cx = cy = 0.0
-        for i in range(3):
-            cx += im.center[i] * im.x_vec[i]
-            cy += im.center[i] * im.y_vec[i]
-        rv[0] = lrint((ex[0] - cx - im.bounds[0])/im.pdx)
-        rv[1] = rv[0] + lrint((ex[1] - ex[0])/im.pdx)
-        rv[2] = lrint((ex[2] - cy - im.bounds[2])/im.pdy)
-        rv[3] = rv[2] + lrint((ex[3] - ex[2])/im.pdy)
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    cdef void calculate_extent(self, np.float64_t extrema[4],
-                               VolumeContainer *vc) nogil:
-        # We do this for all eight corners
-        cdef np.float64_t temp
-        cdef np.float64_t *edges[2]
-        edges[0] = vc.left_edge
-        edges[1] = vc.right_edge
-        extrema[0] = extrema[2] = 1e300; extrema[1] = extrema[3] = -1e300
-        cdef int i, j, k
-        for i in range(2):
-            for j in range(2):
-                for k in range(2):
-                    # This should rotate it into the vector plane
-                    temp  = edges[i][0] * self.image.x_vec[0]
-                    temp += edges[j][1] * self.image.x_vec[1]
-                    temp += edges[k][2] * self.image.x_vec[2]
-                    if temp < extrema[0]: extrema[0] = temp
-                    if temp > extrema[1]: extrema[1] = temp
-                    temp  = edges[i][0] * self.image.y_vec[0]
-                    temp += edges[j][1] * self.image.y_vec[1]
-                    temp += edges[k][2] * self.image.y_vec[2]
-                    if temp < extrema[2]: extrema[2] = temp
-                    if temp > extrema[3]: extrema[3] = temp
+        camera_data = kwargs.pop("camera_data", None)
+        if camera_data is not None:
+            self.image.camera_data = camera_data
+
+        zbuffer = kwargs.pop("zbuffer", None)
+        if zbuffer is None:
+            zbuffer = np.ones((image.shape[0], image.shape[1]), "float64")
+
+        image_used = np.zeros((image.shape[0], image.shape[1]), "int64")
+        mesh_lines = np.zeros((image.shape[0], image.shape[1]), "int64")
+
+        self.lens_type = kwargs.pop("lens_type", None)
+        if self.lens_type == "plane-parallel":
+            self.extent_function = calculate_extent_plane_parallel
+            self.vector_function = generate_vector_info_plane_parallel
+        else:
+            if not (vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0]) or \
+               not (vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1]):
+                msg = "Bad lens shape / direction for %s\n" % (self.lens_type)
+                msg += "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
+                    vp_pos.shape[0], vp_dir.shape[0], image.shape[0],
+                    vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
+                raise RuntimeError(msg)
+
+            if camera_data is not None and self.lens_type == 'perspective':
+                self.extent_function = calculate_extent_perspective
+            else:
+                self.extent_function = calculate_extent_null
+            self.vector_function = generate_vector_info_null
+
+        self.sampler = NULL
+        # These assignments are so we can track the objects and prevent their
+        # de-allocation from reference counts.  Note that we do this to the
+        # "atleast_3d" versions.  Also, note that we re-assign the input
+        # arguments.
+        self.image.vp_pos = vp_pos
+        self.image.vp_dir = vp_dir
+        self.image.image = self.aimage = image
+        self.acenter = center
+        self.image.center = <np.float64_t *> center.data
+        self.ax_vec = x_vec
+        self.image.x_vec = <np.float64_t *> x_vec.data
+        self.ay_vec = y_vec
+        self.image.y_vec = <np.float64_t *> y_vec.data
+        self.image.zbuffer = self.azbuffer = zbuffer
+        self.image.image_used = self.aimage_used = image_used
+        self.image.mesh_lines = self.amesh_lines = mesh_lines
+        self.image.nv[0] = image.shape[0]
+        self.image.nv[1] = image.shape[1]
+        for i in range(4): self.image.bounds[i] = bounds[i]
+        self.image.pdx = (bounds[1] - bounds[0])/self.image.nv[0]
+        self.image.pdy = (bounds[3] - bounds[2])/self.image.nv[1]
+        for i in range(3):
+            self.width[i] = width[i]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -303,8 +450,7 @@ cdef class ImageSampler:
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
-        cdef int vi, vj, hit, i, j, ni, nj, nn
-        cdef np.int64_t offset
+        cdef int vi, vj, hit, i, j
         cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
         cdef ImageContainer *im = self.image
@@ -312,77 +458,60 @@ cdef class ImageSampler:
         if self.sampler == NULL: raise RuntimeError
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
-        cdef np.float64_t rgba[6]
-        cdef np.float64_t extrema[4]
+        cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
-        if im.vd_strides[0] == -1:
-            self.calculate_extent(extrema, vc)
-            self.get_start_stop(extrema, iter)
-            iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
-            iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
-            iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
-            iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
-            nx = (iter[1] - iter[0])
-            ny = (iter[3] - iter[2])
-            size = nx * ny
-        else:
-            nx = im.nv[0]
-            ny = 1
-            iter[0] = iter[1] = iter[2] = iter[3] = 0
-            size = nx
+        self.extent_function(self.image, vc, iter)
+        iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
+        iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
+        iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
+        iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
+        nx = (iter[1] - iter[0])
+        ny = (iter[3] - iter[2])
+        size = nx * ny
         cdef ImageAccumulator *idata
-        cdef np.float64_t px, py
         cdef np.float64_t width[3]
+        cdef int chunksize = 100
         for i in range(3):
             width[i] = self.width[i]
-        if im.vd_strides[0] == -1:
-            with nogil, parallel(num_threads = num_threads):
-                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-                idata.supp_data = self.supp_data
-                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                for j in prange(size, schedule="static",chunksize=1):
-                    vj = j % ny
-                    vi = (j - vj) / ny + iter[0]
-                    vj = vj + iter[2]
-                    # Dynamically calculate the position
-                    px = width[0] * (<np.float64_t>vi)/(<np.float64_t>im.nv[0]-1) - width[0]/2.0
-                    py = width[1] * (<np.float64_t>vj)/(<np.float64_t>im.nv[1]-1) - width[1]/2.0
-                    v_pos[0] = im.vp_pos[0]*px + im.vp_pos[3]*py + im.vp_pos[9]
-                    v_pos[1] = im.vp_pos[1]*px + im.vp_pos[4]*py + im.vp_pos[10]
-                    v_pos[2] = im.vp_pos[2]*px + im.vp_pos[5]*py + im.vp_pos[11]
-                    offset = im.im_strides[0] * vi + im.im_strides[1] * vj
-                    for i in range(Nch): idata.rgba[i] = im.image[i + offset]
-                    walk_volume(vc, v_pos, im.vp_dir, self.sampler,
-                                (<void *> idata))
-                    for i in range(Nch): im.image[i + offset] = idata.rgba[i]
-                free(idata)
-                free(v_pos)
-        else:
-            with nogil, parallel():
-                idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
-                idata.supp_data = self.supp_data
-                v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-                # If we do not have a simple image plane, we have to cast all
-                # our rays
-                for j in prange(size, schedule="dynamic", chunksize=100):
-                    offset = j * 3
-                    for i in range(3): v_pos[i] = im.vp_pos[i + offset]
-                    for i in range(3): v_dir[i] = im.vp_dir[i + offset]
-                    # Note that for Nch != 3 we need a different offset into
-                    # the image object than for the vectors!
-                    for i in range(Nch): idata.rgba[i] = im.image[i + Nch*j]
-                    walk_volume(vc, v_pos, v_dir, self.sampler,
-                                (<void *> idata))
-                    for i in range(Nch): im.image[i + Nch*j] = idata.rgba[i]
-                free(v_dir)
-                free(idata)
-                free(v_pos)
+        with nogil, parallel(num_threads = num_threads):
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+            v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+            for j in prange(size, schedule="static", chunksize=chunksize):
+                vj = j % ny
+                vi = (j - vj) / ny + iter[0]
+                vj = vj + iter[2]
+                # Dynamically calculate the position
+                self.vector_function(im, vi, vj, width, v_dir, v_pos)
+                for i in range(Nch):
+                    idata.rgba[i] = im.image[vi, vj, i]
+                max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
+                walk_volume(vc, v_pos, v_dir, self.sampler,
+                            (<void *> idata), NULL, max_t)
+                if (j % (10*chunksize)) == 0:
+                    with gil:
+                        PyErr_CheckSignals()
+                for i in range(Nch):
+                    im.image[vi, vj, i] = idata.rgba[i]
+            free(idata)
+            free(v_pos)
+            free(v_dir)
         return hit
 
     cdef void setup(self, PartitionedGrid pg):
         return
+
+    def __dealloc__(self):
+        self.image.image = None
+        self.image.vp_pos = None
+        self.image.vp_dir = None
+        self.image.zbuffer = None
+        self.image.camera_data = None
+        self.image.image_used = None
+        free(self.image)
+
 
 cdef void projection_sampler(
                  VolumeContainer *vc,
@@ -434,7 +563,6 @@ cdef void interpolated_projection_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -466,10 +594,9 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  n_samples = 10):
+                  n_samples = 10, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
-        cdef int i
+                               x_vec, y_vec, width, **kwargs)
         # Now we handle tf_obj
         self.vra = <VolumeRenderAccumulator *> \
             malloc(sizeof(VolumeRenderAccumulator))
@@ -500,7 +627,6 @@ cdef void volume_render_sampler(
                     + index[1] * (vc.dims[2]) + index[2]
     if vc.mask[cell_offset] != 1:
         return
-    cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -537,7 +663,6 @@ cdef void volume_render_gradient_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -575,7 +700,7 @@ cdef class star_kdtree_container:
                    np.ndarray[np.float64_t, ndim=1] pos_y,
                    np.ndarray[np.float64_t, ndim=1] pos_z,
                    np.ndarray[np.float64_t, ndim=2] star_colors):
-        cdef int i, n
+        cdef int i
         cdef np.float64_t *pointer = <np.float64_t *> star_colors.data
         for i in range(pos_x.shape[0]):
             kdtree_utils.kd_insert3(self.tree,
@@ -610,9 +735,10 @@ cdef void volume_render_stars_sampler(
     cdef np.float64_t cell_left[3]
     cdef np.float64_t local_dds[3]
     cdef np.float64_t pos[3]
-    cdef int nstars, dti, i, j
+    cdef int nstars, i, j
     cdef np.float64_t *colors = NULL
     cdef np.float64_t gexp, gaussian, px, py, pz
+    px = py = pz = -1
     for i in range(3):
         dp[i] = (enter_t + 0.5 * dt) * v_dir[i] + v_pos[i]
         dp[i] -= index[i] * vc.dds[i] + vc.left_edge[i]
@@ -641,7 +767,7 @@ cdef void volume_render_stars_sampler(
                          vc.data[i] + offset)
         slopes[i] *= -1.0/vri.n_samples
         dvs[i] = temp
-    for dti in range(vri.n_samples):
+    for _ in range(vri.n_samples):
         # Now we add the contribution from stars
         kdtree_utils.kd_res_rewind(ballq)
         for i in range(nstars):
@@ -677,9 +803,9 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
-                  star_list = None):
+                  star_list = None, **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -730,9 +856,11 @@ cdef class VolumeRenderSampler(ImageSampler):
             self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -749,9 +877,10 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
                   light_dir=[1.,1.,1.],
-                  light_rgba=[1.,1.,1.,1.]):
+                  light_rgba=[1.,1.,1.,1.],
+                  **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width)
+                               x_vec, y_vec, width, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -790,11 +919,13 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
-        #free(self.light_dir)
-        #free(self.light_rgba)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.light_dir)
+        free(self.vra.light_rgba)
+        free(self.vra.fits)
+        free(self.vra)
 
 
 @cython.boundscheck(False)
@@ -806,16 +937,17 @@ cdef int walk_volume(VolumeContainer *vc,
                      sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = NULL,
-                     np.float64_t enter_t = -1.0) nogil:
+                     np.float64_t max_t = 1.0) nogil:
     cdef int cur_ind[3]
     cdef int step[3]
-    cdef int x, y, i, n, flat_ind, hit, direction
+    cdef int x, y, i, hit, direction
     cdef np.float64_t intersect_t = 1.1
     cdef np.float64_t iv_dir[3]
     cdef np.float64_t tmax[3]
     cdef np.float64_t tdelta[3]
-    cdef np.float64_t dist, alpha, dt, exit_t
-    cdef np.float64_t tr, tl, temp_x, temp_y, dv
+    cdef np.float64_t exit_t = -1.0, enter_t = -1.0
+    cdef np.float64_t tl, temp_x, temp_y = -1
+    if max_t > 1.0: max_t = 1.0
     direction = -1
     if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
        vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
@@ -853,8 +985,8 @@ cdef int walk_volume(VolumeContainer *vc,
            0.0 <= tl and tl < intersect_t:
             direction = i
             intersect_t = tl
-    if enter_t >= 0.0: intersect_t = enter_t
-    if not ((0.0 <= intersect_t) and (intersect_t < 1.0)): return 0
+    if enter_t >= 0.0: intersect_t = enter_t 
+    if not ((0.0 <= intersect_t) and (intersect_t < max_t)): return 0
     for i in range(3):
         # Two things have to be set inside this loop.
         # cur_ind[i], the current index of the grid cell the ray is in
@@ -898,12 +1030,12 @@ cdef int walk_volume(VolumeContainer *vc,
                 i = 1
             else:
                 i = 2
-        exit_t = fmin(tmax[i], 1.0)
+        exit_t = fmin(tmax[i], max_t)
         sampler(vc, v_pos, v_dir, enter_t, exit_t, cur_ind, data)
         cur_ind[i] += step[i]
         enter_t = tmax[i]
         tmax[i] += tdelta[i]
-        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= 1.0:
+        if cur_ind[i] < 0 or cur_ind[i] >= vc.dims[i] or enter_t >= max_t:
             break
     if return_t != NULL: return_t[0] = exit_t
     return hit
@@ -1100,24 +1232,21 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
     # http://paulbourke.net/miscellaneous/domefisheye/fisheye/
     # ...but all in Cython.
     cdef np.ndarray[np.float64_t, ndim=3] vp
-    cdef int i, j, k
+    cdef int i, j
     cdef np.float64_t r, phi, theta, px, py
-    cdef np.float64_t pi = 3.1415926
-    cdef np.float64_t fov_rad = fov * pi / 180.0
+    cdef np.float64_t fov_rad = fov * np.pi / 180.0
     cdef int nx = resolution/nimx
     cdef int ny = resolution/nimy
     vp = np.zeros((nx,ny, 3), dtype="float64")
     for i in range(nx):
-        px = 2.0 * (nimi*nx + i) / (resolution) - 1.0
+        px = (2.0 * (nimi*nx + i)) / resolution - 1.0
         for j in range(ny):
-            py = 2.0 * (nimj*ny + j) / (resolution) - 1.0
+            py = (2.0 * (nimj*ny + j)) / resolution - 1.0
             r = (px*px + py*py)**0.5
-            if r == 0.0:
-                phi = 0.0
-            elif px < 0:
-                phi = pi - asin(py / r)
-            else:
-                phi = asin(py / r)
+            if r > 1.01:
+                vp[i,j,0] = vp[i,j,1] = vp[i,j,2] = 0.0
+                continue
+            phi = atan2(py, px)
             theta = r * fov_rad / 2.0
             theta += off_theta
             phi += off_phi

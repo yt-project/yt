@@ -13,8 +13,7 @@ A wrapper class for h5py file objects.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-
+from yt.utilities.on_demand_imports import _h5py as h5py
 from distutils.version import LooseVersion
 
 class HDF5FileHandler(object):
@@ -51,15 +50,22 @@ class HDF5FileHandler(object):
     def items(self):
         return list(self.handle.items())
 
+    def close(self):
+        if self.handle is not None:
+            self.handle.close()
+
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
         from yt.utilities.on_demand_imports import _astropy
-        if isinstance(filename, _astropy.pyfits.PrimaryHDU):
+        if isinstance(filename, _astropy.pyfits.hdu.image._ImageBaseHDU):
             self.handle = _astropy.pyfits.HDUList(filename)
+        elif isinstance(filename, _astropy.pyfits.HDUList):
+            self.handle = filename
         else:
             self.handle = _astropy.pyfits.open(
                 filename, memmap=True, do_not_scale_image_data=True,
                 ignore_blank=True)
+        self._fits_files = []
 
     def __del__(self):
         for f in self._fits_files:
@@ -70,4 +76,10 @@ class FITSFileHandler(HDF5FileHandler):
         super(FITSFileHandler, self).__del__()
 
     def close(self):
-        pass
+        self.handle.close()
+
+class NetCDF4FileHandler(object):
+    def __init__(self, filename):
+        from netCDF4 import Dataset
+        ds = Dataset(filename)
+        self.dataset = ds

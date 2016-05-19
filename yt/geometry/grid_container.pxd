@@ -18,10 +18,10 @@ cimport numpy as np
 cimport cython
 
 from libc.stdlib cimport malloc, free
-from libc.math cimport nearbyint, rint
 from yt.geometry.selection_routines cimport SelectorObject, _ensure_code
 from yt.utilities.lib.fp_utils cimport iclip
-from grid_visitors cimport GridTreeNode, GridVisitorData, grid_visitor_function
+from grid_visitors cimport GridTreeNode, GridVisitorData, \
+    grid_visitor_function, GridTreeNodePadded
 cimport grid_visitors 
 from yt.utilities.lib.bitarray cimport bitarray
 
@@ -63,3 +63,6 @@ cdef class MatchPointsToGrids:
 			 np.float64_t y,
 			 np.float64_t z,
 			 GridTreeNode *grid)
+
+cdef extern from "platform_dep.h" nogil:
+    double rint(double x)

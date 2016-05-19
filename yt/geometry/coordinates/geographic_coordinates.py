@@ -1,5 +1,5 @@
 """
-Geographic fields
+Definitions for geographic coordinate systems
 
 
 
@@ -19,7 +19,6 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
@@ -197,7 +196,31 @@ class GeographicCoordinateHandler(CoordinateHandler):
         raise NotImplementedError
 
     def convert_to_cartesian(self, coord):
-        raise NotImplementedError
+        if hasattr(self.ds, "surface_height"):
+            surface_height = self.ds.surface_height
+        else:
+            surface_height = self.ds.quan(0.0, "code_length")
+        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
+            alt = self.axis_id['altitude']
+            lon = self.axis_id['longitude']
+            lat = self.axis_id['latitude']
+            r = coord[:,alt] + surface_height
+            theta = coord[:,lon] * np.pi/180
+            phi = coord[:,lat] * np.pi/180
+            nc = np.zeros_like(coord)
+            # r, theta, phi
+            nc[:,lat] = np.cos(phi) * np.sin(theta)*r
+            nc[:,lon] = np.sin(phi) * np.sin(theta)*r
+            nc[:,alt] = np.cos(theta) * r
+        else:
+            a, b, c = coord
+            theta = b * np.pi/180
+            phi = a * np.pi/180
+            r = surface_height + c
+            nc = (np.cos(phi) * np.sin(theta)*r,
+                  np.sin(phi) * np.sin(theta)*r,
+                  np.cos(theta) * r)
+        return nc
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -210,19 +233,6 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def convert_from_spherical(self, coord):
         raise NotImplementedError
-
-    # Despite being mutables, we uses these here to be clear about how these
-    # are generated and to ensure that they are not re-generated unnecessarily
-    axis_name = { 0  : 'latitude',  1  : 'longitude',  2  : 'altitude',
-                 'latitude' : 'latitude',
-                 'longitude' : 'longitude', 
-                 'altitude' : 'altitude',
-                 'Latitude' : 'latitude',
-                 'Longitude' : 'longitude', 
-                 'Altitude' : 'altitude',
-                 'lat' : 'latitude',
-                 'lon' : 'longitude', 
-                 'alt' : 'altitude' }
 
     _image_axis_name = None
     @property
@@ -239,7 +249,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                  ('R', 'z'),
               self.axis_id['altitude']:
                  ('longitude', 'latitude')}
-        for i in rv.keys():
+        for i in list(rv.keys()):
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].capitalize()] = rv[i]
         self._image_axis_name = rv
@@ -268,33 +278,31 @@ class GeographicCoordinateHandler(CoordinateHandler):
                               0.0 * display_center[1],
                               0.0 * display_center[2])
         elif name == 'longitude':
-            c = self.ds.domain_right_edge[self.axis_id['altitude']]/2.0
+            ri = self.axis_id['altitude']
+            c = (self.ds.domain_right_edge[ri] +
+                 self.ds.domain_left_edge[ri])/2.0
             display_center = [0.0 * display_center[0], 
                               0.0 * display_center[1],
                               0.0 * display_center[2]]
             display_center[self.axis_id['latitude']] = c
         return center, display_center
 
-    def convert_to_cartesian(self, coord):
-        if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
-            alt = self.axis_id['altitude']
-            lon = self.axis_id['longitude']
-            lat = self.axis_id['latitude']
-            r = coord[:,alt] + self.ds.surface_height
-            theta = coord[:,lon] * np.pi/180
-            phi = coord[:,lat] * np.pi/180
-            nc = np.zeros_like(coord)
-            # r, theta, phi
-            nc[:,lat] = np.cos(phi) * np.sin(theta)*r
-            nc[:,lon] = np.sin(phi) * np.sin(theta)*r
-            nc[:,alt] = np.cos(theta) * r
-        else:
-            a, b, c = coord
-            theta = b * np.pi/180
-            phi = a * np.pi/180
-            r = self.ds.surface_height + c
-            nc = (np.cos(phi) * np.sin(theta)*r,
-                  np.sin(phi) * np.sin(theta)*r,
-                  np.cos(theta) * r)
-        return nc
-
+    def sanitize_width(self, axis, width, depth):
+        name = self.axis_name[axis]
+        if width is not None:
+            width = super(GeographicCoordinateHandler, self).sanitize_width(
+              axis, width, depth)
+        elif name == 'altitude':
+            width = [self.ds.domain_width[self.y_axis['altitude']],
+                     self.ds.domain_width[self.x_axis['altitude']]]
+        elif name == 'latitude':
+            ri = self.axis_id['altitude']
+            # Remember, in spherical coordinates when we cut in theta,
+            # we create a conic section
+            width = [2.0*self.ds.domain_width[ri],
+                     2.0*self.ds.domain_width[ri]]
+        elif name == 'longitude':
+            ri = self.axis_id['altitude']
+            width = [self.ds.domain_width[ri],
+                     2.0*self.ds.domain_width[ri]]
+        return width

@@ -13,14 +13,20 @@ A set of convenient on-demand imports
 class NotAModule(object):
     """
     A class to implement an informative error message that will be outputted if
-    someone tries to use an on-demand import without having the requisite package installed.
+    someone tries to use an on-demand import without having the requisite
+    package installed.
     """
     def __init__(self, pkg_name):
         self.pkg_name = pkg_name
+        self.error = ImportError(
+            "This functionality requires the %s "
+            "package to be installed." % self.pkg_name)
 
     def __getattr__(self, item):
-        raise ImportError("This functionality requires the %s package to be installed."
-                          % self.pkg_name)
+        raise self.error
+
+    def __call__(self, *args, **kwargs):
+        raise self.error
 
 class astropy_imports:
     _name = "astropy"
@@ -67,6 +73,7 @@ class astropy_imports:
         if self._units is None:
             try:
                 from astropy import units
+                self.log
             except ImportError:
                 units = NotAModule(self._name)
             self._units = units
@@ -83,6 +90,18 @@ class astropy_imports:
                 conv = NotAModule(self._name)
             self._conv = conv
         return self._conv
+
+    _time = None
+    @property
+    def time(self):
+        if self._time is None:
+            try:
+                import astropy.time as time
+                self.log
+            except ImportError:
+                time = NotAModule(self._name)
+            self._time = time
+        return self._time
 
 _astropy = astropy_imports()
 
@@ -142,5 +161,135 @@ class scipy_imports:
                 special = NotAModule(self._name)
             self._special = special
         return self._special
+    
+    _signal = None
+    @property
+    def signal(self):
+        if self._signal is None:
+            try:
+                import scipy.signal as signal
+            except ImportError:
+                signal = NotAModule(self._name)
+            self._signal = signal
+        return self._signal
+
+    _spatial = None
+    @property
+    def spatial(self):
+        if self._spatial is None:
+            try:
+                import scipy.spatial as spatial
+            except ImportError:
+                spatial = NotAModule(self._name)
+            self._spatial = spatial
+        return self._spatial
 
 _scipy = scipy_imports()
+
+class h5py_imports:
+    _name = "h5py"
+
+    _File = None
+    @property
+    def File(self):
+        if self._File is None:
+            try:
+                from h5py import File
+            except ImportError:
+                File = NotAModule(self._name)
+            self._File = File
+        return self._File
+
+    _Group = None
+    @property
+    def Group(self):
+        if self._Group is None:
+            try:
+                from h5py import Group
+            except ImportError:
+                Group = NotAModule(self._name)
+            self._Group = Group
+        return self._Group
+
+    ___version__ = None
+    @property
+    def __version__(self):
+        if self.___version__ is None:
+            try:
+                from h5py import __version__
+            except ImportError:
+                __version__ = NotAModule(self._name)
+            self.___version__ = __version__
+        return self.___version__
+
+    _get_config = None
+    @property
+    def get_config(self):
+        if self._get_config is None:
+            try:
+                from h5py import get_config
+            except ImportError:
+                get_config = NotAModule(self._name)
+            self._get_config = get_config
+        return self._get_config
+
+    _h5f = None
+    @property
+    def h5f(self):
+        if self._h5f is None:
+            try:
+                import h5py.h5f as h5f
+            except ImportError:
+                h5f = NotAModule(self._name)
+            self._h5f = h5f
+        return self._h5f
+
+    _h5d = None
+    @property
+    def h5d(self):
+        if self._h5d is None:
+            try:
+                import h5py.h5d as h5d
+            except ImportError:
+                h5d = NotAModule(self._name)
+            self._h5d = h5d
+        return self._h5d
+
+    _h5s = None
+    @property
+    def h5s(self):
+        if self._h5s is None:
+            try:
+                import h5py.h5s as h5s
+            except ImportError:
+                h5s = NotAModule(self._name)
+            self._h5s = h5s
+        return self._h5s
+
+    _version = None
+    @property
+    def version(self):
+        if self._version is None:
+            try:
+                import h5py.version as version
+            except ImportError:
+                version = NotAModule(self._name)
+            self._version = version
+        return self._version
+
+_h5py = h5py_imports()
+
+class nose_imports:
+    _name = "nose"
+    _run = None
+    @property
+    def run(self):
+        if self._run is None:
+            try:
+                from nose import run
+            except ImportError:
+                run = NotAModule(self._name)
+            self._run = run
+        return self._run
+
+_nose = nose_imports()

@@ -14,22 +14,35 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import errno
 from yt.extern.six import string_types
-import time, types, signal, inspect, traceback, sys, pdb, os, re
+from yt.extern.six.moves import input
+import time
+import inspect
+import traceback
+import sys
+import pdb
+import os
+import re
 import contextlib
-import warnings, struct, subprocess
+import warnings
+import struct
+import subprocess
 import numpy as np
+import itertools
+import base64
+import numpy
+import matplotlib
+import getpass
 from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import builtins, urllib
-from yt.utilities.exceptions import *
+from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
-import yt.extern.progressbar as pb
-import yt.utilities.rpdb as rpdb
+from yt.utilities.exceptions import YTInvalidWidthError
+from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
-from collections import defaultdict
 from functools import wraps
 
 # Some functions for handling sequences and other types
@@ -170,7 +183,7 @@ def time_execution(func):
         mylog.debug('%s took %0.3f s', func.__name__, (t2-t1))
         return res
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","timefunctions") == True:
+    if ytcfg.getboolean("yt","timefunctions") is True:
         return wrapper
     else:
         return func
@@ -221,24 +234,29 @@ def rootloginfo(*args):
     if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
     mylog.info(*args)
 
-def deprecate(func):
-    """
-    This decorator issues a deprecation warning.
+def deprecate(replacement):
+    def real_deprecate(func):
+        """
+        This decorator issues a deprecation warning.
 
-    This can be used like so:
+        This can be used like so:
 
-    .. code-block:: python
+        .. code-block:: python
 
-       @deprecate
-       def some_really_old_function(...):
+        @deprecate("new_function")
+        def some_really_old_function(...):
 
-    """
-    @wraps(func)
-    def run_func(*args, **kwargs):
-        warnings.warn("%s has been deprecated and may be removed without notice!" \
-                % func.__name__, DeprecationWarning, stacklevel=2)
-        func(*args, **kwargs)
-    return run_func
+        """
+        @wraps(func)
+        def run_func(*args, **kwargs):
+            message = "%s has been deprecated and may be removed without notice!"
+            if replacement is not None:
+                message += " Use %s instead." % replacement
+            warnings.warn(message % func.__name__, DeprecationWarning,
+                          stacklevel=2)
+            func(*args, **kwargs)
+        return run_func
+    return real_deprecate
 
 def pdb_run(func):
     """
@@ -287,7 +305,7 @@ def insert_ipython(num_up=1):
     *num_up* refers to how many frames of the stack get stripped off, and
     defaults to 1 so that this function itself is stripped off.
     """
-
+    import IPython
     api_version = get_ipython_api_version()
 
     frame = inspect.stack()[num_up]
@@ -300,7 +318,10 @@ def insert_ipython(num_up=1):
         ipshell(header = __header % dd,
                 local_ns = loc, global_ns = glo)
     else:
-        from IPython.config.loader import Config
+        try:
+            from traitlets.config.loader import Config
+        except ImportError:
+            from IPython.config.loader import Config
         cfg = Config()
         cfg.InteractiveShellEmbed.local_ns = loc
         cfg.InteractiveShellEmbed.global_ns = glo
@@ -317,6 +338,21 @@ def insert_ipython(num_up=1):
 #
 # Our progress bar types and how to get one
 #
+
+class TqdmProgressBar(object):
+    # This is a drop in replacement for pbar
+    # called tqdm
+    def __init__(self,title, maxval):
+        self._pbar = tqdm(leave=True, total=maxval, desc=title)
+        self.i = 0
+    def update(self, i=None):
+        if i is None:
+            i = self.i + 1
+        n = i - self.i
+        self.i = i
+        self._pbar.update(n)
+    def finish(self):
+        self._pbar.close()
 
 class DummyProgressBar(object):
     # This progressbar gets handed if we don't
@@ -356,7 +392,7 @@ class GUIProgressBar(object):
     def finish(self):
         self._pbar.Destroy()
 
-def get_pbar(title, maxval):
+def get_pbar(title, maxval, parallel=False):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -364,20 +400,18 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__withinreason"):
-        from yt.gui.reason.extdirect_repl import ExtProgressBar
-        return ExtProgressBar(title, maxval)
     elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+        # If parallel is True, update progress on root only.
+        if parallel:
+            if is_root():
+                return TqdmProgressBar(title, maxval)
+            else:
+                return DummyProgressBar()
+        else:
+            return ParallelProgressBar(title, maxval)
+    pbar = TqdmProgressBar(title,maxval)
     return pbar
 
 def only_on_root(func, *args, **kwargs):
@@ -463,7 +497,6 @@ def paste_traceback_detailed(exc_type, exc, tb):
 
 _ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
 def _rdbeta(key):
-    import itertools, base64
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
     print(dec_s)
@@ -479,10 +512,6 @@ class YTEmptyClass(object):
     pass
 
 def update_hg(path, skip_rebuild = False):
-    if sys.version_info >= (3,0,0):
-        print("python-hglib does not currently work with Python 3,")
-        print("so this function is currently disabled.")
-        return -1
     try:
         import hglib
     except ImportError:
@@ -492,7 +521,7 @@ def update_hg(path, skip_rebuild = False):
     f = open(os.path.join(path, "yt_updater.log"), "a")
     repo = hglib.open(path)
     repo.pull()
-    ident = repo.identify()
+    ident = repo.identify().decode("utf-8")
     if "+" in ident:
         print("Can't rebuild modules by myself.")
         print("You will have to do this yourself.  Here's a sample commands:")
@@ -510,7 +539,7 @@ def update_hg(path, skip_rebuild = False):
     p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
                         stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
     stdout, stderr = p.communicate()
-    f.write(stdout)
+    f.write(stdout.decode('utf-8'))
     f.write("\n\n")
     if p.returncode:
         print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
@@ -519,19 +548,19 @@ def update_hg(path, skip_rebuild = False):
     print("Updated successfully.")
 
 def get_hg_version(path):
-    if sys.version_info >= (3,0,0):
-        print("python-hglib does not currently work with Python 3,")
-        print("so this function is currently disabled.")
-        return -1
     try:
         import hglib
     except ImportError:
         print("Updating and precise version information requires ")
         print("python-hglib to be installed.")
         print("Try: pip install python-hglib")
-        return -1
-    repo = hglib.open(path)
-    return repo.identify()
+        return None
+    try:
+        repo = hglib.open(path)
+        return repo.identify()
+    except hglib.error.ServerError:
+        # path is not an hg repository
+        return None
 
 def get_yt_version():
     try:
@@ -542,16 +571,17 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)[:12]
-    return version
+    version = get_hg_version(path)
+    if version is None:
+        return version
+    else:
+        return version[:12].strip().decode('utf-8')
 
 def get_version_stack():
-    import numpy, matplotlib, h5py
     version_info = {}
     version_info['yt'] = get_yt_version()
     version_info['numpy'] = numpy.version.version
     version_info['matplotlib'] = matplotlib.__version__
-    version_info['h5py'] = h5py.version.version
     return version_info
 
 def get_script_contents():
@@ -583,13 +613,14 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
     return urllib.request.urlopen(req).read()
 
 def get_yt_supp():
+    import hglib
     supp_path = os.path.join(os.environ["YT_DEST"], "src",
                              "yt-supplemental")
     # Now we check that the supplemental repository is checked out.
@@ -600,7 +631,7 @@ def get_yt_supp():
         print("*** is a delicate act, I require you to respond   ***")
         print("*** to the prompt with the word 'yes'.            ***")
         print()
-        response = raw_input("Do you want me to try to check it out? ")
+        response = input("Do you want me to try to check it out? ")
         if response != "yes":
             print()
             print("Okay, I understand.  You can check it out yourself.")
@@ -610,8 +641,8 @@ def get_yt_supp():
             print("%s" % (supp_path))
             print()
             sys.exit(1)
-        rv = commands.clone(uu,
-                "http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
+        rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", 
+                         supp_path)
         if rv:
             print("Something has gone wrong.  Quitting.")
             sys.exit(1)
@@ -631,7 +662,7 @@ def fix_length(length, ds=None):
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
-    unit_is_string = isinstance(length[1], str)
+    unit_is_string = isinstance(length[1], string_types)
     if length_valid_tuple and unit_is_string:
         return YTArray(*length, registry=registry)
     else:
@@ -679,6 +710,57 @@ def fix_axis(axis, ds):
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
     return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+
+def get_output_filename(name, keyword, suffix):
+    r"""Return an appropriate filename for output.
+
+    With a name provided by the user, this will decide how to 
+    appropriately name the output file by the following rules:
+    1. if name is None, the filename will be the keyword plus 
+       the suffix.
+    2. if name ends with "/", assume name is a directory and 
+       the file will be named name/(keyword+suffix).  If the
+       directory does not exist, first try to create it and
+       raise an exception if an error occurs.
+    3. if name does not end in the suffix, add the suffix.
+    
+    Parameters
+    ----------
+    name : str
+        A filename given by the user.
+    keyword : str
+        A default filename prefix if name is None.
+    suffix : str
+        Suffix that must appear at end of the filename.
+        This will be added if not present.
+
+    Examples
+    --------
+
+    >>> print get_output_filename(None, "Projection_x", ".png")
+    Projection_x.png
+    >>> print get_output_filename("my_file", "Projection_x", ".png")
+    my_file.png
+    >>> print get_output_filename("my_file/", "Projection_x", ".png")
+    my_file/Projection_x.png
+    
+    """
+    if name is None:
+        name = keyword
+    name = os.path.expanduser(name)
+    if name[-1] == os.sep and not os.path.isdir(name):
+        try:
+            os.mkdir(name)
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                pass
+            else:
+                raise
+    if os.path.isdir(name):
+        name = os.path.join(name, keyword)
+    if not name.endswith(suffix):
+        name += suffix
+    return name
 
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
@@ -766,6 +848,17 @@ def deprecated_class(cls):
     return _func
 
 def enable_plugins():
+    """Forces the plugins file to be parsed.
+
+    This plugin file is a means of creating custom fields, quantities,
+    data objects, colormaps, and other code classes and objects to be used
+    in yt scripts without modifying the yt source directly.
+
+    The file must be located at ``$HOME/.yt/my_plugins.py``.
+
+    Warning: when you use this function, your script will only be reproducible
+    if you also provide the ``my_plugins.py`` file.
+    """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
@@ -788,3 +881,85 @@ def fix_unitary(u):
         return 'unitary'
     else:
         return u
+
+def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
+    """Generate file hash without reading in the entire file at once.
+
+    Original code licensed under MIT.  Source:
+    http://pythoncentral.io/hashing-files-with-python/
+
+    Parameters
+    ----------
+    infile : str
+        File of interest (including the path).
+    algorithm : str (optional)
+        Hash algorithm of choice. Defaults to 'md5'.
+    BLOCKSIZE : int (optional)
+        How much data in bytes to read in at once.
+
+    Returns
+    -------
+    hash : str
+        The hash of the file.
+
+    Examples
+    --------
+    >>> import yt.funcs as funcs
+    >>> funcs.get_hash('/path/to/test.png')
+    'd38da04859093d430fa4084fd605de60'
+
+    """
+    import hashlib
+
+    try:
+        hasher = getattr(hashlib, algorithm)()
+    except:
+        raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
+                                  (algorithm, hashlib.algorithms))
+
+    filesize   = os.path.getsize(infile)
+    iterations = int(float(filesize)/float(BLOCKSIZE))
+
+    pbar = get_pbar('Generating %s hash' % algorithm, iterations)
+
+    iter = 0
+    with open(infile,'rb') as f:
+        buf = f.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(BLOCKSIZE)
+            iter += 1
+            pbar.update(iter)
+        pbar.finish()
+
+    return hasher.hexdigest()
+
+def get_brewer_cmap(cmap):
+    """Returns a colorbrewer colormap from palettable"""
+    try:
+        import brewer2mpl
+    except ImportError:
+        brewer2mpl = None
+    try:
+        import palettable
+    except ImportError:
+        palettable = None
+    if palettable is not None:
+        bmap = palettable.colorbrewer.get_map(*cmap)
+    elif brewer2mpl is not None:
+        warnings.warn("Using brewer2mpl colormaps is deprecated. "
+                      "Please install the successor to brewer2mpl, "
+                      "palettable, with `pip install palettable`. "
+                      "Colormap tuple names remain unchanged.")
+        bmap = brewer2mpl.get_map(*cmap)
+    else:
+        raise RuntimeError(
+            "Please install palettable to use colorbrewer colormaps")
+    return bmap.get_mpl_colormap(N=cmap[2])
+
+def get_requests():
+    try:
+        import requests
+    except ImportError:
+        requests = None
+    return requests

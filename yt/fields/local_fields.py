@@ -13,8 +13,6 @@ This is a container for storing local fields defined on each load of yt.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from yt.utilities.logger import \
     ytLogger as mylog
 
@@ -27,7 +25,10 @@ from .field_info_container import \
 class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function=None, **kwargs):
         if not isinstance(name, tuple):
-            name = ('gas', name)
+            if kwargs.setdefault('particle_type', False):
+                name = ('all', name)
+            else:
+                name = ('gas', name)
         override = kwargs.get("force_override", False)
         # Handle the case where the field has already been added.
         if not override and name in self:

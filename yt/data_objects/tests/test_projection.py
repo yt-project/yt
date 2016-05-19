@@ -1,6 +1,9 @@
 import numpy as np
 from yt.testing import \
-    fake_random_ds, assert_equal, assert_rel_equal
+    fake_random_ds, \
+    assert_equal, \
+    assert_rel_equal, \
+    fake_amr_ds
 from yt.units.unit_object import Unit
 import os
 import tempfile
@@ -36,7 +39,6 @@ def test_projection():
         xf, yf, zf = ds.domain_right_edge.to_ndarray() - \
             1.0 / (ds.domain_dimensions * 2)
         dd = ds.all_data()
-        rho_tot = dd.quantities["TotalQuantity"]("density")
         coords = np.mgrid[xi:xf:xn*1j, yi:yf:yn*1j, zi:zf:zn*1j]
         uc = [np.unique(c) for c in coords]
         # test if projections inherit the field parameters of their data sources
@@ -112,3 +114,12 @@ def test_projection():
             v2 = (LENGTH_UNIT * dd["density"] * dd["d%s" % an]).sum()
             yield assert_rel_equal, v1, v2, 10
     teardown_func(fns)
+
+
+def test_max_level():
+    ds = fake_amr_ds()
+    proj = ds.proj('Density', 2, method='mip', max_level=2)
+    assert proj['grid_level'].max() == 2
+
+    proj = ds.proj('Density', 2, method='mip')
+    assert proj['grid_level'].max() == ds.index.max_level

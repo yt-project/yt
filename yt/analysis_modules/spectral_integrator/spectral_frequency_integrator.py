@@ -14,7 +14,7 @@ bins.  Currently only supports Cloudy and APEC-style data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
@@ -176,7 +176,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
     constant_metallicity: float, optional
         If specified, assume a constant metallicity for the emission 
         from metals.  The *with_metals* keyword must be set to False 
-        to use this.
+        to use this. It should be given in unit of solar metallicity.
         Default: None.
 
     This will create three fields:
@@ -245,7 +245,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
 
     emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(("gas", emiss_name), function=_emissivity_field,
-                 display_name=r"\epsilon_{X}\ (%s-%s\ keV)" % (e_min, e_max),
+                 display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
                  units="erg/cm**3/s")
 
     def _luminosity_field(field, data):
@@ -253,7 +253,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
 
     lum_name = "xray_luminosity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(("gas", lum_name), function=_luminosity_field,
-                 display_name=r"\rm{L}_{X}\ (%s-%s\ keV)" % (e_min, e_max),
+                 display_name=r"\rm{L}_{X} (%s-%s keV)" % (e_min, e_max),
                  units="erg/s")
 
     def _photon_emissivity_field(field, data):
@@ -273,7 +273,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
 
     phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(("gas", phot_name), function=_photon_emissivity_field,
-                 display_name=r"\epsilon_{X}\ (%s-%s\ keV)" % (e_min, e_max),
+                 display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
                  units="photons/cm**3/s")
 
     return emiss_name, lum_name, phot_name

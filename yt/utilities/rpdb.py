@@ -14,7 +14,10 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import cmd, pdb, socket, sys
+import cmd
+import pdb
+import socket
+import sys
 from yt.extern.six.moves import StringIO
 import traceback
 import signal

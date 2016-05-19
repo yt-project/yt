@@ -12,11 +12,16 @@ Miscellaneous FITS routines
 
 import numpy as np
 import base64
-from yt.extern.six.moves import StringIO
+from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
+from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _astropy
-from yt.funcs import mylog, get_image_suffix
-from yt.visualization._mpl_imports import FigureCanvasAgg
+from yt.units.yt_array import YTQuantity, YTArray
+from yt.utilities.fits_image import FITSImageData
+if PY3:
+    from io import BytesIO as IO
+else:
+    from yt.extern.six.moves import StringIO as IO
 
 import os
 
@@ -67,6 +72,70 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
                      units="counts/pixel",
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))
+
+def create_spectral_slabs(filename, slab_centers, slab_width,
+                          **kwargs):
+    r"""
+    Given a dictionary of spectral slab centers and a width in
+    spectral units, extract data from a spectral cube at these slab
+    centers and return a `FITSDataset` instance containing the different 
+    slabs as separate yt fields. Useful for extracting individual 
+    lines from a spectral cube and separating them out as different fields. 
+
+    Requires the SpectralCube (http://spectral-cube.readthedocs.org)
+    library.
+
+    All keyword arguments will be passed on to the `FITSDataset` constructor.
+
+    Parameters
+    ----------
+    filename : string
+        The spectral cube FITS file to extract the data from.
+    slab_centers : dict of (float, string) tuples or YTQuantities
+        The centers of the slabs, where the keys are the names
+        of the new fields and the values are (float, string) tuples or
+        YTQuantities, specifying a value for each center and its unit.
+    slab_width : YTQuantity or (float, string) tuple
+        The width of the slab along the spectral axis.
+
+    Examples
+    --------
+    >>> slab_centers = {'13CN': (218.03117, 'GHz'),
+    ...                 'CH3CH2CHO': (218.284256, 'GHz'),
+    ...                 'CH3NH2': (218.40956, 'GHz')}
+    >>> slab_width = (0.05, "GHz")
+    >>> ds = create_spectral_slabs("intensity_cube.fits", 
+    ...                            slab_centers, slab_width,
+    ...                            nan_mask=0.0)
+    """
+    from spectral_cube import SpectralCube
+    from yt.frontends.fits.api import FITSDataset
+    cube = SpectralCube.read(filename)
+    if not isinstance(slab_width, YTQuantity):
+        slab_width = YTQuantity(slab_width[0], slab_width[1])
+    slab_data = {}
+    field_units = cube.header.get("bunit", "dimensionless")
+    for k, v in slab_centers.items():
+        if not isinstance(v, YTQuantity):
+            slab_center = YTQuantity(v[0], v[1])
+        else:
+            slab_center = v
+        mylog.info("Adding slab field %s at %g %s" %
+                   (k, slab_center.v, slab_center.units))
+        slab_lo = (slab_center-0.5*slab_width).to_astropy()
+        slab_hi = (slab_center+0.5*slab_width).to_astropy()
+        subcube = cube.spectral_slab(slab_lo, slab_hi)
+        slab_data[k] = YTArray(subcube.filled_data[:,:,:], field_units)
+    width = subcube.header["naxis3"]*cube.header["cdelt3"]
+    w = subcube.wcs.copy()
+    w.wcs.crpix[-1] = 0.5
+    w.wcs.crval[-1] = -0.5*width
+    fid = FITSImageData(slab_data, wcs=w)
+    for hdu in fid:
+        hdu.header.pop("RESTFREQ", None)
+        hdu.header.pop("RESTFRQ", None)
+    ds = FITSDataset(fid, **kwargs)
+    return ds
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
@@ -188,13 +257,14 @@ class PlotWindowWCS(object):
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
 
     def _repr_html_(self):
+        from yt.visualization._mpl_imports import FigureCanvasAgg
         ret = ''
-        for k, v in self.plots.iteritems():
+        for k, v in self.plots.items():
             canvas = FigureCanvasAgg(v)
-            f = StringIO()
+            f = IO()
             canvas.print_figure(f)
             f.seek(0)
-            img = base64.b64encode(f.read())
+            img = base64.b64encode(f.read()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
                    r'src="data:image/png;base64,%s"><br>' % img
         return ret

@@ -16,17 +16,27 @@ the namespace and getting the last argument on the command line.
 
 # This handles the command line.
 
-import argparse, os, sys
+import argparse
+import os
+import sys
+import signal
 
 from yt.config import ytcfg
-from yt.funcs import *
+from yt.funcs import \
+    mylog, \
+    signal_print_traceback, \
+    signal_ipython, \
+    paste_traceback, \
+    paste_traceback_detailed
+from yt.utilities import rpdb
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
 def turn_on_parallelism():
     parallel_capable = False
     try:
-        from mpi4py import MPI
+        # we import this to check if mpi4py is installed
+        from mpi4py import MPI  # NOQA
     except ImportError as e:
         mylog.error("Warning: Attempting to turn on parallelism, " +
                     "but mpi4py import failed. Try pip install mpi4py.")
@@ -65,7 +75,8 @@ class SetExceptionHandling(argparse.Action):
             sys.excepthook = paste_traceback_detailed
             mylog.debug("Enabling detailed traceback pasting")
         elif self.dest == "detailed":
-            import cgitb; cgitb.enable(format="text")
+            import cgitb
+            cgitb.enable(format="text")
             mylog.debug("Enabling detailed traceback reporting")
         elif self.dest == "rpdb":
             sys.excepthook = rpdb.rpdb_excepthook
@@ -128,7 +139,7 @@ else:
     help_parser.set_defaults(func=print_help)
 
 
-if parallel_capable == True:
+if parallel_capable is True:
     pass
 elif exe_name in \
         ["mpi4py", "embed_enzo",

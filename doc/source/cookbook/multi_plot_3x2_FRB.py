@@ -7,7 +7,7 @@ from matplotlib.colors import LogNorm
 fn = "Enzo_64/RD0006/RedshiftOutput0006" # dataset to load
 
 # load data and get center value and center location as maximum density location
-ds = yt.load(fn) 
+ds = yt.load(fn)
 v, c = ds.find_max("density")
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
@@ -15,7 +15,7 @@ width = (1.0, 'unitary')
 res = [1000, 1000]
 #  get_multi_plot returns a containing figure, a list-of-lists of axes
 #   into which we can place plots, and some axes that we'll put
-#   colorbars.  
+#   colorbars.
 
 #  it accepts: # of x-axis plots, # of y-axis plots, and how the
 #  colorbars are oriented (this also determines where they go: below
@@ -53,7 +53,7 @@ for ax in range(3):
     plots.append(temp_axis.imshow(temp, norm=LogNorm()))
     plots[-1].set_clim((1e3, 1e8))
     plots[-1].set_cmap("hot")
-    
+
 # Each 'cax' is a colorbar-container, into which we'll put a colorbar.
 # the zip command creates triples from each element of the three lists
 # .  Note that it cuts off after the shortest iterator is exhausted,
@@ -66,5 +66,5 @@ for p, cax, t in zip(plots, colorbars,titles):
     cbar = fig.colorbar(p, cax=cax, orientation=orient)
     cbar.set_label(t)
 
-# And now we're done!  
+# And now we're done!
 fig.savefig("%s_3x2.png" % ds)

@@ -14,13 +14,16 @@ Tests of semi-structured meshes in MoabHex8 format.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+import numpy as np
+
+from yt.testing import \
+    assert_equal, \
+    assert_almost_equal, \
+    requires_file, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
-    small_patch_amr, \
-    big_patch_amr, \
     data_dir_load, \
-    PixelizedProjectionValuesTest, \
     FieldValuesTest
 from yt.frontends.moab.api import MoabHex8Dataset
 

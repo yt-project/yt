@@ -34,14 +34,14 @@ from __future__ import print_function
 
 
 import numpy as np
-import h5py
-import time
-import pdb
-from yt.extern.six.moves import cPickle
+from yt.utilities.on_demand_imports import _h5py as h5py
 import glob
+import os
 
-from yt.funcs import *
+from yt.extern.six.moves import cPickle
 from yt.extern.pykdtree import KDTree
+from yt.funcs import mylog, get_pbar
+
 import yt.extern.pydot as pydot
 
 # We don't currently use this, but we may again find a use for it in the
@@ -180,7 +180,7 @@ class HaloCatalog(object):
 
     def calculate_parentage_fractions(self, other_catalog, radius = 0.10):
         parentage_fractions = {}
-        if self.halo_positions == None or other_catalog.halo_positions == None:
+        if self.halo_positions is None or other_catalog.halo_positions is None:
             return parentage_fractions
         mylog.debug("Ball-tree query with radius %0.3e", radius)
         all_nearest = self.halo_kdtree.query_ball_tree(
@@ -320,7 +320,7 @@ class EnzoFOFMergerTree(object):
         for redshift in self.redshifts.values():
             if redshift <= zrange[0] and redshift >= zrange[1]:
                 # some reverse lookup magic--assumes unique cycle/z pairs
-                cycle = [key for key,value in mt.redshifts.items() \
+                cycle = [key for key,value in self.redshifts.items() \
                          if value == redshift][0]
                 del self.redshifts[cycle]
 
@@ -568,7 +568,7 @@ class EnzoFOFMergerTree(object):
             automatically. See GraphViz (e.g. "dot -v")
             for a list of available output formats.
         """
-        if filename == None: 
+        if filename is None:
             filename = "%s/tree_halo%5.5d.gv" % \
                         (self.FOF_directory, self.halonum)
         # Create the pydot graph object.
@@ -598,7 +598,6 @@ class EnzoFOFMergerTree(object):
                     #      (lvl, br.halo_id, next_lvl, c[0], color)
                     
                     #fp.write(line)
-                    last_level = (ii,lvl)
         for ii,lvl in enumerate(sorted_lvl):
             npart_max = 0
             for br in self.levels[lvl]:

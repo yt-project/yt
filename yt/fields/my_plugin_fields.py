@@ -13,8 +13,6 @@ This is a container for storing fields defined in the my_plugins.py file.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from .field_plugin_registry import \
     register_field_plugin
 

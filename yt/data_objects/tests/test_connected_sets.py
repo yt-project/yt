@@ -1,7 +1,8 @@
 from yt.utilities.answer_testing.level_sets_tests import \
-     ExtractConnectedSetsTest, \
-     requires_ds, \
-     data_dir_load
+    ExtractConnectedSetsTest
+from yt.utilities.answer_testing.framework import \
+    requires_ds, \
+    data_dir_load
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 @requires_ds(g30, big_data=True)

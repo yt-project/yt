@@ -13,28 +13,30 @@ Halo callback object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
-     periodic_distance
+    periodic_distance
 from yt.data_objects.profiles import \
-     create_profile
+    create_profile
+from yt.frontends.ytdata.utilities import \
+    _hdf5_yt_array, \
+    _yt_array_hdf5
 from yt.units.yt_array import \
-     YTArray, YTQuantity
+    YTArray
 from yt.utilities.exceptions import \
-     YTSphereTooSmall
+    YTSphereTooSmall
 from yt.funcs import \
-     ensure_list, is_root
-from yt.utilities.exceptions import YTUnitConversionError
+    ensure_list
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.operator_registry import \
-     OperatorRegistry
+    OperatorRegistry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.profile_plotter import \
-     PhasePlot
+    PhasePlot
 
 callback_registry = OperatorRegistry()
     
@@ -74,7 +76,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     factor : float
         Factor to be multiplied by the base radius for defining 
         the radius of the sphere.
-        Defautl: 1.0.
+        Default: 1.0.
     field_parameters : dict
         Dictionary of field parameters to be set with the sphere 
         created.
@@ -121,7 +123,7 @@ def sphere_field_max_recenter(halo, field):
     s_ds = halo.data_object.ds
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
-    new_center = s_ds.arr(max_vals[2:])
+    new_center = s_ds.arr(max_vals[1:])
     new_sphere = s_ds.sphere(new_center.in_units("code_length"),
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
@@ -164,8 +166,7 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
     bin_fields : list of strings
         The binning fields for the profile.
     profile_fields : string or list of strings
-        The fields to be propython
-        filed.
+        The fields to be profiled.
     n_bins : int or list of ints
         The number of bins in each dimension.  If None, 32 bins for
         each bin are used for each bin field.
@@ -400,7 +401,7 @@ def virial_quantities(halo, fields,
         The field used as the overdensity from which interpolation is done to 
         calculate virial quantities.
         Default: ("gas", "overdensity")
-    critical_density : float
+    critical_overdensity : float
         The value of the overdensity at which to evaulate the virial quantities.  
         Overdensity is with respect to the critical density.
         Default: 200
@@ -585,21 +586,3 @@ def iterative_center_of_mass(halo, radius_field="virial_radius", inner_ratio=0.1
     del sphere
     
 add_callback("iterative_center_of_mass", iterative_center_of_mass)
-
-def _yt_array_hdf5(fh, fieldname, data):
-    dataset = fh.create_dataset(fieldname, data=data)
-    units = ""
-    if isinstance(data, YTArray):
-        units = str(data.units)
-    dataset.attrs["units"] = units
-
-def _hdf5_yt_array(fh, fieldname, ds=None):
-    if ds is None:
-        new_arr = YTArray
-    else:
-        new_arr = ds.arr
-    units = ""
-    if "units" in fh[fieldname].attrs:
-        units = fh[fieldname].attrs["units"]
-    if units == "dimensionless": units = ""
-    return new_arr(fh[fieldname].value, units)

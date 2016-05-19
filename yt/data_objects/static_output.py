@@ -1,7 +1,7 @@
 """
-Generalized Enzo output objects, both static and time-series.
+Dataset and related data structures.
 
-Presumably at some point EnzoRun will be absorbed into here.
+
 
 
 """
@@ -14,27 +14,40 @@ Presumably at some point EnzoRun will be absorbed into here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import string, re, gc, time, os, os.path, weakref
 import functools
+import numpy as np
+import os
+import time
+import weakref
 
-from yt.funcs import *
-from yt.extern.six import add_metaclass
+from collections import defaultdict
+from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
+from yt.funcs import \
+    mylog, \
+    set_intersection, \
+    ensure_list
 from yt.utilities.cosmology import \
-     Cosmology
+    Cosmology
+from yt.utilities.exceptions import \
+    YTObjectNotImplemented, \
+    YTFieldNotFound, \
+    YTGeometryNotSupported
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
+from yt.fields.fluid_fields import \
+    setup_gradient_fields
+from yt.fields.particle_fields import \
+    add_volume_weighted_smoothed_field
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
@@ -46,6 +59,9 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units.unit_systems import create_code_unit_system
+from yt.data_objects.region_expression import \
+    RegionExpression
 
 from yt.geometry.coordinates.api import \
     CoordinateHandler, \
@@ -73,6 +89,36 @@ class RegisteredDataset(type):
         type.__init__(cls, name, b, d)
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
+
+class FieldTypeContainer(object):
+    def __init__(self, ds):
+        self.ds = weakref.proxy(ds)
+
+    def __getattr__(self, attr):
+        ds = self.__getattribute__('ds')
+        fnc = FieldNameContainer(ds, attr)
+        if len(dir(fnc)) == 0:
+            return self.__getattribute__(attr)
+        return fnc
+
+    def __dir__(self):
+        return list(set(t for t, n in self.ds.field_info))
+
+class FieldNameContainer(object):
+    def __init__(self, ds, field_type):
+        self.ds = ds
+        self.field_type = field_type
+
+    def __getattr__(self, attr):
+        ft = self.__getattribute__("field_type")
+        ds = self.__getattribute__("ds")
+        if (ft, attr) not in ds.field_info:
+            return self.__getattribute__(attr)
+        return ds.field_info[ft, attr]
+
+    def __dir__(self):
+        return [n for t, n in self.ds.field_info
+                if t == self.field_type]
 
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
@@ -110,6 +156,7 @@ def requires_index(attr_name):
 class Dataset(object):
 
     default_fluid_type = "gas"
+    default_field = ("gas", "density")
     fluid_types = ("gas", "deposit", "index")
     particle_types = ("io",) # By default we have an 'all'
     particle_types_raw = ("io",)
@@ -122,11 +169,11 @@ class Dataset(object):
     _index_class = None
     field_units = None
     derived_field_list = requires_index("derived_field_list")
+    fields = requires_index("fields")
     _instantiated = False
 
     def __new__(cls, filename=None, *args, **kwargs):
-        from yt.frontends.stream.data_structures import StreamHandler
-        if not isinstance(filename, str):
+        if not isinstance(filename, string_types):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
@@ -136,7 +183,6 @@ class Dataset(object):
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
-        #if not os.path.exists(apath): raise IOError(filename)
         if ytcfg.getboolean("yt","skip_dataset_cache"):
             obj = object.__new__(cls)
         elif apath not in _cached_datasets:
@@ -147,7 +193,8 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, 
+                 units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -159,6 +206,7 @@ class Dataset(object):
         self.file_style = file_style
         self.conversion_factors = {}
         self.parameters = {}
+        self.region_expression = self.r = RegionExpression(self)
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
@@ -188,6 +236,11 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
+
+        create_code_unit_system(self)
+        if unit_system == "code":
+            unit_system = str(self)
+        self.unit_system = unit_system_registry[unit_system]
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -247,6 +300,22 @@ class Dataset(object):
     def _is_valid(cls, *args, **kwargs):
         return False
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        """
+        This is a class method that accepts a directory (base), a list of files
+        in that directory, and a list of subdirectories.  It should return a
+        list of filenames (defined relative to the supplied directory) and a
+        boolean as to whether or not further directories should be recursed.
+        
+        This function doesn't need to catch all possibilities, nor does it need
+        to filter possibilities.
+        """
+        return [], True
+
+    def close(self):
+        pass
+
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
@@ -254,27 +323,27 @@ class Dataset(object):
     def __iter__(self):
       for i in self.parameters: yield i
 
-    def get_smallest_appropriate_unit(self, v, quantity='distance', 
+    def get_smallest_appropriate_unit(self, v, quantity='distance',
                                       return_quantity=False):
         """
-        Returns the largest whole unit smaller than the YTQuantity passed to 
+        Returns the largest whole unit smaller than the YTQuantity passed to
         it as a string.
 
-        The quantity keyword can be equal to `distance` or `time`.  In the 
-        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
-        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr', 
+        The quantity keyword can be equal to `distance` or `time`.  In the
+        case of distance, the units are: 'Mpc', 'kpc', 'pc', 'au', 'rsun',
+        'km', etc.  For time, the units are: 'Myr', 'kyr', 'yr', 'day', 'hr',
         's', 'ms', etc.
-        
-        If return_quantity is set to True, it finds the largest YTQuantity 
-        object with a whole unit and a power of ten as the coefficient, and it 
+
+        If return_quantity is set to True, it finds the largest YTQuantity
+        object with a whole unit and a power of ten as the coefficient, and it
         returns this YTQuantity.
         """
         good_u = None
         if quantity == 'distance':
-            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun', 
+            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun',
                         'km', 'cm', 'um', 'nm', 'pm']
         elif quantity == 'time':
-            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr', 
+            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr',
                         'yr', 'day', 'hr', 's', 'ms', 'us', 'ns', 'ps', 'fs']
         else:
             raise SyntaxError("Specified quantity must be equal to 'distance'"\
@@ -299,7 +368,7 @@ class Dataset(object):
                 uq = self.quan(j, good_u)
                 if uq <= v:
                     return uq
-        else:            
+        else:
             return good_u
 
     def has_key(self, key):
@@ -369,14 +438,20 @@ class Dataset(object):
         self.field_info.setup_fluid_fields()
         for ptype in self.particle_types:
             self.field_info.setup_particle_fields(ptype)
+        self.field_info.setup_fluid_index_fields()
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
-            self.add_particle_union(pu)
-        mylog.info("Loading field plugins.")
+            nfields = self.add_particle_union(pu)
+            if nfields == 0:
+                mylog.debug("zero common fields: skipping particle union 'all'")
+        self.field_info.setup_extra_union_fields()
+        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
+        self.fields = FieldTypeContainer(self)
+        self.index.field_list = sorted(self.field_list)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -422,9 +497,17 @@ class Dataset(object):
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
-        fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw
-                                   and len(f[s]) > 0])
+
+        # find fields common to all particle types in the union
+        fields = set_intersection(
+            [f[s] for s in union if s in self.particle_types_raw]
+        )
+
+        if len(fields) == 0:
+            # don't create this union if no fields are common to all
+            # particle types
+            return len(fields)
+
         for field in fields:
             units = set([])
             for s in union:
@@ -438,11 +521,17 @@ class Dataset(object):
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.field_list.extend(fields)
+        new_fields = [_ for _ in fields if _ not in self.field_list]
+        self.field_list.extend(new_fields)
+        new_field_info_fields = [
+            _ for _ in fields if _ not in self.field_info.field_list]
+        self.field_info.field_list.extend(new_field_info_fields)
+        self.index.field_list = sorted(self.field_list)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
-        rv = self.field_info.find_dependencies(new_fields)
+        self.field_info.find_dependencies(new_fields)
+        return len(new_fields)
 
     def add_particle_filter(self, filter):
         # This requires an index
@@ -451,7 +540,7 @@ class Dataset(object):
         # concatenation fields.
         n = getattr(filter, "name", filter)
         self.known_filters[n] = None
-        if isinstance(filter, str):
+        if isinstance(filter, string_types):
             used = False
             for f in filter_registry[filter]:
                 used = self._setup_filtered_type(f)
@@ -508,7 +597,8 @@ class Dataset(object):
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
         if field == self._last_freq:
-            return self._last_finfo
+            if field not in self.field_info.field_aliases.values():
+                return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
@@ -551,7 +641,7 @@ class Dataset(object):
                 continue
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
-            self._add_object_class(name, cname, cls, {'ds':weakref.proxy(self)})
+            self._add_object_class(name, cls)
         if self.refine_by != 2 and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
@@ -564,10 +654,10 @@ class Dataset(object):
             self.proj = self.overlap_proj
         self.object_types.sort()
 
-    def _add_object_class(self, name, class_name, base, dd):
+    def _add_object_class(self, name, base):
         self.object_types.append(name)
-        dd.update({'__doc__': base.__doc__})
-        obj = type(class_name, (base,), dd)
+        obj = functools.partial(base, ds=weakref.proxy(self))
+        obj.__doc__ = base.__doc__
         setattr(self, name, obj)
 
     def find_max(self, field):
@@ -576,7 +666,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, mx, my, mz)
@@ -588,7 +678,7 @@ class Dataset(object):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        min_val, maxi, mx, my, mz = \
+        min_val, mx, my, mz = \
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
               min_val, mx, my, mz)
@@ -597,30 +687,45 @@ class Dataset(object):
     def find_field_values_at_point(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
-        coordinates. Returns a list of field values in the same order as 
+        coordinates. Returns a list of field values in the same order as
         the input *fields*.
         """
-        return self.point(coords)[fields]
+        point = self.point(coords)
+        ret = []
+        field_list = ensure_list(fields)
+        for field in field_list:
+            ret.append(point[field])
+        if len(field_list) == 1:
+            return ret[0]
+        else:
+            return ret
 
     def find_field_values_at_points(self, fields, coords):
         """
         Returns the values [field1, field2,...] of the fields at the given
-        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field 
+        [(x1, y1, z2), (x2, y2, z2),...] points.  Returns a list of field
         values in the same order as the input *fields*.
 
-        This is quite slow right now as it creates a new data object for each
-        point.  If an optimized version exists on the Index object we'll use
-        that instead.
         """
-        if hasattr(self,"index") and \
-                hasattr(self.index,"_find_field_values_at_points"):
-            return self.index._find_field_values_at_points(fields,coords)
+        # If an optimized version exists on the Index object we'll use that
+        try:
+            return self.index._find_field_values_at_points(fields, coords)
+        except AttributeError:
+            pass
 
         fields = ensure_list(fields)
-        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
-        for i,coord in enumerate(coords):
-            out[:][i] = self.point(coord)[fields]
-        return out
+        out = []
+
+        # This may be slow because it creates a data object for each point
+        for field_index, field in enumerate(fields):
+            funit = self._get_field_info[field].units
+            out.append(self.arr(np.empty((len(coords),)), funit))
+            for coord_index, coord in enumerate(coords):
+                out[field_index][coord_index] = self.point(coord)[fields]
+        if len(fields) == 1:
+            return out[0]
+        else:
+            return out
 
     # Now all the object related stuff
     def all_data(self, find_max=False, **kwargs):
@@ -680,6 +785,7 @@ class Dataset(object):
         self.unit_registry.add("code_velocity", 1.0, dimensions.velocity)
         self.unit_registry.add("code_metallicity", 1.0,
                                dimensions.dimensionless)
+        self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
     def set_units(self):
         """
@@ -687,8 +793,7 @@ class Dataset(object):
 
         """
         from yt.units.dimensions import length
-        if hasattr(self, "cosmological_simulation") \
-           and getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
@@ -697,19 +802,20 @@ class Dataset(object):
                 self.unit_registry.add(new_unit, self.unit_registry.lut[my_unit][0] /
                                        (1 + self.current_redshift),
                                        length, "\\rm{%s}/(1+z)" % my_unit)
+            self.unit_registry.modify('a', 1/(1+self.current_redshift))
 
         self.set_code_units()
 
-        if hasattr(self, "cosmological_simulation") \
-           and getattr(self, "cosmological_simulation"):
+        if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
-            setattr(self, "cosmology",
+            self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
                               omega_lambda=self.omega_lambda,
-                              unit_registry=self.unit_registry))
-            setattr(self, "critical_density",
-                    self.cosmology.critical_density(self.current_redshift))
+                              unit_registry=self.unit_registry)
+            self.critical_density = \
+                    self.cosmology.critical_density(self.current_redshift)
+            self.scale_factor = 1.0 / (1.0 + self.current_redshift)
 
     def get_unit_from_registry(self, unit_str):
         """
@@ -778,15 +884,14 @@ class Dataset(object):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
 
         input_array : iterable
             A tuple, list, or array to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units object
+        input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
             (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -813,6 +918,7 @@ class Dataset(object):
                  1.00010449]) Mpc
 
         """
+
         if self._arr is not None:
             return self._arr
         self._arr = functools.partial(YTArray, registry = self.unit_registry)
@@ -824,15 +930,14 @@ class Dataset(object):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
 
         input_scalar : an integer or floating point scalar
             The scalar to attach units to
-        input_units : String unit specification, unit symbol object, or astropy
-                      units
+        input_units : String unit specification, unit symbol or astropy object
             The units of the quantity. Powers must be specified using python
             syntax (cm**3, not cm^3).
         dtype : string or NumPy dtype object
@@ -859,6 +964,7 @@ class Dataset(object):
         1.543e+25 cm
 
         """
+
         if self._quan is not None:
             return self._quan
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
@@ -907,7 +1013,8 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
+                                     weight_field='particle_mass'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -919,8 +1026,18 @@ class Dataset(object):
            The field name tuple of the particle field the deposited field will
            be created from.  This must be a field name tuple so yt can
            appropriately infer the correct particle type.
-        method : one of 'count', 'sum', or 'cic'
-           The particle deposition method to use.
+        method : string
+           This is the "method name" which will be looked up in the
+           `particle_deposit` namespace as `methodname_deposit`.  Current
+           methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
+           `mesh_id`, and `nearest`.
+        kernel_name : string, default 'cubic'
+           This is the name of the smoothing kernel to use. It is only used for
+           the `simple_smooth` method and is otherwise ignored. Current
+           supported kernel names include `cubic`, `quartic`, `quintic`,
+           `wendland2`, `wendland4`, and `wendland6`.
+        weight_field : string, default 'particle_mass'
+           Weighting field name for deposition method `weighted_mean`.
 
         Returns
         -------
@@ -932,38 +1049,141 @@ class Dataset(object):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
+
         units = self.field_info[ptype, deposit_field].units
+        take_log = self.field_info[ptype, deposit_field].take_log
+        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
+        if method == "count":
+            field_name = "%s_count" % ptype
+            if ("deposit", field_name) in self.field_info:
+                mylog.warning("The deposited field %s already exists" % field_name)
+                return ("deposit", field_name)
+            else:
+                units = "dimensionless"
+                take_log = False
 
         def _deposit_field(field, data):
             """
-            Create a grid field for particle wuantities weighted by particle
-            mass, using cloud-in-cell deposition.
+            Create a grid field for particle quantities using given method.
             """
             pos = data[ptype, "particle_position"]
-            # get back into density
-            if method != 'count':
-                pden = data[ptype, "particle_mass"]
-                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                                   method=method)
-                bottom = data.deposit(pos, [pden], method=method)
-                top[bottom == 0] = 0.0
-                bnz = bottom.nonzero()
-                top[bnz] /= bottom[bnz]
-                d = data.ds.arr(top, input_units=units)
+            if method == 'weighted_mean':
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field],
+                                                   data[ptype, weight_field]],
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
+                d[np.isnan(d)] = 0.0
             else:
                 d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method))
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
             return d
-        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
-        field_name = "%s_" + name_map[method] + "_%s"
-        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
             units=units,
-            take_log=False,
+            take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
+
+    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
+                                    nneighbors=64, kernel_name="cubic"):
+        """Add a new smoothed particle field
+
+        Creates a new smoothed field based on the particle *smooth_field*.
+
+        Parameters
+        ----------
+
+        smooth_field : tuple
+           The field name tuple of the particle field the smoothed field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        method : string, default 'volume_weighted'
+           The particle smoothing method to use. Can only be 'volume_weighted'
+           for now.
+        nneighbors : int, default 64
+            The number of neighbors to examine during the process.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+        """
+        self.index
+        if isinstance(smooth_field, tuple):
+            ptype, smooth_field = smooth_field[0], smooth_field[1]
+        else:
+            raise RuntimeError("smooth_field must be a tuple, received %s" %
+                               smooth_field)
+        if method != "volume_weighted":
+            raise NotImplementedError("method must be 'volume_weighted'")
+
+        coord_name = "particle_position"
+        mass_name = "particle_mass"
+        smoothing_length_name = "smoothing_length"
+        if (ptype, smoothing_length_name) not in self.derived_field_list:
+            raise ValueError("%s not in derived_field_list" %
+                             ((ptype, smoothing_length_name),))
+        density_name = "density"
+        registry = self.field_info
+
+        return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
+                   smoothing_length_name, density_name, smooth_field, registry,
+                   nneighbors=nneighbors, kernel_name=kernel_name)[0]
+
+    def add_gradient_fields(self, input_field):
+        """Add gradient fields.
+
+        Creates four new grid-based fields that represent the components of
+        the gradient of an existing field, plus an extra field for the magnitude
+        of the gradient. Currently only supported in Cartesian geometries. The
+        gradient is computed using second-order centered differences.
+
+        Parameters
+        ----------
+        input_field : tuple
+           The field name tuple of the particle field the deposited field will
+           be created from.  This must be a field name tuple so yt can
+           appropriately infer the correct field type.
+
+        Returns
+        -------
+        A list of field name tuples for the newly created fields.
+
+        Examples
+        --------
+        >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
+        >>> print(grad_fields)
+        [('gas', 'temperature_gradient_x'),
+         ('gas', 'temperature_gradient_y'),
+         ('gas', 'temperature_gradient_z'),
+         ('gas', 'temperature_gradient_magnitude')]
+        """
+        self.index
+        if isinstance(input_field, tuple):
+            ftype, input_field = input_field[0], input_field[1]
+        else:
+            raise RuntimeError
+        units = self.field_info[ftype, input_field].units
+        setup_gradient_fields(self.field_info, (ftype, input_field), units)
+        # Now we make a list of the fields that were just made, to check them
+        # and to return them
+        grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
+                       for suffix in "xyz"]
+        grad_fields.append((ftype,input_field+"_gradient_magnitude"))
+        deps, _ = self.field_info.check_derived_fields(grad_fields)
+        self.field_dependencies.update(deps)
+        return grad_fields
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
@@ -987,5 +1207,5 @@ class ParticleFile(object):
     def _calculate_offsets(self, fields):
         pass
 
-    def __cmp__(self, other):
-        return cmp(self.filename, other.filename)
+    def __lt__(self, other):
+        return self.filename < other.filename

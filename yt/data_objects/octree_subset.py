@@ -18,23 +18,20 @@ import numpy as np
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
-    YTDataContainer, \
     YTSelectionContainer
-from yt.fields.field_exceptions import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-from yt.funcs import *
+
+from yt.funcs import mylog
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer
 from yt.units.yt_array import YTArray
 from yt.units.dimensions import length
-from yt.utilities.exceptions import YTInvalidPositionArray
+from yt.utilities.exceptions import \
+    YTInvalidPositionArray, \
+    YTFieldTypeNotFound, \
+    YTParticleDepositionNotImplemented
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
@@ -93,10 +90,11 @@ class OctreeSubset(YTSelectionContainer):
         return self._num_zones + 2*self._num_ghost_zones
 
     def _reshape_vals(self, arr):
-        if len(arr.shape) == 4 and arr.flags["F_CONTIGUOUS"]:
-            return arr
         nz = self.nz
-        n_oct = arr.shape[0] / (nz**3.0)
+        if len(arr.shape) <= 2:
+            n_oct = arr.shape[0] / (nz**3)
+        else:
+            n_oct = max(arr.shape)
         if arr.size == nz*nz*nz*n_oct:
             new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:
@@ -118,20 +116,21 @@ class OctreeSubset(YTSelectionContainer):
 
     def select_blocks(self, selector):
         mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
-        mask = self._reshape_vals(mask)
         slicer = OctreeSubsetBlockSlice(self)
         for i, sl in slicer:
-            yield sl, mask[:,:,:,i]
+            yield sl, np.atleast_3d(mask[i,...])
 
     def select_tcoords(self, dobj):
         # These will not be pre-allocated, which can be a problem for speed and
         # memory usage.
         dts, ts = [], []
         for sl, mask in self.select_blocks(dobj.selector):
-            sl.child_mask = mask
+            sl.child_mask = np.asfortranarray(mask)
             dt, t = dobj.selector.get_dt(sl)
             dts.append(dt)
             ts.append(t)
+        if len(dts) == len(ts) == 0:
+            return np.empty(0, "f8"), np.empty(0, "f8")
         return np.concatenate(dts), np.concatenate(ts)
 
     @property
@@ -141,7 +140,8 @@ class OctreeSubset(YTSelectionContainer):
             self._domain_ind = di
         return self._domain_ind
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name='cubic'):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         exclusively local input.
 
@@ -158,12 +158,16 @@ class OctreeSubset(YTSelectionContainer):
             indexed octree will be constructed on these particles.
         fields : list of arrays
             All the necessary fields for computing the particle operation.  For
-            instance, this might include mass, velocity, etc.  
+            instance, this might include mass, velocity, etc.
         method : string
             This is the "method name" which will be looked up in the
             `particle_deposit` namespace as `methodname_deposit`.  Current
             methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
             `weighted_mean`, `mesh_id`, and `nearest`.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -176,7 +180,8 @@ class OctreeSubset(YTSelectionContainer):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
-        op = cls(nvals) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(nvals, kernel_name)
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
@@ -192,7 +197,8 @@ class OctreeSubset(YTSelectionContainer):
         return np.asfortranarray(vals)
 
     def smooth(self, positions, fields = None, index_fields = None,
-               method = None, create_octree = False, nneighbors = 64):
+               method = None, create_octree = False, nneighbors = 64,
+               kernel_name = 'cubic'):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         non-local input.
 
@@ -209,7 +215,7 @@ class OctreeSubset(YTSelectionContainer):
             indexed octree will be constructed on these particles.
         fields : list of arrays
             All the necessary fields for computing the particle operation.  For
-            instance, this might include mass, velocity, etc.  
+            instance, this might include mass, velocity, etc.
         index_fields : list of arrays
             All of the fields defined on the mesh that may be used as input to
             the operation.
@@ -225,6 +231,10 @@ class OctreeSubset(YTSelectionContainer):
             we are able to find and identify all relevant particles.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -258,15 +268,18 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         mdom_ind = self.domain_ind
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
-        op = cls(nvals, len(fields), nneighbors)
+        op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
-        op.process_octree(self.oct_handler, mdom_ind, positions, 
+        # Pointer operations within 'process_octree' require arrays to be
+        # contiguous cf. https://bitbucket.org/yt_analysis/yt/issues/1079
+        fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
+        op.process_octree(self.oct_handler, mdom_ind, positions,
             self.fcoords, fields,
             self.domain_id, self._domain_offset, self.ds.periodicity,
             index_fields, particle_octree, pdom_ind, self.ds.geometry)
-        # If there are 0s in the smoothing field this will not throw an error, 
+        # If there are 0s in the smoothing field this will not throw an error,
         # but silently return nans for vals where dividing by 0
         # Same as what is currently occurring, but suppressing the div by zero
         # error.
@@ -280,7 +293,7 @@ class OctreeSubset(YTSelectionContainer):
         return vals
 
     def particle_operation(self, positions, fields = None,
-            method = None, nneighbors = 64):
+            method = None, nneighbors = 64, kernel_name = 'cubic'):
         r"""Operate on particles, in a particle-against-particle fashion.
 
         This uses the octree indexing system to call a "smoothing" operation
@@ -307,6 +320,10 @@ class OctreeSubset(YTSelectionContainer):
             `particle_smooth` namespace as `methodname_smooth`.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
+        kernel_name : string, default 'cubic'
+            This is the name of the smoothing kernel to use. Current supported
+            kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
+            `wendland4`, and `wendland6`.
 
         Returns
         -------
@@ -335,11 +352,11 @@ class OctreeSubset(YTSelectionContainer):
         nz = self.nz
         mdom_ind = self.domain_ind
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
-        op = cls(nvals, len(fields), nneighbors)
+        op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
         mylog.debug("Smoothing %s particles into %s Octs",
             positions.shape[0], nvals[-1])
-        op.process_particles(particle_octree, pdom_ind, positions, 
+        op.process_particles(particle_octree, pdom_ind, positions,
             fields, self.domain_id, self._domain_offset, self.ds.periodicity,
             self.ds.geometry)
         vals = op.finalize()
@@ -416,57 +433,62 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
+class OctreeSubsetBlockSlicePosition(object):
+    def __init__(self, ind, block_slice):
+        self.ind = ind
+        self.block_slice = block_slice
+        nz = self.block_slice.octree_subset.nz
+        self.ActiveDimensions = np.array([nz,nz,nz], dtype="int64")
+
+    def __getitem__(self, key):
+        bs = self.block_slice
+        rv = bs.octree_subset[key][:,:,:,self.ind]
+        if bs.octree_subset._block_reorder:
+            rv = rv.copy(order=bs.octree_subset._block_reorder)
+        return rv
+
+    @property
+    def id(self):
+        return self.ind
+
+    @property
+    def Level(self):
+        return self.block_slice._ires[0,0,0,self.ind]
+
+    @property
+    def LeftEdge(self):
+        LE = (self.block_slice._fcoords[0,0,0,self.ind,:]
+            - self.block_slice._fwidth[0,0,0,self.ind,:]*0.5)
+        return LE
+
+    @property
+    def RightEdge(self):
+        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:]
+            + self.block_slice._fwidth[-1,-1,-1,self.ind,:]*0.5)
+        return RE
+
+    @property
+    def dds(self):
+        return self.block_slice._fwidth[0,0,0,self.ind,:]
+
+    def clear_data(self):
+        pass
+
+    def get_vertex_centered_data(self, *args, **kwargs):
+        raise NotImplementedError
+
+
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):
-        self.ind = None
         self.octree_subset = octree_subset
         # Cache some attributes
-        nz = octree_subset.nz
-        self.ActiveDimensions = np.array([nz,nz,nz], dtype="int64")
         for attr in ["ires", "icoords", "fcoords", "fwidth"]:
             v = getattr(octree_subset, attr)
             setattr(self, "_%s" % attr, octree_subset._reshape_vals(v))
 
     def __iter__(self):
         for i in range(self._ires.shape[-1]):
-            self.ind = i
-            yield i, self
-
-    def clear_data(self):
-        pass
-
-    def __getitem__(self, key):
-        rv = self.octree_subset[key][:,:,:,self.ind]
-        if self.octree_subset._block_reorder:
-            rv = rv.copy(order=self.octree_subset._block_reorder)
-        return rv
-
-    def get_vertex_centered_data(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @property
-    def id(self):
-        return np.random.randint(1)
-
-    @property
-    def Level(self):
-        return self._ires[0,0,0,self.ind]
-
-    @property
-    def LeftEdge(self):
-        LE = (self._fcoords[0,0,0,self.ind,:]
-            - self._fwidth[0,0,0,self.ind,:]*0.5)
-        return LE
-
-    @property
-    def RightEdge(self):
-        RE = (self._fcoords[-1,-1,-1,self.ind,:]
-            + self._fwidth[-1,-1,-1,self.ind,:]*0.5)
-        return RE
-
-    @property
-    def dds(self):
-        return self._fwidth[0,0,0,self.ind,:]
+            yield i, OctreeSubsetBlockSlicePosition(i, self)
 
 class YTPositionArray(YTArray):
     @property
@@ -491,7 +513,7 @@ class YTPositionArray(YTArray):
         LE -= np.abs(LE) * eps
         RE = self.max(axis=0)
         RE += np.abs(RE) * eps
-        octree = ParticleOctreeContainer(dims, LE, RE, 
+        octree = ParticleOctreeContainer(dims, LE, RE,
             over_refine = over_refine_factor)
         octree.n_ref = n_ref
         octree.add(mi)

@@ -16,10 +16,7 @@ Data structures for Rockstar frontend.
 
 import numpy as np
 import stat
-import weakref
-import struct
 import glob
-import time
 import os
 
 from .fields import \
@@ -32,9 +29,6 @@ from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
 import yt.utilities.fortran_utils as fpu
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
 
 from .definitions import \
     header_dt
@@ -57,11 +51,12 @@ class RockstarDataset(Dataset):
 
     def __init__(self, filename, dataset_type="rockstar_binary",
                  n_ref = 16, over_refine_factor = 1,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(RockstarDataset, self).__init__(filename, dataset_type,
-                                              units_override=units_override)
+                                              units_override=units_override,
+                                              unit_system=unit_system)
 
     def _parse_parameter_file(self):
         with open(self.parameter_filename, "rb") as f:
@@ -73,7 +68,7 @@ class RockstarDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
-        self.file_count = len(glob.glob(prefix + "*" + self._suffix))
+        self.file_count = len(glob.glob(prefix + ".*" + self._suffix))
         
         # Now we can set up things we already know.
         self.cosmological_simulation = 1

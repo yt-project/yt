@@ -5,7 +5,7 @@ Radial Column Density
 .. sectionauthor:: Stephen Skory <s@skory.us>
 .. versionadded:: 2.3
 
-.. note:: 
+.. note::
 
     As of :code:`yt-3.0`, the radial column density analysis module is not
     currently functional.  This functionality is still available in
@@ -50,15 +50,15 @@ Just like a real number column density, when the derived is added using
   from yt.mods import *
   from yt.analysis_modules.radial_column_density.api import *
   ds = load("data0030")
-  
+
   rcdnumdens = RadialColumnDensity(ds, 'NumberDensity', [0.5, 0.5, 0.5],
     max_radius = 0.5)
   def _RCDNumberDensity(field, data, rcd = rcdnumdens):
       return rcd._build_derived_field(data)
   add_field('RCDNumberDensity', _RCDNumberDensity, units=r'1/\rm{cm}^2')
-  
+
   dd = ds.all_data()
-  print dd['RCDNumberDensity']
+  print(dd['RCDNumberDensity'])
 
 The field ``RCDNumberDensity`` can be used just like any other derived field
 in yt.
@@ -79,7 +79,7 @@ just like ``max_radius`` is used above.
   * ``base`` : string - This controls where the surfaces are placed, with
     linear "lin" or logarithmic "log" spacing. The inner-most
     surface is always set to the size of the smallest cell.
-    Default = "lin". 
+    Default = "lin".
 
   * ``Nside`` : int
     The resolution of column density calculation as performed by

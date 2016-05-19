@@ -11,13 +11,13 @@ Unit test for the RADMC3D Exporter analysis module
 #-----------------------------------------------------------------------------
 
 import yt
-from yt.testing import *
+from yt.testing import assert_allclose
 from yt.analysis_modules.radmc3d_export.api import RadMC3DWriter
 from yt.utilities.answer_testing.framework import \
     AnswerTestingTest, \
     requires_ds
-from yt.config import ytcfg
 import tempfile
+import numpy as np
 import os
 import shutil
 

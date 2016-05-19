@@ -14,21 +14,16 @@ ARTIO-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.fields.field_detector import \
     FieldDetector
 from yt.units.yt_array import \
     YTArray
-
 from yt.utilities.physical_constants import \
-    mh, \
-    mass_sun_cgs, \
     boltzmann_constant_cgs, \
     amu_cgs
+import numpy as np
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -72,6 +67,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        unit_system = self.ds.unit_system
         def _get_vel(axis):
             def velocity(field, data):
                 return data["momentum_%s" % axis]/data["density"]
@@ -79,7 +75,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         for ax in 'xyz':
             self.add_field(("gas", "velocity_%s" % ax),
                            function = _get_vel(ax),
-                           units = "cm/s")
+                           units = unit_system["velocity"])
 
         def _temperature(field, data):
             tr = data["thermal_energy"]/data["density"]
@@ -102,16 +98,29 @@ class ARTIOFieldInfo(FieldInfoContainer):
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
         self.add_field(("gas", "temperature"), function = _temperature,
-                       units = "K")
+                       units = unit_system["temperature"])
 
-        def _metal_density(field, data):
-            tr = data["metal_ia_density"]
-            tr += data["metal_ii_density"]
-            return tr
-        self.add_field(("gas","metal_density"),
-                       function=_metal_density,
-                       units="g/cm**3",
-                       take_log=True)
+        # Create a metal_density field as sum of existing metal fields. 
+        flag1 = ("artio", "HVAR_METAL_DENSITY_Ia") in self.field_list
+        flag2 = ("artio", "HVAR_METAL_DENSITY_II") in self.field_list
+        if flag1 or flag2:
+            if flag1 and flag2:
+                def _metal_density(field, data):
+                    tr = data['metal_ia_density'].copy()
+                    np.add(tr, data["metal_ii_density"], out=tr)
+                    return tr
+            elif flag1 and not flag2:
+                def _metal_density(field, data):
+                    tr = data["metal_ia_density"]
+                    return tr
+            else:
+                def _metal_density(field, data):
+                    tr = data["metal_ii_density"]
+                    return tr
+            self.add_field(("gas","metal_density"),
+                           function=_metal_density,
+                           units=unit_system["density"],
+                           take_log=True)
 
     def setup_particle_fields(self, ptype):
         if ptype == "STAR":

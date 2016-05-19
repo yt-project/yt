@@ -14,8 +14,9 @@ Import the components of the volume rendering extension
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.data_objects.construction_data_containers import YTStreamlineBase
-from yt.funcs import *
+from yt.data_objects.construction_data_containers import YTStreamline
+from yt.funcs import get_pbar
+from yt.units.yt_array import YTArray
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -167,9 +168,11 @@ class Streamlines(ParallelAnalysisInterface):
         if self.get_magnitude:
             self.magnitudes = self.comm.mpi_allreduce(
                 self.magnitudes, op='sum')
-        
+
     def _integrate_through_brick(self, node, stream, step,
                                  periodic=False, mag=None):
+        LE = self.ds.domain_left_edge.d
+        RE = self.ds.domain_right_edge.d
         while (step > 1):
             self.volume.get_brick_data(node)
             brick = node.data
@@ -182,13 +185,14 @@ class Streamlines(ParallelAnalysisInterface):
                 brick.integrate_streamline(
                     stream[-step+1], self.direction*self.dx, marr)
                 mag[-step+1] = marr[0]
-                
-            if np.any(stream[-step+1,:] <= self.ds.domain_left_edge) | \
-                   np.any(stream[-step+1,:] >= self.ds.domain_right_edge):
+
+            cur_stream = stream[-step+1, :]
+            if np.sum(np.logical_or(cur_stream < LE, cur_stream >= RE)):
                 return 0
 
-            if np.any(stream[-step+1,:] < node.get_left_edge()) | \
-                   np.any(stream[-step+1,:] >= node.get_right_edge()):
+            nLE = node.get_left_edge()
+            nRE = node.get_right_edge()
+            if np.sum(np.logical_or(cur_stream < nLE, cur_stream >= nRE)):
                 return step-1
             step -= 1
         return step
@@ -215,7 +219,7 @@ class Streamlines(ParallelAnalysisInterface):
 
         Returns
         -------
-        An YTStreamlineBase YTSelectionContainer1D object
+        An YTStreamline YTSelectionContainer1D object
 
         Examples
         --------
@@ -225,8 +229,7 @@ class Streamlines(ParallelAnalysisInterface):
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')
-        
+
         """
-        return YTStreamlineBase(self.streamlines[streamline_id], ds=self.ds,
-                                length = self.length)
-        
+        return YTStreamline(self.streamlines[streamline_id], ds=self.ds,
+                            length=self.length)

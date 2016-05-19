@@ -10,10 +10,10 @@ from yt.analysis_modules.absorption_spectrum.api import generate_total_fit
 def _OVI_number_density(field, data):
     return data['H_number_density']*2.0
 
-# Define a function that will accept a ds and add the new field 
+# Define a function that will accept a ds and add the new field
 # defined above.  This will be given to the LightRay below.
 def setup_ds(ds):
-    ds.add_field("O_p5_number_density", 
+    ds.add_field(("gas","O_p5_number_density"),
                  function=_OVI_number_density,
                  units="cm**-3")
 
@@ -62,7 +62,7 @@ lr = LightRay('enzo_cosmology_plus/AMRCosmology.enzo',
 
 # Get all fields that need to be added to the light ray
 fields = ['temperature']
-for s, params in species_dicts.iteritems():
+for s, params in species_dicts.items():
     fields.append(params['field'])
 
 # Make a light ray, and set njobs to -1 to use one core
@@ -71,7 +71,6 @@ lr.make_light_ray(seed=123456780,
                   solution_filename='lightraysolution.txt',
                   data_filename='lightray.h5',
                   fields=fields, setup_function=setup_ds,
-                  get_los_velocity=True,
                   njobs=-1)
 
 # Create an AbsorptionSpectrum object extending from
@@ -79,7 +78,7 @@ lr.make_light_ray(seed=123456780,
 sp = AbsorptionSpectrum(900.0, 1400.0, 50000)
 
 # Iterate over species
-for s, params in species_dicts.iteritems():
+for s, params in species_dicts.items():
     # Iterate over transitions for a single species
     for i in range(params['numLines']):
         # Add the lines to the spectrum

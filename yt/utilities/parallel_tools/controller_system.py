@@ -12,15 +12,10 @@ A queueing system based on MPI
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-    
-try:
-    from .parallel_analysis_interface import MPI
-except ImportError:
-    pass
+
 from .parallel_analysis_interface import \
     ProcessorPool
-from contextmanager import contextlib
-from abc import ABCMeta, abstractmethod, abstractproperty
+from abc import abstractmethod
 
 class WorkSplitter(object):
     def __init__(self, controller, group1, group2):

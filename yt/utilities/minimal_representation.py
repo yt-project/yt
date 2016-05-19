@@ -17,7 +17,7 @@ import numpy as np
 import abc
 import json
 import sys
-import h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5
 import os
 from uuid import uuid4
 from yt.extern.six.moves import urllib
@@ -165,7 +165,7 @@ class MinimalRepresentation(object):
         metadata['obj_type'] = self.type
         with h5.File(storage) as h5f:
             dset = str(uuid4())[:8]
-            grp = h5f.create_group(dset)
+            h5f.create_group(dset)
             _serialize_to_h5(h5f[dset], metadata)
             if len(chunks) > 0:
                 g = h5f[dset].create_group('chunks')
@@ -223,7 +223,6 @@ class MinimalRepresentation(object):
         uploader_info = json.loads(rv)
         new_url = url + "/handler/%s" % uploader_info['handler_uuid']
         for i, (cn, cv) in enumerate(chunks):
-            remaining = cv.size * cv.itemsize
             f = TemporaryFile()
             np.save(f, cv)
             f.seek(0)

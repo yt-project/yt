@@ -23,6 +23,7 @@ import os
 
 from yt.frontends.sph.data_structures import \
     ParticleDataset
+from yt.funcs import deprecate
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -30,11 +31,16 @@ from yt.data_objects.static_output import \
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.physical_constants import \
-    G, \
+    G
+from yt.utilities.physical_ratios import \
     cm_per_kpc
 
 from .fields import \
     TipsyFieldInfo
+
+import sys
+if sys.version_info > (3,):
+    long = int
 
 class TipsyFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
@@ -69,9 +75,10 @@ class TipsyDataset(ParticleDataset):
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
                  bounding_box=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
-        # specify a bounding box which effectively gives a domain_left_edge 
+        # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
@@ -84,7 +91,6 @@ class TipsyDataset(ParticleDataset):
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
-                tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
                 self.parameters['nstar']))
@@ -107,7 +113,8 @@ class TipsyDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
-        super(TipsyDataset, self).__init__(filename, dataset_type)
+        super(TipsyDataset, self).__init__(filename, dataset_type,
+                                           unit_system=unit_system)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -167,38 +174,45 @@ class TipsyDataset(ParticleDataset):
         self.domain_dimensions = np.ones(3, "int32") * nz
         periodic = self.parameters.get('bPeriodic', True)
         period = self.parameters.get('dPeriod', None)
-        comoving = self.parameters.get('bComove', False)
         self.periodicity = (periodic, periodic, periodic)
-        if comoving and period is None:
+        self.cosmological_simulation = float(self.parameters.get(
+            'bComove', self._cosmology_parameters is not None))
+        if self.cosmological_simulation and period is None:
             period = 1.0
         if self.bounding_box is None:
             if periodic and period is not None:
-                # If we are periodic, that sets our domain width to either 1 or dPeriod.
+                # If we are periodic, that sets our domain width to
+                # either 1 or dPeriod.
                 self.domain_left_edge = np.zeros(3, "float64") - 0.5*period
                 self.domain_right_edge = np.zeros(3, "float64") + 0.5*period
             else:
                 self.domain_left_edge = None
                 self.domain_right_edge = None
-        else: 
-            bbox = self.arr(self.bounding_box, 'code_length', dtype="float64")
+        else:
+            bbox = np.array(self.bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
             self.domain_right_edge = bbox[:,1]
 
-        if comoving:
+        # If the cosmology parameters dictionary got set when data is
+        # loaded, we can assume it's a cosmological data set
+        if self.cosmological_simulation == 1.0:
             cosm = self._cosmology_parameters or {}
-            self.scale_factor = hvals["time"]#In comoving simulations, time stores the scale factor a
-            self.cosmological_simulation = 1
-            dcosm = dict(current_redshift=(1.0/self.scale_factor)-1.0,
-                         omega_lambda=self.parameters.get('dLambda', cosm.get('omega_lambda',0.0)),
-                         omega_matter=self.parameters.get('dOmega0', cosm.get('omega_matter',0.0)),
-                         hubble_constant=self.parameters.get('dHubble0', cosm.get('hubble_constant',1.0)))
+            # In comoving simulations, time stores the scale factor a
+            self.scale_factor = hvals["time"]
+            dcosm = dict(
+                current_redshift=(1.0/self.scale_factor)-1.0,
+                omega_lambda=self.parameters.get(
+                    'dLambda', cosm.get('omega_lambda',0.0)),
+                omega_matter=self.parameters.get(
+                    'dOmega0', cosm.get('omega_matter',0.0)),
+                hubble_constant=self.parameters.get(
+                    'dHubble0', cosm.get('hubble_constant',1.0)))
             for param in dcosm.keys():
                 pval = dcosm[param]
                 setattr(self, param, pval)
         else:
-            self.cosmological_simulation = 0.0
             kpc_unit = self.parameters.get('dKpcUnit', 1.0)
             self._unit_base['cm'] = 1.0 / (kpc_unit * cm_per_kpc)
 
@@ -217,32 +231,63 @@ class TipsyDataset(ParticleDataset):
         super(TipsyDataset, self)._set_derived_attrs()
 
     def _set_code_unit_attributes(self):
+        # First try to set units based on parameter file
         if self.cosmological_simulation:
             mu = self.parameters.get('dMsolUnit', 1.)
+            self.mass_unit = self.quan(mu, 'Msun')
             lu = self.parameters.get('dKpcUnit', 1000.)
             # In cosmological runs, lengths are stored as length*scale_factor
             self.length_unit = self.quan(lu, 'kpc')*self.scale_factor
-            self.mass_unit = self.quan(mu, 'Msun')
-            density_unit = self.mass_unit/ (self.length_unit/self.scale_factor)**3
-            # Gasoline's hubble constant, dHubble0, is stored units of proper code time.
-            self.hubble_constant *= np.sqrt(G.in_units('kpc**3*Msun**-1*s**-2')*density_unit).value/(3.2407793e-18)  
-            cosmo = Cosmology(self.hubble_constant,
-                              self.omega_matter, self.omega_lambda)
-            self.current_time = cosmo.hubble_time(self.current_redshift)
+            density_unit = self.mass_unit / (self.length_unit / self.scale_factor)**3
+            if 'dHubble0' in self.parameters:
+                # Gasoline's internal hubble constant, dHubble0, is stored in
+                # units of proper code time
+                self.hubble_constant *= np.sqrt(G * density_unit)
+                # Finally, we scale the hubble constant by 100 km/s/Mpc
+                self.hubble_constant /= self.quan(100, 'km/s/Mpc')
+                # If we leave it as a YTQuantity, the cosmology object
+                # used below will add units back on.
+                self.hubble_constant = self.hubble_constant.in_units("").d
         else:
             mu = self.parameters.get('dMsolUnit', 1.0)
             self.mass_unit = self.quan(mu, 'Msun')
             lu = self.parameters.get('dKpcUnit', 1.0)
             self.length_unit = self.quan(lu, 'kpc')
+
+        # If unit base is defined by the user, override all relevant units
+        if self._unit_base is not None:
+            for my_unit in ["length", "mass", "time"]:
+                if my_unit in self._unit_base:
+                    my_val = self._unit_base[my_unit]
+                    my_val = \
+                      self.quan(*my_val) if isinstance(my_val, tuple) \
+                      else self.quan(my_val)
+                    setattr(self, "%s_unit" % my_unit, my_val)
+
+        # Finally, set the dependent units
+        if self.cosmological_simulation:
+            cosmo = Cosmology(self.hubble_constant,
+                              self.omega_matter, self.omega_lambda)
+            self.current_time = cosmo.hubble_time(self.current_redshift)
+            # mass units are rho_crit(z=0) * domain volume
+            mu = cosmo.critical_density(0.0) * \
+              (1 + self.current_redshift)**3 * self.length_unit**3
+            self.mass_unit = self.quan(mu.in_units("Msun"), "Msun")
+            density_unit = self.mass_unit / (self.length_unit / self.scale_factor)**3
+            # need to do this again because we've modified the hubble constant
+            self.unit_registry.modify("h", self.hubble_constant)
+        else:
             density_unit = self.mass_unit / self.length_unit**3
-        self.time_unit = 1.0 / np.sqrt(G * density_unit)
+
+        if not hasattr(self, "time_unit"):
+            self.time_unit = 1.0 / np.sqrt(G * density_unit)
 
     @staticmethod
     def _validate_header(filename):
         '''
         This method automatically detects whether the tipsy file is big/little endian
         and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
-        Valid is a boolean that is true if the file is a tipsy file, and endianswap is 
+        Valid is a boolean that is true if the file is a tipsy file, and endianswap is
         the endianness character '>' or '<'.
         '''
         try:
@@ -255,7 +300,7 @@ class TipsyDataset(ParticleDataset):
             f.seek(0, os.SEEK_SET)
             #Read in the header
             t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
-        except IOError:
+        except (IOError, struct.error):
             return False, 1
         endianswap = "<"
         #Check Endianness
@@ -278,3 +323,8 @@ class TipsyDataset(ParticleDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         return TipsyDataset._validate_header(args[0])[0]
+
+    @property
+    @deprecate(replacement='cosmological_simulation')
+    def comoving(self):
+        return self.cosmological_simulation == 1.0

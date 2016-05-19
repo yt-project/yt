@@ -17,7 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, abs
-from fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

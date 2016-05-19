@@ -15,16 +15,9 @@ The field detector.
 
 import numpy as np
 from collections import defaultdict
-from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
-    ValidationException, \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    FieldUnitsError
+    NeedsGridType
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -87,27 +80,18 @@ class FieldDetector(defaultdict):
         return arr.reshape(self.ActiveDimensions, order="C")
 
     def __missing__(self, item):
-        if hasattr(self.ds, "field_info"):
-            if not isinstance(item, tuple):
-                field = ("unknown", item)
-                finfo = self.ds._get_field_info(*field)
-                #mylog.debug("Guessing field %s is %s", item, finfo.name)
-            else:
-                field = item
-            finfo = self.ds._get_field_info(*field)
-            # For those cases where we are guessing the field type, we will
-            # need to re-update -- otherwise, our item will always not have the
-            # field type.  This can lead to, for instance, "unknown" particle
-            # types not getting correctly identified.
-            # Note that the *only* way this works is if we also fix our field
-            # dependencies during checking.  Bug #627 talks about this.
-            item = self.ds._last_freq
+        if not isinstance(item, tuple):
+            field = ("unknown", item)
         else:
-            FI = getattr(self.ds, "field_info", FieldInfo)
-            if item in FI:
-                finfo = FI[item]
-            else:
-                finfo = None
+            field = item
+        finfo = self.ds._get_field_info(*field)
+        # For those cases where we are guessing the field type, we will
+        # need to re-update -- otherwise, our item will always not have the
+        # field type.  This can lead to, for instance, "unknown" particle
+        # types not getting correctly identified.
+        # Note that the *only* way this works is if we also fix our field
+        # dependencies during checking.  Bug #627 talks about this.
+        item = self.ds._last_freq
         if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
                 vv = finfo(self)
@@ -136,6 +120,11 @@ class FieldDetector(defaultdict):
                 self[item] = \
                   YTArray(np.ones((self.NumberOfParticles, 3)),
                           finfo.units, registry=self.ds.unit_registry)
+            elif "FourMetalFractions" in (item, item[1]):
+                self[item] = \
+                  YTArray(np.ones((self.NumberOfParticles, 4)),
+                          finfo.units, registry=self.ds.unit_registry)
+
             else:
                 # Not a vector
                 self[item] = \
@@ -166,10 +155,7 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
-        if hasattr(self.ds, "field_info"):
-            finfo = self.ds._get_field_info(*field_name)
-        else:
-            finfo = FieldInfo[field_name]
+        finfo = self.ds._get_field_info(*field_name)
         if finfo.particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
@@ -232,6 +218,13 @@ class FieldDetector(defaultdict):
             fc.shape = (self.nd*self.nd*self.nd, 3)
         else:
             fc = fc.transpose()
+        return self.ds.arr(fc, input_units = "code_length")
+
+    @property
+    def fcoords_vertex(self):
+        fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
+        if self.flat:
+            fc.shape = (self.nd*self.nd*self.nd, 8, 3)
         return self.ds.arr(fc, input_units = "code_length")
 
     @property

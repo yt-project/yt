@@ -16,8 +16,7 @@ Astronomy and astrophysics fields.
 import numpy as np
 
 from .derived_field import \
-    ValidateParameter, \
-    ValidateSpatial
+    ValidateParameter
 from .field_exceptions import \
     NeedsParameter
 from .field_plugin_registry import \
@@ -30,9 +29,10 @@ from yt.utilities.physical_constants import \
     clight, \
     kboltz, \
     G
-    
+
 @register_field_plugin
 def setup_astro_fields(registry, ftype = "gas", slice_info = None):
+    unit_system = registry.ds.unit_system
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -45,7 +45,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         div_fac = 2.0
     else:
         sl_left, sl_right, div_fac = slice_info
-    
+
     def _dynamical_time(field, data):
         """
         sqrt(3 pi / (16 G rho))
@@ -54,7 +54,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "dynamical_time"),
                        function=_dynamical_time,
-                       units="s")
+                       units=unit_system["time"])
 
     def _jeans_mass(field, data):
         MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
@@ -67,11 +67,11 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "jeans_mass"),
                        function=_jeans_mass,
-                       units="g")
+                       units=unit_system["mass"])
 
     def _chandra_emissivity(field, data):
         logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
-        # we get rid of the units here since this is a fit and not an 
+        # we get rid of the units here since this is a fit and not an
         # analytical expression
         return data.ds.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
                            * (10**(- 0.0103 * logT0**8 + 0.0417 * logT0**7
@@ -91,7 +91,21 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "chandra_emissivity"),
                        function=_chandra_emissivity,
                        units="") # add correct units here
+
+    def _emission_measure(field, data):
+        if data.has_field_parameter("X_H"):
+            X_H = data.get_field_parameter("X_H")
+        else:
+            X_H = 0.76
+        nenh = data["density"]*data["density"]
+        nenh /= mh*mh
+        nenh *= 0.5*(1.+X_H)*X_H*data["cell_volume"]
+        return nenh
     
+    registry.add_field((ftype, "emission_measure"),
+                       function=_emission_measure,
+                       units=unit_system["number_density"])
+
     def _xray_emissivity(field, data):
         # old scaling coefficient was 2.168e60
         return data.ds.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
@@ -110,7 +124,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype,"mazzotta_weighting"),
                        function=_mazzotta_weighting,
                        units="keV**-0.25*cm**-6")
-    
+
     def _sz_kinetic(field, data):
         scale = 0.88 * sigma_thompson / mh / clight
         vel_axis = data.get_field_parameter("axis")
@@ -121,7 +135,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "sz_kinetic"),
                        function=_sz_kinetic,
-                       units="1/cm",
+                       units=unit_system["length"]**-1,
                        validators=[ValidateParameter("axis")])
 
     def _szy(field, data):
@@ -130,4 +144,4 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "szy"),
                        function=_szy,
-                       units="1/cm")
+                       units=unit_system["length"]**-1)

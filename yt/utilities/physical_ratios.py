@@ -1,3 +1,4 @@
+import numpy as np
 #
 # Physical Constants and Units Conversion Factors
 #
@@ -10,13 +11,16 @@
 # Elementary masses
 mass_electron_grams = 9.10938291e-28
 amu_grams         = 1.660538921e-24
+mass_hydrogen_grams = 1.007947*amu_grams
 
 # Solar values (see Mamajek 2012)
 # https://sites.google.com/site/mamajeksstarnotes/bc-scale
 mass_sun_grams = 1.98841586e33
 temp_sun_kelvin = 5870.0
 luminosity_sun_ergs_per_sec = 3.8270e33
-metallicity_sun = 0.02041
+
+# Consistent with solar abundances used in Cloudy
+metallicity_sun = 0.01295
 
 # Conversion Factors:  X au * mpc_per_au = Y mpc
 # length
@@ -33,6 +37,7 @@ pc_per_cm     = mpc_per_cm / mpc_per_pc
 km_per_pc     = 3.08567758e13
 km_per_m      = 1e-3
 km_per_cm     = 1e-5
+m_per_cm      = 1e-2
 ly_per_cm     = 1.05702341e-18
 rsun_per_cm   = 1.4378145e-11
 au_per_cm     = 6.68458712e-14
@@ -49,6 +54,7 @@ km_per_mpc    = 1.0 / mpc_per_km
 cm_per_mpc    = 1.0 / mpc_per_cm
 cm_per_kpc    = 1.0 / kpc_per_cm
 cm_per_km     = 1.0 / km_per_cm
+cm_per_m      = 1.0 / m_per_cm
 pc_per_km     = 1.0 / km_per_pc
 cm_per_pc     = 1.0 / pc_per_cm
 cm_per_ly     = 1.0 / ly_per_cm
@@ -67,8 +73,13 @@ sec_per_hr   = 3600.0
 sec_per_min  = 60.0
 day_per_year = 365.25
 
-# velocities
+# velocities, accelerations
 speed_of_light_cm_per_s = 2.99792458e10
+standard_gravity_cm_per_s2 = 9.80665e2
+
+# some constants
+newton_cgs = 6.67384e-8
+planck_cgs = 6.62606957e-27
 
 # temperature / energy
 boltzmann_constant_erg_per_K = 1.3806488e-16
@@ -111,9 +122,14 @@ HUGE = 1.0e90
 TINY = 1.0e-40
 
 # Planck units
-planck_mass_grams = 2.17650925245e-05
-planck_length_cm = 1.6161992557e-33
+hbar_cgs = 0.5*planck_cgs/np.pi
+planck_mass_grams = np.sqrt(hbar_cgs*speed_of_light_cm_per_s/newton_cgs)
+planck_length_cm = np.sqrt(hbar_cgs*newton_cgs/speed_of_light_cm_per_s**3)
 planck_time_s = planck_length_cm / speed_of_light_cm_per_s
 planck_energy_erg = planck_mass_grams * speed_of_light_cm_per_s * speed_of_light_cm_per_s
 planck_temperature_K = planck_energy_erg / boltzmann_constant_erg_per_K
-planck_charge_esu = 5.62274532302e-09
+planck_charge_esu = np.sqrt(hbar_cgs*speed_of_light_cm_per_s)
+
+# Imperial and other non-metric units
+grams_per_pound = 453.59237
+pascal_per_atm = 101325.0

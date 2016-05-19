@@ -13,26 +13,27 @@ ARTIO-specific data structures
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+
 import numpy as np
+import os
 import stat
 import weakref
-from yt.extern.six.moves import cStringIO
 
-from .definitions import ARTIOconstants
-from ._artio_caller import \
-    artio_is_valid, artio_fileset, ARTIOOctreeContainer, \
-    ARTIORootMeshContainer, ARTIOSFCRangeHandler
-from . import _artio_caller
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
-from .fields import \
+from collections import defaultdict
+
+from yt.frontends.artio._artio_caller import \
+    artio_is_valid, \
+    artio_fileset, \
+    ARTIOSFCRangeHandler
+from yt.frontends.artio import _artio_caller
+from yt.frontends.artio.fields import \
     ARTIOFieldInfo
-from yt.fields.particle_fields import \
-    standard_particle_fields
 
-from yt.funcs import *
+from yt.funcs import \
+    mylog
 from yt.geometry.geometry_handler import \
-    Index, YTDataChunk
+    Index, \
+    YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.static_output import \
     Dataset
@@ -40,9 +41,8 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.data_objects.data_containers import \
     YTFieldData
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer, NullFunc
+from yt.utilities.exceptions import \
+    YTParticleDepositionNotImplemented
 
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0
@@ -133,7 +133,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         tr = dict((field, v) for field, v in zip(fields, tr))
         return tr
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name = 'cubic'):
         # Here we perform our particle deposition.
         if fields is None: fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
@@ -141,7 +142,8 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, self.ires.size)
-        op = cls(nvals) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        op = cls(nvals, kernel_name)
         op.initialize()
         mylog.debug("Depositing %s (%s^3) particles into %s Root Mesh",
             positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
@@ -162,6 +164,7 @@ class ARTIOIndex(Index):
         self.directory = os.path.dirname(self.index_filename)
 
         self.max_level = ds.max_level
+        self.range_handlers = {}
         self.float_type = np.float64
         super(ARTIOIndex, self).__init__(ds, dataset_type)
 
@@ -176,7 +179,8 @@ class ARTIOIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        return  1.0/(2**self.max_level)
+        return (self.dataset.domain_width /
+                (self.dataset.domain_dimensions * 2**(self.max_level))).min()
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -196,7 +200,7 @@ class ARTIOIndex(Index):
         if finest_levels is not False:
             source.min_level = self.max_level - finest_levels
         mylog.debug("Searching for maximum value of %s", field)
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
                    max_val, mx, my, mz)
@@ -248,11 +252,15 @@ class ARTIOIndex(Index):
             #v = np.array(list_sfc_ranges)
             #list_sfc_ranges = [ (v.min(), v.max()) ]
             for (start, end) in list_sfc_ranges:
-                range_handler = ARTIOSFCRangeHandler(
-                    self.ds.domain_dimensions,
-                    self.ds.domain_left_edge, self.ds.domain_right_edge,
-                    self.ds._handle, start, end)
-                range_handler.construct_mesh()
+                if (start, end) in self.range_handlers.keys():
+                    range_handler = self.range_handlers[(start, end)]
+                else:
+                    range_handler = ARTIOSFCRangeHandler(
+                        self.ds.domain_dimensions,
+                        self.ds.domain_left_edge, self.ds.domain_right_edge,
+                        self.ds._handle, start, end)
+                    range_handler.construct_mesh()
+                    self.range_handlers[(start, end)] = range_handler
                 if nz != 2:
                     ci.append(ARTIORootMeshSubset(base_region, start, end,
                                 range_handler.root_mesh_handler, self.ds))
@@ -315,7 +323,7 @@ class ARTIODataset(Dataset):
 
     def __init__(self, filename, dataset_type='artio',
                  storage_filename=None, max_range = 1024,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         from sys import version
         if self._handle is not None:
             return
@@ -330,7 +338,8 @@ class ARTIODataset(Dataset):
         self.artio_parameters = self._handle.parameters
         # Here we want to initiate a traceback, if the reader is not built.
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -343,7 +352,6 @@ class ARTIODataset(Dataset):
         # hard-coded -- not provided by headers
         self.dimensionality = 3
         self.refine_by = 2
-        print(self.parameters)
         self.parameters["HydroMethod"] = 'artio'
         self.parameters["Time"] = 1.  # default unit is 1...
 

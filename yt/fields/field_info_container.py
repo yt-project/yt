@@ -18,6 +18,7 @@ native.
 import numpy as np
 from numbers import Number as numeric_type
 
+from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
 from .derived_field import \
@@ -29,12 +30,20 @@ from yt.utilities.exceptions import \
 from .field_plugin_registry import \
     field_plugins
 from .particle_fields import \
+    add_union_field, \
     particle_deposition_functions, \
     particle_vector_functions, \
     particle_scalar_functions, \
     standard_particle_fields, \
     add_volume_weighted_smoothed_field, \
     sph_whitelist_fields
+
+def tupleize(inp):
+    if isinstance(inp, tuple):
+        return inp
+    # prepending with a '?' ensures that the sort order is the same in py2 and
+    # py3, since names of field types shouldn't begin with punctuation
+    return ('?', inp, )
 
 class FieldInfoContainer(dict):
     """
@@ -47,6 +56,7 @@ class FieldInfoContainer(dict):
     fallback = None
     known_other_fields = ()
     known_particle_fields = ()
+    extra_union_fields = ()
 
     def __init__(self, ds, field_list, slice_info = None):
         self._show_field_errors = []
@@ -61,6 +71,20 @@ class FieldInfoContainer(dict):
     def setup_fluid_fields(self):
         pass
 
+    def setup_fluid_index_fields(self):
+        # Now we get all our index types and set up aliases to them
+        if self.ds is None: return
+        index_fields = set([f for _, f in self if _ == "index"])
+        for ftype in self.ds.fluid_types:
+            if ftype in ("index", "deposit"): continue
+            for f in index_fields:
+                if (ftype, f) in self: continue
+                self.alias((ftype, f), ("index", f))
+                # Different field types have different default units.
+                # We want to make sure the aliased field will have
+                # the same units as the "index" field.
+                self[(ftype, f)].units = self["index", f].units
+
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
         skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
@@ -68,7 +92,7 @@ class FieldInfoContainer(dict):
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
                 units not in skip_output_units:
                 u = Unit(units, registry = self.ds.unit_registry)
-                output_units = str(u.get_cgs_equivalent())
+                output_units = str(self.ds.unit_system[u.dimensions])
             else:
                 output_units = units
             if (ptype, f) not in self.field_list:
@@ -117,6 +141,13 @@ class FieldInfoContainer(dict):
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
 
+    def setup_extra_union_fields(self, ptype="all"):
+        if ptype != "all":
+            raise RuntimeError("setup_extra_union_fields is currently" + 
+                               "only enabled for particle type \"all\".")
+        for units, field in self.extra_union_fields:
+            add_union_field(self, ptype, field, units)
+
     def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
         # We can in principle compute this, but it is not yet implemented.
         if (ptype, "density") not in self:
@@ -126,7 +157,7 @@ class FieldInfoContainer(dict):
         else:
             sml_name = None
         new_aliases = []
-        for ptype2, alias_name in self.keys():
+        for ptype2, alias_name in list(self):
             if ptype2 != ptype:
                 continue
             if alias_name not in sph_whitelist_fields:
@@ -156,7 +187,7 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, str) and args[0] != "":
+            if not isinstance(units, string_types) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:
@@ -216,18 +247,29 @@ class FieldInfoContainer(dict):
         # the derived field and exit. If used as a decorator, function will
         # be None. In that case, we return a function that will be applied
         # to the function that the decorator is applied to.
+        kwargs.setdefault('ds', self.ds)
         if function is None:
             def create_function(f):
                 self[name] = DerivedField(name, f, **kwargs)
                 return f
             return create_function
-        self[name] = DerivedField(name, function, **kwargs)
+        ptype = kwargs.get("particle_type", False)
+        if ptype:
+            ftype = 'all'
+        else:
+            ftype = self.ds.default_fluid_type
+        if not isinstance(name, tuple) and (ftype, name) not in self:
+            tuple_name = (ftype, name)
+            self[tuple_name] = DerivedField(tuple_name, function, **kwargs)
+            self.alias(name, tuple_name)
+        else:
+            self[name] = DerivedField(name, function, **kwargs)
 
     def load_all_plugins(self, ftype="gas"):
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
-            only_on_root(mylog.info, "Loaded %s (%s new fields)",
+            only_on_root(mylog.debug, "Loaded %s (%s new fields)",
                          n, len(loaded))
         self.find_dependencies(loaded)
 
@@ -246,10 +288,11 @@ class FieldInfoContainer(dict):
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl))
+        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
+        kwargs.setdefault('ds', self.ds)
         self[name] = DerivedField(name, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
@@ -259,7 +302,7 @@ class FieldInfoContainer(dict):
             # as well.
             u = Unit(self[original_name].units,
                       registry = self.ds.unit_registry)
-            units = str(u.get_cgs_equivalent())
+            units = str(self.ds.unit_system[u.dimensions])
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
@@ -331,5 +374,5 @@ class FieldInfoContainer(dict):
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl))
+        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return deps, unavailable

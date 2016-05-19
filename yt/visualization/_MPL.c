@@ -18,6 +18,7 @@
 #include <signal.h>
 #include <ctype.h>
 
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
 #include "numpy/ndarrayobject.h"
 
 #define min(X,Y) ((X) < (Y) ? (X) : (Y))
@@ -40,14 +41,26 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
 
   PyObject *xp, *yp, *dxp, *dyp, *dp;
   PyArrayObject *x, *y, *dx, *dy, *d;
-  xp = yp = dxp = dyp = dp = NULL;
-  x = y = dx = dy = d = NULL;
   unsigned int rows, cols;
   int antialias = 1;
   double x_min, x_max, y_min, y_max;
   double period_x, period_y;
+  int check_period = 1, nx;
+  int i, j, p, xi, yi;
+  double lc, lr, rc, rr;
+  double lypx, rypx, lxpx, rxpx, overlap1, overlap2;
+  npy_float64 oxsp, oysp, xsp, ysp, dxsp, dysp, dsp;
+  int xiter[2], yiter[2];
+  double xiterv[2], yiterv[2];
+  npy_intp dims[2];
+  PyArrayObject *my_array;
+  double width, height, px_dx, px_dy, ipx_dx, ipx_dy;
+  PyObject *return_value;
+
+  xp = yp = dxp = dyp = dp = NULL;
+  x = y = dx = dy = d = NULL;
+
   period_x = period_y = 0;
-  int check_period = 1;
 
   if (!PyArg_ParseTuple(args, "OOOOOII(dddd)|i(dd)i",
       &xp, &yp, &dxp, &dyp, &dp, &cols, &rows,
@@ -55,12 +68,12 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
       &antialias, &period_x, &period_y, &check_period))
       return PyErr_Format(_pixelizeError, "Pixelize: Invalid Parameters.");
 
-  double width = x_max - x_min;
-  double height = y_max - y_min;
-  double px_dx = width / ((double) rows);
-  double px_dy = height / ((double) cols);
-  double ipx_dx = 1.0 / px_dx;
-  double ipx_dy = 1.0 / px_dy;
+  width = x_max - x_min;
+  height = y_max - y_min;
+  px_dx = width / ((double) rows);
+  px_dy = height / ((double) cols);
+  ipx_dx = 1.0 / px_dx;
+  ipx_dy = 1.0 / px_dy;
 
   // Check we have something to output to
   if (rows == 0 || cols ==0)
@@ -102,23 +115,13 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   }
 
   // Check dimensions match
-  int nx = x->dimensions[0];
-  int ny = y->dimensions[0];
-  int ndx = dx->dimensions[0];
-  int ndy = dy->dimensions[0];
+  nx = PyArray_DIMS(x)[0];
 
   // Calculate the pointer arrays to map input x to output x
-  int i, j, p, xi, yi;
-  double lc, lr, rc, rr;
-  double lypx, rypx, lxpx, rxpx, overlap1, overlap2;
-  npy_float64 oxsp, oysp, xsp, ysp, dxsp, dysp, dsp;
-  int xiter[2], yiter[2];
-  double xiterv[2], yiterv[2];
 
-  
-
-  npy_intp dims[] = {rows, cols};
-  PyArrayObject *my_array =
+  dims[0] = rows;
+  dims[1] = cols;
+  my_array =
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
   //npy_float64 *gridded = (npy_float64 *) my_array->data;
@@ -191,7 +194,7 @@ static PyObject* Py_Pixelize(PyObject *obj, PyObject *args) {
   Py_DECREF(dx);
   Py_DECREF(dy);
 
-  PyObject *return_value = Py_BuildValue("N", my_array);
+  return_value = Py_BuildValue("N", my_array);
 
   return return_value;
 
@@ -211,28 +214,54 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   PyObject *xp, *yp, *zp, *pxp, *pyp,
            *dxp, *dyp, *dzp, *dp,
            *centerp, *inv_matp, *indicesp;
+  PyArrayObject *x, *y, *z, *px, *py, *d,
+                *dx, *dy, *dz, *center, *inv_mat, *indices;
+  unsigned int rows, cols;
+  double px_min, px_max, py_min, py_max;
+  double width, height;
+  long double px_dx, px_dy;
+  int i, j, p, nx;
+  int lc, lr, rc, rr;
+  long double md, cxpx, cypx;
+  long double cx, cy, cz;
+  npy_float64 *centers;
+  npy_intp *dims;
+
+  PyArrayObject *my_array;
+  npy_float64 *gridded;
+  npy_float64 *mask;
+
+  int pp;
+
+  npy_float64 inv_mats[3][3];
+
+  npy_float64 xsp;
+  npy_float64 ysp;
+  npy_float64 zsp;
+  npy_float64 pxsp;
+  npy_float64 pysp;
+  npy_float64 dxsp;
+  npy_float64 dysp;
+  npy_float64 dzsp;
+  npy_float64 dsp;
+
+  PyObject *return_value;
 
   xp = yp = zp = pxp = pyp = dxp = dyp = dzp = dp = NULL;
   centerp = inv_matp = indicesp = NULL;
 
-  PyArrayObject *x, *y, *z, *px, *py, *d,
-                *dx, *dy, *dz, *center, *inv_mat, *indices;
-
   x = y = z = px = py = dx = dy = dz = d = NULL;
   center = inv_mat = indices = NULL;
-
-  unsigned int rows, cols;
-  double px_min, px_max, py_min, py_max;
 
     if (!PyArg_ParseTuple(args, "OOOOOOOOOOOOII(dddd)",
         &xp, &yp, &zp, &pxp, &pyp, &dxp, &dyp, &dzp, &centerp, &inv_matp,
         &indicesp, &dp, &cols, &rows, &px_min, &px_max, &py_min, &py_max))
         return PyErr_Format(_pixelizeError, "CPixelize: Invalid Parameters.");
 
-  double width = px_max - px_min;
-  double height = py_max - py_min;
-  long double px_dx = width / ((double) rows);
-  long double px_dy = height / ((double) cols);
+  width = px_max - px_min;
+  height = py_max - py_min;
+  px_dx = width / ((double) rows);
+  px_dy = height / ((double) cols);
 
   // Check we have something to output to
   if (rows == 0 || cols ==0)
@@ -300,7 +329,7 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
       goto _fail;
   }
   center = (PyArrayObject *) PyArray_FromAny(centerp,
-            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_C_CONTIGUOUS, NULL);
+            PyArray_DescrFromType(NPY_FLOAT64), 1, 1, NPY_ARRAY_C_CONTIGUOUS, NULL);
   if ((dz == NULL) || (PyArray_SIZE(center) != 3)) {
       PyErr_Format( _pixelizeError, "Center must have three points");
       goto _fail;
@@ -319,43 +348,36 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   }
 
   // Check dimensions match
-  int nx = x->dimensions[0];
+  nx = PyArray_DIMS(x)[0];
 
   // Calculate the pointer arrays to map input x to output x
-  int i, j, p;
-  int lc, lr, rc, rr;
-  long double md, cxpx, cypx;
-  long double cx, cy, cz;
 
-  npy_float64 xsp, ysp, zsp, pxsp, pysp, dxsp, dysp, dzsp, dsp;
-  npy_float64 *centers = (npy_float64 *) PyArray_GETPTR1(center,0);
+  centers = (npy_float64 *) PyArray_GETPTR1(center,0);
 
-  npy_intp dims[] = {rows, cols};
-  PyArrayObject *my_array =
+  dims[0] = rows;
+  dims[1] = cols;
+  my_array =
     (PyArrayObject *) PyArray_SimpleNewFromDescr(2, dims,
               PyArray_DescrFromType(NPY_FLOAT64));
-  npy_float64 *gridded = (npy_float64 *) my_array->data;
-  npy_float64 *mask = malloc(sizeof(npy_float64)*rows*cols);
+  gridded = (npy_float64 *) PyArray_DATA(my_array);
+  mask = malloc(sizeof(npy_float64)*rows*cols);
 
-  npy_float64 inv_mats[3][3];
   for(i=0;i<3;i++)for(j=0;j<3;j++)
       inv_mats[i][j]=*(npy_float64*)PyArray_GETPTR2(inv_mat,i,j);
 
-  int pp;
-  npy_float64 radius;
   for(p=0;p<cols*rows;p++)gridded[p]=mask[p]=0.0;
   for(pp=0; pp<nx; pp++)
   {
     p = *((npy_int64 *) PyArray_GETPTR1(indices, pp));
-    npy_float64 xsp = *((npy_float64 *) PyArray_GETPTR1(x, p));
-    npy_float64 ysp = *((npy_float64 *) PyArray_GETPTR1(y, p));
-    npy_float64 zsp = *((npy_float64 *) PyArray_GETPTR1(z, p));
-    npy_float64 pxsp = *((npy_float64 *) PyArray_GETPTR1(px, p));
-    npy_float64 pysp = *((npy_float64 *) PyArray_GETPTR1(py, p));
-    npy_float64 dxsp = *((npy_float64 *) PyArray_GETPTR1(dx, p));
-    npy_float64 dysp = *((npy_float64 *) PyArray_GETPTR1(dy, p));
-    npy_float64 dzsp = *((npy_float64 *) PyArray_GETPTR1(dz, p));
-    npy_float64 dsp = *((npy_float64 *) PyArray_GETPTR1(d, p)); // We check this above
+    xsp = *((npy_float64 *) PyArray_GETPTR1(x, p));
+    ysp = *((npy_float64 *) PyArray_GETPTR1(y, p));
+    zsp = *((npy_float64 *) PyArray_GETPTR1(z, p));
+    pxsp = *((npy_float64 *) PyArray_GETPTR1(px, p));
+    pysp = *((npy_float64 *) PyArray_GETPTR1(py, p));
+    dxsp = *((npy_float64 *) PyArray_GETPTR1(dx, p));
+    dysp = *((npy_float64 *) PyArray_GETPTR1(dy, p));
+    dzsp = *((npy_float64 *) PyArray_GETPTR1(dz, p));
+    dsp = *((npy_float64 *) PyArray_GETPTR1(d, p)); // We check this above
     // Any point we want to plot is at most this far from the center
     md = 2.0*sqrtl(dxsp*dxsp + dysp*dysp + dzsp*dzsp);
     if(((pxsp+md<px_min) ||
@@ -399,7 +421,7 @@ static PyObject* Py_CPixelize(PyObject *obj, PyObject *args) {
   Py_DECREF(inv_mat);
   free(mask);
 
-  PyObject *return_value = Py_BuildValue("N", my_array);
+  return_value = Py_BuildValue("N", my_array);
 
   return return_value;
 

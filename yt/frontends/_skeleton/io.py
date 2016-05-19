@@ -42,9 +42,18 @@ class IOHandlerSkeleton(BaseIOHandler):
         # dict gets returned at the end and it should be flat, with selected
         # data.  Note that if you're reading grid data, you might need to
         # special-case a grid selector object.
+        # Also note that "chunks" is a generator for multiple chunks, each of
+        # which contains a list of grids. The returned numpy arrays should be
+        # in 64-bit float and contiguous along the z direction. Therefore, for
+        # a C-like input array with the dimension [x][y][z] or a
+        # Fortran-like input array with the dimension (z,y,x), a matrix
+        # transpose is required (e.g., using np_array.transpose() or
+        # np_array.swapaxes(0,2)).
         pass
 
     def _read_chunk_data(self, chunk, fields):
-        # This reads the data from a single chunk, and is only used for
-        # caching.
+        # This reads the data from a single chunk without doing any selection,
+        # and is only used for caching data that might be used by multiple
+        # different selectors later. For instance, this can speed up ghost zone
+        # computation.
         pass

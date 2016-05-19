@@ -13,13 +13,13 @@ from multiprocessing import Pool
 from yt.config import ytcfg
 
 FPATTERNS = ['*.png', '*.txt', '*.h5', '*.dat']
-DPATTERNS = ['LC*', 'LR', 'DD0046', 'halo_analysis']
+DPATTERNS = ['LC*', 'LR', 'DD0046']
 BADF = ['cloudy_emissivity.h5', 'apec_emissivity.h5',
         'xray_emissivity.h5', 'AMRGridData_Slice_x_density.png']
 CWD = os.getcwd()
 ytcfg["yt", "serialize"] = "False"
 PARALLEL_TEST = {"rockstar_nest": "3"}
-BLACKLIST = []
+BLACKLIST = ["opengl_ipython", "opengl_vr"]
 
 
 def prep_dirs():
@@ -27,7 +27,8 @@ def prep_dirs():
         os.symlink(directory, os.path.basename(directory))
 
 
-def run_recipe((recipe,)):
+def run_recipe(payload):
+    recipe, = payload
     module_name, ext = os.path.splitext(os.path.basename(recipe))
     dest = os.path.join(os.path.dirname(recipe), '_static', module_name)
     if module_name in BLACKLIST:
@@ -39,7 +40,7 @@ def run_recipe((recipe,)):
         prep_dirs()
         if module_name in PARALLEL_TEST:
             cmd = ["mpiexec", "-n", PARALLEL_TEST[module_name],
-                   "python", recipe]
+                   "python2", recipe]
         else:
             cmd = ["python", recipe]
         try:

@@ -97,7 +97,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     """
     cdef int i, I
     cdef np.float64_t a, b, bsqrd, twoa
-    cdef np.ndarray[np.float64_t, ndim=1] dp, p1cart, p2cart, dpcart, t, s, \
+    cdef np.ndarray[np.float64_t, ndim=1] p1cart, p2cart, dpcart, t, s, \
                                           rleft, rright, zleft, zright, \
                                           cleft, cright, thetaleft, thetaright, \
                                           tmleft, tpleft, tmright, tpright, tsect
@@ -105,7 +105,6 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     cdef np.ndarray[np.float64_t, ndim=2] xyz, rztheta, ptemp, b1, b2, dsect
 
     # set up  points
-    dp = p2 - p1
     ptemp = np.array([p1, p2])
     ptemp = _cyl2cart(ptemp)
     p1cart = ptemp[0]

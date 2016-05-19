@@ -90,7 +90,23 @@ class BoxlibFieldInfo(FieldInfoContainer):
         # "luminosity",
     )
 
+    def setup_particle_fields(self, ptype):
+
+        def _get_vel(axis):
+            def velocity(field, data):
+                return data["particle_momentum_%s" % axis]/data["particle_mass"]
+            return velocity
+
+        for ax in 'xyz':
+            self.add_field((ptype, "particle_velocity_%s" % ax), 
+                           function=_get_vel(ax),
+                           particle_type=True,
+                           units="code_length/code_time")
+
+        super(BoxlibFieldInfo, self).setup_particle_fields(ptype)
+
     def setup_fluid_fields(self):
+        unit_system = self.ds.unit_system
         # Now, let's figure out what fields are included.
         if any(f[1] == "xmom" for f in self.field_list):
             self.setup_momentum_to_velocity()
@@ -98,14 +114,14 @@ class BoxlibFieldInfo(FieldInfoContainer):
             self.setup_velocity_to_momentum()
         self.add_field(("gas", "thermal_energy"),
                        function=_thermal_energy,
-                       units="erg/g")
+                       units=unit_system["specific_energy"])
         self.add_field(("gas", "thermal_energy_density"),
                        function=_thermal_energy_density,
-                       units="erg/cm**3")
+                       units=unit_system["pressure"])
         if ("gas", "temperature") not in self.field_aliases:
             self.add_field(("gas", "temperature"),
                            function=_temperature,
-                           units="K")
+                           units=unit_system["temperature"])
 
     def setup_momentum_to_velocity(self):
         def _get_vel(axis):
@@ -115,7 +131,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
         for ax in 'xyz':
             self.add_field(("gas", "velocity_%s" % ax),
                            function=_get_vel(ax),
-                           units="cm/s")
+                           units=self.ds.unit_system["velocity"])
 
     def setup_velocity_to_momentum(self):
         def _get_mom(axis):
@@ -179,14 +195,15 @@ class CastroFieldInfo(FieldInfoContainer):
                 func = _create_density_func(("gas", "%s_fraction" % nice_name))
                 self.add_field(name=("gas", "%s_density" % nice_name),
                                function = func,
-                               units = "g/cm**3")
+                               units = self.ds.unit_system["density"])
                 # We know this will either have one letter, or two.
                 if field[3] in string.ascii_letters:
                     element, weight = field[2:4], field[4:-1]
                 else:
-                    element, weight = field[2:3], field[3:-1]
+                    element, weight = field[2:3], field[3:-1]  # NOQA
 
-                # Here we can, later, add number density.
+                # Here we can, later, add number density
+                # right now element and weight inferred above are unused
 
 
 class MaestroFieldInfo(FieldInfoContainer):
@@ -246,13 +263,14 @@ class MaestroFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        unit_system = self.ds.unit_system
         # pick the correct temperature field
         if self.ds.parameters["use_tfromp"]:
             self.alias(("gas", "temperature"), ("boxlib", "tfromp"),
-                       units="K")
+                       units=unit_system["temperature"])
         else:
             self.alias(("gas", "temperature"), ("boxlib", "tfromh"),
-                       units="K")
+                       units=unit_system["temperature"])
 
         # Add X's and omegadots, units of 1/s
         for _, field in self.ds.field_list:
@@ -269,7 +287,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                 func = _create_density_func(("gas", "%s_fraction" % nice_name))
                 self.add_field(name=("gas", "%s_density" % nice_name),
                                function=func,
-                               units="g/cm**3",
+                               units=unit_system["density"],
                                display_name=r'\rho %s' % tex_label)
 
                 # Most of the time our species will be of the form
@@ -280,18 +298,20 @@ class MaestroFieldInfo(FieldInfoContainer):
                     if field[3] in string.ascii_letters:
                         element, weight = field[2:4], field[4:-1]
                     else:
-                        element, weight = field[2:3], field[3:-1]
+                        element, weight = field[2:3], field[3:-1]  # NOQA
                     weight = int(weight)
 
-                # Here we can, later, add number density.
+                # Here we can, later, add number density using 'element' and
+                # 'weight' inferred above
+
             elif field.startswith("omegadot("):
                 nice_name, tex_label = _nice_species_name(field)
                 display_name = r'\dot{\omega}\left[%s\right]' % tex_label
                 # Overwrite field to use nicer tex_label'ed display_name
-                self.add_output_field(("boxlib", field), units="1/s",
+                self.add_output_field(("boxlib", field), units=unit_system["frequency"],
                                       display_name=display_name)
                 self.alias(("gas", "%s_creation_rate" % nice_name),
-                           ("boxlib", field), units="1/s")
+                           ("boxlib", field), units=unit_system["frequency"])
 
 
 def _nice_species_name(field):
