@@ -207,7 +207,8 @@ def march_cubes_grid(np.float64_t isovalue,
                     offset = i * (dims[1] + 1) * (dims[2] + 1) \
                            + j * (dims[2] + 1) + k
                     intdata = data + offset
-                    offset_fill(dims, intdata, gv)
+                    data[i,j,k] = gv[i,j,k]
+                    offset_fill(data, gridval, i, j, k)
                     nt = march_cubes(gv, isovalue, dds, pos[0], pos[1], pos[2],
                                 &triangles)
                     if nt == 0 or do_sample == 0:
@@ -279,7 +280,6 @@ def march_cubes_grid_flux(
     cdef int i, j, k, n, m
     cdef int offset
     cdef np.float64_t gv[8]
-    cdef np.float64_t *intdata = NULL
     cdef TriangleCollection triangles
     cdef Triangle *current = NULL
     cdef Triangle *last = NULL
@@ -311,8 +311,7 @@ def march_cubes_grid_flux(
                 if mask[i,j,k] == 1:
                     offset = i * (dims[1] + 1) * (dims[2] + 1) \
                            + j * (dims[2] + 1) + k
-                    intdata = data + offset
-                    offset_fill(dims, intdata, gv)
+                    offset_fill(intdata, gv, i, j, k)
                     march_cubes(gv, isovalue, dds,
                                 cell_pos[0], cell_pos[1], cell_pos[2],
                                 &triangles)
