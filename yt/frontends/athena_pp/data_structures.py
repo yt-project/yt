@@ -18,7 +18,7 @@ import os
 import weakref
 
 from yt.funcs import \
-    mylog, \
+    mylog, get_pbar, \
     ensure_tuple
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -84,28 +84,27 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
 
         block_grid = np.zeros(nblock, dtype=np.int)
         level_grid = np.zeros(nblock, dtype=np.int)
+        block_grid[log_loc[:,0],log_loc[:,1],log_loc[:,2]] = np.arange(num_blocks)
+        level_grid[log_loc[:,0],log_loc[:,1],log_loc[:,2]] = levels[:]
 
-        for i in range(num_blocks):
-            block_grid[log_loc[i][0],log_loc[i][1],log_loc[i][2]] = i
-            level_grid[log_loc[i][0],log_loc[i][1],log_loc[i][2]] = levels[i]
-
-        block_list = list(range(num_blocks))
+        block_list = np.arange(num_blocks, dtype='int64')
         bc = []
         for i in range(num_blocks):
-            if i in block_list:
+            if block_list[i] >= 0:
                 ii, jj, kk = log_loc[i]
                 loc_levels = level_grid[ii:ii+2,jj:jj+2,kk:kk+2]
                 if np.unique(loc_levels).size == 1:
                     loc_ids = block_grid[ii:ii+2,jj:jj+2,kk:kk+2]
                     bc.append(loc_ids)
-                    [block_list.remove(k) for k in loc_ids.flat]
+                    block_list[loc_ids.flatten()] = -1
                 else:
-                    bc.append(np.array([i]))
-                    block_list.remove(i)
+                    bc.append(np.array(i))
+                    block_list[i] = -1
 
         num_meshes = len(bc)
 
         self.meshes = []
+        pbar = get_pbar("Constructing meshes", num_meshes)
         for i in range(num_meshes):
             if bc[i].size > 1:
                 ob = bc[i][0,0,0]
@@ -135,6 +134,8 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                                            coords, self, bc[i],
                                            np.array([nxm-1, nym-1, nzm-1]))
             self.meshes.append(mesh)
+            pbar.update(i)
+        pbar.finish()
         mylog.debug("Done setting up meshes.")
 
     def _detect_output_fields(self):
