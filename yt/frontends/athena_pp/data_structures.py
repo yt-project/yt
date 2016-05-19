@@ -94,9 +94,9 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                 ii, jj, kk = log_loc[i]
                 loc_levels = level_grid[ii:ii+2,jj:jj+2,kk:kk+2]
                 if np.unique(loc_levels).size == 1:
-                    loc_ids = block_grid[ii:ii+2,jj:jj+2,kk:kk+2]
+                    loc_ids = block_grid[ii:ii+2,jj:jj+2,kk:kk+2].transpose().flatten()
                     bc.append(loc_ids)
-                    block_list[loc_ids.flatten()] = -1
+                    block_list[loc_ids] = -1
                 else:
                     bc.append(np.array(i))
                     block_list[i] = -1
@@ -107,10 +107,10 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         pbar = get_pbar("Constructing meshes", num_meshes)
         for i in range(num_meshes):
             if bc[i].size > 1:
-                ob = bc[i][0,0,0]
-                xb = bc[i][1,0,0]
-                yb = bc[i][0,1,0]
-                zb = bc[i][0,0,1]
+                ob = bc[i][0]
+                xb = bc[i][1]
+                yb = bc[i][2]
+                zb = bc[i][4]
                 x = np.concatenate([x1f[ob,:-1], x1f[xb,:]])
                 y = np.concatenate([x2f[ob,:-1], x2f[yb,:]])
                 z = np.concatenate([x3f[ob,:-1], x3f[zb,:]])

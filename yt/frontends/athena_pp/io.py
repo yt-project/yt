@@ -27,6 +27,10 @@ def grid_sequences(grids):
         seq = list(v[1] for v in g)
         yield seq
 
+ii = [0, 1, 0, 1, 0, 1, 0, 1]
+jj = [0, 0, 1, 1, 0, 0, 1, 1]
+kk = [0, 0, 0, 0, 1, 1, 1, 1]
+
 class IOHandlerAthenaPP(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "athena_pp"
@@ -41,7 +45,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "athena++" for ftype, fname in fields)):
+        if any((ftype != "athena_pp" for ftype, fname in fields)):
             raise NotImplementedError
         f = self._handle
         rv = {}
@@ -60,17 +64,14 @@ class IOHandlerAthenaPP(BaseIOHandler):
                 if self.ds.logarithmic:
                     for mesh in chunk.objs:
                         if mesh.mesh_blocks.size == 1:
-                            id = mesh.mesh_blocks[0]
-                            data = ds[fdi,id,:,:,:].transpose()
+                            data = ds[fdi,mesh.mesh_blocks,:,:,:].transpose()
                         else:
                             nx, ny, nz = mesh.mesh_dims//2
                             data = np.empty(mesh.mesh_dims, dtype="=f8")
-                            for i in range(2):
-                                for j in range(2):
-                                    for k in range(2):
-                                        id = mesh.mesh_blocks[i,j,k]
-                                        data[i*nx:(i+1)*nx,j*ny:(j+1)*ny,k*nz:(k+1)*nz] = \
-                                            ds[fdi,id,:,:,:].transpose()
+                            ids = mesh.mesh_blocks
+                            for n in range(8):
+                                data[ii[n]*nx:(ii[n]+1)*nx,jj[n]*ny:(jj[n]+1)*ny,kk[n]*nz:(kk[n]+1)*nz] = \
+                                     ds[fdi,ids[n],:,:,:].transpose()
                         ind += mesh.select(selector, data, rv[field], ind)  # caches
 
                 else:
