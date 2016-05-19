@@ -55,7 +55,6 @@ _cis.shape = (8, 3)
 
 class AthenaPPLogarithmicMesh(SemiStructuredMesh):
     _index_offset = 0
-    _id_offset = 0
 
     def __init__(self, mesh_id, filename, connectivity_indices,
                  connectivity_coords, index, blocks, dims):
@@ -66,7 +65,7 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
         self.mesh_dims = dims
 
 class AthenaPPLogarithmicIndex(UnstructuredIndex):
-    def __init__(self, ds, dataset_type = 'athena++'):
+    def __init__(self, ds, dataset_type = 'athena_pp'):
         self._handle = ds._handle
         super(AthenaPPLogarithmicIndex, self).__init__(ds, dataset_type)
         self.index_filename = self.dataset.filename
@@ -139,7 +138,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         mylog.debug("Done setting up meshes.")
 
     def _detect_output_fields(self):
-        self.field_list = [("athena++", k) for k in self.ds._field_map]
+        self.field_list = [("athena_pp", k) for k in self.ds._field_map]
 
     def _count_selection(self, dobj, meshes = None):
         if meshes is None: meshes = dobj._chunk_info
@@ -176,10 +175,10 @@ class AthenaPPGrid(AMRGridPatch):
 class AthenaPPHierarchy(GridIndex):
 
     grid = AthenaPPGrid
-    _dataset_type='athena++'
+    _dataset_type='athena_pp'
     _data_file = None
 
-    def __init__(self, ds, dataset_type='athena++'):
+    def __init__(self, ds, dataset_type='athena_pp'):
         self.dataset = weakref.proxy(ds)
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
@@ -189,7 +188,7 @@ class AthenaPPHierarchy(GridIndex):
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
-        self.field_list = [("athena++", k) for k in self.dataset._field_map]
+        self.field_list = [("athena_pp", k) for k in self.dataset._field_map]
 
     def _count_grids(self):
         self.num_grids = self._handle.attrs["NumMeshBlocks"]
@@ -260,12 +259,12 @@ class AthenaPPHierarchy(GridIndex):
 
 class AthenaPPDataset(Dataset):
     _field_info_class = AthenaPPFieldInfo
-    _dataset_type = "athena++"
+    _dataset_type = "athena_pp"
 
-    def __init__(self, filename, dataset_type='athena++',
+    def __init__(self, filename, dataset_type='athena_pp',
                  storage_filename=None, parameters=None,
                  units_override=None, unit_system="code"):
-        self.fluid_types += ("athena++",)
+        self.fluid_types += ("athena_pp",)
         if parameters is None:
             parameters = {}
         self.specified_parameters = parameters

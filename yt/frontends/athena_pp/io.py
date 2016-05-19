@@ -29,7 +29,7 @@ def grid_sequences(grids):
 
 class IOHandlerAthenaPP(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = "athena++"
+    _dataset_type = "athena_pp"
 
     def __init__(self, ds):
         super(IOHandlerAthenaPP, self).__init__(ds)

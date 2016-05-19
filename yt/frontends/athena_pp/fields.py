@@ -25,7 +25,7 @@ vel_units = "code_length / code_time"
 
 def velocity_field(j):
     def _velocity(field, data):
-        return data["athena++", "mom%d" % j]/data["athena++","dens"]
+        return data["athena_pp", "mom%d" % j]/data["athena_pp","dens"]
     return _velocity
 
 class AthenaPPFieldInfo(FieldInfoContainer):
@@ -44,8 +44,8 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         # Add velocity fields
         vel_prefix = "velocity"
         for i, comp in enumerate(self.ds.coordinates.axis_order):
-            vel_field = ("athena++", "vel%d" % (i+1))
-            mom_field = ("athena++", "mom%d" % (i+1))
+            vel_field = ("athena_pp", "vel%d" % (i+1))
+            mom_field = ("athena_pp", "mom%d" % (i+1))
             if vel_field in self.field_list:
                 self.add_output_field(vel_field, units="code_length/code_time")
                 self.alias(("gas","%s_%s" % (vel_prefix, comp)), vel_field,
@@ -56,22 +56,22 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 self.add_field(("gas","%s_%s" % (vel_prefix, comp)),
                                function=velocity_field(i+1), units=unit_system["velocity"])
         # Figure out thermal energy field
-        if ("athena++","pgas") in self.field_list:
-            self.add_output_field(("athena++","pgas"),
+        if ("athena_pp","pgas") in self.field_list:
+            self.add_output_field(("athena_pp","pgas"),
                                   units=pres_units)
-            self.alias(("gas","pressure"),("athena++","pgas"),
+            self.alias(("gas","pressure"),("athena_pp","pgas"),
                        units=unit_system["pressure"])
             def _thermal_energy(field, data):
                 return data["athena++","pgas"] / \
                        (data.ds.gamma-1.)/data["athena++","rho"]
-        elif ("athena++","Etot") in self.field_list:
+        elif ("athena_pp","Etot") in self.field_list:
             self.add_output_field(("athena++","Etot"),
                                   units=pres_units)
             def _thermal_energy(field, data):
-                eint = data["athena++", "Etot"] - data["gas","kinetic_energy"]
-                if ("athena++", "B1") in self.field_list:
+                eint = data["athena_pp", "Etot"] - data["gas","kinetic_energy"]
+                if ("athena_pp", "B1") in self.field_list:
                     eint -= data["gas","magnetic_energy"]
-                return eint/data["athena++","dens"]
+                return eint/data["athena_pp","dens"]
         self.add_field(("gas","thermal_energy"),
                        function=_thermal_energy,
                        units=unit_system["specific_energy"])
@@ -85,6 +85,6 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         self.add_field(("gas","temperature"), function=_temperature,
                        units=unit_system["temperature"])
 
-        setup_magnetic_field_aliases(self, "athena++", ["B%d" % ax for ax in (1,2,3)])
+        setup_magnetic_field_aliases(self, "athena_pp", ["B%d" % ax for ax in (1,2,3)])
 
 
