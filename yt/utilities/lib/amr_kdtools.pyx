@@ -237,14 +237,16 @@ cdef insert_grid(Node node,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef add_grids(Node node,
+cpdef add_grids(Node node,
                     int ngrids,
                     np.float64_t[:,:] gles,
                     np.float64_t[:,:] gres,
                     np.int64_t[:] gids,
                     int rank,
                     int size):
-    cdef int i, j, nless, ngreater
+    cdef int i, j, nless, ngreater, index
+    cdef np.float64_t[:,:] less_gles, less_gres, greater_gles, greater_gres
+    cdef np.int64_t[:] l_ids, g_ids
     if not should_i_build(node, rank, size):
         return
 
@@ -269,34 +271,33 @@ cdef add_grids(Node node,
     #print 'nless: %i' % nless
     #print 'ngreater: %i' % ngreater
 
-    less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-    less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-    l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
-
-    greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-    greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-    g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
-
-    cdef int index
-    for i in range(nless):
-        index = less_ids[i]
-        l_ids[i] = gids[index]
-        for j in range(3):
-            less_gles[i,j] = gles[index,j]
-            less_gres[i,j] = gres[index,j]
-
     if nless > 0:
+        less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+        less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+        l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
+
+        for i in range(nless):
+            index = less_ids[i]
+            l_ids[i] = gids[index]
+            for j in range(3):
+                less_gles[i,j] = gles[index,j]
+                less_gres[i,j] = gres[index,j]
+
         add_grids(node.left, nless, less_gles, less_gres,
                   l_ids, rank, size)
 
-    for i in range(ngreater):
-        index = greater_ids[i]
-        g_ids[i] = gids[index]
-        for j in range(3):
-            greater_gles[i,j] = gles[index,j]
-            greater_gres[i,j] = gres[index,j]
-
     if ngreater > 0:
+        greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+        greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+        g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
+
+        for i in range(ngreater):
+            index = greater_ids[i]
+            g_ids[i] = gids[index]
+            for j in range(3):
+                greater_gles[i,j] = gles[index,j]
+                greater_gres[i,j] = gres[index,j]
+
         add_grids(node.right, ngreater, greater_gles, greater_gres,
                   g_ids, rank, size)
 
@@ -452,7 +453,7 @@ cdef kdtree_get_choices(int n_grids,
         free(uniquedims)
         return -1, 0, 0, 0
     # I recognize how lame this is.
-    cdef np.float64_t[:] tarr = np.empty(my_max, dtype='float64')
+    cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
         # print "Setting tarr: ", i, uniquedims[best_dim][i]
         tarr[i] = uniquedims[best_dim][i]
@@ -489,7 +490,10 @@ cdef int split_grids(Node node,
                        int rank,
                        int size):
     # Find a Split
-    cdef int i, j
+    cdef int i, j, index
+    cdef np.float64_t[:,:] less_gles, less_gres, greater_gles, greater_gres
+    cdef np.int64_t[:] l_ids, g_ids
+    if ngrids == 0: return 0
 
     data = <np.float64_t[:ngrids,:2,:3]> alloca(ngrids * 2 * 3 * sizeof(np.float64_t))
 
@@ -533,36 +537,35 @@ cdef int split_grids(Node node,
             greater_index[ngreater] = i
             ngreater += 1
 
-    less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-    less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-    l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
-
-    greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-    greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-    g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
-
-    cdef int index
-    for i in range(nless):
-        index = less_index[i]
-        l_ids[i] = gids[index]
-        for j in range(3):
-            less_gles[i,j] = gles[index,j]
-            less_gres[i,j] = gres[index,j]
-
     if nless > 0:
+        less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+        less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+        l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
+
+        for i in range(nless):
+            index = less_index[i]
+            l_ids[i] = gids[index]
+            for j in range(3):
+                less_gles[i,j] = gles[index,j]
+                less_gres[i,j] = gres[index,j]
+
         # Populate Left Node
         #print 'Inserting left node', node.left_edge, node.right_edge
         insert_grids(node.left, nless, less_gles, less_gres,
                      l_ids, rank, size)
 
-    for i in range(ngreater):
-        index = greater_index[i]
-        g_ids[i] = gids[index]
-        for j in range(3):
-            greater_gles[i,j] = gles[index,j]
-            greater_gres[i,j] = gres[index,j]
-
     if ngreater > 0:
+        greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+        greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+        g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
+
+        for i in range(ngreater):
+            index = greater_index[i]
+            g_ids[i] = gids[index]
+            for j in range(3):
+                greater_gles[i,j] = gles[index,j]
+                greater_gres[i,j] = gres[index,j]
+
         # Populate Right Node
         #print 'Inserting right node', node.left_edge, node.right_edge
         insert_grids(node.right, ngreater, greater_gles, greater_gres,
