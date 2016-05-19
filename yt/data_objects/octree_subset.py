@@ -454,8 +454,10 @@ class ParticleOctreeSubset(OctreeSubset):
         else:
             # Create map from indexes in buffered octree to indexes in base 
             # octree. The order of the visit should be the same.
-            idx = self.oct_handler.get_index_base_octs()
-            assert(self._base_grid.oct_handler.nocts==idx.shape[0])
+            idx = self.oct_handler.get_index_base_octs(self._base_grid.domain_ind)
+            idx = self.domain_ind[idx]
+            assert(np.sum(self._base_grid.domain_ind >= 0) == idx.shape[0])
+            assert(np.max(idx) < source.shape[-1])
             n = self._base_grid.select(selector, source[:,:,:,idx], dest, offset)
         return n
 
@@ -472,7 +474,7 @@ class ParticleOctreeSubset(OctreeSubset):
 
     @property
     def domain_ind(self):
-        if 1:#self._domain_ind is None:
+        if self._domain_ind is None:
             di = self.oct_handler.domain_ind(self.selector, self.domain_id)
             self._domain_ind = di
         return self._domain_ind

@@ -2161,20 +2161,25 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         my_oct.children = NULL
         return my_oct
 
-    def get_index_base_octs(self):
-        cdef np.int64_t ndst = np.sum(self._index_base_octs)
+    def get_index_base_octs(self, np.int64_t[:] domain_ind):
+        cdef np.int64_t ndst = np.max(domain_ind) + 1
         ind = np.zeros(ndst, 'int64') - 1
-        self._get_index_base_octs(ind)
+        self._get_index_base_octs(ind, domain_ind)
         return ind[ind >= 0]
 
-    cdef void _get_index_base_octs(self, np.int64_t[:] ind):
+    cdef void _get_index_base_octs(self, np.int64_t[:] ind, np.int64_t[:] domain_ind):
         cdef SelectorObject selector = AlwaysSelector(None)
         selector.overlap_cells = self.overlap_cells
         cdef oct_visitors.IndexMaskMapOcts visitor
         visitor = oct_visitors.IndexMaskMapOcts(self)
         visitor.oct_mask = self._index_base_octs
         visitor.oct_index = ind
+        visitor.map_domain_ind = domain_ind
         self.visit_all_octs(selector, visitor)
+        # if visitor.index != self.nocts:
+        #     print 'visitor.index', visitor.index, 'self.nocts', self.nocts
+        # if visitor.map_index != np.sum(self._index_base_octs):
+        #     print 'visitor.map_index', visitor.map_index, 'np.sum(self._index_base_octs)', np.sum(self._index_base_octs)
         assert(visitor.index == self.nocts)
         assert(visitor.map_index == np.sum(self._index_base_octs))
 

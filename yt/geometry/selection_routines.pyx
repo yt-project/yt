@@ -356,6 +356,15 @@ cdef class SelectorObject:
         if level < self.min_level or level > self.max_level: return 0
         return self.select_bbox(left_edge, right_edge)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_grid_edge(self, np.float64_t left_edge[3],
+                                    np.float64_t right_edge[3],
+                                    np.int32_t level, Oct *o = NULL) nogil:
+        if level < self.min_level or level > self.max_level: return 0
+        return self.select_bbox_edge(left_edge, right_edge)
+
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         return 0
 
@@ -863,17 +872,14 @@ cdef class SphereSelector(SelectorObject):
             pos[2] - 0.5*dds[2] <= self.center[2] <= pos[2]+0.5*dds[2]):
             return 1
         return self.select_point(pos)
-        # langmm: added to allow sphere to interesect edge/corner of cell
+        # # langmm: added to allow sphere to interesect edge/corner of cell
+        # cdef np.float64_t LE[3]
+        # cdef np.float64_t RE[3]
         # cdef int i
-        # cdef np.float64_t d2 = self.radius2
         # for i in range(3):
-        #     if self.center[i] < (pos[i] - 0.5*dds[i]):
-        #         d2 -= (self.center[i] - (pos[i] - 0.5*dds[i]))**2
-        #     elif self.center[i] > (pos[i] + 0.5*dds[i]):
-        #         d2 -= (self.center[i] - (pos[i] + 0.5*dds[i]))**2
-        # if d2 > 0:
-        #     return 1
-        # return 0
+        #     LE[i] = pos[i] - 0.5*dds[i]
+        #     RE[i] = pos[i] + 0.5*dds[i]
+        # return self.select_bbox(LE, RE)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2215,6 +2221,7 @@ cdef class OctreeSubsetSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        # return 1
         return self.base_selector.select_bbox(left_edge, right_edge)
 
     @cython.boundscheck(False)

@@ -63,6 +63,7 @@ cdef class CopyArrayF64(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
+        import numpy as np
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
         if selected == 0: return
@@ -146,11 +147,11 @@ cdef class IndexMaskMapOcts(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
-        # if selected == 0: return
         if self.last != o.domain_ind:
             self.last = o.domain_ind
             if self.oct_mask[o.domain_ind] == 1:
-                self.oct_index[self.map_index] = self.index
+                if self.map_domain_ind[self.map_index] >= 0:
+                    self.oct_index[self.map_domain_ind[self.map_index]] = self.index
                 self.map_index += 1
             self.index += 1
 

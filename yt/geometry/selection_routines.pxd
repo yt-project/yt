@@ -47,7 +47,10 @@ cdef class SelectorObject:
                               OctVisitor visitor, int i, int j, int k)
     cdef int select_grid(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3],
-                               np.int32_t level, Oct *o = ?) nogil
+                               np.int32_t level, Oct *o = ?) nogil 
+    cdef int select_grid_edge(self, np.float64_t left_edge[3],
+                                    np.float64_t right_edge[3],
+                                    np.int32_t level, Oct *o = ?) nogil
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil
 
     cdef int select_point(self, np.float64_t pos[3]) nogil

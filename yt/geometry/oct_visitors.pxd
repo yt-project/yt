@@ -75,6 +75,7 @@ cdef class IndexOcts(OctVisitor):
 cdef class IndexMaskMapOcts(OctVisitor):
     cdef np.int64_t[:] oct_index
     cdef np.uint8_t[:] oct_mask
+    cdef np.int64_t[:] map_domain_ind
     cdef np.uint64_t map_index
 
 cdef class ICoordsOcts(OctVisitor):
