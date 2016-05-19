@@ -17,6 +17,7 @@ Definitions for the traversal code
 import numpy as np
 cimport numpy as np
 cimport cython
+cimport cython.view
 cimport kdtree_utils
 
 cdef struct ImageContainer:
@@ -73,9 +74,9 @@ cdef class ImageSampler:
 
 cdef struct VolumeContainer:
     int n_fields
-    np.float64_t **data
+    np.float64_t[::cython.view.indirect,:,:,::1] data
     # The mask has dimensions one fewer in each direction than data
-    np.uint8_t *mask
+    np.uint8_t[:,:,:] mask
     np.float64_t left_edge[3]
     np.float64_t right_edge[3]
     np.float64_t dds[3]
@@ -112,13 +113,3 @@ cdef int walk_volume(VolumeContainer *vc,
                      void *data,
                      np.float64_t *return_t = *,
                      np.float64_t max_t = *) nogil
-
-cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
-    return (i*vc.dims[1]+j)*vc.dims[2]+k
-
-cdef inline int vc_pos_index(VolumeContainer *vc, np.float64_t *spos):
-    cdef int index[3]
-    cdef int i
-    for i in range(3):
-        index[i] = <int> ((spos[i] - vc.left_edge[i]) * vc.idds[i])
-    return vc_index(vc, index[0], index[1], index[2])

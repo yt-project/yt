@@ -23,6 +23,7 @@ from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
     fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+from yt.utilities.lib.misc_utilities import OnceIndirect
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
@@ -45,14 +46,13 @@ cdef class PartitionedGrid:
     @cython.cdivision(True)
     def __cinit__(self,
                   int parent_grid_id, data,
-                  mask,
+                  np.uint8_t[:,:,:] mask,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
                   np.ndarray[np.int64_t, ndim=1] dims,
 		  star_kdtree_container star_tree = None):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
-        cdef np.ndarray[np.uint8_t, ndim=3] mask_data
         self.container = NULL
         self.parent_grid_id = parent_grid_id
         self.LeftEdge = left_edge
@@ -70,12 +70,8 @@ cdef class PartitionedGrid:
             c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
         self.source_mask = mask
-        mask_data = mask
-        c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
-        for i in range(n_fields):
-            tdata = data[i]
-            c.data[i] = <np.float64_t *> tdata.data
-        c.mask = <np.uint8_t *> mask_data.data
+        c.data = OnceIndirect(data)
+        c.mask = mask
         if star_tree is None:
             self.star_list = NULL
         else:
@@ -91,7 +87,6 @@ cdef class PartitionedGrid:
         # The data fields are not owned by the container, they are owned by us!
         # So we don't need to deallocate them.
         if self.container == NULL: return
-        if self.container.data != NULL: free(self.container.data)
         free(self.container)
 
     @cython.boundscheck(False)
@@ -524,9 +519,8 @@ cdef void projection_sampler(
     cdef ImageAccumulator *im = <ImageAccumulator *> data
     cdef int i
     cdef np.float64_t dl = (exit_t - enter_t)
-    cdef int di = (index[0]*vc.dims[1]+index[1])*vc.dims[2]+index[2]
     for i in range(imin(4, vc.n_fields)):
-        im.rgba[i] += vc.data[i][di] * dl
+        im.rgba[i] += vc.data[i, index[0], index[1], index[2]] * dl
 
 cdef struct VolumeRenderAccumulator:
     int n_fits
@@ -623,9 +617,7 @@ cdef void volume_render_sampler(
     # we assume this has vertex-centered data.
     cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
                     + index[1] * (vc.dims[2] + 1) + index[2]
-    cdef int cell_offset = index[0] * (vc.dims[1]) * (vc.dims[2]) \
-                    + index[1] * (vc.dims[2]) + index[2]
-    if vc.mask[cell_offset] != 1:
+    if vc.mask[index[0], index[1], index[2]] != 1:
         return
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]

@@ -26,8 +26,7 @@ from yt.geometry.oct_container cimport \
 from yt.geometry.oct_visitors cimport \
     Oct
 from .amr_kdtools cimport _find_node, Node
-from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
-    vc_index, vc_pos_index
+from .grid_traversal cimport VolumeContainer, PartitionedGrid
 import sys
 
 cdef inline ContourID *contour_create(np.int64_t contour_id,
@@ -412,10 +411,13 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 + vc0.dims[0]*vc0.dims[2]
                 + vc0.dims[1]*vc0.dims[2]) * 18
     # We allocate an array of fixed (maximum) size
+    cdef np.int64_t[:,:,:] data0, data1
+    data0 = np.asarray(vc0.data[0,:,:,:]).view("int64")
+    data1 = np.asarray(vc1.data[0,:,:,:]).view("int64")
     cdef np.ndarray[np.int64_t, ndim=2] joins = np.zeros((s, 2), dtype="int64")
     cdef int ti = 0, side, m1, m2, index
     cdef int pos[3]
-    cdef int my_pos[3]
+    cdef int my_pos[3], o_pos[3]
     cdef np.float64_t spos[3]
 
     for ax in range(3):
@@ -449,13 +451,13 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                             adj_node = _find_node(trunk, spos)
                             vc1 = vcs[adj_node.node_ind]
                             if spos_contained(vc1, spos):
-                                index = vc_index(vc0, my_pos[0],
-                                                 my_pos[1], my_pos[2])
-                                m1 = vc0.mask[index]
-                                c1 = (<np.int64_t*>vc0.data[0])[index]
-                                index = vc_pos_index(vc1, spos)
-                                m2 = vc1.mask[index]
-                                c2 = (<np.int64_t*>vc1.data[0])[index]
+                                m1 = vc0.mask[my_pos[0], my_pos[1], my_pos[2]]
+                                c1 = data0[my_pos[0], my_pos[1], my_pos[2]]
+                                for index in range(3):
+                                    o_pos[index] = <int> ((spos[i] -
+                                    vc1.left_edge[i]) * vc1.idds[i])
+                                m2 = vc1.mask[o_pos[0], o_pos[1], o_pos[2]]
+                                c2 = data1[o_pos[0], o_pos[1], o_pos[2]]
                                 if m1 == 1 and m2 == 1 and c1 > -1 and c2 > -1:
                                     if examined[adj_node.node_ind] == 0:
                                         joins[ti,0] = i64max(c1,c2)
