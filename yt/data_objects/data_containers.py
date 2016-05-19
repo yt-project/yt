@@ -348,6 +348,7 @@ class YTDataContainer(object):
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
+                    gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
                     ind += wogz.select(
                         self.selector,
