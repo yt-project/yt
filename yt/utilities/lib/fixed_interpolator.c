@@ -17,25 +17,6 @@
 //  (((C*ds[1])+B)*ds[0]+A)
 #define OINDEX(A,B,C) data[(A)*(ds[1]+1)*(ds[2]+1)+(B)*ds[2]+(B)+(C)]
 
-npy_float64 fast_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
-                             npy_float64 *data)
-{
-    int i;
-    npy_float64 dv, dm[3];
-    for(i=0;i<3;i++)dm[i] = (1.0 - dp[i]);
-    dv  = 0.0;
-    dv += VINDEX(0,0,0) * (dm[0]*dm[1]*dm[2]);
-    dv += VINDEX(0,0,1) * (dm[0]*dm[1]*dp[2]);
-    dv += VINDEX(0,1,0) * (dm[0]*dp[1]*dm[2]);
-    dv += VINDEX(0,1,1) * (dm[0]*dp[1]*dp[2]);
-    dv += VINDEX(1,0,0) * (dp[0]*dm[1]*dm[2]);
-    dv += VINDEX(1,0,1) * (dp[0]*dm[1]*dp[2]);
-    dv += VINDEX(1,1,0) * (dp[0]*dp[1]*dm[2]);
-    dv += VINDEX(1,1,1) * (dp[0]*dp[1]*dp[2]);
-    /*assert(dv < -20);*/
-    return dv;
-}
-
 npy_float64 offset_interpolate(int ds[3], npy_float64 dp[3], npy_float64 *data)
 {
     int i;
@@ -92,31 +73,6 @@ void vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
     for (i=0;i<3;i++)
         vl[i] += dds[i] * cverts[vind1][i]
                + dds[i] * mu*(cverts[vind2][i] - cverts[vind1][i]);
-}
-
-npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
-				  npy_float64 *data)
-{
-    /* dims is one less than the dimensions of the array */
-    int i;
-    npy_float64 dm[3], vz[4];
-  //dp is the distance to the plane.  dm is val, dp = 1-val
-    for(i=0;i<3;i++)dm[i] = (1.0 - dp[i]);
-    
-  //First interpolate in z
-    vz[0] = dm[2]*VINDEX(0,0,0) + dp[2]*VINDEX(0,0,1);
-    vz[1] = dm[2]*VINDEX(0,1,0) + dp[2]*VINDEX(0,1,1);
-    vz[2] = dm[2]*VINDEX(1,0,0) + dp[2]*VINDEX(1,0,1);
-    vz[3] = dm[2]*VINDEX(1,1,0) + dp[2]*VINDEX(1,1,1);
-
-  //Then in y
-    vz[0] = dm[1]*vz[0] + dp[1]*vz[1];
-    vz[1] = dm[1]*vz[2] + dp[1]*vz[3];
-
-  //Then in x
-    vz[0] = dm[0]*vz[0] + dp[0]*vz[1];
-    /*assert(dv < -20);*/
-    return vz[0];
 }
 
 void eval_gradient(int ds[3], npy_float64 dp[3],
