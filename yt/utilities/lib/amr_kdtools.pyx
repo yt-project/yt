@@ -17,11 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
-
-cdef extern from "platform_dep.h":
-    # NOTE that size_t might not be int
-    void *alloca(int)
-
+from cython.view cimport array as cvarray
 
 DEF Nch = 4
 
@@ -189,8 +185,8 @@ def add_pygrid(Node node,
     The entire purpose of this function is to move everything from ndarrays
     to internal C pointers.
     """
-    pgles = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
-    pgres = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
+    cdef np.float64_t[:] pgles = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+    cdef np.float64_t[:] pgres = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
     cdef int j
     for j in range(3):
         pgles[j] = gle[j]
@@ -254,8 +250,8 @@ cpdef add_grids(Node node,
         insert_grids(node, ngrids, gles, gres, gids, rank, size)
         return
 
-    less_ids= <np.int64_t[:ngrids] > alloca(ngrids * sizeof(np.int64_t))
-    greater_ids = <np.int64_t[:ngrids] > alloca(ngrids * sizeof(np.int64_t))
+    less_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
+    greater_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
 
     nless = 0
     ngreater = 0
@@ -272,9 +268,9 @@ cpdef add_grids(Node node,
     #print 'ngreater: %i' % ngreater
 
     if nless > 0:
-        less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-        less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-        l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
+        less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+        less_gres = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+        l_ids = cvarray(format="q", shape=(nless,), itemsize=sizeof(np.int64_t))
 
         for i in range(nless):
             index = less_ids[i]
@@ -287,9 +283,9 @@ cpdef add_grids(Node node,
                   l_ids, rank, size)
 
     if ngreater > 0:
-        greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-        greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-        g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
+        greater_gles = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+        greater_gres = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+        g_ids = cvarray(format="q", shape=(ngreater,), itemsize=sizeof(np.int64_t))
 
         for i in range(ngreater):
             index = greater_ids[i]
@@ -362,13 +358,14 @@ cdef split_grid(Node node,
                int size):
 
     cdef int j
-    data = <np.float64_t[:1,:2,:3] > alloca(sizeof(np.float64_t**))
+    cdef np.uint8_t[:] less_ids, greater_ids
+    data = cvarray(format="d", shape=(1,2,3), itemsize=sizeof(np.float64_t))
     for j in range(3):
         data[0,0,j] = gle[j]
         data[0,1,j] = gre[j]
 
-    less_ids = <np.uint8_t[:1] > alloca(1 * sizeof(np.uint8_t))
-    greater_ids = <np.uint8_t[:1] > alloca(1 * sizeof(np.uint8_t))
+    less_ids = cvarray(format="B", shape=(1,), itemsize=sizeof(np.uint8_t))
+    greater_ids = cvarray(format="B", shape=(1,), itemsize=sizeof(np.uint8_t))
 
     best_dim, split_pos, nless, ngreater = \
         kdtree_get_choices(1, data, node.left_edge, node.right_edge,
@@ -413,12 +410,9 @@ cdef kdtree_get_choices(int n_grids,
                        ):
     cdef int i, j, k, dim, n_unique, best_dim, my_split
     cdef np.float64_t split
-    cdef np.float64_t **uniquedims
-    cdef np.float64_t *uniques
-    uniquedims = <np.float64_t **> malloc(3 * sizeof(np.float64_t*))
-    for i in range(3):
-        uniquedims[i] = <np.float64_t *> \
-                malloc(2*n_grids * sizeof(np.float64_t))
+    cdef np.float64_t[:,:] uniquedims
+    cdef np.float64_t[:] uniques
+    uniquedims = cvarray(format="d", shape=(3, 2*n_grids), itemsize=sizeof(np.float64_t))
     my_max = 0
     my_split = 0
     best_dim = -1
@@ -448,9 +442,6 @@ cdef kdtree_get_choices(int n_grids,
             my_max = n_unique
             my_split = (n_unique-1)/2
     if best_dim == -1:
-        for i in range(3):
-            free(uniquedims[i])
-        free(uniquedims)
         return -1, 0, 0, 0
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
@@ -472,10 +463,6 @@ cdef kdtree_get_choices(int n_grids,
         else:
             greater_ids[i] = 0
 
-    for i in range(3):
-        free(uniquedims[i])
-    free(uniquedims)
-
     # Return out unique values
     return best_dim, split, nless, ngreater
 
@@ -495,15 +482,15 @@ cdef int split_grids(Node node,
     cdef np.int64_t[:] l_ids, g_ids
     if ngrids == 0: return 0
 
-    data = <np.float64_t[:ngrids,:2,:3]> alloca(ngrids * 2 * 3 * sizeof(np.float64_t))
+    data = cvarray(format="d", shape=(ngrids,2,3), itemsize=sizeof(np.float64_t))
 
     for i in range(ngrids):
         for j in range(3):
             data[i,0,j] = gles[i,j]
             data[i,1,j] = gres[i,j]
 
-    less_ids = <np.uint8_t[:ngrids]> alloca(ngrids * sizeof(np.uint8_t))
-    greater_ids = <np.uint8_t[:ngrids]> alloca(ngrids * sizeof(np.uint8_t))
+    less_ids = cvarray(format="B", shape=(ngrids,), itemsize=sizeof(np.uint8_t))
+    greater_ids = cvarray(format="B", shape=(ngrids,), itemsize=sizeof(np.uint8_t))
 
     best_dim, split_pos, nless, ngreater = \
         kdtree_get_choices(ngrids, data, node.left_edge, node.right_edge,
@@ -523,8 +510,8 @@ cdef int split_grids(Node node,
     # Create a Split
     divide(node, split)
 
-    less_index = <np.int64_t[:ngrids]> alloca(ngrids * sizeof(np.int64_t))
-    greater_index = <np.int64_t[:ngrids]> alloca(ngrids * sizeof(np.int64_t))
+    less_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
+    greater_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
 
     nless = 0
     ngreater = 0
@@ -538,9 +525,9 @@ cdef int split_grids(Node node,
             ngreater += 1
 
     if nless > 0:
-        less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-        less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
-        l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
+        less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+        less_gres = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+        l_ids = cvarray(format="q", shape=(nless,), itemsize=sizeof(np.int64_t))
 
         for i in range(nless):
             index = less_index[i]
@@ -555,9 +542,9 @@ cdef int split_grids(Node node,
                      l_ids, rank, size)
 
     if ngreater > 0:
-        greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-        greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
-        g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
+        greater_gles = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+        greater_gres = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+        g_ids = cvarray(format="q", shape=(ngreater,), itemsize=sizeof(np.int64_t))
 
         for i in range(ngreater):
             index = greater_index[i]
@@ -591,10 +578,10 @@ cdef geo_split(Node node,
 
     new_pos = (gre[big_dim] + gle[big_dim])/2.
 
-    lnew_gle = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
-    lnew_gre = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
-    rnew_gle = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
-    rnew_gre = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
+    lnew_gle = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+    lnew_gre = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+    rnew_gle = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+    rnew_gre = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
 
     for j in range(3):
         lnew_gle[j] = gle[j]
