@@ -34,8 +34,8 @@ cdef class Node:
                   Node parent,
                   Node left,
                   Node right,
-                  np.ndarray[np.float64_t, ndim=1] left_edge,
-                  np.ndarray[np.float64_t, ndim=1] right_edge,
+                  np.float64_t[:] left_edge,
+                  np.float64_t[:] right_edge,
                   int grid,
                   np.int64_t node_id):
         self.dirty = False
@@ -77,12 +77,12 @@ cdef class Node:
     def get_right_edge(self):
         return get_right_edge(self)
 
-    def set_left_edge(self, np.ndarray[np.float64_t, ndim=1] left_edge):
+    def set_left_edge(self, np.float64_t[:] left_edge):
         cdef int i
         for i in range(3):
             self.left_edge[i] = left_edge[i]
 
-    def set_right_edge(self, np.ndarray[np.float64_t, ndim=1] right_edge):
+    def set_right_edge(self, np.float64_t[:] right_edge):
         cdef int i
         for i in range(3):
             self.right_edge[i] = right_edge[i]
@@ -155,8 +155,8 @@ def kd_traverse(Node trunk, viewpoint=None):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef add_grid(Node node,
-                   np.float64_t *gle,
-                   np.float64_t *gre,
+                   np.float64_t[:] gle,
+                   np.float64_t[:] gre,
                    int gid,
                    int rank,
                    int size):
@@ -179,8 +179,8 @@ cdef add_grid(Node node,
     return
 
 def add_pygrid(Node node,
-                   np.ndarray[np.float64_t, ndim=1] gle,
-                   np.ndarray[np.float64_t, ndim=1] gre,
+                   np.float64_t[:] gle,
+                   np.float64_t[:] gre,
                    int gid,
                    int rank,
                    int size):
@@ -189,23 +189,21 @@ def add_pygrid(Node node,
     The entire purpose of this function is to move everything from ndarrays
     to internal C pointers.
     """
-    pgles = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-    pgres = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    pgles = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
+    pgres = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
     cdef int j
     for j in range(3):
         pgles[j] = gle[j]
         pgres[j] = gre[j]
 
     add_grid(node, pgles, pgres, gid, rank, size)
-    free(pgles)
-    free(pgres)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef insert_grid(Node node,
-                np.float64_t *gle,
-                np.float64_t *gre,
+                np.float64_t[:] gle,
+                np.float64_t[:] gre,
                 int grid_id,
                 int rank,
                 int size):
@@ -239,47 +237,11 @@ cdef insert_grid(Node node,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def add_pygrids(Node node,
-                    int ngrids,
-                    np.ndarray[np.float64_t, ndim=2] gles,
-                    np.ndarray[np.float64_t, ndim=2] gres,
-                    np.ndarray[np.int64_t, ndim=1] gids,
-                    int rank,
-                    int size):
-    """
-    The entire purpose of this function is to move everything from ndarrays
-    to internal C pointers.
-    """
-    pgles = <np.float64_t **> malloc(ngrids * sizeof(np.float64_t*))
-    pgres = <np.float64_t **> malloc(ngrids * sizeof(np.float64_t*))
-    pgids = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
-    for i in range(ngrids):
-        pgles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        pgres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        pgids[i] = gids[i]
-        for j in range(3):
-            pgles[i][j] = gles[i, j]
-            pgres[i][j] = gres[i, j]
-
-    add_grids(node, ngrids, pgles, pgres, pgids, rank, size)
-
-    for i in range(ngrids):
-        free(pgles[i])
-        free(pgres[i])
-    free(pgles)
-    free(pgres)
-    free(pgids)
-
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef add_grids(Node node,
                     int ngrids,
-                    np.float64_t **gles,
-                    np.float64_t **gres,
-                    np.int64_t *gids,
+                    np.float64_t[:,:] gles,
+                    np.float64_t[:,:] gres,
+                    np.int64_t[:] gids,
                     int rank,
                     int size):
     cdef int i, j, nless, ngreater
@@ -290,44 +252,38 @@ cdef add_grids(Node node,
         insert_grids(node, ngrids, gles, gres, gids, rank, size)
         return
 
-    less_ids= <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
-    greater_ids = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    less_ids= <np.int64_t[:ngrids] > alloca(ngrids * sizeof(np.int64_t))
+    greater_ids = <np.int64_t[:ngrids] > alloca(ngrids * sizeof(np.int64_t))
 
     nless = 0
     ngreater = 0
     for i in range(ngrids):
-        if gles[i][node.split.dim] < node.split.pos:
+        if gles[i, node.split.dim] < node.split.pos:
             less_ids[nless] = i
             nless += 1
 
-        if gres[i][node.split.dim] > node.split.pos:
+        if gres[i, node.split.dim] > node.split.pos:
             greater_ids[ngreater] = i
             ngreater += 1
 
     #print 'nless: %i' % nless
     #print 'ngreater: %i' % ngreater
 
-    less_gles = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
-    less_gres = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
-    l_ids = <np.int64_t *> malloc(nless * sizeof(np.int64_t))
-    for i in range(nless):
-        less_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        less_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+    less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+    l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
 
-    greater_gles = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
-    greater_gres = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
-    g_ids = <np.int64_t *> malloc(ngreater * sizeof(np.int64_t))
-    for i in range(ngreater):
-        greater_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        greater_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+    greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+    g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
 
     cdef int index
     for i in range(nless):
         index = less_ids[i]
         l_ids[i] = gids[index]
         for j in range(3):
-            less_gles[i][j] = gles[index][j]
-            less_gres[i][j] = gres[index][j]
+            less_gles[i,j] = gles[index,j]
+            less_gres[i,j] = gres[index,j]
 
     if nless > 0:
         add_grids(node.left, nless, less_gles, less_gres,
@@ -337,27 +293,12 @@ cdef add_grids(Node node,
         index = greater_ids[i]
         g_ids[i] = gids[index]
         for j in range(3):
-            greater_gles[i][j] = gles[index][j]
-            greater_gres[i][j] = gres[index][j]
+            greater_gles[i,j] = gles[index,j]
+            greater_gres[i,j] = gres[index,j]
 
     if ngreater > 0:
         add_grids(node.right, ngreater, greater_gles, greater_gres,
                   g_ids, rank, size)
-
-    for i in range(nless):
-        free(less_gles[i])
-        free(less_gres[i])
-    free(less_gles)
-    free(less_gres)
-    free(less_ids)
-    free(l_ids)
-    for i in range(ngreater):
-        free(greater_gles[i])
-        free(greater_gres[i])
-    free(greater_gles)
-    free(greater_gres)
-    free(greater_ids)
-    free(g_ids)
 
     return
 
@@ -374,9 +315,9 @@ cdef int should_i_split(Node node, int rank, int size):
 @cython.cdivision(True)
 cdef void insert_grids(Node node,
                        int ngrids,
-                       np.float64_t **gles,
-                       np.float64_t **gres,
-                       np.int64_t *gids,
+                       np.float64_t[:,:] gles,
+                       np.float64_t[:,:] gres,
+                       np.int64_t[:] gids,
                        int rank,
                        int size):
 
@@ -388,12 +329,12 @@ cdef void insert_grids(Node node,
     if ngrids == 1:
         # If we should continue to split based on parallelism, do so!
         if should_i_split(node, rank, size):
-            geo_split(node, gles[0], gres[0], gids[0], rank, size)
+            geo_split(node, gles[0,:], gres[0,:], gids[0], rank, size)
             return
 
         for i in range(3):
-            contained *= gles[0][i] <= node.left_edge[i]
-            contained *= gres[0][i] >= node.right_edge[i]
+            contained *= gles[0,i] <= node.left_edge[i]
+            contained *= gres[0,i] >= node.right_edge[i]
 
         if contained == 1:
             # print 'Node fully contained, setting to grid: %i' % gids[0]
@@ -413,23 +354,20 @@ cdef void insert_grids(Node node,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef split_grid(Node node,
-               np.float64_t *gle,
-               np.float64_t *gre,
+               np.float64_t[:] gle,
+               np.float64_t[:] gre,
                int gid,
                int rank,
                int size):
 
     cdef int j
-    data = <np.float64_t ***> alloca(sizeof(np.float64_t**))
-    data[0] = <np.float64_t **> alloca(2 * sizeof(np.float64_t*))
-    for j in range(2):
-        data[0][j] = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+    data = <np.float64_t[:1,:2,:3] > alloca(sizeof(np.float64_t**))
     for j in range(3):
-        data[0][0][j] = gle[j]
-        data[0][1][j] = gre[j]
+        data[0,0,j] = gle[j]
+        data[0,1,j] = gre[j]
 
-    less_ids = <np.uint8_t *> alloca(1 * sizeof(np.uint8_t))
-    greater_ids = <np.uint8_t *> alloca(1 * sizeof(np.uint8_t))
+    less_ids = <np.uint8_t[:1] > alloca(1 * sizeof(np.uint8_t))
+    greater_ids = <np.uint8_t[:1] > alloca(1 * sizeof(np.uint8_t))
 
     best_dim, split_pos, nless, ngreater = \
         kdtree_get_choices(1, data, node.left_edge, node.right_edge,
@@ -466,11 +404,11 @@ cdef split_grid(Node node,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef kdtree_get_choices(int n_grids,
-                        np.float64_t ***data,
-                        np.float64_t *l_corner,
-                        np.float64_t *r_corner,
-                        np.uint8_t *less_ids,
-                        np.uint8_t *greater_ids,
+                        np.float64_t[:,:,:] data,
+                        np.float64_t[:] l_corner,
+                        np.float64_t[:] r_corner,
+                        np.uint8_t[:] less_ids,
+                        np.uint8_t[:] greater_ids,
                        ):
     cdef int i, j, k, dim, n_unique, best_dim, my_split
     cdef np.float64_t split
@@ -514,7 +452,7 @@ cdef kdtree_get_choices(int n_grids,
         free(uniquedims)
         return -1, 0, 0, 0
     # I recognize how lame this is.
-    cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
+    cdef np.float64_t[:] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
         # print "Setting tarr: ", i, uniquedims[best_dim][i]
         tarr[i] = uniquedims[best_dim][i]
@@ -545,25 +483,23 @@ cdef kdtree_get_choices(int n_grids,
 #@cython.cdivision(True)
 cdef int split_grids(Node node,
                        int ngrids,
-                       np.float64_t **gles,
-                       np.float64_t **gres,
-                       np.int64_t *gids,
+                       np.float64_t[:,:] gles,
+                       np.float64_t[:,:] gres,
+                       np.int64_t[:] gids,
                        int rank,
                        int size):
     # Find a Split
     cdef int i, j
 
-    data = <np.float64_t ***> malloc(ngrids * sizeof(np.float64_t**))
-    for i in range(ngrids):
-        data[i] = <np.float64_t **> malloc(2 * sizeof(np.float64_t*))
-        for j in range(2):
-            data[i][j] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        for j in range(3):
-            data[i][0][j] = gles[i][j]
-            data[i][1][j] = gres[i][j]
+    data = <np.float64_t[:ngrids,:2,:3]> alloca(ngrids * 2 * 3 * sizeof(np.float64_t))
 
-    less_ids = <np.uint8_t *> malloc(ngrids * sizeof(np.uint8_t))
-    greater_ids = <np.uint8_t *> malloc(ngrids * sizeof(np.uint8_t))
+    for i in range(ngrids):
+        for j in range(3):
+            data[i,0,j] = gles[i,j]
+            data[i,1,j] = gres[i,j]
+
+    less_ids = <np.uint8_t[:ngrids]> alloca(ngrids * sizeof(np.uint8_t))
+    greater_ids = <np.uint8_t[:ngrids]> alloca(ngrids * sizeof(np.uint8_t))
 
     best_dim, split_pos, nless, ngreater = \
         kdtree_get_choices(ngrids, data, node.left_edge, node.right_edge,
@@ -583,8 +519,8 @@ cdef int split_grids(Node node,
     # Create a Split
     divide(node, split)
 
-    less_index = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
-    greater_index = <np.int64_t *> malloc(ngrids * sizeof(np.int64_t))
+    less_index = <np.int64_t[:ngrids]> alloca(ngrids * sizeof(np.int64_t))
+    greater_index = <np.int64_t[:ngrids]> alloca(ngrids * sizeof(np.int64_t))
 
     nless = 0
     ngreater = 0
@@ -597,27 +533,21 @@ cdef int split_grids(Node node,
             greater_index[ngreater] = i
             ngreater += 1
 
-    less_gles = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
-    less_gres = <np.float64_t **> malloc(nless * sizeof(np.float64_t*))
-    l_ids = <np.int64_t *> malloc(nless * sizeof(np.int64_t))
-    for i in range(nless):
-        less_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        less_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    less_gles = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+    less_gres = <np.float64_t[:nless,:3]> alloca(3*nless * sizeof(np.float64_t))
+    l_ids = <np.int64_t[:nless] > alloca(nless * sizeof(np.int64_t))
 
-    greater_gles = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
-    greater_gres = <np.float64_t **> malloc(ngreater * sizeof(np.float64_t*))
-    g_ids = <np.int64_t *> malloc(ngreater * sizeof(np.int64_t))
-    for i in range(ngreater):
-        greater_gles[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-        greater_gres[i] = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
+    greater_gles = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+    greater_gres = <np.float64_t[:ngreater,:3]> alloca(3*ngreater * sizeof(np.float64_t))
+    g_ids = <np.int64_t[:ngreater] > alloca(ngreater * sizeof(np.int64_t))
 
     cdef int index
     for i in range(nless):
         index = less_index[i]
         l_ids[i] = gids[index]
         for j in range(3):
-            less_gles[i][j] = gles[index][j]
-            less_gres[i][j] = gres[index][j]
+            less_gles[i,j] = gles[index,j]
+            less_gres[i,j] = gres[index,j]
 
     if nless > 0:
         # Populate Left Node
@@ -629,8 +559,8 @@ cdef int split_grids(Node node,
         index = greater_index[i]
         g_ids[i] = gids[index]
         for j in range(3):
-            greater_gles[i][j] = gles[index][j]
-            greater_gres[i][j] = gres[index][j]
+            greater_gles[i,j] = gles[index,j]
+            greater_gres[i,j] = gres[index,j]
 
     if ngreater > 0:
         # Populate Right Node
@@ -638,34 +568,11 @@ cdef int split_grids(Node node,
         insert_grids(node.right, ngreater, greater_gles, greater_gres,
                      g_ids, rank, size)
 
-    for i in range(nless):
-        free(less_gles[i])
-        free(less_gres[i])
-    free(less_gles)
-    free(less_gres)
-    free(less_ids)
-    free(less_index)
-    free(l_ids)
-    for i in range(ngreater):
-        free(greater_gles[i])
-        free(greater_gres[i])
-    free(greater_gles)
-    free(greater_gres)
-    free(greater_ids)
-    free(greater_index)
-    free(g_ids)
-
-    for i in range(ngrids):
-        for j in range(2):
-            free(data[i][j])
-        free(data[i])
-    free(data)
-
     return 0
 
 cdef geo_split(Node node,
-               np.float64_t *gle,
-               np.float64_t *gre,
+               np.float64_t[:] gle,
+               np.float64_t[:] gre,
                int grid_id,
                int rank,
                int size):
@@ -681,10 +588,10 @@ cdef geo_split(Node node,
 
     new_pos = (gre[big_dim] + gle[big_dim])/2.
 
-    lnew_gle = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-    lnew_gre = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-    rnew_gle = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
-    rnew_gre = <np.float64_t *> alloca(3 * sizeof(np.float64_t))
+    lnew_gle = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
+    lnew_gre = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
+    rnew_gle = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
+    rnew_gre = <np.float64_t[:3]> alloca(3 * sizeof(np.float64_t))
 
     for j in range(3):
         lnew_gle[j] = gle[j]
@@ -716,8 +623,8 @@ cdef void divide(Node node, Split * split):
     # Create a Split
     node.split = split
 
-    cdef np.ndarray[np.float64_t, ndim=1] le = np.zeros(3, dtype='float64')
-    cdef np.ndarray[np.float64_t, ndim=1] re = np.zeros(3, dtype='float64')
+    cdef np.float64_t[:] le = np.empty(3, dtype='float64')
+    cdef np.float64_t[:] re = np.empty(3, dtype='float64')
 
     cdef int i
     for i in range(3):
@@ -907,7 +814,7 @@ def step_viewpoint(Node current,
     return current, previous
 
 cdef int point_in_node(Node node,
-                       np.ndarray[np.float64_t, ndim=1] point):
+                       np.float64_t[:] point):
     cdef int i
     cdef int inside = 1
     for i in range(3):
@@ -915,7 +822,7 @@ cdef int point_in_node(Node node,
         inside *= node.right_edge[i] > point[i]
     return inside
 
-cdef Node _find_node(Node node, np.float64_t *point):
+cdef Node _find_node(Node node, np.float64_t[:] point):
     while _kd_is_leaf(node) == 0:
         if point[node.split.dim] < node.split.pos:
             node = node.left
@@ -924,10 +831,10 @@ cdef Node _find_node(Node node, np.float64_t *point):
     return node
 
 def find_node(Node node,
-              np.ndarray[np.float64_t, ndim=1] point):
+              np.float64_t[:] point):
     """
     Find the AMRKDTree node enclosing a position
     """
     assert(point_in_node(node, point))
-    return _find_node(node, <np.float64_t *> point.data)
+    return _find_node(node, point)
 
