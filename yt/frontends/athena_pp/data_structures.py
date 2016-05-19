@@ -78,16 +78,13 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         num_blocks = self._handle.attrs["NumMeshBlocks"]
         log_loc = self._handle['LogicalLocations']
         levels = self._handle["Levels"]
-        nx, ny, nz = self._handle.attrs["MeshBlockSize"]
         x1f = self._handle["x1f"]
         x2f = self._handle["x2f"]
         x3f = self._handle["x3f"]
-        nblock_x = np.max(log_loc[:,0])+1
-        nblock_y = np.max(log_loc[:,1])+1
-        nblock_z = np.max(log_loc[:,2])+1
+        nblock = tuple(np.max(log_loc, axis=0)+1)
 
-        block_grid = -np.ones((nblock_x,nblock_y,nblock_z), dtype=np.int)
-        level_grid = -np.ones((nblock_x,nblock_y,nblock_z), dtype=np.int)
+        block_grid = np.zeros(nblock, dtype=np.int)
+        level_grid = np.zeros(nblock, dtype=np.int)
 
         for i in range(num_blocks):
             block_grid[log_loc[i][0],log_loc[i][1],log_loc[i][2]] = i
@@ -135,12 +132,8 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
             cycle.shape = ((nxm-1)*(nym-1)*(nzm-1), 3)
             off = _cis + cycle[:, np.newaxis]
             connectivity = ((off[:,:,0] * nym) + off[:,:,1]) * nzm + off[:,:,2]
-            mesh = AthenaPPLogarithmicMesh(i,
-                                           self.index_filename,
-                                           connectivity,
-                                           coords,
-                                           self,
-                                           bc[i],
+            mesh = AthenaPPLogarithmicMesh(i, self.index_filename, connectivity,
+                                           coords, self, bc[i],
                                            np.array([nxm-1, nym-1, nzm-1]))
             self.meshes.append(mesh)
         mylog.debug("Done setting up meshes.")

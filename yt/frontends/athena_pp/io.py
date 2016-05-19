@@ -63,7 +63,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
                             id = mesh.mesh_blocks[0]
                             data = ds[fdi,id,:,:,:].transpose()
                         else:
-                            nx, ny, nz = mesh.mesh_dims/2
+                            nx, ny, nz = mesh.mesh_dims//2
                             data = np.empty(mesh.mesh_dims, dtype="=f8")
                             for i in range(2):
                                 for j in range(2):
