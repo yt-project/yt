@@ -20,6 +20,7 @@ cimport cython
 cdef extern from "limits.h":
     cdef int SHRT_MAX
 from libc.stdlib cimport malloc, calloc, free, abs
+from libc.string cimport memset
 from libc.math cimport exp, floor, log2, \
     fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
@@ -59,6 +60,7 @@ cdef class PartitionedGrid:
         self.RightEdge = right_edge
         self.container = <VolumeContainer *> \
             malloc(sizeof(VolumeContainer))
+        memset(self.container, 0, sizeof(VolumeContainer))
         cdef VolumeContainer *c = self.container # convenience
         cdef int n_fields = len(data)
         c.n_fields = n_fields
@@ -70,7 +72,7 @@ cdef class PartitionedGrid:
             c.idds[i] = 1.0/c.dds[i]
         self.my_data = data
         self.source_mask = mask
-        c.data = OnceIndirect(data)
+        c.data = OnceIndirect(data, want_writable=False, allow_indirect=True)
         c.mask = mask
         if star_tree is None:
             self.star_list = NULL
