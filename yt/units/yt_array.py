@@ -174,6 +174,31 @@ def validate_comparison_units(this, other, op_string):
 
     return other
 
+@lru_cache(maxsize=128, typed=False)
+def _unit_repr_check_same(my_units, other_units):
+    """
+    Takes a Unit object, or string of known unit symbol, and check that it
+    is compatible with this quantity. Returns Unit object.
+
+    """
+    # let Unit() handle units arg if it's not already a Unit obj.
+    if not isinstance(other_units, Unit):
+        other_units = Unit(other_units, registry=my_units.registry)
+
+    equiv_dims = em_dimensions.get(my_units.dimensions, None)
+    if equiv_dims == other_units.dimensions:
+        if current_mks in equiv_dims.free_symbols:
+            base = "SI"
+        else:
+            base = "CGS"
+        raise YTEquivalentDimsError(my_units, other_units, base)
+
+    if not my_units.same_dimensions_as(other_units):
+        raise YTUnitConversionError(
+            my_units, my_units.dimensions, other_units, other_units.dimensions)
+
+    return other_units
+
 unary_operators = (
     negative, absolute, rint, ones_like, sign, conj, exp, exp2, log, log2,
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
@@ -430,30 +455,6 @@ class YTArray(np.ndarray):
     # Start unit conversion methods
     #
 
-    def _unit_repr_check_same(self, units):
-        """
-        Takes a Unit object, or string of known unit symbol, and check that it
-        is compatible with this quantity. Returns Unit object.
-
-        """
-        # let Unit() handle units arg if it's not already a Unit obj.
-        if not isinstance(units, Unit):
-            units = Unit(units, registry=self.units.registry)
-
-        equiv_dims = em_dimensions.get(self.units.dimensions,None)
-        if equiv_dims == units.dimensions:
-            if current_mks in equiv_dims.free_symbols:
-                base = "SI"
-            else:
-                base = "CGS"
-            raise YTEquivalentDimsError(self.units, units, base)
-
-        if not self.units.same_dimensions_as(units):
-            raise YTUnitConversionError(
-                self.units, self.units.dimensions, units, units.dimensions)
-
-        return units
-
     def convert_to_units(self, units):
         """
         Convert the array and units to the given units.
@@ -464,7 +465,7 @@ class YTArray(np.ndarray):
             The units you want to convert to.
 
         """
-        new_units = self._unit_repr_check_same(units)
+        new_units = _unit_repr_check_same(self.units, units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
@@ -523,11 +524,10 @@ class YTArray(np.ndarray):
         YTArray
 
         """
-        new_units = self._unit_repr_check_same(units)
+        new_units = _unit_repr_check_same(self.units, units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
-        new_array = self * conversion_factor
-        new_array.units = new_units
+        new_array = type(self)(self.ndview * conversion_factor, new_units)
 
         if offset:
             np.subtract(new_array, offset*new_array.uq, new_array)

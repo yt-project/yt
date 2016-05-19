@@ -1,6 +1,6 @@
 stephenskory@yahoo.com = s@skory.us
 "Stephen Skory stephenskory@yahoo.com" = s@skory.us
-yuan@astro.columbia.edu = bear0980@gmail.com
+bear0980@gmail.com = yuan@astro.columbia.edu
 juxtaposicion@gmail.com = cemoody@ucsc.edu
 chummels@gmail.com = chummels@astro.columbia.edu
 jwise@astro.princeton.edu = jwise@physics.gatech.edu
@@ -19,7 +19,6 @@ tabel = tabel@slac.stanford.edu
 sername=kayleanelson = kaylea.nelson@yale.edu
 kayleanelson = kaylea.nelson@yale.edu
 jcforbes@ucsc.edu = jforbes@ucolick.org
-ngoldbau@ucsc.edu = goldbaum@ucolick.org
 biondo@wisc.edu = Biondo@wisc.edu
 samgeen@googlemail.com = samgeen@gmail.com
 fbogert = fbogert@ucsc.edu
@@ -40,3 +39,11 @@ jnaiman@ucolick.org = jnaiman
 migueld.deval = miguel@archlinux.net
 slevy@ncsa.illinois.edu = salevy@illinois.edu
 malzraa@gmail.com = kellerbw@mcmaster.ca
+None = convert-repo
+dfenn = df11c@my.fsu.edu
+langmm = langmm.astro@gmail.com
+jmt354 = jmtomlinson95@gmail.com
+desika = dnarayan@haverford.edu
+Ben Thompson = bthompson2090@gmail.com
+goldbaum@ucolick.org = ngoldbau@illinois.edu
+ngoldbau@ucsc.edu = ngoldbau@illinois.edu

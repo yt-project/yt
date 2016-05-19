@@ -35,10 +35,12 @@ from yt.data_objects.static_output import Dataset
 
 class LightRay(CosmologySplice):
     """
-    A LightRay object is a one-dimensional object representing the trajectory 
-    of a ray of light as it passes through one or more datasets (simple and
-    compound rays respectively).  One can sample any of the fields intersected
-    by the LightRay object as it passed through the dataset(s).
+    A 1D object representing the path of a light ray passing through a 
+    simulation.  LightRays can be either simple, where they pass through a 
+    single dataset, or compound, where they pass through consecutive 
+    datasets from the same cosmological simulation.  One can sample any of 
+    the fields intersected by the LightRay object as it passed through 
+    the dataset(s).
     
     For compound rays, the LightRay stacks together multiple datasets in a time
     series in order to approximate a LightRay's path through a volume

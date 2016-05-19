@@ -366,8 +366,12 @@ class Unit(Expr):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
             return True
-        return \
-          (self.base_value != u.base_value or self.dimensions != u.dimensions)
+        if self.base_value != u.base_value:
+            return True
+        # use 'is' comparison dimensions to avoid expensive sympy operation
+        if self.dimensions is u.dimensions:
+            return False
+        return self.dimensions != u.dimensions
 
     def copy(self):
         return copy.deepcopy(self)
@@ -389,6 +393,9 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
+        # test first for 'is' equality to avoid expensive sympy operation
+        if self.dimensions is other_unit.dimensions:
+            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property

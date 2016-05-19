@@ -37,7 +37,7 @@ int triangulate_tetra[MAX_NUM_TRI][3] = {
   {-1, -1, -1}
 };
 
-// Triangule wedges
+// Triangulate wedges
 int triangulate_wedge[MAX_NUM_TRI][3] = {
   {0, 1, 2},
   {0, 3, 1},

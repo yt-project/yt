@@ -126,7 +126,9 @@ def test_EnzoDataset():
 def test_active_particle_datasets():
     two_sph = data_dir_load(two_sphere_test)
     assert 'AccretingParticle' in two_sph.particle_types_raw
-    assert_equal(len(two_sph.particle_unions), 0)
+    assert 'io' not in two_sph.particle_types_raw
+    assert 'all' in two_sph.particle_types
+    assert_equal(len(two_sph.particle_unions), 1)
     pfields = ['GridID', 'creation_time', 'dynamical_time',
                'identifier', 'level', 'metallicity', 'particle_mass']
     pfields += ['particle_position_%s' % d for d in 'xyz']
