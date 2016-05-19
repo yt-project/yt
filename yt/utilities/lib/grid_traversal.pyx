@@ -27,7 +27,7 @@ from yt.utilities.lib.misc_utilities import OnceIndirect
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
-from fixed_interpolator cimport *
+cimport fixed_interpolator as fix_i
 
 cdef extern from "platform_dep.h":
     long int lrint(double x) nogil
@@ -165,12 +165,10 @@ cdef class PartitionedGrid:
             ci[i] = (int)((pos[i]-self.LeftEdge[i])/c.dds[i])
             dp[i] = (pos[i] - ci[i]*c.dds[i] - self.LeftEdge[i])/c.dds[i]
 
-        cdef int offset = ci[0] * (c.dims[1] + 1) * (c.dims[2] + 1) \
-                          + ci[1] * (c.dims[2] + 1) + ci[2]
-
         vel_mag[0] = 0.0
         for i in range(3):
-            vel[i] = offset_interpolate(c.dims, dp, c.data[i] + offset)
+            vel[i] = fix_i.offset_interpolate(dp, c.data[i],
+                            ci[0], ci[1], ci[2])
             vel_mag[0] += vel[i]*vel[i]
         vel_mag[0] = np.sqrt(vel_mag[0])
         if vel_mag[0] != 0.0:
@@ -555,8 +553,6 @@ cdef void interpolated_projection_sampler(
     cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
             im.supp_data
     # we assume this has vertex-centered data.
-    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
-                    + index[1] * (vc.dims[2] + 1) + index[2]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -568,8 +564,8 @@ cdef void interpolated_projection_sampler(
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vri.n_samples):
         for j in range(vc.n_fields):
-            dvs[j] = offset_interpolate(vc.dims, dp,
-                    vc.data[j] + offset)
+            dvs[j] = fix_i.offset_interpolate(dp,
+                    vc.data[j], index[0], index[1], index[2])
         for j in range(imin(3, vc.n_fields)):
             im.rgba[j] += dvs[j] * dt
         for j in range(3):
@@ -615,8 +611,6 @@ cdef void volume_render_sampler(
     cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
             im.supp_data
     # we assume this has vertex-centered data.
-    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
-                    + index[1] * (vc.dims[2] + 1) + index[2]
     if vc.mask[index[0], index[1], index[2]] != 1:
         return
     cdef np.float64_t dp[3]
@@ -630,8 +624,8 @@ cdef void volume_render_sampler(
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vri.n_samples):
         for j in range(vc.n_fields):
-            dvs[j] = offset_interpolate(vc.dims, dp,
-                    vc.data[j] + offset)
+            dvs[j] = fix_i.offset_interpolate(dp, vc.data[j],
+                    index[0], index[1], index[2])
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits,
                 vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
@@ -653,8 +647,6 @@ cdef void volume_render_gradient_sampler(
     cdef VolumeRenderAccumulator *vri = <VolumeRenderAccumulator *> \
             im.supp_data
     # we assume this has vertex-centered data.
-    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
-                    + index[1] * (vc.dims[2] + 1) + index[2]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
     cdef np.float64_t dt = (exit_t - enter_t) / vri.n_samples
@@ -668,9 +660,10 @@ cdef void volume_render_gradient_sampler(
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vri.n_samples):
         for j in range(vc.n_fields):
-            dvs[j] = offset_interpolate(vc.dims, dp,
-                    vc.data[j] + offset)
-        eval_gradient(vc.dims, dp, vc.data[0] + offset, grad)
+            dvs[j] = fix_i.offset_interpolate(dp,
+                    vc.data[j], index[0], index[1], index[2])
+        fix_i.eval_gradient(dp, vc.data[0], grad, index[0],
+                    index[1], index[2])
         FIT_eval_transfer_with_light(dt, dvs, grad,
                 vri.light_dir, vri.light_rgba,
                 im.rgba, vri.n_fits,
@@ -717,8 +710,6 @@ cdef void volume_render_stars_sampler(
             im.supp_data
     cdef kdtree_utils.kdres *ballq = NULL
     # we assume this has vertex-centered data.
-    cdef int offset = index[0] * (vc.dims[1] + 1) * (vc.dims[2] + 1) \
-                    + index[1] * (vc.dims[2] + 1) + index[2]
     cdef np.float64_t slopes[6]
     cdef np.float64_t dp[3]
     cdef np.float64_t ds[3]
@@ -737,8 +728,8 @@ cdef void volume_render_stars_sampler(
         dp[i] *= vc.idds[i]
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vc.n_fields):
-        slopes[i] = offset_interpolate(vc.dims, dp,
-                        vc.data[i] + offset)
+        slopes[i] = fix_i.offset_interpolate(dp,
+                        vc.data[i], index[0], index[1], index[2])
     cdef np.float64_t temp
     # Now we get the ball-tree result for the stars near our cell center.
     for i in range(3):
@@ -755,8 +746,8 @@ cdef void volume_render_stars_sampler(
     nstars = kdtree_utils.kd_res_size(ballq)
     for i in range(vc.n_fields):
         temp = slopes[i]
-        slopes[i] -= offset_interpolate(vc.dims, dp,
-                         vc.data[i] + offset)
+        slopes[i] -= fix_i.offset_interpolate(dp, vc.data[i],
+                         index[0], index[1], index[2])
         slopes[i] *= -1.0/vri.n_samples
         dvs[i] = temp
     for _ in range(vri.n_samples):

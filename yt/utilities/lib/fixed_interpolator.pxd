@@ -35,7 +35,7 @@ cdef inline np.float64_t offset_interpolate(np.float64_t dp[3],
     return vz[0]
 
 cdef inline void eval_gradient(np.float64_t dp[3],
-                np.float64_t[:,:,] data, np.float64_t grad[3],
+                np.float64_t[:,:,:] data, np.float64_t grad[3],
                 int i, int j, int k) nogil:
 
     # We just take some small value
@@ -69,25 +69,27 @@ cdef inline void eval_gradient(np.float64_t dp[3],
             grad[m] /= -normval
     else:
       grad[0] = grad[1] = grad[2] = 0.0
-}
 
-cdef inline void offset_fill(np.float64_t[:,:,:] data,
-                             np.float64_t[:,:,:] gridval,
+cdef inline void offset_fill(np.float64_t[:,:,:] inval,
+                             np.float64_t[:] outval,
                              int i, int j, int k) nogil:
-    cdef int oi, oj, ok
-    for oi in range(2):
-        for oj in range(2):
-            for ok in range(2):
-                data[i+oi, j+oj, k+ok] = gridval[i+oi, j+oj, k+ok]
+    outval[0] = inval[i+0,j+0,k+0]
+    outval[1] = inval[i+1,j+0,k+0]
+    outval[2] = inval[i+1,j+1,k+0]
+    outval[3] = inval[i+0,j+1,k+0]
+    outval[4] = inval[i+0,j+0,k+1]
+    outval[5] = inval[i+1,j+0,k+1]
+    outval[6] = inval[i+1,j+1,k+1]
+    outval[7] = inval[i+0,j+1,k+1]
 
-cdef void inline vertex_interp(np.float64_t v1, np.float64_t v2,
+cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2,
             np.float64_t isovalue, np.float64_t vl[3], np.float64_t dds[3],
             np.float64_t x, np.float64_t y, np.float64_t z,
             int vind1, int vind2):
     cdef int i
-    cdef np.float64_t cverts[8][3] = \
-        {{0,0,0}, {1,0,0}, {1,1,0}, {0,1,0},
-         {0,0,1}, {1,0,1}, {1,1,1}, {0,1,1}}
+    cdef np.float64_t** cverts = \
+        [[0,0,0], [1,0,0], [1,1,0], [0,1,0],
+         [0,0,1], [1,0,1], [1,1,1], [0,1,1]]
 
     cdef np.float64_t mu = ((isovalue - v1) / (v2 - v1))
 

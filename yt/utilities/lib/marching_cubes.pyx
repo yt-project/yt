@@ -18,7 +18,7 @@ cimport cython
 import numpy as np
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from libc.stdlib cimport malloc, free, abs
-from fixed_interpolator cimport *
+cimport fixed_interpolator as fix_i
 
 cdef extern from "marching_cubes.h":
     int tri_table[256][16]
@@ -110,40 +110,40 @@ cdef int march_cubes(
     if edge_table[cubeindex] == 0:
         return 0
     if (edge_table[cubeindex] & 1): # 0,0,0 with 1,0,0
-        vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
+        fix_i.vertex_interp(gv[0], gv[1], isovalue, vertlist[0],
                       dds, x, y, z, 0, 1)
     if (edge_table[cubeindex] & 2): # 1,0,0 with 1,1,0
-        vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
+        fix_i.vertex_interp(gv[1], gv[2], isovalue, vertlist[1],
                       dds, x, y, z, 1, 2)
     if (edge_table[cubeindex] & 4): # 1,1,0 with 0,1,0
-        vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
+        fix_i.vertex_interp(gv[2], gv[3], isovalue, vertlist[2],
                       dds, x, y, z, 2, 3)
     if (edge_table[cubeindex] & 8): # 0,1,0 with 0,0,0
-        vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
+        fix_i.vertex_interp(gv[3], gv[0], isovalue, vertlist[3],
                       dds, x, y, z, 3, 0)
     if (edge_table[cubeindex] & 16): # 0,0,1 with 1,0,1
-        vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
+        fix_i.vertex_interp(gv[4], gv[5], isovalue, vertlist[4],
                       dds, x, y, z, 4, 5)
     if (edge_table[cubeindex] & 32): # 1,0,1 with 1,1,1
-        vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
+        fix_i.vertex_interp(gv[5], gv[6], isovalue, vertlist[5],
                       dds, x, y, z, 5, 6)
     if (edge_table[cubeindex] & 64): # 1,1,1 with 0,1,1
-        vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
+        fix_i.vertex_interp(gv[6], gv[7], isovalue, vertlist[6],
                       dds, x, y, z, 6, 7)
     if (edge_table[cubeindex] & 128): # 0,1,1 with 0,0,1
-        vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
+        fix_i.vertex_interp(gv[7], gv[4], isovalue, vertlist[7],
                       dds, x, y, z, 7, 4)
     if (edge_table[cubeindex] & 256): # 0,0,0 with 0,0,1
-        vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
+        fix_i.vertex_interp(gv[0], gv[4], isovalue, vertlist[8],
                       dds, x, y, z, 0, 4)
     if (edge_table[cubeindex] & 512): # 1,0,0 with 1,0,1
-        vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
+        fix_i.vertex_interp(gv[1], gv[5], isovalue, vertlist[9],
                       dds, x, y, z, 1, 5)
     if (edge_table[cubeindex] & 1024): # 1,1,0 with 1,1,1
-        vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
+        fix_i.vertex_interp(gv[2], gv[6], isovalue, vertlist[10],
                       dds, x, y, z, 2, 6)
     if (edge_table[cubeindex] & 2048): # 0,1,0 with 0,1,1
-        vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
+        fix_i.vertex_interp(gv[3], gv[7], isovalue, vertlist[11],
                       dds, x, y, z, 3, 7)
     n = 0
     while 1:
@@ -175,8 +175,6 @@ def march_cubes_grid(np.float64_t isovalue,
     cdef np.float64_t pos[3]
     cdef np.float64_t point[3]
     cdef np.float64_t idds[3]
-    cdef np.float64_t *intdata = NULL
-    cdef np.float64_t *sdata = NULL
     cdef np.float64_t do_sample
     cdef np.ndarray[np.float64_t, ndim=3] sample
     cdef np.ndarray[np.float64_t, ndim=1] sampled
@@ -185,7 +183,6 @@ def march_cubes_grid(np.float64_t isovalue,
     cdef Triangle *current
     if obj_sample is not None:
         sample = obj_sample
-        sdata = <np.float64_t *> sample.data
         do_sample = sample_type # 1 for face, 2 for vertex
     else:
         do_sample = 0
@@ -195,7 +192,6 @@ def march_cubes_grid(np.float64_t isovalue,
     triangles.first = triangles.current = NULL
     last = current = NULL
     triangles.count = 0
-    cdef np.float64_t *data = <np.float64_t *> values.data
     cdef np.float64_t *dds = <np.float64_t *> dxs.data
     pos[0] = left_edge[0]
     for i in range(dims[0]):
@@ -204,11 +200,7 @@ def march_cubes_grid(np.float64_t isovalue,
             pos[2] = left_edge[2]
             for k in range(dims[2]):
                 if mask[i,j,k] == 1:
-                    offset = i * (dims[1] + 1) * (dims[2] + 1) \
-                           + j * (dims[2] + 1) + k
-                    intdata = data + offset
-                    data[i,j,k] = gv[i,j,k]
-                    offset_fill(data, gridval, i, j, k)
+                    fix_i.offset_fill(values, gv, i, j, k)
                     nt = march_cubes(gv, isovalue, dds, pos[0], pos[1], pos[2],
                                 &triangles)
                     if nt == 0 or do_sample == 0:
@@ -229,8 +221,8 @@ def march_cubes_grid(np.float64_t isovalue,
                                     point[m] += (current.p[n][m]-pos[m])*idds[m]
                             for n in range(3):
                                 point[n] /= 3.0
-                            current.val[0] = offset_interpolate(dims, point,
-                                                             sdata + offset)
+                            current.val[0] = fix_i.offset_interpolate(
+                                    point, sample, i, j, k)
                             last = current
                             if current.next == NULL: break
                             current = current.next
@@ -239,8 +231,8 @@ def march_cubes_grid(np.float64_t isovalue,
                             for n in range(3):
                                 for m in range(3):
                                     point[m] = (current.p[n][m]-pos[m])*idds[m]
-                                current.val[n] = offset_interpolate(dims,
-                                                    point, sdata + offset)
+                                current.val[n] = fix_i.offset_interpolate(
+                                    point, sample, i, j, k)
                             last = current
                             if current.next == NULL: break
                             current = current.next
@@ -284,10 +276,6 @@ def march_cubes_grid_flux(
     cdef Triangle *current = NULL
     cdef Triangle *last = NULL
     cdef np.float64_t *data = <np.float64_t *> values.data
-    cdef np.float64_t *v1data = <np.float64_t *> v1.data
-    cdef np.float64_t *v2data = <np.float64_t *> v2.data
-    cdef np.float64_t *v3data = <np.float64_t *> v3.data
-    cdef np.float64_t *fdata = <np.float64_t *> flux_field.data
     cdef np.float64_t *dds = <np.float64_t *> dxs.data
     cdef np.float64_t flux = 0.0
     cdef np.float64_t temp, area, s
@@ -309,9 +297,7 @@ def march_cubes_grid_flux(
             cell_pos[2] = left_edge[2]
             for k in range(dims[2]):
                 if mask[i,j,k] == 1:
-                    offset = i * (dims[1] + 1) * (dims[2] + 1) \
-                           + j * (dims[2] + 1) + k
-                    offset_fill(intdata, gv, i, j, k)
+                    fix_i.offset_fill(values, gv, i, j, k)
                     march_cubes(gv, isovalue, dds,
                                 cell_pos[0], cell_pos[1], cell_pos[2],
                                 &triangles)
@@ -331,7 +317,8 @@ def march_cubes_grid_flux(
                             for m in range(3):
                                 point[m] = (current.p[n][m]-cell_pos[m])*idds[m]
                             # Now we calculate the value at this point
-                            temp = offset_interpolate(dims, point, intdata)
+                            temp = fix_i.offset_interpolate(point, values,
+                                    i, j, k)
                             #print "something", temp, point[0], point[1], point[2]
                             wval += temp
                             for m in range(3):
@@ -342,16 +329,16 @@ def march_cubes_grid_flux(
                         # We have our center point of the triangle, in 0..1
                         # coordinates.  So now we interpolate our three
                         # fields.
-                        fv[0] = offset_interpolate(dims, center, v1data + offset)
-                        fv[1] = offset_interpolate(dims, center, v2data + offset)
-                        fv[2] = offset_interpolate(dims, center, v3data + offset)
+                        fv[0] = fix_i.offset_interpolate(center, v1, i, j, k)
+                        fv[1] = fix_i.offset_interpolate(center, v2, i, j, k)
+                        fv[2] = fix_i.offset_interpolate(center, v3, i ,j, k)
                         # We interpolate again the actual value data
-                        wval = offset_interpolate(dims, center, fdata + offset)
+                        wval = fix_i.offset_interpolate(center, flux_field, i, j, k)
                         # Now we have our flux vector and our field value!
                         # We just need a normal vector with which we can
                         # dot it.  The normal should be equal to the gradient
                         # in the center of the triangle, or thereabouts.
-                        eval_gradient(dims, center, intdata, normal)
+                        fix_i.eval_gradient(center, values, normal, i, j, k)
                         temp = 0.0
                         for n in range(3):
                             temp += normal[n]*normal[n]
