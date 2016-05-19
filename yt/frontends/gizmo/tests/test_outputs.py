@@ -44,4 +44,3 @@ def test_GizmoDataset():
     for test in sph_answer(ds, 'snapshot_600', 4786950, fields):
         test_GizmoDataset.__name__ = test.description
         yield test
-    assert False
