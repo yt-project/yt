@@ -21,7 +21,7 @@ install:
     # Install miniconda using a powershell script.
     - "powershell doc/install-miniconda.ps1"
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
-    - conda install -f conda=4.0.2
+    - conda install -f --yes conda=4.0.2
 
     # Install the build and runtime dependencies of the project.
     # Create a conda environment
