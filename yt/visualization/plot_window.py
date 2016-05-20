@@ -1229,8 +1229,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             field_parameters = {}
 
         if ds.geometry == "spherical" or ds.geometry == "cylindrical":
-            mylog.info("Setting origin='domain' for %s geometry." % ds.geometry)
-            origin = 'domain'
+            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            origin = 'native'
 
         if isinstance(ds, YTSpatialPlotDataset):
             slc = ds.all_data()
