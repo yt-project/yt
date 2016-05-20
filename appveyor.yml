@@ -5,7 +5,7 @@ environment:
 
   global:
       PYTHON: "C:\\conda"
-      MINICONDA_VERSION: "3.19.0"
+      MINICONDA_VERSION: "3.5.5"
 
   matrix:
 
