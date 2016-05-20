@@ -13,7 +13,7 @@ environment:
         NUMPY_VERSION: "1.9.1"
 
       - PYTHON_VERSION: "3.5"
-        NUMPY_VERSION: "1.9.1"
+        NUMPY_VERSION: "1.10.1"
 
 
 platform:
@@ -36,10 +36,9 @@ install:
     # Install specified version of numpy and dependencies
     - "conda install -q --yes numpy=%NUMPY_VERSION% nose setuptools ipython Cython sympy h5py matplotlib"
     - "python setup.py develop"
-    
+
 # Not a .NET project
 build: false
 
 test_script:
   - "nosetests -e test_all_fields ."
-
