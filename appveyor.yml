@@ -31,7 +31,7 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install -q --yes numpy=%NUMPY_VERSION% nose setuptools ipython Cython sympy h5py matplotlib"
+    - "conda install -q --yes numpy nose setuptools ipython Cython sympy h5py matplotlib"
     - "python setup.py develop"
 
 # Not a .NET project
