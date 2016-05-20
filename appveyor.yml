@@ -12,6 +12,10 @@ environment:
       - PYTHON_VERSION: "2.7"
         NUMPY_VERSION: "1.9.1"
 
+      - PYTHON_VERSION: "3.5"
+        NUMPY_VERSION: "1.9.1"
+
+
 platform:
     -x64
 
