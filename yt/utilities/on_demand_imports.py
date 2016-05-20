@@ -28,7 +28,7 @@ class NotAModule(object):
     def __call__(self, *args, **kwargs):
         raise self.error
 
-class astropy_imports:
+class astropy_imports(object):
     _name = "astropy"
     _pyfits = None
     @property
@@ -105,7 +105,7 @@ class astropy_imports:
 
 _astropy = astropy_imports()
 
-class scipy_imports:
+class scipy_imports(object):
     _name = "scipy"
     _integrate = None
     @property
@@ -186,7 +186,7 @@ class scipy_imports:
 
 _scipy = scipy_imports()
 
-class h5py_imports:
+class h5py_imports(object):
     _name = "h5py"
 
     _File = None
@@ -279,7 +279,7 @@ class h5py_imports:
 
 _h5py = h5py_imports()
 
-class nose_imports:
+class nose_imports(object):
     _name = "nose"
     _run = None
     @property
