@@ -69,7 +69,6 @@ from yt.geometry.coordinates.api import \
     PolarCoordinateHandler, \
     CylindricalCoordinateHandler, \
     SphericalCoordinateHandler, \
-    LogSphericalCoordinateHandler, \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler
 
@@ -487,8 +486,6 @@ class Dataset(object):
             cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
             cls = SphericalCoordinateHandler
-        elif self.geometry == "logspherical":
-            cls = LogSphericalCoordinateHandler
         elif self.geometry == "geographic":
             cls = GeographicCoordinateHandler
         elif self.geometry == "spectral_cube":

@@ -21,8 +21,7 @@ from .polar_coordinates import \
 from .cylindrical_coordinates import \
     CylindricalCoordinateHandler
 from .spherical_coordinates import \
-    SphericalCoordinateHandler, \
-    LogSphericalCoordinateHandler
+    SphericalCoordinateHandler
 from .geographic_coordinates import \
     GeographicCoordinateHandler
 from .spec_cube_coordinates import \

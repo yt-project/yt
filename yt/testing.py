@@ -222,7 +222,6 @@ _geom_transforms = {
     # These are the bounds we want.  Cartesian we just assume goes 0 .. 1.
     'cartesian'    : ( (0.0, 0.0, 0.0), (1.0, 1.0, 1.0) ),
     'spherical'    : ( (0.0, 0.0, 0.0), (1.0, np.pi, 2*np.pi) ),
-    'logspherical' : ( (-3.0, 0.0, 0.0), (5.0, np.pi, 2*np.pi) ),
     'cylindrical'  : ( (0.0, 0.0, 0.0), (1.0, 1.0, 2.0*np.pi) ), # rzt
     'polar'        : ( (0.0, 0.0, 0.0), (1.0, 2.0*np.pi, 1.0) ), # rtz
     'geographic'   : ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlonalt
