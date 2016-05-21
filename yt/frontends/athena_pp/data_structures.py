@@ -80,21 +80,20 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         x1f = self._handle["x1f"]
         x2f = self._handle["x2f"]
         x3f = self._handle["x3f"]
-        nblock = tuple(np.max(log_loc, axis=0)+1)
+        nbx, nby, nbz = tuple(np.max(log_loc, axis=0)+1)
+        nlevel = self._handle.attrs["MaxLevel"]+1
 
-        block_grid = np.zeros(nblock, dtype=np.int)
-        level_grid = np.zeros(nblock, dtype=np.int)
-        block_grid[log_loc[:,0],log_loc[:,1],log_loc[:,2]] = np.arange(num_blocks)
-        level_grid[log_loc[:,0],log_loc[:,1],log_loc[:,2]] = levels[:]
+        block_grid = -np.ones((nbx,nby,nbz,nlevel), dtype=np.int)
+        block_grid[log_loc[:,0],log_loc[:,1],log_loc[:,2],levels[:]] = np.arange(num_blocks)
 
         block_list = np.arange(num_blocks, dtype='int64')
         bc = []
         for i in range(num_blocks):
             if block_list[i] >= 0:
                 ii, jj, kk = log_loc[i]
-                loc_levels = level_grid[ii:ii+2,jj:jj+2,kk:kk+2]
-                if np.unique(loc_levels).size == 1:
-                    loc_ids = block_grid[ii:ii+2,jj:jj+2,kk:kk+2].transpose().flatten()
+                neigh = block_grid[ii:ii+2,jj:jj+2,kk:kk+2,levels[i]]
+                if np.all(neigh > -1):
+                    loc_ids = neigh.transpose().flatten()
                     bc.append(loc_ids)
                     block_list[loc_ids] = -1
                 else:
