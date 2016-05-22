@@ -29,6 +29,7 @@ import yt.frontends.openPMD.misc as validator
 import h5py
 import numpy as np
 import os
+import re
 from yt.utilities.logger import ytLogger as mylog
 
 import sys
@@ -37,7 +38,7 @@ class openPMDBasePathException(Exception) :
     pass
 
 class openPMDBasePath :
-    def  _setBasePath(self, handle) :
+    def  _setBasePath(self, handle, filepath):
         """
         Set the base path for the first iteration found in the file.
         TODO implement into distinct methods:
@@ -50,27 +51,39 @@ class openPMDBasePath :
 
         # if the file messed up the base path we avoid throwing a cluttered
         # exception below while looking for iterations:
-        if handle.attrs["basePath"].decode("utf-8") != u"/data/%T/" :
+        if handle.attrs["basePath"].decode("utf-8") != u"/data/%T/":
             raise openPMDBasePathException("openPMD: basePath is non-standard!")
 
         # does `/data/` exist?
-        if not u"/data" in handle :
+        if not u"/data" in handle:
             raise openPMDBasePathException("openPMD: group for basePath does not exist!")
 
         # find iterations in basePath
         list_iterations = []
-        for i in list(handle[dataPath].keys()) :
-            list_iterations.append(i)
-        mylog.warning("openPMD: found {} iterations in file".format(len(list_iterations)))
+        if u"groupBased" in handle.attrs["iterationEncoding"]:
+            for i in list(handle[dataPath].keys()):
+                list_iterations.append(i)
+            mylog.info("openPMD: found {} iterations in file".format(len(list_iterations)))
+        elif u"fileBased" in handle.attrs["iterationEncoding"]:
+            regex = u"^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + u"$"
+            if filepath is '':
+                mylog.warning("openPMD: For file based iterations, please use absolute file paths!")
+                pass
+            for file in os.listdir(filepath):
+                if re.match(regex, file):
+                    list_iterations.append(file)
+            mylog.info("openPMD: found {} iterations in directory".format(len(list_iterations)))
+        else:
+            mylog.warning("openOMD: File does not have valid iteration encoding:")
+            mylog.warning(handle.attrs["iterationEncoding"])
 
-        # We found no iterations in basePath
         # TODO in the future (see above) this can be a mylog.warning instead of an error
         if len(list_iterations) == 0 :
-            raise openPMDBasePathException("openPMD: no iterations found in basePath!")
+            raise openPMDBasePathException("openPMD: no iterations found!")
 
         # just handle the first iteration found
-        mylog.warning("openPMD: only choose to load first iteration in file")
-        self.basePath = "{}/{}/".format(dataPath, list_iterations[0])
+        mylog.warning("openPMD: only choose to load the first iteration")
+        self.basePath = "{}/{}/".format(dataPath, handle[dataPath].keys()[0])
 
 
 
@@ -108,7 +121,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         self.dataset = ds
         self.index_filename = ds.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._setBasePath(self.dataset._handle)
+        self._setBasePath(self.dataset._handle, self.directory)
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
@@ -276,7 +289,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # Opens a HDF5 file and stores its file handle in _handle
         # All _handle objects refers to the file
         self._handle = HDF5FileHandler(filename)
-        self._setBasePath(self._handle)
+        mylog.info(os.path.dirname(filename))
+        self._setBasePath(self._handle, os.path.dirname(filename))
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
