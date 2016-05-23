@@ -470,9 +470,9 @@ Here is an example test function:
        test.prefix = "my_unique_name"
 
        # this ensures a nice test name in nose's output
-       test_my_ds.__description__ = test.description
+       test_my_ds.__name__ = test.description
 
-       yield test_my_ds
+       yield test
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
