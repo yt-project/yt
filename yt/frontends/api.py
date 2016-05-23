@@ -32,6 +32,7 @@ _frontends = [
     'gadget_fof',
     'gamer',
     'gdf',
+    'gizmo',
     'halo_catalog',
     'http_stream',
     'moab',

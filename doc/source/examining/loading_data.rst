@@ -1319,6 +1319,31 @@ The ``load_particles`` function also accepts the following keyword parameters:
 ``bbox``
        The bounding box for the particle positions.
 
+.. _loading-gizmo-data:
+
+Gizmo Data
+----------
+
+Gizmo datasets, including FIRE outputs, can be loaded into yt in the usual 
+manner.  Like other SPH data formats, yt loads Gizmo data as particle fields 
+and then uses smoothing kernels to deposit those fields to an underlying 
+grid structure as spatial fields as described in :ref:`loading-gadget-data`.  
+To load Gizmo datasets using the standard HDF5 output format::
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("snapshot_600.hdf5")
+
+Because the Gizmo output format is similar to the Gadget format, yt
+may load Gizmo datasets as Gadget depending on the circumstances, but this
+should not pose a problem in most situations.  FIRE outputs will be loaded 
+accordingly due to the number of metallicity fields found (11 or 17).  
+
+For Gizmo outputs written as raw binary outputs, you may have to specify
+a bounding box, field specification, and units as are done for standard 
+Gadget outputs.  See :ref:`loading-gadget-data` for more information.
+
 .. _loading-pyne-data:
 
 Halo Catalog Data

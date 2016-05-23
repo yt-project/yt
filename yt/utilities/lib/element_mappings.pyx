@@ -86,15 +86,6 @@ cdef class ElementSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-        pass
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef int check_mesh_lines(self, double* mapped_coord) nogil:
         pass
 
@@ -182,19 +173,6 @@ cdef class P1Sampler2D(ElementSampler):
                 return 0
         return 1
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-
-        if (fabs(mapped_coord[direction]) < tolerance or
-            fabs(mapped_coord[direction] - 1.0) < tolerance):
-            return 1
-        return 0
-
 
 cdef class P1Sampler3D(ElementSampler):
     '''
@@ -257,19 +235,6 @@ cdef class P1Sampler3D(ElementSampler):
                 mapped_coord[i] - 1.0 > self.inclusion_tol):
                 return 0
         return 1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-
-        if (fabs(mapped_coord[direction]) < tolerance or
-            fabs(mapped_coord[direction] - 1.0) < tolerance):
-            return 1
-        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -409,18 +374,6 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-        if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
-            return 1
-        else:
-            return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -567,19 +520,6 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-        if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
-            return 1
-        else:
-            return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -781,22 +721,6 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-        if (direction == 2 and (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance)):
-            return 1
-        elif (direction == 1 and (fabs(mapped_coord[direction]) < tolerance)):
-            return 1
-        elif (direction == 0 and (fabs(mapped_coord[0]) < tolerance or
-                                  fabs(mapped_coord[0] + mapped_coord[1] - 1.0) < tolerance)):
-            return 1
-        return 0
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     cdef int check_mesh_lines(self, double* mapped_coord) nogil:
         cdef double r, s, t
         cdef double thresh = 5.0e-2
@@ -968,20 +892,6 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
             fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
-
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef int check_near_edge(self, 
-                             double* mapped_coord,
-                             double tolerance,
-                             int direction) nogil:
-        if (fabs(fabs(mapped_coord[direction]) - 1.0) < tolerance):
-            return 1
-        else:
-            return 0
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
