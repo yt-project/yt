@@ -57,10 +57,6 @@ class Index(ParallelAnalysisInterface):
         mylog.debug("Detecting fields.")
         self._detect_output_fields()
 
-    def __del__(self):
-        if self._data_file is not None:
-            self._data_file.close()
-
     def _initialize_state_variables(self):
         self._parallel_locking = False
         self._data_file = None

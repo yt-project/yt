@@ -14,7 +14,6 @@ A wrapper class for h5py file objects.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
-from distutils.version import LooseVersion
 
 class HDF5FileHandler(object):
     handle = None
