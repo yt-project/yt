@@ -1646,31 +1646,6 @@ class MeshLinesCallback(PlotCallback):
     
         return new_coords, new_connects
 
-    def _get_mesh(self, plot):
-
-        index = plot.ds.index
-        if not issubclass(type(index), UnstructuredIndex):
-            raise RuntimeError("Mesh line annotations only work for "
-                               "unstructured or semi-structured mesh data.")
-
-        ftype, fname = plot.field
-
-        if ftype.startswith('connect'):
-            # select appropriate mesh from file
-            mesh_id = int(ftype[-1]) - 1
-            mesh = index.meshes[mesh_id]
-            coords = mesh.connectivity_coords
-            indices = mesh.connectivity_indices - mesh._index_offset
-        else:
-            # select all the meshes
-            m = index.meshes[0]
-            coords = m.connectivity_coords
-            indices = m.connectivity_indices - m._index_offset
-            for m in index.meshes[1:]:
-                next_indices = m.connectivity_indices - m._index_offset
-                indices = np.vstack((indices, next_indices))
-        return coords, indices
-
     def __call__(self, plot):
 
         index = plot.ds.index
