@@ -20,7 +20,6 @@ cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
 from yt.utilities.exceptions import \
     YTPixelizeError, \
-    YTException, \
     YTElementTypeNotRecognized
 from libc.stdlib cimport malloc, free
 from vec3_ops cimport dot, cross, subtract
@@ -593,10 +592,9 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
     # if we are in 2D land, the 1 cell thick dimension had better be 'z'
     if ndim == 2:
-        try:
-            assert(buff_size[2] == 1)
-        except AssertionError:
-            raise YTException("2D datasets can only be sliced in the 'z' direction.")
+        if buff_size[2] != 1:
+            raise RuntimeError("Slices of 2D datasets must be "
+                               "perpendicular to the 'z' direction.")
     
     # allocate temporary storage
     vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
