@@ -451,7 +451,7 @@ setup(
     license="BSD",
     zip_safe=False,
     scripts=["scripts/iyt"],
-    data_files=MAPSERVER_FILES + SHADERS_FILES,
+    data_files=MAPSERVER_FILES + [(SHADERS_DIR, SHADERS_FILES)],
     ext_modules=cython_extensions + extensions
 )
 
