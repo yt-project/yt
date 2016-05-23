@@ -95,17 +95,17 @@ in handy:
 To create new unit tests:
 
 #. Create a new ``tests/`` directory next to the file containing the
-   functionality you want to test.  Be sure to add this new directory as a
-   subpackage in the setup.py script located in the directory you're adding a
-   new ``tests/`` folder to.  This ensures that the tests will be deployed in
-   yt source and binary distributions.
+   functionality you want to test and add an empty ``__init__.py`` file to
+   it.
 #. Inside that directory, create a new python file prefixed with ``test_`` and
    including the name of the functionality.
 #. Inside that file, create one or more routines prefixed with ``test_`` that
-   accept no arguments.  These should ``yield`` a tuple of the form
-   ``function``, ``argument_one``, ``argument_two``, etc.  For example
-   ``yield assert_equal, 1.0, 1.0`` would be captured by nose as a test that
-   asserts that 1.0 is equal to 1.0.
+   accept no arguments. The test function should do some work that tests some
+   functionality and should also verify that the results are correct using
+   assert statements or functions.  
+# Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
+   ``argument_two``, etc.  For example ``yield assert_equal, 1.0, 1.0`` would be
+   captured by nose as a test that asserts that 1.0 is equal to 1.0.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
    several combinations of ``nproc``, so that domain decomposition can be
    tested as well.
