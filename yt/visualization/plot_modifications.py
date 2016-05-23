@@ -1652,10 +1652,13 @@ class MeshLinesCallback(PlotCallback):
         if not issubclass(type(index), UnstructuredIndex):
             raise RuntimeError("Mesh line annotations only work for "
                                "unstructured or semi-structured mesh data.")
-        ftype, fname = plot.field
         for i, m in enumerate(index.meshes):
-            if ftype.startswith('connect') and int(ftype[-1]) - 1 != i:
-                continue
+            try:
+                ftype, fname = plot.field
+                if ftype.startswith('connect') and int(ftype[-1]) - 1 != i:
+                    continue
+            except ValueError:
+                pass
             coords = m.connectivity_coords
             indices = m.connectivity_indices - m._index_offset
             
