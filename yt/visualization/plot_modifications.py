@@ -36,7 +36,7 @@ from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
-from yt.utilities.lib.mesh_construction import triangulate_indices
+from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
 from . import _MPL
 
