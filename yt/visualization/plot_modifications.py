@@ -35,30 +35,10 @@ from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
     periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
-from yt.utilities.exceptions import YTElementTypeNotRecognized
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.utilities.lib.mesh_construction import triangulate_indices
 
 from . import _MPL
-
-triangulate_hex = np.array([
-    [0, 2, 1], [0, 3, 2],
-    [4, 5, 6], [4, 6, 7],
-    [0, 1, 5], [0, 5, 4],
-    [1, 2, 6], [1, 6, 5],
-    [0, 7, 3], [0, 4, 7],
-    [3, 6, 2], [3, 7, 6]]
-)
-
-triangulate_tetra = np.array([
-    [0, 1, 3], [2, 3, 1],
-    [0, 3, 2], [0, 2, 1]]
-)
-
-triangulate_wedge = np.array([
-    [3, 0, 1], [4, 3, 1],
-    [2, 5, 4], [2, 4, 1],
-    [0, 3, 2], [2, 3, 5],
-    [3, 4, 5], [0, 2, 1]]
-)
 
 callback_registry = {}
 
@@ -1626,7 +1606,9 @@ class MeshLinesCallback(PlotCallback):
     """
     annotate_mesh_lines()
 
-    Adds the mesh lines to the plot.
+    Adds mesh lines to the plot. Only works for unstructured or 
+    semi-structured mesh data. For structured grid data, see
+    GridBoundaryCallback or CellEdgesCallback.
 
     Parameters
     ----------
@@ -1664,44 +1646,57 @@ class MeshLinesCallback(PlotCallback):
     
         return new_coords, new_connects
 
+    def _get_mesh(self, plot):
+
+        index = plot.ds.index
+        if not issubclass(type(index), UnstructuredIndex):
+            raise RuntimeError("Mesh line annotations only work for "
+                               "unstructured or semi-structured mesh data.")
+
+        ftype, fname = plot.field
+
+        if ftype.startswith('connect'):
+            # select appropriate mesh from file
+            mesh_id = int(ftype[-1]) - 1
+            mesh = index.meshes[mesh_id]
+            coords = mesh.connectivity_coords
+            indices = mesh.connectivity_indices - mesh._index_offset
+        else:
+            # select all the meshes
+            m = index.meshes[0]
+            coords = m.connectivity_coords
+            indices = m.connectivity_indices - m._index_offset
+            for m in index.meshes[1:]:
+                next_indices = m.connectivity_indices - m._index_offset
+                indices = np.vstack((indices, next_indices))
+        return coords, indices
+
     def __call__(self, plot):
 
         index = plot.ds.index
+        if not issubclass(type(index), UnstructuredIndex):
+            raise RuntimeError("Mesh line annotations only work for "
+                               "unstructured or semi-structured mesh data.")
         ftype, fname = plot.field
-        mesh_id = int(ftype[-1]) - 1
-        mesh = index.meshes[mesh_id]
-        coords = mesh.connectivity_coords
-        indices = mesh.connectivity_indices - mesh._index_offset
+        for i, m in enumerate(index.meshes):
+            if ftype.startswith('connect') and int(ftype[-1]) - 1 != i:
+                continue
+            coords = m.connectivity_coords
+            indices = m.connectivity_indices - m._index_offset
+            
+            num_verts = indices.shape[1]
+            num_dims = coords.shape[1]
 
-        num_verts = indices.shape[1]
-        num_dims = coords.shape[1]
+            if num_dims == 2 and num_verts == 3:
+                coords, indices = self.promote_2d_to_3d(coords, indices, plot)
+            elif num_dims == 2 and num_verts == 4:
+                coords, indices = self.promote_2d_to_3d(coords, indices, plot)
 
-        if num_dims == 3 and (num_verts == 8 or
-                              num_verts == 20 or
-                              num_verts == 27):
-            tri_array = triangulate_hex
-        elif num_dims == 3 and num_verts == 4:
-            tri_array = triangulate_tetra
-        elif num_dims == 3 and num_verts == 6:
-            tri_array = triangulate_wedge
-        elif num_dims == 2 and num_verts == 3:
-            tri_array = triangulate_wedge
-            coords, indices = self.promote_2d_to_3d(coords, indices, plot)
-        elif num_dims == 2 and num_verts == 4:
-            tri_array = triangulate_hex
-            coords, indices = self.promote_2d_to_3d(coords, indices, plot)
-        else:
-            raise YTElementTypeNotRecognized(num_dims, num_verts)
-
-        tri_indices = []
-        for elem in indices:
-            for tri in tri_array:
-                tri_indices.append(elem[tri])
-        tri_indices = np.array(tri_indices)
-        points = coords[tri_indices]
+            tri_indices = triangulate_indices(indices)
+            points = coords[tri_indices]
         
-        tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
-        return tfc(plot)
+            tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
+            tfc(plot)
 
 
 class TriangleFacetsCallback(PlotCallback):
