@@ -40,7 +40,7 @@ from mesh_intersection cimport \
     patchBoundsFunc
 from yt.utilities.exceptions import YTElementTypeNotRecognized
 
-cdef extern from "mesh_construction.h":
+cdef extern from "mesh_triangulation.h":
     enum:
         MAX_NUM_TRI
         

@@ -406,16 +406,14 @@ We can also annotate the mesh lines, as follows:
    import yt
    ds = yt.load('MOOSE_sample_data/out.e-s010')
    sl = yt.SlicePlot(ds, 'z', ('connect1', 'diffused'))
-   sl.annotate_mesh_lines(thresh=0.1)
+   sl.annotate_mesh_lines(plot_args={'color':'black'})
    sl.zoom(0.75)
    sl.save()
 
-This annotation is performed by marking the pixels where the mapped coordinate is close
-to the element boundary. What counts as 'close' (in the mapped coordinate system) is
-determined by the ``thresh`` parameter, which can be varied to make the lines thicker or
-thinner.
+The ``plot_args`` parameter is a dictionary of keyword arguments that will be passed
+to matplotlib. It can be used to control the mesh line color, thickness, etc...
 
-The above example all involve 8-node hexahedral mesh elements. Here is another example from
+The above examples all involve 8-node hexahedral mesh elements. Here is another example from
 a dataset that uses 6-node wedge elements:
 
 .. python-script::
