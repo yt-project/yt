@@ -635,8 +635,12 @@ class MeshSceneComponent(ColorBarSceneComponent):
         """
 
         # get mesh information
-        ftype, fname = field
-        mesh_id = int(ftype[-1])
+        try:
+            ftype, fname = field
+            mesh_id = int(ftype[-1])
+        except ValueError:
+            mesh_id = 0
+
         mesh = data_source.ds.index.meshes[mesh_id-1]
         offset = mesh._index_offset
         vertices = mesh.connectivity_coords
