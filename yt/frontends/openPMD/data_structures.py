@@ -69,9 +69,9 @@ class openPMDBasePath :
             if filepath is '':
                 mylog.warning("openPMD: For file based iterations, please use absolute file paths!")
                 pass
-            for file in os.listdir(filepath):
-                if re.match(regex, file):
-                    list_iterations.append(file)
+            for filename in os.listdir(filepath):
+                if re.match(regex, filename):
+                    list_iterations.append(filename)
             mylog.info("openPMD: found {} iterations in directory".format(len(list_iterations)))
         else:
             mylog.warning("openOMD: File does not have valid iteration encoding:")
@@ -82,7 +82,7 @@ class openPMDBasePath :
             raise openPMDBasePathException("openPMD: no iterations found!")
 
         # just handle the first iteration found
-        mylog.warning("openPMD: only choose to load the first iteration")
+        mylog.warning("openPMD: only choose to load the first iteration ({})".format(handle[dataPath].keys()[0]))
         self.basePath = "{}/{}/".format(dataPath, handle[dataPath].keys()[0])
 
 
@@ -184,7 +184,8 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                     else:
                         # We probably do not want particlePatches as accessible field lists
                         pass
-            self.field_list.extend([(str(c).split("_")[0], 'particle' + c.lstrip(c.split("_")[0])) for c in particle_fields])
+            self.field_list.extend([("io", c) for c in particle_fields])
+            #self.field_list.extend([(str(c).split("_")[0], 'particle' + c.lstrip(c.split("_")[0])) for c in particle_fields])
 
     def _count_grids(self):
         """
@@ -295,9 +296,11 @@ class openPMDDataset(Dataset, openPMDBasePath):
                          units_override=units_override)
         self.storage_filename = storage_filename
         self.fluid_types += ('openPMD',)
-        self.particle_types = self._handle[self.basePath + self._handle.attrs["particlesPath"]].keys()
+        #self.particle_types = self._handle[self.basePath + self._handle.attrs["particlesPath"]].keys()
+        #self.particle_types = tuple(self.particle_types)
+        #self.particle_types += ('all',)
+        self.particle_types = ["io", "all"]
         self.particle_types = tuple(self.particle_types)
-        self.particle_types += ('all',)
         self.particle_types_raw = self.particle_types
 
 
@@ -320,8 +323,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "m/s")
-        self.magnetic_unit = self.quan(1.0, "T")
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        self.magnetic_unit = self.quan(1.0, "gauss")
+        #self.magnetic_unit = self.quan(1.0, "T")
 
     def _parse_parameter_file(self):
         """
@@ -349,6 +352,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
 
         # TODO At this point one assumes the whole file/simulation
         #      contains for all mesh records the same dimensionality and shapes
+        # TODO This probably won't work for const records
         # TODO Support particle-only files
         # pick first field
         try :
@@ -382,7 +386,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
 
         # Used for AMR, not applicable for us
         # TODO Probably 1
-        self.refine_by = 2
+        self.refine_by = 1
 
         # Not a cosmological simulation
         self.cosmological_simulation = 0  # <= int, 0 or 1

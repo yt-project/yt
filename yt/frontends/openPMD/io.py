@@ -24,9 +24,15 @@ import numpy as np
 from collections import defaultdict
 from .data_structures import openPMDBasePath
 
-# Unused copy-paste?
-_convert_mass = ("particle_mass", "mass")
+def is_const_component(record_component):
+    return ("value" in record_component.attrs.keys())
 
+def get_component(group, component_name):
+    record_component = group[component_name]
+    if is_const_component(record_component):
+        return record_component.attrs["value"]
+    else:
+        return record_component.value
 
 class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
     # TODO Data should be loaded chunk-wise to support parallelism. Fields can be chunked arbitrarily in space, particles should be read via particlePatches.
@@ -43,7 +49,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
         self.ds = ds
         self._handle = ds._handle
-        self._setBasePath(self._handle)
+        self._setBasePath(self._handle, self.ds._filepath)
         self.meshPath = self._handle["/"].attrs["meshesPath"]
         self.particlesPath = self._handle["/"].attrs["particlesPath"]
 
@@ -82,28 +88,32 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 dds = f[self.basePath]
                 # Sorted by what key? What for?
                 for ptype, field_list in sorted(ptf.items()):
-                    # TODO Too generic, pay attention to scalars
-                    #   Checking a list with a string literal? This should NEVER equal true
-                    if field_list == "particle_mass":
-                        continue
-                    # Get a particle group of a particular particle type (e.g. /data/3500/particles/e/)
-                    pds = dds.get("%s/%s" % (f.attrs["particlesPath"], ptype))
+                    # Inefficient for const records
+
+                    # Get a particle species (e.g. /data/3500/particles/e/)
+                    pds = dds.get("%s/%s" % (f.attrs["particlesPath"], field_list[0].split("_")[0]))
 
                     # Get single 1D-arrays of coordinates from all particular particles
-                    # TODO Make easier to read (put the loop outside?)
-                    # TODO Doesn't include offset
                     # TODO Do not naively assume 3D. Check which axes actually exist
-                    x, y, z = (np.asarray(pds.get("position/" + ax).value, dtype="float32")
-                               for ax in 'xyz')
+                    xpos, ypos, zpos = (get_component(pds, "position/" + ax)
+                                        for ax in 'xyz')
+                    xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
+                                        for ax in 'xyz')
+                    x = xpos * pds["position/x"].attrs["unitSI"] + xoff * pds["positionOffset/x"].attrs["unitSI"]
+                    y = ypos * pds["position/y"].attrs["unitSI"] + yoff * pds["positionOffset/y"].attrs["unitSI"]
+                    z = zpos * pds["position/z"].attrs["unitSI"] + zoff * pds["positionOffset/z"].attrs["unitSI"]
                     for field in field_list:
                         # Trim field path (yt scheme) to match openPMD scheme
-                        nfield = field.replace("particle_", "")
-                        nfield = nfield.replace("_", "/")
+                        nfield = "/".join(field.split("_")[1:])
 
                         # Save the size of the particle fields
                         # TODO This CAN be used for speedup, not sure how
-                        if np.asarray(pds[nfield]).ndim > 1:
-                            self._array_fields[field] = pds[nfield].shape
+                        if is_const_component(pds[nfield]):
+                            shape = np.asarray(pds[nfield].attrs["shape"])
+                        else:
+                            shape = np.asarray(pds[nfield].shape)
+                        if shape.ndim > 1:
+                            self._array_fields[field] = shape
                     yield (ptype, (x, y, z))
             if f:
                 f.close()
@@ -150,46 +160,31 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 ds = f[self.basePath]
                 # Sorted by what key? What for?
                 for ptype, field_list in sorted(ptf.items()):
-                    # Get a particle group of a particular particle type (e.g. /data/3500/particles/e/)
-                    pds = ds.get("%s/%s/" % (f.attrs["particlesPath"], ptype))
+                    # Inefficient for const records
+
+                    # Get a particle species (e.g. /data/3500/particles/e/)
+                    # TODO Do this for all fields in fields list
+                    pds = ds.get("%s/%s" % (f.attrs["particlesPath"], field_list[0].split("_")[0]))
 
                     # Get single arrays of coordinates from all particular particles
-                    # TODO Make easier to read (put the loop outside?)
-                    # TODO Doesn't include offset
                     # TODO Do not naively assume 3D. Check which axes actually exist
                     #   (axis_labels, geometry)
-                    x, y, z = (np.asarray(pds.get("position/" + ax).value, dtype="float32")
-                               for ax in 'xyz')
-
+                    xpos, ypos, zpos = (get_component(pds, "position/" + ax)
+                           for ax in 'xyz')
+                    xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
+                              for ax in 'xyz')
+                    x = xpos * pds["position/x"].attrs["unitSI"] + xoff * pds["positionOffset/x"].attrs["unitSI"]
+                    y = ypos * pds["position/y"].attrs["unitSI"] + yoff * pds["positionOffset/y"].attrs["unitSI"]
+                    z = zpos * pds["position/z"].attrs["unitSI"] + zoff * pds["positionOffset/z"].attrs["unitSI"]
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
                         continue
                     for field in field_list:
-                        nfield = field.replace("particle_", "")
-                        nfield = nfield.replace("_", "/")
-                        # TODO Incomplete because mass and charge are a attributes and the rest are arrays
-                        # "the rest"?
-                        # TODO Too generic, not only those 2 can be const (attrs 'value' for this)
-                        if field == "particle_mass" or field == "particle_charge":
-                            """
-                            /data/3500/particles/e (u'charge', -0.00014378012565430254)
-                            /data/3500/particles/e (u'mass', 0.00014378012565430254)
-                            """
-                            # Creates an array of dimension x.shape[0],
-                            # Filled only with the specified value
-                            # What for?
-                            data = np.full(
-                                            x.shape[0],
-                                            pds.attrs.get(nfield), #*unitSI
-                                # TODO use pds.attrs.get(nfield).dtype for data arrays
-                                            "=f8"
-                                          )
+                        nfield = "/".join(field.split("_")[1:])
+                        if is_const_component(pds[nfield]):
+                            data = np.full(pds[nfield].attrs["shape"], pds[nfield].attrs["value"])
                         else:
-                            data = np.asarray(pds.get(nfield), "=f8")
-                            # Here you could multiply mass with weighting
-                            # if field in _convert_mass:
-                            #    data *= g.dds.prod(dtype="f8")
-
+                            data = pds[nfield].value
                         yield ((ptype, field), data[mask])
             if f:
                 f.close()

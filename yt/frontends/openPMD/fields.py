@@ -81,7 +81,6 @@ def setup_poynting_vector(self):
                        function=_get_poyn(ax),
                        units="T*V/m")  # N/(m*s)
 
-
 class openPMDFieldInfo(FieldInfoContainer):
     """
     We need to specify which fields we might have in our dataset.  The field info
@@ -155,12 +154,12 @@ class openPMDFieldInfo(FieldInfoContainer):
         """
 
         mylog.info("oPMD - fields - setup_particle_fields(%s)",ptype)
-        self.add_field(
-            (ptype,
-             "particle_kinetic_energy"),
-            function=_kinetic_energy,
-            units="dimensionless")
-        setup_momentum_to_velocity(self, ptype)
+        # self.add_field(
+        #     (ptype,
+        #      "particle_kinetic_energy"),
+        #     function=_kinetic_energy,
+        #     units="dimensionless")
+        # setup_momentum_to_velocity(self, ptype)
 
         particle_deposition_functions(ptype, "particle_position",
                                       "particle_weighting", self)
