@@ -36,7 +36,7 @@ mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
 def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
 
-    axis_names = registry.ds.coordinates.axis_order[0]
+    axis_names = registry.ds.coordinates.axis_order
 
     if (ftype,"magnetic_field_%s" % axis_names[0]) not in registry:
         return
