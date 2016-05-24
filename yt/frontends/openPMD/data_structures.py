@@ -289,8 +289,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # Opens a HDF5 file and stores its file handle in _handle
         # All _handle objects refers to the file
         self._handle = HDF5FileHandler(filename)
-        mylog.info(os.path.dirname(filename))
-        self._setBasePath(self._handle, os.path.dirname(filename))
+        self._filepath = os.path.dirname(filename)
+        self._setBasePath(self._handle, self._filepath)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override)
         self.storage_filename = storage_filename
@@ -321,6 +321,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "m/s")
         self.magnetic_unit = self.quan(1.0, "T")
+        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
 
     def _parse_parameter_file(self):
         """
