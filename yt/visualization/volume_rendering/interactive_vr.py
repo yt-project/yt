@@ -662,11 +662,6 @@ class MeshSceneComponent(ColorBarSceneComponent):
         vertices = mesh.connectivity_coords
         indices  = mesh.connectivity_indices - offset
 
-        # get vertex data
-        data = data_source[field]
-        vertex_data = np.zeros(vertices.shape[0], dtype=data.dtype)
-        vertex_data[indices.flatten()] = data.flatten()
-
         if indices.shape[1] == 8:
             tri_array = triangulate_hex
         elif indices.shape[1] == 4:
@@ -675,6 +670,28 @@ class MeshSceneComponent(ColorBarSceneComponent):
             tri_array = triangulate_wedge
         else:
             raise NotImplementedError
+
+        data = data_source[field]
+
+        # handle element-centered data
+        if len(data.shape) == 1:
+            num_elem = indices.shape[0]
+
+            vertex_data = np.empty(num_elem*12*3, dtype=np.float32)
+            vertex_coords = np.empty((num_elem*12*3, 3), dtype=np.float32)
+
+            for i, elem in enumerate(indices):
+                for j in range(12):
+                    tri = tri_array[j]
+                    for k in range(3):
+                        vertex_data[i*12*3+j*3+k] = data[i]
+                        vertex_coords[i*12*3+j*3+k] = vertices[indices[i][tri]][k]
+            vertex_indices = np.arange(num_elem*12*3)
+
+            return vertex_coords.flatten(), vertex_data.flatten(), vertex_indices.astype(np.uint32)
+
+        vertex_data = np.zeros(vertices.shape[0], dtype=data.dtype)
+        vertex_data[indices.flatten()] = data.flatten()
 
         tri_indices = []
         for elem in indices:
