@@ -25,28 +25,34 @@ cdef extern from "mesh_triangulation.h":
 @cython.cdivision(True)
 def triangulate_indices(np.ndarray[np.int64_t, ndim=2] indices):
     cdef np.int64_t num_elem = indices.shape[0]
-    cdef np.int64_t num_verts = indices.shape[1]
+    cdef np.int64_t VPE = indices.shape[1]  # num verts per element
+    cdef np.int64_t TPE  # num triangles per element
     cdef int[MAX_NUM_TRI][3] tri_array
-    cdef np.int64_t tri_per_elem
-
-    if (num_verts == 8 or num_verts == 20 or num_verts == 27):
-        tri_per_elem = HEX_NT
+    
+    if (VPE == 8 or VPE == 20 or VPE == 27):
+        TPE = HEX_NT
         tri_array = triangulate_hex
-    elif num_verts == 4:
-        tri_per_elem = TETRA_NT
+    elif VPE == 4:
+        TPE = TETRA_NT
         tri_array = triangulate_tetra
-    elif num_verts == 6:
-        tri_per_elem = WEDGE_NT
+    elif VPE == 6:
+        TPE = WEDGE_NT
         tri_array = triangulate_wedge
     else:
-        raise YTElementTypeNotRecognized(3, num_verts)
+        raise YTElementTypeNotRecognized(3, VPE)
 
+    cdef np.int64_t num_tri = TPE * num_elem
+        
     cdef np.ndarray[np.int64_t, ndim=2] tri_indices
-    tri_indices = np.empty((tri_per_elem * num_elem, 3), dtype="int64")
+    tri_indices = np.empty((num_tri, 3), dtype="int64")
+    
+    cdef np.int64_t *tri_indices_ptr = <np.int64_t*> tri_indices.data
+    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
 
-    cdef np.int64_t i, j
+    cdef np.int64_t i, j, k, offset
     for i in range(num_elem):
-        for j in range(tri_per_elem):
+        for j in range(TPE):
             for k in range(3):
-                tri_indices[i*tri_per_elem + j][k] = indices[i][tri_array[j][k]]
+                offset = tri_array[j][k]
+                tri_indices_ptr[i*TPE*3 + 3*j + k] = indices_ptr[i*VPE + offset]
     return tri_indices
