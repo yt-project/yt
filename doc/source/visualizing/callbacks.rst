@@ -692,6 +692,27 @@ Annotate Triangle Facets Callback
    s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
    s.save()
 
+.. _annotate-mesh-lines:
+
+Annotate Mesh Lines Callback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_mesh_lines(plot_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.MeshLinesCallback`.)
+
+   This draws the mesh line boundaries over a plot using a Matplotlib
+   line collection. This callback is only useful for unstructured or 
+   semi-structured mesh datasets. 
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e')
+   sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.annotate_mesh_lines(plot_args={'color':'black'})
+
 .. _annotate-ray:
 
 Overplot the Path of a Ray
