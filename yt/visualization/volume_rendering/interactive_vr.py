@@ -28,6 +28,8 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
+from yt.utilities.lib.mesh_triangulation import triangulate_vertex_data, \
+    triangulate_element_data
 from .shader_objects import known_shaders, ShaderProgram
 
 bbox_vertices = np.array(
@@ -662,48 +664,12 @@ class MeshSceneComponent(ColorBarSceneComponent):
         vertices = mesh.connectivity_coords
         indices  = mesh.connectivity_indices - offset
 
-        if indices.shape[1] == 8:
-            tri_array = triangulate_hex
-        elif indices.shape[1] == 4:
-            tri_array = triangulate_tetra
-        elif indices.shape[1] == 6:
-            tri_array = triangulate_wedge
-        else:
-            raise NotImplementedError
-
         data = data_source[field]
 
-        # handle element-centered data
         if len(data.shape) == 1:
-            num_elem = indices.shape[0]
-
-            vertex_data = np.empty(num_elem*12*3, dtype=np.float32)
-            vertex_coords = np.empty((num_elem*12*3, 3), dtype=np.float32)
-
-            for i, elem in enumerate(indices):
-                for j in range(12):
-                    tri = tri_array[j]
-                    for k in range(3):
-                        vertex_data[i*12*3+j*3+k] = data[i]
-                        vertex_coords[i*12*3+j*3+k] = vertices[indices[i][tri]][k]
-            vertex_indices = np.arange(num_elem*12*3)
-
-            return vertex_coords.flatten(), vertex_data.flatten(), vertex_indices.astype(np.uint32)
-
-        vertex_data = np.zeros(vertices.shape[0], dtype=data.dtype)
-        vertex_data[indices.flatten()] = data.flatten()
-
-        tri_indices = []
-        for elem in indices:
-            for tri in tri_array:
-                tri_indices.append(elem[tri])
-        tri_indices = np.array(tri_indices)
-
-        v = vertices.astype(np.float32).flatten()
-        d = vertex_data.astype(np.float32).flatten()
-        i = tri_indices.astype(np.uint32).flatten()
-
-        return v, d, i
+            return triangulate_element_data(vertices, data, indices)
+        elif data.shape[1] == indices.shape[1]:
+            return triangulate_vertex_data(vertices, data, indices)
 
     def run_program(self):
         """ Renders one frame of the scene. """
