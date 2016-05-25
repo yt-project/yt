@@ -1,4 +1,5 @@
 ﻿# Sample script to install anaconda under windows
+# Borrowed from AstroPy for yt
 # Authors: Stuart Mumford
 # Borrwed from: Olivier Grisel and Kyle Kastner
 # License: BSD 3 clause
