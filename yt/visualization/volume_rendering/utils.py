@@ -1,7 +1,10 @@
 import numpy as np
 from yt.data_objects.static_output import Dataset
+from yt.utilities.lib import bounding_volume_hierarchy
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
+from yt.utilities.lib import bounding_volume_hierarchy
+
 from yt.utilities.on_demand_imports import NotAModule
 try:
     from yt.utilities.lib import mesh_traversal
@@ -30,7 +33,7 @@ def new_mesh_sampler(camera, render_source, engine):
     if engine == 'embree':
         sampler = mesh_traversal.EmbreeMeshSampler(*args, **kwargs)
     elif engine == 'yt':
-        sampler = mesh_traversal.BVHMeshSampler(*args, **kwargs)
+        sampler = bounding_volume_hierarchy.BVHMeshSampler(*args, **kwargs)
     return sampler
 
 
