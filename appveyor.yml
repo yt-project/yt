@@ -5,7 +5,6 @@ environment:
 
   global:
       PYTHON: "C:\\Miniconda-x64"
-      #MINICONDA_VERSION: "3.7.0"
 
   matrix:
 
@@ -18,8 +17,6 @@ platform:
     -x64
 
 install:
-    # Install miniconda using a powershell script.
-    #- "powershell doc/install-miniconda.ps1"
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
     # Install the build and runtime dependencies of the project.
