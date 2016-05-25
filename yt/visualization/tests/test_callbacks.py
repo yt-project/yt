@@ -21,7 +21,9 @@ from numpy.testing import \
 from yt.config import \
     ytcfg
 from yt.testing import \
-    fake_amr_ds
+    fake_amr_ds, \
+    fake_tetrahedral_ds, \
+    fake_hexahedral_ds
 import yt.units as u
 from .test_plotwindow import assert_fname
 from yt.utilities.exceptions import \
@@ -368,6 +370,22 @@ def test_cell_edges_callback():
                               color=(0.0, 1.0, 1.0))
         p.save(prefix)
 
+def test_mesh_lines_callback():
+    with _cleanup_fname() as prefix:
+
+        ds = fake_hexahedral_ds()
+        for field in ds.field_list:
+            sl = SlicePlot(ds, 1, field)
+            sl.annotate_mesh_lines(plot_args={'color':'black'})
+            yield assert_fname, sl.save(prefix)[0]
+
+        ds = fake_tetrahedral_ds()
+        for field in ds.field_list:
+            sl = SlicePlot(ds, 1, field)
+            sl.annotate_mesh_lines(plot_args={'color':'black'})
+            yield assert_fname, sl.save(prefix)[0]
+                
+
 def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -389,4 +407,5 @@ def test_line_integral_convolution_callback():
                                              cmap=ytcfg.get("yt", "default_colormap"),
                                              alpha=0.9, const_alpha=True)
         p.save(prefix)
+
 
