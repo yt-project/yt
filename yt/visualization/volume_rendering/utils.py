@@ -3,7 +3,6 @@ from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
 from yt.utilities.lib.grid_traversal import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
-from yt.utilities.lib import bounding_volume_hierarchy
 
 from yt.utilities.on_demand_imports import NotAModule
 try:
