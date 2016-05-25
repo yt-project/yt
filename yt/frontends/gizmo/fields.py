@@ -93,25 +93,6 @@ class GizmoFieldInfo(GadgetFieldInfo):
             units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
 
-        def _h_p0_ion_fraction(field, data):
-            return data[(ptype, 'NeutralHydrogenAbundance')]
-
-        def _h_p1_ion_fraction(field, data):
-            return 1.0 - data[(ptype, 'NeutralHydrogenAbundance')]
-
-        self.add_field(
-            (ptype, "H_ion_fraction"),
-            function=_h_p0_ion_fraction,
-            particle_type=True,
-            units="")
-
-        self.add_field(
-            (ptype, "H_p1_ion_fraction"),
-            function=_h_p1_ion_fraction,
-            particle_type=True,
-            units="")
-        self.alias((ptype, "H_p0_ion_fraction"), (ptype, "H_ion_fraction"))
-
         def _nuclei_mass_density_field(field, data):
             species = field.name[1][:field.name[1].find("_")]
             return data[ptype, "density"] * \
