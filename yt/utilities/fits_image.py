@@ -166,16 +166,26 @@ class FITSImageData(object):
         else:
             self.set_wcs(wcs)
 
-    def set_wcs(self, wcs):
+    def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
         Set the WCS coordinate information for all images
         with a WCS object *wcs*.
         """
-        self.wcs = wcs
-        h = self.wcs.to_header()
+        if wcsname is None:
+            wcs.wcs.name = 'yt'
+        else:
+            wcs.wcs.name = wcsname
+        h = wcs.to_header()
+        if suffix is None:
+            self.wcs = wcs
+        else:
+            setattr(self, "wcs"+suffix, wcs)
         for img in self.hdulist:
             for k, v in h.items():
-                img.header[k] = v
+                kk = k
+                if suffix is not None:
+                    kk += suffix
+                img.header[kk] = v
 
     def update_header(self, field, key, value):
         """
@@ -348,7 +358,9 @@ class FITSImageData(object):
 
     def create_sky_wcs(self, sky_center, sky_scale,
                        ctype=["RA---TAN","DEC--TAN"],
-                       crota=None, cd=None, pc=None):
+                       crota=None, cd=None, pc=None,
+                       wcsname="celestial",
+                       clobber_old_wcs=True):
         """
         Takes a Cartesian WCS and converts it to one in a
         celestial coordinate system.
@@ -369,6 +381,11 @@ class FITSImageData(object):
             Dimensioned coordinate transformation matrix.
         pc : 2x2-element ndarray, optional
             Coordinate transformation matrix.
+        clobber_old_wcs : boolean, optional
+            Whether or not to overwrite the default WCS of the 
+            FITSImageData instance. If false, an empty image
+            will be appended to the file with a header
+            corresponding to the new WCS attached. Default: True. 
         """
         old_wcs = self.wcs
         naxis = old_wcs.naxis
@@ -402,7 +419,10 @@ class FITSImageData(object):
             new_wcs.wcs.cd = cd
         if pc is not None:
             new_wcs.wcs.cd = pc
-        self.set_wcs(new_wcs)
+        if clobber_old_wcs:
+            self.set_wcs(new_wcs, wcsname=wcsname)
+        else:
+            self.set_wcs(new_wcs, wcsname=wcsname, suffix="a")
 
 class FITSImageBuffer(FITSImageData):
     pass
