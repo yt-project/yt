@@ -712,6 +712,7 @@ Annotate Mesh Lines Callback
    ds = yt.load('MOOSE_sample_data/out.e')
    sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
    sl.annotate_mesh_lines(plot_args={'color':'black'})
+   sl.save()
 
 .. _annotate-ray:
 
