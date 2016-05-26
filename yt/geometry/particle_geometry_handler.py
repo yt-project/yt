@@ -14,6 +14,7 @@ Particle-only geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import collections
 import numpy as np
 import os
 import weakref
@@ -50,6 +51,13 @@ class ParticleIndex(Index):
         dx = dx * (self.dataset.domain_right_edge -
                    self.dataset.domain_left_edge)
         return dx.min()
+
+    def _get_particle_type_counts(self):
+        result = collections.defaultdict(lambda: 0)
+        for df in self.data_files:
+            for k in df.total_particles.keys():
+                result[k] += df.total_particles[k]
+        return dict(result)
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
