@@ -383,9 +383,8 @@ class FITSImageData(object):
             Coordinate transformation matrix.
         clobber_old_wcs : boolean, optional
             Whether or not to overwrite the default WCS of the 
-            FITSImageData instance. If false, an empty image
-            will be appended to the file with a header
-            corresponding to the new WCS attached. Default: True. 
+            FITSImageData instance. If false, a second WCS will 
+            be added to the header. Default: True.
         """
         old_wcs = self.wcs
         naxis = old_wcs.naxis
