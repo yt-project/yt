@@ -345,7 +345,8 @@ class SZProjection(object):
         self.data["Tau"] = self.ds.arr(tau, "dimensionless")
         self.data["TeSZ"] = self.ds.arr(Te, "keV")
 
-    def write_fits(self, filename, sky_scale=None, sky_center=None, clobber=True):
+    def write_fits(self, filename, sky_scale=None, sky_center=None, 
+                   clobber_old_wcs=True, clobber=True):
         r""" Export images to a FITS file. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
         optical depth. Distance units are in kpc, unless *sky_center*
@@ -361,6 +362,9 @@ class SZProjection(object):
         sky_center : tuple, optional
             The (RA, Dec) coordinate in degrees of the central pixel. Must
             be specified with *sky_scale*.
+        clobber_old_wcs : boolean, optional
+            Whether or not to overwrite the default WCS of the FITS file. 
+            If False, a second WCS will be added to the header. Default: True. 
         clobber : boolean, optional
             If the file already exists, do we overwrite?
 
@@ -387,7 +391,7 @@ class SZProjection(object):
 
         fib = FITSImageData(self.data, fields=self.data.keys(), wcs=w)
         if sky_scale is not None and sky_center is not None:
-            fib.create_sky_wcs(sky_center, sky_scale)
+            fib.create_sky_wcs(sky_center, sky_scale, clobber_old_wcs=clobber_old_wcs)
         fib.writeto(filename, clobber=clobber)
 
     def write_png(self, filename_prefix, cmap_name=None,
