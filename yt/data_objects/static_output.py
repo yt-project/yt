@@ -24,6 +24,8 @@ from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
+from yt.fields.derived_field import \
+    DerivedField
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -590,7 +592,10 @@ class Dataset(object):
     def _get_field_info(self, ftype, fname = None):
         self.index
         if fname is None:
-            ftype, fname = "unknown", ftype
+            if isinstance(ftype, DerivedField):
+                ftype, fname = ftype.name
+            else:
+                ftype, fname = "unknown", ftype
         guessing_type = False
         if ftype == "unknown":
             guessing_type = True

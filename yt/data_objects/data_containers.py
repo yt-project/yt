@@ -24,6 +24,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.fields.derived_field import \
+    DerivedField
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
@@ -983,6 +985,9 @@ class YTDataContainer(object):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)
+            elif isinstance(field, DerivedField):
+                ftype, fname = field.name
+                finfo = field
             else:
                 fname = field
                 finfo = self.ds._get_field_info("unknown", fname)
