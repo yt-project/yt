@@ -200,7 +200,7 @@ class LightRay(CosmologySplice):
                                 np.cos(theta)])
             self.light_ray_solution[0]['traversal_box_fraction'] = \
               vector_length(self.light_ray_solution[0]['start'],
-                            self.light_ray_solution[0]['end'])
+                            self.light_ray_solution[0]['end'])/ ( self.ds.domain_width[0].value )
 
         # the normal way (random start positions and trajectories for each dataset)
         else:
