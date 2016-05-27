@@ -32,8 +32,6 @@ import os
 import re
 from yt.utilities.logger import ytLogger as mylog
 
-import sys
-
 class openPMDBasePathException(Exception) :
     pass
 
@@ -344,7 +342,6 @@ class openPMDDataset(Dataset, openPMDBasePath):
         f = self._handle
         meshesPath = f.attrs["meshesPath"].decode()
         particlesPath = f.attrs["particlesPath"].decode()
-        positionPath = self.basePath + particlesPath + "/electrons/position/"
 
         # This defines the size of the simulaion box
         self.unique_identifier = 0  # no identifier

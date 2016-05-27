@@ -86,7 +86,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     f = h5py.File(g.filename, "r")
 
                 dds = f[self.basePath]
-                # Sorted by what key? What for?
                 for ptype, field_list in sorted(ptf.items()):
                     # Inefficient for const records
 
@@ -158,7 +157,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     f = h5py.File(u(g.filename), 'r')
 
                 ds = f[self.basePath]
-                # Sorted by what key? What for?
                 for ptype, field_list in sorted(ptf.items()):
                     # Inefficient for const records
 
