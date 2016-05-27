@@ -28,6 +28,8 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
+from yt.utilities.lib.mesh_triangulation import triangulate_vertex_data, \
+    triangulate_element_data
 from .shader_objects import known_shaders, ShaderProgram
 
 bbox_vertices = np.array(
@@ -76,28 +78,6 @@ FULLSCREEN_QUAD = np.array(
      +1.0, -1.0, 0.0,
      +1.0, +1.0, 0.0], dtype=np.float32
 )
-
-triangulate_hex = np.array([
-    [0, 2, 1], [0, 3, 2],
-    [4, 5, 6], [4, 6, 7],
-    [0, 1, 5], [0, 5, 4],
-    [1, 2, 6], [1, 6, 5],
-    [0, 7, 3], [0, 4, 7],
-    [3, 6, 2], [3, 7, 6]]
-)
-
-triangulate_tetra = np.array([
-    [0, 1, 3], [2, 3, 1],
-    [0, 3, 2], [0, 2, 1]]
-)
-
-triangulate_wedge = np.array([
-    [3, 0, 1], [4, 3, 1],
-    [2, 5, 4], [2, 4, 1],
-    [0, 3, 2], [2, 3, 5],
-    [3, 4, 5], [0, 2, 1]]
-)
-
 
 class IDVCamera(object):
     '''Camera object used in the Interactive Data Visualization
@@ -655,38 +635,23 @@ class MeshSceneComponent(ColorBarSceneComponent):
         """
 
         # get mesh information
-        ftype, fname = field
-        mesh_id = int(ftype[-1])
+        try:
+            ftype, fname = field
+            mesh_id = int(ftype[-1])
+        except ValueError:
+            mesh_id = 0
+
         mesh = data_source.ds.index.meshes[mesh_id-1]
         offset = mesh._index_offset
         vertices = mesh.connectivity_coords
         indices  = mesh.connectivity_indices - offset
 
-        # get vertex data
         data = data_source[field]
-        vertex_data = np.zeros(vertices.shape[0], dtype=data.dtype)
-        vertex_data[indices.flatten()] = data.flatten()
 
-        if indices.shape[1] == 8:
-            tri_array = triangulate_hex
-        elif indices.shape[1] == 4:
-            tri_array = triangulate_tetra
-        elif indices.shape[1] == 6:
-            tri_array = triangulate_wedge
-        else:
-            raise NotImplementedError
-
-        tri_indices = []
-        for elem in indices:
-            for tri in tri_array:
-                tri_indices.append(elem[tri])
-        tri_indices = np.array(tri_indices)
-
-        v = vertices.astype(np.float32).flatten()
-        d = vertex_data.astype(np.float32).flatten()
-        i = tri_indices.astype(np.uint32).flatten()
-
-        return v, d, i
+        if len(data.shape) == 1:
+            return triangulate_element_data(vertices, data, indices)
+        elif data.shape[1] == indices.shape[1]:
+            return triangulate_vertex_data(vertices, data, indices)
 
     def run_program(self):
         """ Renders one frame of the scene. """
