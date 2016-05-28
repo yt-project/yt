@@ -1,3 +1,4 @@
+# cython: profile=True
 import numpy as np
 cimport numpy as np
 cimport cython
@@ -18,6 +19,47 @@ cdef extern from "mesh_triangulation.h":
     int triangulate_tetra[MAX_NUM_TRI][3]
     int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def cull_interior(np.ndarray[np.int64_t, ndim=2] indices):
+    cdef np.int64_t num_elem = indices.shape[0]
+    cdef np.int64_t VPE = indices.shape[1]  # num verts per element
+    cdef np.int64_t TPE  # num triangles per element
+    cdef int[MAX_NUM_TRI][3] tri_array
+    
+    if (VPE == 8 or VPE == 20 or VPE == 27):
+        TPE = HEX_NT
+        tri_array = triangulate_hex
+    elif VPE == 4:
+        TPE = TETRA_NT
+        tri_array = triangulate_tetra
+    elif VPE == 6:
+        TPE = WEDGE_NT
+        tri_array = triangulate_wedge
+    else:
+        raise YTElementTypeNotRecognized(3, VPE)
+
+    cdef np.int64_t num_tri = TPE * num_elem
+    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
+
+    cdef set s = set()
+    cdef np.int64_t i, j, k, offset
+    cdef np.int64_t tri[3]
+    cdef frozenset t
+    for i in range(num_elem):
+        for j in range(TPE):
+            for k in range(3):
+                offset = tri_array[j][k]
+                tri[k] = indices_ptr[i*VPE + offset]
+            t = frozenset([tri[0], tri[1], tri[2]])
+            try:
+                s.remove(t)
+            except KeyError:
+                s.add(t)
+    return s
 
 
 @cython.boundscheck(False)
