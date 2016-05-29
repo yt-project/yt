@@ -1,14 +1,14 @@
-# cython: profile=True
 import numpy as np
 cimport numpy as np
 cimport cython
+from libc.stdlib cimport malloc, free
 
 from yt.utilities.exceptions import YTElementTypeNotRecognized
 
-cdef extern from "mesh_triangulation.h":
+cdef extern from "/Users/atmyers/yt-conda/src/yt-hg/yt/utilities/lib/mesh_triangulation.h":
     enum:
         MAX_NUM_TRI
-        
+
     int HEX_NV
     int HEX_NT
     int TETRA_NV
@@ -20,7 +20,132 @@ cdef extern from "mesh_triangulation.h":
     int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
 
+cdef struct TriNode:
+    np.uint64_t key
+    np.int64_t tri[3]
+    TriNode* next_node
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) nogil:
+    cdef np.int64_t found
+    for i in range(3):
+        found = False
+        for j in range(3):
+            if tri1[i] == tri2[j]:
+                found = True
+        if not found:
+            return 0
+    return 1
+    
+cdef np.int64_t TABLE_SIZE = 2**24
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.uint64_t hash_func(np.int64_t tri[3]) nogil:
+    # http://stackoverflow.com/questions/1536393/good-hash-function-for-permutations
+    cdef np.uint64_t h = 1
+    for i in range(3):
+        h *= (1779033703 + 2*tri[i])
+    return h / 2
+
+cdef class TriSet:
+    cdef TriNode **table
+    cdef np.uint64_t num_items
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def __cinit__(self):
+        self.table = <TriNode**> malloc(TABLE_SIZE * sizeof(TriNode*))
+        for i in range(TABLE_SIZE):
+            self.table[i] = NULL
+        self.num_items = 0
+        
+    def __dealloc__(self):
+        cdef np.int64_t i
+        cdef TriNode *node
+        cdef TriNode *delete_node
+        for i in range(TABLE_SIZE):
+            node = self.table[i]
+            while (node != NULL):
+                delete_node = node
+                node = node.next_node
+                free(delete_node)
+            self.table[i] = NULL
+        free(self.table)
+    
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void add(self, np.int64_t tri[3]) nogil:
+        cdef np.uint64_t key = hash_func(tri)
+        cdef np.uint64_t index = key % TABLE_SIZE
+        cdef TriNode *node = self.table[index]        
+        
+        if node == NULL:
+            # this is the first item in this bin
+            self.table[index] = <TriNode* > malloc(sizeof(TriNode))
+            self.table[index].key = key
+            self.table[index].tri[0] = tri[0]
+            self.table[index].tri[1] = tri[1]
+            self.table[index].tri[2] = tri[2]
+            self.table[index].next_node = NULL
+            self.num_items += 1
+            return
+    
+        # there is already something here; walk through list
+        while node != NULL:
+            if triangles_are_equal(node.tri, tri):
+                # this triangle is already here, do nothing
+                return
+            if node.next_node == NULL:
+                # we have reached the end; add new node
+                node.next_node = <TriNode* > malloc(sizeof(TriNode))
+                node.next_node.key = key
+                node.next_node.tri[0] = tri[0]
+                node.next_node.tri[1] = tri[1]
+                node.next_node.tri[2] = tri[2]
+                node.next_node.next_node = NULL
+                self.num_items += 1
+                return
+            node = node.next_node
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef np.int64_t delete(self, np.int64_t tri[3]) nogil:
+        cdef np.uint64_t key = hash_func(tri)
+        cdef np.uint64_t index = key % TABLE_SIZE
+        cdef TriNode *node = self.table[index]
+
+        if node == NULL:
+            # nothing is here
+            return 0
+        
+        if triangles_are_equal(node.tri, tri):
+            # this tri is at the first position
+            self.table[index] = node.next_node
+            free(node)
+            self.num_items -= 1
+            return 1
+
+        # otherwise, try to find the tri in the list
+        cdef TriNode* prev = node
+        node = node.next_node
+        while node != NULL:
+            if triangles_are_equal(node.tri, tri):
+                prev.next_node = node.next_node
+                free(node)
+                self.num_items -= 1
+                return 1
+            prev = node
+            node = node.next_node
+
+        return 0
+    
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -29,7 +154,7 @@ def cull_interior(np.ndarray[np.int64_t, ndim=2] indices):
     cdef np.int64_t VPE = indices.shape[1]  # num verts per element
     cdef np.int64_t TPE  # num triangles per element
     cdef int[MAX_NUM_TRI][3] tri_array
-    
+
     if (VPE == 8 or VPE == 20 or VPE == 27):
         TPE = HEX_NT
         tri_array = triangulate_hex
@@ -44,23 +169,18 @@ def cull_interior(np.ndarray[np.int64_t, ndim=2] indices):
 
     cdef np.int64_t num_tri = TPE * num_elem
     cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
-
-    cdef set s = set()
-    cdef np.int64_t i, j, k, offset
+    
+    cdef TriSet s = TriSet()
+    cdef np.int64_t i, j, k, found
     cdef np.int64_t tri[3]
-    cdef frozenset t
     for i in range(num_elem):
         for j in range(TPE):
             for k in range(3):
-                offset = tri_array[j][k]
-                tri[k] = indices_ptr[i*VPE + offset]
-            t = frozenset([tri[0], tri[1], tri[2]])
-            try:
-                s.remove(t)
-            except KeyError:
-                s.add(t)
-    return s
-
+                tri[k] = indices_ptr[i*VPE + tri_array[j][k]]
+            found = s.delete(tri)
+            if not found:
+                s.add(tri)
+    print s.num_items
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
