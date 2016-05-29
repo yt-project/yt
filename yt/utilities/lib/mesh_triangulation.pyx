@@ -21,7 +21,7 @@ cdef extern from "/Users/atmyers/yt-conda/src/yt-hg/yt/utilities/lib/mesh_triang
     int hex20_faces[6][8]
 
 cdef struct TriNode:
-    np.uint64_t key
+#    np.uint64_t key
     np.int64_t tri[3]
     TriNode* next_node
 
@@ -88,7 +88,7 @@ cdef class TriSet:
         if node == NULL:
             # this is the first item in this bin
             self.table[index] = <TriNode* > malloc(sizeof(TriNode))
-            self.table[index].key = key
+#            self.table[index].key = key
             self.table[index].tri[0] = tri[0]
             self.table[index].tri[1] = tri[1]
             self.table[index].tri[2] = tri[2]
@@ -98,13 +98,13 @@ cdef class TriSet:
     
         # there is already something here; walk through list
         while node != NULL:
-            if triangles_are_equal(node.tri, tri):
-                # this triangle is already here, do nothing
-                return
+#            if triangles_are_equal(node.tri, tri):
+#                # this triangle is already here, do nothing
+#                return
             if node.next_node == NULL:
                 # we have reached the end; add new node
                 node.next_node = <TriNode* > malloc(sizeof(TriNode))
-                node.next_node.key = key
+#                node.next_node.key = key
                 node.next_node.tri[0] = tri[0]
                 node.next_node.tri[1] = tri[1]
                 node.next_node.tri[2] = tri[2]
