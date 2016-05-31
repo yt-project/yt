@@ -46,6 +46,15 @@ cdef np.uint64_t triangle_hash(np.int64_t tri[3]) nogil:
 cdef np.int64_t TABLE_SIZE = 2**24
 
 cdef class TriSet:
+    '''
+
+    This is a hash table data structure for rapidly identifying the exterior
+    triangles in a polygon mesh. We loop over each triangle in each element and
+    update the TriSet for each one. We keep only the triangles that appear once,
+    as these make up the exterior of the mesh.
+
+    '''
+
     cdef TriNode **table
     cdef np.uint64_t num_items
     
@@ -69,6 +78,12 @@ cdef class TriSet:
         free(self.table)
     
     def get_exterior_tris(self):
+        '''
+
+        Returns two numpy arrays, one storing the exterior triangle
+        indices and the other storing the corresponding element ids.
+
+        '''
 
         cdef np.ndarray[np.int64_t, ndim=2] tri_indices
         tri_indices = np.empty((self.num_items, 3), dtype="int64")
