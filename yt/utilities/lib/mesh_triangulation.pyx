@@ -5,10 +5,9 @@ from libc.stdlib cimport malloc, free
 
 from yt.utilities.exceptions import YTElementTypeNotRecognized
 
-cdef extern from "/Users/atmyers/yt-conda/src/yt-hg/yt/utilities/lib/mesh_triangulation.h":
+cdef extern from "mesh_triangulation.h":
     enum:
         MAX_NUM_TRI
-
     int HEX_NV
     int HEX_NT
     int TETRA_NV
