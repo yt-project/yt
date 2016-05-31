@@ -90,6 +90,7 @@ cdef class TriSet:
 
         cdef TriNode* node
         cdef np.int64_t counter = 0
+        cdef np.int64_t i, j
         for i in range(TABLE_SIZE):
             node = self.table[i]
             while node != NULL:
@@ -197,9 +198,11 @@ def cull_interior(np.ndarray[np.float64_t, ndim=2] coords,
             for k in range(3):
                 tri[k] = indices_ptr[i*VPE + tri_array[j][k]]
             s.update(tri, i)
-    exterior_tris, element_map = s.get_exterior_tris()
 
+    exterior_tris, element_map = s.get_exterior_tris()
     cdef np.int64_t num_exterior_tris = exterior_tris.shape[0]
+    cdef np.int64_t *exterior_tris_ptr = <np.int64_t*> exterior_tris.data
+
     cdef np.ndarray[np.int32_t, ndim=1] tri_indices
     tri_indices = np.empty(num_exterior_tris * 3, dtype=np.int32)
     cdef np.int32_t *tri_indices_ptr = <np.int32_t*> tri_indices.data
@@ -212,14 +215,15 @@ def cull_interior(np.ndarray[np.float64_t, ndim=2] coords,
     tri_coords = np.empty(num_exterior_tris*3*3, dtype=np.float32)
     cdef np.float32_t *tri_coords_ptr = <np.float32_t*> tri_coords.data
     
-    cdef np.int64_t vert_index
+    cdef np.int64_t vert_index, coord_index
     for i in range(num_exterior_tris):
         for j in range(3):
             vert_index = i*3 + j
             tri_data_ptr[vert_index] = data_ptr[element_map[i]]
             tri_indices_ptr[vert_index] = vert_index
             for k in range(3):
-                tri_coords_ptr[vert_index*3 + k] = coords_ptr[3*exterior_tris[i][j] + k]
+                coord_index = 3*exterior_tris_ptr[i*3 + j] + k
+                tri_coords_ptr[vert_index*3 + k] = coords_ptr[coord_index]
 
     return tri_coords, tri_data, tri_indices
 
