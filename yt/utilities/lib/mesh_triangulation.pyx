@@ -144,11 +144,7 @@ cdef class TriSet:
             prev = node
             node = node.next_node
 
-    
-@cython.boundscheck(False)
-def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
-                             np.ndarray[np.float64_t, ndim=1] data,
-                             np.ndarray[np.int64_t, ndim=2] indices):
+def cull_interior_triangles(np.ndarray[np.int64_t, ndim=2] indices):
     cdef np.int64_t num_elem = indices.shape[0]
     cdef np.int64_t VPE = indices.shape[1]  # num verts per element
     cdef np.int64_t TPE  # num triangles per element
@@ -168,13 +164,7 @@ def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
 
     cdef np.int64_t num_tri = TPE * num_elem
     cdef np.int64_t num_verts = num_tri*3
-
     cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
-    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
-    cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
-
-    cdef np.ndarray[np.int64_t, ndim=2] exterior_tris
-    cdef np.ndarray[np.int64_t, ndim=1] element_map
 
     cdef TriSet s = TriSet()
     cdef np.int64_t i, j, k, found
@@ -185,24 +175,38 @@ def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
                 tri[k] = indices_ptr[i*VPE + tri_array[j][k]]
             s.update(tri, i)
 
-    exterior_tris, element_map = s.get_exterior_tris()
-    cdef np.int64_t num_exterior_tris = exterior_tris.shape[0]
+    return s.get_exterior_tris()
+    
+
+@cython.boundscheck(False)
+def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
+                             np.ndarray[np.float64_t, ndim=1] data,
+                             np.ndarray[np.int64_t, ndim=2] indices):
+
+    cdef np.ndarray[np.int64_t, ndim=2] exterior_tris
+    cdef np.ndarray[np.int64_t, ndim=1] element_map
+    exterior_tris, element_map = cull_interior_triangles(indices)
+
+    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
+    cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
+
+    cdef np.int64_t num_tri = exterior_tris.shape[0]
     cdef np.int64_t *exterior_tris_ptr = <np.int64_t*> exterior_tris.data
 
     cdef np.ndarray[np.int32_t, ndim=1] tri_indices
-    tri_indices = np.empty(num_exterior_tris * 3, dtype=np.int32)
+    tri_indices = np.empty(num_tri * 3, dtype=np.int32)
     cdef np.int32_t *tri_indices_ptr = <np.int32_t*> tri_indices.data
     
     cdef np.ndarray[np.float32_t, ndim=1] tri_data
-    tri_data = np.empty(num_exterior_tris * 3, dtype=np.float32)
+    tri_data = np.empty(num_tri * 3, dtype=np.float32)
     cdef np.float32_t *tri_data_ptr = <np.float32_t*> tri_data.data
 
     cdef np.ndarray[np.float32_t, ndim=1] tri_coords
-    tri_coords = np.empty(num_exterior_tris*3*3, dtype=np.float32)
+    tri_coords = np.empty(num_tri*3*3, dtype=np.float32)
     cdef np.float32_t *tri_coords_ptr = <np.float32_t*> tri_coords.data
     
     cdef np.int64_t vert_index, coord_index
-    for i in range(num_exterior_tris):
+    for i in range(num_tri):
         for j in range(3):
             vert_index = i*3 + j
             tri_data_ptr[vert_index] = data_ptr[element_map[i]]

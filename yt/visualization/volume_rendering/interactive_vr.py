@@ -596,7 +596,10 @@ class MeshSceneComponent(ColorBarSceneComponent):
         GL.glEnable(GL.GL_CULL_FACE)
         GL.glCullFace(GL.GL_BACK)
 
+        import time
+        start = time.clock()
         vertices, data, indices = self.get_mesh_data(data_source, field)
+        print time.clock() - start
 
         self._initialize_vertex_array("mesh_info")
         GL.glBindVertexArray(self.vert_arrays["mesh_info"])
