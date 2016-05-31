@@ -740,7 +740,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2):
+    cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2) nogil:
         cdef int i
         # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
         # And our R is always 2; note that our smoothing kernel functions
@@ -784,7 +784,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t interpolate(self, np.float64_t qxy2):
+    cdef np.float64_t interpolate(self, np.float64_t qxy2) nogil:
         cdef int index
         cdef np.float64_t F_interpolate
         index = <int> ((qxy2 - self.qxy2_vals[0])*self.iqxy2_range)

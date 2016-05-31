@@ -19,6 +19,7 @@ import numpy as np
 from libc.stdlib cimport malloc, free
 cimport cython
 from libc.math cimport sqrt
+from numpy.math cimport PI as NPY_PI
 
 from yt.utilities.lib.fp_utils cimport *
 from .oct_container cimport Oct, OctreeContainer
@@ -54,9 +55,9 @@ cdef inline np.float64_t sph_kernel_cubic(np.float64_t x) nogil:
 ########################################################
 
 # quartic spline
-cdef inline np.float64_t sph_kernel_quartic(np.float64_t x):
+cdef inline np.float64_t sph_kernel_quartic(np.float64_t x) nogil:
     cdef np.float64_t kernel
-    cdef np.float64_t C = 5.**6/512/np.pi
+    cdef np.float64_t C = 5.**6/512/NPY_PI
     if x < 1:
         kernel = (1.-x)**4
         if x < 3./5:
@@ -68,9 +69,9 @@ cdef inline np.float64_t sph_kernel_quartic(np.float64_t x):
     return kernel * C
 
 # quintic spline
-cdef inline np.float64_t sph_kernel_quintic(np.float64_t x):
+cdef inline np.float64_t sph_kernel_quintic(np.float64_t x) nogil:
     cdef np.float64_t kernel
-    cdef np.float64_t C = 3.**7/40/np.pi
+    cdef np.float64_t C = 3.**7/40/NPY_PI
     if x < 1:
         kernel = (1.-x)**5
         if x < 2./3:
@@ -82,9 +83,9 @@ cdef inline np.float64_t sph_kernel_quintic(np.float64_t x):
     return kernel * C
 
 # Wendland C2
-cdef inline np.float64_t sph_kernel_wendland2(np.float64_t x):
+cdef inline np.float64_t sph_kernel_wendland2(np.float64_t x) nogil:
     cdef np.float64_t kernel
-    cdef np.float64_t C = 21./2/np.pi
+    cdef np.float64_t C = 21./2/NPY_PI
     if x < 1:
         kernel = (1.-x)**4 * (1+4*x)
     else:
@@ -92,9 +93,9 @@ cdef inline np.float64_t sph_kernel_wendland2(np.float64_t x):
     return kernel * C
 
 # Wendland C4
-cdef inline np.float64_t sph_kernel_wendland4(np.float64_t x):
+cdef inline np.float64_t sph_kernel_wendland4(np.float64_t x) nogil:
     cdef np.float64_t kernel
-    cdef np.float64_t C = 495./32/np.pi
+    cdef np.float64_t C = 495./32/NPY_PI
     if x < 1:
         kernel = (1.-x)**6 * (1+6*x+35./3*x**2)
     else:
@@ -102,9 +103,9 @@ cdef inline np.float64_t sph_kernel_wendland4(np.float64_t x):
     return kernel * C
 
 # Wendland C6
-cdef inline np.float64_t sph_kernel_wendland6(np.float64_t x):
+cdef inline np.float64_t sph_kernel_wendland6(np.float64_t x) nogil:
     cdef np.float64_t kernel
-    cdef np.float64_t C = 1365./64/np.pi
+    cdef np.float64_t C = 1365./64/NPY_PI
     if x < 1:
         kernel = (1.-x)**8 * (1+8*x+25*x**2+32*x**3)
     else:
@@ -114,7 +115,7 @@ cdef inline np.float64_t sph_kernel_wendland6(np.float64_t x):
 # I don't know the way to use a dict in a cdef class.
 # So in order to mimic a registry functionality,
 # I manually created a function to lookup the kernel functions.
-ctypedef np.float64_t (*kernel_func) (np.float64_t)
+ctypedef np.float64_t (*kernel_func) (np.float64_t) nogil
 cdef inline kernel_func get_kernel_func(str kernel_name):
     if kernel_name == 'cubic':
         return sph_kernel_cubic
