@@ -22,6 +22,7 @@ cdef extern from "/Users/atmyers/yt-conda/src/yt-hg/yt/utilities/lib/mesh_triang
 
 cdef struct TriNode:
     np.uint64_t key
+    np.int64_t elem
     np.int64_t tri[3]
     TriNode* next_node
 
@@ -78,9 +79,14 @@ cdef class TriSet:
         free(self.table)
     
     def get_exterior_tris(self):
+
         cdef np.ndarray[np.int64_t, ndim=2] tri_indices
         tri_indices = np.empty((self.num_items, 3), dtype="int64")
         cdef np.int64_t *tri_indices_ptr = <np.int64_t*> tri_indices.data
+
+        cdef np.ndarray[np.int64_t, ndim=1] element_map
+        element_map = np.empty(self.num_items, dtype="int64")
+        cdef np.int64_t *elem_map_ptr = <np.int64_t*> element_map.data
 
         cdef TriNode* node
         cdef np.int64_t counter = 0
@@ -89,14 +95,19 @@ cdef class TriSet:
             while node != NULL:
                 for j in range(3):
                     tri_indices_ptr[3*counter + j] = node.tri[j]
+                elem_map_ptr[counter] = node.elem
                 counter += 1
                 node = node.next_node
                 
-        return tri_indices
+        return tri_indices, element_map
 
-    cdef TriNode* _allocate_new_node(self, np.int64_t tri[3], np.uint64_t key) nogil:
+    cdef TriNode* _allocate_new_node(self,
+                                     np.int64_t tri[3],
+                                     np.uint64_t key,
+                                     np.int64_t elem) nogil:
         cdef TriNode* new_node = <TriNode* > malloc(sizeof(TriNode))
         new_node.key = key
+        new_node.elem = elem
         new_node.tri[0] = tri[0]
         new_node.tri[1] = tri[1]
         new_node.tri[2] = tri[2]
@@ -107,13 +118,13 @@ cdef class TriSet:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void update(self, np.int64_t tri[3]) nogil:
+    cdef void update(self, np.int64_t tri[3], np.int64_t elem) nogil:
         cdef np.uint64_t key = hash_func(tri)
         cdef np.uint64_t index = key % TABLE_SIZE
         cdef TriNode *node = self.table[index]
         
         if node == NULL:
-            self.table[index] = self._allocate_new_node(tri, key)
+            self.table[index] = self._allocate_new_node(tri, key, elem)
             return
 
         if key == node.key and triangles_are_equal(node.tri, tri):
@@ -124,7 +135,7 @@ cdef class TriSet:
             return
 
         elif node.next_node == NULL:
-            node.next_node = self._allocate_new_node(tri, key)
+            node.next_node = self._allocate_new_node(tri, key, elem)
             return
     
         # walk through node list
@@ -139,7 +150,7 @@ cdef class TriSet:
                 return
             if node.next_node == NULL:
                 # we have reached the end; add new node
-                node.next_node = self._allocate_new_node(tri, key)
+                node.next_node = self._allocate_new_node(tri, key, elem)
                 return
             prev = node
             node = node.next_node
@@ -148,7 +159,9 @@ cdef class TriSet:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def cull_interior(np.ndarray[np.int64_t, ndim=2] indices):
+def cull_interior(np.ndarray[np.float64_t, ndim=2] coords,
+                  np.ndarray[np.float64_t, ndim=1] data,
+                  np.ndarray[np.int64_t, ndim=2] indices):
     cdef np.int64_t num_elem = indices.shape[0]
     cdef np.int64_t VPE = indices.shape[1]  # num verts per element
     cdef np.int64_t TPE  # num triangles per element
@@ -167,8 +180,15 @@ def cull_interior(np.ndarray[np.int64_t, ndim=2] indices):
         raise YTElementTypeNotRecognized(3, VPE)
 
     cdef np.int64_t num_tri = TPE * num_elem
+    cdef np.int64_t num_verts = num_tri*3
+
     cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
-    
+    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
+    cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
+
+    cdef np.ndarray[np.int64_t, ndim=2] exterior_tris
+    cdef np.ndarray[np.int64_t, ndim=1] element_map
+
     cdef TriSet s = TriSet()
     cdef np.int64_t i, j, k, found
     cdef np.int64_t tri[3]
@@ -176,8 +196,32 @@ def cull_interior(np.ndarray[np.int64_t, ndim=2] indices):
         for j in range(TPE):
             for k in range(3):
                 tri[k] = indices_ptr[i*VPE + tri_array[j][k]]
-            s.update(tri)
-    return s.get_exterior_tris()
+            s.update(tri, i)
+    exterior_tris, element_map = s.get_exterior_tris()
+
+    cdef np.int64_t num_exterior_tris = exterior_tris.shape[0]
+    cdef np.ndarray[np.int32_t, ndim=1] tri_indices
+    tri_indices = np.empty(num_exterior_tris * 3, dtype=np.int32)
+    cdef np.int32_t *tri_indices_ptr = <np.int32_t*> tri_indices.data
+    
+    cdef np.ndarray[np.float32_t, ndim=1] tri_data
+    tri_data = np.empty(num_exterior_tris * 3, dtype=np.float32)
+    cdef np.float32_t *tri_data_ptr = <np.float32_t*> tri_data.data
+
+    cdef np.ndarray[np.float32_t, ndim=1] tri_coords
+    tri_coords = np.empty(num_exterior_tris*3*3, dtype=np.float32)
+    cdef np.float32_t *tri_coords_ptr = <np.float32_t*> tri_coords.data
+    
+    cdef np.int64_t vert_index
+    for i in range(num_exterior_tris):
+        for j in range(3):
+            vert_index = i*3 + j
+            tri_data_ptr[vert_index] = data_ptr[element_map[i]]
+            tri_indices_ptr[vert_index] = vert_index
+            for k in range(3):
+                tri_coords_ptr[vert_index*3 + k] = coords_ptr[3*exterior_tris[i][j] + k]
+
+    return tri_coords, tri_data, tri_indices
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
