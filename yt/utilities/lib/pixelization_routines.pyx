@@ -727,8 +727,8 @@ kernel_tables = {}
 cdef class SPHKernelInterpolationTable:
     cdef public object kernel_name
     cdef kernel_func kernel
-    cdef np.float64_t[:] table
-    cdef np.float64_t[:] qxy2_vals
+    cdef np.float64_t[::1] table
+    cdef np.float64_t[::1] qxy2_vals
     cdef np.float64_t qxy2_range, iqxy2_range
 
     def __init__(self, kernel_name):
@@ -743,22 +743,22 @@ cdef class SPHKernelInterpolationTable:
     cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2) nogil:
         cdef int i
         # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
-        # And our R is always 2; note that our smoothing kernel functions
+        # And our R is always 1; note that our smoothing kernel functions
         # expect it to run from 0 .. 1, so we cut in half before we feed it in.
         cdef int N = 200
         cdef np.float64_t qz
-        cdef np.float64_t R = 2
+        cdef np.float64_t R = 1
         cdef np.float64_t R0 = -math.sqrt(R*R-qxy2)
         cdef np.float64_t R1 = math.sqrt(R*R-qxy2)
         cdef np.float64_t dR = (R1-R0)/N
         # Set to our bounds
         cdef np.float64_t integral = 0.0
-        integral += self.kernel(math.sqrt(R0*R0 + qxy2)/2.0)
-        integral += self.kernel(math.sqrt(R1*R1 + qxy2)/2.0)
+        integral += self.kernel(math.sqrt(R0*R0 + qxy2))
+        integral += self.kernel(math.sqrt(R1*R1 + qxy2))
         # We're going to manually conduct a trapezoidal integration
         for i in range(1, N):
             qz = R0 + i * dR
-            integral += 2.0*self.kernel(math.sqrt(qz*qz + qxy2)/2.0)
+            integral += 2.0*self.kernel(math.sqrt(qz*qz + qxy2))
         integral *= (R1-R0)/(2*N)
         return integral
         
@@ -772,9 +772,9 @@ cdef class SPHKernelInterpolationTable:
                              itemsize=sizeof(np.float64_t))
         self.qxy2_vals = cvarray(format="d", shape=(TABLE_NVALS,),
                              itemsize=sizeof(np.float64_t))
-        # We run from 0 to 4 here over R
+        # We run from 0 to 1 here over R
         for i in range(TABLE_NVALS):
-            self.qxy2_vals[i] = i * 4.0/(TABLE_NVALS-1)
+            self.qxy2_vals[i] = i * 1.0/(TABLE_NVALS-1)
             self.table[i] = self.integrate_qxy2(self.qxy2_vals[i])
 
         self.qxy2_range = self.qxy2_vals[TABLE_NVALS-1] - self.qxy2_vals[0]
@@ -788,9 +788,11 @@ cdef class SPHKernelInterpolationTable:
         cdef int index
         cdef np.float64_t F_interpolate
         index = <int> ((qxy2 - self.qxy2_vals[0])*self.iqxy2_range)
-        F_interpolate = self.table[index-1] + (
-                (self.table[index] - self.table[index-1])
-               *(qxy2 - self.qxy2_vals[index-1])*self.iqxy2_range)
+        if index >= TABLE_NVALS:
+            index = TABLE_NVALS - 1
+        F_interpolate = self.table[index] + (
+                (self.table[index+1] - self.table[index])
+               *(qxy2 - self.qxy2_vals[index])*self.iqxy2_range)
         return F_interpolate
 
 @cython.initializedcheck(False)
@@ -804,7 +806,7 @@ def pixelize_sph_kernel(np.float64_t[:,:] bounds,
                         kernel_name = "cubic"):
 
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t x, y, dx, dy, idx, idy
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef np.float64_t qxy2, posx_diff, posy_diff, coeff, ih_j2
     cdef int index, i, j
 
@@ -820,31 +822,34 @@ def pixelize_sph_kernel(np.float64_t[:,:] bounds,
     for j in range(0, posx.shape[0]):
         coeff = dens[j] * hsml[j] * dens[j]
 
-        x0 = <np.int64_t> ( (posx[j] - 2.0*hsml[j] - bounds[0,0]) * idx)
-        x1 = <np.int64_t> ( (posx[j] + 2.0*hsml[j] - bounds[0,0]) * idx)
+        x0 = <np.int64_t> ( (posx[j] - hsml[j] - bounds[0,0]) * idx)
+        x1 = <np.int64_t> ( (posx[j] + hsml[j] - bounds[0,0]) * idx)
         x0 = iclip(x0-1, 0, buff.shape[0]-1)
         x1 = iclip(x1+1, 0, buff.shape[0]-1)
 
-        y0 = <np.int64_t> ( (posy[j] - 2.0*hsml[j] - bounds[1,0]) * idy)
-        y1 = <np.int64_t> ( (posy[j] + 2.0*hsml[j] - bounds[1,0]) * idy)
+        y0 = <np.int64_t> ( (posy[j] - hsml[j] - bounds[1,0]) * idy)
+        y1 = <np.int64_t> ( (posy[j] + hsml[j] - bounds[1,0]) * idy)
         y0 = iclip(y0-1, 0, buff.shape[1]-1)
         y1 = iclip(y1+1, 0, buff.shape[1]-1)
 
-        ih_j2 = 1.0/fmax(hsml[j]*hsml[j], dx*dy)
+        h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+        ih_j2 = 1.0/h_j2
         for xi in range(x0, x1):
             x = (xi + 0.5) * dx + bounds[0,0]
 
             posx_diff = posx[j] - x
             posx_diff *= posx_diff
+            if posx_diff > h_j2: continue
 
             for yi in range(y0, y1):
                 y = (yi + 0.5) * dy + bounds[1,0]
 
                 posy_diff = posy[j] - y
                 posy_diff *= posy_diff
+                if posy_diff > h_j2: continue
 
                 qxy2 = (posx_diff + posy_diff) * ih_j2
-                if qxy2 >= 4:
+                if qxy2 >= 1:
                     continue
 
                 buff[xi, yi] += coeff * itab.interpolate(qxy2)
