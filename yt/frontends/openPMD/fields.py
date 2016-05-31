@@ -18,11 +18,9 @@ import numpy as np
 from yt.funcs import mylog
 import yt.utilities.physical_constants
 from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    particle_deposition_functions, \
-    particle_vector_functions, \
-    standard_particle_fields
+    FieldInfoContainer
 from misc import parse_unitDimension
+
 
 def _kinetic_energy(field, data):
     """
@@ -32,10 +30,7 @@ def _kinetic_energy(field, data):
     mylog.info("oPMD - fields - _kinetic_energy")
     # calculate kinetic energy out of momentum
     c = 2.997e8  # velocity of light
-    ke = (data["particle_momentum_x"] ** 2
-          + data["particle_momentum_y"] ** 2
-          + data["particle_momentum_z"] ** 2) * c
-    return ke
+    return (data["particle_momentum_x"]**2 + data["particle_momentum_y"]**2 + data["particle_momentum_z"]**2) * c
 
 
 def setup_momentum_to_velocity(self, ptype):
@@ -82,6 +77,20 @@ def setup_poynting_vector(self):
                        function=_get_poyn(ax),
                        units="T*V/m")  # N/(m*s)
 
+def setup_relative_position(self, ptype):
+    mylog.info("oPMD - fields setup_relative_position")
+    def _rel_pos(axis):
+        def rp(field, data):
+            return
+
+        return rp
+
+    for ax in 'xyz':
+        self.add_field((ptype, "particle_position_relative_%s" % ax),
+                       function=_rel_pos(ax),
+                       units="m")
+
+
 class openPMDFieldInfo(FieldInfoContainer):
     """
     We need to specify which fields we might have in our dataset.  The field info
@@ -93,6 +102,7 @@ class openPMDFieldInfo(FieldInfoContainer):
     This class defines, which fields and particle fields could be in the HDF5-file
     The field names have to match the names in "openPMDHierarchy" in data_structures.py
     This also defines the units of the fields
+    """
     """
     # TODO Generate this when parsing a file
     known_other_fields = (
@@ -130,34 +140,47 @@ class openPMDFieldInfo(FieldInfoContainer):
         ("particle_kinetic_energy", ("dimensionless", [], None)),
 
     )
+    """
 
     def __init__(self, ds, field_list):
         super(openPMDFieldInfo, self).__init__(ds, field_list)
         # If you want, you can check field_list
         mylog.info("oPMD - fields - __init__")
-        other_fields = (
-            # Each entry here is of the form
-            # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-            # ("B_x", ("T", [], None)),
 
-            #oPMD:
-            # length L,
-            # mass M,
-            # time T,
-            # electric current I,
-            # thermodynamic temperature theta,
-            # amount of substance N,
-            # luminous intensity J
-
-
-        )
+        other_fields = ()
         f = ds._handle
-        meshesPath = f.attrs["meshesPath"]
-        fields = f[ds.basePath + meshesPath]
+        fields = f[ds.basePath + f.attrs["meshesPath"]]
         for i in fields.keys():
             field = fields.get(i)
-            for i in field.attrs["axisLabels"]:
-                print field, i, parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+            for j in field.attrs["axisLabels"]:
+                parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+                other_fields += ((str("_".join([i,j])), (yt.YTQuantity(1, parsed).units, [], None)),)
+        self.known_other_fields = other_fields
+        for i in self.known_other_fields:
+            mylog.info("oPMD - fields - known_other_fields - {}".format(i))
+
+        particle_fields = ()
+        particles = f[ds.basePath + f.attrs["particlesPath"]]
+        for species in particles.keys():
+            for attrib in particles.get(species).keys():
+                try:
+                    if "weighting" in attrib:
+                        particle_fields += (("particle_weighting", ("", [], None)),)
+                        continue
+                    udim = particles.get(species).get(attrib).attrs["unitDimension"]
+                    parsed = parse_unitDimension(np.asarray(udim, dtype='int'))
+                    for axis in particles.get(species).get(attrib).keys():
+                        if axis in "rxyz":
+                            particle_fields += (
+                                (str("_".join(["particle", attrib, axis])), (yt.YTQuantity(1, parsed).units, [], None)),)
+                        else:
+                            particle_fields += (
+                            (str("_".join(["particle", attrib])), (yt.YTQuantity(1, parsed).units, [], None)),)
+                except:
+                    mylog.info("{}_{} does not seem to have unitDimension".format(species, attrib))
+        self.known_particle_fields = particle_fields
+        for i in self.known_particle_fields:
+            mylog.info("oPMD - fields - known_particle_fields - {}".format(i))
 
 
     def setup_fluid_fields(self):
@@ -187,9 +210,11 @@ class openPMDFieldInfo(FieldInfoContainer):
         #     units="dimensionless")
         # setup_momentum_to_velocity(self, ptype)
 
+        """
         particle_deposition_functions(ptype, "particle_position",
                                       "particle_weighting", self)
         standard_particle_fields(self, ptype)
+        """
 
         # TODO Has to be called to load particles
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)
