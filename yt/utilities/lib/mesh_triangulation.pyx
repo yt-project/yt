@@ -26,9 +26,6 @@ cdef struct TriNode:
     np.int64_t tri[3]
     TriNode* next_node
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) nogil:
     cdef np.int64_t found
     for i in range(3):
@@ -40,11 +37,6 @@ cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) nogi
             return 0
     return 1
     
-cdef np.int64_t TABLE_SIZE = 2**24
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 cdef np.uint64_t hash_func(np.int64_t tri[3]) nogil:
     # http://stackoverflow.com/questions/1536393/good-hash-function-for-permutations
     cdef np.uint64_t h = 1
@@ -52,13 +44,12 @@ cdef np.uint64_t hash_func(np.int64_t tri[3]) nogil:
         h *= (1779033703 + 2*tri[i])
     return h / 2
 
+cdef np.int64_t TABLE_SIZE = 2**24
+
 cdef class TriSet:
     cdef TriNode **table
     cdef np.uint64_t num_items
     
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def __cinit__(self):
         self.table = <TriNode**> malloc(TABLE_SIZE * sizeof(TriNode*))
         for i in range(TABLE_SIZE):
@@ -116,8 +107,6 @@ cdef class TriSet:
         self.num_items += 1
         return new_node
         
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void update(self, np.int64_t tri[3], np.int64_t elem) nogil:
         cdef np.uint64_t key = hash_func(tri)
@@ -158,8 +147,6 @@ cdef class TriSet:
 
     
 @cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
 def cull_interior(np.ndarray[np.float64_t, ndim=2] coords,
                   np.ndarray[np.float64_t, ndim=1] data,
                   np.ndarray[np.int64_t, ndim=2] indices):
@@ -227,9 +214,7 @@ def cull_interior(np.ndarray[np.float64_t, ndim=2] coords,
 
     return tri_coords, tri_data, tri_indices
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
+
 def triangulate_indices(np.ndarray[np.int64_t, ndim=2] indices):
     cdef np.int64_t num_elem = indices.shape[0]
     cdef np.int64_t VPE = indices.shape[1]  # num verts per element
@@ -264,9 +249,7 @@ def triangulate_indices(np.ndarray[np.int64_t, ndim=2] indices):
                 tri_indices_ptr[i*TPE*3 + 3*j + k] = indices_ptr[i*VPE + offset]
     return tri_indices
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
+
 def triangulate_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
                             np.ndarray[np.float64_t, ndim=2] data,
                             np.ndarray[np.int64_t, ndim=2] indices):
@@ -321,9 +304,7 @@ def triangulate_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
 
     return tri_coords, tri_data, tri_indices
 
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
+
 def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
                              np.ndarray[np.float64_t, ndim=1] data,
                              np.ndarray[np.int64_t, ndim=2] indices):
