@@ -29,7 +29,7 @@ from yt.utilities.math_utils import \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
 from yt.utilities.lib.mesh_triangulation import triangulate_vertex_data, \
-    triangulate_element_data, cull_interior
+    triangulate_element_data
 from .shader_objects import known_shaders, ShaderProgram
 
 bbox_vertices = np.array(
@@ -596,10 +596,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
         GL.glEnable(GL.GL_CULL_FACE)
         GL.glCullFace(GL.GL_BACK)
 
-        import time
-        start = time.clock()
         vertices, data, indices = self.get_mesh_data(data_source, field)
-        print time.clock() - start
 
         self._initialize_vertex_array("mesh_info")
         GL.glBindVertexArray(self.vert_arrays["mesh_info"])
@@ -652,8 +649,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
         data = data_source[field]
 
         if len(data.shape) == 1:
-#            return triangulate_element_data(vertices, data, indices)
-            return cull_interior(vertices, data, indices)
+            return triangulate_element_data(vertices, data, indices)
         elif data.shape[1] == indices.shape[1]:
             return triangulate_vertex_data(vertices, data, indices)
 
