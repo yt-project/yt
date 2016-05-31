@@ -16,6 +16,7 @@ Pixelization routines
 import numpy as np
 cimport numpy as np
 cimport cython
+from cython.view cimport array as cvarray
 cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
     imax, fabs, iclip
@@ -35,6 +36,10 @@ from yt.utilities.lib.element_mappings cimport \
     W1Sampler3D, \
     T2Sampler2D, \
     Tet2Sampler3D
+from yt.geometry.particle_deposit cimport \
+    kernel_func, get_kernel_func
+
+TABLE_NVALS=512
 
 cdef extern from "pixelization_constants.h":
     enum:
@@ -705,7 +710,6 @@ def weight_function(q):
     else:
         return 0
 
-
 def evaluate_integrate(np.float64_t qxy2, int n_steps):
     def F_func(qz):
         return weight_function( math.sqrt(qxy2 + qz*qz) )
@@ -718,39 +722,79 @@ def evaluate_integrate(np.float64_t qxy2, int n_steps):
     integral = np.trapz(F_vals, qz_vals)
     return integral
 
+kernel_tables = {}
 
-DEF TABLE_NVALS=1000
+cdef class SPHKernelInterpolationTable:
+    cdef public object kernel_name
+    cdef kernel_func kernel
+    cdef np.float64_t[:] table
+    cdef np.float64_t[:] qxy2_vals
+    cdef np.float64_t qxy2_range, iqxy2_range
+
+    def __init__(self, kernel_name):
+        self.kernel_name = kernel_name
+        self.kernel = get_kernel_func(kernel_name)
+        self.populate_table()
+
+    cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2):
+        cdef int i
+        # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
+        # And our R is always 2; note that our smoothing kernel functions
+        # expect it to run from 0 .. 1, so we cut in half before we feed it in.
+        cdef int N = 200
+        cdef np.float64_t qz
+        cdef np.float64_t R = 2
+        cdef np.float64_t R0 = -math.sqrt(R*R-qxy2)
+        cdef np.float64_t R1 = math.sqrt(R*R-qxy2)
+        cdef np.float64_t dR = (R1-R0)/N
+        # Set to our bounds
+        cdef np.float64_t integral = 0.0
+        integral += self.kernel(math.sqrt(R0*R0 + qxy2)/2.0)
+        integral += self.kernel(math.sqrt(R1*R1 + qxy2)/2.0)
+        # We're going to manually conduct a trapezoidal integration
+        for i in range(1, N):
+            qz = R0 + i * dR
+            integral += 2.0*self.kernel(math.sqrt(qz*qz + qxy2)/2.0)
+        integral *= (R1-R0)/(2*N)
+        return integral
+        
+    def populate_table(self):
+        cdef int i
+        self.table = cvarray(format="d", shape=(TABLE_NVALS,),
+                             itemsize=sizeof(np.float64_t))
+        self.qxy2_vals = cvarray(format="d", shape=(TABLE_NVALS,),
+                             itemsize=sizeof(np.float64_t))
+        # We run from 0 to 4 here over R
+        for i in range(TABLE_NVALS):
+            self.qxy2_vals[i] = i * 4.0/(TABLE_NVALS-1)
+            self.table[i] = self.integrate_qxy2(self.qxy2_vals[i])
+
+        self.qxy2_range = self.qxy2_vals[TABLE_NVALS-1] - self.qxy2_vals[0]
+        self.iqxy2_range = TABLE_NVALS/self.qxy2_range
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
-                        np.ndarray[np.float64_t, ndim=2] buff,
-                        np.ndarray[np.float64_t, ndim=1] posx,
-                        np.ndarray[np.float64_t, ndim=1] posy,
-                        np.ndarray[np.float64_t, ndim=1] hsml,
-                        np.ndarray[np.float64_t, ndim=1] dens):
+def pixelize_sph_kernel(np.float64_t[:,:] bounds,
+                        np.float64_t[:,:] buff,
+                        np.float64_t[:] posx, np.float64_t[:] posy,
+                        np.float64_t[:] hsml, np.float64_t[:] dens,
+                        kernel_name = "cubic"):
 
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t x, y, dx, dy, idx, idy, qxy2_range, iqxy2_range
+    cdef np.float64_t x, y, dx, dy, idx, idy
     cdef np.float64_t qxy2, h_j2, val, this_val, F_interpolate
-    cdef np.float64_t posx_diff, posy_diff, coeff, idqxy2, ih_j2
+    cdef np.float64_t posx_diff, posy_diff, coeff, ih_j2
     cdef int index, i, j
-    cdef np.float64_t table[TABLE_NVALS]
 
     dx = (bounds[0,1] - bounds[0,0]) / buff.shape[0]
     dy = (bounds[1,1] - bounds[1,0]) / buff.shape[1]
     idx = 1.0/dx
     idy = 1.0/dy
-    cdef np.ndarray[np.float64_t, ndim=1] qxy2_vals
-    qxy2_vals = np.linspace(0,4,TABLE_NVALS)
-    idqxy2 = TABLE_NVALS/(qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0])
-    
-    for i in range(TABLE_NVALS):
-        table[i] = evaluate_integrate(qxy2_vals[i], 200)
 
-    qxy2_range = qxy2_vals[TABLE_NVALS-1] - qxy2_vals[0]
-    iqxy2_range = TABLE_NVALS/qxy2_range
+    if kernel_name not in kernel_tables:
+        kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
+    cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
     
     for j in range(0, posx.shape[0]):
 
@@ -783,8 +827,9 @@ def pixelize_sph_kernel(np.ndarray[np.float64_t, ndim=2] bounds,
                 if qxy2 >= 4:
                     continue
 
-                index = <int> ((qxy2 - qxy2_vals[0])*iqxy2_range)
-                F_interpolate = table[index-1] +(table[index] - table[index-1])\
-                    *(qxy2 - qxy2_vals[index-1])*idqxy2
+                index = <int> ((qxy2 - itab.qxy2_vals[0])*itab.iqxy2_range)
+                F_interpolate = itab.table[index-1] + (
+                        (itab.table[index] - itab.table[index-1])
+                       *(qxy2 - itab.qxy2_vals[index-1])*itab.iqxy2_range)
 
                 buff[xi, yi] += coeff * F_interpolate
