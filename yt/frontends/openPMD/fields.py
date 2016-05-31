@@ -22,6 +22,7 @@ from yt.fields.field_info_container import \
     particle_deposition_functions, \
     particle_vector_functions, \
     standard_particle_fields
+from misc import parse_unitDimension
 
 def _kinetic_energy(field, data):
     """
@@ -133,6 +134,31 @@ class openPMDFieldInfo(FieldInfoContainer):
     def __init__(self, ds, field_list):
         super(openPMDFieldInfo, self).__init__(ds, field_list)
         # If you want, you can check field_list
+        mylog.info("oPMD - fields - __init__")
+        other_fields = (
+            # Each entry here is of the form
+            # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+            # ("B_x", ("T", [], None)),
+
+            #oPMD:
+            # length L,
+            # mass M,
+            # time T,
+            # electric current I,
+            # thermodynamic temperature theta,
+            # amount of substance N,
+            # luminous intensity J
+
+
+        )
+        f = ds._handle
+        meshesPath = f.attrs["meshesPath"]
+        fields = f[ds.basePath + meshesPath]
+        for i in fields.keys():
+            field = fields.get(i)
+            for i in field.attrs["axisLabels"]:
+                print field, i, parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+
 
     def setup_fluid_fields(self):
         """

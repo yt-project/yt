@@ -23,16 +23,8 @@ import h5py
 import numpy as np
 from collections import defaultdict
 from .data_structures import openPMDBasePath
+from .misc import *
 
-def is_const_component(record_component):
-    return ("value" in record_component.attrs.keys())
-
-def get_component(group, component_name):
-    record_component = group[component_name]
-    if is_const_component(record_component):
-        return record_component.attrs["value"]
-    else:
-        return record_component.value
 
 class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
     # TODO Data should be loaded chunk-wise to support parallelism. Fields can be chunked arbitrarily in space, particles should be read via particlePatches.
@@ -88,9 +80,16 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 dds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
                     # Inefficient for const records
+                    mylog.info("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
 
                     # Get a particle species (e.g. /data/3500/particles/e/)
-                    pds = dds.get("%s/%s" % (f.attrs["particlesPath"], field_list[0].split("_")[0]))
+                    if "io" in ptype:
+                        spec = dds[f.attrs["particlesPath"]].keys()[0]
+                    else:
+                        spec = field_list[0].split("_")[0]
+                    pds = dds.get("%s/%s" % (f.attrs["particlesPath"], spec))
+                    if pds is None:
+                        mylog.info("openPMD - _read_particle_coords: {}/{} yields None".format(f.attrs["particlesPath"], spec))
 
                     # Get single 1D-arrays of coordinates from all particular particles
                     # TODO Do not naively assume 3D. Check which axes actually exist
@@ -162,11 +161,18 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     # TODO Do this for all fields in fields list
-                    pds = ds.get("%s/%s" % (f.attrs["particlesPath"], field_list[0].split("_")[0]))
+                    if "io" in ptype:
+                        spec = ds[f.attrs["particlesPath"]].keys()[0]
+                    else:
+                        spec = field_list[0].split("_")[0]
+                    pds = ds.get("%s/%s" % (f.attrs["particlesPath"], spec))
+                    if pds is None:
+                        mylog.info("openPMD - _read_particle_coords: {}/{} yields None".format(f.attrs["particlesPath"], spec))
 
                     # Get single arrays of coordinates from all particular particles
                     # TODO Do not naively assume 3D. Check which axes actually exist
                     #   (axis_labels, geometry)
+                    # TODO Pay attention to const records
                     xpos, ypos, zpos = (get_component(pds, "position/" + ax)
                            for ax in 'xyz')
                     xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
@@ -240,7 +246,13 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
     #                 mylog.info("read particles ftype %s, fname %s, grid %s", ftype, fname, grid)
     #                 # data = self._read_particles(grid, fname)
     #                 # rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+    #
     #     return rv
+    #     """
+    #     From Exo 2
+    #     for g in chunk.objs:
+    #             ind += g.select(selector, data, rv[field], ind)
+    #     """
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         """
@@ -290,6 +302,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             #    rv[ftype, fname] = self._read_data(g, fname)
             #f.close()
             # return rv
+
+
 
         if size is None:
             size = sum((g.count(selector) for chunk in chunks

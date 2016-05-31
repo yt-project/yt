@@ -182,7 +182,13 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                     else:
                         # We probably do not want particlePatches as accessible field lists
                         pass
-            self.field_list.extend([("io", c) for c in particle_fields])
+            if len(f[self.basePath + particlesPath].keys()) > 1:
+                self.field_list.extend(
+                    [(str(c).split("_")[0], ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
+            else:
+                self.field_list.extend(
+                    [("io", ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
+            #self.field_list.extend([("io", c) for c in particle_fields])
             #self.field_list.extend([(str(c).split("_")[0], 'particle' + c.lstrip(c.split("_")[0])) for c in particle_fields])
 
     def _count_grids(self):
@@ -284,22 +290,27 @@ class openPMDDataset(Dataset, openPMDBasePath):
 
     def __init__(self, filename, dataset_type='openPMD',
                  storage_filename=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="mks"):
         # Opens a HDF5 file and stores its file handle in _handle
         # All _handle objects refers to the file
         self._handle = HDF5FileHandler(filename)
         self._filepath = os.path.dirname(filename)
         self._setBasePath(self._handle, self._filepath)
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.fluid_types += ('openPMD',)
-        #self.particle_types = self._handle[self.basePath + self._handle.attrs["particlesPath"]].keys()
-        #self.particle_types = tuple(self.particle_types)
-        #self.particle_types += ('all',)
-        self.particle_types = ["io", "all"]
-        self.particle_types = tuple(self.particle_types)
+        parts = tuple(str(c) for c in self._handle[self.basePath + self._handle.attrs["particlesPath"]].keys())
+        if len(parts) > 1:
+            self.particle_types = parts
+        mylog.info("openPMD - self.particle_types: {}".format(self.particle_types))
         self.particle_types_raw = self.particle_types
+        self.particle_types = tuple(self.particle_types)
+        #self.particle_types += ('all',)
+        #self.particle_types = ["io", "all"]
+        self.particle_types = tuple(self.particle_types)
 
 
     def _set_code_unit_attributes(self):

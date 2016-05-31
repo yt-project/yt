@@ -767,3 +767,43 @@ def check_particles(f, iteration, v, pic) :
                         result_array += test_component(dset, v)
 
     return(result_array)
+
+def is_const_component(record_component):
+    return ("value" in record_component.attrs.keys())
+
+def get_component(group, component_name):
+    mylog.info("openPMD - misc - get_component: {},{}".format(group, component_name))
+    record_component = group[component_name]
+    if is_const_component(record_component):
+        return record_component.attrs["value"]
+    else:
+        return record_component.value
+
+
+def parse_unitDimension(unitDimension):
+    if len(unitDimension) is not 7:
+        mylog.error("SI must have 7 base dimensions! {} is off by {}".format(unitDimension, len(unitDimension) - 7))
+    str = []
+    # oPMD:
+    # length L,
+    # mass M,
+    # time T,
+    # electric current I,
+    # thermodynamic temperature theta,
+    # amount of substance N,
+    # luminous intensity J
+    if unitDimension[0] < 0.0 or unitDimension[0] > 0.0:
+        str.append("m**{}".format(unitDimension[0]))
+    if unitDimension[1] < 0.0 or unitDimension[1] > 0.0:
+        str.append("kg**{}".format(unitDimension[1]))
+    if unitDimension[2] < 0.0 or unitDimension[2] > 0.0:
+        str.append("s**{}".format(unitDimension[2]))
+    if unitDimension[3] < 0.0 or unitDimension[3] > 0.0:
+        str.append("A**{}".format(unitDimension[3]))
+    if unitDimension[4] < 0.0 or unitDimension[4] > 0.0:
+        str.append("C**{}".format(unitDimension[4]))
+    if unitDimension[5] < 0.0 or unitDimension[5] > 0.0:
+        str.append("mol**{}".format(unitDimension[5]))
+    if unitDimension[6] < 0.0 or unitDimension[6] > 0.0:
+        str.append("cd**{}".format(unitDimension[6]))
+    return "*".join(str)
