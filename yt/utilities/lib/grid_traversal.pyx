@@ -42,6 +42,7 @@ DEF Nch = 4
 
 cdef class PartitionedGrid:
 
+    @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -91,6 +92,7 @@ cdef class PartitionedGrid:
         if self.container == NULL: return
         free(self.container)
 
+    @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -154,6 +156,7 @@ cdef class PartitionedGrid:
             self.get_vector_field(newpos, k4, cmag)
             mag[0] = cmag[0]
 
+    @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -177,8 +180,10 @@ cdef class PartitionedGrid:
             for i in range(3):
                 vel[i] /= vel_mag[0]
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef void calculate_extent_plane_parallel(ImageContainer *image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil:
     # We do this for all eight corners
@@ -213,8 +218,10 @@ cdef void calculate_extent_plane_parallel(ImageContainer *image,
     rv[2] = lrint((extrema[2] - cy - image.bounds[2])/image.pdy)
     rv[3] = rv[2] + lrint((extrema[3] - extrema[2])/image.pdy)
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef void calculate_extent_perspective(ImageContainer *image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil:
 
@@ -320,8 +327,10 @@ cdef void calculate_extent_perspective(ImageContainer *image,
 # We do this for a bunch of lenses.  Fallback is to grab them from the vector
 # info supplied.
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef void calculate_extent_null(ImageContainer *image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil:
     rv[0] = 0
@@ -329,8 +338,10 @@ cdef void calculate_extent_null(ImageContainer *image,
     rv[2] = 0
     rv[3] = image.nv[1]
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef void generate_vector_info_plane_parallel(ImageContainer *im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
@@ -346,8 +357,10 @@ cdef void generate_vector_info_plane_parallel(ImageContainer *im,
     v_pos[2] = im.vp_pos[0,2,0]*px + im.vp_pos[0,5,0]*py + im.vp_pos[0,11,0]
     for i in range(3): v_dir[i] = im.vp_dir[0,i,0]
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 cdef void generate_vector_info_null(ImageContainer *im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
@@ -438,6 +451,7 @@ cdef class ImageSampler:
         for i in range(3):
             self.width[i] = width[i]
 
+    @cython.initializedcheck(False)
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -540,6 +554,7 @@ cdef class ProjectionSampler(ImageSampler):
     cdef void setup(self, PartitionedGrid pg):
         self.sampler = projection_sampler
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -598,6 +613,7 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
     cdef void setup(self, PartitionedGrid pg):
         self.sampler = interpolated_projection_sampler
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -634,6 +650,7 @@ cdef void volume_render_sampler(
             dp[j] += ds[j]
 
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -696,6 +713,7 @@ cdef class star_kdtree_container:
     def __dealloc__(self):
         kdtree_utils.kd_free(self.tree)
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -913,6 +931,7 @@ cdef class LightSourceRenderSampler(ImageSampler):
         free(self.vra)
 
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
@@ -1121,9 +1140,10 @@ def arr_ang2pix_nest(long nside,
         tr[i] = ipnest
     return tr
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
-@cython.cdivision(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def pixelize_healpix(long nside,
                      np.ndarray[np.float64_t, ndim=1] values,
                      long ntheta, long nphi,
