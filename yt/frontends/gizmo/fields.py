@@ -100,7 +100,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         num_neighbors = 64
         for species in ['H', 'H_p0', 'H_p1']:
-            for suf in ["_density", "_mass", "_number_density"]:
+            for suf in ["_density", "_number_density"]:
                 field = "%s%s" % (species, suf)
                 fn = add_volume_weighted_smoothed_field(
                     ptype, "particle_position", "particle_mass",
