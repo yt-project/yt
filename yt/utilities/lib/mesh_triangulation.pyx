@@ -193,6 +193,45 @@ def cull_interior_triangles(np.ndarray[np.int64_t, ndim=2] indices):
     return s.get_exterior_tris()
     
 
+def get_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
+                    np.ndarray[np.float64_t, ndim=2] data,
+                    np.ndarray[np.int64_t, ndim=2] indices):
+
+    cdef np.int64_t num_elem = indices.shape[0]
+    cdef np.int64_t VPE = indices.shape[1]  # num verts per element
+    cdef np.int64_t TPE  # num triangles per element
+    cdef int[MAX_NUM_TRI][3] tri_array
+    
+    if (VPE == 8 or VPE == 20 or VPE == 27):
+        TPE = HEX_NT
+        tri_array = triangulate_hex
+    elif VPE == 4:
+        TPE = TETRA_NT
+        tri_array = triangulate_tetra
+    elif VPE == 6:
+        TPE = WEDGE_NT
+        tri_array = triangulate_wedge
+    else:
+        raise YTElementTypeNotRecognized(3, VPE)
+
+    cdef np.int64_t num_tri = TPE * num_elem
+    cdef np.int64_t num_verts = coords.shape[0]
+    
+    cdef np.ndarray[np.float32_t, ndim=1] vertex_data
+    vertex_data = np.zeros(num_verts, dtype="float32")
+    cdef np.float32_t *vertex_data_ptr = <np.float32_t*> vertex_data.data
+    
+    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
+    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
+    
+    cdef np.int64_t i, j, k
+    for i in range(num_elem):
+        for j in range(VPE):
+            vertex_data_ptr[indices_ptr[i*VPE + j]] = data_ptr[i*VPE + j]
+
+    return vertex_data
+
+
 @cython.boundscheck(False)
 def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
                              np.ndarray[np.float64_t, ndim=1] data,
@@ -204,23 +243,26 @@ def triangulate_element_data(np.ndarray[np.float64_t, ndim=2] coords,
 
     cdef np.float64_t *data_ptr = <np.float64_t*> data.data
     cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
-
-    cdef np.int64_t num_tri = exterior_tris.shape[0]
     cdef np.int64_t *exterior_tris_ptr = <np.int64_t*> exterior_tris.data
 
+    cdef np.int64_t num_tri = exterior_tris.shape[0]
+    cdef np.int64_t num_verts = 3 * num_tri
+    cdef np.int64_t num_coords = 3 * num_verts
+
     cdef np.ndarray[np.int32_t, ndim=1] tri_indices
-    tri_indices = np.empty(num_tri * 3, dtype=np.int32)
+    tri_indices = np.empty(num_verts, dtype=np.int32)
     cdef np.int32_t *tri_indices_ptr = <np.int32_t*> tri_indices.data
     
     cdef np.ndarray[np.float32_t, ndim=1] tri_data
-    tri_data = np.empty(num_tri * 3, dtype=np.float32)
+    tri_data = np.empty(num_verts, dtype=np.float32)
     cdef np.float32_t *tri_data_ptr = <np.float32_t*> tri_data.data
 
     cdef np.ndarray[np.float32_t, ndim=1] tri_coords
-    tri_coords = np.empty(num_tri*3*3, dtype=np.float32)
+    tri_coords = np.empty(num_coords, dtype=np.float32)
     cdef np.float32_t *tri_coords_ptr = <np.float32_t*> tri_coords.data
     
     cdef np.int64_t vert_index, coord_index
+    cdef np.int64_t i, j, k
     for i in range(num_tri):
         for j in range(3):
             vert_index = i*3 + j
@@ -272,52 +314,43 @@ def triangulate_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
                             np.ndarray[np.float64_t, ndim=2] data,
                             np.ndarray[np.int64_t, ndim=2] indices):
 
-    cdef np.int64_t num_elem = indices.shape[0]
-    cdef np.int64_t VPE = indices.shape[1]  # num verts per element
-    cdef np.int64_t TPE  # num triangles per element
-    cdef int[MAX_NUM_TRI][3] tri_array
-    
-    if (VPE == 8 or VPE == 20 or VPE == 27):
-        TPE = HEX_NT
-        tri_array = triangulate_hex
-    elif VPE == 4:
-        TPE = TETRA_NT
-        tri_array = triangulate_tetra
-    elif VPE == 6:
-        TPE = WEDGE_NT
-        tri_array = triangulate_wedge
-    else:
-        raise YTElementTypeNotRecognized(3, VPE)
+    cdef np.ndarray[np.int64_t, ndim=2] exterior_tris
+    cdef np.ndarray[np.int64_t, ndim=1] element_map
+    exterior_tris, element_map = cull_interior_triangles(indices)
 
-    cdef np.int64_t num_tri = TPE * num_elem
-    cdef np.int64_t num_verts = coords.shape[0]
-    
+    cdef np.ndarray[np.float32_t, ndim=1] vertex_data
+    vertex_data = get_vertex_data(coords, data, indices)
+    cdef np.float32_t *vertex_data_ptr = <np.float32_t*> vertex_data.data
+
+    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
+    cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
+    cdef np.int64_t *exterior_tris_ptr = <np.int64_t*> exterior_tris.data
+
+    cdef np.int64_t num_tri = exterior_tris.shape[0]
+    cdef np.int64_t num_verts = 3 * num_tri
+    cdef np.int64_t num_coords = 3 * num_verts
+
     cdef np.ndarray[np.int32_t, ndim=1] tri_indices
-    tri_indices = np.empty(num_tri*3, dtype="int32")
+    tri_indices = np.empty(num_verts, dtype=np.int32)
     cdef np.int32_t *tri_indices_ptr = <np.int32_t*> tri_indices.data
     
+    cdef np.ndarray[np.float32_t, ndim=1] tri_data
+    tri_data = np.empty(num_verts, dtype=np.float32)
+    cdef np.float32_t *tri_data_ptr = <np.float32_t*> tri_data.data
+
     cdef np.ndarray[np.float32_t, ndim=1] tri_coords
-    tri_coords = np.empty(num_verts*3, dtype=np.float32)
+    tri_coords = np.empty(num_coords, dtype=np.float32)
     cdef np.float32_t *tri_coords_ptr = <np.float32_t*> tri_coords.data
     
-    cdef np.ndarray[np.float32_t, ndim=1] tri_data
-    tri_data = np.zeros(num_verts, dtype="float32")
-    cdef np.float32_t *tri_data_ptr = <np.float32_t*> tri_data.data
-    
-    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
-    cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
-    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
-    
-    cdef np.int64_t i, j, k, offset
-    for i in range(num_elem):
-        for j in range(TPE):
-            for k in range(3):
-                offset = tri_array[j][k]
-                tri_indices_ptr[i*TPE*3 + 3*j + k] = indices_ptr[i*VPE + offset]
-        for j in range(VPE):
-            tri_data_ptr[indices_ptr[i*VPE + j]] = data_ptr[i*VPE + j]
-    for i in range(num_verts):
+    cdef np.int64_t vert_index, coord_index
+    cdef np.int64_t i, j, k
+    for i in range(num_tri):
         for j in range(3):
-            tri_coords_ptr[i*3 + j] = coords_ptr[i*3 + j]
+            vert_index = i*3 + j
+            tri_data_ptr[vert_index] = vertex_data_ptr[exterior_tris_ptr[i*3 + j]]
+            tri_indices_ptr[vert_index] = vert_index
+            for k in range(3):
+                coord_index = 3*exterior_tris_ptr[i*3 + j] + k
+                tri_coords_ptr[vert_index*3 + k] = coords_ptr[coord_index]
 
     return tri_coords, tri_data, tri_indices
