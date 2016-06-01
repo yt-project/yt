@@ -42,7 +42,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
-    get_ipython_api_version
+    get_ipython_api_version, \
+    matplotlib_style_context
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -286,7 +287,9 @@ class ProfilePlot(object):
                 fns.append("%s%s" % (prefix, suffix))
             else:
                 fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
-            plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
+            mylog.info("Saving %s", fns[-1])
+            with matplotlib_style_context():
+                plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
         return fns
 
     @validate_plot
@@ -333,7 +336,8 @@ class ProfilePlot(object):
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
             f = BytesIO()
-            canvas.print_figure(f)
+            with matplotlib_style_context():
+                canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
