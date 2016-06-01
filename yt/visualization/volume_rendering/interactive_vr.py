@@ -28,8 +28,7 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
-from yt.utilities.lib.mesh_triangulation import triangulate_vertex_data, \
-    triangulate_element_data
+from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from .shader_objects import known_shaders, ShaderProgram
 
 bbox_vertices = np.array(
@@ -651,10 +650,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
         data = data_source[field]
 
-        if len(data.shape) == 1:
-            return triangulate_element_data(vertices, data, indices)
-        elif data.shape[1] == indices.shape[1]:
-            return triangulate_vertex_data(vertices, data, indices)
+        return triangulate_mesh(vertices, data, indices)
 
     def run_program(self):
         """ Renders one frame of the scene. """
