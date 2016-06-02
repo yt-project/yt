@@ -26,7 +26,8 @@ import numpy as np
 from io import BytesIO
 
 
-from .base_plot_types import ImagePlotMPL
+from .base_plot_types import \
+    PlotMPL, ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
@@ -60,25 +61,33 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
+class PlotContainer(OrderedDict):
+    def __missing__(self, key):
+        plot = PlotMPL((10, 8), [0.1, 0.1, 0.8, 0.8], None, None)
+        self[key] = plot
+        return self[key]
+
 class FigureContainer(OrderedDict):
-    def __init__(self):
+    def __init__(self, plots):
+        self.plots = plots
         super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
-        from matplotlib.figure import Figure
-        figure = Figure((10, 8))
-        self[key] = figure
+        self[key] = self.plots[key].figure
         return self[key]
 
+    def __iter__(self):
+        return iter(self.plots)
+
+
 class AxesContainer(OrderedDict):
-    def __init__(self, fig_container):
-        self.fig_container = fig_container
+    def __init__(self, plots):
+        self.plots = plots
         self.ylim = {}
         super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
-        figure = self.fig_container[key]
-        self[key] = figure.add_subplot(111)
+        self[key] = self.plots[key].axes
         return self[key]
 
     def __setitem__(self, key, value):
@@ -241,11 +250,11 @@ class ProfilePlot(object):
         """
         if not self._plot_valid:
             self._setup_plots()
-        unique = set(self.figures.values())
-        if len(unique) < len(self.figures):
+        unique = set(self.plots.values())
+        if len(unique) < len(self.plots):
             iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.figures)
+            iters = iteritems(self.plots)
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
@@ -261,24 +270,21 @@ class ProfilePlot(object):
             if sfx != '':
                 suffix = sfx
                 prefix = name[:name.rfind(suffix)]
-                fullname = True 
+                fullname = True
             else:
                 prefix = name
         xfn = self.profiles[0].x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
-        canvas_cls = get_canvas(name)
         fns = []
-        for uid, fig in iters:
+        for uid, plot in iters:
             if isinstance(uid, tuple):
                 uid = uid[1]
-            canvas = canvas_cls(fig)
             if fullname:
                 fns.append("%s%s" % (prefix, suffix))
             else:
                 fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
-            mylog.info("Saving %s", fns[-1])
-            canvas.print_figure(fns[-1])
+            plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
         return fns
 
     @validate_plot
@@ -368,8 +374,9 @@ class ProfilePlot(object):
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
         obj.plot_spec = plot_specs
-        obj.figures = FigureContainer()
-        obj.axes = AxesContainer(obj.figures)
+        obj.plots = PlotContainer()
+        obj.figures = FigureContainer(obj.plots)
+        obj.axes = AxesContainer(obj.plots)
         obj._setup_plots()
         return obj
 
