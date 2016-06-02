@@ -104,9 +104,9 @@ cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2,
             np.float64_t x, np.float64_t y, np.float64_t z,
             int vind1, int vind2):
     cdef int i
-    cdef np.float64_t** cverts = \
-        [[0,0,0], [1,0,0], [1,1,0], [0,1,0],
-         [0,0,1], [1,0,1], [1,1,1], [0,1,1]]
+    cdef np.float64_t* cverts = \
+        [0,0,0, 1,0,0, 1,1,0, 0,1,0,
+         0,0,1, 1,0,1, 1,1,1, 0,1,1]
 
     cdef np.float64_t mu = ((isovalue - v1) / (v2 - v1))
 
@@ -121,5 +121,5 @@ cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2,
     vl[1] = y
     vl[2] = z
     for i in range(3):
-        vl[i] += dds[i] * cverts[vind1][i] \
-               + dds[i] * mu*(cverts[vind2][i] - cverts[vind1][i])
+        vl[i] += dds[i] * cverts[vind1*3+i] \
+               + dds[i] * mu*(cverts[vind2*3+i] - cverts[vind1*3+i])
