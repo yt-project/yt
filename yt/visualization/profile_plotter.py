@@ -236,7 +236,7 @@ class ProfilePlot(object):
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
         
     @validate_plot
-    def save(self, name=None, suffix=None):
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
         Saves a 1d profile plot.
 
@@ -247,6 +247,8 @@ class ProfilePlot(object):
         suffix : string
             Specify the image type by its suffix. If not specified, the output
             type will be inferred from the filename. Defaults to PNG.
+        mpl_kwargs : dict
+            A dict of keyword arguments to be passed to matplotlib.
         """
         if not self._plot_valid:
             self._setup_plots()
