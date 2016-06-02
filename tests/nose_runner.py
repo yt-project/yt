@@ -3,10 +3,9 @@ import os
 import yaml
 import multiprocessing
 import nose
-from cStringIO import StringIO
+from yt.extern.six import StringIO
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
-
 
 class NoseWorker(multiprocessing.Process):
 
@@ -23,7 +22,7 @@ class NoseWorker(multiprocessing.Process):
                 print("%s: Exiting" % proc_name)
                 self.task_queue.task_done()
                 break
-            print '%s: %s' % (proc_name, next_task)
+            print('%s: %s' % (proc_name, next_task))
             result = next_task()
             self.task_queue.task_done()
             self.result_queue.put(result)
@@ -43,6 +42,8 @@ class NoseTask(object):
                 not os.path.isdir(os.path.join(answers_dir, self.name)):
             nose.run(argv=self.argv + ['--answer-store'],
                      addplugins=[AnswerTesting()], exit=False)
+        if os.path.isfile("{}.xml".format(self.name)):
+            os.remove("{}.xml".format(self.name))
         nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
         sys.stderr = old_stderr
         return mystderr.getvalue()
@@ -52,10 +53,19 @@ class NoseTask(object):
 
 
 def generate_tasks_input():
+    pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
+    if sys.version_info < (3, 0, 0):
+        DROP_TAG = "py3"
+    else:
+        DROP_TAG = "py2"
+
     test_dir = ytcfg.get("yt", "test_data_dir")
     answers_dir = os.path.join(test_dir, "answers")
-    with open('tests/tests_%i.%i.yaml' % sys.version_info[:2], 'r') as obj:
-        tests = yaml.load(obj)
+    with open('tests/tests.yaml', 'r') as obj:
+        lines = obj.read()
+    data = '\n'.join([line for line in lines.split('\n')
+                      if DROP_TAG not in line])
+    tests = yaml.load(data)
 
     base_argv = ['--local-dir=%s' % answers_dir, '-v',
                  '--with-answer-testing', '--answer-big-data', '--local']
@@ -64,9 +74,11 @@ def generate_tasks_input():
     for test in list(tests["other_tests"].keys()):
         args.append([test] + tests["other_tests"][test])
     for answer in list(tests["answer_tests"].keys()):
-        argv = [answer]
+        if tests["answer_tests"][answer] is None:
+            continue
+        argv = ["{}_{}".format(pyver, answer)]
         argv += base_argv
-        argv.append('--answer-name=%s' % answer)
+        argv.append('--answer-name=%s' % argv[0])
         argv += tests["answer_tests"][answer]
         args.append(argv)
 

@@ -26,7 +26,7 @@ command:
 
     $ yt update --all
 
-This will update yt to the most recent version and rebuild the source base.  
+This will update yt to the most recent version and rebuild the source base.
 If you installed using the installer script, it will assure you have all of the
 latest dependencies as well.  This step may take a few minutes.  To test
 to make sure yt is running, try:
@@ -36,9 +36,9 @@ to make sure yt is running, try:
     $ yt --help
 
 If you receive no errors, then you are ready to go.  If you have
-an error, then consult :ref:`update-errors` for solutions.  
+an error, then consult :ref:`update-errors` for solutions.
 
-If you want to switch back to an old version of yt (2.x), see 
+If you want to switch back to an old version of yt (2.x), see
 :ref:`switching-between-yt-versions`.
 
 .. _transitioning-to-3.0:
@@ -47,16 +47,16 @@ Converting Old Scripts to Work with yt 3.0
 ------------------------------------------
 
 After installing yt-3.0, you'll want to change your old scripts in a few key
-ways.  After accounting for the changes described in the list below, try 
+ways.  After accounting for the changes described in the list below, try
 running your script.  If it still fails, the callback failures in python are
 fairly descriptive and it may be possible to deduce what remaining changes are
-necessary.  If you continue to have trouble, please don't hesitate to 
+necessary.  If you continue to have trouble, please don't hesitate to
 :ref:`request help <asking-for-help>`.
 
-The list below is arranged in order of most important changes to least 
+The list below is arranged in order of most important changes to least
 important changes.
 
-* **Replace** ``from yt.mods import *`` **with** ``import yt`` **and prepend yt 
+* **Replace** ``from yt.mods import *`` **with** ``import yt`` **and prepend yt
   classes and functions with** ``yt.``
   We have reworked yt's import system so that most commonly-used yt functions
   and classes live in the top-level yt namespace. That means you can now
@@ -69,18 +69,18 @@ important changes.
   system keeps you from making weird things like ``ergs`` + ``g`` and can
   handle things like ``g`` + ``kg`` or ``kg*m/s**2 == Newton``.  See
   :ref:`units` and :ref:`conversion-factors` for more information.
-* **Change field names from CamelCase to lower_case_with_underscores** 
+* **Change field names from CamelCase to lower_case_with_underscores**
   Previously, yt would use "Enzo-isms" for field names. We now very
   specifically define fields as lowercase with underscores.  For instance,
   what used to be ``VelocityMagnitude`` would now be ``velocity_magnitude``.
   Axis names are now at the *end* of field names, not the beginning.
-  ``x-velocity`` is now ``velocity_x``.  For a full list of all of the fields, 
+  ``x-velocity`` is now ``velocity_x``.  For a full list of all of the fields,
   see :ref:`field-list`.
 * **Full field names have two parts now**
-  Fields can be accessed by a single name, but they are named internally as 
-  ``(field_type, field_name)`` for more explicit designation which can address 
+  Fields can be accessed by a single name, but they are named internally as
+  ``(field_type, field_name)`` for more explicit designation which can address
   particles, deposited fluid quantities, and more.  See :ref:`fields`.
-* **Code-specific field names can be accessed by the name defined by the 
+* **Code-specific field names can be accessed by the name defined by the
   external code**
   Mesh fields that exist on-disk in an output file can be read in using whatever
   name is used by the output file.  On-disk fields are always returned in code
@@ -89,15 +89,15 @@ important changes.
 * **Particle fields are now more obviously different than mesh fields**
   Particle fields on-disk will also be in code units, and will be named
   ``(particle_type, field_name)``.  If there is only one particle type in the
-  output file, all particles will use ``io`` as the particle type. See 
+  output file, all particles will use ``io`` as the particle type. See
   :ref:`fields`.
 * **Change** ``pf`` **to** ``ds``
-  The objects we used to refer to as "parameter files" we now refer to as 
+  The objects we used to refer to as "parameter files" we now refer to as
   datasets.  Instead of ``pf``, we now suggest you use ``ds`` to refer to an
   object returned by ``yt.load``.
 * **Remove any references to** ``pf.h`` **with** ``ds``
-  You can now create data objects without referring to the hierarchy. Instead 
-  of ``pf.h.all_data()``, you can now say ``ds.all_data()``.  The hierarchy is 
+  You can now create data objects without referring to the hierarchy. Instead
+  of ``pf.h.all_data()``, you can now say ``ds.all_data()``.  The hierarchy is
   still there, but it is now called the index: ``ds.index``.
 * **Use** ``yt.enable_parallelism()`` **to make a script parallel-compatible**
   Command line arguments are only parsed when yt is imported using ``from
@@ -128,7 +128,7 @@ Lots of New Codes are Supported
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Because of the additions of **Octrees**, **Particle Deposition**,
-and **Irregular Grids**, we now support a bunch more codes.  See 
+and **Irregular Grids**, we now support a bunch more codes.  See
 :ref:`code-support` for more information.
 
 Octrees
@@ -294,14 +294,14 @@ Projection Argument Order
 
 Previously, projections were inconsistent with the other data objects.
 (The API for Plot Windows is the same.)  The argument order is now ``field``
-then ``axis`` as seen here: 
+then ``axis`` as seen here:
 :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProj`.
 
 Field Parameters
 ^^^^^^^^^^^^^^^^
 
 All data objects now accept an explicit list of ``field_parameters`` rather
-than accepting ``kwargs`` and supplying them to field parameters.  See 
+than accepting ``kwargs`` and supplying them to field parameters.  See
 :ref:`field_parameters`.
 
 Object Renaming
@@ -311,7 +311,7 @@ Nearly all internal objects have been renamed.  Typically this means either
 removing ``AMR`` from the prefix or replacing it with ``YT``.  All names of
 objects remain the same for the purposes of selecting data and creating them;
 i.e., ``sphere`` objects are still called ``sphere`` - you can access or create one
-via ``ds.sphere``.  For a detailed description and index see 
+via ``ds.sphere``.  For a detailed description and index see
 :ref:`available-objects`.
 
 Boolean Regions
@@ -349,5 +349,5 @@ Analysis Modules
 ^^^^^^^^^^^^^^^^
 
 While we're trying to port over all of the old analysis modules, we have not
-gotten all of them working in 3.0 yet.  The docs pages for those modules 
-not-yet-functioning are clearly marked.  
+gotten all of them working in 3.0 yet.  The docs pages for those modules
+not-yet-functioning are clearly marked.

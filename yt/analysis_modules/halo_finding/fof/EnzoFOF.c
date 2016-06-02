@@ -28,14 +28,20 @@ static PyObject *
 Py_EnzoFOF(PyObject *obj, PyObject *args)
 {
     PyObject    *oxpos, *oypos, *ozpos;
-
     PyArrayObject    *xpos, *ypos, *zpos;
-    xpos=ypos=zpos=NULL;
     float link = 0.2;
     float fPeriod[3] = {1.0, 1.0, 1.0};
 	int nMembers = 8;
+    int i, num_particles;
+	KDFOF kd;
+	int nBucket,j;
+	float fEps;
+	int nGroup,bVerbose=1;
+	int sec,usec;
+	PyArrayObject *particle_group_id;
+    PyObject *return_value;
 
-    int i;
+    xpos=ypos=zpos=NULL;
 
     if (!PyArg_ParseTuple(args, "OOO|f(fff)i",
         &oxpos, &oypos, &ozpos, &link,
@@ -54,7 +60,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
              "EnzoFOF: xpos didn't work.");
     goto _fail;
     }
-    int num_particles = PyArray_SIZE(xpos);
+    num_particles = PyArray_SIZE(xpos);
 
     ypos    = (PyArrayObject *) PyArray_FromAny(oypos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
@@ -75,12 +81,6 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
     }
 
     /* let's get started with the FOF stuff */
-
-	KDFOF kd;
-	int nBucket,j;
-	float fEps;
-	int nGroup,bVerbose=1;
-	int sec,usec;
 	
 	/* linking length */
 	fprintf(stdout, "Link length is %f\n", link);
@@ -128,7 +128,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
     // All we need to do is group information.
     
     // Tags are in kd->p[i].iGroup
-    PyArrayObject *particle_group_id = (PyArrayObject *)
+    particle_group_id = (PyArrayObject *)
             PyArray_SimpleNewFromDescr(1, PyArray_DIMS(xpos),
                     PyArray_DescrFromType(NPY_INT32));
     
@@ -142,7 +142,7 @@ Py_EnzoFOF(PyObject *obj, PyObject *args)
 
     PyArray_UpdateFlags(particle_group_id,
         NPY_ARRAY_OWNDATA | PyArray_FLAGS(particle_group_id));
-    PyObject *return_value = Py_BuildValue("N", particle_group_id);
+    return_value = Py_BuildValue("N", particle_group_id);
 
     Py_DECREF(xpos);
     Py_DECREF(ypos);

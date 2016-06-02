@@ -12,6 +12,8 @@ RenderSource Class
 # -----------------------------------------------------------------------------
 
 import numpy as np
+from yt.config import \
+    ytcfg
 from yt.funcs import mylog, ensure_numpy_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -22,6 +24,7 @@ from .transfer_functions import TransferFunction, \
 from .utils import new_volume_render_sampler, data_source_or_all, \
     get_corners, new_projection_sampler, new_mesh_sampler, \
     new_interpolated_projection_sampler
+from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.visualization.image_writer import apply_colormap
 from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
@@ -33,10 +36,12 @@ try:
     from yt.utilities.lib import mesh_traversal
 except ImportError:
     mesh_traversal = NotAModule("pyembree")
+    ytcfg["yt", "ray_tracing_engine"] = "yt"
 try:
     from yt.utilities.lib import mesh_construction
 except ImportError:
     mesh_construction = NotAModule("pyembree")
+    ytcfg["yt", "ray_tracing_engine"] = "yt"
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -351,11 +356,12 @@ class MeshSource(OpaqueSource):
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.field = field
-        self.mesh = None
+        self.volume = None
         self.current_image = None
+        self.engine = ytcfg.get("yt", "ray_tracing_engine")
 
         # default color map
-        self._cmap = 'algae'
+        self._cmap = ytcfg.get("yt", "default_colormap")
         self._color_bounds = None
 
         # default mesh annotation options
@@ -367,8 +373,14 @@ class MeshSource(OpaqueSource):
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        self.scene = mesh_traversal.YTEmbreeScene()
-        self.build_mesh()
+        if self.engine == 'embree':
+            self.volume = mesh_traversal.YTEmbreeScene()
+            self.build_volume_embree()
+        elif self.engine == 'yt':
+            self.build_volume_bvh()
+        else:
+            raise NotImplementedError("Invalid ray-tracing engine selected. "
+                                      "Choices are 'embree' and 'yt'.")
 
     def cmap():
         '''
@@ -408,15 +420,15 @@ class MeshSource(OpaqueSource):
     def _validate(self):
         """Make sure that all dependencies have been met"""
         if self.data_source is None:
-            raise RuntimeError("Data source not initialized")
+            raise RuntimeError("Data source not initialized.")
 
-        if self.mesh is None:
-            raise RuntimeError("Mesh not initialized")
+        if self.volume is None:
+            raise RuntimeError("Volume not initialized.")
 
-    def build_mesh(self):
+    def build_volume_embree(self):
         """
 
-        This constructs the mesh that will be ray-traced.
+        This constructs the mesh that will be ray-traced by pyembree.
 
         """
         ftype, fname = self.field
@@ -436,7 +448,7 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20:
-            self.mesh = mesh_construction.QuadraticElementMesh(self.scene,
+            self.mesh = mesh_construction.QuadraticElementMesh(self.volume,
                                                                vertices,
                                                                indices,
                                                                field_data)
@@ -456,10 +468,46 @@ class MeshSource(OpaqueSource):
                 field_data = field_data[:, 0:4]
                 indices = indices[:, 0:4]
 
-            self.mesh = mesh_construction.LinearElementMesh(self.scene,
+            self.mesh = mesh_construction.LinearElementMesh(self.volume,
                                                             vertices,
                                                             indices,
                                                             field_data)
+
+    def build_volume_bvh(self):
+        """
+
+        This constructs the mesh that will be ray-traced.
+
+        """
+        ftype, fname = self.field
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.meshes[mesh_id]._index_offset
+        field_data = self.data_source[self.field].d  # strip units
+
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
+
+        # if this is an element field, promote to 2D here
+        if len(field_data.shape) == 1:
+            field_data = np.expand_dims(field_data, 1)
+
+        # Here, we decide whether to render based on high-order or 
+        # low-order geometry.
+        if indices.shape[1] == 27:
+            # hexahedral
+            mylog.warning("27-node hexes not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:8]
+            indices = indices[:, 0:8]
+        elif indices.shape[1] == 10:
+            # tetrahedral
+            mylog.warning("10-node tetrahedral elements not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:4]
+            indices = indices[:, 0:4]
+
+        self.volume = BVH(vertices, indices, field_data)
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -493,18 +541,17 @@ class MeshSource(OpaqueSource):
                               zbuffer.z.reshape(shape[:2]))
         self.zbuffer = zbuffer
 
-        self.sampler = new_mesh_sampler(camera, self)
+        self.sampler = new_mesh_sampler(camera, self, engine=self.engine)
 
         mylog.debug("Casting rays")
-        self.sampler(self.scene)
+        self.sampler(self.volume)
         mylog.debug("Done casting rays")
 
         self.finalize_image(camera)
-        self.data = self.sampler.aimage
         self.current_image = self.apply_colormap()
 
         zbuffer += ZBuffer(self.current_image.astype('float64'),
-                           self.sampler.zbuffer)
+                           self.sampler.azbuffer)
         zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
         self.current_image = self.zbuffer.rgba
@@ -521,16 +568,13 @@ class MeshSource(OpaqueSource):
         # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
-        sam.aimage = sam.aimage.reshape(Nx, Ny)
-        sam.image_used = sam.image_used.reshape(Nx, Ny)
-        sam.mesh_lines = sam.mesh_lines.reshape(Nx, Ny)
-        sam.zbuffer = sam.zbuffer.reshape(Nx, Ny)
+        self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
 
         # rotate
-        sam.aimage = np.rot90(sam.aimage, k=2)
-        sam.image_used = np.rot90(sam.image_used, k=2)
-        sam.mesh_lines = np.rot90(sam.mesh_lines, k=2)
-        sam.zbuffer = np.rot90(sam.zbuffer, k=2)
+        self.data = np.rot90(self.data, k=2)
+        sam.aimage_used = np.rot90(sam.aimage_used, k=2)
+        sam.amesh_lines = np.rot90(sam.amesh_lines, k=2)
+        sam.azbuffer = np.rot90(sam.azbuffer, k=2)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
@@ -556,7 +600,7 @@ class MeshSource(OpaqueSource):
         if color is None:
             color = np.array([0, 0, 0, alpha])
 
-        locs = [self.sampler.mesh_lines == 1]
+        locs = [self.sampler.amesh_lines == 1]
 
         self.current_image[:, :, 0][locs] = color[0]
         self.current_image[:, :, 1][locs] = color[1]
@@ -590,7 +634,7 @@ class MeshSource(OpaqueSource):
                                color_bounds=self._color_bounds,
                                cmap_name=self._cmap)/255.
         alpha = image[:, :, 3]
-        alpha[self.sampler.image_used == -1] = 0.0
+        alpha[self.sampler.aimage_used == -1] = 0.0
         image[:, :, 3] = alpha        
         return image
 
@@ -939,7 +983,7 @@ class GridSource(LineSource):
 
     """
 
-    def __init__(self, data_source, alpha=0.3, cmap='algae',
+    def __init__(self, data_source, alpha=0.3, cmap=None,
                  min_level=None, max_level=None):
         self.data_source = data_source_or_all(data_source)
         corners = []
@@ -959,6 +1003,8 @@ class GridSource(LineSource):
             levels.append(block.Level)
         corners = np.dstack(corners)
         levels = np.array(levels)
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
 
         if max_level is not None:
             subset = levels <= max_level

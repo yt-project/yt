@@ -20,6 +20,7 @@ import itertools as it
 import numpy as np
 import importlib
 import os
+import unittest
 from yt.funcs import iterable
 from yt.config import ytcfg
 # we import this in a weird way from numpy.testing to avoid triggering
@@ -31,15 +32,21 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
-try:
-    from nose.tools import assert_true, assert_less_equal  # NOQA
-except ImportError:
-    # This means nose isn't installed, so the tests can't run and it's ok
-    # to not import these functions
-    pass
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
+
+# Expose assert_true and assert_less_equal from unittest.TestCase
+# this is adopted from nose. Doing this here allows us to avoid importing
+# nose at the top level.
+class _Dummy(unittest.TestCase):
+    def nop():
+        pass
+_t = _Dummy('nop')
+
+assert_true = getattr(_t, 'assertTrue')
+assert_less_equal = getattr(_t, 'assertLessEqual')
+
 
 def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     # We have nan checks in here because occasionally we have fields that get
@@ -299,25 +306,91 @@ def fake_hexahedral_ds():
     from yt.frontends.stream.sample_data.hexahedral_mesh import \
         _connectivity, _coordinates
 
-    _connectivity -= 1  # this mesh has an offset of 1
-
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
-    node_data[('connect1', 'test')] = dist[_connectivity]
+    node_data[('connect1', 'test')] = dist[_connectivity-1]
 
     # each element gets a random number
     elem_data = {}
     elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(_connectivity,
+    ds = load_unstructured_mesh(_connectivity-1,
                                 _coordinates,
                                 node_data=node_data,
                                 elem_data=elem_data)
     return ds
 
 
+def fake_vr_orientation_test_ds(N = 96):
+    """
+    create a toy dataset that puts a sphere at (0,0,0), a single cube
+    on +x, two cubes on +y, and three cubes on +z in a domain from
+    [-1,1]**3.  The lower planes (x = -1, y = -1, z = -1) are also
+    given non-zero values.
+
+    This dataset allows you to easily explore orientations and
+    handiness in VR and other renderings
+
+    """
+    from yt.frontends.stream.api import load_uniform_grid
+
+    xmin = ymin = zmin = -1.0
+    xmax = ymax = zmax = 1.0
+
+    dcoord = (xmax - xmin)/N
+
+    arr = np.zeros((N,N,N), dtype=np.float64)
+    arr[:,:,:] = 1.e-4
+
+    bbox = np.array([ [xmin, xmax], [ymin, ymax], [zmin, zmax] ])
+
+    # coordinates -- in the notation data[i, j, k]
+    x = (np.arange(N) + 0.5)*dcoord + xmin
+    y = (np.arange(N) + 0.5)*dcoord + ymin
+    z = (np.arange(N) + 0.5)*dcoord + zmin
+
+    x3d, y3d, z3d = np.meshgrid(x, y, z, indexing="ij")
+
+    # sphere at the origin
+    c = np.array( [0.5*(xmin + xmax), 0.5*(ymin + ymax), 0.5*(zmin + zmax) ] )
+    r = np.sqrt((x3d - c[0])**2 + (y3d - c[1])**2 + (z3d - c[2])**2)
+    arr[r < 0.05] = 1.0
+
+    arr[abs(x3d - xmin) < 2*dcoord] = 0.3
+    arr[abs(y3d - ymin) < 2*dcoord] = 0.3
+    arr[abs(z3d - zmin) < 2*dcoord] = 0.3
+
+    # single cube on +x
+    xc = 0.75
+    dx = 0.05
+    idx = np.logical_and(np.logical_and(x3d > xc-dx, x3d < xc+dx),
+                         np.logical_and(np.logical_and(y3d > -dx, y3d < dx),
+                                        np.logical_and(z3d > -dx, z3d < dx)) )
+    arr[idx] = 1.0
+
+    # two cubes on +y
+    dy = 0.05
+    for yc in [0.65, 0.85]:
+        idx = np.logical_and(np.logical_and(y3d > yc-dy, y3d < yc+dy),
+                             np.logical_and(np.logical_and(x3d > -dy, x3d < dy),
+                                            np.logical_and(z3d > -dy, z3d < dy)) )
+        arr[idx] = 0.8
+
+    # three cubes on +z
+    dz = 0.05
+    for zc in [0.5, 0.7, 0.9]:
+        idx = np.logical_and(np.logical_and(z3d > zc-dz, z3d < zc+dz),
+                             np.logical_and(np.logical_and(x3d > -dz, x3d < dz),
+                                            np.logical_and(y3d > -dz, y3d < dz)) )
+        arr[idx] = 0.6
+
+    data = dict(density = (arr, "g/cm**3"))
+    ds = load_uniform_grid(data, arr.shape, bbox=bbox)
+    return ds
+
 def expand_keywords(keywords, full=False):
+
     """
     expand_keywords is a means for testing all possible keyword
     arguments in the nosetests.  Simply pass it a dictionary of all the

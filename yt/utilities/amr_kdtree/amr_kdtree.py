@@ -25,7 +25,7 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
     scatter_image
 from yt.utilities.lib.amr_kdtools import \
     Node, \
-    add_pygrids, \
+    add_grids, \
     find_node, \
     kd_is_leaf, \
     set_dirty, \
@@ -95,7 +95,7 @@ class Tree(object):
         gles = np.array([g.LeftEdge for g in grids])
         gres = np.array([g.RightEdge for g in grids])
         gids = np.array([g.id for g in grids], dtype="int64")
-        add_pygrids(self.trunk, gids.size, gles, gres, gids,
+        add_grids(self.trunk, gids.size, gles, gres, gids,
                     self.comm_rank, self.comm_size)
         del gles, gres, gids, grids
 
@@ -190,7 +190,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.fields = new_fields
 
         if self.log_fields is not None and not regenerate_data:
-            flip_log = map(operator.ne, self.log_fields, log_fields)
+            flip_log = list(map(operator.ne, self.log_fields, log_fields))
         else:
             flip_log = [False] * len(log_fields)
         self.log_fields = log_fields
@@ -201,7 +201,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         bricks = []
 
         for b in self.traverse():
-            map(_apply_log, b.my_data, flip_log, log_fields)
+            list(map(_apply_log, b.my_data, flip_log, log_fields))
             bricks.append(b)
         self.bricks = np.array(bricks)
         self.brick_dimensions = np.array(self.brick_dimensions)

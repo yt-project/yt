@@ -21,15 +21,20 @@ cdef extern from "limits.h":
     cdef int SHRT_MAX
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    lrint, fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
+    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
 
+cdef extern from "platform_dep.h":
+    long int lrint(double x) nogil
+
 from cython.parallel import prange, parallel, threadid
 from vec3_ops cimport dot, subtract, L2_norm, fma
+
+from cpython.exc cimport PyErr_CheckSignals
 
 DEF Nch = 4
 
@@ -378,6 +383,8 @@ cdef class ImageSampler:
                   *args, **kwargs):
         self.image = <ImageContainer *> calloc(sizeof(ImageContainer), 1)
         cdef np.float64_t[:,:] zbuffer
+        cdef np.int64_t[:,:] image_used
+        cdef np.int64_t[:,:] mesh_lines
         cdef np.float64_t[:,:] camera_data
         cdef int i
 
@@ -388,6 +395,10 @@ cdef class ImageSampler:
         zbuffer = kwargs.pop("zbuffer", None)
         if zbuffer is None:
             zbuffer = np.ones((image.shape[0], image.shape[1]), "float64")
+
+        image_used = np.zeros((image.shape[0], image.shape[1]), "int64")
+        mesh_lines = np.zeros((image.shape[0], image.shape[1]), "int64")
+
         self.lens_type = kwargs.pop("lens_type", None)
         if self.lens_type == "plane-parallel":
             self.extent_function = calculate_extent_plane_parallel
@@ -395,7 +406,7 @@ cdef class ImageSampler:
         else:
             if not (vp_pos.shape[0] == vp_dir.shape[0] == image.shape[0]) or \
                not (vp_pos.shape[1] == vp_dir.shape[1] == image.shape[1]):
-                msg = "Bad lense shape / direction for %s\n" % (self.lens_type)
+                msg = "Bad lens shape / direction for %s\n" % (self.lens_type)
                 msg += "Shapes: (%s - %s - %s) and (%s - %s - %s)" % (
                     vp_pos.shape[0], vp_dir.shape[0], image.shape[0],
                     vp_pos.shape[1], vp_dir.shape[1], image.shape[1])
@@ -421,7 +432,9 @@ cdef class ImageSampler:
         self.image.x_vec = <np.float64_t *> x_vec.data
         self.ay_vec = y_vec
         self.image.y_vec = <np.float64_t *> y_vec.data
-        self.image.zbuffer = zbuffer
+        self.image.zbuffer = self.azbuffer = zbuffer
+        self.image.image_used = self.aimage_used = image_used
+        self.image.mesh_lines = self.amesh_lines = mesh_lines
         self.image.nv[0] = image.shape[0]
         self.image.nv[1] = image.shape[1]
         for i in range(4): self.image.bounds[i] = bounds[i]
@@ -458,6 +471,7 @@ cdef class ImageSampler:
         size = nx * ny
         cdef ImageAccumulator *idata
         cdef np.float64_t width[3]
+        cdef int chunksize = 100
         for i in range(3):
             width[i] = self.width[i]
         with nogil, parallel(num_threads = num_threads):
@@ -465,7 +479,7 @@ cdef class ImageSampler:
             idata.supp_data = self.supp_data
             v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
             v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
-            for j in prange(size, schedule="static", chunksize=100):
+            for j in prange(size, schedule="static", chunksize=chunksize):
                 vj = j % ny
                 vi = (j - vj) / ny + iter[0]
                 vj = vj + iter[2]
@@ -476,6 +490,9 @@ cdef class ImageSampler:
                 max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sampler,
                             (<void *> idata), NULL, max_t)
+                if (j % (10*chunksize)) == 0:
+                    with gil:
+                        PyErr_CheckSignals()
                 for i in range(Nch):
                     im.image[vi, vj, i] = idata.rgba[i]
             free(idata)
@@ -485,6 +502,16 @@ cdef class ImageSampler:
 
     cdef void setup(self, PartitionedGrid pg):
         return
+
+    def __dealloc__(self):
+        self.image.image = None
+        self.image.vp_pos = None
+        self.image.vp_dir = None
+        self.image.zbuffer = None
+        self.image.camera_data = None
+        self.image.image_used = None
+        free(self.image)
+
 
 cdef void projection_sampler(
                  VolumeContainer *vc,
@@ -829,9 +856,11 @@ cdef class VolumeRenderSampler(ImageSampler):
             self.sampler = volume_render_stars_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.fits)
+        free(self.vra)
 
 cdef class LightSourceRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
@@ -890,11 +919,13 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.sampler = volume_render_gradient_sampler
 
     def __dealloc__(self):
-        return
-        #free(self.vra.fits)
-        #free(self.vra)
-        #free(self.light_dir)
-        #free(self.light_rgba)
+        for i in range(self.vra.n_fits):
+            free(self.vra.fits[i].d0)
+            free(self.vra.fits[i].dy)
+        free(self.vra.light_dir)
+        free(self.vra.light_rgba)
+        free(self.vra.fits)
+        free(self.vra)
 
 
 @cython.boundscheck(False)

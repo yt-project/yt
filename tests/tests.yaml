@@ -1,37 +1,45 @@
 answer_tests:
-  local_artio_270:
+  local_artio_000:
     - yt/frontends/artio/tests/test_outputs.py
 
-  local_athena_270:
+  local_athena_000:
     - yt/frontends/athena
 
-  local_chombo_270:
+  local_chombo_000:
     - yt/frontends/chombo/tests/test_outputs.py
 
-  local_enzo_270:
+  local_enzo_000:
     - yt/frontends/enzo
 
-  local_fits_270:
+  local_fits_000:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_270:
+  local_flash_001:
     - yt/frontends/flash/tests/test_outputs.py
 
-  local_gadget_270:
+  local_gadget_000:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gdf_270:
+  local_gamer_000:
+    - yt/frontends/gamer/tests/test_outputs.py
+
+  local_gdf_000:
     - yt/frontends/gdf/tests/test_outputs.py
 
-  local_halos_270:
-    - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py
-    - yt/analysis_modules/halo_finding/tests/test_rockstar.py
+  local_gizmo_000:
+    - yt/frontends/gizmo/tests/test_outputs.py
+
+  local_halos_000:
+    - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py  # [py2]
+    - yt/analysis_modules/halo_finding/tests/test_rockstar.py  # [py2]
     - yt/frontends/owls_subfind/tests/test_outputs.py
+    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
+    - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
   
-  local_owls_270:
+  local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
   
-  local_pw_270:
+  local_pw_000:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -39,10 +47,10 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
   
-  local_tipsy_270:
+  local_tipsy_000:
     - yt/frontends/tipsy/tests/test_outputs.py
   
-  local_varia_271:
+  local_varia_001:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
@@ -50,16 +58,16 @@ answer_tests:
     - yt/visualization/volume_rendering/tests/test_vr_orientation.py
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
 
-  local_orion_270:
+  local_orion_000:
     - yt/frontends/boxlib/tests/test_orion.py
   
-  local_ramses_270:
+  local_ramses_000:
     - yt/frontends/ramses/tests/test_outputs.py
   
-  local_ytdata_270:
+  local_ytdata_000:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_271:
+  local_absorption_spectrum_000:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
 

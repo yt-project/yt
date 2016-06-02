@@ -66,7 +66,7 @@ from yt.utilities.flagging_methods import \
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh, \
     UnstructuredMesh
-from yt.extern.six import string_types, iteritems
+from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
 
@@ -464,36 +464,46 @@ def assign_particle_data(ds, pdata):
         ds.stream_handler.particle_count[gi] = npart
                                         
 def unitify_data(data):
-    if all([hasattr(val, 'units') for val in data.values()]):
-        new_data, field_units = {}, {}
-        for k, v in data.items():
-            field_units[k] = v.units
-            new_data[k] = v.copy().d
-        data = new_data
-    elif all([((not isinstance(val, np.ndarray)) and (len(val) == 2))
-             for val in data.values()]):
-        new_data, field_units = {}, {}
-        for field in data:
+    new_data, field_units = {}, {}
+    for field, val in data.items():
+        # val is a data array
+        if isinstance(val, np.ndarray):
+            # val is a YTArray
+            if hasattr(val, "units"):
+                field_units[field] = val.units
+                new_data[field] = val.copy().d
+            # val is a numpy array
+            else:
+                field_units[field] = ""
+                new_data[field] = val.copy()
+
+        # val is a tuple of (data, units)
+        elif isinstance(val, tuple) and len(val) == 2:
             try:
                 assert isinstance(field, (string_types, tuple)), \
                   "Field name is not a string!"
-                assert isinstance(data[field][0], np.ndarray), \
+                assert isinstance(val[0], np.ndarray), \
                   "Field data is not an ndarray!"
-                assert isinstance(data[field][1], string_types), \
+                assert isinstance(val[1], string_types), \
                   "Unit specification is not a string!"
-                field_units[field] = data[field][1]
-                new_data[field] = data[field][0]
+                field_units[field] = val[1]
+                new_data[field] = val[0]
             except AssertionError as e:
-                raise RuntimeError("The data dict appears to be invalid.\n" +
-                                   str(e))
-        data = new_data
-    elif all([iterable(val) for val in data.values()]):
-        field_units = {field:'' for field in data.keys()}
-        data = dict((field, np.asarray(val)) for field, val in iteritems(data))
-    else:
-        raise RuntimeError("The data dict appears to be invalid. "
-                           "The data dictionary must map from field "
-                           "names to (numpy array, unit spec) tuples. ")
+                raise RuntimeError(
+                    "The data dict appears to be invalid.\n" + str(e))
+
+        # val is a list of data to be turned into an array
+        elif iterable(val):
+            field_units[field] = ""
+            new_data[field] = np.asarray(val)
+
+        else:
+            raise RuntimeError("The data dict appears to be invalid. "
+                               "The data dictionary must map from field "
+                               "names to (numpy array, unit spec) tuples. ")
+
+    data = new_data
+
     # At this point, we have arrays for all our fields
     new_data = {}
     for field in data:
@@ -1816,5 +1826,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     sds._node_fields = node_data[0].keys()
     sds._elem_fields = elem_data[0].keys()
+    sds.default_field = [f for f in sds.field_list 
+                         if f[0] == 'connect1'][-1]
 
     return sds

@@ -38,6 +38,13 @@ from .particle_fields import \
     add_volume_weighted_smoothed_field, \
     sph_whitelist_fields
 
+def tupleize(inp):
+    if isinstance(inp, tuple):
+        return inp
+    # prepending with a '?' ensures that the sort order is the same in py2 and
+    # py3, since names of field types shouldn't begin with punctuation
+    return ('?', inp, )
+
 class FieldInfoContainer(dict):
     """
     This is a generic field container.  It contains a list of potential derived
@@ -246,7 +253,22 @@ class FieldInfoContainer(dict):
                 self[name] = DerivedField(name, f, **kwargs)
                 return f
             return create_function
-        self[name] = DerivedField(name, function, **kwargs)
+
+        if isinstance(name, tuple):
+            self[name] = DerivedField(name, function, **kwargs)
+            return
+
+        if kwargs.get("particle_type", False):
+            ftype = 'all'
+        else:
+            ftype = self.ds.default_fluid_type
+
+        if (ftype, name) not in self:
+            tuple_name = (ftype, name)
+            self[tuple_name] = DerivedField(tuple_name, function, **kwargs)
+            self.alias(name, tuple_name)
+        else:
+            self[name] = DerivedField(name, function, **kwargs)
 
     def load_all_plugins(self, ftype="gas"):
         loaded = []
@@ -271,7 +293,7 @@ class FieldInfoContainer(dict):
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl))
+        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return loaded, unavailable
 
     def add_output_field(self, name, **kwargs):
@@ -357,5 +379,5 @@ class FieldInfoContainer(dict):
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl))
+        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return deps, unavailable

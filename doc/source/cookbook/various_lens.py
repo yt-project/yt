@@ -24,7 +24,7 @@ cam = sc.add_camera(ds, lens_type='plane-parallel')
 cam.resolution = [250, 250]
 # Set the location of the camera to be (x=0.2, y=0.5, z=0.5)
 # For plane-parallel lens, the location info along the normal_vector (here
-# is x=0.2) is ignored. 
+# is x=0.2) is ignored.
 cam.position = ds.arr(np.array([0.2, 0.5, 0.5]), 'code_length')
 # Set the orientation of the camera.
 cam.switch_orientation(normal_vector=normal_vector,
@@ -85,6 +85,7 @@ sc.save('lens_fisheye.png', sigma_clip=6.0)
 cam = sc.add_camera(ds, lens_type='spherical')
 # Set the size ratio of the final projection to be 2:1, since spherical lens
 # will generate the final image with length of 2*pi and height of pi.
+# Recommended resolution for YouTube 360-degree videos is [3840, 2160]
 cam.resolution = [500, 250]
 # Standing at (x=0.4, y=0.5, z=0.5), we look in all the radial directions
 # from this point in spherical coordinate.
@@ -99,9 +100,11 @@ sc.save('lens_spherical.png', sigma_clip=6.0)
 
 # Stereo-spherical lens
 cam = sc.add_camera(ds, lens_type='stereo-spherical')
-# Set the size ratio of the final projection to be 4:1, since spherical-perspective lens
-# will generate the final image with both left-eye and right-eye ones jointed together.
-cam.resolution = [1000, 250]
+# Set the size ratio of the final projection to be 1:1, since spherical-perspective lens
+# will generate the final image with both left-eye and right-eye ones jointed together,
+# with left-eye image on top and right-eye image on bottom.
+# Recommended resolution for YouTube virtual reality videos is [3840, 2160]
+cam.resolution = [500, 500]
 cam.position = ds.arr([0.4, 0.5, 0.5], 'code_length')
 cam.switch_orientation(normal_vector=normal_vector,
                        north_vector=north_vector)

@@ -270,7 +270,7 @@ FLASH
 
 .. autosummary::
    :toctree: generated/
-   
+
    ~yt.frontends.flash.data_structures.FLASHGrid
    ~yt.frontends.flash.data_structures.FLASHHierarchy
    ~yt.frontends.flash.data_structures.FLASHDataset
@@ -447,7 +447,7 @@ to create these objects in a uniform manner.
 Halo Analysis
 ^^^^^^^^^^^^^
 
-The ``HaloCatalog`` object is the primary means for performing custom analysis 
+The ``HaloCatalog`` object is the primary means for performing custom analysis
 on cosmological halos.  It is also the primary interface for halo finding.
 
 .. autosummary::
@@ -478,7 +478,7 @@ on cosmological halos.  It is also the primary interface for halo finding.
 Halo Finding
 ^^^^^^^^^^^^
 
-These provide direct access to the halo finders.  However, it is strongly recommended 
+These provide direct access to the halo finders.  However, it is strongly recommended
 to use the ``HaloCatalog``.
 
 .. autosummary::
@@ -539,7 +539,7 @@ Image Handling
 --------------
 
 For volume renderings and fixed resolution buffers the image object returned is
-an ``ImageArray`` object, which has useful functions for image saving and 
+an ``ImageArray`` object, which has useful functions for image saving and
 writing to bitmaps.
 
 .. autosummary::
@@ -583,7 +583,7 @@ Absorption and X-ray spectra and spectral lines:
 
 Absorption spectra fitting:
 
-.. autosummary:: 
+.. autosummary::
    :toctree: generated/
 
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit
@@ -609,7 +609,7 @@ Volume Rendering
 
 See also :ref:`volume_rendering`.
 
-Here are the primary entry points and the main classes involved in the 
+Here are the primary entry points and the main classes involved in the
 Scene infrastructure:
 
 .. autosummary::
@@ -647,7 +647,7 @@ The different kinds of transfer functions:
    ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
    ~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction
    ~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper
- 
+
 The different kinds of lenses:
 
 .. autosummary::
@@ -743,6 +743,7 @@ See also :ref:`callbacks`.
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
+   ~yt.visualization.plot_modifications.CellEdgesCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
@@ -773,7 +774,7 @@ See also :ref:`colormaps`.
 
 .. autosummary::
    :toctree: generated/
-   
+
    ~yt.visualization.color_maps.add_cmap
    ~yt.visualization.color_maps.make_colormap
    ~yt.visualization.color_maps.show_colormaps

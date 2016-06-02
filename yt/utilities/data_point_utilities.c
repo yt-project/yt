@@ -46,13 +46,28 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
             *grid_src_mask, *grid_src_wgt, *grid_used_mask;
     PyArrayObject    *grid_dst_x, *grid_dst_y, **grid_dst_vals,
             *grid_dst_mask, *grid_dst_wgt;
+    int NumArrays, src_len, dst_len, refinement_factor;
+    npy_float64 **src_vals;
+    npy_float64 **dst_vals;
+    PyObject *temp_object;
+    int i;
+
+    npy_int64 *src_x, *src_y, *src_mask, *src_used_mask;
+    npy_float64 *src_wgt;
+
+    npy_int64 *dst_x, *dst_y, *dst_mask;
+    npy_float64 *dst_wgt;
+
+    int si, di, x_off, y_off;
+    npy_int64  fine_x, fine_y, init_x, init_y;
+    int num_found = 0;
+    PyObject *onum_found;
 
     grid_src_x = grid_src_y = //grid_src_vals =
             grid_src_mask = grid_src_wgt = grid_used_mask =
     grid_dst_x = grid_dst_y = //grid_dst_vals = 
             grid_dst_mask = grid_dst_wgt = NULL;
 
-    int NumArrays, src_len, dst_len, refinement_factor;
     NumArrays = 0;
 
     if (!PyArg_ParseTuple(args, "OOOOOOOOOOiO",
@@ -154,10 +169,9 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
 
     grid_src_vals = malloc(NumArrays * sizeof(PyArrayObject*));
     grid_dst_vals = malloc(NumArrays * sizeof(PyArrayObject*));
-    npy_float64 **src_vals = malloc(NumArrays * sizeof(npy_float64*));
-    npy_float64 **dst_vals = malloc(NumArrays * sizeof(npy_float64*));
-    PyObject *temp_object;
-    int i;
+    src_vals = malloc(NumArrays * sizeof(npy_float64*));
+    dst_vals = malloc(NumArrays * sizeof(npy_float64*));
+
     for (i = 0; i < NumArrays; i++) {
       temp_object = PySequence_GetItem(ogrid_src_vals, i);
       grid_src_vals[i] = (PyArrayObject *) PyArray_FromAny(
@@ -178,20 +192,16 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
 
     /* Now we're all set to call our sub-function. */
 
-    npy_int64     *src_x    = (npy_int64 *) PyArray_GETPTR1(grid_src_x,0);
-    npy_int64     *src_y    = (npy_int64 *) PyArray_GETPTR1(grid_src_y,0);
-    npy_float64 *src_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_src_wgt,0);
-    npy_int64     *src_mask = (npy_int64 *) PyArray_GETPTR1(grid_src_mask,0);
-    npy_int64    *src_used_mask = (npy_int64 *) PyArray_GETPTR1(grid_used_mask,0);
+    src_x    = (npy_int64 *) PyArray_GETPTR1(grid_src_x,0);
+    src_y    = (npy_int64 *) PyArray_GETPTR1(grid_src_y,0);
+    src_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_src_wgt,0);
+    src_mask = (npy_int64 *) PyArray_GETPTR1(grid_src_mask,0);
+    src_used_mask = (npy_int64 *) PyArray_GETPTR1(grid_used_mask,0);
 
-    npy_int64     *dst_x    = (npy_int64 *) PyArray_GETPTR1(grid_dst_x,0);
-    npy_int64     *dst_y    = (npy_int64 *) PyArray_GETPTR1(grid_dst_y,0);
-    npy_float64 *dst_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_dst_wgt,0);
-    npy_int64     *dst_mask = (npy_int64 *) PyArray_GETPTR1(grid_dst_mask,0);
-
-    int si, di, x_off, y_off;
-    npy_int64  fine_x, fine_y, init_x, init_y;
-    int num_found = 0;
+    dst_x    = (npy_int64 *) PyArray_GETPTR1(grid_dst_x,0);
+    dst_y    = (npy_int64 *) PyArray_GETPTR1(grid_dst_y,0);
+    dst_wgt  = (npy_float64 *) PyArray_GETPTR1(grid_dst_wgt,0);
+    dst_mask = (npy_int64 *) PyArray_GETPTR1(grid_dst_mask,0);
 
     for (si = 0; si < src_len; si++) {
       if (src_used_mask[si] == 0) continue;
@@ -244,7 +254,7 @@ Py_CombineGrids(PyObject *obj, PyObject *args)
     free(src_vals);
     free(dst_vals);
 
-    PyObject *onum_found = PYINTCONV_FROM((long)num_found);
+    onum_found = PYINTCONV_FROM((long)num_found);
     return onum_found;
 
 _fail:
@@ -298,14 +308,30 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
              *oc_le, *oc_re, *oc_dx, *oc_data, *odr_edge, *odl_edge;
     PyArrayObject *g_le, *g_dx, *g_cm,
                   *c_le, *c_re, *c_dx, *dr_edge, *dl_edge;
-    g_dx=g_cm=c_le=c_re=c_dx=NULL;
     PyArrayObject **g_data, **c_data;
-    g_data = c_data = NULL;
     npy_int *ag_cm;
-    npy_float64 ag_le[3], ag_dx[3], 
+    npy_float64 ag_le[3], ag_dx[3],
                 ac_le[3], ac_re[3], ac_dx[3],
                 adl_edge[3], adr_edge[3];
     Py_ssize_t n_fields = 0;
+    PyObject *tc_data;
+    PyObject *tg_data;
+    npy_int64 xg, yg, zg, xc, yc, zc, cmax_x, cmax_y, cmax_z,
+              cmin_x, cmin_y, cmin_z, cm, pxl, pyl, pzl;
+    long int total=0;
+
+    int p_niter[3] = {1,1,1};
+    int itc;
+    npy_float64 ac_le_p[3][3];
+    npy_float64 ac_re_p[3][3];
+    npy_float64 ag_re[3];
+    npy_intp nx, ny, nz;
+    npy_int64 xg_min, yg_min, zg_min;
+    npy_int64 xg_max, yg_max, zg_max;
+    PyObject *status;
+
+    g_dx=g_cm=c_le=c_re=c_dx=NULL;
+    g_data = c_data = NULL;
 
     if (!PyArg_ParseTuple(args, "OOOOOOOOiOO",
             &og_le, &og_dx, &og_data, &og_cm,
@@ -411,7 +437,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
       goto _fail;
     }
 
-    PyObject *tc_data;
     c_data = (PyArrayObject**)
              malloc(sizeof(PyArrayObject*)*n_fields);
     for (n=0;n<n_fields;n++)c_data[n]=NULL;
@@ -434,7 +459,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
       goto _fail;
     }
 
-    PyObject *tg_data;
     g_data = (PyArrayObject**)
              malloc(sizeof(PyArrayObject*)*n_fields);
     for (n=0;n<n_fields;n++)g_data[n]=NULL;
@@ -455,15 +479,6 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
 
     /* And let's begin */
 
-    npy_int64 xg, yg, zg, xc, yc, zc, cmax_x, cmax_y, cmax_z,
-              cmin_x, cmin_y, cmin_z, cm, pxl, pyl, pzl;
-    long int total=0;
-
-    int p_niter[3] = {1,1,1};
-    int itc;
-    npy_float64 ac_le_p[3][3];
-    npy_float64 ac_re_p[3][3];
-    npy_float64 ag_re[3];
     /* This is for checking for periodic boundary conditions.
        Manually set the right edge to be offset from the left. */
     for(i=0;i<3;i++){ag_re[i] = ag_le[i]+ag_dx[i]*(g_data[0]->dimensions[i]+1);}
@@ -481,13 +496,10 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
             }
             p_niter[i] = itc;
     }
-    npy_intp nx, ny, nz;
     /* This is easier than doing a lookup every loop */
     nx = PyArray_DIM(c_data[0], 0);
     ny = PyArray_DIM(c_data[0], 1);
     nz = PyArray_DIM(c_data[0], 2);
-    npy_int64 xg_min, yg_min, zg_min;
-    npy_int64 xg_max, yg_max, zg_max;
 
     /* Periodic iterations, *if necessary* */
     for (pxl = 0; pxl < p_niter[0]; pxl++) {
@@ -556,7 +568,7 @@ static PyObject *DataCubeGeneric(PyObject *obj, PyObject *args,
     free(g_data);
     free(c_data);
 
-    PyObject *status = PYINTCONV_FROM(total);
+    status = PYINTCONV_FROM(total);
     return status;
     
 _fail:
@@ -626,12 +638,8 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
              *oc_start, *og_start,
              *oc_dims, *og_dims, *omask;
     PyObject *tg_data, *tc_data, *dw_data;
-    oc_data = og_data = oc_start = og_start = oc_dims = og_dims = omask = NULL;
-    tg_data = tc_data = dw_data = NULL;
     PyArrayObject **g_data, **c_data, *mask,
                   *g_start, *c_start, *c_dims, *g_dims, *dwa;
-    mask = g_start = c_start = c_dims = g_dims = NULL;
-    g_data = c_data = NULL;
     int refratio, ll, direction, n;
     npy_int64 gxs, gys, gzs, gxe, gye, gze;
     npy_int64 cxs, cys, czs, cxe, cye, cze;
@@ -639,13 +647,22 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     npy_int64 gxi, gyi, gzi, cxi, cyi, czi;
     npy_int64 cdx, cdy, cdz;
     npy_int64 dw[3];
-    int i;
+    int i, n_fields;
     npy_int64 ci, cj, ck, ri, rj, rk;
     int total = 0;
+    PyObject *status;
+
     void (*to_call)(PyArrayObject* c_data, npy_int64 xc,
                          npy_int64 yc, npy_int64 zc,
                     PyArrayObject* g_data, npy_int64 xg,
                          npy_int64 yg, npy_int64 zg);
+
+    oc_data = og_data = oc_start = og_start = oc_dims = og_dims = omask = NULL;
+    tg_data = tc_data = dw_data = NULL;
+
+    mask = g_start = c_start = c_dims = g_dims = NULL;
+    g_data = c_data = NULL;
+
     if (!PyArg_ParseTuple(args, "iOOOOOOOOii",
             &refratio, &og_start, &oc_start,
             &oc_data, &og_data,
@@ -699,7 +716,7 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     }
     for (i=0;i<3;i++)dw[i] = *(npy_int64*) PyArray_GETPTR1(dwa, i);
 
-    int n_fields = PyList_Size(oc_data);
+    n_fields = PyList_Size(oc_data);
     if(n_fields == 0) {
       /*PyErr_Format(_dataCubeError,
           "CombineGrids: Length zero for c_data is invalid.");
@@ -806,7 +823,7 @@ static PyObject *Py_FillRegion(PyObject *obj, PyObject *args)
     }
     free(g_data);
     free(c_data);
-    PyObject *status = PYINTCONV_FROM(total);
+    status = PYINTCONV_FROM(total);
     return status;
 
 _fail:
@@ -830,11 +847,8 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
              *oc_start, *og_start,
              *oc_dims, *og_dims, *omask, *odls;
     PyObject *tg_data, *tc_data, *dw_data;
-    oc_data = og_data = oc_start = og_start = oc_dims = og_dims = omask = NULL;
-    tg_data = tc_data = dw_data = odls = NULL;
     PyArrayObject **g_data, **c_data, *mask,
                   *g_start, *c_start, *c_dims, *g_dims, *dwa;
-    mask = g_start = c_start = c_dims = g_dims = NULL;
     double *dls = NULL;
     int refratio, ll, direction, n;
     npy_int64 gxs, gys, gzs, gxe, gye, gze;
@@ -843,9 +857,17 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     npy_int64 gxi, gyi, gzi, cxi, cyi, czi;
     npy_int64 cdx, cdy, cdz;
     npy_int64 dw[3];
-    int i, axis;
+    int i, axis, n_fields;
     int ci, cj, ck, ri, rj, rk;
     int total = 0;
+    PyObject *temp = NULL;
+    int x_loc, y_loc; // For access into the buffer
+    PyObject *status;
+
+    oc_data = og_data = oc_start = og_start = oc_dims = og_dims = omask = NULL;
+    tg_data = tc_data = dw_data = odls = NULL;
+
+    mask = g_start = c_start = c_dims = g_dims = NULL;
 
     if (!PyArg_ParseTuple(args, "iOOOOOOOOOi",
             &refratio, &og_start, &oc_start,
@@ -897,7 +919,7 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     }
     for (i=0;i<3;i++)dw[i] = *(npy_int64*) PyArray_GETPTR1(dwa, i);
 
-    int n_fields = PyList_Size(oc_data);
+    n_fields = PyList_Size(oc_data);
     if(n_fields == 0) {
       PyErr_Format(_dataCubeError,
           "CombineGrids: Length zero for c_data is invalid.");
@@ -919,7 +941,6 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     g_data = (PyArrayObject**)
              malloc(sizeof(PyArrayObject*)*n_fields);
     dls = (double *) malloc(sizeof(double) * n_fields);
-    PyObject *temp = NULL;
     for (n=0;n<n_fields;n++)c_data[n]=g_data[n]=NULL;
     for (n=0;n<n_fields;n++){
       /* Borrowed reference ... */
@@ -974,7 +995,6 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     /* It turns out that C89 doesn't define a mechanism for choosing the sign
        of the remainder.
     */
-    int x_loc, y_loc; // For access into the buffer
     for(cxi=cxs;cxi<=cxe;cxi++) {
         ci = (cxi % dw[0]);
         ci = (ci < 0) ? ci + dw[0] : ci;
@@ -1020,7 +1040,7 @@ static PyObject *Py_FillBuffer(PyObject *obj, PyObject *args)
     if(dls!=NULL)free(dls);
     if(g_data!=NULL)free(g_data);
     if(c_data!=NULL)free(c_data);
-    PyObject *status = PYINTCONV_FROM(total);
+    status = PYINTCONV_FROM(total);
     return status;
 
 _fail:
@@ -1048,9 +1068,11 @@ Py_FindContours(PyObject *obj, PyObject *args)
 {
     PyObject *ocon_ids, *oxi, *oyi, *ozi;
     PyArrayObject *con_ids, *xi, *yi, *zi;
-    xi=yi=zi=con_ids=NULL;
     npy_int64 i, j, k, n;
     int status;
+    PyObject *retval;
+
+    xi=yi=zi=con_ids=NULL;
 
     i = 0;
     if (!PyArg_ParseTuple(args, "OOOO",
@@ -1107,7 +1129,7 @@ Py_FindContours(PyObject *obj, PyObject *args)
     Py_DECREF(yi);
     Py_DECREF(zi);
 
-    PyObject *retval = PYINTCONV_FROM(status);
+    retval = PYINTCONV_FROM(status);
     return retval;
 
     _fail:
@@ -1125,10 +1147,10 @@ int process_neighbors(PyArrayObject *con_ids, npy_int64 i, npy_int64 j,
   int spawn_check, status;
   int mi, mj, mk;
   static int stack_depth;
+  npy_int64 *fd_off, *fd_ijk;
   if (first == 1) stack_depth = 0;
   else stack_depth++;
   if (stack_depth > 10000) return -1;
-  npy_int64 *fd_off, *fd_ijk;
   mi = con_ids->dimensions[0];
   mj = con_ids->dimensions[1];
   mk = con_ids->dimensions[2];
@@ -1264,9 +1286,22 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
 {
     PyObject *omass, *ox, *oy, *oz;
     PyArrayObject *mass, *x, *y, *z;
-    x=y=z=mass=NULL;
     int truncate;
     double kinetic_energy;
+
+    int q_outer, q_inner, n_q;
+    double this_potential, total_potential;
+    npy_float64 mass_o, x_o, y_o, z_o;
+    npy_float64 mass_i, x_i, y_i, z_i;
+
+    /* progress bar stuff */
+    float totalWork;
+    float workDone;
+    int every_cells;
+    int until_output;
+    PyObject *status;
+
+    x=y=z=mass=NULL;
 
     if (!PyArg_ParseTuple(args, "OOOOid",
         &omass, &ox, &oy, &oz, &truncate, &kinetic_energy))
@@ -1313,17 +1348,14 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     }
 
     /* Do the work here. */
-    int q_outer, q_inner, n_q = PyArray_SIZE(mass);
-    double this_potential, total_potential;
+    q_outer, q_inner, n_q = PyArray_SIZE(mass);
     total_potential = 0;
-    npy_float64 mass_o, x_o, y_o, z_o;
-    npy_float64 mass_i, x_i, y_i, z_i;
 
     /* progress bar stuff */
-    float totalWork = 0.5 * (pow(n_q,2.0) - n_q);
-    float workDone = 0;
-    int every_cells = floor(n_q / 100);
-    int until_output = 1;
+    totalWork = 0.5 * (pow(n_q,2.0) - n_q);
+    workDone = 0;
+    every_cells = floor(n_q / 100);
+    until_output = 1;
     for (q_outer = 0; q_outer < n_q - 1; q_outer++) {
         this_potential = 0;
         mass_o = *(npy_float64*) PyArray_GETPTR1(mass, q_outer);
@@ -1361,7 +1393,7 @@ Py_FindBindingEnergy(PyObject *obj, PyObject *args)
     Py_DECREF(x);
     Py_DECREF(y);
     Py_DECREF(z);
-    PyObject *status = PyFloat_FromDouble(total_potential);
+    status = PyFloat_FromDouble(total_potential);
     return status;
 
     _fail:
@@ -1381,6 +1413,7 @@ Py_OutputFloatsToFile(PyObject *obj, PyObject *args)
     PyArrayObject *array;
     char *filename, *header = NULL;
     npy_intp i, j, imax, jmax;
+    FILE *to_write;
 
     if (!PyArg_ParseTuple(args, "Os|s", &oarray, &filename, &header))
         return PyErr_Format(_outputFloatsToFileError,
@@ -1395,7 +1428,7 @@ Py_OutputFloatsToFile(PyObject *obj, PyObject *args)
     goto _fail;
     }
 
-    FILE *to_write = fopen(filename, "w");
+    to_write = fopen(filename, "w");
     if(to_write == NULL){
     PyErr_Format(_outputFloatsToFileError,
              "OutputFloatsToFile: Unable to open %s for writing.", filename);

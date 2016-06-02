@@ -57,10 +57,6 @@ class Index(ParallelAnalysisInterface):
         mylog.debug("Detecting fields.")
         self._detect_output_fields()
 
-    def __del__(self):
-        if self._data_file is not None:
-            self._data_file.close()
-
     def _initialize_state_variables(self):
         self._parallel_locking = False
         self._data_file = None
@@ -194,6 +190,10 @@ class Index(ParallelAnalysisInterface):
             return self._data_file[full_name][:]
         except TypeError:
             return self._data_file[full_name]
+
+    def _get_particle_type_counts(self):
+        # this is implemented by subclasses
+        raise NotImplementedError
 
     def _close_data_file(self):
         if self._data_file:

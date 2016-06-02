@@ -38,15 +38,15 @@ from yt.frontends.ytdata.data_structures import \
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-from . import _mpl_imports as mpl
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
     get_ipython_api_version
 
 def get_canvas(name):
+    from . import _mpl_imports as mpl
     suffix = get_image_suffix(name)
-    
+
     if suffix == '':
         suffix = '.png'
     if suffix == ".png":
@@ -65,7 +65,8 @@ class FigureContainer(OrderedDict):
         super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
-        figure = mpl.matplotlib.figure.Figure((10, 8))
+        from matplotlib.figure import Figure
+        figure = Figure((10, 8))
         self[key] = figure
         return self[key]
 
@@ -248,6 +249,7 @@ class ProfilePlot(object):
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
+        fullname = False
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
@@ -259,6 +261,7 @@ class ProfilePlot(object):
             if sfx != '':
                 suffix = sfx
                 prefix = name[:name.rfind(suffix)]
+                fullname = True 
             else:
                 prefix = name
         xfn = self.profiles[0].x_field
@@ -270,7 +273,10 @@ class ProfilePlot(object):
             if isinstance(uid, tuple):
                 uid = uid[1]
             canvas = canvas_cls(fig)
-            fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+            if fullname:
+                fns.append("%s%s" % (prefix, suffix))
+            else:
+                fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
             mylog.info("Saving %s", fns[-1])
             canvas.print_figure(fns[-1])
         return fns
@@ -309,6 +315,7 @@ class ProfilePlot(object):
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
+        from . import _mpl_imports as mpl
         ret = ''
         unique = set(self.figures.values())
         if len(unique) < len(self.figures):
@@ -462,7 +469,7 @@ class ProfilePlot(object):
         """
         if field == "all":
             self.x_log = log
-            for field in self.profiles[0].field_data.keys():
+            for field in list(self.profiles[0].field_data.keys()):
                 self.y_log[field] = log
         else:
             field, = self.profiles[0].data_source._determine_fields([field])
@@ -578,7 +585,7 @@ class ProfilePlot(object):
 
         """
         if field is 'all':
-            fields = self.axes.keys()
+            fields = list(self.axes.keys())
         else:
             fields = ensure_list(field)
         for profile in self.profiles:
@@ -697,7 +704,7 @@ class PhasePlot(ImagePlotContainer):
     >>> # Change plot properties.
     >>> plot.set_cmap("cell_mass", "jet")
     >>> plot.set_zlim("cell_mass", 1e8, 1e13)
-    >>> plot.set_title("cell_mass", "This is a phase plot")
+    >>> plot.annotate_title("This is a phase plot")
 
     """
     x_log = None
@@ -971,7 +978,7 @@ class PhasePlot(ImagePlotContainer):
         >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
 
         """
-        for f in self.data_source._determine_fields(self.plots.keys()):
+        for f in self.data_source._determine_fields(list(self.plots.keys())):
             if self.plots[f].figure is not None and text is not None:
                 self.plots[f].axes.text(xpos, ypos, text,
                                         fontproperties=self._font_properties,
@@ -1058,6 +1065,27 @@ class PhasePlot(ImagePlotContainer):
 
         """
         self.plot_title[self.data_source._determine_fields(field)[0]] = title
+        return self
+
+    @invalidate_plot
+    def annotate_title(self, title):
+        """Set a title for the plot.
+
+        Parameters
+        ----------
+        title : str
+            The title to add.
+
+        Examples
+        --------
+
+        >>> plot.annotate_title("This is a phase plot")
+
+        """
+        for f in self.profile.field_data:
+            if isinstance(f, tuple):
+                f = f[1]
+            self.plot_title[self.data_source._determine_fields(f)[0]] = title
         return self
 
     @invalidate_plot

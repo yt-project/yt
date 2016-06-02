@@ -21,7 +21,6 @@ import six
 import sys
 
 from distutils.version import LooseVersion
-from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
 from .base_plot_types import ImagePlotMPL
@@ -687,6 +686,7 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
+        from matplotlib.mathtext import MathTextParser
         if self._plot_valid:
             return
         if not self._data_valid:
@@ -961,6 +961,7 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    @invalidate_plot
     def annotate_clear(self, index=None):
         """
         Clear callbacks from the plot.  If index is not set, clear all 
@@ -1407,7 +1408,8 @@ class ProjectionPlot(PWViewerMPL):
         else:
             proj = ds.proj(fields, axis, weight_field=weight_field,
                            center=center, data_source=data_source,
-                           field_parameters = field_parameters, method = method)
+                           field_parameters=field_parameters, method=method,
+                           max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
@@ -1640,6 +1642,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector, method=method)
+        if max_level is not None:
+            OffAxisProj.dd.max_level = max_level
         # If a non-weighted, integral projection, assure field-label reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True

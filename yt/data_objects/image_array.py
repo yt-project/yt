@@ -13,6 +13,8 @@ ImageArray Class
 
 import warnings
 import numpy as np
+from yt.config import \
+    ytcfg
 from yt.visualization.image_writer import write_bitmap, write_image
 from yt.units.yt_array import YTArray
 
@@ -307,7 +309,7 @@ class ImageArray(YTArray):
             return write_bitmap(out.swapaxes(0, 1), filename)
 
     def write_image(self, filename, color_bounds=None, channel=None,
-                    cmap_name="algae", func=lambda x: x):
+                    cmap_name=None, func=lambda x: x):
         r"""Writes a single channel of the ImageArray to a png file.
 
         Parameters
@@ -348,6 +350,8 @@ class ImageArray(YTArray):
         >>> im_arr.write_image('test_ImageArray.png')
 
         """
+        if cmap_name is None:
+            cmap_name = ytcfg.get("yt", "default_colormap")
         if filename[-4:] != '.png':
             filename += '.png'
 

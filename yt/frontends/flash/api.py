@@ -16,12 +16,14 @@ API for yt.frontends.flash
 from .data_structures import \
       FLASHGrid, \
       FLASHHierarchy, \
-      FLASHDataset
+      FLASHDataset, \
+      FLASHParticleDataset
 
 from .fields import \
       FLASHFieldInfo
 
 from .io import \
-      IOHandlerFLASH
+      IOHandlerFLASH, \
+      IOHandlerFLASHParticle
 
 from . import tests

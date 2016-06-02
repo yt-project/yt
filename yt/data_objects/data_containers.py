@@ -24,6 +24,8 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.fields.derived_field import \
+    DerivedField
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
@@ -348,6 +350,7 @@ class YTDataContainer(object):
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
+                    gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
                     ind += wogz.select(
                         self.selector,
@@ -982,6 +985,9 @@ class YTDataContainer(object):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)
+            elif isinstance(field, DerivedField):
+                ftype, fname = field.name
+                finfo = field
             else:
                 fname = field
                 finfo = self.ds._get_field_info("unknown", fname)
@@ -1005,9 +1011,9 @@ class YTDataContainer(object):
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
             if finfo.particle_type and ftype not in self.ds.particle_types:
-                raise YTFieldTypeNotFound(ftype)
+                raise YTFieldTypeNotFound(ftype, ds=self.ds)
             elif not finfo.particle_type and ftype not in self.ds.fluid_types:
-                raise YTFieldTypeNotFound(ftype)
+                raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
         return explicit_fields
 
@@ -1432,6 +1438,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.ds.arr(center, 'code_length')
         if iterable(width):
             w, u = width
+            if isinstance(w, tuple) and isinstance(u, tuple):
+                height = u
+                w, u = w
             width = self.ds.quan(w, input_units = u)
         elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')

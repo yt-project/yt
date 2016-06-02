@@ -10,10 +10,34 @@ from setuptools.command.build_py import build_py as _build_py
 from setupext import \
     check_for_openmp, check_for_pyembree, read_embree_location, \
     get_mercurial_changeset_id, in_conda_env
+from distutils.version import LooseVersion
+import pkg_resources
+
 
 if sys.version_info < (2, 7):
     print("yt currently requires Python version 2.7")
     print("certain features may fail unexpectedly and silently with older versions.")
+    sys.exit(1)
+
+try:
+    distribute_ver = \
+        LooseVersion(pkg_resources.get_distribution("distribute").version)
+    if distribute_ver < LooseVersion("0.7.3"):
+        print("Distribute is a legacy package obsoleted by setuptools.")
+        print("We strongly recommend that you just uninstall it.")
+        print("If for some reason you cannot do it, you'll need to upgrade it")
+        print("to latest version before proceeding:")
+        print("    pip install -U distribute")
+        sys.exit(1)
+except pkg_resources.DistributionNotFound:
+    pass  # yay!
+
+setuptools_ver = \
+    LooseVersion(pkg_resources.get_distribution("setuptools").version)
+if setuptools_ver < LooseVersion("18.0"):
+    print("Your setuptools version is too old to properly handle cython extensions.")
+    print("Please update setuptools before proceeding:")
+    print("    pip install -U setuptools")
     sys.exit(1)
 
 MAPSERVER_FILES = []
@@ -30,6 +54,10 @@ for subdir in MAPSERVER_DIRS:
         files += glob.glob("%s/*.%s" % (dir_name, ext))
     MAPSERVER_FILES.append((dir_name, files))
 
+SHADERS_DIR = os.path.join("yt", "visualization", "volume_rendering", "shaders")
+SHADERS_FILES = glob.glob(os.path.join(SHADERS_DIR, "*.vertexshader")) + \
+    glob.glob(os.path.join(SHADERS_DIR, "*.fragmentshader"))
+
 VERSION = "3.3.dev0"
 
 if os.path.exists('MANIFEST'):
@@ -41,51 +69,56 @@ if check_for_openmp() is True:
 else:
     omp_args = None
 
+if os.name == "nt":
+    std_libs = []
+else:
+    std_libs = ["m"]
 
 cython_extensions = [
     Extension("yt.analysis_modules.photon_simulator.utils",
               ["yt/analysis_modules/photon_simulator/utils.pyx"]),
     Extension("yt.analysis_modules.ppv_cube.ppv_utils",
               ["yt/analysis_modules/ppv_cube/ppv_utils.pyx"],
-              libraries=["m"]),
+              libraries=std_libs),
     Extension("yt.geometry.grid_visitors",
               ["yt/geometry/grid_visitors.pyx"],
               include_dirs=["yt/utilities/lib"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/grid_visitors.pxd"]),
     Extension("yt.geometry.grid_container",
               ["yt/geometry/grid_container.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/grid_container.pxd",
                        "yt/geometry/grid_visitors.pxd"]),
     Extension("yt.geometry.oct_container",
-              ["yt/geometry/oct_container.pyx"],
+              ["yt/geometry/oct_container.pyx",
+               "yt/utilities/lib/tsearch.c"],
               include_dirs=["yt/utilities/lib"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.oct_visitors",
               ["yt/geometry/oct_visitors.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.particle_oct_container",
               ["yt/geometry/particle_oct_container.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.selection_routines",
               ["yt/geometry/selection_routines.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/utilities/lib/grid_traversal.pxd",
                        "yt/geometry/oct_container.pxd",
@@ -96,7 +129,7 @@ cython_extensions = [
     Extension("yt.geometry.particle_deposit",
               ["yt/geometry/particle_deposit.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd",
@@ -104,7 +137,7 @@ cython_extensions = [
     Extension("yt.geometry.particle_smooth",
               ["yt/geometry/particle_smooth.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd",
@@ -113,28 +146,32 @@ cython_extensions = [
     Extension("yt.geometry.fake_octree",
               ["yt/geometry/fake_octree.pyx"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/oct_container.pxd",
                        "yt/geometry/selection_routines.pxd"]),
     Extension("yt.utilities.spatial.ckdtree",
               ["yt/utilities/spatial/ckdtree.pyx"],
-              libraries=["m"]),
+              include_dirs=["yt/utilities/lib/"],
+              libraries=std_libs),
     Extension("yt.utilities.lib.bitarray",
               ["yt/utilities/lib/bitarray.pyx"],
-              libraries=["m"], depends=["yt/utilities/lib/bitarray.pxd"]),
+              libraries=std_libs, depends=["yt/utilities/lib/bitarray.pxd"]),
     Extension("yt.utilities.lib.bounding_volume_hierarchy",
               ["yt/utilities/lib/bounding_volume_hierarchy.pyx"],
+              include_dirs=["yt/utilities/lib/"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
-              libraries=["m"],
-              depends=["yt/utilities/lib/bounding_volume_hierarchy.pxd",
-                       "yt/utilities/lib/vec3_ops.pxd"]),
+              libraries=std_libs,
+              depends=["yt/utilities/lib/element_mappings.pxd",
+                       "yt/utilities/lib/mesh_triangulation.h",
+                       "yt/utilities/lib/vec3_ops.pxd",
+                       "yt/utilities/lib/primitives.pxd"]),
     Extension("yt.utilities.lib.contour_finding",
               ["yt/utilities/lib/contour_finding.pyx"],
               include_dirs=["yt/utilities/lib/",
                             "yt/geometry/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/utilities/lib/amr_kdtools.pxd",
                        "yt/utilities/lib/grid_traversal.pxd",
@@ -144,24 +181,32 @@ cython_extensions = [
               ["yt/utilities/lib/geometry_utils.pyx"],
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
-              libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"]),
+              libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd"]),
     Extension("yt.utilities.lib.marching_cubes",
               ["yt/utilities/lib/marching_cubes.pyx",
                "yt/utilities/lib/fixed_interpolator.c"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/utilities/lib/fixed_interpolator.pxd",
                        "yt/utilities/lib/fixed_interpolator.h",
                        ]),
+    Extension("yt.utilities.lib.mesh_triangulation",
+              ["yt/utilities/lib/mesh_triangulation.pyx"],
+              depends=["yt/utilities/lib/mesh_triangulation.h"]),
     Extension("yt.utilities.lib.pixelization_routines",
               ["yt/utilities/lib/pixelization_routines.pyx",
                "yt/utilities/lib/pixelization_constants.c"],
               include_dirs=["yt/utilities/lib/"],
-              language="c++",
-              libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd",
+              libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd",
                                         "yt/utilities/lib/pixelization_constants.h",
                                         "yt/utilities/lib/element_mappings.pxd"]),
+    Extension("yt.utilities.lib.primitives",
+              ["yt/utilities/lib/primitives.pyx"],
+              libraries=std_libs, 
+              depends=["yt/utilities/lib/primitives.pxd",
+                       "yt/utilities/lib/vec3_ops.pxd",
+                       "yt/utilities/lib/bounding_volume_hierarchy.pxd"]),
     Extension("yt.utilities.lib.origami",
               ["yt/utilities/lib/origami.pyx",
                "yt/utilities/lib/origami_tags.c"],
@@ -172,7 +217,7 @@ cython_extensions = [
                "yt/utilities/lib/fixed_interpolator.c",
                "yt/utilities/lib/kdtree.c"],
               include_dirs=["yt/utilities/lib/"],
-              libraries=["m"],
+              libraries=std_libs,
               extra_compile_args=omp_args,
               extra_link_args=omp_args,
               depends=["yt/utilities/lib/fp_utils.pxd",
@@ -183,10 +228,10 @@ cython_extensions = [
                        "yt/utilities/lib/vec3_ops.pxd"]),
     Extension("yt.utilities.lib.element_mappings",
               ["yt/utilities/lib/element_mappings.pyx"],
-              libraries=["m"], depends=["yt/utilities/lib/element_mappings.pxd"]),
+              libraries=std_libs, depends=["yt/utilities/lib/element_mappings.pxd"]),
     Extension("yt.utilities.lib.alt_ray_tracers",
               ["yt/utilities/lib/alt_ray_tracers.pyx"],
-              libraries=["m"]),
+              libraries=std_libs),
 ]
 
 lib_exts = [
@@ -199,7 +244,7 @@ for ext_name in lib_exts:
     cython_extensions.append(
         Extension("yt.utilities.lib.{}".format(ext_name),
                   ["yt/utilities/lib/{}.pyx".format(ext_name)],
-                  libraries=["m"], depends=["yt/utilities/lib/fp_utils.pxd"]))
+                  libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd"]))
 
 lib_exts = ["write_array", "ragged_arrays", "line_integral_convolution"]
 for ext_name in lib_exts:
@@ -211,7 +256,7 @@ extensions = [
     Extension("yt.analysis_modules.halo_finding.fof.EnzoFOF",
               ["yt/analysis_modules/halo_finding/fof/EnzoFOF.c",
                "yt/analysis_modules/halo_finding/fof/kd.c"],
-              libraries=["m"]),
+              libraries=std_libs),
     Extension("yt.analysis_modules.halo_finding.hop.EnzoHop",
               glob.glob("yt/analysis_modules/halo_finding/hop/*.c")),
     Extension("yt.frontends.artio._artio_caller",
@@ -229,7 +274,7 @@ extensions = [
               glob.glob("yt/utilities/spatial/src/*.c")),
     Extension("yt.utilities.data_point_utilities",
               ["yt/utilities/data_point_utilities.c"],
-              libraries=["m"]),
+              libraries=std_libs),
 ]
 
 # EMBREE
@@ -237,20 +282,31 @@ if check_for_pyembree() is not None:
     embree_extensions = [
         Extension("yt.utilities.lib.mesh_construction",
                   ["yt/utilities/lib/mesh_construction.pyx"],
-                  depends=["yt/utilities/lib/mesh_construction.pxd"]),
+                  depends=["yt/utilities/lib/mesh_construction.pxd",
+                           "yt/utilities/lib/mesh_triangulation.h",
+                           "yt/utilities/lib/mesh_intersection.pxd",
+                           "yt/utlilites/lib/mesh_samplers.pxd",
+                           "yt/utlilites/lib/mesh_traversal.pxd"]),
         Extension("yt.utilities.lib.mesh_traversal",
                   ["yt/utilities/lib/mesh_traversal.pyx"],
                   depends=["yt/utilities/lib/mesh_traversal.pxd",
-                           "yt/utilities/lib/grid_traversal.pxd"]),
+                           "yt/utilities/lib/grid_traversal.pxd",
+                           "yt/utilities/lib/bounding_volume_hierarchy.pxd"]),
         Extension("yt.utilities.lib.mesh_samplers",
                   ["yt/utilities/lib/mesh_samplers.pyx"],
                   depends=["yt/utilities/lib/mesh_samplers.pxd",
                            "yt/utilities/lib/element_mappings.pxd",
-                           "yt/utilities/lib/mesh_construction.pxd"]),
+                           "yt/utilities/lib/mesh_construction.pxd",
+                           "yt/utilities/lib/bounding_volume_hierarchy.pxd",
+                           "yt/utilities/lib/primitives.pxd"]),
         Extension("yt.utilities.lib.mesh_intersection",
                   ["yt/utilities/lib/mesh_intersection.pyx"],
                   depends=["yt/utilities/lib/mesh_intersection.pxd",
-                           "yt/utilities/lib/mesh_construction.pxd"]),
+                           "yt/utilities/lib/mesh_construction.pxd",
+                           "yt/utilities/lib/bounding_volume_hierarchy.pxd",
+                           "yt/utilities/lib/mesh_samplers.pxd",
+                           "yt/utilities/lib/primitives.pxd",
+                           "yt/utilities/lib/vec3_ops.pxd"]),
     ]
 
     embree_prefix = os.path.abspath(read_embree_location())
@@ -260,7 +316,7 @@ if check_for_pyembree() is not None:
         conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
         embree_inc_dir.append(os.path.join(conda_basedir, 'include'))
         embree_lib_dir.append(os.path.join(conda_basedir, 'lib'))
-        
+
     if _platform == "darwin":
         embree_lib_name = "embree.2"
     else:
@@ -270,7 +326,8 @@ if check_for_pyembree() is not None:
         ext.include_dirs += embree_inc_dir
         ext.library_dirs += embree_lib_dir
         ext.language = "c++"
-        ext.libraries += ["m", embree_lib_name]
+        ext.libraries += std_libs
+        ext.libraries += [embree_lib_name]
 
     cython_extensions += embree_extensions
 
@@ -382,7 +439,7 @@ setup(
         'cython>=0.22',
     ],
     install_requires=[
-        # 'matplotlib',  # messes up nosetests will be fixed in future PRs
+        'matplotlib',
         'setuptools>=18.0',
         'sympy',
         'numpy',
@@ -396,7 +453,7 @@ setup(
     license="BSD",
     zip_safe=False,
     scripts=["scripts/iyt"],
-    data_files=MAPSERVER_FILES,
+    data_files=MAPSERVER_FILES + [(SHADERS_DIR, SHADERS_FILES)],
     ext_modules=cython_extensions + extensions
 )
 

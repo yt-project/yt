@@ -4,6 +4,7 @@ from yt import \
     load
 from yt.testing import \
     fake_random_ds, \
+    fake_particle_ds, \
     assert_almost_equal, \
     assert_equal, \
     assert_array_almost_equal_nulp, \
@@ -301,6 +302,41 @@ def test_array_like_field():
     u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
     assert u1 == u2
 
+def test_add_field_string():
+    ds = fake_random_ds(16)
+    ad = ds.all_data()
+
+    def density_alias(field, data):
+        return data['density']
+
+    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+
+    ad['density_alias']
+    assert ds.derived_field_list[0] == 'density_alias'
+
+def test_add_field_string_aliasing():
+    ds = fake_random_ds(16)
+
+    def density_alias(field, data):
+        return data['density']
+
+    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+
+    ds.field_info['density_alias']
+    ds.field_info['gas', 'density_alias']
+
+    ds = fake_particle_ds()
+    
+    def pmass_alias(field, data):
+        return data['particle_mass']
+        
+    ds.add_field('particle_mass_alias', function=pmass_alias, 
+                 units='g', particle_type=True)
+
+    ds.field_info['particle_mass_alias']
+    ds.field_info['all', 'particle_mass_alias']
+    
+
 if __name__ == "__main__":
     setup()
     for t in test_all_fields():
@@ -308,3 +344,4 @@ if __name__ == "__main__":
     test_add_deposited_particle_field()
     test_add_field_unit_semantics()
     test_array_like_field()
+    test_add_field_string()

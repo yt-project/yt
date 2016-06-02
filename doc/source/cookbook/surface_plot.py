@@ -26,7 +26,7 @@ p3dc = Poly3DCollection(surface.triangles, linewidth=0.0)
 p3dc.set_facecolors(colors[0,:,:]/255.)
 ax.add_collection(p3dc)
 
-# Let's keep the axis ratio fixed in all directions by taking the maximum 
+# Let's keep the axis ratio fixed in all directions by taking the maximum
 # extent in one dimension and make it the bounds in all dimensions
 max_extent = (surface.vertices.max(axis=1) - surface.vertices.min(axis=1)).max()
 centers = (surface.vertices.max(axis=1) + surface.vertices.min(axis=1)) / 2

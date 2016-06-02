@@ -16,6 +16,8 @@ Import the components of the volume rendering extension
 from yt.extern.six.moves import builtins
 import numpy as np
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     iterable, mylog, get_pbar, \
     get_num_threads, ensure_numpy_array
@@ -236,7 +238,7 @@ class Camera(ParallelAnalysisInterface):
         px = (res[1]*(dy/self.width[1])).astype('int')
         return px, py, dz
 
-    def draw_grids(self, im, alpha=0.3, cmap='algae', min_level=None, 
+    def draw_grids(self, im, alpha=0.3, cmap=None, min_level=None, 
                    max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
@@ -269,6 +271,8 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
         region = self.data_source
         corners = []
         levels = []

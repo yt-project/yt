@@ -18,7 +18,7 @@ from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.data_objects.image_array import ImageArray
-from yt.units.yt_array import unorm, uvstack
+from yt.units.yt_array import unorm, uvstack, uhstack
 from yt.utilities.math_utils import get_rotation_matrix
 import numpy as np
 
@@ -133,8 +133,8 @@ class PlaneParallelLens(Lens):
         dz = np.array(np.dot(pos - front_center, -camera.unit_vectors[2]))
         # Transpose into image coords.
 
-        py = (res[0]*(dx/width[0])).astype('int')
-        px = (res[1]*(dy/width[1])).astype('int')
+        py = (res[0]*(dx/width[0])).astype('int64')
+        px = (res[1]*(dy/width[1])).astype('int64')
         return px, py, dz
 
     def __repr__(self):
@@ -277,8 +277,8 @@ class PerspectiveLens(Lens):
         dz = np.dot(pos - position, camera.unit_vectors[2])
 
         # Transpose into image coords.
-        px = (res[0] * 0.5 + res[0] / camera.width[0].d * dx).astype('int')
-        py = (res[1] * 0.5 + res[1] / camera.width[1].d * dy).astype('int')
+        px = (res[0] * 0.5 + res[0] / width[0] * dx).astype('int64')
+        py = (res[1] * 0.5 + res[1] / width[1] * dy).astype('int64')
 
         return px, py, dz
 
@@ -736,13 +736,13 @@ class StereoSphericalLens(Lens):
         if self.disparity is None:
             self.disparity = camera.width[0] / 1000.
 
-        single_resolution_x = int(np.floor(camera.resolution[0]) / 2)
-        px = np.linspace(-np.pi, np.pi, single_resolution_x,
+        single_resolution_y = int(np.floor(camera.resolution[1]) / 2)
+        px = np.linspace(-np.pi, np.pi, camera.resolution[0],
                          endpoint=True)[:, None]
-        py = np.linspace(-np.pi/2., np.pi/2., camera.resolution[1],
+        py = np.linspace(-np.pi/2., np.pi/2., single_resolution_y,
                          endpoint=True)[None, :]
 
-        vectors = np.zeros((single_resolution_x, camera.resolution[1], 3),
+        vectors = np.zeros((camera.resolution[0], single_resolution_y, 3),
                            dtype='float64', order='C')
         vectors[:, :, 0] = np.cos(px) * np.cos(py)
         vectors[:, :, 1] = np.sin(px) * np.cos(py)
@@ -755,28 +755,33 @@ class StereoSphericalLens(Lens):
         # Rescale the ray to be long enough to cover the entire domain
         vectors = vectors * max_length
 
-        vectors2 = np.zeros((single_resolution_x, camera.resolution[1], 3),
-                            dtype='float64', order='C')
-        vectors2[:, :, 0] = -np.sin(px) * np.ones((1, camera.resolution[1]))
-        vectors2[:, :, 1] = np.cos(px) * np.ones((1, camera.resolution[1]))
-        vectors2[:, :, 2] = 0
-
-        positions = np.tile(
-            camera.position, single_resolution_x * camera.resolution[1])
-        positions = positions.reshape(
-            single_resolution_x, camera.resolution[1], 3)
-
-        # The left and right are switched here since VR is in LHS.
-        positions_left = positions + vectors2 * self.disparity
-        positions_right = positions + vectors2 * (-self.disparity)
-
         R1 = get_rotation_matrix(0.5*np.pi, [1, 0, 0])
         R2 = get_rotation_matrix(0.5*np.pi, [0, 0, 1])
         uv = np.dot(R1, camera.unit_vectors)
         uv = np.dot(R2, uv)
-        vectors.reshape((single_resolution_x*camera.resolution[1], 3))
+
+        vectors.reshape((camera.resolution[0]*single_resolution_y, 3))
         vectors = np.dot(vectors, uv)
-        vectors.reshape((single_resolution_x, camera.resolution[1], 3))
+        vectors.reshape((camera.resolution[0], single_resolution_y, 3))
+
+        vectors2 = np.zeros((camera.resolution[0], single_resolution_y, 3),
+                            dtype='float64', order='C')
+        vectors2[:, :, 0] = -np.sin(px) * np.ones((1, single_resolution_y))
+        vectors2[:, :, 1] = np.cos(px) * np.ones((1, single_resolution_y))
+        vectors2[:, :, 2] = 0
+
+        vectors2.reshape((camera.resolution[0]*single_resolution_y, 3))
+        vectors2 = np.dot(vectors2, uv)
+        vectors2.reshape((camera.resolution[0], single_resolution_y, 3))
+
+        positions = np.tile(
+            camera.position, camera.resolution[0] * single_resolution_y)
+        positions = positions.reshape(
+            camera.resolution[0], single_resolution_y, 3)
+
+        # The left and right are switched here since VR is in LHS.
+        positions_left = positions + vectors2 * self.disparity
+        positions_right = positions + vectors2 * (-self.disparity)
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
@@ -785,8 +790,8 @@ class StereoSphericalLens(Lens):
 
         dummy = np.ones(3, dtype='float64')
 
-        vectors_comb = uvstack([vectors, vectors])
-        positions_comb = uvstack([positions_left, positions_right])
+        vectors_comb = uhstack([vectors, vectors])
+        positions_comb = uhstack([positions_left, positions_right])
 
         image.shape = (camera.resolution[0], camera.resolution[1], 4)
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)

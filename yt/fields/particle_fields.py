@@ -493,10 +493,10 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, normal)
-        phi = get_sph_phi(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
+        theta = get_sph_theta(pos, normal)
+        phi = get_sph_phi(pos, normal)
         sphr = get_sph_r_component(vel, theta, phi, normal)
         return sphr
 
@@ -536,10 +536,10 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_sph_theta(pos, normal)
-        phi = get_sph_phi(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
+        theta = get_sph_theta(pos, normal)
+        phi = get_sph_phi(pos, normal)
         spht = get_sph_theta_component(vel, theta, phi, normal)
         return spht
 
@@ -664,9 +664,9 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_cyl_theta(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
+        theta = get_cyl_theta(pos, normal)
         cylr = get_cyl_r_component(vel, theta, normal)
         return cylr
 
@@ -688,9 +688,9 @@ def standard_particle_fields(registry, ptype,
         bv = data.get_field_parameter("bulk_velocity")
         pos = data.ds.arr([data[ptype, spos % ax] for ax in "xyz"])
         vel = data.ds.arr([data[ptype, svel % ax] for ax in "xyz"])
-        theta = get_cyl_theta(pos, normal)
         pos = pos - np.reshape(center, (3, 1))
         vel = vel - np.reshape(bv, (3, 1))
+        theta = get_cyl_theta(pos, normal)
         cylt = get_cyl_theta_component(vel, theta, normal)
         return cylt
 
@@ -783,7 +783,8 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         mass = data[ptype, mass_name].in_base(unit_system.name)
         dens = data[ptype, density_name].in_base(unit_system.name)
         quan = data[ptype, smoothed_field]
-        quan = quan.convert_to_units(field_units)
+        if hasattr(quan, "units"):
+            quan = quan.convert_to_units(field_units)
 
         if smoothing_length_name is None:
             hsml = np.zeros(quan.shape, dtype='float64') - 1
