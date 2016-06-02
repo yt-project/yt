@@ -522,6 +522,10 @@ cdef class ImageSampler:
         free(self.image)
 
 
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
 cdef void projection_sampler(
                  VolumeContainer *vc,
                  np.float64_t v_pos[3],
@@ -581,8 +585,9 @@ cdef void interpolated_projection_sampler(
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vri.n_samples):
         for j in range(vc.n_fields):
-            dvs[j] = fix_i.offset_interpolate(dp,
-                    vc.data[j], index[0], index[1], index[2])
+            with cython.boundscheck(False):
+                dvs[j] = fix_i.offset_interpolate(dp,
+                        vc.data[j], index[0], index[1], index[2])
         for j in range(imin(3, vc.n_fields)):
             im.rgba[j] += dvs[j] * dt
         for j in range(3):
@@ -642,8 +647,9 @@ cdef void volume_render_sampler(
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vri.n_samples):
         for j in range(vc.n_fields):
-            dvs[j] = fix_i.offset_interpolate(dp, vc.data[j],
-                    index[0], index[1], index[2])
+            with cython.boundscheck(False):
+                dvs[j] = fix_i.offset_interpolate(dp, vc.data[j],
+                        index[0], index[1], index[2])
         FIT_eval_transfer(dt, dvs, im.rgba, vri.n_fits,
                 vri.fits, vri.field_table_ids, vri.grey_opacity)
         for j in range(3):
@@ -679,10 +685,12 @@ cdef void volume_render_gradient_sampler(
         ds[i] = v_dir[i] * vc.idds[i] * dt
     for i in range(vri.n_samples):
         for j in range(vc.n_fields):
-            dvs[j] = fix_i.offset_interpolate(dp,
-                    vc.data[j], index[0], index[1], index[2])
-        fix_i.eval_gradient(dp, vc.data[0], grad, index[0],
-                    index[1], index[2])
+            with cython.boundscheck(False):
+                dvs[j] = fix_i.offset_interpolate(dp,
+                        vc.data[j], index[0], index[1], index[2])
+        with cython.boundscheck(False):
+            fix_i.eval_gradient(dp, vc.data[0], grad, index[0],
+                        index[1], index[2])
         FIT_eval_transfer_with_light(dt, dvs, grad,
                 vri.light_dir, vri.light_rgba,
                 im.rgba, vri.n_fits,
