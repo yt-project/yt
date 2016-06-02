@@ -100,6 +100,19 @@ class PlotMPL(object):
         canvas.print_figure(name, **mpl_kwargs)
         return name
 
+    def _get_labels(self):
+        ax = self.axes
+        labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+        labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
+                   ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
+        return labels
+
+    def _set_font_properties(self, font_properties, font_color):
+        for label in self._get_labels():
+            label.set_fontproperties(font_properties)
+            if font_color is not None:
+                label.set_color(self.font_color)
+
 
 class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
@@ -250,6 +263,13 @@ class ImagePlotMPL(PlotMPL):
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
+
+    def _get_labels(self):
+        labels = super(ImagePlotMPL, self)._get_labels()
+        cbax = self.cb.ax
+        labels += cbax.yaxis.get_ticklabels()
+        labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+        return labels
 
     def hide_axes(self):
         """
