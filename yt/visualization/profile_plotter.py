@@ -360,10 +360,14 @@ class ProfilePlot(object):
             axes.set_ylim(*self.axes.ylim[fname])
             if any(self.label):
                 axes.legend(loc="best")
+        self._set_font_properties()
         self._plot_valid = True
 
     @classmethod
     def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        from matplotlib.font_manager import FontProperties
+        obj._font_properties = FontProperties(family='stixgeneral', size=18)
+        obj._font_color = None
         obj.profiles = ensure_list(profiles)
         obj.x_log = None
         obj.y_log = {}
@@ -605,6 +609,11 @@ class ProfilePlot(object):
                 # Continue on to the next profile.
                 break
         return self
+
+    def _set_font_properties(self):
+        for f in self.plots:
+            self.plots[f]._set_font_properties(
+                self._font_properties, self._font_color)
 
     def _get_field_log(self, field_y, profile):
         yfi = profile.field_info[field_y]
@@ -1055,6 +1064,63 @@ class PhasePlot(ImagePlotContainer):
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
+
+    @invalidate_plot
+    def set_font(self, font_dict=None):
+        """set the font and font properties
+
+        Parameters
+        ----------
+        font_dict : dict
+        A dict of keyword parameters to be passed to
+        :py:class:`matplotlib.font_manager.FontProperties`.
+
+        Possible keys include
+        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
+          'monospace'.
+        * style - The font style. Either normal, italic or oblique.
+        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
+          'orange'.
+        * variant: Either normal or small-caps.
+        * size: Either an relative value of xx-small, x-small, small, medium,
+          large, x-large, xx-large or an absolute font size, e.g. 12
+        * stretch: A numeric value in the range 0-1000 or one of
+          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
+          semi-expanded, expanded, extra-expanded or ultra-expanded
+        * weight: A numeric value in the range 0-1000 or one of ultralight,
+          light, normal, regular, book, medium, roman, semibold, demibold, demi,
+          bold, heavy, extra bold, or black
+
+        See the matplotlib font manager API documentation for more details.
+        http://matplotlib.org/api/font_manager_api.html
+
+        Notes
+        -----
+        Mathtext axis labels will only obey the `size` and `color` keyword.
+
+        Examples
+        --------
+        This sets the font to be 24-pt, blue, sans-serif, italic, and
+        bold-face.
+
+        >>> prof = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
+                          'weight':'bold', 'size':24, 'color':'blue'})
+
+        """
+        from matplotlib.font_manager import FontProperties
+
+        if font_dict is None:
+            font_dict = {}
+        if 'color' in font_dict:
+            self._font_color = font_dict.pop('color')
+        # Set default values if the user does not explicitly set them.
+        # this prevents reverting to the matplotlib defaults.
+        font_dict.setdefault('family', 'stixgeneral')
+        font_dict.setdefault('size', 18)
+        self._font_properties = \
+            FontProperties(**font_dict)
+        return self
 
     @invalidate_plot
     def set_title(self, field, title):
