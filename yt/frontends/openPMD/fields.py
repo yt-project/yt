@@ -19,7 +19,7 @@ from yt.funcs import mylog
 import yt.utilities.physical_constants
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from misc import parse_unitDimension
+from .misc import parse_unitDimension
 
 
 def _kinetic_energy(field, data):

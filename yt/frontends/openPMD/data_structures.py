@@ -373,7 +373,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
             else :
                 fshape = firstMesh[list(firstMesh.keys())[0]].shape
         except :
-          print("ERROR: Can only read files that have at least one mesh entry!")
+            print("ERROR: Can only read files that have at least one mesh entry!")
 
         # Usually 2D/3D for picongpu
         self.dimensionality = len(fshape)

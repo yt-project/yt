@@ -777,7 +777,7 @@ def get_component(group, component_name):
     mylog.info("openPMD - misc - get_component: {},{}".format(group, component_name))
     record_component = group[component_name]
     if is_const_component(record_component):
-        return record_component.attrs["value"]
+        return np.full(record_component.attrs["shape"], record_component.attrs["value"])
     else:
         return record_component.value
 

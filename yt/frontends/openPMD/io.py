@@ -44,6 +44,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._setBasePath(self._handle, self.ds._filepath)
         self.meshPath = self._handle["/"].attrs["meshesPath"]
         self.particlesPath = self._handle["/"].attrs["particlesPath"]
+        self._cached_it = None
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -69,6 +70,14 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         mylog.info("_read_particle_coords")
         chunks = list(chunks)
         self._array_fields = {}
+        # TODO consider individual fields, not species
+        if self._cached_it is not None:
+            if self._cached_it is self.basePath:
+                self._cache = True
+                # use the cached x,y,z
+        else:
+            self._cached_it = self.basePath
+            self._cache = False
         for chunk in chunks:
             f = None
             for g in chunk.objs:
@@ -81,38 +90,47 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     # Inefficient for const records
                     mylog.info("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
-
-                    # Get a particle species (e.g. /data/3500/particles/e/)
-                    if "io" in ptype:
-                        spec = dds[f.attrs["particlesPath"]].keys()[0]
+                    if self._cache:
+                        mylog.info("openPMD - _read_particle_coords: using cache")
+                        yield (ptype, (self._cachex, self._cachey, self._cachez))
                     else:
-                        spec = field_list[0].split("_")[0]
-                    pds = dds.get("%s/%s" % (f.attrs["particlesPath"], spec))
-                    if pds is None:
-                        mylog.info("openPMD - _read_particle_coords: {}/{} yields None".format(f.attrs["particlesPath"], spec))
-
-                    # Get single 1D-arrays of coordinates from all particular particles
-                    # TODO Do not naively assume 3D. Check which axes actually exist
-                    xpos, ypos, zpos = (get_component(pds, "position/" + ax)
-                                        for ax in 'xyz')
-                    xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
-                                        for ax in 'xyz')
-                    x = xpos * pds["position/x"].attrs["unitSI"] + xoff * pds["positionOffset/x"].attrs["unitSI"]
-                    y = ypos * pds["position/y"].attrs["unitSI"] + yoff * pds["positionOffset/y"].attrs["unitSI"]
-                    z = zpos * pds["position/z"].attrs["unitSI"] + zoff * pds["positionOffset/z"].attrs["unitSI"]
-                    for field in field_list:
-                        # Trim field path (yt scheme) to match openPMD scheme
-                        nfield = "/".join(field.split("_")[1:])
-
-                        # Save the size of the particle fields
-                        # TODO This CAN be used for speedup, not sure how
-                        if is_const_component(pds[nfield]):
-                            shape = np.asarray(pds[nfield].attrs["shape"])
+                        # Get a particle species (e.g. /data/3500/particles/e/)
+                        if "io" in ptype:
+                            spec = dds[f.attrs["particlesPath"]].keys()[0]
                         else:
-                            shape = np.asarray(pds[nfield].shape)
-                        if shape.ndim > 1:
-                            self._array_fields[field] = shape
-                    yield (ptype, (x, y, z))
+                            # TODO Probably need to use ptype here
+                            spec = field_list[0].split("_")[0]
+                        pds = dds.get("%s/%s" % (f.attrs["particlesPath"], spec))
+                        if pds is None:
+                            mylog.info("openPMD - _read_particle_coords: {}/{} yields None".format(f.attrs["particlesPath"], spec))
+
+                        # Get single 1D-arrays of coordinates from all particular particles
+                        # TODO Do not naively assume 3D. Check which axes actually exist
+                        xpos, ypos, zpos = (get_component(pds, "position/" + ax)
+                                                for ax in 'xyz')
+                        xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
+                                                for ax in 'xyz')
+                        self._cachex = xpos * pds["position/x"].attrs["unitSI"] \
+                                       + xoff * pds["positionOffset/x"].attrs["unitSI"]
+                        self._cachey = ypos * pds["position/y"].attrs["unitSI"] \
+                                       + yoff * pds["positionOffset/y"].attrs["unitSI"]
+                        self._cachez = zpos * pds["position/z"].attrs["unitSI"] \
+                                       + zoff * pds["positionOffset/z"].attrs["unitSI"]
+                        self._cache = True
+
+                        for field in field_list:
+                            # Trim field path (yt scheme) to match openPMD scheme
+                            nfield = "/".join(field.split("_")[1:])
+
+                            # Save the size of the particle fields
+                            # TODO This CAN be used for speedup, not sure how
+                            if is_const_component(pds[nfield]):
+                                shape = np.asarray(pds[nfield].attrs["shape"])
+                            else:
+                                shape = np.asarray(pds[nfield].shape)
+                            if shape.ndim > 1:
+                                self._array_fields[field] = shape
+                        yield (ptype, (self._cachex, self._cachey, self._cachez))
             if f:
                 f.close()
 
@@ -147,6 +165,14 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         """
         mylog.info("_read_particle_fields")
         chunks = list(chunks)
+        # TODO consider individual fields, not species
+        if self._cached_it is not None:
+            if self._cached_it is self.basePath:
+                self._cache = True
+                # use the cached x,y,z
+        else:
+            self._cached_it = self.basePath
+            self._cache = False
         for chunk in chunks:
             f = None
             for g in chunk.objs:
@@ -164,31 +190,34 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     if "io" in ptype:
                         spec = ds[f.attrs["particlesPath"]].keys()[0]
                     else:
+                        # TODO probably need to use ptype here
                         spec = field_list[0].split("_")[0]
                     pds = ds.get("%s/%s" % (f.attrs["particlesPath"], spec))
                     if pds is None:
-                        mylog.info("openPMD - _read_particle_coords: {}/{} yields None".format(f.attrs["particlesPath"], spec))
+                        mylog.info("openPMD - _read_particle_fields: {}/{} yields None".format(f.attrs["particlesPath"], spec))
 
-                    # Get single arrays of coordinates from all particular particles
-                    # TODO Do not naively assume 3D. Check which axes actually exist
-                    #   (axis_labels, geometry)
-                    # TODO Pay attention to const records
-                    xpos, ypos, zpos = (get_component(pds, "position/" + ax)
-                           for ax in 'xyz')
-                    xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
-                              for ax in 'xyz')
-                    x = xpos * pds["position/x"].attrs["unitSI"] + xoff * pds["positionOffset/x"].attrs["unitSI"]
-                    y = ypos * pds["position/y"].attrs["unitSI"] + yoff * pds["positionOffset/y"].attrs["unitSI"]
-                    z = zpos * pds["position/z"].attrs["unitSI"] + zoff * pds["positionOffset/z"].attrs["unitSI"]
-                    mask = selector.select_points(x, y, z, 0.0)
+                    if self._cache:
+                        mylog.info("openPMD - _read_particle_fields: using cache")
+                        #yield (ptype, (self._cachex, self._cachey, self._cachez))
+                    else:
+                        # Get single arrays of coordinates from all particular particles
+                        # TODO Do not naively assume 3D. Check which axes actually exist
+                        #   (axis_labels, geometry)
+                        # TODO Pay attention to const records
+                        xpos, ypos, zpos = (get_component(pds, "position/" + ax)
+                                            for ax in 'xyz')
+                        xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
+                                            for ax in 'xyz')
+                        self._cachex = xpos * pds["position/x"].attrs["unitSI"] + xoff * pds["positionOffset/x"].attrs["unitSI"]
+                        self._cachey = ypos * pds["position/y"].attrs["unitSI"] + yoff * pds["positionOffset/y"].attrs["unitSI"]
+                        self._cachez = zpos * pds["position/z"].attrs["unitSI"] + zoff * pds["positionOffset/z"].attrs["unitSI"]
+                        self.cache = True
+                    mask = selector.select_points(self._cachex, self._cachey, self._cachez, 0.0)
                     if mask is None:
                         continue
                     for field in field_list:
                         nfield = "/".join(field.split("_")[1:])
-                        if is_const_component(pds[nfield]):
-                            data = np.full(pds[nfield].attrs["shape"], pds[nfield].attrs["value"])
-                        else:
-                            data = pds[nfield].value
+                        data = get_component(pds, nfield)
                         yield ((ptype, field), data[mask])
             if f:
                 f.close()
