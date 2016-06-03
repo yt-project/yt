@@ -13,6 +13,7 @@ Testsuite for PlotWindow class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import itertools
+import numpy as np
 import os
 import tempfile
 import shutil
@@ -27,6 +28,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.frontends.stream.api import load_uniform_grid
 from collections import OrderedDict
 
 def setup():
@@ -400,3 +402,20 @@ class TestPlotWindowSave(unittest.TestCase):
         [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
         [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
         assert_true(aun == plot._axes_unit_names)
+
+def test_on_off_compare():
+    # fake density field that varies in the x-direction only
+    den = np.arange(32**3) / 32**2 + 1
+    den = den.reshape(32, 32, 32)
+    den = np.array(den, dtype=np.float64)
+    data = dict(density = (den, "g/cm**3"))
+    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
+    ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
+
+    sl_on = SlicePlot(ds, "z", ["density"])
+
+    L = [0, 0, 1]
+    north_vector = [0, 1, 0]
+    sl_off = OffAxisSlicePlot(ds, L, 'density', center=[0,0,0], north_vector=north_vector)
+
+    assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
