@@ -87,6 +87,8 @@ default_unit_symbol_lut = {
     "msun": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
     "Rsun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
     "rsun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
+    "R_sun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
+    "r_sun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
     "Lsun": (luminosity_sun_ergs_per_sec, dimensions.power, 0.0, r"L_\odot"),
     "Tsun": (temp_sun_kelvin, dimensions.temperature, 0.0, r"T_\odot"),
     "Zsun": (metallicity_sun, dimensions.dimensionless, 0.0, r"Z_\odot"),
