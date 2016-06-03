@@ -153,10 +153,10 @@ default_unit_symbol_lut = {
     "t_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**3, dimensions.time, 0.0, r"M_\odot"),
 
     # Some Solar System units
-    "Rearth": (cm_per_rearth, dimensions.length, 0.0, r"R_\oplus"),
-    "rearth": (cm_per_rearth, dimensions.length, 0.0, r"R_\oplus"),
-    "Rjup": (cm_per_rjup, dimensions.length, 0.0, r"R_\mathrm{Jup}"),
-    "rjup": (cm_per_rjup, dimensions.length, 0.0, r"R_\mathrm{Jup}"),
+    "R_earth": (cm_per_rearth, dimensions.length, 0.0, r"R_\oplus"),
+    "r_earth": (cm_per_rearth, dimensions.length, 0.0, r"R_\oplus"),
+    "R_jup": (cm_per_rjup, dimensions.length, 0.0, r"R_\mathrm{Jup}"),
+    "r_jup": (cm_per_rjup, dimensions.length, 0.0, r"R_\mathrm{Jup}"),
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
