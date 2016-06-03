@@ -80,7 +80,8 @@ class UnitSystem(object):
     def __getitem__(self, key):
         if isinstance(key, string_types):
             key = getattr(dimensions, key)
-        if key not in self.units_map:
+        um = self.units_map
+        if key not in um or um[key].dimensions is not key:
             units = _get_system_unit_string(key, self.units_map)
             self.units_map[key] = Unit(units, registry=self.registry)
         return self.units_map[key]
