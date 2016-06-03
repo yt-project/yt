@@ -77,18 +77,21 @@ def setup_poynting_vector(self):
                        function=_get_poyn(ax),
                        units="T*V/m")  # N/(m*s)
 
-def setup_relative_position(self, ptype):
-    mylog.info("oPMD - fields setup_relative_position")
+
+def setup_relative_positions(self, ptype):
     def _rel_pos(axis):
         def rp(field, data):
-            return
+            pos = data[ptype, "particle_position_{}".format(axis)]
+            off = data[ptype, "particle_positionOffset_{}".format(axis)]
+            return pos + off
 
         return rp
 
     for ax in 'xyz':
         self.add_field((ptype, "particle_position_relative_%s" % ax),
                        function=_rel_pos(ax),
-                       units="m")
+                       units="m",
+                       particle_type=True)
 
 
 class openPMDFieldInfo(FieldInfoContainer):
@@ -97,55 +100,13 @@ class openPMDFieldInfo(FieldInfoContainer):
     container subclass here will define which fields it knows about.  There are
     optionally methods on it that get called which can be subclassed.
 
-    !! TODO !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
     This class defines, which fields and particle fields could be in the HDF5-file
     The field names have to match the names in "openPMDHierarchy" in data_structures.py
     This also defines the units of the fields
     """
-    """
-    # TODO Generate this when parsing a file
-    known_other_fields = (
-        # Each entry here is of the form
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("B_x", ("T", [], None)),
-        ("B_y", ("T", [], None)),
-        ("B_z", ("T", [], None)),
-        ("E_x", ("V/m", [], None)),
-        ("E_y", ("V/m", [], None)),
-        ("E_z", ("V/m", [], None)),
-        ("J_x", ("A/m**2", [], None)),
-        ("J_y", ("A/m**2", [], None)),
-        ("J_z", ("A/m**2", [], None)),
-        ("rho", ("kg*s/m**3.0", [], None)),
-
-    )
-
-    # TODO Generate this when parsing a file
-    known_particle_fields = (
-        # Identical form to above
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("particle_charge", ("A*s", [], None)),
-        ("particle_mass", ("kg", [], None)),
-        ("particle_momentum_x", ("kg*m/s", [], None)),
-        ("particle_momentum_y", ("kg*m/s", [], None)),
-        ("particle_momentum_z", ("kg*m/s", [], None)),
-        ("particle_position_x", ("m", [], None)),
-        ("particle_position_y", ("m", [], None)),
-        ("particle_position_z", ("m", [], None)),
-        ("particle_positionOffset_x", ("m", [], None)),
-        ("particle_positionOffset_y", ("m", [], None)),
-        ("particle_positionOffset_z", ("m", [], None)),
-        ("particle_weighting", ("", [], None)),
-        ("particle_kinetic_energy", ("dimensionless", [], None)),
-
-    )
-    """
 
     def __init__(self, ds, field_list):
         super(openPMDFieldInfo, self).__init__(ds, field_list)
-        # If you want, you can check field_list
-        mylog.info("oPMD - fields - __init__")
 
         other_fields = ()
         f = ds._handle
@@ -157,7 +118,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                 other_fields += ((str("_".join([i,j])), (yt.YTQuantity(1, parsed).units, [], None)),)
         self.known_other_fields = other_fields
         for i in self.known_other_fields:
-            mylog.info("oPMD - fields - known_other_fields - {}".format(i))
+            mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
 
         particle_fields = ()
         particles = f[ds.basePath + f.attrs["particlesPath"]]
@@ -180,7 +141,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                     mylog.info("{}_{} does not seem to have unitDimension".format(species, attrib))
         self.known_particle_fields = particle_fields
         for i in self.known_particle_fields:
-            mylog.info("oPMD - fields - known_particle_fields - {}".format(i))
+            mylog.debug("oPMD - fields - known_particle_fields - {}".format(i))
 
 
     def setup_fluid_fields(self):
@@ -189,7 +150,6 @@ class openPMDFieldInfo(FieldInfoContainer):
         values of new fields e.g. calculate out of E-field and B-field the
         Poynting vector
         """
-        mylog.info("oPMD - fields - setup_fluid_fields")
         # Here we do anything that might need info about the dataset.
         # You can use self.alias, self.add_output_field and self.add_field .
 
@@ -201,8 +161,6 @@ class openPMDFieldInfo(FieldInfoContainer):
 
         TODO You have to call the function of the parent class to load particles
         """
-
-        mylog.info("oPMD - fields - setup_particle_fields(%s)",ptype)
         # self.add_field(
         #     (ptype,
         #      "particle_kinetic_energy"),
@@ -210,11 +168,5 @@ class openPMDFieldInfo(FieldInfoContainer):
         #     units="dimensionless")
         # setup_momentum_to_velocity(self, ptype)
 
-        """
-        particle_deposition_functions(ptype, "particle_position",
-                                      "particle_weighting", self)
-        standard_particle_fields(self, ptype)
-        """
-
-        # TODO Has to be called to load particles
+        setup_relative_positions(self, ptype)
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)

@@ -166,17 +166,14 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                 for record in f[self.basePath + particlesPath + particleName].keys():
                     if is_const_component(f[self.basePath + particlesPath + particleName + "/" + record]):
                         # Record itself (eg particle_mass) is constant
-                        mylog.info("%s", record)
                         particle_fields.append(particleName + "_" + record)
                     elif 'particlePatches' not in record:
                         try:
                             keys = f[self.basePath + particlesPath + particleName + "/" + record].keys()
                             for axis in keys:
-                                mylog.info("%s_%s", record, axis)
                                 particle_fields.append(particleName + "_" + record + "_" + axis)
                                 pass
                         except:
-                            mylog.info("%s", record)
                             particle_fields.append(particleName + "_" + record)
                             pass
                     else:
@@ -188,8 +185,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             else:
                 self.field_list.extend(
                     [("io", ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
-            #self.field_list.extend([("io", c) for c in particle_fields])
-            #self.field_list.extend([(str(c).split("_")[0], 'particle' + c.lstrip(c.split("_")[0])) for c in particle_fields])
 
     def _count_grids(self):
         """
@@ -373,7 +368,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
             else :
                 fshape = firstMesh[list(firstMesh.keys())[0]].shape
         except :
-            print("ERROR: Can only read files that have at least one mesh entry!")
+            mylog.error("ERROR: Can only read files that have at least one mesh entry!")
 
         # Usually 2D/3D for picongpu
         self.dimensionality = len(fshape)

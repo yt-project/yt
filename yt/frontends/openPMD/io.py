@@ -45,6 +45,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self.meshPath = self._handle["/"].attrs["meshesPath"]
         self.particlesPath = self._handle["/"].attrs["particlesPath"]
         self._cached_it = None
+        self._cache = Cache()
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -67,17 +68,16 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             ptype_name is a type pf particle,
             x_coords, y_coords and z_coords are arrays of positions/coordinates of all particles of that type
         """
-        mylog.info("_read_particle_coords")
         chunks = list(chunks)
         self._array_fields = {}
         # TODO consider individual fields, not species
         if self._cached_it is not None:
             if self._cached_it is self.basePath:
-                self._cache = True
+                self._use_cache = True
                 # use the cached x,y,z
         else:
             self._cached_it = self.basePath
-            self._cache = False
+            self._use_cache = False
         for chunk in chunks:
             f = None
             for g in chunk.objs:
@@ -89,9 +89,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 dds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
                     # Inefficient for const records
-                    mylog.info("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
-                    if self._cache:
-                        mylog.info("openPMD - _read_particle_coords: using cache")
+                    mylog.debug("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
+                    if self._use_cache:
                         yield (ptype, (self._cachex, self._cachey, self._cachez))
                     else:
                         # Get a particle species (e.g. /data/3500/particles/e/)
@@ -106,14 +105,14 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
                         # Get single 1D-arrays of coordinates from all particular particles
                         # TODO Do not naively assume 3D. Check which axes actually exist
-                        xpos, ypos, zpos = (get_component(pds, "position/" + ax)
+                        xpos, ypos, zpos = (self._cache.get_component(pds, "position/" + ax)
                                                 for ax in 'xyz')
-                        xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
+                        xoff, yoff, zoff = (self._cache.get_component(pds, "positionOffset/" + ax)
                                                 for ax in 'xyz')
                         self._cachex = xpos + xoff
                         self._cachey = ypos + yoff
                         self._cachez = zpos + zoff
-                        self._cache = True
+                        self._use_cache = True
 
                         for field in field_list:
                             # Trim field path (yt scheme) to match openPMD scheme
@@ -165,11 +164,11 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         # TODO consider individual fields, not species
         if self._cached_it is not None:
             if self._cached_it is self.basePath:
-                self._cache = True
+                self._use_cache = True
                 # use the cached x,y,z
         else:
             self._cached_it = self.basePath
-            self._cache = False
+            self._use_cache = False
         for chunk in chunks:
             f = None
             for g in chunk.objs:
@@ -181,6 +180,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 ds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
                     # Inefficient for const records
+                    mylog.debug("openPMD - _read_particle_fields: {}, {}".format(ptype, field_list))
 
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     # TODO Do this for all fields in fields list
@@ -193,28 +193,25 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     if pds is None:
                         mylog.info("openPMD - _read_particle_fields: {}/{} yields None".format(f.attrs["particlesPath"], spec))
 
-                    if self._cache:
-                        mylog.info("openPMD - _read_particle_fields: using cache")
-                        #yield (ptype, (self._cachex, self._cachey, self._cachez))
-                    else:
+                    if not self._use_cache:
                         # Get single arrays of coordinates from all particular particles
                         # TODO Do not naively assume 3D. Check which axes actually exist
                         #   (axis_labels, geometry)
                         # TODO Pay attention to const records
-                        xpos, ypos, zpos = (get_component(pds, "position/" + ax)
+                        xpos, ypos, zpos = (self._cache.get_component(pds, "position/" + ax)
                                             for ax in 'xyz')
-                        xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
+                        xoff, yoff, zoff = (self._cache.get_component(pds, "positionOffset/" + ax)
                                             for ax in 'xyz')
                         self._cachex = xpos + xoff
                         self._cachey = ypos + yoff
                         self._cachez = zpos + zoff
-                        self.cache = True
+                        self._use_cache = True
                     mask = selector.select_points(self._cachex, self._cachey, self._cachez, 0.0)
                     if mask is None:
                         continue
                     for field in field_list:
                         nfield = "/".join(field.split("_")[1:])
-                        data = get_component(pds, nfield)
+                        data = self._cache.get_component(pds, nfield)
                         yield ((ptype, field), data[mask])
             if f:
                 f.close()

@@ -206,7 +206,7 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
                 else:
                     result_array = np.array([0,0])
             else:
-                print(
+                mylog.error(
                  "Error: Attribute %s in `%s` is not of type '%s' (is '%s')!" \
                  %(name, str(f.name), str(is_type_names), \
                   type(value).__name__) )
@@ -509,7 +509,7 @@ def check_meshes(f, iteration, v, pic):
             list_meshes = list(f[full_meshes_path].keys())
         except KeyError:
             list_meshes = []
-    print( "Iteration %s : found %d meshes"
+    mylog.debug( "Iteration %s : found %d meshes"
         %( iteration, len(list_meshes) ) )
 
     # Check for the attributes of the STANDARD.md
@@ -658,7 +658,7 @@ def check_particles(f, iteration, v, pic) :
             list_species = list(f[full_particle_path].keys())
         except KeyError:
             list_species = []
-    print( "Iteration %s : found %d particle species"
+    mylog.debug( "Iteration %s : found %d particle species"
         %( iteration, len(list_species) ) )
 
     # Go through all the particle species
@@ -773,13 +773,21 @@ def is_const_component(record_component):
     return "value" in record_component.attrs.keys()
 
 
-def get_component(group, component_name):
-    mylog.info("openPMD - misc - get_component: {},{}".format(group, component_name))
-    record_component = group[component_name]
-    if is_const_component(record_component):
-        return np.full(record_component.attrs["shape"], record_component.attrs["value"] * record_component.attrs["unitSI"])
-    else:
-        return record_component.value * record_component.attrs["unitSI"]
+class Cache():
+
+    _c = {}
+
+    def get_component(self, group, component_name):
+        record_component = group[component_name]
+        mylog.debug("openPMD - misc - get_component: {}".format(record_component.name))
+        if record_component.name not in self._c:
+            if is_const_component(record_component):
+                self._c[record_component.name] = \
+                    np.full(record_component.attrs["shape"],
+                            record_component.attrs["value"] * record_component.attrs["unitSI"])
+            else:
+                self._c[record_component.name] = record_component.value * record_component.attrs["unitSI"]
+        return self._c[record_component.name]
 
 
 def parse_unitDimension(unitDimension):
