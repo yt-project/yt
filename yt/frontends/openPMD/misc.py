@@ -777,9 +777,9 @@ def get_component(group, component_name):
     mylog.info("openPMD - misc - get_component: {},{}".format(group, component_name))
     record_component = group[component_name]
     if is_const_component(record_component):
-        return np.full(record_component.attrs["shape"], record_component.attrs["value"])
+        return np.full(record_component.attrs["shape"], record_component.attrs["value"] * record_component.attrs["unitSI"])
     else:
-        return record_component.value
+        return record_component.value * record_component.attrs["unitSI"]
 
 
 def parse_unitDimension(unitDimension):

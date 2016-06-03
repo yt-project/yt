@@ -110,12 +110,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                                                 for ax in 'xyz')
                         xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
                                                 for ax in 'xyz')
-                        self._cachex = xpos * pds["position/x"].attrs["unitSI"] \
-                                       + xoff * pds["positionOffset/x"].attrs["unitSI"]
-                        self._cachey = ypos * pds["position/y"].attrs["unitSI"] \
-                                       + yoff * pds["positionOffset/y"].attrs["unitSI"]
-                        self._cachez = zpos * pds["position/z"].attrs["unitSI"] \
-                                       + zoff * pds["positionOffset/z"].attrs["unitSI"]
+                        self._cachex = xpos + xoff
+                        self._cachey = ypos + yoff
+                        self._cachez = zpos + zoff
                         self._cache = True
 
                         for field in field_list:
@@ -208,9 +205,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                                             for ax in 'xyz')
                         xoff, yoff, zoff = (get_component(pds, "positionOffset/" + ax)
                                             for ax in 'xyz')
-                        self._cachex = xpos * pds["position/x"].attrs["unitSI"] + xoff * pds["positionOffset/x"].attrs["unitSI"]
-                        self._cachey = ypos * pds["position/y"].attrs["unitSI"] + yoff * pds["positionOffset/y"].attrs["unitSI"]
-                        self._cachez = zpos * pds["position/z"].attrs["unitSI"] + zoff * pds["positionOffset/z"].attrs["unitSI"]
+                        self._cachex = xpos + xoff
+                        self._cachey = ypos + yoff
+                        self._cachez = zpos + zoff
                         self.cache = True
                     mask = selector.select_points(self._cachex, self._cachey, self._cachez, 0.0)
                     if mask is None:
