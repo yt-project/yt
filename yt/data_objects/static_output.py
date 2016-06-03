@@ -236,14 +236,15 @@ class Dataset(object):
         self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
-        self._parse_parameter_file()
-        self.set_units()
-        self._setup_coordinate_handler()
 
         create_code_unit_system(self)
         if unit_system == "code":
             unit_system = str(self)
         self.unit_system = unit_system_registry[unit_system]
+
+        self._parse_parameter_file()
+        self.set_units()
+        self._setup_coordinate_handler()
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
