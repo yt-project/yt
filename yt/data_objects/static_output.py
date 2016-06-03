@@ -72,7 +72,8 @@ from yt.geometry.coordinates.api import \
     CylindricalCoordinateHandler, \
     SphericalCoordinateHandler, \
     GeographicCoordinateHandler, \
-    SpectralCubeCoordinateHandler
+    SpectralCubeCoordinateHandler, \
+    InternalGeographicCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -491,6 +492,8 @@ class Dataset(object):
             cls = SphericalCoordinateHandler
         elif self.geometry == "geographic":
             cls = GeographicCoordinateHandler
+        elif self.geometry == "internal_geographic":
+            cls = InternalGeographicCoordinateHandler
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
         else:
