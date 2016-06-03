@@ -15,7 +15,7 @@ from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_systems import UnitSystem
 from yt.units import dimensions
 from yt.convenience import load
-from yt.testing import assert_almost_equal, requires_file
+from yt.testing import assert_almost_equal, assert_allclose, requires_file
 from yt.config import ytcfg
 
 def test_unit_systems():
@@ -97,3 +97,43 @@ def test_fields_diff_systems_etc():
             v2 = dd[field]
             assert_almost_equal(v1.v, v2.v)
             assert str(v2.units) == test_units[us][field]
+
+wdm = 'WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5'
+@requires_file(wdm)
+def test_tesla_magnetic_unit():
+    ytcfg["yt", "skip_dataset_cache"] = "True"
+    for us in ['cgs', 'mks', 'code']:
+        ds = load(wdm, unit_system=us,
+                  units_override={'magnetic_unit': (1.0, 'T')})
+        ad = ds.all_data()
+        dens = ad['density']
+        magx = ad['magx']
+        magnetic_field_x = ad['magnetic_field_x']
+
+        if us == 'cgs':
+            assert str(dens.units) == 'g/cm**3'
+            assert str(magx.units) == 'code_magnetic'
+            assert magx.uq == ds.quan(1e4, 'G')
+            assert str(magnetic_field_x.units) == 'gauss'
+            assert_allclose(magx.value, magnetic_field_x.value/1e4)
+            assert_allclose(
+                magnetic_field_x.to_equivalent('T', 'SI').value,
+                magnetic_field_x.value/1e4)
+
+        if us == 'mks':
+            assert str(dens.units) == 'kg/m**3'
+            assert str(magx.units) == 'code_magnetic'
+            assert magx.uq == ds.quan(1, 'T')
+            assert str(magnetic_field_x.units) == 'T'
+            assert_allclose(magx.value, magnetic_field_x.value)
+            assert_allclose(magnetic_field_x.to_equivalent('G', 'CGS').value,
+                            magnetic_field_x.value*1e4)
+
+        if us == 'code':
+            assert str(dens.units) == 'code_mass/code_length**3'
+            assert str(magx.units) == 'code_magnetic'
+            assert magx.uq == ds.quan(1, 'T')
+            assert str(magnetic_field_x.units) == 'code_magnetic'
+            assert_allclose(magx.value, magnetic_field_x.value)
+            assert_allclose(magnetic_field_x.to_equivalent('G', 'CGS').value,
+                            magnetic_field_x.value*1e4)
