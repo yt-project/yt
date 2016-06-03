@@ -1,12 +1,13 @@
 """
-API for yt.frontends.flash
+API for Gizmo frontend.
+
 
 
 
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2016, yt Development Team
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -14,16 +15,7 @@ API for yt.frontends.flash
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-      FLASHGrid, \
-      FLASHHierarchy, \
-      FLASHDataset, \
-      FLASHParticleDataset
+    GizmoDataset
 
 from .fields import \
-      FLASHFieldInfo
-
-from .io import \
-      IOHandlerFLASH, \
-      IOHandlerFLASHParticle
-
-from . import tests
+    GizmoFieldInfo

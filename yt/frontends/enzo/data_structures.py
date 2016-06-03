@@ -444,6 +444,16 @@ class EnzoHierarchy(GridIndex):
             if "AppendActiveParticleType" in self.dataset.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
+                if not any(f[0] == 'io' for f in field_list):
+                    if 'io' in self.dataset.particle_types_raw:
+                        ptypes_raw = list(self.dataset.particle_types_raw)
+                        ptypes_raw.remove('io')
+                        self.dataset.particle_types_raw = tuple(ptypes_raw)
+
+                    if 'io' in self.dataset.particle_types:
+                        ptypes = list(self.dataset.particle_types)
+                        ptypes.remove('io')
+                        self.dataset.particle_types = tuple(ptypes)
             ptypes = self.dataset.particle_types
             ptypes_raw = self.dataset.particle_types_raw
         else:
@@ -472,6 +482,15 @@ class EnzoHierarchy(GridIndex):
         else:
             random_sample = np.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
+
+    def _get_particle_type_counts(self):
+        try:
+            ret = {}
+            for ptype in self.grid_active_particle_count:
+                ret[ptype] = self.grid_active_particle_count[ptype].sum()
+            return ret
+        except AttributeError:
+            return super(EnzoHierarchy, self)._get_particle_type_counts()
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
         """

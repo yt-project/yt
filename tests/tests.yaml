@@ -14,7 +14,7 @@ answer_tests:
   local_fits_000:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_000:
+  local_flash_001:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_000:
@@ -25,6 +25,9 @@ answer_tests:
 
   local_gdf_000:
     - yt/frontends/gdf/tests/test_outputs.py
+
+  local_gizmo_000:
+    - yt/frontends/gizmo/tests/test_outputs.py
 
   local_halos_000:
     - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py  # [py2]

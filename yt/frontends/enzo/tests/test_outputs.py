@@ -83,6 +83,7 @@ def test_galaxy0030():
     for test in big_patch_amr(ds, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
+    assert_equal(ds.particle_type_counts, {'io': 1124453})
 
 @requires_ds(enzotiny)
 def test_simulated_halo_mass_function():
@@ -126,7 +127,9 @@ def test_EnzoDataset():
 def test_active_particle_datasets():
     two_sph = data_dir_load(two_sphere_test)
     assert 'AccretingParticle' in two_sph.particle_types_raw
-    assert_equal(len(two_sph.particle_unions), 0)
+    assert 'io' not in two_sph.particle_types_raw
+    assert 'all' in two_sph.particle_types
+    assert_equal(len(two_sph.particle_unions), 1)
     pfields = ['GridID', 'creation_time', 'dynamical_time',
                'identifier', 'level', 'metallicity', 'particle_mass']
     pfields += ['particle_position_%s' % d for d in 'xyz']
@@ -150,3 +153,6 @@ def test_active_particle_datasets():
         [f for f in apcos.field_list if f[0] == 'CenOstriker'])
 
     assert_equal(apcos_fields, real_apcos_fields)
+
+    assert_equal(apcos.particle_type_counts,
+                 {'CenOstriker': 899755, 'DarkMatter': 32768})

@@ -32,17 +32,17 @@ cdef struct Triangle:
 
 cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil
 
-cdef inline np.int64_t ray_triangle_intersect(const void* primitives,
-                                              const np.int64_t item,
-                                              Ray* ray) nogil
+cdef np.int64_t ray_triangle_intersect(const void* primitives,
+                                       const np.int64_t item,
+                                       Ray* ray) nogil
 
-cdef inline void triangle_centroid(const void *primitives,
-                                   const np.int64_t item,
-                                   np.float64_t[3] centroid) nogil
+cdef void triangle_centroid(const void *primitives,
+                            const np.int64_t item,
+                            np.float64_t[3] centroid) nogil
 
-cdef inline void triangle_bbox(const void *primitives,
-                               const np.int64_t item,
-                               BBox* bbox) nogil
+cdef void triangle_bbox(const void *primitives,
+                        const np.int64_t item,
+                        BBox* bbox) nogil
 
 cdef struct Patch:
     np.float64_t[8][3] v  # 8 vertices per patch
@@ -67,14 +67,14 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
                                   cython.floating[3] ray_origin,
                                   cython.floating[3] ray_direction) nogil
     
-cdef inline np.int64_t ray_patch_intersect(const void* primitives,
-                                           const np.int64_t item,
-                                           Ray* ray) nogil
+cdef np.int64_t ray_patch_intersect(const void* primitives,
+                                    const np.int64_t item,
+                                    Ray* ray) nogil
 
-cdef inline void patch_centroid(const void *primitives,
-                                const np.int64_t item,
-                                np.float64_t[3] centroid) nogil
+cdef void patch_centroid(const void *primitives,
+                         const np.int64_t item,
+                         np.float64_t[3] centroid) nogil
 
-cdef inline void patch_bbox(const void *primitives,
-                            const np.int64_t item,
-                            BBox* bbox) nogil
+cdef void patch_bbox(const void *primitives,
+                     const np.int64_t item,
+                     BBox* bbox) nogil

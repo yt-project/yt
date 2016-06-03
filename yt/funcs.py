@@ -318,7 +318,10 @@ def insert_ipython(num_up=1):
         ipshell(header = __header % dd,
                 local_ns = loc, global_ns = glo)
     else:
-        from IPython.config.loader import Config
+        try:
+            from traitlets.config.loader import Config
+        except ImportError:
+            from IPython.config.loader import Config
         cfg = Config()
         cfg.InteractiveShellEmbed.local_ns = loc
         cfg.InteractiveShellEmbed.global_ns = glo

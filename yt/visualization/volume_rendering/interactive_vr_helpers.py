@@ -58,7 +58,8 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
         raise ImportError("This functionality requires the cyglfw3 and PyOpenGL "
                           "packages to be installed.")
 
-    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera
+    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera, \
+        MeshSceneComponent
     from .interactive_loop import RenderingContext
 
     if isinstance(data_source, Dataset):
@@ -69,7 +70,7 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
         field = dobj.ds.default_field
         if field not in dobj.ds.derived_field_list:
             raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
-                  Please specify a field in create_scene()""" % (field, data_source.ds))
+                  Please specify a field in create_scene()""" % (field, dobj.ds))
         mylog.info('Setting default field to %s' % field.__repr__())
     if window_size is None:
         window_size = (1024, 1024)
@@ -78,15 +79,22 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     if cam_focus is None:
         cam_focus = dobj.ds.domain_center
 
+    rc = RenderingContext(*window_size)
+
+    if hasattr(dobj.ds.index, "meshes"):
+        # unstructured mesh datasets tend to have tight
+        # domain boundaries, do some extra padding here.
+        cam_position = 3.0*dobj.ds.domain_right_edge
+        scene = MeshSceneComponent(dobj, field)
+    else:
+        scene = SceneGraph()
+        collection = BlockCollection()
+        collection.add_data(dobj, field)
+        scene.add_collection(collection)
+
     aspect_ratio = window_size[1] / window_size[0]
     far_plane = np.linalg.norm(cam_focus - cam_position) * 2.0
     near_plane = 0.01 * far_plane
-
-    rc = RenderingContext(*window_size)
-    scene = SceneGraph()
-    collection = BlockCollection()
-    collection.add_data(dobj, field)
-    scene.add_collection(collection)
 
     c = TrackballCamera(position=cam_position, focus=cam_focus, near_plane=near_plane,
                         far_plane=far_plane, aspect_ratio=aspect_ratio)
