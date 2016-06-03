@@ -79,8 +79,6 @@ class UnitSystem(object):
 
     def __getitem__(self, key):
         if isinstance(key, string_types):
-            if key not in self._dims:
-                self._dims.append(key)
             key = getattr(dimensions, key)
         if key not in self.units_map:
             units = _get_system_unit_string(key, self.units_map)
