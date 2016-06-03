@@ -93,6 +93,8 @@ class UnitRegistry:
                 "in this registry." % symbol)
 
         del self.lut[symbol]
+        if symbol in self.unit_objs:
+            del self.unit_objs[symbol]
 
     def modify(self, symbol, base_value):
         """
@@ -109,6 +111,9 @@ class UnitRegistry:
             base_value = base_value.in_base().value
 
         self.lut[symbol] = (float(base_value), ) + self.lut[symbol][1:]
+
+        if symbol in self.unit_objs:
+            del self.unit_objs[symbol]
 
     def keys(self):
         """
