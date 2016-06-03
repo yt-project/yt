@@ -282,7 +282,7 @@ def pixelize_off_axis_cartesian(
                     mask[i, j] += 1
                     my_array[i, j] += dsp
     my_array /= mask
-    return my_array
+    return my_array.T
 
 
 @cython.cdivision(True)
