@@ -275,9 +275,9 @@ def pixelize_off_axis_cartesian(
                     cx = inv_mat[0,0]*cxpx + inv_mat[0,1]*cypx + center[0]
                     cy = inv_mat[1,0]*cxpx + inv_mat[1,1]*cypx + center[1]
                     cz = inv_mat[2,0]*cxpx + inv_mat[2,1]*cypx + center[2]
-                    if fabs(xsp - cx) * 0.95 > dxsp or \
-                       fabs(ysp - cy) * 0.95 > dysp or \
-                       fabs(zsp - cz) * 0.95 > dzsp:
+                    if fabs(xsp - cx) * 0.99 > dxsp or \
+                       fabs(ysp - cy) * 0.99 > dysp or \
+                       fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
                     my_array[i, j] += dsp
