@@ -16,6 +16,7 @@ import json
 import re
 
 from distutils.version import LooseVersion
+from yt.units.dimensions import current_mks
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
 from yt.extern import six
@@ -108,7 +109,8 @@ class UnitRegistry:
                 "in this registry." % symbol)
 
         if hasattr(base_value, "in_base"):
-            base_value = base_value.in_base().value
+            base_value = base_value.in_base('cgs-ampere')
+            base_value = base_value.value
 
         self.lut[symbol] = (float(base_value), ) + self.lut[symbol][1:]
 
