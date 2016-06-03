@@ -3,10 +3,11 @@ import numpy as np
 # Physical Constants and Units Conversion Factors
 #
 # Values for these constants, unless otherwise noted, are drawn from IAU,
-# IUPAC, and NIST data, whichever is newer.
+# IUPAC, NIST, and NASA data, whichever is newer.
 # http://maia.usno.navy.mil/NSFA/IAU2009_consts.html
 # http://goldbook.iupac.org/list_goldbook_phys_constants_defs.html
 # http://physics.nist.gov/cuu/Constants/index.html
+# http://nssdc.gsfc.nasa.gov/planetary/factsheet/jupiterfact.html
 
 # Elementary masses
 mass_electron_grams = 9.10938291e-28
