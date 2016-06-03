@@ -99,8 +99,8 @@ class UnitRegistry:
 
     def modify(self, symbol, base_value):
         """
-        Change the base value of a dimension.  Useful for adjusting code units
-        after parsing parameters."
+        Change the base value of a unit symbol.  Useful for adjusting code units
+        after parsing parameters.
 
         """
         if symbol not in self.lut:
@@ -109,10 +109,14 @@ class UnitRegistry:
                 "in this registry." % symbol)
 
         if hasattr(base_value, "in_base"):
+            new_dimensions = base_value.units.dimensions
             base_value = base_value.in_base('cgs-ampere')
             base_value = base_value.value
+        else:
+            new_dimensions = self.lut[symbol][1]
 
-        self.lut[symbol] = (float(base_value), ) + self.lut[symbol][1:]
+        self.lut[symbol] = ((float(base_value), new_dimensions) +
+                            self.lut[symbol][2:])
 
         if symbol in self.unit_objs:
             del self.unit_objs[symbol]
