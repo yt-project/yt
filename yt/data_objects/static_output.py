@@ -240,6 +240,9 @@ class Dataset(object):
         create_code_unit_system(self)
         if unit_system == "code":
             unit_system = str(self)
+        else:
+            unit_system = str(unit_system).lower()
+
         self.unit_system = unit_system_registry[unit_system]
 
         self._parse_parameter_file()
