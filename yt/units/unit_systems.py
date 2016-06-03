@@ -109,10 +109,16 @@ class UnitSystem(object):
                 repr += "  %s: %s\n" % (key, self.units_map[dim])
         return repr
 
-def create_code_unit_system(ds):
-    code_unit_system = UnitSystem(str(ds), "code_length", "code_mass", "code_time",
-                                  "code_temperature", registry=ds.unit_registry)
+def create_code_unit_system(ds, current_mks_unit=None):
+    code_unit_system = UnitSystem(
+        str(ds), "code_length", "code_mass", "code_time", "code_temperature",
+        current_mks_unit=current_mks_unit, registry=ds.unit_registry)
     code_unit_system["velocity"] = "code_velocity"
+    if current_mks_unit:
+        code_unit_system["magnetic_field_mks"] = "code_magnetic"
+    else:
+        code_unit_system["magnetic_field_cgs"] = "code_magnetic"
+    code_unit_system["pressure"] = "code_pressure"
 
 cgs_unit_system = UnitSystem("cgs", "cm", "g", "s")
 cgs_unit_system["energy"] = "erg"
