@@ -43,6 +43,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
@@ -866,12 +867,24 @@ class Dataset(object):
         self._set_code_unit_attributes()
         # here we override units, if overrides have been provided.
         self._override_code_units()
+
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
         if hasattr(self, 'magnetic_unit'):
-            # If we do not have this set, but some fields come in in
-            # "code_magnetic", this will allow them to remain in that unit.
+            # if the magnetic unit is in T, we need to recreate the code unit
+            # system as an MKS-like system
+            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
+
+                if self.unit_system == unit_system_registry[str(self)]:
+                    unit_system_registry.pop(str(self))
+                    create_code_unit_system(self, current_mks_unit='A')
+                    self.unit_system = unit_system_registry[str(self)]
+                elif str(self.unit_system) == 'mks':
+                    pass
+                else:
+                    self.magnetic_unit = \
+                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         vel_unit = getattr(
             self, "velocity_unit", self.length_unit / self.time_unit)
