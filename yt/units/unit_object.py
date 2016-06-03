@@ -673,6 +673,8 @@ def _get_system_unit_string(dimensions, base_units):
     my_dims = dimensions.expand()
     if my_dims is dimensionless:
         return ""
+    if my_dims in base_units:
+        return base_units[my_dims]
     for factor in my_dims.as_ordered_factors():
         dim = list(factor.free_symbols)[0]
         unit_string = str(base_units[dim])
