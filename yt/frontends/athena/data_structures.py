@@ -492,10 +492,8 @@ class AthenaDataset(Dataset):
             self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                          (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         if vel_unit is None:
             self.velocity_unit = self.length_unit/self.time_unit
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")
