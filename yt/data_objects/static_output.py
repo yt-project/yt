@@ -890,7 +890,7 @@ class Dataset(object):
             self, "velocity_unit", self.length_unit / self.time_unit)
         pressure_unit = getattr(
             self, "pressure_unit",
-            self.mass_unit / (self.length_unit * self.time_unit)**2)
+            self.mass_unit / (self.length_unit * (self.time_unit)**2))
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
         self.unit_registry.modify("code_velocity", vel_unit)
