@@ -49,13 +49,13 @@ def _verify_geometry(func):
     @wraps(func)
     def _check_geometry(self, plot):
         geom = plot.data.ds.coordinates.name
-        if self._supported_geometries is None or \
-           geom in self._supported_geometries:
+        supp = self._supported_geometries
+        cs = getattr(self, "coord_system", None)
+        if supp is None or geom in supp:
             return func(self, plot)
-        if getattr(self, "coord_system", None) in ("axis", "figure") \
-            and "force" not in self._supported_geometries:
+        if cs in ("axis", "figure") and "force" not in supp:
             return func(self, plot)
-        raise YTDataTypeUnsupported(geom, self._supported_geometries)
+        raise YTDataTypeUnsupported(geom, supp)
     return _check_geometry
 
 class RegisteredCallback(type):
@@ -66,12 +66,13 @@ class RegisteredCallback(type):
 
 @add_metaclass(RegisteredCallback)
 class PlotCallback(object):
-    # This is a tuple of strings corresponding to the names that a callback
+    # _supported_geometries is set by subclasses of PlotCallback to a tuple of
+    # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.
     # Note that if there's a coord_system parameter that is set to "axis" or
     # "figure" this is disregarded.  If "force" is included in the tuple, it
-    # won't do this footwork around the coord_system check, and force it to
-    # validate.
+    # will *not* check whether or not the coord_system is in axis or figure,
+    # and will only look at the geometries.
     _supported_geometries = None
 
     def __init__(self, *args, **kwargs):
