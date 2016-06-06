@@ -16,7 +16,6 @@ import json
 import re
 
 from distutils.version import LooseVersion
-from yt.units.dimensions import current_mks
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
 from yt.extern import six
