@@ -2,7 +2,7 @@ answer_tests:
   local_artio_000:
     - yt/frontends/artio/tests/test_outputs.py
 
-  local_athena_000:
+  local_athena_001:
     - yt/frontends/athena
 
   local_chombo_000:
