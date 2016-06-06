@@ -46,7 +46,7 @@ test_units["galactic"] = {"density": "Msun/kpc**3",
                           "velocity_divergence": "1/Myr",
                           "density_gradient_x": "Msun/kpc**4"}
 test_units["code"] = {"density": "code_mass/code_length**3",
-                      "kinetic_energy": "code_mass/(code_length*code_time**2)",
+                      "kinetic_energy": "code_pressure",
                       "velocity_magnitude": "code_velocity",
                       "velocity_divergence": "code_velocity/code_length",
                       "density_gradient_x": "code_mass/code_length**4"}
