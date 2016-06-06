@@ -18,6 +18,7 @@ from .cylindrical_coordinates import CylindricalCoordinateHandler
 
 
 class PolarCoordinateHandler(CylindricalCoordinateHandler):
+    name = "polar"
 
     def __init__(self, ds, ordering = ('r', 'theta', 'z')):
         super(PolarCoordinateHandler, self).__init__(ds, ordering)

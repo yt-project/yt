@@ -29,6 +29,7 @@ import yt.visualization._MPL as _MPL
 
 
 class CartesianCoordinateHandler(CoordinateHandler):
+    name = "cartesian"
 
     def __init__(self, ds, ordering = ('x','y','z')):
         super(CartesianCoordinateHandler, self).__init__(ds, ordering)

@@ -558,3 +558,13 @@ class YTUnknownUniformSize(YTException):
 
     def __str__(self):
         return "Can't determine size specification for %s" % (self.size_spec)
+
+class YTDataTypeUnsupported(YTException):
+    def __init__(self, this, supported):
+        self.supported = supported
+        self.this = this
+
+    def __str__self():
+        v = "This operation is not supported for data of type %s; " % self.this
+        v += "It supports data of types %s" % (self.supported,)
+        return v

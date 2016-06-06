@@ -23,6 +23,7 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
 class GeographicCoordinateHandler(CoordinateHandler):
+    name = "geographic"
 
     def __init__(self, ds, ordering = ('latitude', 'longitude', 'altitude')):
         super(GeographicCoordinateHandler, self).__init__(ds, ordering)

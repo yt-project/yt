@@ -23,6 +23,7 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
 class SphericalCoordinateHandler(CoordinateHandler):
+    name = "spherical"
 
     def __init__(self, ds, ordering = ('r', 'theta', 'phi')):
         super(SphericalCoordinateHandler, self).__init__(ds, ordering)
