@@ -75,7 +75,7 @@ class GadgetDataset(ParticleDataset):
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
-                 ptype="all",
+                 index_ptype="all",
                  bounding_box = None,
                  header_spec = "default",
                  field_spec = "default",
@@ -91,7 +91,7 @@ class GadgetDataset(ParticleDataset):
             ptype_spec, gadget_ptype_specs)
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        self.ptype = ptype
+        self.index_ptype = index_ptype
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -345,7 +345,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
-                 ptype="all",
+                 index_ptype="all",
                  bounding_box = None,
                  units_override=None,
                  unit_system="cgs"):
@@ -356,8 +356,7 @@ class GadgetHDF5Dataset(GadgetDataset):
                                "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor,
-            ptype=ptype,
+            over_refine_factor=over_refine_factor, index_ptype=index_ptype,
             bounding_box = bounding_box, unit_system=unit_system)
 
     def _get_hvals(self):

@@ -167,7 +167,7 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
-        index_ptype = self.ptype
+        index_ptype = self.index_ptype
         if index_ptype == "all":
             ptypes = self.ds.particle_types_raw
         else:

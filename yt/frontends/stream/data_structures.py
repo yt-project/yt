@@ -1021,13 +1021,13 @@ class StreamParticlesDataset(StreamDataset):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
-    ptype = "all"
+    index_ptype = "all"
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
-                   n_ref = 64, over_refine_factor = 1, ptype = "all",
+                   n_ref = 64, over_refine_factor = 1, index_ptype ="all",
                    geometry = "cartesian", unit_system="cgs"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
@@ -1150,7 +1150,7 @@ def load_particles(data, length_unit = None, bbox=None,
     sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
     sds.n_ref = n_ref
     sds.over_refine_factor = over_refine_factor
-    sds.ptype = ptype
+    sds.index_ptype = index_ptype
 
     return sds
 

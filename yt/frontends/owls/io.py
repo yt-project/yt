@@ -123,14 +123,14 @@ class IOHandlerOWLS(BaseIOHandler):
             f.close()
 
     def _initialize_index(self, data_file, regions):
-        ptype = self.ptype
+        index_ptype = self.index_ptype
         f = _get_h5_handle(data_file.filename)
-        if ptype == "all":
+        if index_ptype == "all":
             pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
             keys = f.keys()
         else:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][int(ptype[-1])]
-            keys = [ptype]
+            keys = [index_ptype]
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
         for key in keys:

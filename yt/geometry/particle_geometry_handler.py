@@ -39,9 +39,9 @@ class ParticleIndex(Index):
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
     @property
-    def ptype(self):
-        if hasattr(self.dataset, "ptype"):
-            return self.dataset.ptype
+    def index_ptype(self):
+        if hasattr(self.dataset, "index_ptype"):
+            return self.dataset.index_ptype
         else:
             return "all"
 
@@ -76,13 +76,13 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
-        ptype = self.ptype
-        if ptype == "all":
+        index_ptype = self.index_ptype
+        if index_ptype == "all":
             self.total_particles = sum(
                     sum(d.total_particles.values()) for d in self.data_files)
         else:
             self.total_particles = sum(
-                    d.total_particles[ptype] for d in self.data_files)
+                    d.total_particles[index_ptype] for d in self.data_files)
         ds = self.dataset
         self.oct_handler = ParticleOctreeContainer(
             [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
@@ -90,7 +90,7 @@ class ParticleIndex(Index):
         self.oct_handler.n_ref = ds.n_ref
         only_on_root(mylog.info, "Allocating for %0.3e particles "
                                  "(particle type '%s')",
-                     self.total_particles, ptype)
+                     self.total_particles, index_ptype)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
         self.regions = ParticleRegions(
@@ -114,17 +114,17 @@ class ParticleIndex(Index):
         #   * Broadcast back a serialized octree to join
         #
         # For now we will do this in serial.
-        ptype = self.ptype
-        # Set the ptype attribute of self.io dynamically here, so we don't
+        index_ptype = self.index_ptype
+        # Set the index_ptype attribute of self.io dynamically here, so we don't
         # need to assume that the dataset has the attribute.
-        self.io.ptype = ptype
+        self.io.index_ptype = index_ptype
         morton = np.empty(self.total_particles, dtype="uint64")
         ind = 0
         for data_file in self.data_files:
-            if ptype == "all":
+            if index_ptype == "all":
                 npart = sum(data_file.total_particles.values())
             else:
-                npart = data_file.total_particles[ptype]
+                npart = data_file.total_particles[index_ptype]
             morton[ind:ind + npart] = \
                 self.io._initialize_index(data_file, self.regions)
             ind += npart
