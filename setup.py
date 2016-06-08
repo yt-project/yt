@@ -92,7 +92,8 @@ cython_extensions = [
               libraries=std_libs,
               depends=["yt/utilities/lib/fp_utils.pxd",
                        "yt/geometry/grid_container.pxd",
-                       "yt/geometry/grid_visitors.pxd"]),
+                       "yt/geometry/grid_visitors.pxd",
+                       "yt/geometry/selection_routines.pxd"]),
     Extension("yt.geometry.oct_container",
               ["yt/geometry/oct_container.pyx",
                "yt/utilities/lib/tsearch.c"],
@@ -176,7 +177,8 @@ cython_extensions = [
                        "yt/utilities/lib/amr_kdtools.pxd",
                        "yt/utilities/lib/grid_traversal.pxd",
                        "yt/utilities/lib/contour_finding.pxd",
-                       "yt/geometry/oct_container.pxd"]),
+                       "yt/geometry/oct_container.pxd",
+                       "yt/geometry/selection_routines.pxd"]),
     Extension("yt.utilities.lib.geometry_utils",
               ["yt/utilities/lib/geometry_utils.pyx"],
               extra_compile_args=omp_args,
@@ -241,10 +243,13 @@ lib_exts = [
     "amr_kdtools"
 ]
 for ext_name in lib_exts:
+    lib_deps = ["yt/utilities/lib/fp_utils.pxd"]
+    if ext_name == 'misc_utilities':
+        lib_deps.append('yt/geometry/selection_routines.pxd')
     cython_extensions.append(
         Extension("yt.utilities.lib.{}".format(ext_name),
                   ["yt/utilities/lib/{}.pyx".format(ext_name)],
-                  libraries=std_libs, depends=["yt/utilities/lib/fp_utils.pxd"]))
+                  libraries=std_libs, depends=lib_deps))
 
 lib_exts = ["write_array", "ragged_arrays", "line_integral_convolution"]
 for ext_name in lib_exts:
