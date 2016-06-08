@@ -130,7 +130,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
         if hasattr(data[field], "units"):
             for atom in data[field].units.expr.atoms():
                 if str(atom).startswith("code"):
-                    data[field].convert_to_cgs()
+                    data[field].convert_to_base()
                     break
         if isinstance(field, tuple):
             field_name = field[1]
@@ -222,7 +222,7 @@ def _yt_array_hdf5_attr(fh, attr, val):
 
     if val is None: val = "None"
     if hasattr(val, "units"):
-        val = val.in_cgs()
+        val = val.in_base()
         fh.attrs["%s_units" % attr] = str(val.units)
     # The following is a crappy workaround for getting
     # Unicode strings into HDF5 attributes in Python 3

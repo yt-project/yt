@@ -27,17 +27,14 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
+from yt.funcs import \
+    get_requests
 from .fields import \
     SDFFieldInfo
 from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\
     HTTPSDFRead
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 @contextlib.contextmanager
 def safeopen(*args, **kwargs):
@@ -75,7 +72,8 @@ class SDFDataset(Dataset):
                  midx_header = None,
                  midx_level = None,
                  field_map = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -101,7 +99,8 @@ class SDFDataset(Dataset):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type,
-                                         units_override=units_override)
+                                         units_override=units_override,
+                                         unit_system=unit_system)
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
@@ -193,7 +192,9 @@ class SDFDataset(Dataset):
     def _is_valid(cls, *args, **kwargs):
         sdf_header = kwargs.get('sdf_header', args[0])
         if sdf_header.startswith("http"):
-            if requests is None: return False
+            requests = get_requests()
+            if requests is None: 
+                return False
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.

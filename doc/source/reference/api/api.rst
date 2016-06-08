@@ -270,7 +270,7 @@ FLASH
 
 .. autosummary::
    :toctree: generated/
-   
+
    ~yt.frontends.flash.data_structures.FLASHGrid
    ~yt.frontends.flash.data_structures.FLASHHierarchy
    ~yt.frontends.flash.data_structures.FLASHDataset
@@ -447,7 +447,7 @@ to create these objects in a uniform manner.
 Halo Analysis
 ^^^^^^^^^^^^^
 
-The ``HaloCatalog`` object is the primary means for performing custom analysis 
+The ``HaloCatalog`` object is the primary means for performing custom analysis
 on cosmological halos.  It is also the primary interface for halo finding.
 
 .. autosummary::
@@ -472,11 +472,13 @@ on cosmological halos.  It is also the primary interface for halo finding.
    ~yt.analysis_modules.halo_analysis.halo_quantities.HaloQuantity
    ~yt.analysis_modules.halo_analysis.halo_quantities.bulk_velocity
    ~yt.analysis_modules.halo_analysis.halo_quantities.center_of_mass
+   ~yt.analysis_modules.halo_analysis.halo_recipes.HaloRecipe
+   ~yt.analysis_modules.halo_analysis.halo_recipes.calculate_virial_quantities
 
 Halo Finding
 ^^^^^^^^^^^^
 
-These provide direct access to the halo finders.  However, it is strongly recommended 
+These provide direct access to the halo finders.  However, it is strongly recommended
 to use the ``HaloCatalog``.
 
 .. autosummary::
@@ -537,7 +539,7 @@ Image Handling
 --------------
 
 For volume renderings and fixed resolution buffers the image object returned is
-an ``ImageArray`` object, which has useful functions for image saving and 
+an ``ImageArray`` object, which has useful functions for image saving and
 writing to bitmaps.
 
 .. autosummary::
@@ -581,7 +583,7 @@ Absorption and X-ray spectra and spectral lines:
 
 Absorption spectra fitting:
 
-.. autosummary:: 
+.. autosummary::
    :toctree: generated/
 
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit
@@ -607,7 +609,7 @@ Volume Rendering
 
 See also :ref:`volume_rendering`.
 
-Here are the primary entry points and the main classes involved in the 
+Here are the primary entry points and the main classes involved in the
 Scene infrastructure:
 
 .. autosummary::
@@ -645,7 +647,7 @@ The different kinds of transfer functions:
    ~yt.visualization.volume_rendering.transfer_functions.PlanckTransferFunction
    ~yt.visualization.volume_rendering.transfer_functions.MultiVariateTransferFunction
    ~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper
- 
+
 The different kinds of lenses:
 
 .. autosummary::
@@ -741,6 +743,7 @@ See also :ref:`callbacks`.
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
+   ~yt.visualization.plot_modifications.CellEdgesCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
    ~yt.visualization.plot_modifications.ContourCallback
    ~yt.visualization.plot_modifications.CuttingQuiverCallback
@@ -771,7 +774,7 @@ See also :ref:`colormaps`.
 
 .. autosummary::
    :toctree: generated/
-   
+
    ~yt.visualization.color_maps.add_cmap
    ~yt.visualization.color_maps.make_colormap
    ~yt.visualization.color_maps.show_colormaps
@@ -789,6 +792,7 @@ Function List
    ~yt.data_objects.static_output.Dataset.box
    ~yt.funcs.deprecate
    ~yt.funcs.ensure_list
+   ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
@@ -859,6 +863,29 @@ Miscellaneous Types
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelAnalysisInterface
    ~yt.utilities.parallel_tools.parallel_analysis_interface.ParallelObjectIterator
 
+.. _cosmology-calculator-ref:
+
+Cosmology Calculator
+--------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.utilities.cosmology.Cosmology
+   ~yt.utilities.cosmology.Cosmology.hubble_distance
+   ~yt.utilities.cosmology.Cosmology.comoving_radial_distance
+   ~yt.utilities.cosmology.Cosmology.comoving_transverse_distance
+   ~yt.utilities.cosmology.Cosmology.comoving_volume
+   ~yt.utilities.cosmology.Cosmology.angular_diameter_distance
+   ~yt.utilities.cosmology.Cosmology.angular_scale
+   ~yt.utilities.cosmology.Cosmology.luminosity_distance
+   ~yt.utilities.cosmology.Cosmology.lookback_time
+   ~yt.utilities.cosmology.Cosmology.hubble_time
+   ~yt.utilities.cosmology.Cosmology.critical_density
+   ~yt.utilities.cosmology.Cosmology.hubble_parameter
+   ~yt.utilities.cosmology.Cosmology.expansion_factor
+   ~yt.utilities.cosmology.Cosmology.z_from_t
+   ~yt.utilities.cosmology.Cosmology.t_from_z
 
 Testing Infrastructure
 ----------------------

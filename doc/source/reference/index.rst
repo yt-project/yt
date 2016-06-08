@@ -3,8 +3,8 @@ Reference Materials
 
 Here we include reference materials for yt with a list of all the code formats
 supported, a description of how to use yt at the command line, a detailed
-listing of individual classes and functions, a description of the useful 
-config file, and finally a list of changes between each major release of the 
+listing of individual classes and functions, a description of the useful
+config file, and finally a list of changes between each major release of the
 code.
 
 .. toctree::
@@ -14,5 +14,6 @@ code.
    command-line
    api/api
    configuration
+   python_introduction
    field_list
    changelog

@@ -17,29 +17,30 @@ representation.
 
 import numpy as np
 cimport cython
+from libc.stdlib cimport malloc, free
+from libc.math cimport fmax, sqrt
+cimport numpy as np
+
 cimport pyembree.rtcore as rtc 
-from mesh_traversal cimport YTEmbreeScene
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from mesh_samplers cimport \
-    sample_hex, \
-    sample_tetra, \
-    sample_element, \
-    sample_wedge
 from pyembree.rtcore cimport \
     Vertex, \
     Triangle, \
     Vec3f
+
+from mesh_traversal cimport YTEmbreeScene
+from mesh_samplers cimport \
+    sample_hex, \
+    sample_tetra, \
+    sample_wedge
 from mesh_intersection cimport \
     patchIntersectFunc, \
     patchBoundsFunc
-from libc.stdlib cimport malloc, free
-from libc.math cimport fmax, sqrt
-cimport numpy as np
 from yt.utilities.exceptions import YTElementTypeNotRecognized
 
-cdef extern from "mesh_construction.h":
+cdef extern from "mesh_triangulation.h":
     enum:
         MAX_NUM_TRI
         
@@ -104,7 +105,7 @@ cdef class LinearElementMesh:
                  np.ndarray indices,
                  np.ndarray data):
 
-        # We need now to figure out what kind of elements we've been handed.
+        # We need to figure out what kind of elements we've been handed.
         if indices.shape[1] == 8:
             self.vpe = HEX_NV
             self.tpe = HEX_NT
@@ -186,19 +187,18 @@ cdef class LinearElementMesh:
         datac.element_indices = self.element_indices
         datac.tpe = self.tpe
         datac.vpe = self.vpe
+        datac.fpe = self.fpe
         self.datac = datac
         
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, &self.datac)
 
     cdef void _set_sampler_type(self, YTEmbreeScene scene):
 
-        if self.fpe == 1:
-            self.filter_func = <rtcg.RTCFilterFunc> sample_element
-        elif self.fpe == 4:
+        if self.vpe == 4:
             self.filter_func = <rtcg.RTCFilterFunc> sample_tetra
-        elif self.fpe == 6:
+        elif self.vpe == 6:
             self.filter_func = <rtcg.RTCFilterFunc> sample_wedge
-        elif self.fpe == 8:
+        elif self.vpe == 8:
             self.filter_func = <rtcg.RTCFilterFunc> sample_hex
         else:
             raise NotImplementedError("Sampler type not implemented.")
@@ -241,6 +241,8 @@ cdef class QuadraticElementMesh:
     '''
 
     cdef Patch* patches
+    cdef np.float64_t* vertices
+    cdef np.float64_t* field_data
     cdef unsigned int mesh
     # patches per element, vertices per element, and field points per 
     # element, respectively:
@@ -265,11 +267,22 @@ cdef class QuadraticElementMesh:
                                   np.ndarray field_data):
         cdef int i, j, ind, idim
         cdef int ne = indices_in.shape[0]
+        cdef int nv = vertices_in.shape[0]
         cdef int npatch = 6*ne;
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
         cdef np.ndarray[np.float64_t, ndim=2] element_vertices
-        cdef Patch* patches = <Patch*> malloc(npatch * sizeof(Patch));
+        cdef Patch* patches = <Patch*> malloc(npatch * sizeof(Patch))
+        self.vertices = <np.float64_t*> malloc(20 * ne * 3 * sizeof(np.float64_t))
+        self.field_data = <np.float64_t*> malloc(20 * ne * sizeof(np.float64_t))
+
+        for i in range(ne):
+            element_vertices = vertices_in[indices_in[i]]
+            for j in range(20):
+                self.field_data[i*20 + j] = field_data[i][j]
+                for k in range(3):
+                    self.vertices[i*20*3 + j*3 + k] = element_vertices[j][k]
+
         cdef Patch* patch
         for i in range(ne):  # for each element
             element_vertices = vertices_in[indices_in[i]]
@@ -280,9 +293,8 @@ cdef class QuadraticElementMesh:
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
-                patch.indices = indices_in
-                patch.vertices = vertices_in
-                patch.field_data = field_data
+                patch.vertices = self.vertices + i*20*3
+                patch.field_data = self.field_data + i*20
 
         self.patches = patches
         self.mesh = mesh
@@ -295,3 +307,5 @@ cdef class QuadraticElementMesh:
 
     def __dealloc__(self):
         free(self.patches)
+        free(self.vertices)
+        free(self.field_data)

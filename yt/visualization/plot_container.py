@@ -23,11 +23,11 @@ import os
 
 from collections import defaultdict
 from functools import wraps
-from matplotlib.font_manager import FontProperties
 
-from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     get_image_suffix, \
     get_ipython_api_version, iterable, \
@@ -182,6 +182,8 @@ class ImagePlotContainer(object):
     _colorbar_valid = False
 
     def __init__(self, data_source, figure_size, fontsize):
+        from matplotlib.font_manager import FontProperties
+
         self.data_source = data_source
         if iterable(figure_size):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
@@ -190,7 +192,8 @@ class ImagePlotContainer(object):
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
-        self._colormaps = defaultdict(lambda: 'algae')
+        self._colormaps = defaultdict(
+            lambda: ytcfg.get("yt", "default_colormap"))
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
@@ -475,6 +478,8 @@ class ImagePlotContainer(object):
                           'weight':'bold', 'size':24, 'color':'blue'})
 
         """
+        from matplotlib.font_manager import FontProperties
+
         if font_dict is None:
             font_dict = {}
         if 'color' in font_dict:
@@ -586,6 +591,7 @@ class ImagePlotContainer(object):
 
     @validate_plot
     def _send_zmq(self):
+        from ._mpl_imports import FigureCanvasAgg
         try:
             # pre-IPython v1.0
             from IPython.zmq.pylab.backend_inline import send_figure as display

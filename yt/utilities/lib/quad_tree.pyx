@@ -24,7 +24,7 @@ from yt.utilities.lib.fp_utils cimport fmax
 
 from yt.utilities.exceptions import YTIntDomainOverflow
 
-cdef extern from "stdlib.h":
+cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 

@@ -30,6 +30,7 @@ from .vector_operations import \
 
 @register_field_plugin
 def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
+    unit_system = registry.ds.unit_system
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -68,19 +69,20 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         n = "baroclinic_vorticity_%s" % ax
         registry.add_field((ftype, n), function=eval("_%s" % n),
                            validators=bv_validators,
-                           units="s**(-2)")
+                           units=unit_system["frequency"]**2)
 
-    create_magnitude_field(registry, "baroclinic_vorticity", "s**(-2)",
+    create_magnitude_field(registry, "baroclinic_vorticity", 
+                           unit_system["frequency"]**2,
                            ftype=ftype, slice_info=slice_info,
                            validators=bv_validators)
 
     def _vorticity_x(field, data):
         f  = (data[ftype, "velocity_z"][sl_center,sl_right,sl_center] -
               data[ftype, "velocity_z"][sl_center,sl_left,sl_center]) \
-              / (div_fac*just_one(data["index", "dy"]).in_cgs())
+              / (div_fac*just_one(data["index", "dy"]))
         f -= (data[ftype, "velocity_y"][sl_center,sl_center,sl_right] -
               data[ftype, "velocity_y"][sl_center,sl_center,sl_left]) \
-              / (div_fac*just_one(data["index", "dz"].in_cgs()))
+              / (div_fac*just_one(data["index", "dz"]))
         new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_z"],
                                               dtype=np.float64),
                                 f.units)
@@ -119,12 +121,12 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         n = "vorticity_%s" % ax
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
-                           units="1/s",
+                           units=unit_system["frequency"],
                            validators=vort_validators)
-    create_magnitude_field(registry, "vorticity", "1/s",
+    create_magnitude_field(registry, "vorticity", unit_system["frequency"],
                            ftype=ftype, slice_info=slice_info,
                            validators=vort_validators)
-    create_squared_field(registry, "vorticity", "1/s**2",
+    create_squared_field(registry, "vorticity", unit_system["frequency"]**2,
                          ftype=ftype, slice_info=slice_info,
                          validators=vort_validators)
 
@@ -138,10 +140,11 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         n = "vorticity_stretching_%s" % ax
         registry.add_field((ftype, n), 
                            function=eval("_%s" % n),
-                           units = "s**(-2)",
+                           units = unit_system["frequency"]**2,
                            validators=vort_validators)
 
-    create_magnitude_field(registry, "vorticity_stretching", "s**(-2)",
+    create_magnitude_field(registry, "vorticity_stretching", 
+                           unit_system["frequency"]**2,
                            ftype=ftype, slice_info=slice_info,
                            validators=vort_validators)
 
@@ -158,7 +161,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         n = "vorticity_growth_%s" % ax
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
-                           units="s**(-2)",
+                           units=unit_system["frequency"]**2,
                            validators=vort_validators)
 
     def _vorticity_growth_magnitude(field, data):
@@ -174,7 +177,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     
     registry.add_field((ftype, "vorticity_growth_magnitude"),
               function=_vorticity_growth_magnitude,
-              units="s**(-2)",
+              units=unit_system["frequency"]**2,
               validators=vort_validators,
               take_log=False)
 
@@ -185,7 +188,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     
     registry.add_field((ftype, "vorticity_growth_magnitude_absolute"),
                        function=_vorticity_growth_magnitude_absolute,
-                       units="s**(-2)",
+                       units=unit_system["frequency"]**2,
                        validators=vort_validators)
 
     def _vorticity_growth_timescale(field, data):
@@ -196,7 +199,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     
     registry.add_field((ftype, "vorticity_growth_timescale"),
                        function=_vorticity_growth_timescale,
-                       units="s",
+                       units=unit_system["time"],
                        validators=vort_validators)
 
     ########################################################################
@@ -231,10 +234,11 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         n = "vorticity_radiation_pressure_%s" % ax
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
-                           units="s**(-2)",
+                           units=unit_system["frequency"]**2,
                            validators=vrp_validators)
 
-    create_magnitude_field(registry, "vorticity_radiation_pressure", "s**(-2)",
+    create_magnitude_field(registry, "vorticity_radiation_pressure",
+                           unit_system["frequency"]**2,
                            ftype=ftype, slice_info=slice_info,
                            validators=vrp_validators)
 
@@ -255,7 +259,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         n = "vorticity_radiation_pressure_growth_%s" % ax
         registry.add_field((ftype, n),
                            function=eval("_%s" % n),
-                           units="s**(-2)",
+                           units=unit_system["frequency"]**2,
                            validators=vrp_validators)
 
     def _vorticity_radiation_pressure_growth_magnitude(field, data):
@@ -271,7 +275,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     
     registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude"),
                        function=_vorticity_radiation_pressure_growth_magnitude,
-                       units="s**(-2)",
+                       units=unit_system["frequency"]**2,
                        validators=vrp_validators,
                        take_log=False)
 
@@ -296,7 +300,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     
     registry.add_field((ftype, "vorticity_radiation_pressure_growth_timescale"),
                        function=_vorticity_radiation_pressure_growth_timescale,
-                       units="s",
+                       units=unit_system["time"],
                        validators=vrp_validators)
 
     def _shear(field, data):
@@ -346,11 +350,11 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                         [(ftype, "velocity_x"),
                          (ftype, "velocity_y"),
                          (ftype, "velocity_z")])],
-                        units=r"1/s")
+                        units=unit_system["frequency"])
 
     def _shear_criterion(field, data):
         """
-        Divide by c_s to leave shear in units of cm**-1, which 
+        Divide by c_s to leave shear in units of length**-1, which 
         can be compared against the inverse of the local cell size (1/dx) 
         to determine if refinement should occur.
         """
@@ -359,7 +363,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "shear_criterion"),
                        function=_shear_criterion,
-                       units="1/cm",
+                       units=unit_system["length"]**-1,
                        validators=[ValidateSpatial(1,
                         [(ftype, "sound_speed"),
                          (ftype, "velocity_x"),

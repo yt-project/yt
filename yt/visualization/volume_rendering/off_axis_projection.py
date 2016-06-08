@@ -13,13 +13,12 @@ Volume rendering
 
 
 from .scene import Scene
-from .camera import Camera
 from .render_source import VolumeSource
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
 from yt.funcs import mylog, iterable
 from yt.utilities.lib.grid_traversal import \
-        PartitionedGrid
+    PartitionedGrid
 from yt.data_objects.api import ImageArray
 import numpy as np
 
@@ -39,8 +38,8 @@ def off_axis_projection(data_source, center, normal_vector,
 
     Parameters
     ----------
-    data_source : `~yt.data_objects.api.Dataset`
-        This is the dataset to volume render.
+    data_source : `~yt.data_objects.static_output.Dataset` or `~yt.data_objects.data_containers.YTSelectionDataContainer`
+        This is the dataset or data object to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
         camera.
@@ -149,21 +148,32 @@ def off_axis_projection(data_source, center, normal_vector,
         data_source.ds.field_dependencies.update(deps)
         fields = [weightfield, weight]
         vol.set_fields(fields)
-    camera = Camera(data_source)
+    camera = sc.add_camera(data_source)
     camera.set_width(width)
-    camera.switch_orientation(normal_vector=normal_vector,
-                              north_vector=north_vector)
     if not iterable(resolution):
         resolution = [resolution]*2
     camera.resolution = resolution
     if not iterable(width):
         width = data_source.ds.arr([width]*3)
-    camera.position = center - width[2]*camera.normal_vector
+    camera.position = center - width[2]*normal_vector
     camera.focus = center
-    sc.camera = camera
+    
+    # If north_vector is None, we set the default here.
+    # This is chosen so that if normal_vector is one of the 
+    # cartesian coordinate axes, the projection will match
+    # the corresponding on-axis projection.
+    if north_vector is None:
+        vecs = np.identity(3)
+        t = np.cross(vecs, normal_vector).sum(axis=1)
+        ax = t.argmax()
+        east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
+        north_vector = np.cross(normal_vector, east_vector).ravel()
+    camera.switch_orientation(normal_vector,
+                              north_vector)
+
     sc.add_source(vol)
 
-    vol.set_sampler(camera)
+    vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
     mylog.debug("Casting rays")
@@ -190,7 +200,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     if method == "integrate":
         if weight is None:
-            dl = width[2].in_units("cm")
+            dl = width[2].in_units(data_source.ds.unit_system["length"])
             image *= dl
         else:
             mask = image[:,:,1] == 0

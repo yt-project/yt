@@ -216,6 +216,11 @@ void cosmology_fill_table_integrate(CosmologyParameters *c, double a, double y[]
   f[3] = 1.5*c->OmegaM*y[2]/mu;
 }
 
+#ifdef _WIN32
+double asinh(double x){
+    return log(x + sqrt((x * x) + 1.0));
+}
+#endif
 
 void cosmology_fill_table_piece(CosmologyParameters *c, int istart, int n)
 {
@@ -444,6 +449,7 @@ void cosmology_set_thread_safe_range(CosmologyParameters *c, double amin, double
 double cosmology_get_value_from_table(CosmologyParameters *c, double a, double table[])
 {
   // This is special case code for boundary conditions
+  int idx;
   double la = log10(a);
   if (fabs(la - c->la[c->size-1]) < 1.0e-14) {
     return table[c->size-1];
@@ -451,7 +457,7 @@ double cosmology_get_value_from_table(CosmologyParameters *c, double a, double t
     return table[0];
   }
 
-  int idx = (int)(c->ndex*(la-c->la[0]));
+  idx = (int)(c->ndex*(la-c->la[0]));
 
   // Note that because we do idx+1 below, we need -1 here.
   ASSERT(idx>=0 && (idx<c->size-1));

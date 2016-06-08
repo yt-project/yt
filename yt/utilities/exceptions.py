@@ -75,11 +75,18 @@ class YTCouldNotGenerateField(YTFieldNotFound):
         return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
 
 class YTFieldTypeNotFound(YTException):
-    def __init__(self, fname):
-        self.fname = fname
+    def __init__(self, ftype, ds=None):
+        self.ftype = ftype
+        self.ds = ds
 
     def __str__(self):
-        return "Could not find field '%s'." % (self.fname)
+        if self.ds is not None and \
+          self.ftype in self.ds.particle_types:
+            return ("Could not find field type '%s'.  " +
+                    "This field type is a known particle type for this dataset.  " +
+                    "Try adding this field with particle_type=True.") % self.ftype
+        else:
+            return "Could not find field type '%s'." % (self.ftype)
 
 class YTSimulationNotIdentified(YTException):
     def __init__(self, sim_type):
@@ -192,7 +199,7 @@ class YTUnitsNotReducible(YTException):
         self.unit = unit
         self.units_base = units_base
         YTException.__init__(self)
-        
+
     def __str__(self):
         err = "The unit '%s' cannot be reduced to a single expression within " \
           "the %s base system of units." % (self.unit, self.units_base)
@@ -203,13 +210,13 @@ class YTEquivalentDimsError(YTUnitOperationError):
         self.old_units = old_units
         self.new_units = new_units
         self.base = base
-    
+
     def __str__(self):
         err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
-          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units, 
+          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units,
                                                             self.new_units, self.base)
         return err
-    
+
 class YTUfuncUnitError(YTException):
     def __init__(self, ufunc, unit1, unit2):
         self.ufunc = ufunc
@@ -530,3 +537,24 @@ class YTDimensionalityError(YTException):
     def __str__(self):
         return 'Dimensionality specified was %s but we need %s' % (
             self.wrong, self.right)
+
+class YTInvalidShaderType(YTException):
+    def __init__(self, source):
+        self.source = source
+
+    def __str__(self):
+        return "Can't identify shader_type for file '%s.'" % (self.source)
+
+class YTUnknownUniformKind(YTException):
+    def __init__(self, kind):
+        self.kind = kind
+
+    def __str__(self):
+        return "Can't determine kind specification for %s" % (self.kind)
+
+class YTUnknownUniformSize(YTException):
+    def __init__(self, size_spec):
+        self.size_spec = size_spec
+
+    def __str__(self):
+        return "Can't determine size specification for %s" % (self.size_spec)

@@ -15,6 +15,7 @@ Dataset and related data structures.
 #-----------------------------------------------------------------------------
 
 import functools
+import itertools
 import numpy as np
 import os
 import time
@@ -24,6 +25,8 @@ from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
+from yt.fields.derived_field import \
+    DerivedField
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -40,7 +43,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
-from yt.units.unit_object import Unit
+from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -59,9 +62,9 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
-
 from yt.geometry.coordinates.api import \
     CoordinateHandler, \
     CartesianCoordinateHandler, \
@@ -170,6 +173,7 @@ class Dataset(object):
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
+    _particle_type_counts = None
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
@@ -192,7 +196,8 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None, units_override=None):
+    def __init__(self, filename, dataset_type=None, file_style=None, 
+                 units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -234,6 +239,11 @@ class Dataset(object):
         self._parse_parameter_file()
         self.set_units()
         self._setup_coordinate_handler()
+
+        create_code_unit_system(self)
+        if unit_system == "code":
+            unit_system = str(self)
+        self.unit_system = unit_system_registry[unit_system]
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -435,13 +445,16 @@ class Dataset(object):
         if "all" not in self.particle_types:
             mylog.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
-            self.add_particle_union(pu)
+            nfields = self.add_particle_union(pu)
+            if nfields == 0:
+                mylog.debug("zero common fields: skipping particle union 'all'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
+        self.index.field_list = sorted(self.field_list)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -487,9 +500,17 @@ class Dataset(object):
     def add_particle_union(self, union):
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
-        fields = set_intersection([f[s] for s in union
-                                   if s in self.particle_types_raw
-                                   and len(f[s]) > 0])
+
+        # find fields common to all particle types in the union
+        fields = set_intersection(
+            [f[s] for s in union if s in self.particle_types_raw]
+        )
+
+        if len(fields) == 0:
+            # don't create this union if no fields are common to all
+            # particle types
+            return len(fields)
+
         for field in fields:
             units = set([])
             for s in union:
@@ -503,11 +524,17 @@ class Dataset(object):
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
         fields = [ (union.name, field) for field in fields]
-        self.field_list.extend(fields)
+        new_fields = [_ for _ in fields if _ not in self.field_list]
+        self.field_list.extend(new_fields)
+        new_field_info_fields = [
+            _ for _ in fields if _ not in self.field_info.field_list]
+        self.field_info.field_list.extend(new_field_info_fields)
+        self.index.field_list = sorted(self.field_list)
         # Give ourselves a chance to add them here, first, then...
         # ...if we can't find them, we set them up as defaults.
         new_fields = self._setup_particle_types([union.name])
         self.field_info.find_dependencies(new_fields)
+        return len(new_fields)
 
     def add_particle_filter(self, filter):
         # This requires an index
@@ -566,14 +593,18 @@ class Dataset(object):
     def _get_field_info(self, ftype, fname = None):
         self.index
         if fname is None:
-            ftype, fname = "unknown", ftype
+            if isinstance(ftype, DerivedField):
+                ftype, fname = ftype.name
+            else:
+                ftype, fname = "unknown", ftype
         guessing_type = False
         if ftype == "unknown":
             guessing_type = True
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
         if field == self._last_freq:
-            return self._last_finfo
+            if field not in self.field_info.field_aliases.values():
+                return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
@@ -738,6 +769,27 @@ class Dataset(object):
         return fields
 
     @property
+    def particles_exist(self):
+        for pt, f in itertools.product(self.particle_types_raw, self.field_list):
+            if pt == f[0]:
+                return True
+        return False
+
+    @property
+    def particle_type_counts(self):
+        self.index
+        if self.particles_exist is False:
+            return {}
+
+        # frontends or index implementation can populate this dict while
+        # creating the index if they know particle counts at that time
+        if self._particle_type_counts is not None:
+            return self._particle_type_counts
+
+        self._particle_type_counts = self.index._get_particle_type_counts()
+        return self._particle_type_counts
+
+    @property
     def ires_factor(self):
         o2 = np.log2(self.refine_by)
         if o2 != int(o2):
@@ -859,7 +911,7 @@ class Dataset(object):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
@@ -905,7 +957,7 @@ class Dataset(object):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
-        cast to arbitray units using the ``input_units`` keyword argument.
+        cast to arbitrary units using the ``input_units`` keyword argument.
 
         Parameters
         ----------
@@ -988,7 +1040,8 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic'):
+    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
+                                     weight_field='particle_mass'):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -1003,13 +1056,15 @@ class Dataset(object):
         method : string
            This is the "method name" which will be looked up in the
            `particle_deposit` namespace as `methodname_deposit`.  Current
-           methods include `count`, `simple_smooth`, `sum`, `std`, `cic`,
-           `weighted_mean`, `mesh_id`, and `nearest`.
+           methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
+           `mesh_id`, and `nearest`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
+        weight_field : string, default 'particle_mass'
+           Weighting field name for deposition method `weighted_mean`.
 
         Returns
         -------
@@ -1021,38 +1076,45 @@ class Dataset(object):
             ptype, deposit_field = deposit_field[0], deposit_field[1]
         else:
             raise RuntimeError
+
         units = self.field_info[ptype, deposit_field].units
+        take_log = self.field_info[ptype, deposit_field].take_log
+        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+        field_name = "%s_" + name_map[method] + "_%s"
+        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
+        if method == "count":
+            field_name = "%s_count" % ptype
+            if ("deposit", field_name) in self.field_info:
+                mylog.warning("The deposited field %s already exists" % field_name)
+                return ("deposit", field_name)
+            else:
+                units = "dimensionless"
+                take_log = False
 
         def _deposit_field(field, data):
             """
-            Create a grid field for particle wuantities weighted by particle
-            mass, using cloud-in-cell deposition.
+            Create a grid field for particle quantities using given method.
             """
             pos = data[ptype, "particle_position"]
-            # get back into density
-            if method != 'count':
-                pden = data[ptype, "particle_mass"]
-                top = data.deposit(pos, [data[(ptype, deposit_field)]*pden],
-                                   method=method, kernel_name=kernel_name)
-                bottom = data.deposit(pos, [pden], method=method,
-                                      kernel_name=kernel_name)
-                top[bottom == 0] = 0.0
-                bnz = bottom.nonzero()
-                top[bnz] /= bottom[bnz]
-                d = data.ds.arr(top, input_units=units)
+            if method == 'weighted_mean':
+                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field],
+                                                   data[ptype, weight_field]],
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
+                d[np.isnan(d)] = 0.0
             else:
                 d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method,
-                                             kernel_name=kernel_name))
+                                             method=method, kernel_name=kernel_name),
+                                             input_units=units)
             return d
-        name_map = {"cic": "cic", "sum": "nn", "count": "count"}
-        field_name = "%s_" + name_map[method] + "_%s"
-        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
             units=units,
-            take_log=False,
+            take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 

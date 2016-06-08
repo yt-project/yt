@@ -10,7 +10,7 @@ ds = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0350")
 grad_fields = ds.add_gradient_fields(("gas","gravitational_potential"))
 
 # We don't need to do the same for the pressure field because yt already
-# has pressure gradient fields. Now, define the "degree of hydrostatic 
+# has pressure gradient fields. Now, define the "degree of hydrostatic
 # equilibrium" field.
 
 def _hse(field, data):

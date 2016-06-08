@@ -31,7 +31,7 @@ ax.set_ylabel(r"$\mathrm{\rho\ (g\ cm^{-3})}$")
 fig.savefig("density_profile_default.png" % ds)
 
 # The "dens_plot" object is a list of plot objects. In our case we only have one,
-# so we index the list by '0' to get it. 
+# so we index the list by '0' to get it.
 
 # Plot using dashed red lines
 

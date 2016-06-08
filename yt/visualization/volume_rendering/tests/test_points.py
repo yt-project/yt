@@ -14,8 +14,10 @@ import os
 import tempfile
 import shutil
 from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.api import Scene, Camera, \
-    VolumeSource, PointSource
+from yt.visualization.volume_rendering.api import \
+    Scene, \
+    VolumeSource, \
+    PointSource
 import numpy as np
 from unittest import TestCase
 
@@ -51,9 +53,8 @@ class PointsVRTest(TestCase):
         ds.field_info[ds.field_list[0]].take_log=False
 
         sc = Scene()
-        cam = Camera(ds)
+        cam = sc.add_camera(ds)
         cam.resolution = (512,512)
-        sc.camera = cam
         vr = VolumeSource(dd, field=ds.field_list[0])
         vr.transfer_function.clear()
         vr.transfer_function.grey_opacity=False

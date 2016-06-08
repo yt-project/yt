@@ -75,7 +75,8 @@ class TipsyDataset(ParticleDataset):
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
                  bounding_box=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
         # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge
@@ -112,7 +113,8 @@ class TipsyDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
-        super(TipsyDataset, self).__init__(filename, dataset_type)
+        super(TipsyDataset, self).__init__(filename, dataset_type,
+                                           unit_system=unit_system)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)

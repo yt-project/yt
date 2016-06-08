@@ -58,6 +58,8 @@ class DerivedQuantity(ParallelAnalysisInterface):
 
     def __call__(self, *args, **kwargs):
         """Calculate results for the derived quantity"""
+        # create the index if it doesn't exist yet
+        self.data_source.ds.index
         self.count_values(*args, **kwargs)
         chunks = self.data_source.chunks([], chunking_style="io")
         storage = {}

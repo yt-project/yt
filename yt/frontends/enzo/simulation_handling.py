@@ -82,6 +82,7 @@ class EnzoSimulation(SimulationTimeSeries):
     def _set_units(self):
         self.unit_registry = UnitRegistry()
         self.unit_registry.add("code_time", 1.0, dimensions.time)
+        self.unit_registry.add("code_length", 1.0, dimensions.length)
         if self.cosmological_simulation:
             # Instantiate EnzoCosmology object for units and time conversions.
             self.cosmology = \
@@ -107,6 +108,7 @@ class EnzoSimulation(SimulationTimeSeries):
         else:
             self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
         self.unit_registry.modify("code_time", self.time_unit)
+        self.unit_registry.modify("code_length", self.length_unit)
 
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None,

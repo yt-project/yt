@@ -1,4 +1,4 @@
-# This shows how to save ImageArray objects, such as those returned from 
+# This shows how to save ImageArray objects, such as those returned from
 # volume renderings, to pngs with varying backgrounds.
 
 # First we use the simple_volume_rendering.py recipe from above to generate

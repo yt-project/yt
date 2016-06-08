@@ -62,7 +62,7 @@ class ZBuffer(object):
             rgba += (other.rgba * (1.0 - f)[:, None, :])
         else:
             b = self.z > other.z
-            rgba = np.empty(self.rgba.shape)
+            rgba = np.zeros(self.rgba.shape)
             rgba[f] = self.rgba[f]
             rgba[b] = other.rgba[b]
         z = np.min([self.z, other.z], axis=0)

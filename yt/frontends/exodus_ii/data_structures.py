@@ -154,7 +154,8 @@ class ExodusIIDataset(Dataset):
                                               units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
-        self.default_field = ("connect1", "diffused")
+        self.default_field = [f for f in self.field_list 
+                              if f[0] == 'connect1'][-1]
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -354,6 +355,11 @@ class ExodusIIDataset(Dataset):
             displaced_coords = self._apply_displacement(coords, mesh_id)
             mi = np.minimum(displaced_coords.min(axis=0), mi)
             ma = np.maximum(displaced_coords.max(axis=0), ma)
+
+        # pad domain boundaries
+        width = ma - mi
+        mi -= 0.1 * width
+        ma += 0.1 * width
         return mi, ma
 
     @classmethod

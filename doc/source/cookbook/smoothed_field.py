@@ -20,7 +20,7 @@ def _metal_density(field, data):
     density = data['PartType0', 'Density']
     Z = data['PartType0', 'metallicity']
     return density * Z
-    
+
 # Add it to the dataset.
 ds.add_field(('PartType0', 'metal_density'), function=_metal_density,
              units="g/cm**3", particle_type=True)

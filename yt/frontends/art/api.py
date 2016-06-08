@@ -17,7 +17,8 @@ from .data_structures import \
       ARTDomainFile,\
       ARTDomainSubset,\
       ARTIndex,\
-      ARTDataset
+      ARTDataset, \
+      DarkMatterARTDataset
 
 from .fields import \
       ARTFieldInfo

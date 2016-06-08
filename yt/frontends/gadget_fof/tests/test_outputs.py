@@ -62,7 +62,7 @@ def test_subhalos():
     for hid in range(0, ds.index.particle_count["Group"]):
         my_h = ds.halo("Group", hid)
         h_ids = my_h["ID"]
-        for sid in range(my_h["subhalo_number"]):
+        for sid in range(int(my_h["subhalo_number"][0])):
             my_s = ds.halo("Subhalo", (my_h.particle_identifier, sid))
             total_sub += my_s["ID"].size
             total_int += np.intersect1d(h_ids, my_s["ID"]).size
@@ -86,3 +86,29 @@ def test_halo_masses():
         # as the array of all masses.  This will test getting
         # scalar fields for halos correctly.
         yield assert_array_equal, ad[ptype, "particle_mass"], mass
+
+# fof/subhalo catalog with no member ids in first file
+g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
+
+# This dataset has halos in one file and ids in another,
+# which can confuse the field detection.
+@requires_file(g56)
+def test_unbalanced_dataset():
+    ds = data_dir_load(g56)
+    halo = ds.halo("Group", 0)
+    halo["member_ids"]
+    assert True
+
+# fof/subhalo catalog with no member ids in first file
+g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
+
+# This dataset has one halo with particles distributed over 3 files
+# with the 2nd file being empty.
+@requires_file(g76)
+def test_3file_halo():
+    ds = data_dir_load(g76)
+    # this halo's particles are distributed over 3 files with the
+    # middle file being empty
+    halo = ds.halo("Group", 6)
+    halo["member_ids"]
+    assert True

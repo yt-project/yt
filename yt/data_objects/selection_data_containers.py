@@ -69,7 +69,11 @@ class YTPoint(YTSelectionContainer0D):
     _con_args = ('p',)
     def __init__(self, p, ds=None, field_parameters=None, data_source=None):
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
-        self.p = p
+        if isinstance(p, YTArray):
+            # we pass p through ds.arr to ensure code units are attached
+            self.p = self.ds.arr(p)
+        else:
+            self.p = self.ds.arr(p, 'code_length')
 
 class YTOrthoRay(YTSelectionContainer1D):
     """
@@ -88,8 +92,8 @@ class YTOrthoRay(YTSelectionContainer1D):
     coords : tuple of floats
         The (plane_x, plane_y) coordinates at which to cast the ray.  Note
         that this is in the plane coordinates: so if you are casting along
-        x, this will be (y,z).  If you are casting along y, this will be
-        (x,z).  If you are casting along z, this will be (x,y).
+        x, this will be (y, z).  If you are casting along y, this will be
+        (z, x).  If you are casting along z, this will be (x, y).
     ds: Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary

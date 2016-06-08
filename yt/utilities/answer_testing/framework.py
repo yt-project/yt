@@ -264,14 +264,13 @@ def can_run_ds(ds_fn, file_check = False):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
-    with temp_cwd(path):
-        if file_check:
-            return os.path.isfile(ds_fn) and \
-                AnswerTestingTest.result_storage is not None
-        try:
-            load(ds_fn)
-        except YTOutputNotIdentified:
-            return False
+    if file_check:
+        return os.path.isfile(os.path.join(path, ds_fn)) and \
+            AnswerTestingTest.result_storage is not None
+    try:
+        load(ds_fn)
+    except YTOutputNotIdentified:
+        return False
     return AnswerTestingTest.result_storage is not None
 
 def can_run_sim(sim_fn, sim_type, file_check = False):
@@ -280,14 +279,13 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
-    with temp_cwd(path):
-        if file_check:
-            return os.path.isfile(sim_fn) and \
-                AnswerTestingTest.result_storage is not None
-        try:
-            simulation(sim_fn, sim_type)
-        except YTOutputNotIdentified:
-            return False
+    if file_check:
+        return os.path.isfile(os.path.join(path, sim_fn)) and \
+            AnswerTestingTest.result_storage is not None
+    try:
+        simulation(sim_fn, sim_type)
+    except YTOutputNotIdentified:
+        return False
     return AnswerTestingTest.result_storage is not None
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
@@ -297,13 +295,12 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     if isinstance(ds_fn, Dataset): return ds_fn
     if not os.path.isdir(path):
         return False
-    with temp_cwd(path):
-        if cls is None:
-            ds = load(ds_fn, *args, **kwargs)
-        else:
-            ds = cls(ds_fn, *args, **kwargs)
-        ds.index
-        return ds
+    if cls is None:
+        ds = load(ds_fn, *args, **kwargs)
+    else:
+        ds = cls(os.path.join(path, ds_fn), *args, **kwargs)
+    ds.index
+    return ds
 
 def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
                  find_outputs=False):
@@ -311,9 +308,8 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
         raise IOError
     if os.path.exists(sim_fn) or not path:
         path = "."
-    with temp_cwd(path):
-        return simulation(sim_fn, sim_type,
-                          find_outputs=find_outputs)
+    return simulation(os.path.join(path, sim_fn), sim_type,
+                      find_outputs=find_outputs)
 
 class AnswerTestingTest(object):
     reference_storage = None
@@ -826,7 +822,7 @@ class GenericArrayTest(AnswerTestingTest):
                                           verbose=True)
         for k in new_result:
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_result[k])
             else:
                 assert_allclose_units(new_result[k], old_result[k],
                                       10**(-self.decimals))

@@ -26,6 +26,7 @@ cdef class Node:
     cdef public Node right
     cdef public Node parent
     cdef public int grid
+    cdef public bint dirty
     cdef public np.int64_t node_id
     cdef public np.int64_t node_ind
     cdef np.float64_t left_edge[3]
@@ -34,6 +35,6 @@ cdef class Node:
     cdef Split * split
     cdef int level
 
-cdef int point_in_node(Node node, np.ndarray[np.float64_t, ndim=1] point)
-cdef Node _find_node(Node node, np.float64_t *point)
+cdef int point_in_node(Node node, np.float64_t[:] point)
+cdef Node _find_node(Node node, np.float64_t[:] point)
 cdef int _kd_is_leaf(Node node)

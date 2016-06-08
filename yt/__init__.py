@@ -159,7 +159,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \
-    off_axis_projection
+    off_axis_projection, interactive_render
 import yt.visualization.volume_rendering.api as volume_rendering
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
@@ -175,3 +175,9 @@ from yt.testing import run_nose
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
+
+from yt.units.unit_systems import UnitSystem
+from yt.units.unit_object import unit_system_registry
+
+from yt.analysis_modules.list_modules import \
+    amods

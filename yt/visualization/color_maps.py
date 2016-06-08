@@ -12,7 +12,6 @@
 #-----------------------------------------------------------------------------
 import numpy as np
 
-import matplotlib
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
 from . import _colormap_data as _cm
@@ -71,9 +70,6 @@ cdict = {'red':   ((0.0, 80/256., 80/256.),
 
 add_cmap('bds_highcontrast', cdict)
 add_cmap('algae', cdict)
-
-# Set the default colormap to be algae.
-matplotlib.rc('image', cmap="algae")
 
 # This next colormap was designed by Tune Kamae and converted here by Matt
 _vs = np.linspace(0,1,255)
@@ -388,7 +384,7 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
         # Use np.round to make sure you're on a discrete index
         interval = np.round(next_index)-np.round(rolling_index)
         for j in np.arange(3):
-            cmap[np.round(rolling_index):np.round(next_index), j] = \
+            cmap[int(np.rint(rolling_index)):int(np.rint(next_index)), j] = \
                 np.linspace(color[j], next_color[j], interval)
 
         rolling_index = next_index

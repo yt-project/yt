@@ -27,6 +27,7 @@ from yt.utilities.physical_constants import \
 
 @register_field_plugin
 def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
+    unit_system = registry.ds.unit_system
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -46,14 +47,14 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "matter_density"),
                        function=_matter_density,
-                       units="g/cm**3")
+                       units=unit_system["density"])
 
     def _matter_mass(field, data):
         return data[ftype, "matter_density"] * data["index", "cell_volume"]
 
     registry.add_field((ftype, "matter_mass"),
                        function=_matter_mass,
-                       units="g")
+                       units=unit_system["mass"])
 
     # rho_total / rho_cr(z).
     def _overdensity(field, data):
@@ -138,6 +139,6 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "weak_lensing_convergence"),
                        function=_weak_lensing_convergence,
-                       units="1/cm",
+                       units=unit_system["length"]**-1,
         validators=[ValidateParameter("observer_redshift"),
                     ValidateParameter("source_redshift")])

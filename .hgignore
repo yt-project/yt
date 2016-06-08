@@ -30,6 +30,7 @@ yt/utilities/lib/alt_ray_tracers.c
 yt/utilities/lib/amr_kdtools.c
 yt/utilities/lib/basic_octree.c
 yt/utilities/lib/bitarray.c
+yt/utilities/lib/bounding_volume_hierarchy.c
 yt/utilities/lib/contour_finding.c
 yt/utilities/lib/depth_first_octree.c
 yt/utilities/lib/element_mappings.c
@@ -44,9 +45,11 @@ yt/utilities/lib/mesh_construction.cpp
 yt/utilities/lib/mesh_intersection.cpp
 yt/utilities/lib/mesh_samplers.cpp
 yt/utilities/lib/mesh_traversal.cpp
+yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/particle_mesh_operations.c
+yt/utilities/lib/primitives.c
 yt/utilities/lib/origami.c
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/pixelization_routines.c
@@ -61,6 +64,7 @@ yt/utilities/lib/png_writer.h
 yt/utilities/lib/write_array.c
 syntax: glob
 *.pyc
+*.pyd
 .*.swp
 *.so
 .idea/*

@@ -37,6 +37,7 @@ int convert_particle_arrays(
     PyArrayObject **xpos, PyArrayObject **ypos, PyArrayObject **zpos,
       PyArrayObject **mass)
 {
+    int num_particles;
 
     /* First the regular source arrays */
 
@@ -48,7 +49,7 @@ int convert_particle_arrays(
              "EnzoHop: xpos didn't work.");
     return -1;
     }
-    int num_particles = PyArray_SIZE(*xpos);
+    num_particles = PyArray_SIZE(*xpos);
 
     *ypos    = (PyArrayObject *) PyArray_FromAny(oypos,
                     PyArray_DescrFromType(NPY_FLOAT64), 1, 1,
@@ -90,19 +91,25 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
 
     PyArrayObject    *xpos, *ypos, *zpos,
                      *mass;
-    xpos=ypos=zpos=mass=NULL;
     npy_float64 totalmass = 0.0;
     float normalize_to = 1.0;
     float thresh = 160.0;
+    int i, num_particles;
+    KD kd;
+    int nBucket = 16, kdcount = 0;
+    PyArrayObject *particle_density;
+    HC my_comm;
+    PyArrayObject *particle_group_id;
+    PyObject *return_value;
 
-    int i;
+    xpos=ypos=zpos=mass=NULL;
 
     if (!PyArg_ParseTuple(args, "OOOO|ff",
         &oxpos, &oypos, &ozpos, &omass, &thresh, &normalize_to))
     return PyErr_Format(_HOPerror,
             "EnzoHop: Invalid parameters.");
 
-    int num_particles = convert_particle_arrays(
+    num_particles = convert_particle_arrays(
             oxpos, oypos, ozpos, omass,
             &xpos, &ypos, &zpos, &mass);
     if (num_particles < 0) goto _fail;
@@ -113,8 +120,6 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
 
   /* initialize the kd hop structure */
 
-  KD kd;
-  int nBucket = 16, kdcount = 0;
   kdInit(&kd, nBucket);
   kd->nActive = num_particles;
   kd->p = malloc(sizeof(PARTICLE)*num_particles);
@@ -124,7 +129,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
   }
   
  	/* Copy positions into kd structure. */
-    PyArrayObject *particle_density = (PyArrayObject *)
+    particle_density = (PyArrayObject *)
             PyArray_SimpleNewFromDescr(1, PyArray_DIMS(xpos),
                     PyArray_DescrFromType(NPY_FLOAT64));
 
@@ -137,7 +142,6 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     kd->totalmass = totalmass;
 	for (i = 0; i < num_particles; i++) kd->p[i].np_index = i;
 
-    HC my_comm;
     my_comm.s = newslice();
     my_comm.gl = (Grouplist*)malloc(sizeof(Grouplist));
     if(my_comm.gl == NULL) {
@@ -159,7 +163,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
     // All we need to do is provide density and group information.
     
     // Tags (as per writetagsf77) are in gl.s->ntag+1 and there are gl.s->numlist of them.
-    PyArrayObject *particle_group_id = (PyArrayObject *)
+    particle_group_id = (PyArrayObject *)
             PyArray_SimpleNewFromDescr(1, PyArray_DIMS(xpos),
                     PyArray_DescrFromType(NPY_INT32));
     
@@ -175,7 +179,7 @@ Py_EnzoHop(PyObject *obj, PyObject *args)
 
     PyArray_UpdateFlags(particle_density, NPY_ARRAY_OWNDATA | PyArray_FLAGS(particle_density));
     PyArray_UpdateFlags(particle_group_id, NPY_ARRAY_OWNDATA | PyArray_FLAGS(particle_group_id));
-    PyObject *return_value = Py_BuildValue("NN", particle_density, particle_group_id);
+    return_value = Py_BuildValue("NN", particle_density, particle_group_id);
 
     Py_DECREF(xpos);
     Py_DECREF(ypos);
@@ -231,6 +235,8 @@ kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
                              "nbuckets", "norm", NULL};
     PyObject    *oxpos, *oypos, *ozpos,
                 *omass;
+    npy_float64 totalmass = 0.0;
+
     self->xpos=self->ypos=self->zpos=self->mass=NULL;
 
 
@@ -257,7 +263,6 @@ kDTreeType_init(kDTreeType *self, PyObject *args, PyObject *kwds)
             PyArray_SimpleNewFromDescr(1, PyArray_DIMS(self->xpos),
                     PyArray_DescrFromType(NPY_FLOAT64));
 
-    npy_float64 totalmass = 0.0;
     for(i= 0; i < self->num_particles; i++) {
         self->kd->p[i].np_index = i;
         *(npy_float64*)(PyArray_GETPTR1(self->densities, i)) = 0.0;
@@ -319,7 +324,8 @@ kDTreeType_up_pass(kDTreeType *self, PyObject *args) {
 
 static PyObject *
 kDTreeType_median_jst(kDTreeType *self, PyObject *args) {
-    int d, l, u;
+    int d, l, u, median;
+    PyObject *omedian;
 
     if (!PyArg_ParseTuple(args, "iii", &d, &l, &u))
         return PyErr_Format(_HOPerror,
@@ -337,9 +343,9 @@ kDTreeType_median_jst(kDTreeType *self, PyObject *args) {
         return PyErr_Format(_HOPerror,
             "kDTree.median_jst: u cannot be >= num_particles!");
 
-    int median = kdMedianJst(self->kd, d, l, u);
+    median = kdMedianJst(self->kd, d, l, u);
 
-    PyObject *omedian = PyLong_FromLong((long)median);
+    omedian = PyLong_FromLong((long)median);
     return omedian;
 }
 

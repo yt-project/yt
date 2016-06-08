@@ -14,6 +14,7 @@ Particle-only geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import collections
 import numpy as np
 import os
 import weakref
@@ -58,6 +59,13 @@ class ParticleIndex(Index):
                    self.dataset.domain_left_edge)
         return dx.min()
 
+    def _get_particle_type_counts(self):
+        result = collections.defaultdict(lambda: 0)
+        for df in self.data_files:
+            for k in df.total_particles.keys():
+                result[k] += df.total_particles[k]
+        return dict(result)
+
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
@@ -91,6 +99,7 @@ class ParticleIndex(Index):
         self._initialize_indices()
         self.oct_handler.finalize()
         self.max_level = self.oct_handler.max_level
+        self.dataset.max_level = self.max_level
         tot = sum(self.oct_handler.recursively_count().values())
         only_on_root(mylog.info, "Identified %0.3e octs", tot)
 

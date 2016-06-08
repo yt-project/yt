@@ -15,8 +15,10 @@ import tempfile
 import shutil
 from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import \
-    Scene, Camera, ZBuffer, \
-    VolumeSource, OpaqueSource
+    Scene, \
+    ZBuffer, \
+    VolumeSource, \
+    OpaqueSource
 from yt.testing import assert_almost_equal
 import numpy as np
 from unittest import TestCase
@@ -54,9 +56,8 @@ class ZBufferTest(TestCase):
         ds.field_info[ds.field_list[0]].take_log=False
 
         sc = Scene()
-        cam = Camera(ds)
+        cam = sc.add_camera(ds)
         cam.resolution = (512,512)
-        sc.camera = cam
         vr = VolumeSource(dd, field=ds.field_list[0])
         vr.transfer_function.clear()
         vr.transfer_function.grey_opacity=True

@@ -66,7 +66,7 @@ from yt.utilities.flagging_methods import \
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh, \
     UnstructuredMesh
-from yt.extern.six import string_types, iteritems
+from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
 
@@ -288,7 +288,7 @@ class StreamDataset(Dataset):
     _dataset_type = 'stream'
 
     def __init__(self, stream_handler, storage_filename=None,
-                 geometry="cartesian"):
+                 geometry="cartesian", unit_system="cgs"):
         #if parameter_override is None: parameter_override = {}
         #self._parameter_override = parameter_override
         #if conversion_override is None: conversion_override = {}
@@ -299,7 +299,8 @@ class StreamDataset(Dataset):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
-        Dataset.__init__(self, name, self._dataset_type)
+        Dataset.__init__(self, name, self._dataset_type,
+                         unit_system=unit_system)
 
     def _parse_parameter_file(self):
         self.basename = self.stream_handler.name
@@ -463,36 +464,46 @@ def assign_particle_data(ds, pdata):
         ds.stream_handler.particle_count[gi] = npart
                                         
 def unitify_data(data):
-    if all([hasattr(val, 'units') for val in data.values()]):
-        new_data, field_units = {}, {}
-        for k, v in data.items():
-            field_units[k] = v.units
-            new_data[k] = v.copy().d
-        data = new_data
-    elif all([((not isinstance(val, np.ndarray)) and (len(val) == 2))
-             for val in data.values()]):
-        new_data, field_units = {}, {}
-        for field in data:
+    new_data, field_units = {}, {}
+    for field, val in data.items():
+        # val is a data array
+        if isinstance(val, np.ndarray):
+            # val is a YTArray
+            if hasattr(val, "units"):
+                field_units[field] = val.units
+                new_data[field] = val.copy().d
+            # val is a numpy array
+            else:
+                field_units[field] = ""
+                new_data[field] = val.copy()
+
+        # val is a tuple of (data, units)
+        elif isinstance(val, tuple) and len(val) == 2:
             try:
                 assert isinstance(field, (string_types, tuple)), \
                   "Field name is not a string!"
-                assert isinstance(data[field][0], np.ndarray), \
+                assert isinstance(val[0], np.ndarray), \
                   "Field data is not an ndarray!"
-                assert isinstance(data[field][1], string_types), \
+                assert isinstance(val[1], string_types), \
                   "Unit specification is not a string!"
-                field_units[field] = data[field][1]
-                new_data[field] = data[field][0]
+                field_units[field] = val[1]
+                new_data[field] = val[0]
             except AssertionError as e:
-                raise RuntimeError("The data dict appears to be invalid.\n" +
-                                   str(e))
-        data = new_data
-    elif all([iterable(val) for val in data.values()]):
-        field_units = {field:'' for field in data.keys()}
-        data = dict((field, np.asarray(val)) for field, val in iteritems(data))
-    else:
-        raise RuntimeError("The data dict appears to be invalid. "
-                           "The data dictionary must map from field "
-                           "names to (numpy array, unit spec) tuples. ")
+                raise RuntimeError(
+                    "The data dict appears to be invalid.\n" + str(e))
+
+        # val is a list of data to be turned into an array
+        elif iterable(val):
+            field_units[field] = ""
+            new_data[field] = np.asarray(val)
+
+        else:
+            raise RuntimeError("The data dict appears to be invalid. "
+                               "The data dictionary must map from field "
+                               "names to (numpy array, unit spec) tuples. ")
+
+    data = new_data
+
     # At this point, we have arrays for all our fields
     new_data = {}
     for field in data:
@@ -521,7 +532,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                       nprocs=1, sim_time=0.0, mass_unit=None, time_unit=None,
                       velocity_unit=None, magnetic_unit=None,
                       periodicity=(True, True, True),
-                      geometry="cartesian"):
+                      geometry="cartesian", unit_system="cgs"):
     r"""Load a uniform grid of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -694,7 +705,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry = geometry)
+    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
 
     check_fields = [("io", "particle_position_x"), ("io", "particle_position")]
 
@@ -721,7 +732,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                    bbox=None, sim_time=0.0, length_unit=None,
                    mass_unit=None, time_unit=None, velocity_unit=None,
                    magnetic_unit=None, periodicity=(True, True, True),
-                   geometry="cartesian", refine_by=2):
+                   geometry="cartesian", refine_by=2, unit_system="cgs"):
     r"""Load a set of grids of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
     This should allow a sequence of grids of varying resolution of data to be
@@ -875,7 +886,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(handler, geometry=geometry)
+    sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
     return sds
 
 
@@ -1017,7 +1028,7 @@ def load_particles(data, length_unit = None, bbox=None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
                    n_ref = 64, over_refine_factor = 1, ptype = "all",
-                   geometry = "cartesian"):
+                   geometry = "cartesian", unit_system="cgs"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1136,7 +1147,7 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamParticlesDataset(handler, geometry=geometry)
+    sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
     sds.n_ref = n_ref
     sds.over_refine_factor = over_refine_factor
     sds.ptype = ptype
@@ -1246,7 +1257,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
                          mass_unit = None, time_unit = None,
                          velocity_unit = None, magnetic_unit = None,
                          periodicity=(True, True, True),
-                         geometry = "cartesian"):
+                         geometry = "cartesian", unit_system="cgs"):
     r"""Load a hexahedral mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1363,7 +1374,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamHexahedralDataset(handler, geometry = geometry)
+    sds = StreamHexahedralDataset(handler, geometry=geometry, unit_system=unit_system)
 
     return sds
 
@@ -1475,7 +1486,8 @@ def load_octree(octree_mask, data,
                 mass_unit=None, time_unit=None,
                 velocity_unit=None, magnetic_unit=None,
                 periodicity=(True, True, True),
-                over_refine_factor = 1, partial_coverage = 1):
+                over_refine_factor = 1, partial_coverage = 1,
+                unit_system="cgs"):
     r"""Load an octree mask into yt.
 
     Octrees can be saved out by calling save_octree on an OctreeContainer.
@@ -1576,7 +1588,7 @@ def load_octree(octree_mask, data,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamOctreeDataset(handler)
+    sds = StreamOctreeDataset(handler, unit_system=unit_system)
     sds.octree_mask = octree_mask
     sds.partial_coverage = partial_coverage
     sds.over_refine_factor = over_refine_factor
@@ -1618,13 +1630,12 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
 
-
 def load_unstructured_mesh(connectivity, coordinates, node_data=None,
                            elem_data=None, length_unit=None, bbox=None,
                            sim_time=0.0, mass_unit=None, time_unit=None,
                            velocity_unit=None, magnetic_unit=None,
                            periodicity=(False, False, False),
-                           geometry = "cartesian"):
+                           geometry = "cartesian", unit_system="cgs"):
     r"""Load an unstructured mesh of data into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamHandler`.
 
@@ -1807,7 +1818,8 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamUnstructuredMeshDataset(handler, geometry = geometry)
+    sds = StreamUnstructuredMeshDataset(handler, geometry=geometry,
+                                        unit_system=unit_system)
 
     fluid_types = ()
     for i in range(1, num_meshes + 1):
@@ -1816,5 +1828,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     sds._node_fields = node_data[0].keys()
     sds._elem_fields = elem_data[0].keys()
+    sds.default_field = [f for f in sds.field_list
+                         if f[0] == 'connect1'][-1]
 
     return sds

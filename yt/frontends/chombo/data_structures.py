@@ -43,6 +43,15 @@ from .fields import ChomboFieldInfo, Orion2FieldInfo, \
     PlutoFieldInfo
 
 
+def is_chombo_hdf5(fn):
+    try:
+        with h5py.File(fn, 'r') as fileh:
+            valid = "Chombo_global" in fileh["/"]
+    except (KeyError, IOError, ImportError):
+        return False
+    return valid
+
+
 class ChomboGrid(AMRGridPatch):
     _id_offset = 0
     __slots__ = ["_level_id", "stop_index"]
@@ -246,7 +255,7 @@ class ChomboDataset(Dataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
@@ -255,7 +264,8 @@ class ChomboDataset(Dataset):
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         Dataset.__init__(self, filename, self.dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -271,7 +281,7 @@ class ChomboDataset(Dataset):
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
-        self.magnetic_unit = self.quan(1.0, "gauss")
+        self.magnetic_unit = self.quan(np.sqrt(4.*np.pi), "gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _localize(self, f, default):
@@ -349,6 +359,9 @@ class ChomboDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
@@ -446,11 +459,12 @@ class PlutoDataset(ChomboDataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
 
         ChomboDataset.__init__(self, filename, dataset_type, 
                                storage_filename, ini_filename,
-                               units_override=units_override)
+                               units_override=units_override,
+                               unit_system=unit_system)
 
     def _parse_parameter_file(self):
         """
@@ -504,6 +518,9 @@ class PlutoDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
 
@@ -647,6 +664,9 @@ class Orion2Dataset(ChomboDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
+        if not is_chombo_hdf5(args[0]):
+            return False
+
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
@@ -700,6 +720,9 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False

@@ -80,6 +80,7 @@ This will print the list of available subcommands,
                         requested), for one or more datasets (default field is
                         Density)
     update              Update the yt installation to the most recent version
+    delete_image        Delete image from imgur.com.
     upload_image        Upload an image to imgur.com. Must be PNG.
 
 
@@ -152,51 +153,51 @@ help
 Help lists all of the various command-line options in yt.
 
 
-bugreport         
+bugreport
 +++++++++
 
-Encountering a bug in your own code can be a big hassle, but it can be 
-exponentially worse to find it in someone else's.  That's why we tried to 
-make it as easy as possible for users to report bugs they find in yt.  
+Encountering a bug in your own code can be a big hassle, but it can be
+exponentially worse to find it in someone else's.  That's why we tried to
+make it as easy as possible for users to report bugs they find in yt.
 After you go through the necessary channels to make sure you're not just
-making a mistake (see :ref:`asking-for-help`), you can submit bug 
+making a mistake (see :ref:`asking-for-help`), you can submit bug
 reports using this nice utility.
 
 instinfo and version
 ++++++++++++++++++++
 
 This gives information about where your yt installation is, what version
-and changeset you're using and more. 
+and changeset you're using and more.
 
 load
 ++++
 
-This will start the iyt interactive environment with your specified 
+This will start the iyt interactive environment with your specified
 dataset already loaded.  See :ref:`interactive-prompt` for more details.
 
 mapserver
 +++++++++
 
-Ever wanted to interact with your data using the 
+Ever wanted to interact with your data using the
 `google maps <http://maps.google.com/>`_ interface?  Now you can by using the
 yt mapserver.  See :ref:`mapserver` for more details.
 
 pastebin and pastebin_grab
 ++++++++++++++++++++++++++
 
-The `pastebin <http://paste.yt-project.org/>`_ is an online location where 
-you can anonymously post code snippets and error messages to share with 
-other users in a quick, informal way.  It is often useful for debugging 
-code or co-developing.  By running the ``pastebin`` subcommand with a 
-text file, you send the contents of that file to an anonymous pastebin; 
+The `pastebin <http://paste.yt-project.org/>`_ is an online location where
+you can anonymously post code snippets and error messages to share with
+other users in a quick, informal way.  It is often useful for debugging
+code or co-developing.  By running the ``pastebin`` subcommand with a
+text file, you send the contents of that file to an anonymous pastebin;
 
 .. code-block:: bash
 
    yt pastebin my_script.py
 
-By running the ``pastebin_grab`` subcommand with a pastebin number 
-(e.g. 1768), it will grab the contents of that pastebin 
-(e.g. the website http://paste.yt-project.org/show/1768 ) and send it to 
+By running the ``pastebin_grab`` subcommand with a pastebin number
+(e.g. 1768), it will grab the contents of that pastebin
+(e.g. the website http://paste.yt-project.org/show/1768 ) and send it to
 STDOUT for local use.  See :ref:`pastebin` for more information.
 
 .. code-block:: bash
@@ -206,9 +207,9 @@ STDOUT for local use.  See :ref:`pastebin` for more information.
 plot
 ++++
 
-This command generates one or many simple plots for a single dataset.  
-By specifying the axis, center, width, etc. (run ``yt help plot`` for 
-details), you can create slices and projections easily at the 
+This command generates one or many simple plots for a single dataset.
+By specifying the axis, center, width, etc. (run ``yt help plot`` for
+details), you can create slices and projections easily at the
 command-line.
 
 upload_notebook
@@ -248,7 +249,7 @@ update
 ++++++
 
 This subcommand updates the yt installation to the most recent version for
-your repository (e.g. stable, 2.0, development, etc.).  Adding the ``--all`` 
+your repository (e.g. stable, 2.0, development, etc.).  Adding the ``--all``
 flag will update the dependencies as well.
 
 .. _upload-image:
@@ -256,11 +257,18 @@ flag will update the dependencies as well.
 upload_image
 ++++++++++++
 
-Images are often worth a thousand words, so when you're trying to 
-share a piece of code that generates an image, or you're trying to 
+Images are often worth a thousand words, so when you're trying to
+share a piece of code that generates an image, or you're trying to
 debug image-generation scripts, it can be useful to send your
-co-authors a link to the image.  This subcommand makes such sharing 
+co-authors a link to the image.  This subcommand makes such sharing
 a breeze.  By specifying the image to share, ``upload_image`` automatically
 uploads it anonymously to the website `imgur.com <http://imgur.com/>`_ and
 provides you with a link to share with your collaborators.  Note that the
 image *must* be in the PNG format in order to use this function.
+
+delete_image
+++++++++++++
+
+The image uploaded using ``upload_image`` is assigned with a unique hash that
+can be used to remove it. This subcommand provides an easy way to send a delete
+request directly to the `imgur.com <http://imgur.com/>`_.

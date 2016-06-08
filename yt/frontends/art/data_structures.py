@@ -162,7 +162,7 @@ class ARTDataset(Dataset):
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
                  file_particle_data=None, file_particle_stars=None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("art", )
         if fields is None:
             fields = fluid_fields
@@ -181,7 +181,8 @@ class ARTDataset(Dataset):
         self.force_max_level = force_max_level
         self.spread_age = spread_age
         Dataset.__init__(self, filename, dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_amr):
@@ -336,6 +337,8 @@ class ARTDataset(Dataset):
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
             mylog.info("Particle populations: "+'%9i '*len(ls_nonzero),
                        *ls_nonzero)
+            self._particle_type_counts = dict(
+                zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
                     if not self.parameters[k] == v:
@@ -419,7 +422,8 @@ class DarkMatterARTDataset(ARTDataset):
                           skip_particles=False, skip_stars=False,
                  limit_level=None, spread_age=True,
                  force_max_level=None, file_particle_header=None,
-                 file_particle_stars=None):
+                 file_particle_stars=None, units_override=None,
+                 unit_system="cgs"):
         self.over_refine_factor = 1
         self.n_ref = 64
         self.particle_types += ("all",)
@@ -433,7 +437,9 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameter_filename = filename
         self.skip_stars = skip_stars
         self.spread_age = spread_age
-        Dataset.__init__(self, filename, dataset_type)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _find_files(self, file_particle):
@@ -626,6 +632,10 @@ class DarkMatterARTDataset(ARTDataset):
         if not os.path.isfile(f):
             return False
         if not f.endswith(suffix):
+            return False
+        if "s0" not in f:
+            # ATOMIC.DAT, for instance, passes the other tests, but then dies
+            # during _find_files because it can't be split.
             return False
         with open(f, 'rb') as fh:
             try:
