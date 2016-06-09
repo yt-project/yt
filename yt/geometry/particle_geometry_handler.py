@@ -90,7 +90,7 @@ class ParticleIndex(Index):
                           order1=None, order2=None, dont_cache=False):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
-          self.total_particles)
+                     self.total_particles, global_rootonly = True)
         # No more than 256^3 in the region finder.
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
@@ -198,17 +198,20 @@ class ParticleIndex(Index):
         # Must check that chunk_info contains the right number of ghost zones
         if getattr(dobj, "_chunk_info", None) is None:
             data_files = getattr(dobj, "data_files", None)
+            overlap_files = getattr(dobj, "overlap_files", None)
             selector_mask = getattr(dobj, "selector_mask", None)
             # Get info for new buffer
             if data_files is None:
                 dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
                 selector_mask = list(file_masks)
                 data_files = len(dfi)*[[]]
+                overlap_files = len(dfi)*[[]]
                 for i in range(len(dfi)):
                     data_files[i] = [self.data_files[dfi[i]]]
-                    data_files[i] += [
+                    overlap_files[i] = [
                         self.data_files[k] for k in addfi[i] if (k != dfi[i])]
                 dobj.data_files = data_files
+                dobj.overlap_files = overlap_files
                 dobj.selector_mask = selector_mask
             if isinstance(selector_mask, list):
                 if len(selector_mask) != len(data_files):
@@ -218,10 +221,14 @@ class ParticleIndex(Index):
                                     "({}).".format(len(data_files)))
                 dobj._chunk_info = [ParticleOctreeSubset(dobj, df, self.ds,
                     over_refine_factor = self.ds.over_refine_factor,
-                    selector_mask = fm) for df,fm in zip(data_files,ensure_list(selector_mask))]
+                    overlap_files = odf,
+                    selector_mask = fm) for df,odf,fm in zip(data_files,
+                                                             overlap_files,
+                                                             selector_mask)]
             else:
                 dobj._chunk_info = [ParticleOctreeSubset(dobj, data_files, self.ds,
                     over_refine_factor = self.ds.over_refine_factor,
+                    overlap_files = overlap_files,
                     selector_mask = selector_mask)]
             # Version using identify_data_files
             # data_files = getattr(dobj, "data_files", None)
@@ -260,33 +267,35 @@ class ParticleIndex(Index):
         if not ghost_particles:
             sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
             for obj in sobjs:
-                yield YTDataChunk(dobj, "spatial", [obj])
+                with obj._expand_data_files():
+                    yield YTDataChunk(dobj, "spatial", [obj])
         else:
             sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
             for obj in sobjs:
-                bobj = getattr(obj, '_chunk_with_buffer', None)
-                if (bobj is None) or (getattr(bobj, '_buffer_ngz', None) != ngz):
-                    t1 = time.time()
-                    gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
-                                                              ngz, obj.selector_mask, coarse_ghosts=False)
-                    t2 = time.time()
-                    #print "File {}: {} seconds to get_ghost_zones ({} additional files required)".format(obj.data_files[0].file_id,t2-t1,len(buffer_files))
-                    buffer_files = [self.data_files[i] for i in gzi]
-                    bobj = ParticleOctreeSubset(obj.base_region, 
-                        list(set(obj.data_files + buffer_files)), 
-                        obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
-                        over_refine_factor = obj._oref,
-                        selector_mask = gmask, base_grid = obj)
-                    # bobj = ParticleOctreeSubset(obj.base_region, obj.data_files, 
-                    #     obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
-                    #     over_refine_factor = obj._oref,
-                    #     selector_mask = obj.selector_mask,
-                    #     buffer_mask = gmask, buffer_files = buffer_files,
-                    #     base_grid = obj)
-                    bobj._buffer_ngz = ngz
-                    bobj._chunk_with_buffer = bobj
-                    obj._chunk_with_buffer = bobj
-                yield YTDataChunk(dobj, "spatial", [bobj])
+                with obj._expand_data_files():
+                    bobj = getattr(obj, '_chunk_with_buffer', None)
+                    if (bobj is None) or (getattr(bobj, '_buffer_ngz', None) != ngz):
+                        t1 = time.time()
+                        gzi, gmask = self.regions.get_ghost_zones(dobj.selector,
+                                                                  ngz, obj.selector_mask, coarse_ghosts=False)
+                        t2 = time.time()
+                        #print "File {}: {} seconds to get_ghost_zones ({} additional files required)".format(obj.data_files[0].file_id,t2-t1,len(buffer_files))
+                        buffer_files = [self.data_files[i] for i in gzi]
+                        bobj = ParticleOctreeSubset(obj.base_region, 
+                            list(set(obj.data_files + buffer_files)), 
+                            obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
+                            over_refine_factor = obj._oref,
+                            selector_mask = gmask, base_grid = obj)
+                        # bobj = ParticleOctreeSubset(obj.base_region, obj.data_files, 
+                        #     obj.ds, min_ind = obj.min_ind, max_ind = obj.max_ind,
+                        #     over_refine_factor = obj._oref,
+                        #     selector_mask = obj.selector_mask,
+                        #     buffer_mask = gmask, buffer_files = buffer_files,
+                        #     base_grid = obj)
+                        bobj._buffer_ngz = ngz
+                        bobj._chunk_with_buffer = bobj
+                        obj._chunk_with_buffer = bobj
+                    yield YTDataChunk(dobj, "spatial", [bobj])
             # Version using dobj.selector_mask from identify_data_files
             # if getattr(dobj,'_buffer_ngz',None) != ngz:
             #     t1 = time.time()

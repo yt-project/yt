@@ -417,11 +417,12 @@ class ParticleOctreeSubset(OctreeSubset):
     domain_id = -1
     def __init__(self, base_region, data_files, ds, 
                  min_ind = 0, max_ind = 0, over_refine_factor = 1,
-                 selector_mask = None, base_grid = None):
+                 selector_mask = None, base_grid = None, overlap_files = []):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
         self.data_files = ensure_list(data_files)
+        self.overlap_files = ensure_list(overlap_files)
         self.domain_id = -1
         self.field_data = YTFieldData()
         self.field_parameters = {}
@@ -462,11 +463,11 @@ class ParticleOctreeSubset(OctreeSubset):
         return n
 
     @contextlib.contextmanager
-    def _expand_data_files(self, ghost_particles):
+    def _expand_data_files(self):
         if ghost_particles:
             old_data_files = self.data_files
-            # self.data_files = list(set(self.data_files + self.buffer_files))
-            # self.data_files.sort()
+            self.data_files = list(set(self.data_files + self.overlap_files))
+            self.data_files.sort()
             yield self
             self.data_files = old_data_files
         else:

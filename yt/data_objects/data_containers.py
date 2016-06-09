@@ -359,9 +359,7 @@ class YTDataContainer(object):
                                          units)
                         outputs.append(rv)
                     with o._activate_cache():
-                        with o._expand_data_files(ghost_particles):
-                            # import pdb ; pdb.set_trace() ; o[field]
-                            ind += o.select(self.selector, o[field], rv, ind)
+                        ind += o.select(self.selector, o[field], rv, ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz,
                                        ghost_particles = ghost_particles)
