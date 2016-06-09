@@ -33,7 +33,7 @@ cdef inline np.int64_t ifrexp(np.float64_t x, np.int64_t *e):
     cdef int e0 = 0
     m = frexp(x,&e0)
     e[0] = <np.int64_t>e0
-    return <np.int64_t>ldexp(m,DBL_MANT_DIG)
+    return <np.int64_t>ldexp(m,<int>DBL_MANT_DIG)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -59,8 +59,8 @@ cdef inline np.int64_t xor_msb(np.float64_t a, np.float64_t b):
     a_e = 0
     a_m = ifrexp(a,&a_e)
     b_m = ifrexp(b,&b_e)
-    x = (a_e+1)*DBL_MANT_DIG
-    y = (b_e+1)*DBL_MANT_DIG
+    x = <np.int64_t> ((a_e+1)*DBL_MANT_DIG)
+    y = <np.int64_t> ((b_e+1)*DBL_MANT_DIG)
     # Compare mantissa if exponents equal
     if x == y:
         if a_m == b_m: return 0
@@ -111,7 +111,7 @@ cdef inline np.float64_t euclidean_distance(np.float64_t p[3], np.float64_t q[3]
 @cython.wraparound(False)
 cdef inline np.float64_t smallest_quadtree_box(np.float64_t p[3], np.float64_t q[3], np.int32_t order,
                                                np.float64_t DLE[3], np.float64_t DRE[3],
-					       np.float64_t *cx, np.float64_t *cy, np.float64_t *cz):
+                                               np.float64_t *cx, np.float64_t *cy, np.float64_t *cz):
     cdef int j
     cdef np.float64_t c[3]
     cdef np.uint64_t pidx[3]

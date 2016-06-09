@@ -818,6 +818,35 @@ cdef class BoolArrayCollection:
     def set(self, i1, i2 = FLAG):
         self._set(i1, i2)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    def set_to(self, np.uint64_t s):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef np.uint64_t i
+        for i in range(s):
+            self._set(s)
+        print "Set from %s array and ended up with %s bytes" % (
+            s, ewah_keys[0].sizeInBytes())
+
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    def set_from(self, np.uint64_t[:] ids):
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef np.uint64_t i
+        cdef np.uint64_t last = 0
+        for i in range(ids.shape[0]):
+            if ids[i] < last:
+                raise RuntimeError
+            self._set(ids[i])
+            last = ids[i]
+        print "Set from %s array and ended up with %s bytes" % (
+            ids.size, ewah_keys[0].sizeInBytes())
+
     cdef void _set_coarse(self, np.uint64_t i1):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         ewah_keys[0].set(i1)

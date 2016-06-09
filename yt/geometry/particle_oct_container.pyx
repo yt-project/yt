@@ -562,14 +562,14 @@ cdef class ParticleBitmap:
                                                                LE, dds1, dds2)
                 nsub_mi += 1
                 pcount[mi] += 1
-                if <np.int32_t>pcount[mi] > owners[mi][0]:
-                    owners[mi][0] = <np.int32_t>pcount[mi]
-                    owners[mi][1] = <np.int32_t>file_id
+                if <np.int32_t>pcount[mi] > owners[mi,0]:
+                    owners[mi,0] = <np.int32_t>pcount[mi]
+                    owners[mi,1] = <np.int32_t>file_id
             else:
-                owners[mi][0] += 1
-                owners[mi][1] = <np.int32_t>file_id
+                owners[mi,0] += 1
+                owners[mi,1] = <np.int32_t>file_id
             IF CellParticleCount == 1:
-                owners[mi][2] += 1
+                owners[mi,2] += 1
         # Only subs of particles in the mask
         return nsub_mi
 
