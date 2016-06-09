@@ -78,6 +78,8 @@ cdef class TriSet:
             self.table[i] = NULL
         free(self.table)
     
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
     def get_exterior_tris(self):
         '''
 
@@ -86,13 +88,8 @@ cdef class TriSet:
 
         '''
 
-        cdef np.ndarray[np.int64_t, ndim=2] tri_indices
-        tri_indices = np.empty((self.num_items, 3), dtype="int64")
-        cdef np.int64_t *tri_indices_ptr = <np.int64_t*> tri_indices.data
-
-        cdef np.ndarray[np.int64_t, ndim=1] element_map
-        element_map = np.empty(self.num_items, dtype="int64")
-        cdef np.int64_t *elem_map_ptr = <np.int64_t*> element_map.data
+        cdef np.int64_t[:, ::1] tri_indices = np.empty((self.num_items, 3), dtype="int64")
+        cdef np.int64_t[::1] element_map = np.empty(self.num_items, dtype="int64")
 
         cdef TriNode* node
         cdef np.int64_t counter = 0
@@ -101,8 +98,8 @@ cdef class TriSet:
             node = self.table[i]
             while node != NULL:
                 for j in range(3):
-                    tri_indices_ptr[3*counter + j] = node.tri[j]
-                elem_map_ptr[counter] = node.elem
+                    tri_indices[counter, j] = node.tri[j]
+                element_map[counter] = node.elem
                 counter += 1
                 node = node.next_node
                 
@@ -169,7 +166,13 @@ cdef class MeshInfoHolder:
     cdef np.int64_t TPE  # num tris per element
     cdef int[MAX_NUM_TRI][3] tri_array
     
-    def __cinit__(self, np.ndarray[np.int64_t, ndim=2] indices):
+    def __cinit__(self, np.int64_t[:, ::1] indices):
+        '''
+
+        This class is used to store metadata about the type of mesh being used.
+
+        '''
+
         self.num_elem = indices.shape[0]
         self.VPE = indices.shape[1]
 
@@ -188,8 +191,9 @@ cdef class MeshInfoHolder:
         self.num_tri = self.TPE * self.num_elem
         self.num_verts = self.num_tri * 3
         
-
-def cull_interior_triangles(np.ndarray[np.int64_t, ndim=2] indices):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cull_interior_triangles(np.int64_t[:, ::1] indices):
     '''
 
     This is used to remove interior triangles from the mesh before rendering
@@ -198,7 +202,6 @@ def cull_interior_triangles(np.ndarray[np.int64_t, ndim=2] indices):
     '''
 
     cdef MeshInfoHolder m = MeshInfoHolder(indices)
-    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
 
     cdef TriSet s = TriSet()
     cdef np.int64_t i, j, k
@@ -206,15 +209,16 @@ def cull_interior_triangles(np.ndarray[np.int64_t, ndim=2] indices):
     for i in range(m.num_elem):
         for j in range(m.TPE):
             for k in range(3):
-                tri[k] = indices_ptr[i*m.VPE + m.tri_array[j][k]]
+                tri[k] = indices[i, m.tri_array[j][k]]
             s.update(tri, i)
 
     return s.get_exterior_tris()
     
-
-def get_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
-                    np.ndarray[np.float64_t, ndim=2] data,
-                    np.ndarray[np.int64_t, ndim=2] indices):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_vertex_data(np.float64_t[:, ::1] coords,
+                    np.float64_t[:, ::1] data,
+                    np.int64_t[:, ::1] indices):
 
     '''
 
@@ -225,101 +229,75 @@ def get_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
 
     cdef MeshInfoHolder m = MeshInfoHolder(indices)
     cdef np.int64_t num_verts = coords.shape[0]
-    
-    cdef np.ndarray[np.float32_t, ndim=1] vertex_data
-    vertex_data = np.zeros(num_verts, dtype="float32")
-    cdef np.float32_t *vertex_data_ptr = <np.float32_t*> vertex_data.data
-    
-    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
-    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
-    
+    cdef np.float32_t[:] vertex_data = np.zeros(num_verts, dtype="float32")
+        
     cdef np.int64_t i, j
     for i in range(m.num_elem):
         for j in range(m.VPE):
-            vertex_data_ptr[indices_ptr[i*m.VPE + j]] = data_ptr[i*m.VPE + j]
-
+            vertex_data[indices[i, j]] = data[i, j]
     return vertex_data
 
 
 @cython.boundscheck(False)
-def triangulate_mesh(np.ndarray[np.float64_t, ndim=2] coords,
+@cython.wraparound(False)
+def triangulate_mesh(np.float64_t[:, ::1] coords,
                      np.ndarray data,
-                     np.ndarray[np.int64_t, ndim=2] indices):
+                     np.int64_t[:, ::1] indices):
     '''
 
     This converts a mesh into a flattened triangle array suitable for
     rendering on the GPU.
 
     '''
-    cdef np.ndarray[np.int64_t, ndim=2] exterior_tris
-    cdef np.ndarray[np.int64_t, ndim=1] element_map
+    cdef np.int64_t[:, ::1] exterior_tris
+    cdef np.int64_t[::1] element_map
     exterior_tris, element_map = cull_interior_triangles(indices)
-
-    cdef np.ndarray[np.float32_t, ndim=1] vertex_data
-    if data.ndim == 2:
-        vertex_data = get_vertex_data(coords, data, indices)
-    else:
-        vertex_data = np.empty(1, dtype=np.float32)
-    cdef np.float32_t *vertex_data_ptr = <np.float32_t*> vertex_data.data
-
-    cdef np.float64_t *data_ptr = <np.float64_t*> data.data
-    cdef np.float64_t *coords_ptr = <np.float64_t*> coords.data
-    cdef np.int64_t *exterior_tris_ptr = <np.int64_t*> exterior_tris.data
 
     cdef np.int64_t num_tri = exterior_tris.shape[0]
     cdef np.int64_t num_verts = 3 * num_tri
     cdef np.int64_t num_coords = 3 * num_verts
-
-    cdef np.ndarray[np.int32_t, ndim=1] tri_indices
-    tri_indices = np.empty(num_verts, dtype=np.int32)
-    cdef np.int32_t *tri_indices_ptr = <np.int32_t*> tri_indices.data
     
-    cdef np.ndarray[np.float32_t, ndim=1] tri_data
-    tri_data = np.empty(num_verts, dtype=np.float32)
-    cdef np.float32_t *tri_data_ptr = <np.float32_t*> tri_data.data
-
-    cdef np.ndarray[np.float32_t, ndim=1] tri_coords
-    tri_coords = np.empty(num_coords, dtype=np.float32)
-    cdef np.float32_t *tri_coords_ptr = <np.float32_t*> tri_coords.data
+    cdef np.float32_t[:] vertex_data
+    if data.ndim == 2:
+        vertex_data = get_vertex_data(coords, data, indices)
+    else:
+        vertex_data = data.astype("float32")
     
-    cdef np.int64_t vert_index, coord_index
-    cdef np.int64_t i, j, k
+    cdef np.int32_t[:] tri_indices = np.empty(num_verts, dtype=np.int32)
+    cdef np.float32_t[:] tri_data = np.empty(num_verts, dtype=np.float32)
+    cdef np.float32_t[:] tri_coords = np.empty(num_coords, dtype=np.float32)
+        
+    cdef np.int64_t vert_index, i, j, k
     for i in range(num_tri):
         for j in range(3):
             vert_index = i*3 + j
             if data.ndim == 1:
-                tri_data_ptr[vert_index] = data_ptr[element_map[i]]  # element data
+                tri_data[vert_index] = vertex_data[element_map[i]]
             else:
-                tri_data_ptr[vert_index] = vertex_data_ptr[exterior_tris_ptr[i*3 + j]]
-            tri_indices_ptr[vert_index] = vert_index
+                tri_data[vert_index] = vertex_data[exterior_tris[i, j]]
+            tri_indices[vert_index] = vert_index
             for k in range(3):
-                coord_index = 3*exterior_tris_ptr[i*3 + j] + k
-                tri_coords_ptr[vert_index*3 + k] = coords_ptr[coord_index]
+                tri_coords[vert_index*3 + k] = coords[exterior_tris[i, j], k]
+                
+    return np.array(tri_coords), np.array(tri_data), np.array(tri_indices)
 
-    return tri_coords, tri_data, tri_indices
-
-
-def triangulate_indices(np.ndarray[np.int64_t, ndim=2] indices):
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def triangulate_indices(np.int64_t[:, ::1] indices):
     '''
 
-    This is like triangulate_mesh, except it only considers the 
-    connectivity information, instead of also copying the vertex 
+    This is like triangulate_mesh, except it only considers the
+    connectivity information, instead of also copying the vertex
     coordinates and the data values.
 
     '''
-
-    cdef MeshInfoHolder m = MeshInfoHolder(indices)
-        
-    cdef np.ndarray[np.int64_t, ndim=2] tri_indices
-    tri_indices = np.empty((m.num_tri, 3), dtype="int64")
     
-    cdef np.int64_t *tri_indices_ptr = <np.int64_t*> tri_indices.data
-    cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
-
-    cdef np.int64_t i, j, k, offset
+    cdef MeshInfoHolder m = MeshInfoHolder(indices)
+    cdef np.int64_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.int64)
+    
+    cdef np.int64_t i, j, k
     for i in range(m.num_elem):
         for j in range(m.TPE):
             for k in range(3):
-                offset = m.tri_array[j][k]
-                tri_indices_ptr[i*m.TPE*3 + 3*j + k] = indices_ptr[i*m.VPE + offset]
-    return tri_indices
+                tri_indices[i*m.TPE + j, k] = indices[i, m.tri_array[j][k]]
+    return np.array(tri_indices)
