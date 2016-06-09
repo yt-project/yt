@@ -201,7 +201,7 @@ def cull_interior_triangles(np.ndarray[np.int64_t, ndim=2] indices):
     cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
 
     cdef TriSet s = TriSet()
-    cdef np.int64_t i, j, k, found
+    cdef np.int64_t i, j, k
     cdef np.int64_t tri[3]
     for i in range(m.num_elem):
         for j in range(m.TPE):
@@ -233,7 +233,7 @@ def get_vertex_data(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.int64_t *indices_ptr = <np.int64_t*> indices.data
     cdef np.float64_t *data_ptr = <np.float64_t*> data.data
     
-    cdef np.int64_t i, j, k
+    cdef np.int64_t i, j
     for i in range(m.num_elem):
         for j in range(m.VPE):
             vertex_data_ptr[indices_ptr[i*m.VPE + j]] = data_ptr[i*m.VPE + j]
