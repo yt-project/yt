@@ -132,10 +132,13 @@ class CoordinateHandler(object):
         self._axis_id = ai
         return ai
 
+    _image_axis_name = None
     @property
     def image_axis_name(self):
         # Default
-        rv = {}
+        if self._image_axis_name is not None:
+            return self._image_axis_name
+        self._image_axis_name = rv = {}
         for i in range(3):
             rv[i] = (self.axis_name[self.x_axis[i]],
                      self.axis_name[self.y_axis[i]])
