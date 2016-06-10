@@ -80,20 +80,18 @@ class openPMDBasePath :
             raise openPMDBasePathException("openPMD: no iterations found!")
 
         # just handle the first iteration found
-        mylog.warning("openPMD: only choose to load the first iteration ({})".format(handle[dataPath].keys()[0]))
+        mylog.warning("openPMD: only choose to load one iteration ({})".format(handle[dataPath].keys()[0]))
         self.basePath = "{}/{}/".format(dataPath, handle[dataPath].keys()[0])
 
 
-
-
 class openPMDGrid(AMRGridPatch):
+    # TODO THIS IS NOT TRUE FOR THE YT SENSE OF "GRID"
     """
     This class defines the characteristics of the grids
-    Actually there is only one grid for the whole simolation box
+    Actually there is only one grid for the whole simulation box
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
-
     def __init__(self, id, index, level=-1):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
@@ -158,31 +156,33 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         def is_const_component(record_component):
             return ("value" in record_component.attrs.keys())
 
-        # TODO Pay attention to scalars
         particle_fields = []
-        # WHY would this equal false?
         if self.basePath + particlesPath in f:
             for particleName in f[self.basePath + particlesPath].keys():
                 for record in f[self.basePath + particlesPath + particleName].keys():
                     if is_const_component(f[self.basePath + particlesPath + particleName + "/" + record]):
-                        # Record itself (eg particle_mass) is constant
+                        # Record itself (e.g. particle_mass) is constant
                         particle_fields.append(particleName + "_" + record)
                     elif 'particlePatches' not in record:
                         try:
+                            # Create a field for every axis (x,y,z) of every property (position)
+                            # of every species (electrons)
                             keys = f[self.basePath + particlesPath + particleName + "/" + record].keys()
                             for axis in keys:
                                 particle_fields.append(particleName + "_" + record + "_" + axis)
-                                pass
                         except:
+                            # Record is a dataset, does not have axes (e.g. weighting)
                             particle_fields.append(particleName + "_" + record)
                             pass
                     else:
                         # We probably do not want particlePatches as accessible field lists
                         pass
             if len(f[self.basePath + particlesPath].keys()) > 1:
+                # There is more than one particle species, use the specific names as field types
                 self.field_list.extend(
                     [(str(c).split("_")[0], ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
             else:
+                # Only one particle species, fall back to "io"
                 self.field_list.extend(
                     [("io", ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
 
@@ -287,8 +287,6 @@ class openPMDDataset(Dataset, openPMDBasePath):
                  storage_filename=None,
                  units_override=None,
                  unit_system="mks"):
-        # Opens a HDF5 file and stores its file handle in _handle
-        # All _handle objects refers to the file
         self._handle = HDF5FileHandler(filename)
         self._filepath = os.path.dirname(filename)
         self._setBasePath(self._handle, self._filepath)
@@ -299,12 +297,11 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.fluid_types += ('openPMD',)
         parts = tuple(str(c) for c in self._handle[self.basePath + self._handle.attrs["particlesPath"]].keys())
         if len(parts) > 1:
+            # Only use infile particle names if there is more than one species
             self.particle_types = parts
-        mylog.info("openPMD - self.particle_types: {}".format(self.particle_types))
+        mylog.debug("openPMD - self.particle_types: {}".format(self.particle_types))
         self.particle_types_raw = self.particle_types
         self.particle_types = tuple(self.particle_types)
-        #self.particle_types += ('all',)
-        #self.particle_types = ["io", "all"]
         self.particle_types = tuple(self.particle_types)
 
 
@@ -318,11 +315,6 @@ class openPMDDataset(Dataset, openPMDBasePath):
             self:
                 A reference to self
         """
-        # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
-        #
         self.length_unit = self.quan(1.0, "m")
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
@@ -356,22 +348,30 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # TODO At this point one assumes the whole file/simulation
         #      contains for all mesh records the same dimensionality and shapes
         # TODO This probably won't work for const records
-        # TODO Support particle-only files
-        # pick first field
-        try :
-            firstIteration = list(f["/data/"].keys())[0]
-            meshes = f["/data/" + str(firstIteration) + "/" + meshesPath]
-            firstMeshName = list(meshes.keys())[0]
-            firstMesh = meshes[firstMeshName]
-            if type(firstMesh) == h5py.Dataset :
-                fshape = firstMesh.shape
-            else :
-                fshape = firstMesh[list(firstMesh.keys())[0]].shape
-        except :
-            mylog.error("ERROR: Can only read files that have at least one mesh entry!")
+        if len(f[self.basePath + meshesPath].keys()) > 0:
+            # There is at least one field, check its dimensionality
+            dim_mesh = max(
+                len(f[self.basePath + meshesPath + "/" + mesh].attrs["axisLabel"])
+                    for mesh in f[self.basePath + meshesPath].keys())
+        if len(f[self.basePath + particlesPath].keys()) > 0:
+            # There is at least one particle species, check the dimensionality
+            # TODO
+            dim_part = 0
+        if dim_mesh < 1 and dim_part < 1:
+            mylog.error("Your data does not seem to have dimensionality!")
+        self.dimensionality = max(dim_mesh, dim_part)
+        # try :
+        #     firstIteration = list(f["/data/"].keys())[0]
+        #     meshes = f["/data/" + str(firstIteration) + "/" + meshesPath]
+        #     firstMeshName = list(meshes.keys())[0]
+        #     firstMesh = meshes[firstMeshName]
+        #     if type(firstMesh) == h5py.Dataset :
+        #         fshape = firstMesh.shape
+        #     else :
+        #         fshape = firstMesh[list(firstMesh.keys())[0]].shape
 
         # Usually 2D/3D for picongpu
-        self.dimensionality = len(fshape)
+        # self.dimensionality = len(fshape)
 
         # TODO fill me with actual start and end positions in reasonable units
         self.domain_left_edge = np.zeros(3, dtype=np.float64)
@@ -392,18 +392,13 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.refine_by = 1
 
         # Not a cosmological simulation
-        self.cosmological_simulation = 0  # <= int, 0 or 1
-        # Not necessary to set these according to Axel
-        # self.current_redshift = 0  # <= float
-        # self.omega_lambda = 0  # <= float
-        # self.omega_matter = 0  # <= float
-        # self.hubble_constant = 0  # <= float
+        self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         """
-        This function test if the (with yt.load()) a file could be opened with
-        this frontend
+            Checks whether the supplied file adheres to the required openPMD standards
+            and thus can be read by this frontend
         """
         try:
             f = validator.open_file(args[0])

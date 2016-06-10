@@ -357,15 +357,15 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError
-            fi = self[field]
+            fi = self[field]f
             try:
                 fd = fi.get_dependencies(ds = self.ds)
             except Exception as e:
                 if field in self._show_field_errors:
                     raise
                 if type(e) != YTFieldNotFound:
-                    mylog.debug("Raises %s during field %s detection.",
-                                str(type(e)), field)
+                    mylog.debug("Raises %s (%) during field %s detection.",
+                                str(type(e)), e, field)
                 self.pop(field)
                 continue
             # This next bit checks that we can't somehow generate everything.

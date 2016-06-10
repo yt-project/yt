@@ -773,7 +773,7 @@ def is_const_component(record_component):
     return "value" in record_component.attrs.keys()
 
 
-class Cache():
+class ComponentGetter():
 
     _c = {}
 

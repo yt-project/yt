@@ -42,10 +42,11 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self.ds = ds
         self._handle = ds._handle
         self._setBasePath(self._handle, self.ds._filepath)
-        self.meshPath = self._handle["/"].attrs["meshesPath"]
+        self.meshesPath = self._handle["/"].attrs["meshesPath"]
         self.particlesPath = self._handle["/"].attrs["particlesPath"]
-        self._cached_it = None
-        self._cache = Cache()
+        self._cached_ptype = ""
+        self._cache = {}
+        self._component_getter = ComponentGetter()
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -59,8 +60,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
             ptf:
                 A dictionary
-                - keys are ptype
-                - values are lists of (paricle?) fields
+                - keys are ptypes
+                - values are lists of particle fields
 
             Yields
             ------
@@ -70,49 +71,40 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         """
         chunks = list(chunks)
         self._array_fields = {}
-        # TODO consider individual fields, not species
-        if self._cached_it is not None:
-            if self._cached_it is self.basePath:
-                self._use_cache = True
-                # use the cached x,y,z
-        else:
-            self._cached_it = self.basePath
-            self._use_cache = False
         for chunk in chunks:
-            f = None
             for g in chunk.objs:
                 if g.filename is None:
                     continue
-                if f is None:
-                    f = h5py.File(g.filename, "r")
+                f = self._handle
 
                 dds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
-                    # Inefficient for const records
                     mylog.debug("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
-                    if self._use_cache:
-                        yield (ptype, (self._cachex, self._cachey, self._cachez))
+                    if ptype in self._cached_ptype:
+                        # use the cached x,y,z
+                        yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
                     else:
                         # Get a particle species (e.g. /data/3500/particles/e/)
                         if "io" in ptype:
-                            spec = dds[f.attrs["particlesPath"]].keys()[0]
+                            spec = dds[self.particlesPath].keys()[0]
                         else:
-                            # TODO Probably need to use ptype here
-                            spec = field_list[0].split("_")[0]
-                        pds = dds.get("%s/%s" % (f.attrs["particlesPath"], spec))
-                        if pds is None:
-                            mylog.info("openPMD - _read_particle_coords: {}/{} yields None".format(f.attrs["particlesPath"], spec))
+                            spec = ptype
+                        pds = dds[self.particlesPath + "/" + spec]
 
                         # Get single 1D-arrays of coordinates from all particular particles
-                        # TODO Do not naively assume 3D. Check which axes actually exist
-                        xpos, ypos, zpos = (self._cache.get_component(pds, "position/" + ax)
-                                                for ax in 'xyz')
-                        xoff, yoff, zoff = (self._cache.get_component(pds, "positionOffset/" + ax)
-                                                for ax in 'xyz')
-                        self._cachex = xpos + xoff
-                        self._cachey = ypos + yoff
-                        self._cachez = zpos + zoff
-                        self._use_cache = True
+                        axes = [str(ax) for ax in pds["position"].keys()]
+                        for i in 'xyz':
+                            if i not in axes:
+                                # TODO Get 2D particle data working
+                                mylog.error("openPMD - Can not handle 2D particle data for the moment!")
+                                continue
+                        pos = {}
+                        off = {}
+                        for ax in axes:
+                            pos[ax] = self._component_getter.get_component(pds, "position/" + ax)
+                            off[ax] = self._component_getter.get_component(pds, "positionOffset/" + ax)
+                            self._cache[ax] = pos[ax] + off[ax]
+                        self._cached_ptype = ptype
 
                         for field in field_list:
                             # Trim field path (yt scheme) to match openPMD scheme
@@ -126,9 +118,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                                 shape = np.asarray(pds[nfield].shape)
                             if shape.ndim > 1:
                                 self._array_fields[field] = shape
-                        yield (ptype, (self._cachex, self._cachey, self._cachez))
-            if f:
-                f.close()
+                        yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         """
@@ -159,62 +149,48 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
              - a particle type p
              - in a specified field
         """
-        mylog.info("_read_particle_fields")
         chunks = list(chunks)
-        # TODO consider individual fields, not species
-        if self._cached_it is not None:
-            if self._cached_it is self.basePath:
-                self._use_cache = True
-                # use the cached x,y,z
-        else:
-            self._cached_it = self.basePath
-            self._use_cache = False
         for chunk in chunks:
-            f = None
             for g in chunk.objs:
                 if g.filename is None:
                     continue
-                if f is None:
-                    f = h5py.File(u(g.filename), 'r')
+                f = self._handle
 
                 ds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
-                    # Inefficient for const records
                     mylog.debug("openPMD - _read_particle_fields: {}, {}".format(ptype, field_list))
 
                     # Get a particle species (e.g. /data/3500/particles/e/)
-                    # TODO Do this for all fields in fields list
                     if "io" in ptype:
-                        spec = ds[f.attrs["particlesPath"]].keys()[0]
+                        spec = ds[self.particlesPath].keys()[0]
                     else:
-                        # TODO probably need to use ptype here
-                        spec = field_list[0].split("_")[0]
-                    pds = ds.get("%s/%s" % (f.attrs["particlesPath"], spec))
-                    if pds is None:
-                        mylog.info("openPMD - _read_particle_fields: {}/{} yields None".format(f.attrs["particlesPath"], spec))
+                        spec = ptype
+                    pds = ds[self.particlesPath + "/" + spec]
 
-                    if not self._use_cache:
-                        # Get single arrays of coordinates from all particular particles
-                        # TODO Do not naively assume 3D. Check which axes actually exist
-                        #   (axis_labels, geometry)
-                        # TODO Pay attention to const records
-                        xpos, ypos, zpos = (self._cache.get_component(pds, "position/" + ax)
-                                            for ax in 'xyz')
-                        xoff, yoff, zoff = (self._cache.get_component(pds, "positionOffset/" + ax)
-                                            for ax in 'xyz')
-                        self._cachex = xpos + xoff
-                        self._cachey = ypos + yoff
-                        self._cachez = zpos + zoff
-                        self._use_cache = True
-                    mask = selector.select_points(self._cachex, self._cachey, self._cachez, 0.0)
+                    if ptype not in self._cached_ptype:
+                        # Get single 1D-arrays of coordinates from all particular particles
+                        axes = [str(ax) for ax in pds["position"].keys()]
+                        for i in 'xyz':
+                            if i not in axes:
+                                # TODO Get 2D particle data working
+                                mylog.error("openPMD - Can not handle 2D particle data for the moment!")
+                                continue
+                        pos = {}
+                        off = {}
+                        for ax in axes:
+                            pos[ax] = self._component_getter.get_component(pds, "position/" + ax)
+                            off[ax] = self._component_getter.get_component(pds, "positionOffset/" + ax)
+                            self._cache[ax] = pos[ax] + off[ax]
+                        self._cached_ptype = ptype
+
+                    mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
                         continue
                     for field in field_list:
                         nfield = "/".join(field.split("_")[1:])
-                        data = self._cache.get_component(pds, nfield)
+                        data = self._component_getter.get_component(pds, nfield)
                         yield ((ptype, field), data[mask])
-            if f:
-                f.close()
+
 
     # def _read_particle_selection(self, chunks, selector, fields):
     #     """
@@ -256,25 +232,29 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
     #     if selector.__class__.__name__ == "GridSelector":
     #         if not (len(chunks) == len(chunks[0].objs) == 1):
     #             raise RuntimeError
-    #         grid = chunks[0].objs[0]
-    #         for ftype, fname in fields:
-    #             mylog.info("read particles ftype %s, fname %s, grid %s", ftype, fname, grid)
-    #             # rv[ftype, fname] = self._read_particles(grid, fname)
-    #         return rv
     #
     #     rv = {f: np.array([]) for f in fields}
-    #     for chunk in chunks:
-    #         for grid in chunk.objs:
-    #             for ftype, fname in fields:
-    #                 mylog.info("read particles ftype %s, fname %s, grid %s", ftype, fname, grid)
-    #                 # data = self._read_particles(grid, fname)
-    #                 # rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
-    #
+    #     for field in fields:
+    #         ftype, fname = field
+    #         for chunk in chunks:
+    #             for g in chunk.objs:
+    #                 mylog.debug("g.select({}, {}, rv[{}], {})".format(selector, data, field,ind))
+    #                 rv.update(self._read_chunk_data(chunk, fields))
     #     return rv
+    #     # for chunk in chunks:
+    #     #     for i in self._read_chunk_data(chunk,fields):
+    #     #         mylog.info("self._read_chunk_data({},{}):{}".format(chunk,fields,i))
+    #
+    #         # for grid in chunk.objs:
+    #         #     for ftype, fname in fields:
+    #         #         data = self._read_data((ftype, fname))
+    #         #         rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+    #
     #     """
     #     From Exo 2
-    #     for g in chunk.objs:
-    #             ind += g.select(selector, data, rv[field], ind)
+    #     for field in fields:
+    #             for g in chunk.objs:
+    #                             ind += g.select(selector, data, rv[field], ind)
     #     """
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -346,33 +326,36 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 # f.close()
         return rv
 
-    # TODO We *probably* do not need this function
-    # def _read_data(self, field):
-    #     """
-    #         Reads data from file belonging to a (mesh or particle) field
-    #
-    #         Parameters
-    #         ----------
-    #         field:
-    #             Field to get the data for
-    #
-    #         Returns
-    #         -------
-    #         A flat numpy array
-    #     """
-    #     mylog.debug("Read data")
-    #
-    #     if field.startswith("particle"):
-    #         # particles are not loaded here
-    #         # data =
-    #         # self._handle[self.basePath+self.particlesPath+field.replace("_","/")]
-    #         pass
-    #     else:
-    #         data = self._handle[
-    #                     self.basePath +
-    #                     self.meshPath +
-    #                     field.replace("_", "/")]
-    #     return np.array(data).flatten()
+    def _read_data(self, field):
+        """
+            Reads data from file belonging to a (mesh or particle) field
+
+            Parameters
+            ----------
+            fieldname:
+                Field to get the data for
+
+            Returns
+            -------
+            A flat numpy array
+        """
+        ftype, fname = field
+        mylog.debug("openPMD - _read_data - reading field: {}.{}".format(ftype, fname))
+
+        if ftype in self.ds.particle_types:
+            if "io" in ftype:
+                # There is only one particle species, use that one ("io" does not suffice)
+                spec = self._handle[self.basePath + self.particlesPath].keys()[0]
+            else:
+                # Use the provided ftype that corresponds to the species name in the hdf5 file
+                spec = str(ftype)
+            ds = self._handle[self.basePath + self.particlesPath].get(spec)
+            nfield = "/".join(fname.split("_")[1:]).replace("-","_")
+        else:
+            ds = self._handle[self.basePath + self.meshesPath]
+            nfield = fname.replace("_", "/").replace("-","_")
+        data = self._component_getter.get_component(ds, nfield)
+        return np.array(data).flatten()
 
     def _read_chunk_data(self, chunk, fields):
         """
@@ -397,16 +380,16 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             - keys are (ftype, fname) field tuples
             - values are flat numpy arrays with data form that field
         """
-        mylog.info("_read_chunk_data")
+        mylog.debug("_read_chunk_data")
         rv = {}
         fluid_fields, particle_fields = [], []
         for ftype, fname in fields:
-            # TODO generate particle_types from file itself
             if ftype in self.ds.particle_types:
                 particle_fields.append((ftype, fname))
             else:
                 fluid_fields.append((ftype, fname))
         if len(particle_fields) > 0:
+            mylog.debug("reading particle fields: {}".format(particle_fields))
             selector = AlwaysSelector(self.ds)
             rv.update(self._read_particle_selection(
                 [chunk], selector, particle_fields))
@@ -424,7 +407,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             for g in grids:
                 for ftype, fname in fluid_fields:
                     # TODO update basePath for different files
-                    data = f[self.basePath + self.meshPath + fname.replace("_", "/").replace("-","_")]
+                    data = self._read_data((ftype, fname))
+                    # data = f[self.basePath + self.meshPath + fname.replace("_", "/").replace("-","_")]
                     rv[(ftype,fname)] = np.array(data).flatten()
             f.close()
         return rv

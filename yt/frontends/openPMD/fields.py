@@ -16,10 +16,11 @@ openPMD-specific fields
 
 import numpy as np
 from yt.funcs import mylog
-import yt.utilities.physical_constants
+from yt.utilities.physical_constants import speed_of_light
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from .misc import parse_unitDimension
+import yt
 
 
 def _kinetic_energy(field, data):
@@ -27,32 +28,36 @@ def _kinetic_energy(field, data):
     Function to calculate new fields out of other fields
     if a error occurs the field is not calculated
     """
-    mylog.info("oPMD - fields - _kinetic_energy")
+    #mylog.info("oPMD - fields - _kinetic_energy")
     # calculate kinetic energy out of momentum
     c = 2.997e8  # velocity of light
     return (data["particle_momentum_x"]**2 + data["particle_momentum_y"]**2 + data["particle_momentum_z"]**2) * c
 
 
-def setup_momentum_to_velocity(self, ptype):
-    """
-    TODO This function does no work !!
-    """
+def setup_velocity(self, ptype):
     mylog.info("oPMD - fields - setup_momentum_to_velocity")
     def _get_vel(axis):
         def velocity(field, data):
-            c = 2.997e8
-            moment = data[ptype, "particle_momentum_%" % axis]
-            return moment / ((data[ptype, "particle_mass"] * data[ptype, "particle_weighting"]) ** 2 + (moment ** 2) / (c ** 2)) ** 0.5
+            c = speed_of_light
+            momentum = data[ptype, "particle_momentum_{}".format(axis)]
+            mass = data[ptype, "particle_mass"]
+            weighting = data[ptype, "particle_weighting"]
+            return momentum / (
+                                  (mass * weighting)**2 +
+                                  (momentum**2) / (c**2)
+                              ) ** 0.5
+
         return velocity
 
     for ax in 'xyz':
+        mylog.info("oPMD - fields - setup_momentum_to_velocity - particle_velocity_{}".format(ax))
         self.add_field((ptype, "particle_velocity_%s" % ax),
                        function=_get_vel(ax),
-                       units="m/s")
+                       units="m/s",
+                       particle_type=True)
 
 
 def setup_poynting_vector(self):
-    mylog.info("oPMD - fields - setup_poynting_vector")
     def _get_poyn(axis):
         def poynting(field, data):
             Efieldx = data["E_x"]
@@ -72,6 +77,7 @@ def setup_poynting_vector(self):
                 return u * (Efieldx * Bfieldy - Efieldy * Bfieldx)
 
         return poynting
+
     for ax in 'xyz':
         self.add_field(("openPMD", "poynting_vector_%s" % ax),
                        function=_get_poyn(ax),
@@ -115,7 +121,7 @@ class openPMDFieldInfo(FieldInfoContainer):
             field = fields.get(i)
             for j in field.attrs["axisLabels"]:
                 parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
-                other_fields += ((str("_".join([i,j])), (yt.YTQuantity(1, parsed).units, [], None)),)
+                other_fields += ((str("_".join([i.replace("_","-"),j])), (yt.YTQuantity(1, parsed).units, [], None)),)
         self.known_other_fields = other_fields
         for i in self.known_other_fields:
             mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
@@ -154,6 +160,9 @@ class openPMDFieldInfo(FieldInfoContainer):
         # You can use self.alias, self.add_output_field and self.add_field .
 
         setup_poynting_vector(self)
+        from yt.fields.magnetic_field import \
+            setup_magnetic_field_aliases
+        setup_magnetic_field_aliases(self, "openPMD", ["B_%s" % ax for ax in "xyz"])
 
     def setup_particle_fields(self, ptype):
         """
@@ -166,7 +175,6 @@ class openPMDFieldInfo(FieldInfoContainer):
         #      "particle_kinetic_energy"),
         #     function=_kinetic_energy,
         #     units="dimensionless")
-        # setup_momentum_to_velocity(self, ptype)
-
+        setup_velocity(self, ptype)
         setup_relative_positions(self, ptype)
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)
