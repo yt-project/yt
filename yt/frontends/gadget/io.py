@@ -149,6 +149,32 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             pp.shape = (count, 3)
         yield pp
 
+    def _yield_field(self, data_file, field, ptypes=None):
+        poff = data_file.field_offsets
+        tp = data_file.total_particles
+        if ptypes is None:
+            ptype = None
+            for t in self._ptypes:
+                if tp[t] > 0:
+                    ptype = t
+                    break
+            with open(data_file.filename, "rb") as f:
+                f.seek(poff[ptype, field], os.SEEK_SET)
+                pp = self._read_field_from_file(f,
+                                                sum(data_file.total_particles.values()),
+                                                field)
+            yield pp
+        else:
+            plist = []
+            with open(data_file.filename, "rb") as f:
+                for ptype in ptypes:
+                    f.seek(poff[ptype, field], os.SEEK_SET)
+                    pp = self._read_field_from_file(f,
+                                                    tp[ptype], 
+                                                    field)
+                    yield ptype, pp
+
+
     def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
             for i, v in enumerate(data_file.header["Npart"]))

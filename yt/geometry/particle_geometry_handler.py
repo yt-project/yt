@@ -18,6 +18,7 @@ import numpy as np
 import os
 import weakref
 
+from yt.config import ytcfg
 from yt.funcs import get_pbar, only_on_root, ensure_list
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
@@ -27,7 +28,7 @@ from yt.geometry.particle_oct_container import \
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+    ParallelAnalysisInterface, communication_system, MPI
 from yt.extern.functools32 import lru_cache
 
 from yt.data_objects.data_containers import data_object_registry
@@ -88,48 +89,61 @@ class ParticleIndex(Index):
 
     def _initialize_index(self, fname=None, noref=False,
                           order1=None, order2=None, dont_cache=False):
-        ds = self.dataset
-        only_on_root(mylog.info, "Allocating for %0.3e particles",
-                     self.total_particles, global_rootonly = True)
-        # No more than 256^3 in the region finder.
-        self.regions = ParticleBitmap(
-                ds.domain_left_edge, ds.domain_right_edge,
-                len(self.data_files), 
-                index_order1=order1, index_order2=order2)
-        N = 1<<(self.regions.index_order1 + self.ds.over_refine_factor)
-        self.ds.domain_dimensions[:] = N
-        # Load indices from file if provided
-        if fname is None: 
-            fname = self._index_filename(self.regions.index_order1,
-                                         self.regions.index_order2)
-        try:
-            rflag = self.regions.load_bitmasks(fname)
-            if rflag == 0:
-                self._initialize_owners()
-                self.regions.save_bitmasks(fname)
-            rflag = self.regions.check_bitmasks()
-            if rflag == 0:
-                raise IOError()
-                # dont_cache = True
-                # raise IOError()
-            #     self._initialize_owners()
-            # rflag = self.regions.check_bitmasks()
-            # else: # Save pcounts in file?
-            #     self._initialize_owners()
-        except IOError:
-            self.regions.reset_bitmasks()
-            self._initialize_coarse_index()
-            if not noref:
-                self._initialize_refined_index()
-                self.regions.set_owners()
-            else:
-                self._initialize_owners()
-            if not dont_cache:
-                self.regions.save_bitmasks(fname)
-            rflag = self.regions.check_bitmasks()
-        # These are now invalid, but I don't know what to replace them with:
-        #self.max_level = self.oct_handler.max_level
-        #self.dataset.max_level = self.max_level
+        print ytcfg["yt","__parallel"],ytcfg["yt","__global_parallel_rank"],ytcfg["yt","__global_parallel_size"]
+        if ytcfg["yt","__parallel"]:
+            rank = ytcfg["yt","__global_parallel_rank"]
+        else:
+            rank = 0
+        if not ytcfg["yt","__parallel"] or rank == 0:
+            print '{}: initializing index'.format(rank)
+            ds = self.dataset
+            only_on_root(mylog.info, "Allocating for %0.3e particles",
+                         self.total_particles, global_rootonly = True)
+            # No more than 256^3 in the region finder.
+            self.regions = ParticleBitmap(
+                    ds.domain_left_edge, ds.domain_right_edge,
+                    len(self.data_files), 
+                    index_order1=order1, index_order2=order2)
+            N = 1<<(self.regions.index_order1 + self.ds.over_refine_factor)
+            self.ds.domain_dimensions[:] = N
+            # Load indices from file if provided
+            if fname is None: 
+                fname = self._index_filename(self.regions.index_order1,
+                                             self.regions.index_order2)
+            try:
+                rflag = self.regions.load_bitmasks(fname)
+                if rflag == 0:
+                    self._initialize_owners()
+                    self.regions.save_bitmasks(fname)
+                rflag = self.regions.check_bitmasks()
+                if rflag == 0:
+                    raise IOError()
+                    # dont_cache = True
+                    # raise IOError()
+                #     self._initialize_owners()
+                # rflag = self.regions.check_bitmasks()
+                # else: # Save pcounts in file?
+                #     self._initialize_owners()
+            except IOError:
+                self.regions.reset_bitmasks()
+                self._initialize_coarse_index()
+                if not noref:
+                    self._initialize_refined_index()
+                    self.regions.set_owners()
+                else:
+                    self._initialize_owners()
+                if not dont_cache:
+                    self.regions.save_bitmasks(fname)
+                rflag = self.regions.check_bitmasks()
+            # These are now invalid, but I don't know what to replace them with:
+            #self.max_level = self.oct_handler.max_level
+            #self.dataset.max_level = self.max_level
+        elif ytcfg["yt","__parallel"]:
+                self.regions = None
+        if ytcfg["yt","__parallel"]:
+            from mpi4py import MPI
+            comm = MPI.COMM_WORLD
+            self.regions = comm.scatter(self.regions, root=0)
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
