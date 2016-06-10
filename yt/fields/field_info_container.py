@@ -357,7 +357,7 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             mylog.debug("Checking %s", field)
             if field not in self: raise RuntimeError
-            fi = self[field]f
+            fi = self[field]
             try:
                 fd = fi.get_dependencies(ds = self.ds)
             except Exception as e:

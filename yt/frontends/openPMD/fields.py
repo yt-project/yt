@@ -84,6 +84,32 @@ def setup_poynting_vector(self):
                        units="T*V/m")  # N/(m*s)
 
 
+def setup_magnetic(self):
+    def _get_mag(axis):
+        def magnetic(field, data):
+            return data["B_{}".format(axis)]
+
+        return magnetic
+
+    for ax in 'xyz':
+        self.add_field(("openPMD", "magnetic_field_%s" % ax),
+                       function=_get_mag(ax),
+                       units="T")
+
+
+def setup_electrical(self):
+    def _get_el(axis):
+        def electrical(field, data):
+            return data["E_{}".format(axis)]
+
+        return electrical
+
+    for ax in 'xyz':
+        self.add_field(("openPMD", "electrical_field_%s" % ax),
+                       function=_get_el(ax),
+                       units="kg*m/(A*s**3)")
+
+
 def setup_relative_positions(self, ptype):
     def _rel_pos(axis):
         def rp(field, data):
@@ -160,9 +186,13 @@ class openPMDFieldInfo(FieldInfoContainer):
         # You can use self.alias, self.add_output_field and self.add_field .
 
         setup_poynting_vector(self)
+        setup_magnetic(self)
+        setup_electrical(self)
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
-        setup_magnetic_field_aliases(self, "openPMD", ["B_%s" % ax for ax in "xyz"])
+        for ax in "xyz":
+            mylog.info("setup_magnetic_field_aliases(self, openPMD, B_{}".format(ax))
+            setup_magnetic_field_aliases(self, "openPMD", ["magnetic_field_{}".format(ax)])
 
     def setup_particle_fields(self, ptype):
         """

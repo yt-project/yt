@@ -389,7 +389,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             else:
                 fluid_fields.append((ftype, fname))
         if len(particle_fields) > 0:
-            mylog.debug("reading particle fields: {}".format(particle_fields))
             selector = AlwaysSelector(self.ds)
             rv.update(self._read_particle_selection(
                 [chunk], selector, particle_fields))

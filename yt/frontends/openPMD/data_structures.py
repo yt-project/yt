@@ -315,6 +315,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
             self:
                 A reference to self
         """
+        # We hardcode these to 1.0 since every dataset can have different code <-> physical scalings
+        # We get the actual unit by multiplying with "unitSI" when actually getting our data
         self.length_unit = self.quan(1.0, "m")
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
