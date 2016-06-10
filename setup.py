@@ -390,9 +390,12 @@ class build_py(_build_py):
         _build_py.run(self)
 
 class build_ext(_build_ext):
-    # subclass setuptools extension builder to avoid importing numpy
+    # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
     def finalize_options(self):
+        from Cython.Build import cythonize
+        self.distribution.ext_modules[:] = cythonize(
+                self.distribution.ext_modules)
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
