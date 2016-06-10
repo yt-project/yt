@@ -23,6 +23,7 @@ from .field_exceptions import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter, \
+    NeedsParameterValue, \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
@@ -256,14 +257,21 @@ class FieldValidator(object):
     pass
 
 class ValidateParameter(FieldValidator):
-    def __init__(self, parameters):
+    def __init__(self, parameters, parameter_values=None):
         """
         This validator ensures that the dataset has a given parameter.
+
+        If *parameter_values* is supplied, this will also ensure that the field
+        is available for all permutations of the field parameter.
         """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
+        self.parameter_values = parameter_values
     def __call__(self, data):
         doesnt_have = []
+        if self.parameter_values is not None:
+            if isinstance(data, FieldDetector):
+                raise NeedsParameterValue(self.parameter_values)
         for p in self.parameters:
             if not data.has_field_parameter(p):
                 doesnt_have.append(p)
