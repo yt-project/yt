@@ -812,21 +812,18 @@ class YTCutRegion(YTSelectionContainer3D):
             if not np.any(m): continue
             yield obj, m
 
-    _cell_mask = None
     @property
     def _cond_ind(self):
-        if self._cell_mask is None:
-            ind = None
-            obj = self.base_object
-            with obj._field_parameter_state(self.field_parameters):
-                for cond in self.conditionals:
-                    res = eval(cond)
-                    if ind is None: ind = res
-                    if ind.shape != res.shape:
-                        raise YTIllDefinedCutRegion(self.conditionals)
-                    np.logical_and(res, ind, ind)
-            self._cell_mask = ind
-        return self._cell_mask
+        ind = None
+        obj = self.base_object
+        with obj._field_parameter_state(self.field_parameters):
+            for cond in self.conditionals:
+                res = eval(cond)
+                if ind is None: ind = res
+                if ind.shape != res.shape:
+                    raise YTIllDefinedCutRegion(self.conditionals)
+                np.logical_and(res, ind, ind)
+        return ind
 
     _particle_mask = None
     @property
