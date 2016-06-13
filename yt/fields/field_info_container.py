@@ -253,7 +253,22 @@ class FieldInfoContainer(dict):
                 self[name] = DerivedField(name, f, **kwargs)
                 return f
             return create_function
-        self[name] = DerivedField(name, function, **kwargs)
+
+        if isinstance(name, tuple):
+            self[name] = DerivedField(name, function, **kwargs)
+            return
+
+        if kwargs.get("particle_type", False):
+            ftype = 'all'
+        else:
+            ftype = self.ds.default_fluid_type
+
+        if (ftype, name) not in self:
+            tuple_name = (ftype, name)
+            self[tuple_name] = DerivedField(tuple_name, function, **kwargs)
+            self.alias(name, tuple_name)
+        else:
+            self[name] = DerivedField(name, function, **kwargs)
 
     def load_all_plugins(self, ftype="gas"):
         loaded = []

@@ -18,6 +18,7 @@ import OpenGL.GL as GL
 from collections import OrderedDict
 import matplotlib.cm as cm
 import numpy as np
+import ctypes
 
 from yt.utilities.math_utils import \
     get_translate_matrix, \
@@ -27,8 +28,9 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
+from yt.utilities.lib.mesh_triangulation import triangulate_vertex_data, \
+    triangulate_element_data
 from .shader_objects import known_shaders, ShaderProgram
-
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -76,7 +78,6 @@ FULLSCREEN_QUAD = np.array(
      +1.0, -1.0, 0.0,
      +1.0, +1.0, 0.0], dtype=np.float32
 )
-
 
 class IDVCamera(object):
     '''Camera object used in the Interactive Data Visualization
@@ -532,8 +533,165 @@ class BlockCollection(SceneComponent):
                         GL.GL_RED, GL.GL_FLOAT, n_data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
+class ColorBarSceneComponent(SceneComponent):
+    ''' 
 
-class SceneGraph(SceneComponent):
+    A class for scene components that apply colorbars using a 1D texture. 
+
+    '''
+
+    def __init__(self):
+        super(ColorBarSceneComponent, self).__init__()
+        self.camera = None
+        self.cmap_texture = None
+
+    def set_camera(self, camera):
+        pass
+
+    def update_minmax(self):
+        pass
+
+    def setup_cmap_tex(self):
+        '''Creates 1D texture that will hold colormap in framebuffer'''
+        self.cmap_texture = GL.glGenTextures(1)   # create target texture
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
+                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
+
+    def update_cmap_tex(self):
+        '''Updates 1D texture with colormap that's used in framebuffer'''
+        if self.camera is None or not self.camera.cmap_new:
+            return
+
+        if self.cmap_texture is None:
+            self.setup_cmap_tex()
+
+        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
+                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        self.camera.cmap_new = False
+    
+class MeshSceneComponent(ColorBarSceneComponent):
+    '''
+
+    A scene component for representing unstructured mesh data.
+
+    '''
+
+    def __init__(self, data_source, field):
+        super(MeshSceneComponent, self).__init__()
+        self.set_shader("mesh.v")
+        self.set_shader("mesh.f")
+
+        self.data_source = None
+        self.redraw = True
+
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LESS)
+        GL.glEnable(GL.GL_CULL_FACE)
+        GL.glCullFace(GL.GL_BACK)
+
+        vertices, data, indices = self.get_mesh_data(data_source, field)
+
+        self._initialize_vertex_array("mesh_info")
+        GL.glBindVertexArray(self.vert_arrays["mesh_info"])
+
+        self.add_vert_attrib("vertex_buffer", vertices, vertices.size)
+        self.add_vert_attrib("data_buffer", data, data.size)
+
+        self.vert_attrib["element_buffer"] = (GL.glGenBuffers(1), indices.size)
+        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
+        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW)
+
+        self.transform_matrix = GL.glGetUniformLocation(self.program.program,
+                                                        "model_to_clip")
+
+        self.cmin = data.min()
+        self.cmax = data.max()
+
+    def set_camera(self, camera):
+        r""" Sets the camera orientation for the entire scene.
+
+        Parameters
+        ----------
+        camera : Camera
+
+        """
+        self.camera = camera
+        self.camera.cmap_min = float(self.cmin)
+        self.camera.cmap_max = float(self.cmax)
+        self.redraw = True
+
+    def get_mesh_data(self, data_source, field):
+        """
+        
+        This reads the mesh data into a form that can be fed in to OpenGL.
+        
+        """
+
+        # get mesh information
+        try:
+            ftype, fname = field
+            mesh_id = int(ftype[-1])
+        except ValueError:
+            mesh_id = 0
+
+        mesh = data_source.ds.index.meshes[mesh_id-1]
+        offset = mesh._index_offset
+        vertices = mesh.connectivity_coords
+        indices  = mesh.connectivity_indices - offset
+
+        data = data_source[field]
+
+        if len(data.shape) == 1:
+            return triangulate_element_data(vertices, data, indices)
+        elif data.shape[1] == indices.shape[1]:
+            return triangulate_vertex_data(vertices, data, indices)
+
+    def run_program(self):
+        """ Renders one frame of the scene. """
+        with self.program.enable():
+
+            # Handle colormap
+            self.update_cmap_tex()
+
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+            projection_matrix = self.camera.projection_matrix
+            view_matrix = self.camera.view_matrix
+            model_to_clip = np.dot(projection_matrix, view_matrix)
+            GL.glUniformMatrix4fv(self.transform_matrix, 1, True, model_to_clip)
+
+            GL.glActiveTexture(GL.GL_TEXTURE1)
+            GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+
+            self.program._set_uniform("cmap", 0)
+            self.program._set_uniform("cmap_min", self.camera.cmap_min)
+            self.program._set_uniform("cmap_max", self.camera.cmap_max)
+
+            GL.glEnableVertexAttribArray(0)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["vertex_buffer"][0])
+            GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
+            GL.glEnableVertexAttribArray(1)
+            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["data_buffer"][0])
+            GL.glVertexAttribPointer(1, 1, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
+
+            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
+            GL.glDrawElements(GL.GL_TRIANGLES, self.vert_attrib["element_buffer"][1],
+                              GL.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+
+            GL.glDisableVertexAttribArray(0)
+            GL.glDisableVertexAttribArray(1)
+
+    render = run_program
+
+
+class SceneGraph(ColorBarSceneComponent):
     """A basic OpenGL render for IDV.
 
     The SceneGraph class is the primary driver behind creating a IDV rendering.
@@ -554,8 +712,6 @@ class SceneGraph(SceneComponent):
         self.collections = []
         self.fbo = None
         self.fb_texture = None
-        self.cmap_texture = None
-        self.camera = None
         self.shader_program = None
         self.fb_shader_program = None
         self.min_val, self.max_val = 1e60, -1e60
@@ -587,36 +743,8 @@ class SceneGraph(SceneComponent):
 
         self.setup_fb(self.width, self.height)
 
-    def setup_cmap_tex(self):
-        '''Creates 1D texture that will hold colormap in framebuffer'''
-        self.cmap_texture = GL.glGenTextures(1)   # create target texture
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
-                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-
-
-    def update_cmap_tex(self):
-        '''Updates 1D texture with colormap that's used in framebuffer'''
-        if self.camera is None or not self.camera.cmap_new:
-            return
-
-        if self.cmap_texture is None:
-            self.setup_cmap_tex()
-
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
-                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-        self.camera.cmap_new = False
-
-
     def setup_fb(self, width, height):
-        '''Setups FrameBuffer that will be used as container
+        '''Sets up FrameBuffer that will be used as container
            for 1 pass of rendering'''
         # Clean up old FB and Texture
         if self.fb_texture is not None and \
@@ -669,7 +797,6 @@ class SceneGraph(SceneComponent):
         # verify that everything went well
         status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
         assert status == GL.GL_FRAMEBUFFER_COMPLETE, status
-
 
     def add_collection(self, collection):
         r"""Adds a block collection to the scene. Collections must not overlap.

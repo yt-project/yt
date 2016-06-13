@@ -21,7 +21,9 @@ from numpy.testing import \
 from yt.config import \
     ytcfg
 from yt.testing import \
-    fake_amr_ds
+    fake_amr_ds, \
+    fake_tetrahedral_ds, \
+    fake_hexahedral_ds
 import yt.units as u
 from .test_plotwindow import assert_fname
 from yt.utilities.exceptions import \
@@ -246,11 +248,15 @@ def test_velocity_callback():
             p = SlicePlot(ds, ax, "density")
             p.annotate_velocity()
             yield assert_fname, p.save(prefix)[0]
+        # Test for OffAxis Slice
+        p = SlicePlot(ds, [1, 1, 0], 'density', north_vector=[0, 0, 1])
+        p.annotate_velocity(factor=40, normalize=True)
+        yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_velocity(factor=8, scale=0.5, scale_units="inches",
                             normalize = True)
-        p.save(prefix)
+        yield assert_fname, p.save(prefix)[0]
 
 def test_magnetic_callback():
     with _cleanup_fname() as prefix:
@@ -263,11 +269,15 @@ def test_magnetic_callback():
             p = SlicePlot(ds, ax, "density")
             p.annotate_magnetic_field()
             yield assert_fname, p.save(prefix)[0]
+        # Test for OffAxis Slice
+        p = SlicePlot(ds, [1, 1, 0], 'density', north_vector=[0, 0, 1])
+        p.annotate_magnetic_field(factor=40, normalize=True)
+        yield assert_fname, p.save(prefix)[0]
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_magnetic_field(factor=8, scale=0.5,
             scale_units="inches", normalize = True)
-        p.save(prefix)
+        yield assert_fname, p.save(prefix)[0]
 
 def test_quiver_callback():
     with _cleanup_fname() as prefix:
@@ -289,7 +299,7 @@ def test_quiver_callback():
             scale_units="inches", normalize = True,
             bv_x = 0.5 * u.cm / u.s,
             bv_y = 0.5 * u.cm / u.s)
-        p.save(prefix)
+        yield assert_fname, p.save(prefix)[0]
 
 def test_contour_callback():
     with _cleanup_fname() as prefix:
@@ -360,6 +370,22 @@ def test_cell_edges_callback():
                               color=(0.0, 1.0, 1.0))
         p.save(prefix)
 
+def test_mesh_lines_callback():
+    with _cleanup_fname() as prefix:
+
+        ds = fake_hexahedral_ds()
+        for field in ds.field_list:
+            sl = SlicePlot(ds, 1, field)
+            sl.annotate_mesh_lines(plot_args={'color':'black'})
+            yield assert_fname, sl.save(prefix)[0]
+
+        ds = fake_tetrahedral_ds()
+        for field in ds.field_list:
+            sl = SlicePlot(ds, 1, field)
+            sl.annotate_mesh_lines(plot_args={'color':'black'})
+            yield assert_fname, sl.save(prefix)[0]
+                
+
 def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields =
@@ -381,4 +407,5 @@ def test_line_integral_convolution_callback():
                                              cmap=ytcfg.get("yt", "default_colormap"),
                                              alpha=0.9, const_alpha=True)
         p.save(prefix)
+
 

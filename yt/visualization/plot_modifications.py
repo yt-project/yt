@@ -22,27 +22,21 @@ import numpy as np
 
 from distutils.version import LooseVersion
 
-from matplotlib.patches import Circle
-from matplotlib.colors import colorConverter
-from matplotlib import cm
-from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
-
-from yt.config import \
-    ytcfg
 from yt.funcs import \
     mylog, iterable
 from yt.extern.six import add_metaclass
-from yt.units.yt_array import YTQuantity, YTArray
+from yt.units.yt_array import YTQuantity, YTArray, uhstack
 from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_element_mesh, pixelize_off_axis_cartesian, \
+    pixelize_off_axis_cartesian, \
     pixelize_cartesian
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
     periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
-
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
 from . import _MPL
 
@@ -309,8 +303,8 @@ class MagFieldCallback(PlotCallback):
     def __call__(self, plot):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("cutting_plane_bx",
-                                        "cutting_plane_by",
+            qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
+                                        "cutting_plane_magnetic_field_y",
                                         self.factor)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
@@ -561,6 +555,8 @@ class GridBoundaryCallback(PlotCallback):
         self.edgecolors = edgecolors
 
     def __call__(self, plot):
+        from matplotlib.colors import colorConverter
+
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
@@ -1409,6 +1405,7 @@ class HaloCatalogCallback(PlotCallback):
         self.factor = factor
 
     def __call__(self, plot):
+        from matplotlib.patches import Circle
         data = plot.data
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
@@ -1521,21 +1518,53 @@ class ParticleCallback(PlotCallback):
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
         pt = self.ptype
-        gg = ( ( reg[pt, field_x] >= x0 ) & ( reg[pt, field_x] <= x1 )
-           &   ( reg[pt, field_y] >= y0 ) & ( reg[pt, field_y] <= y1 ) )
+        self.periodic_x = plot.data.ds.periodicity[xax]
+        self.periodic_y = plot.data.ds.periodicity[yax]
+        self.LE = plot.data.ds.domain_left_edge[xax], \
+                  plot.data.ds.domain_left_edge[yax]
+        self.RE = plot.data.ds.domain_right_edge[xax], \
+                  plot.data.ds.domain_right_edge[yax]
+        period_x = plot.data.ds.domain_width[xax]
+        period_y = plot.data.ds.domain_width[yax]
+        particle_x, particle_y = self._enforce_periodic(reg[pt, field_x],
+                                                        reg[pt, field_y],
+                                                        x0, x1, period_x,
+                                                        y0, y1, period_y)
+        gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
+           &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
         if self.minimum_mass is not None:
             gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
         plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
-                    [np.array(reg[pt, field_x][gg][::self.stride]),
-                     np.array(reg[pt, field_y][gg][::self.stride])])
+                    [np.array(particle_x[gg][::self.stride]),
+                     np.array(particle_y[gg][::self.stride])])
         plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
 
+    def _enforce_periodic(self,
+                          particle_x,
+                          particle_y,
+                          x0, x1, period_x,
+                          y0, y1, period_y):
+        #  duplicate particles if periodic in that direction AND if the plot
+        #  extends outside the domain boundaries.
+        if self.periodic_x and x0 > self.LE[0]:
+            particle_x = uhstack((particle_x, particle_x + period_x))
+            particle_y = uhstack((particle_y, particle_y))
+        if self.periodic_x and x1 < self.RE[0]:
+            particle_x = uhstack((particle_x, particle_x - period_x))
+            particle_y = uhstack((particle_y, particle_y))
+        if self.periodic_y and y0 > self.LE[1]:
+            particle_y = uhstack((particle_y, particle_y + period_y))
+            particle_x = uhstack((particle_x, particle_x))
+        if self.periodic_y and y1 < self.RE[1]:
+            particle_y = uhstack((particle_y, particle_y - period_y))
+            particle_x = uhstack((particle_x, particle_x))
+        return particle_x, particle_y
 
     def _get_region(self, xlim, ylim, axis, data):
         LE, RE = [None]*3, [None]*3
@@ -1575,85 +1604,77 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    annotate_mesh_lines(thresh=0.01)
+    annotate_mesh_lines()
 
-    Adds the mesh lines to the plot.
-
-    This is done by marking the pixels where the mapped coordinate
-    is within some threshold distance of one of the element boundaries.
-    If the mesh lines are too thick or too thin, try varying thresh.
+    Adds mesh lines to the plot. Only works for unstructured or 
+    semi-structured mesh data. For structured grid data, see
+    GridBoundaryCallback or CellEdgesCallback.
 
     Parameters
     ----------
 
-    thresh : float
-        The threshold distance, in mapped coordinates, within which the
-        pixels will be marked as part of the element boundary.
-        Default is 0.01.
+    plot_args:   dict, optional
+        A dictionary of arguments that will be passed to matplotlib.
+
+    Example
+    -------
+
+    >>> import yt
+    >>> ds = yt.load("MOOSE_sample_data/out.e-s010")
+    >>> sl = yt.SlicePlot(ds, 'z', ('connect2', 'convected'))
+    >>> sl.annotate_mesh_lines(plot_args={'color':'black'})
 
     """
     _type_name = "mesh_lines"
 
-    def __init__(self, thresh=0.1, cmap=None):
+    def __init__(self, plot_args=None):
         super(MeshLinesCallback, self).__init__()
-        self.thresh = thresh
-        if cmap is None:
-            cmap = ytcfg.get("yt", "default_colormap")
-        self.cmap = cmap
+        self.plot_args = plot_args
+
+    def promote_2d_to_3d(self, coords, indices, plot):
+        new_coords = np.zeros((2*coords.shape[0], 3))
+        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]), 
+                                dtype=np.int64)
+    
+        new_coords[0:coords.shape[0],0:2] = coords
+        new_coords[0:coords.shape[0],2] = plot.ds.domain_left_edge[2]
+        new_coords[coords.shape[0]:,0:2] = coords
+        new_coords[coords.shape[0]:,2] = plot.ds.domain_right_edge[2]
+        
+        new_connects[:,0:indices.shape[1]] = indices
+        new_connects[:,indices.shape[1]:] = indices + coords.shape[0]
+    
+        return new_coords, new_connects
 
     def __call__(self, plot):
 
-        ftype, fname = plot.field
-        mesh_id = int(ftype[-1]) - 1
-        mesh = plot.ds.index.meshes[mesh_id]
+        index = plot.ds.index
+        if not issubclass(type(index), UnstructuredIndex):
+            raise RuntimeError("Mesh line annotations only work for "
+                               "unstructured or semi-structured mesh data.")
+        for i, m in enumerate(index.meshes):
+            try:
+                ftype, fname = plot.field
+                if ftype.startswith('connect') and int(ftype[-1]) - 1 != i:
+                    continue
+            except ValueError:
+                pass
+            coords = m.connectivity_coords
+            indices = m.connectivity_indices - m._index_offset
+            
+            num_verts = indices.shape[1]
+            num_dims = coords.shape[1]
 
-        coords = mesh.connectivity_coords
-        indices = mesh.connectivity_indices
+            if num_dims == 2 and num_verts == 3:
+                coords, indices = self.promote_2d_to_3d(coords, indices, plot)
+            elif num_dims == 2 and num_verts == 4:
+                coords, indices = self.promote_2d_to_3d(coords, indices, plot)
 
-        xx0, xx1 = plot._axes.get_xlim()
-        yy0, yy1 = plot._axes.get_ylim()
-
-        offset = mesh._index_offset
-        ax = plot.data.axis
-        xax = plot.data.ds.coordinates.x_axis[ax]
-        yax = plot.data.ds.coordinates.y_axis[ax]
-
-        size = plot.image._A.shape
-        c = plot.data.center[ax]
-        buff_size = size[0:ax] + (1,) + size[ax:]
-
-        x0, x1 = plot.xlim
-        y0, y1 = plot.ylim
-        c = plot.data.center[ax]
-        bounds = [x0, x1, y0, y1]
-        bounds.insert(2*ax, c)
-        bounds.insert(2*ax, c)
-        bounds = np.reshape(bounds, (3, 2))
-
-        # draw the mesh lines by marking where the mapped
-        # coordinate is close to the domain edge. We do this by
-        # calling the pixelizer with a dummy field and passing in
-        # a non-negative thresh.
-        dummy_field = np.zeros(indices.shape, dtype=np.float64)
-        img = pixelize_element_mesh(coords, indices,
-                                    buff_size,
-                                    dummy_field,
-                                    bounds,
-                                    offset, self.thresh)
-        img = np.squeeze(np.transpose(img, (yax, xax, ax)))
-
-        # convert to RGBA
-        size = plot.frb.buff_size
-        image = np.zeros((size[0], size[1], 4), dtype=np.uint8)
-        image[:, :, 0][img > 0.0] = 0
-        image[:, :, 1][img > 0.0] = 0
-        image[:, :, 2][img > 0.0] = 0
-        image[:, :, 3][img > 0.0] = 255
-
-        plot._axes.imshow(image, zorder=1,
-                          extent=[xx0, xx1, yy0, yy1],
-                          origin='lower', cmap=self.cmap,
-                          interpolation='nearest')
+            tri_indices = triangulate_indices(indices)
+            points = coords[tri_indices]
+        
+            tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
+            tfc(plot)
 
 
 class TriangleFacetsCallback(PlotCallback):
@@ -2020,6 +2041,8 @@ class ScaleCallback(PlotCallback):
         self.text_args = text_args
 
     def __call__(self, plot):
+        from mpl_toolkits.axes_grid1.anchored_artists import AnchoredSizeBar
+
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
         if plot.aspect != 1.0:
@@ -2312,6 +2335,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         self.const_alpha = const_alpha
 
     def __call__(self, plot):
+        from matplotlib import cm
         x0, x1 = plot.xlim
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()

@@ -19,7 +19,7 @@ from pyembree.rtcore cimport Vec3f, Triangle, Vertex
 from yt.utilities.lib.mesh_construction cimport \
     MeshDataContainer, \
     Patch
-from yt.utilities.lib.mesh_intersection cimport patchSurfaceFunc
+from yt.utilities.lib.primitives cimport patchSurfaceFunc
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
@@ -192,7 +192,7 @@ cdef void sample_hex20(void* userPtr,
     elem_id = ray_id / 6
 
     # fills "position" with the physical position of the hit
-    patchSurfaceFunc(data[ray_id], ray.u, ray.v, pos)
+    patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)
     for i in range(3):
         position[i] = <double> pos[i]
  

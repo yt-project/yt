@@ -14,22 +14,12 @@ A wrapper class for h5py file objects.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
-from distutils.version import LooseVersion
 
 class HDF5FileHandler(object):
     handle = None
 
     def __init__(self, filename):
         self.handle = h5py.File(filename, 'r')
-
-    def __del__(self):
-        if self.handle is not None:
-            # In h5py 2.4 and newer file handles are closed automatically.
-            # so only close the handle on old versions.  This works around an
-            # issue in h5py when run under python 3.4.
-            # See https://github.com/h5py/h5py/issues/534
-            if LooseVersion(h5py.__version__) < '2.4.0':
-                self.handle.close()
 
     def __getitem__(self, key):
         return self.handle[key]
