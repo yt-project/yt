@@ -67,12 +67,6 @@ cdef class Node:
         else:
             return np.nan
 
-    def get_left_edge(self):
-        return get_left_edge(self)
-
-    def get_right_edge(self):
-        return get_right_edge(self)
-
     def set_left_edge(self, np.float64_t[:] left_edge):
         cdef int i
         for i in range(3):

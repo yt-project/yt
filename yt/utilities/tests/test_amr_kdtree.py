@@ -52,8 +52,8 @@ def test_amr_kdtree_coverage():
         grid = ds.index.grids[node.grid - kd._id_offset]
         dds = grid.dds
         gle = grid.LeftEdge
-        nle = get_left_edge(node)
-        nre = get_right_edge(node)
+        nle = node.get_left_edge()
+        nre = node.get_right_edge()
         li = np.rint((nle-gle)/dds).astype('int32')
         ri = np.rint((nre-gle)/dds).astype('int32')
         dims = (ri - li).astype('int32')

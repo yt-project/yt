@@ -114,8 +114,8 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.ds.arr(get_left_edge(node), input_units="code_length")
-            nre = self.ds.arr(get_right_edge(node), input_units="code_length")
+            nle = self.ds.arr(node.get_left_edge(), input_units="code_length")
+            nre = self.ds.arr(node.get_right_edge(), input_units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
@@ -139,8 +139,8 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.ds.arr(get_left_edge(node), input_units="code_length")
-            nre = self.ds.arr(get_right_edge(node), input_units="code_length")
+            nle = self.ds.arr(node.get_left_edge(), input_units="code_length")
+            nre = self.ds.arr(node.get_right_edge(), input_units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
@@ -186,7 +186,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         regenerate_data = self.fields is None or \
                           len(self.fields) != len(new_fields) or \
                           self.fields != new_fields or force
-        set_dirty(self.tree.trunk, regenerate_data)
+        self.tree.trunk.set_dirty(regenerate_data)
         self.fields = new_fields
 
         if self.log_fields is not None and not regenerate_data:
@@ -214,18 +214,18 @@ class AMRKDTree(ParallelAnalysisInterface):
         self.set_fields(fields, log_fields, no_ghost)
 
     def traverse(self, viewpoint=None):
-        for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
+        for node in self.tree.trunk.kd_traverse(viewpoint=viewpoint):
             yield self.get_brick_data(node)
 
     def slice_traverse(self, viewpoint = None):
         if not hasattr(self.ds.index, "grid"):
             raise NotImplementedError
-        for node in kd_traverse(self.tree.trunk, viewpoint=viewpoint):
+        for node in self.tree.trunk.kd_traverse(viewpoint=viewpoint):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge.in_units("code_length").ndarray_view()
-            nle = get_left_edge(node)
-            nre = get_right_edge(node)
+            nle = node.get_left_edge()
+            nre = node.get_right_edge()
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
@@ -290,8 +290,8 @@ class AMRKDTree(ParallelAnalysisInterface):
         grid = self.ds.index.grids[node.grid - self._id_offset]
         dds = grid.dds.ndarray_view()
         gle = grid.LeftEdge.ndarray_view()
-        nle = get_left_edge(node)
-        nre = get_right_edge(node)
+        nle = node.get_left_edge()
+        nre = node.get_right_edge()
         li = np.rint((nle-gle)/dds).astype('int32')
         ri = np.rint((nre-gle)/dds).astype('int32')
         dims = (ri - li).astype('int32')
