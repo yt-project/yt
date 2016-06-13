@@ -565,6 +565,6 @@ class YTDataTypeUnsupported(YTException):
         self.this = this
 
     def __str__self():
-        v = "This operation is not supported for data of type %s; " % self.this
-        v += "It supports data of types %s" % (self.supported,)
+        v = "This operation is not supported for data of geometry %s; " % self.this
+        v += "It supports data of geometries %s" % (self.supported,)
         return v
