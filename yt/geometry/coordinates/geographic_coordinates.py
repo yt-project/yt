@@ -215,16 +215,17 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def convert_to_cartesian(self, coord):
         offset, factor = self._retrieve_radial_offset()
         if isinstance(coord, np.ndarray) and len(coord.shape) > 1:
-            r = factor * coord[:,self.axis_id[self.radial_axis]] + offset
+            rad = self.axis_id[self.radial_axis]
             lon = self.axis_id['longitude']
             lat = self.axis_id['latitude']
+            r = factor * coord[:,rad] + offset
             theta = coord[:,lon] * np.pi/180
             phi = coord[:,lat] * np.pi/180
             nc = np.zeros_like(coord)
             # r, theta, phi
             nc[:,lat] = np.cos(phi) * np.sin(theta)*r
             nc[:,lon] = np.sin(phi) * np.sin(theta)*r
-            nc[:,alt] = np.cos(theta) * r
+            nc[:,rad] = np.cos(theta) * r
         else:
             a, b, c = coord
             theta = b * np.pi/180
