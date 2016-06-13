@@ -92,17 +92,34 @@ cdef class Node:
     def __dealloc__(self):
         if self.split != NULL: free(self.split)
 
-def get_left_edge(Node node):
-    le = np.empty(3, dtype='float64')
-    for i in range(3):
-        le[i] = node.left_edge[i]
-    return le
+# Begin input of converted methods
 
-def get_right_edge(Node node):
-    re = np.empty(3, dtype='float64')
-    for i in range(3):
-        re[i] = node.right_edge[i]
-    return re
+    def get_left_edge(self):
+        le = np.empty(3, dtype='float64')
+        for i in range(3):
+            le[i] = self.left_edge[i]
+        return le
+
+    def get_right_edge(self):
+        re = np.empty(3, dtype='float64')
+        for i in range(3):
+            re[i] = self.right_edge[i]
+        return re
+
+    def set_dirty(self, bint state):
+        for node in depth_traverse(self):
+            node.dirty = state
+
+    def kd_traverse(self, viewpoint=None):
+        if viewpoint is None:
+            for node in depth_traverse(self):
+                if _kd_is_leaf(node) == 1 and node.grid != -1:
+                    yield node
+        else:
+            for node in viewpoint_traverse(self, viewpoint):
+                if _kd_is_leaf(node) == 1 and node.grid != -1:
+                    yield node
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -133,19 +150,7 @@ cdef int should_i_build(Node node, int rank, int size):
     else:
         return 0
 
-def set_dirty(Node trunk, bint state):
-    for node in depth_traverse(trunk):
-        node.dirty = state
 
-def kd_traverse(Node trunk, viewpoint=None):
-    if viewpoint is None:
-        for node in depth_traverse(trunk):
-            if _kd_is_leaf(node) == 1 and node.grid != -1:
-                yield node
-    else:
-        for node in viewpoint_traverse(trunk, viewpoint):
-            if _kd_is_leaf(node) == 1 and node.grid != -1:
-                yield node
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -827,4 +832,3 @@ def find_node(Node node,
     """
     assert(point_in_node(node, point))
     return _find_node(node, point)
-
