@@ -47,7 +47,7 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
   
-  local_tipsy_000:
+  local_tipsy_001:
     - yt/frontends/tipsy/tests/test_outputs.py
   
   local_varia_001:

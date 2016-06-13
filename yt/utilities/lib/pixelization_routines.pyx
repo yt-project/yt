@@ -191,6 +191,13 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
                                 if overlap1 < 0.0: continue
+                                # This next line is not commented out because
+                                # it's an oddity; we actually want to skip
+                                # depositing if the overlap is zero, and that's
+                                # how it used to work when we were more
+                                # conservative about the iteration indices.
+                                # This will reduce artifacts if we ever move to
+                                # compositing instead of replacing bitmaps.
                                 if overlap1 * overlap2 == 0.0: continue
                                 my_array[j,i] += (dsp * overlap1) * overlap2
                             else:
