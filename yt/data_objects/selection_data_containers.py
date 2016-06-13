@@ -830,12 +830,14 @@ class YTCutRegion(YTSelectionContainer3D):
     def _part_ind(self):
         if self._particle_mask is None:
             parent = getattr(self, "parent", self.base_object)
+            units = "code_length"
             mask = points_in_cells(
-                self["x"], self["y"], self["z"],
-                self["dx"], self["dy"], self["dz"],
-                parent["particle_position_x"].to("code_length"),
-                parent["particle_position_y"].to("code_length"),
-                parent["particle_position_z"].to("code_length"))
+                self["x"].to(units), self["y"].to(units),
+                self["z"].to(units), self["dx"].to(units),
+                self["dy"].to(units), self["dz"].to(units),
+                parent["particle_position_x"].to(units),
+                parent["particle_position_y"].to(units),
+                parent["particle_position_z"].to(units))
             self._particle_mask = mask
         return self._particle_mask
 
