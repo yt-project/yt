@@ -136,7 +136,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     registry.add_field((ftype, "sz_kinetic"),
                        function=_sz_kinetic,
                        units=unit_system["length"]**-1,
-                       validators=[ValidateParameter("axis")])
+                       validators=[
+                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
     def _szy(field, data):
         scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson

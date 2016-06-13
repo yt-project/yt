@@ -119,6 +119,9 @@ class GridIndex(Index):
         """
         return self.select_grids(self.grid_levels.max())[0].dds[:].min()
 
+    def _get_particle_type_counts(self):
+        return {self.ds.particle_types_raw[0]: self.grid_particle_count.sum()}
+
     def _initialize_level_stats(self):
         # Now some statistics:
         #   0 = number of grids

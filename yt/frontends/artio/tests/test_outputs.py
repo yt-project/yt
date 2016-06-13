@@ -48,6 +48,7 @@ def test_sizmbhloz():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
+    assert_equal(ds.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
 
 
 @requires_file(sizmbhloz)

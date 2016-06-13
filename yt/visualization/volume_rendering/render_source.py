@@ -36,10 +36,12 @@ try:
     from yt.utilities.lib import mesh_traversal
 except ImportError:
     mesh_traversal = NotAModule("pyembree")
+    ytcfg["yt", "ray_tracing_engine"] = "yt"
 try:
     from yt.utilities.lib import mesh_construction
 except ImportError:
     mesh_construction = NotAModule("pyembree")
+    ytcfg["yt", "ray_tracing_engine"] = "yt"
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -356,7 +358,7 @@ class MeshSource(OpaqueSource):
         self.field = field
         self.volume = None
         self.current_image = None
-        self.engine = 'embree'
+        self.engine = ytcfg.get("yt", "ray_tracing_engine")
 
         # default color map
         self._cmap = ytcfg.get("yt", "default_colormap")
@@ -374,11 +376,11 @@ class MeshSource(OpaqueSource):
         if self.engine == 'embree':
             self.volume = mesh_traversal.YTEmbreeScene()
             self.build_volume_embree()
-        elif self.engine == 'bvh':
+        elif self.engine == 'yt':
             self.build_volume_bvh()
         else:
             raise NotImplementedError("Invalid ray-tracing engine selected. "
-                                      "Choices are 'embree' and 'bvh'.")
+                                      "Choices are 'embree' and 'yt'.")
 
     def cmap():
         '''
@@ -491,15 +493,8 @@ class MeshSource(OpaqueSource):
             field_data = np.expand_dims(field_data, 1)
 
         # Here, we decide whether to render based on high-order or 
-        # low-order geometry. Right now, high-order geometry is only
-        # supported by Embree.
-        if indices.shape[1] == 20:
-            # hexahedral
-            mylog.warning("20-node hexes not yet supported, " +
-                          "dropping to 1st order.")
-            field_data = field_data[:, 0:8]
-            indices = indices[:, 0:8]
-        elif indices.shape[1] == 27:
+        # low-order geometry.
+        if indices.shape[1] == 27:
             # hexahedral
             mylog.warning("27-node hexes not yet supported, " +
                           "dropping to 1st order.")

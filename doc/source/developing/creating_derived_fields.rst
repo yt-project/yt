@@ -71,9 +71,9 @@ function returns data in the correct units. Often, this means applying units to
 a dimensionless float or array.
 
 If your field definition includes physical constants rather than defining a
-constant as a float, you can import it from ``yt.utilities.physical_constants``
+constant as a float, you can import it from ``yt.units``
 to get a predefined version of the constant with the correct units. If you know
-the units your data is supposed to have ahead of time, you can import unit
+the units your data is supposed to have ahead of time, you can also import unit
 symbols like ``g`` or ``cm`` from the ``yt.units`` namespace and multiply the
 return value of your field function by the appropriate combination of unit
 symbols for your field's units. You can also convert floats or NumPy arrays into

@@ -116,7 +116,7 @@ class LensTest(TestCase):
         w = self.ds.arr(w, 'code_length')
         sc = Scene()
         cam = sc.add_camera(self.ds, lens_type='stereo-spherical')
-        cam.resolution = [1024, 256]
+        cam.resolution = [512, 512]
         cam.position = self.ds.arr(np.array([0.6, 0.5, 0.5]), 'code_length')
         vol = VolumeSource(self.ds, field=self.field)
         tf = vol.transfer_function

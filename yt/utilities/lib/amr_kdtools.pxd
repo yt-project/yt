@@ -35,6 +35,6 @@ cdef class Node:
     cdef Split * split
     cdef int level
 
-cdef int point_in_node(Node node, np.ndarray[np.float64_t, ndim=1] point)
-cdef Node _find_node(Node node, np.float64_t *point)
+cdef int point_in_node(Node node, np.float64_t[:] point)
+cdef Node _find_node(Node node, np.float64_t[:] point)
 cdef int _kd_is_leaf(Node node)

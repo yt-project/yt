@@ -337,6 +337,8 @@ class ARTDataset(Dataset):
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
             mylog.info("Particle populations: "+'%9i '*len(ls_nonzero),
                        *ls_nonzero)
+            self._particle_type_counts = dict(
+                zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
                     if not self.parameters[k] == v:
@@ -630,6 +632,10 @@ class DarkMatterARTDataset(ARTDataset):
         if not os.path.isfile(f):
             return False
         if not f.endswith(suffix):
+            return False
+        if "s0" not in f:
+            # ATOMIC.DAT, for instance, passes the other tests, but then dies
+            # during _find_files because it can't be split.
             return False
         with open(f, 'rb') as fh:
             try:
