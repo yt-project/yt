@@ -23,9 +23,7 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
     receive_and_reduce, \
     send_to_parent, \
     scatter_image
-from yt.utilities.lib.amr_kdtools import \
-    Node, \
-    find_node, \
+from yt.utilities.lib.amr_kdtools import Node
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
@@ -238,7 +236,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         return temp
 
     def locate_node(self, pos):
-        return find_node(self.tree.trunk, pos)
+        return self.tree.trunk.find_node(pos)
 
     def get_reduce_owners(self):
         owners = {}
