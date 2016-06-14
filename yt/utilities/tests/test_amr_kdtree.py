@@ -14,8 +14,7 @@ Unit test the ARMKDTree in yt.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from yt.utilities.lib.amr_kdtools import depth_traverse, \
-        get_left_edge, get_right_edge
+from yt.utilities.lib.amr_kdtools import Node
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
@@ -46,7 +45,7 @@ def test_amr_kdtree_coverage():
 
     # This largely reproduces the AMRKDTree.tree.check_tree() functionality
     tree_ok = True
-    for node in depth_traverse(kd.tree.trunk):
+    for node in kd.tree.trunk.depth_traverse():
         if node.grid is None:
             continue
         grid = ds.index.grids[node.grid - kd._id_offset]

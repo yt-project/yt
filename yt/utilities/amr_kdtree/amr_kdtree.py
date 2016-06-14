@@ -26,7 +26,6 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
 from yt.utilities.lib.amr_kdtools import \
     Node, \
     find_node, \
-    depth_traverse, \
     depth_first_touch, \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -100,7 +99,7 @@ class Tree(object):
             self.add_grids(grids)
 
     def check_tree(self):
-        for node in depth_traverse(self.trunk):
+        for node in self.trunk.depth_traverse():
             if node.grid == -1:
                 continue
             grid = self.ds.index.grids[node.grid - self._id_offset]
@@ -123,7 +122,7 @@ class Tree(object):
 
     def sum_cells(self, all_cells=False):
         cells = 0
-        for node in depth_traverse(self.trunk):
+        for node in self.trunk.depth_traverse():
             if node.grid == -1:
                 continue
             if not all_cells and not node.kd_is_leaf():
@@ -426,7 +425,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         f = h5py.File(fn,'w')
-        for node in depth_traverse(self.tree):
+        for node in self.tree.depth_traverse():
             i = node.node_id
             if node.data is not None:
                 for fi,field in enumerate(self.fields):
@@ -447,7 +446,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         try:
             f = h5py.File(fn,"a")
-            for node in depth_traverse(self.tree):
+            for node in self.tree.depth_traverse():
                 i = node.node_id
                 if node.grid != -1:
                     data = [f["brick_%s_%s" %

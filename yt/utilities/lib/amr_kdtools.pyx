@@ -101,12 +101,12 @@ cdef class Node:
         return re
 
     def set_dirty(self, bint state):
-        for node in depth_traverse(self):
+        for node in self.depth_traverse():
             node.dirty = state
 
     def kd_traverse(self, viewpoint=None):
         if viewpoint is None:
-            for node in depth_traverse(self):
+            for node in self.depth_traverse():
                 if node._kd_is_leaf() == 1 and node.grid != -1:
                     yield node
         else:
@@ -596,12 +596,12 @@ cdef class Node:
 
         return current, previous
 
-    def depth_traverse(Node trunk, max_node=None):
+    def depth_traverse(self, max_node=None):
         '''
         Yields a depth-first traversal of the kd tree always going to
         the left child before the right.
         '''
-        current = trunk
+        current = self
         previous = None
         if max_node is None:
             max_node = np.inf
