@@ -34,7 +34,6 @@ cdef class Node:
     cdef public data
     cdef Split * split
     cdef int level
-
-cdef int point_in_node(np.float64_t[:] point)
-cdef Node _find_node(np.float64_t[:] point)
-cdef int _kd_is_leaf()
+    cdef int point_in_node(np.float64_t[:] point)
+    cdef Node _find_node(np.float64_t[:] point)
+    cdef int _kd_is_leaf()
