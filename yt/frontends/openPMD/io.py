@@ -26,6 +26,10 @@ from .data_structures import openPMDBasePath
 from .misc import *
 
 
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
+
+
 class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
     # TODO Data should be loaded chunk-wise to support parallelism. Fields can be chunked arbitrarily in space, particles should be read via particlePatches.
     # TODO Maybe reuse hdf5 file handles in loops?
@@ -47,6 +51,29 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._cached_ptype = ""
         self._cache = {}
         self._component_getter = ComponentGetter()
+
+
+    def _fill_cache(self, ptype):
+        # Get a particle species (e.g. /data/3500/particles/e/)
+        if "io" in ptype:
+            spec = self._handle[self.basePath + self.particlesPath].keys()[0]
+        else:
+            spec = ptype
+        pds = self._handle[self.basePath + self.particlesPath + "/" + spec]
+        # Get 1D-Arrays for individual particle positions along axes
+        axes = [str(ax) for ax in pds["position"].keys()]
+        pos = {}
+        off = {}
+        for ax in axes:
+            pos[ax] = self._component_getter.get_component(pds, "position/" + ax)
+            off[ax] = self._component_getter.get_component(pds, "positionOffset/" + ax)
+            self._cache[ax] = pos[ax] + off[ax]
+        # Pad accordingly with zeros to make 1D/2D datasets compatible
+        for req in "xyz":
+            if req not in axes:
+                self._cache[req] = np.zeros(self._cache['x'].shape)
+        self._cached_ptype = ptype
+
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -70,55 +97,16 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             x_coords, y_coords and z_coords are arrays of positions/coordinates of all particles of that type
         """
         chunks = list(chunks)
-        self._array_fields = {}
         for chunk in chunks:
             for g in chunk.objs:
                 if g.filename is None:
                     continue
-                f = self._handle
-
-                dds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
-                    if ptype in self._cached_ptype:
-                        # use the cached x,y,z
-                        yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
-                    else:
-                        # Get a particle species (e.g. /data/3500/particles/e/)
-                        if "io" in ptype:
-                            spec = dds[self.particlesPath].keys()[0]
-                        else:
-                            spec = ptype
-                        pds = dds[self.particlesPath + "/" + spec]
+                    if ptype not in self._cached_ptype:
+                        self._fill_cache(ptype)
+                    yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
 
-                        # Get single 1D-arrays of coordinates from all particular particles
-                        axes = [str(ax) for ax in pds["position"].keys()]
-                        for i in 'xyz':
-                            if i not in axes:
-                                # TODO Get 2D particle data working
-                                mylog.error("openPMD - Can not handle 2D particle data for the moment!")
-                                continue
-                        pos = {}
-                        off = {}
-                        for ax in axes:
-                            pos[ax] = self._component_getter.get_component(pds, "position/" + ax)
-                            off[ax] = self._component_getter.get_component(pds, "positionOffset/" + ax)
-                            self._cache[ax] = pos[ax] + off[ax]
-                        self._cached_ptype = ptype
-
-                        for field in field_list:
-                            # Trim field path (yt scheme) to match openPMD scheme
-                            nfield = "/".join(field.split("_")[1:])
-
-                            # Save the size of the particle fields
-                            # TODO This CAN be used for speedup, not sure how
-                            if is_const_component(pds[nfield]):
-                                shape = np.asarray(pds[nfield].attrs["shape"])
-                            else:
-                                shape = np.asarray(pds[nfield].shape)
-                            if shape.ndim > 1:
-                                self._array_fields[field] = shape
-                        yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         """
@@ -159,34 +147,18 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 ds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_fields: {}, {}".format(ptype, field_list))
-
+                    if ptype not in self._cached_ptype:
+                        self._fill_cache(ptype)
+                    mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
+                    if mask is None:
+                        continue
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     if "io" in ptype:
                         spec = ds[self.particlesPath].keys()[0]
                     else:
                         spec = ptype
                     pds = ds[self.particlesPath + "/" + spec]
-
-                    if ptype not in self._cached_ptype:
-                        # Get single 1D-arrays of coordinates from all particular particles
-                        axes = [str(ax) for ax in pds["position"].keys()]
-                        for i in 'xyz':
-                            if i not in axes:
-                                # TODO Get 2D particle data working
-                                mylog.error("openPMD - Can not handle 2D particle data for the moment!")
-                                continue
-                        pos = {}
-                        off = {}
-                        for ax in axes:
-                            pos[ax] = self._component_getter.get_component(pds, "position/" + ax)
-                            off[ax] = self._component_getter.get_component(pds, "positionOffset/" + ax)
-                            self._cache[ax] = pos[ax] + off[ax]
-                        self._cached_ptype = ptype
-
-                    mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
-                    if mask is None:
-                        continue
-                    for field in field_list:
+                    for field in parallel_objects(field_list):
                         nfield = "/".join(field.split("_")[1:])
                         data = self._component_getter.get_component(pds, nfield)
                         yield ((ptype, field), data[mask])

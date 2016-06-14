@@ -123,8 +123,9 @@ class openPMDFieldInfo(FieldInfoContainer):
         fields = f[ds.basePath + f.attrs["meshesPath"]]
         for fname in fields.keys():
             field = fields.get(fname)
-            for axis in field.attrs["axisLabels"]:
-                ytname = str("_".join([fname.replace("_", "-"), axis]))
+            if "dataset" in str(field).split(" ")[1]:
+                # We have a dataset, don't consider axes since yt does all the work for us
+                ytname = str("_".join([fname.replace("_", "-")]))
                 parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
                 unit = str(yt.YTQuantity(1, parsed).units)
                 aliases = []
@@ -133,6 +134,17 @@ class openPMDFieldInfo(FieldInfoContainer):
                 if "T" in unit or "kg/(A*s**2)" in unit:
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)), )
+            else:
+                for axis in field.attrs["axisLabels"]:
+                    ytname = str("_".join([fname.replace("_", "-"), axis]))
+                    parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+                    unit = str(yt.YTQuantity(1, parsed).units)
+                    aliases = []
+                    # Save a list of magnetic fields for aliasing later on
+                    # We can not reasonably infer field type by name in openPMD
+                    if "T" in unit or "kg/(A*s**2)" in unit:
+                        self._mag_fields.append(ytname)
+                    self.known_other_fields += ((ytname, (unit, aliases, None)), )
         for i in self.known_other_fields:
             mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
 
@@ -140,19 +152,19 @@ class openPMDFieldInfo(FieldInfoContainer):
         particles = f[ds.basePath + f.attrs["particlesPath"]]
         for species in particles.keys():
             for attrib in particles.get(species).keys():
+                if "weighting" in attrib:
+                    particle_fields += (("particle_weighting", ("", [], None)),)
+                    continue
                 try:
-                    if "weighting" in attrib:
-                        particle_fields += (("particle_weighting", ("", [], None)),)
-                        continue
-                    udim = particles.get(species).get(attrib).attrs["unitDimension"]
-                    parsed = parse_unitDimension(np.asarray(udim, dtype='int'))
+                    parsed = parse_unitDimension(
+                        np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype='int'))
+                    unit = str(yt.YTQuantity(1, parsed).units)
+                    name = ["particle", attrib]
                     for axis in particles.get(species).get(attrib).keys():
                         if axis in "rxyz":
-                            particle_fields += (
-                                (str("_".join(["particle", attrib, axis])), (yt.YTQuantity(1, parsed).units, [], None)),)
-                        else:
-                            particle_fields += (
-                            (str("_".join(["particle", attrib])), (yt.YTQuantity(1, parsed).units, [], None)),)
+                            name = ["particle", attrib, axis]
+                        ytname = str("_".join(name))
+                        particle_fields += ((ytname, (unit, [], None)), )
                 except:
                     mylog.info("{}_{} does not seem to have unitDimension".format(species, attrib))
         self.known_particle_fields = particle_fields
@@ -181,5 +193,5 @@ class openPMDFieldInfo(FieldInfoContainer):
         """
         setup_relative_positions(self, ptype)
         #setup_kinetic_energy(self, ptype)
-        setup_velocity(self, ptype)
+        #setup_velocity(self, ptype)
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)
