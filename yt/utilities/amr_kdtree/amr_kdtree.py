@@ -29,7 +29,6 @@ from yt.utilities.lib.amr_kdtools import \
     kd_is_leaf, \
     depth_traverse, \
     depth_first_touch, \
-    kd_sum_volume, \
     kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -120,7 +119,7 @@ class Tree(object):
             # print grid, dims, li, ri
 
         # Calculate the Volume
-        vol = kd_sum_volume(self.trunk)
+        vol = self.trunk.kd_sum_volume()
         mylog.debug('AMRKDTree volume = %e' % vol)
         kd_node_check(self.trunk)
 
@@ -557,11 +556,11 @@ class AMRKDTree(ParallelAnalysisInterface):
             if splitdims[i] != -1:
                 n.create_split(splitdims[i], splitposs[i])
 
-        mylog.info('AMRKDTree rebuilt, Final Volume: %e' % kd_sum_volume(self.tree.trunk))
+        mylog.info('AMRKDTree rebuilt, Final Volume: %e' % self.tree.trunk.kd_sum_volume())
         return self.tree.trunk
 
     def count_volume(self):
-        return kd_sum_volume(self.tree.trunk)
+        return self.tree.trunk.kd_sum_volume()
 
     def count_cells(self):
         return self.tree.sum_cells()
@@ -576,6 +575,6 @@ if __name__ == "__main__":
     hv = AMRKDTree(ds)
     t2 = time()
 
-    print(kd_sum_volume(hv.tree.trunk))
+    print(hv.tree.trunk.kd_sum_volume())
     print(kd_node_check(hv.tree.trunk))
     print('Time: %e seconds' % (t2-t1))

@@ -544,7 +544,7 @@ cdef class Node:
                 vol *= self.right_edge[i] - self.left_edge[i]
             return vol
         else:
-            return kd_sum_volume(self.left) + kd_sum_volume(self.right)
+            return self.left.kd_sum_volume() + self.right.kd_sum_volume()
 
     def kd_node_check(self):
         assert (self.left is None) == (self.right is None)
