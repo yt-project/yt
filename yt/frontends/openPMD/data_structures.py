@@ -321,8 +321,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "m/s")
-        self.magnetic_unit = self.quan(1.0, "gauss")
-        #self.magnetic_unit = self.quan(1.0, "T")
+        #self.magnetic_unit = self.quan(1.0, "gauss")
+        self.magnetic_unit = self.quan(1.0, "T")
 
     def _parse_parameter_file(self):
         """
@@ -350,30 +350,32 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # TODO At this point one assumes the whole file/simulation
         #      contains for all mesh records the same dimensionality and shapes
         # TODO This probably won't work for const records
-        if len(f[self.basePath + meshesPath].keys()) > 0:
-            # There is at least one field, check its dimensionality
-            dim_mesh = max(
-                len(f[self.basePath + meshesPath + "/" + mesh].attrs["axisLabel"])
-                    for mesh in f[self.basePath + meshesPath].keys())
-        if len(f[self.basePath + particlesPath].keys()) > 0:
-            # There is at least one particle species, check the dimensionality
-            # TODO
-            dim_part = 0
-        if dim_mesh < 1 and dim_part < 1:
+        # if len(f[self.basePath + meshesPath].keys()) > 0:
+        #     # There is at least one field, check its dimensionality
+        #     dim_mesh = max(
+        #         len(f[self.basePath + meshesPath + "/" + mesh].attrs["axisLabel"])
+        #             for mesh in f[self.basePath + meshesPath].keys())
+        # if len(f[self.basePath + particlesPath].keys()) > 0:
+        #     # There is at least one particle species, check the dimensionality
+        #     # TODO
+        #     dim_part = 0
+        # if dim_mesh < 1 and dim_part < 1:
+        #     mylog.error("Your data does not seem to have dimensionality!")
+        # self.dimensionality = max(dim_mesh, dim_part)
+        try :
+            firstIteration = list(f["/data/"].keys())[0]
+            meshes = f["/data/" + str(firstIteration) + "/" + meshesPath]
+            firstMeshName = list(meshes.keys())[0]
+            firstMesh = meshes[firstMeshName]
+            if type(firstMesh) == h5py.Dataset :
+                fshape = firstMesh.shape
+            else :
+                fshape = firstMesh[list(firstMesh.keys())[0]].shape
+        except:
             mylog.error("Your data does not seem to have dimensionality!")
-        self.dimensionality = max(dim_mesh, dim_part)
-        # try :
-        #     firstIteration = list(f["/data/"].keys())[0]
-        #     meshes = f["/data/" + str(firstIteration) + "/" + meshesPath]
-        #     firstMeshName = list(meshes.keys())[0]
-        #     firstMesh = meshes[firstMeshName]
-        #     if type(firstMesh) == h5py.Dataset :
-        #         fshape = firstMesh.shape
-        #     else :
-        #         fshape = firstMesh[list(firstMesh.keys())[0]].shape
 
         # Usually 2D/3D for picongpu
-        # self.dimensionality = len(fshape)
+        self.dimensionality = len(fshape)
 
         # TODO fill me with actual start and end positions in reasonable units
         self.domain_left_edge = np.zeros(3, dtype=np.float64)

@@ -778,6 +778,7 @@ class ComponentGetter():
     _c = {}
 
     def get_component(self, group, component_name):
+        self._c = {}
         record_component = group[component_name]
         mylog.debug("openPMD - misc - get_component: {}".format(record_component.name))
         if record_component.name not in self._c:

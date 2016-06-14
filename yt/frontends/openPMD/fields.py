@@ -23,19 +23,25 @@ from .misc import parse_unitDimension
 import yt
 
 
-def _kinetic_energy(field, data):
-    """
-    Function to calculate new fields out of other fields
-    if a error occurs the field is not calculated
-    """
-    #mylog.info("oPMD - fields - _kinetic_energy")
-    # calculate kinetic energy out of momentum
-    c = 2.997e8  # velocity of light
-    return (data["particle_momentum_x"]**2 + data["particle_momentum_y"]**2 + data["particle_momentum_z"]**2) * c
+def setup_kinetic_energy(self, ptype):
+    def _kin_en(field, data):
+        # Calculation seems to be wrong:
+        # YTFieldUnitError
+        # The field function associated with the field '('io', 'particle_kinetic_energy')'
+        # returned data with units 'cm*kg**2*m**2/s**3' but was defined with units 'kg*m**2/s**2'.
+        return (
+                   data[ptype, "particle_momentum_x"]**2 +
+                   data[ptype, "particle_momentum_y"]**2 +
+                   data[ptype, "particle_momentum_z"]**2
+               ) * speed_of_light
+
+    self.add_field((ptype, "particle_kinetic_energy"),
+                   function=_kin_en,
+                   units="kg*m**2/s**2",
+                   particle_type=True)
 
 
 def setup_velocity(self, ptype):
-    mylog.info("oPMD - fields - setup_momentum_to_velocity")
     def _get_vel(axis):
         def velocity(field, data):
             c = speed_of_light
@@ -50,7 +56,6 @@ def setup_velocity(self, ptype):
         return velocity
 
     for ax in 'xyz':
-        mylog.info("oPMD - fields - setup_momentum_to_velocity - particle_velocity_{}".format(ax))
         self.add_field((ptype, "particle_velocity_%s" % ax),
                        function=_get_vel(ax),
                        units="m/s",
@@ -63,9 +68,9 @@ def setup_poynting_vector(self):
             Efieldx = data["E_x"]
             Efieldy = data["E_y"]
             Efieldz = data["E_z"]
-            Bfieldx = data["B_x"]
-            Bfieldy = data["B_y"]
-            Bfieldz = data["B_z"]
+            Bfieldx = data["magnetic_field_x"]
+            Bfieldy = data["magnetic_field_y"]
+            Bfieldz = data["magnetic_field_z"]
 
             u = 79577.4715459  # = 1/magnetic permeability
 
@@ -81,33 +86,7 @@ def setup_poynting_vector(self):
     for ax in 'xyz':
         self.add_field(("openPMD", "poynting_vector_%s" % ax),
                        function=_get_poyn(ax),
-                       units="T*V/m")  # N/(m*s)
-
-
-def setup_magnetic(self):
-    def _get_mag(axis):
-        def magnetic(field, data):
-            return data["B_{}".format(axis)]
-
-        return magnetic
-
-    for ax in 'xyz':
-        self.add_field(("openPMD", "magnetic_field_%s" % ax),
-                       function=_get_mag(ax),
-                       units="T")
-
-
-def setup_electrical(self):
-    def _get_el(axis):
-        def electrical(field, data):
-            return data["E_{}".format(axis)]
-
-        return electrical
-
-    for ax in 'xyz':
-        self.add_field(("openPMD", "electrical_field_%s" % ax),
-                       function=_get_el(ax),
-                       units="kg*m/(A*s**3)")
+                       units="T*V/m")
 
 
 def setup_relative_positions(self, ptype):
@@ -137,18 +116,23 @@ class openPMDFieldInfo(FieldInfoContainer):
     This also defines the units of the fields
     """
 
-    def __init__(self, ds, field_list):
-        super(openPMDFieldInfo, self).__init__(ds, field_list)
+    _mag_fields = []
 
-        other_fields = ()
+    def __init__(self, ds, field_list):
         f = ds._handle
         fields = f[ds.basePath + f.attrs["meshesPath"]]
-        for i in fields.keys():
-            field = fields.get(i)
-            for j in field.attrs["axisLabels"]:
+        for fname in fields.keys():
+            field = fields.get(fname)
+            for axis in field.attrs["axisLabels"]:
+                ytname = str("_".join([fname.replace("_", "-"), axis]))
                 parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
-                other_fields += ((str("_".join([i.replace("_","-"),j])), (yt.YTQuantity(1, parsed).units, [], None)),)
-        self.known_other_fields = other_fields
+                unit = str(yt.YTQuantity(1, parsed).units)
+                aliases = []
+                # Save a list of magnetic fields for aliasing later on
+                # We can not reasonably infer field type by name in openPMD
+                if "T" in unit or "kg/(A*s**2)" in unit:
+                    self._mag_fields.append(ytname)
+                self.known_other_fields += ((ytname, (unit, aliases, None)), )
         for i in self.known_other_fields:
             mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
 
@@ -174,6 +158,7 @@ class openPMDFieldInfo(FieldInfoContainer):
         self.known_particle_fields = particle_fields
         for i in self.known_particle_fields:
             mylog.debug("oPMD - fields - known_particle_fields - {}".format(i))
+        super(openPMDFieldInfo, self).__init__(ds, field_list)
 
 
     def setup_fluid_fields(self):
@@ -182,17 +167,11 @@ class openPMDFieldInfo(FieldInfoContainer):
         values of new fields e.g. calculate out of E-field and B-field the
         Poynting vector
         """
-        # Here we do anything that might need info about the dataset.
-        # You can use self.alias, self.add_output_field and self.add_field .
-
-        setup_poynting_vector(self)
-        setup_magnetic(self)
-        setup_electrical(self)
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
-        for ax in "xyz":
-            mylog.info("setup_magnetic_field_aliases(self, openPMD, B_{}".format(ax))
-            setup_magnetic_field_aliases(self, "openPMD", ["magnetic_field_{}".format(ax)])
+        setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
+        # Set up aliases first so the setup for poynting can use them
+        setup_poynting_vector(self)
 
     def setup_particle_fields(self, ptype):
         """
@@ -200,11 +179,7 @@ class openPMDFieldInfo(FieldInfoContainer):
 
         TODO You have to call the function of the parent class to load particles
         """
-        # self.add_field(
-        #     (ptype,
-        #      "particle_kinetic_energy"),
-        #     function=_kinetic_energy,
-        #     units="dimensionless")
-        setup_velocity(self, ptype)
         setup_relative_positions(self, ptype)
+        #setup_kinetic_energy(self, ptype)
+        setup_velocity(self, ptype)
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)
