@@ -216,7 +216,7 @@ cdef class Node:
             return
 
         if _kd_is_leaf(self) == 1:
-            insert_grids(self, ngrids, gles, gres, gids, rank, size)
+            self.insert_grids(ngrids, gles, gres, gids, rank, size)
             return
 
         less_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
@@ -507,7 +507,7 @@ cdef class Node:
 
             # Populate Left Node
             #print 'Inserting left node', self.left_edge, self.right_edge
-            insert_grids(self.left, nless, less_gles, less_gres,
+            self.left.insert_grids(nless, less_gles, less_gres,
                          l_ids, rank, size)
 
         if ngreater > 0:
@@ -524,7 +524,7 @@ cdef class Node:
 
             # Populate Right Node
             #print 'Inserting right node', self.left_edge, self.right_edge
-            insert_grids(self.right, ngreater, greater_gles, greater_gres,
+            self.right.insert_grids(ngreater, greater_gles, greater_gres,
                          g_ids, rank, size)
 
         return 0
