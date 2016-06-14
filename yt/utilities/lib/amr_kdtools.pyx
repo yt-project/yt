@@ -367,74 +367,6 @@ cdef class Node:
 
         return 0
 
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    cdef kdtree_get_choices(int n_grids,
-                            np.float64_t[:,:,:] data,
-                            np.float64_t[:] l_corner,
-                            np.float64_t[:] r_corner,
-                            np.uint8_t[:] less_ids,
-                            np.uint8_t[:] greater_ids,
-                           ):
-        cdef int i, j, k, dim, n_unique, best_dim, my_split
-        cdef np.float64_t split
-        cdef np.float64_t[:,:] uniquedims
-        cdef np.float64_t[:] uniques
-        uniquedims = cvarray(format="d", shape=(3, 2*n_grids), itemsize=sizeof(np.float64_t))
-        my_max = 0
-        my_split = 0
-        best_dim = -1
-        for dim in range(3):
-            n_unique = 0
-            uniques = uniquedims[dim]
-            for i in range(n_grids):
-                # Check for disqualification
-                for j in range(2):
-                    # print "Checking against", i,j,dim,data[i,j,dim]
-                    if not (l_corner[dim] < data[i][j][dim] and
-                            data[i][j][dim] < r_corner[dim]):
-                        # print "Skipping ", data[i,j,dim], l_corner[dim], r_corner[dim]
-                        continue
-                    skipit = 0
-                    # Add our left ...
-                    for k in range(n_unique):
-                        if uniques[k] == data[i][j][dim]:
-                            skipit = 1
-                            # print "Identified", uniques[k], data[i,j,dim], n_unique
-                            break
-                    if skipit == 0:
-                        uniques[n_unique] = data[i][j][dim]
-                        n_unique += 1
-            if n_unique > my_max:
-                best_dim = dim
-                my_max = n_unique
-                my_split = (n_unique-1)/2
-        if best_dim == -1:
-            return -1, 0, 0, 0
-        # I recognize how lame this is.
-        cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
-        for i in range(my_max):
-            # print "Setting tarr: ", i, uniquedims[best_dim][i]
-            tarr[i] = uniquedims[best_dim][i]
-        tarr.sort()
-        split = tarr[my_split]
-        cdef int nless=0, ngreater=0
-        for i in range(n_grids):
-            if data[i][0][best_dim] < split:
-                less_ids[i] = 1
-                nless += 1
-            else:
-                less_ids[i] = 0
-            if data[i][1][best_dim] > split:
-                greater_ids[i] = 1
-                ngreater += 1
-            else:
-                greater_ids[i] = 0
-
-        # Return out unique values
-        return best_dim, split, nless, ngreater
-
     #@cython.boundscheck(False)
     #@cython.wraparound(False)
     #@cython.cdivision(True)
@@ -825,3 +757,71 @@ cdef int should_i_build(self, int rank, int size):
         return 1
     else:
         return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef kdtree_get_choices(int n_grids,
+                        np.float64_t[:,:,:] data,
+                        np.float64_t[:] l_corner,
+                        np.float64_t[:] r_corner,
+                        np.uint8_t[:] less_ids,
+                        np.uint8_t[:] greater_ids,
+                       ):
+    cdef int i, j, k, dim, n_unique, best_dim, my_split
+    cdef np.float64_t split
+    cdef np.float64_t[:,:] uniquedims
+    cdef np.float64_t[:] uniques
+    uniquedims = cvarray(format="d", shape=(3, 2*n_grids), itemsize=sizeof(np.float64_t))
+    my_max = 0
+    my_split = 0
+    best_dim = -1
+    for dim in range(3):
+        n_unique = 0
+        uniques = uniquedims[dim]
+        for i in range(n_grids):
+            # Check for disqualification
+            for j in range(2):
+                # print "Checking against", i,j,dim,data[i,j,dim]
+                if not (l_corner[dim] < data[i][j][dim] and
+                        data[i][j][dim] < r_corner[dim]):
+                    # print "Skipping ", data[i,j,dim], l_corner[dim], r_corner[dim]
+                    continue
+                skipit = 0
+                # Add our left ...
+                for k in range(n_unique):
+                    if uniques[k] == data[i][j][dim]:
+                        skipit = 1
+                        # print "Identified", uniques[k], data[i,j,dim], n_unique
+                        break
+                if skipit == 0:
+                    uniques[n_unique] = data[i][j][dim]
+                    n_unique += 1
+        if n_unique > my_max:
+            best_dim = dim
+            my_max = n_unique
+            my_split = (n_unique-1)/2
+    if best_dim == -1:
+        return -1, 0, 0, 0
+    # I recognize how lame this is.
+    cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
+    for i in range(my_max):
+        # print "Setting tarr: ", i, uniquedims[best_dim][i]
+        tarr[i] = uniquedims[best_dim][i]
+    tarr.sort()
+    split = tarr[my_split]
+    cdef int nless=0, ngreater=0
+    for i in range(n_grids):
+        if data[i][0][best_dim] < split:
+            less_ids[i] = 1
+            nless += 1
+        else:
+            less_ids[i] = 0
+        if data[i][1][best_dim] > split:
+            greater_ids[i] = 1
+            ngreater += 1
+        else:
+            greater_ids[i] = 0
+
+    # Return out unique values
+    return best_dim, split, nless, ngreater
