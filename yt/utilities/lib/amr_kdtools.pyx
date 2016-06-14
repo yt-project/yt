@@ -107,11 +107,11 @@ cdef class Node:
     def kd_traverse(self, viewpoint=None):
         if viewpoint is None:
             for node in depth_traverse(self):
-                if _kd_is_leaf(node) == 1 and node.grid != -1:
+                if node._kd_is_leaf() == 1 and node.grid != -1:
                     yield node
         else:
             for node in viewpoint_traverse(self, viewpoint):
-                if _kd_is_leaf(node) == 1 and node.grid != -1:
+                if node._kd_is_leaf() == 1 and node.grid != -1:
                     yield node
 
     def add_pygrid(self,
@@ -147,7 +147,7 @@ cdef class Node:
         if not should_i_build(self, rank, size):
             return
 
-        if _kd_is_leaf(self) == 1:
+        if self._kd_is_leaf() == 1:
             self.insert_grid(gle, gre, gid, rank, size)
         else:
             less_id = gle[self.split.dim] < self.split.pos
@@ -215,7 +215,7 @@ cdef class Node:
         if not should_i_build(self, rank, size):
             return
 
-        if _kd_is_leaf(self) == 1:
+        if self._kd_is_leaf() == 1:
             self.insert_grids(ngrids, gles, gres, gids, rank, size)
             return
 
@@ -570,7 +570,7 @@ cdef class Node:
         '''
         Takes a single step in the depth-first traversal
         '''
-        if _kd_is_leaf(current) == 1: # At a leaf, move back up
+        if current._kd_is_leaf() == 1: # At a leaf, move back up
             previous = current
             current = current.parent
 
@@ -662,7 +662,7 @@ cdef class Node:
         Takes a single step in the viewpoint based traversal.  Always
         goes to the node furthest away from viewpoint first.
         '''
-        if _kd_is_leaf(current) == 1: # At a leaf, move back up
+        if current._kd_is_leaf() == 1: # At a leaf, move back up
             previous = current
             current = current.parent
         elif current.split.dim is None: # This is a dead node
@@ -714,7 +714,7 @@ cdef class Node:
         return inside
 
     cdef Node _find_node(self, np.float64_t[:] point):
-        while _kd_is_leaf(self) == 0:
+        while self._kd_is_leaf() == 0:
             if point[self.split.dim] < self.split.pos:
                 self = self.left
             else:
