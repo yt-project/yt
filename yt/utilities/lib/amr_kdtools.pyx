@@ -192,7 +192,7 @@ cdef class Node:
             return
 
         # Split the grid
-        cdef int check = split_grid(self, gle, gre, grid_id, rank, size)
+        cdef int check = self.split_grid(gle, gre, grid_id, rank, size)
         # If check is -1, then we have found a place where there are no choices.
         # Exit out and set the node to None.
         if check == -1:
@@ -309,7 +309,7 @@ cdef class Node:
                 return
 
         # Split the grids
-        check = split_grids(self, ngrids, gles, gres, gids, rank, size)
+        check = self.split_grids(ngrids, gles, gres, gids, rank, size)
         # If check is -1, then we have found a place where there are no choices.
         # Exit out and set the node to None.
         if check == -1:
