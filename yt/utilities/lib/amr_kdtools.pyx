@@ -110,7 +110,7 @@ cdef class Node:
                 if node._kd_is_leaf() == 1 and node.grid != -1:
                     yield node
         else:
-            for node in viewpoint_traverse(self, viewpoint):
+            for node in self.viewpoint_traverse(viewpoint):
                 if node._kd_is_leaf() == 1 and node.grid != -1:
                     yield node
 
@@ -643,13 +643,13 @@ cdef class Node:
             current, previous = step_depth(current, previous)
 
 
-    def viewpoint_traverse(Node tree, viewpoint):
+    def viewpoint_traverse(self, viewpoint):
         '''
         Yields a viewpoint dependent traversal of the kd-tree.  Starts
         with nodes furthest away from viewpoint.
         '''
 
-        current = tree
+        current = self
         previous = None
         while current is not None:
             yield current
