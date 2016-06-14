@@ -132,670 +132,670 @@ cdef class Node:
             pgles[j] = gle[j]
             pgres[j] = gre[j]
 
-        add_grid(self, pgles, pgres, gid, rank, size)
+        self.add_grid(pgles, pgres, gid, rank, size)
 
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef add_grid(self,
-                           np.float64_t[:] gle,
-                           np.float64_t[:] gre,
-                           int gid,
-                           int rank,
-                           int size):
-
-            if not should_i_build(self, rank, size):
-                return
-
-            if _kd_is_leaf(self) == 1:
-                insert_grid(self, gle, gre, gid, rank, size)
-            else:
-                less_id = gle[self.split.dim] < self.split.pos
-                if less_id:
-                    add_grid(self.left, gle, gre,
-                             gid, rank, size)
-
-                greater_id = gre[self.split.dim] > self.split.pos
-                if greater_id:
-                    add_grid(self.right, gle, gre,
-                             gid, rank, size)
-            return
-
-
-
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef insert_grid(self,
-                        np.float64_t[:] gle,
-                        np.float64_t[:] gre,
-                        int grid_id,
-                        int rank,
-                        int size):
-            if not should_i_build(self, rank, size):
-                return
-
-            # If we should continue to split based on parallelism, do so!
-            if should_i_split(self, rank, size):
-                geo_split(self, gle, gre, grid_id, rank, size)
-                return
-
-            cdef int contained = 1
-            for i in range(3):
-                if gle[i] > self.left_edge[i] or\
-                   gre[i] < self.right_edge[i]:
-                    contained *= 0
-
-            if contained == 1:
-                self.grid = grid_id
-                assert(self.grid != -1)
-                return
-
-            # Split the grid
-            cdef int check = split_grid(self, gle, gre, grid_id, rank, size)
-            # If check is -1, then we have found a place where there are no choices.
-            # Exit out and set the node to None.
-            if check == -1:
-                self.grid = -1
-            return
-
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cpdef add_grids(self,
-                            int ngrids,
-                            np.float64_t[:,:] gles,
-                            np.float64_t[:,:] gres,
-                            np.int64_t[:] gids,
-                            int rank,
-                            int size):
-            cdef int i, j, nless, ngreater, index
-            cdef np.float64_t[:,:] less_gles, less_gres, greater_gles, greater_gres
-            cdef np.int64_t[:] l_ids, g_ids
-            if not should_i_build(self, rank, size):
-                return
-
-            if _kd_is_leaf(self) == 1:
-                insert_grids(self, ngrids, gles, gres, gids, rank, size)
-                return
-
-            less_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
-            greater_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
-
-            nless = 0
-            ngreater = 0
-            for i in range(ngrids):
-                if gles[i, self.split.dim] < self.split.pos:
-                    less_ids[nless] = i
-                    nless += 1
-
-                if gres[i, self.split.dim] > self.split.pos:
-                    greater_ids[ngreater] = i
-                    ngreater += 1
-
-            #print 'nless: %i' % nless
-            #print 'ngreater: %i' % ngreater
-
-            if nless > 0:
-                less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
-                less_gres = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
-                l_ids = cvarray(format="q", shape=(nless,), itemsize=sizeof(np.int64_t))
-
-                for i in range(nless):
-                    index = less_ids[i]
-                    l_ids[i] = gids[index]
-                    for j in range(3):
-                        less_gles[i,j] = gles[index,j]
-                        less_gres[i,j] = gres[index,j]
-
-                add_grids(self.left, nless, less_gles, less_gres,
-                          l_ids, rank, size)
-
-            if ngreater > 0:
-                greater_gles = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
-                greater_gres = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
-                g_ids = cvarray(format="q", shape=(ngreater,), itemsize=sizeof(np.int64_t))
-
-                for i in range(ngreater):
-                    index = greater_ids[i]
-                    g_ids[i] = gids[index]
-                    for j in range(3):
-                        greater_gles[i,j] = gles[index,j]
-                        greater_gres[i,j] = gres[index,j]
-
-                add_grids(self.right, ngreater, greater_gles, greater_gres,
-                          g_ids, rank, size)
-
-            return
-
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef int should_i_split(self, int rank, int size):
-            if self.node_id < size and self.node_id > 0:
-                return 1
-            return 0
-
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef void insert_grids(self,
-                               int ngrids,
-                               np.float64_t[:,:] gles,
-                               np.float64_t[:,:] gres,
-                               np.int64_t[:] gids,
-                               int rank,
-                               int size):
-
-            if not should_i_build(self, rank, size) or ngrids == 0:
-                return
-            cdef int contained = 1
-            cdef int check
-
-            if ngrids == 1:
-                # If we should continue to split based on parallelism, do so!
-                if should_i_split(self, rank, size):
-                    geo_split(self, gles[0,:], gres[0,:], gids[0], rank, size)
-                    return
-
-                for i in range(3):
-                    contained *= gles[0,i] <= self.left_edge[i]
-                    contained *= gres[0,i] >= self.right_edge[i]
-
-                if contained == 1:
-                    # print 'Node fully contained, setting to grid: %i' % gids[0]
-                    self.grid = gids[0]
-                    assert(self.grid != -1)
-                    return
-
-            # Split the grids
-            check = split_grids(self, ngrids, gles, gres, gids, rank, size)
-            # If check is -1, then we have found a place where there are no choices.
-            # Exit out and set the node to None.
-            if check == -1:
-                self.grid = -1
-            return
-
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef split_grid(self,
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef add_grid(self,
                        np.float64_t[:] gle,
                        np.float64_t[:] gre,
                        int gid,
                        int rank,
                        int size):
 
-            cdef int j
-            cdef np.uint8_t[:] less_ids, greater_ids
-            data = cvarray(format="d", shape=(1,2,3), itemsize=sizeof(np.float64_t))
-            for j in range(3):
-                data[0,0,j] = gle[j]
-                data[0,1,j] = gre[j]
+        if not should_i_build(self, rank, size):
+            return
 
-            less_ids = cvarray(format="B", shape=(1,), itemsize=sizeof(np.uint8_t))
-            greater_ids = cvarray(format="B", shape=(1,), itemsize=sizeof(np.uint8_t))
+        if _kd_is_leaf(self) == 1:
+            self.insert_grid(gle, gre, gid, rank, size)
+        else:
+            less_id = gle[self.split.dim] < self.split.pos
+            if less_id:
+                self.left.add_grid(gle, gre,
+                         gid, rank, size)
 
-            best_dim, split_pos, nless, ngreater = \
-                kdtree_get_choices(1, data, self.left_edge, self.right_edge,
-                                  less_ids, greater_ids)
-
-            # If best_dim is -1, then we have found a place where there are no choices.
-            # Exit out and set the node to None.
-            if best_dim == -1:
-                return -1
+            greater_id = gre[self.split.dim] > self.split.pos
+            if greater_id:
+                self.right.add_grid(gle, gre,
+                         gid, rank, size)
+        return
 
 
-            split = <Split *> malloc(sizeof(Split))
-            split.dim = best_dim
-            split.pos = split_pos
 
-            # Create a Split
-            divide(self, split)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef insert_grid(self,
+                    np.float64_t[:] gle,
+                    np.float64_t[:] gre,
+                    int grid_id,
+                    int rank,
+                    int size):
+        if not should_i_build(self, rank, size):
+            return
 
-            # Populate Left Node
-            #print 'Inserting left node', self.left_edge, self.right_edge
-            if nless == 1:
-                insert_grid(self.left, gle, gre,
-                             gid, rank, size)
+        # If we should continue to split based on parallelism, do so!
+        if self.should_i_split(rank, size):
+            geo_split(self, gle, gre, grid_id, rank, size)
+            return
 
-            # Populate Right Node
-            #print 'Inserting right node', self.left_edge, self.right_edge
-            if ngreater == 1:
-                insert_grid(self.right, gle, gre,
-                             gid, rank, size)
+        cdef int contained = 1
+        for i in range(3):
+            if gle[i] > self.left_edge[i] or\
+               gre[i] < self.right_edge[i]:
+                contained *= 0
 
-            return 0
+        if contained == 1:
+            self.grid = grid_id
+            assert(self.grid != -1)
+            return
 
-        @cython.boundscheck(False)
-        @cython.wraparound(False)
-        @cython.cdivision(True)
-        cdef kdtree_get_choices(int n_grids,
-                                np.float64_t[:,:,:] data,
-                                np.float64_t[:] l_corner,
-                                np.float64_t[:] r_corner,
-                                np.uint8_t[:] less_ids,
-                                np.uint8_t[:] greater_ids,
-                               ):
-            cdef int i, j, k, dim, n_unique, best_dim, my_split
-            cdef np.float64_t split
-            cdef np.float64_t[:,:] uniquedims
-            cdef np.float64_t[:] uniques
-            uniquedims = cvarray(format="d", shape=(3, 2*n_grids), itemsize=sizeof(np.float64_t))
-            my_max = 0
-            my_split = 0
-            best_dim = -1
-            for dim in range(3):
-                n_unique = 0
-                uniques = uniquedims[dim]
-                for i in range(n_grids):
-                    # Check for disqualification
-                    for j in range(2):
-                        # print "Checking against", i,j,dim,data[i,j,dim]
-                        if not (l_corner[dim] < data[i][j][dim] and
-                                data[i][j][dim] < r_corner[dim]):
-                            # print "Skipping ", data[i,j,dim], l_corner[dim], r_corner[dim]
-                            continue
-                        skipit = 0
-                        # Add our left ...
-                        for k in range(n_unique):
-                            if uniques[k] == data[i][j][dim]:
-                                skipit = 1
-                                # print "Identified", uniques[k], data[i,j,dim], n_unique
-                                break
-                        if skipit == 0:
-                            uniques[n_unique] = data[i][j][dim]
-                            n_unique += 1
-                if n_unique > my_max:
-                    best_dim = dim
-                    my_max = n_unique
-                    my_split = (n_unique-1)/2
-            if best_dim == -1:
-                return -1, 0, 0, 0
-            # I recognize how lame this is.
-            cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
-            for i in range(my_max):
-                # print "Setting tarr: ", i, uniquedims[best_dim][i]
-                tarr[i] = uniquedims[best_dim][i]
-            tarr.sort()
-            split = tarr[my_split]
-            cdef int nless=0, ngreater=0
-            for i in range(n_grids):
-                if data[i][0][best_dim] < split:
-                    less_ids[i] = 1
-                    nless += 1
-                else:
-                    less_ids[i] = 0
-                if data[i][1][best_dim] > split:
-                    greater_ids[i] = 1
-                    ngreater += 1
-                else:
-                    greater_ids[i] = 0
+        # Split the grid
+        cdef int check = split_grid(self, gle, gre, grid_id, rank, size)
+        # If check is -1, then we have found a place where there are no choices.
+        # Exit out and set the node to None.
+        if check == -1:
+            self.grid = -1
+        return
 
-            # Return out unique values
-            return best_dim, split, nless, ngreater
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cpdef add_grids(self,
+                        int ngrids,
+                        np.float64_t[:,:] gles,
+                        np.float64_t[:,:] gres,
+                        np.int64_t[:] gids,
+                        int rank,
+                        int size):
+        cdef int i, j, nless, ngreater, index
+        cdef np.float64_t[:,:] less_gles, less_gres, greater_gles, greater_gres
+        cdef np.int64_t[:] l_ids, g_ids
+        if not should_i_build(self, rank, size):
+            return
 
-        #@cython.boundscheck(False)
-        #@cython.wraparound(False)
-        #@cython.cdivision(True)
-        cdef int split_grids(self,
-                               int ngrids,
-                               np.float64_t[:,:] gles,
-                               np.float64_t[:,:] gres,
-                               np.int64_t[:] gids,
-                               int rank,
-                               int size):
-            # Find a Split
-            cdef int i, j, index
-            cdef np.float64_t[:,:] less_gles, less_gres, greater_gles, greater_gres
-            cdef np.int64_t[:] l_ids, g_ids
-            if ngrids == 0: return 0
+        if _kd_is_leaf(self) == 1:
+            insert_grids(self, ngrids, gles, gres, gids, rank, size)
+            return
 
-            data = cvarray(format="d", shape=(ngrids,2,3), itemsize=sizeof(np.float64_t))
+        less_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
+        greater_ids = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
 
-            for i in range(ngrids):
+        nless = 0
+        ngreater = 0
+        for i in range(ngrids):
+            if gles[i, self.split.dim] < self.split.pos:
+                less_ids[nless] = i
+                nless += 1
+
+            if gres[i, self.split.dim] > self.split.pos:
+                greater_ids[ngreater] = i
+                ngreater += 1
+
+        #print 'nless: %i' % nless
+        #print 'ngreater: %i' % ngreater
+
+        if nless > 0:
+            less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+            less_gres = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+            l_ids = cvarray(format="q", shape=(nless,), itemsize=sizeof(np.int64_t))
+
+            for i in range(nless):
+                index = less_ids[i]
+                l_ids[i] = gids[index]
                 for j in range(3):
-                    data[i,0,j] = gles[i,j]
-                    data[i,1,j] = gres[i,j]
+                    less_gles[i,j] = gles[index,j]
+                    less_gres[i,j] = gres[index,j]
 
-            less_ids = cvarray(format="B", shape=(ngrids,), itemsize=sizeof(np.uint8_t))
-            greater_ids = cvarray(format="B", shape=(ngrids,), itemsize=sizeof(np.uint8_t))
+            self.left.add_grids(nless, less_gles, less_gres,
+                      l_ids, rank, size)
 
-            best_dim, split_pos, nless, ngreater = \
-                kdtree_get_choices(ngrids, data, self.left_edge, self.right_edge,
-                                  less_ids, greater_ids)
+        if ngreater > 0:
+            greater_gles = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+            greater_gres = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+            g_ids = cvarray(format="q", shape=(ngreater,), itemsize=sizeof(np.int64_t))
 
+            for i in range(ngreater):
+                index = greater_ids[i]
+                g_ids[i] = gids[index]
+                for j in range(3):
+                    greater_gles[i,j] = gles[index,j]
+                    greater_gres[i,j] = gres[index,j]
 
-            # If best_dim is -1, then we have found a place where there are no choices.
-            # Exit out and set the node to None.
-            if best_dim == -1:
-                print 'Failed to split grids.'
-                return -1
+            self.right.add_grids(ngreater, greater_gles, greater_gres,
+                      g_ids, rank, size)
 
-            split = <Split *> malloc(sizeof(Split))
-            split.dim = best_dim
-            split.pos = split_pos
+        return
 
-            # Create a Split
-            divide(self, split)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int should_i_split(self, int rank, int size):
+        if self.node_id < size and self.node_id > 0:
+            return 1
+        return 0
 
-            less_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
-            greater_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void insert_grids(self,
+                           int ngrids,
+                           np.float64_t[:,:] gles,
+                           np.float64_t[:,:] gres,
+                           np.int64_t[:] gids,
+                           int rank,
+                           int size):
 
-            nless = 0
-            ngreater = 0
-            for i in range(ngrids):
-                if less_ids[i] == 1:
-                    less_index[nless] = i
-                    nless += 1
+        if not should_i_build(self, rank, size) or ngrids == 0:
+            return
+        cdef int contained = 1
+        cdef int check
 
-                if greater_ids[i] == 1:
-                    greater_index[ngreater] = i
-                    ngreater += 1
-
-            if nless > 0:
-                less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
-                less_gres = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
-                l_ids = cvarray(format="q", shape=(nless,), itemsize=sizeof(np.int64_t))
-
-                for i in range(nless):
-                    index = less_index[i]
-                    l_ids[i] = gids[index]
-                    for j in range(3):
-                        less_gles[i,j] = gles[index,j]
-                        less_gres[i,j] = gres[index,j]
-
-                # Populate Left Node
-                #print 'Inserting left node', self.left_edge, self.right_edge
-                insert_grids(self.left, nless, less_gles, less_gres,
-                             l_ids, rank, size)
-
-            if ngreater > 0:
-                greater_gles = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
-                greater_gres = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
-                g_ids = cvarray(format="q", shape=(ngreater,), itemsize=sizeof(np.int64_t))
-
-                for i in range(ngreater):
-                    index = greater_index[i]
-                    g_ids[i] = gids[index]
-                    for j in range(3):
-                        greater_gles[i,j] = gles[index,j]
-                        greater_gres[i,j] = gres[index,j]
-
-                # Populate Right Node
-                #print 'Inserting right node', self.left_edge, self.right_edge
-                insert_grids(self.right, ngreater, greater_gles, greater_gres,
-                             g_ids, rank, size)
-
-            return 0
-
-        cdef geo_split(self,
-                       np.float64_t[:] gle,
-                       np.float64_t[:] gre,
-                       int grid_id,
-                       int rank,
-                       int size):
-            cdef int big_dim = 0
-            cdef int i
-            cdef np.float64_t v, my_max = 0.0
+        if ngrids == 1:
+            # If we should continue to split based on parallelism, do so!
+            if self.should_i_split(rank, size):
+                geo_split(self, gles[0,:], gres[0,:], gids[0], rank, size)
+                return
 
             for i in range(3):
-                v = gre[i] - gle[i]
-                if v > my_max:
-                    my_max = v
-                    big_dim = i
+                contained *= gles[0,i] <= self.left_edge[i]
+                contained *= gres[0,i] >= self.right_edge[i]
 
-            new_pos = (gre[big_dim] + gle[big_dim])/2.
+            if contained == 1:
+                # print 'Node fully contained, setting to grid: %i' % gids[0]
+                self.grid = gids[0]
+                assert(self.grid != -1)
+                return
 
-            lnew_gle = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
-            lnew_gre = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
-            rnew_gle = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
-            rnew_gre = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+        # Split the grids
+        check = split_grids(self, ngrids, gles, gres, gids, rank, size)
+        # If check is -1, then we have found a place where there are no choices.
+        # Exit out and set the node to None.
+        if check == -1:
+            self.grid = -1
+        return
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef split_grid(self,
+                   np.float64_t[:] gle,
+                   np.float64_t[:] gre,
+                   int gid,
+                   int rank,
+                   int size):
+
+        cdef int j
+        cdef np.uint8_t[:] less_ids, greater_ids
+        data = cvarray(format="d", shape=(1,2,3), itemsize=sizeof(np.float64_t))
+        for j in range(3):
+            data[0,0,j] = gle[j]
+            data[0,1,j] = gre[j]
+
+        less_ids = cvarray(format="B", shape=(1,), itemsize=sizeof(np.uint8_t))
+        greater_ids = cvarray(format="B", shape=(1,), itemsize=sizeof(np.uint8_t))
+
+        best_dim, split_pos, nless, ngreater = \
+            kdtree_get_choices(1, data, self.left_edge, self.right_edge,
+                              less_ids, greater_ids)
+
+        # If best_dim is -1, then we have found a place where there are no choices.
+        # Exit out and set the node to None.
+        if best_dim == -1:
+            return -1
+
+
+        split = <Split *> malloc(sizeof(Split))
+        split.dim = best_dim
+        split.pos = split_pos
+
+        # Create a Split
+        divide(self, split)
+
+        # Populate Left Node
+        #print 'Inserting left node', self.left_edge, self.right_edge
+        if nless == 1:
+            self.left.insert_grid(gle, gre,
+                         gid, rank, size)
+
+        # Populate Right Node
+        #print 'Inserting right node', self.left_edge, self.right_edge
+        if ngreater == 1:
+            self.right.insert_grid(gle, gre,
+                         gid, rank, size)
+
+        return 0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef kdtree_get_choices(int n_grids,
+                            np.float64_t[:,:,:] data,
+                            np.float64_t[:] l_corner,
+                            np.float64_t[:] r_corner,
+                            np.uint8_t[:] less_ids,
+                            np.uint8_t[:] greater_ids,
+                           ):
+        cdef int i, j, k, dim, n_unique, best_dim, my_split
+        cdef np.float64_t split
+        cdef np.float64_t[:,:] uniquedims
+        cdef np.float64_t[:] uniques
+        uniquedims = cvarray(format="d", shape=(3, 2*n_grids), itemsize=sizeof(np.float64_t))
+        my_max = 0
+        my_split = 0
+        best_dim = -1
+        for dim in range(3):
+            n_unique = 0
+            uniques = uniquedims[dim]
+            for i in range(n_grids):
+                # Check for disqualification
+                for j in range(2):
+                    # print "Checking against", i,j,dim,data[i,j,dim]
+                    if not (l_corner[dim] < data[i][j][dim] and
+                            data[i][j][dim] < r_corner[dim]):
+                        # print "Skipping ", data[i,j,dim], l_corner[dim], r_corner[dim]
+                        continue
+                    skipit = 0
+                    # Add our left ...
+                    for k in range(n_unique):
+                        if uniques[k] == data[i][j][dim]:
+                            skipit = 1
+                            # print "Identified", uniques[k], data[i,j,dim], n_unique
+                            break
+                    if skipit == 0:
+                        uniques[n_unique] = data[i][j][dim]
+                        n_unique += 1
+            if n_unique > my_max:
+                best_dim = dim
+                my_max = n_unique
+                my_split = (n_unique-1)/2
+        if best_dim == -1:
+            return -1, 0, 0, 0
+        # I recognize how lame this is.
+        cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
+        for i in range(my_max):
+            # print "Setting tarr: ", i, uniquedims[best_dim][i]
+            tarr[i] = uniquedims[best_dim][i]
+        tarr.sort()
+        split = tarr[my_split]
+        cdef int nless=0, ngreater=0
+        for i in range(n_grids):
+            if data[i][0][best_dim] < split:
+                less_ids[i] = 1
+                nless += 1
+            else:
+                less_ids[i] = 0
+            if data[i][1][best_dim] > split:
+                greater_ids[i] = 1
+                ngreater += 1
+            else:
+                greater_ids[i] = 0
+
+        # Return out unique values
+        return best_dim, split, nless, ngreater
+
+    #@cython.boundscheck(False)
+    #@cython.wraparound(False)
+    #@cython.cdivision(True)
+    cdef int split_grids(self,
+                           int ngrids,
+                           np.float64_t[:,:] gles,
+                           np.float64_t[:,:] gres,
+                           np.int64_t[:] gids,
+                           int rank,
+                           int size):
+        # Find a Split
+        cdef int i, j, index
+        cdef np.float64_t[:,:] less_gles, less_gres, greater_gles, greater_gres
+        cdef np.int64_t[:] l_ids, g_ids
+        if ngrids == 0: return 0
+
+        data = cvarray(format="d", shape=(ngrids,2,3), itemsize=sizeof(np.float64_t))
+
+        for i in range(ngrids):
             for j in range(3):
-                lnew_gle[j] = gle[j]
-                lnew_gre[j] = gre[j]
-                rnew_gle[j] = gle[j]
-                rnew_gre[j] = gre[j]
+                data[i,0,j] = gles[i,j]
+                data[i,1,j] = gres[i,j]
 
-            split = <Split *> malloc(sizeof(Split))
-            split.dim = big_dim
-            split.pos = new_pos
+        less_ids = cvarray(format="B", shape=(ngrids,), itemsize=sizeof(np.uint8_t))
+        greater_ids = cvarray(format="B", shape=(ngrids,), itemsize=sizeof(np.uint8_t))
 
-            # Create a Split
-            divide(self, split)
+        best_dim, split_pos, nless, ngreater = \
+            kdtree_get_choices(ngrids, data, self.left_edge, self.right_edge,
+                              less_ids, greater_ids)
 
-            #lnew_gre[big_dim] = new_pos
+
+        # If best_dim is -1, then we have found a place where there are no choices.
+        # Exit out and set the node to None.
+        if best_dim == -1:
+            print 'Failed to split grids.'
+            return -1
+
+        split = <Split *> malloc(sizeof(Split))
+        split.dim = best_dim
+        split.pos = split_pos
+
+        # Create a Split
+        divide(self, split)
+
+        less_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
+        greater_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
+
+        nless = 0
+        ngreater = 0
+        for i in range(ngrids):
+            if less_ids[i] == 1:
+                less_index[nless] = i
+                nless += 1
+
+            if greater_ids[i] == 1:
+                greater_index[ngreater] = i
+                ngreater += 1
+
+        if nless > 0:
+            less_gles = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+            less_gres = cvarray(format="d", shape=(nless,3), itemsize=sizeof(np.float64_t))
+            l_ids = cvarray(format="q", shape=(nless,), itemsize=sizeof(np.int64_t))
+
+            for i in range(nless):
+                index = less_index[i]
+                l_ids[i] = gids[index]
+                for j in range(3):
+                    less_gles[i,j] = gles[index,j]
+                    less_gres[i,j] = gres[index,j]
+
             # Populate Left Node
             #print 'Inserting left node', self.left_edge, self.right_edge
-            insert_grid(self.left, lnew_gle, lnew_gre,
-                    grid_id, rank, size)
+            insert_grids(self.left, nless, less_gles, less_gres,
+                         l_ids, rank, size)
 
-            #rnew_gle[big_dim] = new_pos
+        if ngreater > 0:
+            greater_gles = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+            greater_gres = cvarray(format="d", shape=(ngreater,3), itemsize=sizeof(np.float64_t))
+            g_ids = cvarray(format="q", shape=(ngreater,), itemsize=sizeof(np.int64_t))
+
+            for i in range(ngreater):
+                index = greater_index[i]
+                g_ids[i] = gids[index]
+                for j in range(3):
+                    greater_gles[i,j] = gles[index,j]
+                    greater_gres[i,j] = gres[index,j]
+
             # Populate Right Node
             #print 'Inserting right node', self.left_edge, self.right_edge
-            insert_grid(self.right, rnew_gle, rnew_gre,
-                    grid_id, rank, size)
-            return
+            insert_grids(self.right, ngreater, greater_gles, greater_gres,
+                         g_ids, rank, size)
 
-        cdef void divide(self, Split * split):
-            # Create a Split
-            self.split = split
+        return 0
 
-            cdef np.float64_t[:] le = np.empty(3, dtype='float64')
-            cdef np.float64_t[:] re = np.empty(3, dtype='float64')
+    cdef geo_split(self,
+                   np.float64_t[:] gle,
+                   np.float64_t[:] gre,
+                   int grid_id,
+                   int rank,
+                   int size):
+        cdef int big_dim = 0
+        cdef int i
+        cdef np.float64_t v, my_max = 0.0
 
-            cdef int i
+        for i in range(3):
+            v = gre[i] - gle[i]
+            if v > my_max:
+                my_max = v
+                big_dim = i
+
+        new_pos = (gre[big_dim] + gle[big_dim])/2.
+
+        lnew_gle = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+        lnew_gre = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+        rnew_gle = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+        rnew_gre = cvarray(format="d", shape=(3,), itemsize=sizeof(np.float64_t))
+
+        for j in range(3):
+            lnew_gle[j] = gle[j]
+            lnew_gre[j] = gre[j]
+            rnew_gle[j] = gle[j]
+            rnew_gre[j] = gre[j]
+
+        split = <Split *> malloc(sizeof(Split))
+        split.dim = big_dim
+        split.pos = new_pos
+
+        # Create a Split
+        divide(self, split)
+
+        #lnew_gre[big_dim] = new_pos
+        # Populate Left Node
+        #print 'Inserting left node', self.left_edge, self.right_edge
+        self.left.insert_grid(lnew_gle, lnew_gre,
+                grid_id, rank, size)
+
+        #rnew_gle[big_dim] = new_pos
+        # Populate Right Node
+        #print 'Inserting right node', self.left_edge, self.right_edge
+        self.right.insert_grid(rnew_gle, rnew_gre,
+                grid_id, rank, size)
+        return
+
+    cdef void divide(self, Split * split):
+        # Create a Split
+        self.split = split
+
+        cdef np.float64_t[:] le = np.empty(3, dtype='float64')
+        cdef np.float64_t[:] re = np.empty(3, dtype='float64')
+
+        cdef int i
+        for i in range(3):
+            le[i] = self.left_edge[i]
+            re[i] = self.right_edge[i]
+        re[split.dim] = split.pos
+
+        self.left = Node(self, None, None,
+                         le, re, self.grid,
+                         _lchild_id(self.node_id))
+
+        re[split.dim] = self.right_edge[split.dim]
+        le[split.dim] = split.pos
+        self.right = Node(self, None, None,
+                          le, re, self.grid,
+                          _rchild_id(self.node_id))
+
+        return
+    #
+    def kd_sum_volume(self):
+        cdef np.float64_t vol = 1.0
+        if (self.left is None) and (self.right is None):
+            if self.grid == -1:
+                return 0.0
             for i in range(3):
-                le[i] = self.left_edge[i]
-                re[i] = self.right_edge[i]
-            re[split.dim] = split.pos
+                vol *= self.right_edge[i] - self.left_edge[i]
+            return vol
+        else:
+            return kd_sum_volume(self.left) + kd_sum_volume(self.right)
 
-            self.left = Node(self, None, None,
-                             le, re, self.grid,
-                             _lchild_id(self.node_id))
+    def kd_node_check(self):
+        assert (self.left is None) == (self.right is None)
+        if (self.left is None) and (self.right is None):
+            if self.grid != -1:
+                return np.prod(self.right_edge - self.left_edge)
+            else: return 0.0
+        else:
+            return kd_node_check(self.left)+kd_node_check(self.right)
 
-            re[split.dim] = self.right_edge[split.dim]
-            le[split.dim] = split.pos
-            self.right = Node(self, None, None,
-                              le, re, self.grid,
-                              _rchild_id(self.node_id))
+    def kd_is_leaf(self):
+        cdef int has_l_child = self.left == None
+        cdef int has_r_child = self.right == None
+        assert has_l_child == has_r_child
+        return has_l_child
 
-            return
-        #
-        def kd_sum_volume(self):
-            cdef np.float64_t vol = 1.0
-            if (self.left is None) and (self.right is None):
-                if self.grid == -1:
-                    return 0.0
-                for i in range(3):
-                    vol *= self.right_edge[i] - self.left_edge[i]
-                return vol
+    cdef int _kd_is_leaf(self):
+        if self.left is None or self.right is None:
+            return 1
+        return 0
+
+    def step_depth(Node current, Node previous):
+        '''
+        Takes a single step in the depth-first traversal
+        '''
+        if _kd_is_leaf(current) == 1: # At a leaf, move back up
+            previous = current
+            current = current.parent
+
+        elif current.parent is previous: # Moving down, go left first
+            previous = current
+            if current.left is not None:
+                current = current.left
+            elif current.right is not None:
+                current = current.right
             else:
-                return kd_sum_volume(self.left) + kd_sum_volume(self.right)
-
-        def kd_node_check(self):
-            assert (self.left is None) == (self.right is None)
-            if (self.left is None) and (self.right is None):
-                if self.grid != -1:
-                    return np.prod(self.right_edge - self.left_edge)
-                else: return 0.0
-            else:
-                return kd_node_check(self.left)+kd_node_check(self.right)
-
-        def kd_is_leaf(self):
-            cdef int has_l_child = self.left == None
-            cdef int has_r_child = self.right == None
-            assert has_l_child == has_r_child
-            return has_l_child
-
-        cdef int _kd_is_leaf(self):
-            if self.left is None or self.right is None:
-                return 1
-            return 0
-
-        def step_depth(Node current, Node previous):
-            '''
-            Takes a single step in the depth-first traversal
-            '''
-            if _kd_is_leaf(current) == 1: # At a leaf, move back up
-                previous = current
                 current = current.parent
 
-            elif current.parent is previous: # Moving down, go left first
-                previous = current
-                if current.left is not None:
-                    current = current.left
-                elif current.right is not None:
+        elif current.left is previous: # Moving up from left, go right
+            previous = current
+            if current.right is not None:
+                current = current.right
+            else:
+                current = current.parent
+
+        elif current.right is previous: # Moving up from right child, move up
+            previous = current
+            current = current.parent
+
+        return current, previous
+
+    def depth_traverse(Node trunk, max_node=None):
+        '''
+        Yields a depth-first traversal of the kd tree always going to
+        the left child before the right.
+        '''
+        current = trunk
+        previous = None
+        if max_node is None:
+            max_node = np.inf
+        while current is not None:
+            yield current
+            current, previous = step_depth(current, previous)
+            if current is None: break
+            if current.node_id >= max_node:
+                current = current.parent
+                previous = current.right
+
+    def depth_first_touch(Node tree, max_node=None):
+        '''
+        Yields a depth-first traversal of the kd tree always going to
+        the left child before the right.
+        '''
+        current = tree
+        previous = None
+        if max_node is None:
+            max_node = np.inf
+        while current is not None:
+            if previous is None or previous.parent != current:
+                yield current
+            current, previous = step_depth(current, previous)
+            if current is None: break
+            if current.node_id >= max_node:
+                current = current.parent
+                previous = current.right
+
+    def breadth_traverse(Node tree):
+        '''
+        Yields a breadth-first traversal of the kd tree always going to
+        the left child before the right.
+        '''
+        current = tree
+        previous = None
+        while current is not None:
+            yield current
+            current, previous = step_depth(current, previous)
+
+
+    def viewpoint_traverse(Node tree, viewpoint):
+        '''
+        Yields a viewpoint dependent traversal of the kd-tree.  Starts
+        with nodes furthest away from viewpoint.
+        '''
+
+        current = tree
+        previous = None
+        while current is not None:
+            yield current
+            current, previous = step_viewpoint(current, previous, viewpoint)
+
+    def step_viewpoint(Node current,
+                       Node previous,
+                       viewpoint):
+        '''
+        Takes a single step in the viewpoint based traversal.  Always
+        goes to the node furthest away from viewpoint first.
+        '''
+        if _kd_is_leaf(current) == 1: # At a leaf, move back up
+            previous = current
+            current = current.parent
+        elif current.split.dim is None: # This is a dead node
+            previous = current
+            current = current.parent
+
+        elif current.parent is previous: # Moving down
+            previous = current
+            if viewpoint[current.split.dim] <= current.split.pos:
+                if current.right is not None:
                     current = current.right
                 else:
-                    current = current.parent
+                    previous = current.right
+            else:
+                if current.left is not None:
+                    current = current.left
+                else:
+                    previous = current.left
 
-            elif current.left is previous: # Moving up from left, go right
-                previous = current
+        elif current.right is previous: # Moving up from right
+            previous = current
+            if viewpoint[current.split.dim] <= current.split.pos:
+                if current.left is not None:
+                    current = current.left
+                else:
+                    current = current.parent
+            else:
+                current = current.parent
+
+        elif current.left is previous: # Moving up from left child
+            previous = current
+            if viewpoint[current.split.dim] > current.split.pos:
                 if current.right is not None:
                     current = current.right
                 else:
                     current = current.parent
-
-            elif current.right is previous: # Moving up from right child, move up
-                previous = current
+            else:
                 current = current.parent
 
-            return current, previous
+        return current, previous
 
-        def depth_traverse(Node trunk, max_node=None):
-            '''
-            Yields a depth-first traversal of the kd tree always going to
-            the left child before the right.
-            '''
-            current = trunk
-            previous = None
-            if max_node is None:
-                max_node = np.inf
-            while current is not None:
-                yield current
-                current, previous = step_depth(current, previous)
-                if current is None: break
-                if current.node_id >= max_node:
-                    current = current.parent
-                    previous = current.right
+    cdef int point_in_node(self,
+                           np.float64_t[:] point):
+        cdef int i
+        cdef int inside = 1
+        for i in range(3):
+            inside *= self.left_edge[i] <= point[i]
+            inside *= self.right_edge[i] > point[i]
+        return inside
 
-        def depth_first_touch(Node tree, max_node=None):
-            '''
-            Yields a depth-first traversal of the kd tree always going to
-            the left child before the right.
-            '''
-            current = tree
-            previous = None
-            if max_node is None:
-                max_node = np.inf
-            while current is not None:
-                if previous is None or previous.parent != current:
-                    yield current
-                current, previous = step_depth(current, previous)
-                if current is None: break
-                if current.node_id >= max_node:
-                    current = current.parent
-                    previous = current.right
+    cdef Node _find_node(self, np.float64_t[:] point):
+        while _kd_is_leaf(self) == 0:
+            if point[self.split.dim] < self.split.pos:
+                self = self.left
+            else:
+                self = self.right
+        return self
 
-        def breadth_traverse(Node tree):
-            '''
-            Yields a breadth-first traversal of the kd tree always going to
-            the left child before the right.
-            '''
-            current = tree
-            previous = None
-            while current is not None:
-                yield current
-                current, previous = step_depth(current, previous)
-
-
-        def viewpoint_traverse(Node tree, viewpoint):
-            '''
-            Yields a viewpoint dependent traversal of the kd-tree.  Starts
-            with nodes furthest away from viewpoint.
-            '''
-
-            current = tree
-            previous = None
-            while current is not None:
-                yield current
-                current, previous = step_viewpoint(current, previous, viewpoint)
-
-        def step_viewpoint(Node current,
-                           Node previous,
-                           viewpoint):
-            '''
-            Takes a single step in the viewpoint based traversal.  Always
-            goes to the node furthest away from viewpoint first.
-            '''
-            if _kd_is_leaf(current) == 1: # At a leaf, move back up
-                previous = current
-                current = current.parent
-            elif current.split.dim is None: # This is a dead node
-                previous = current
-                current = current.parent
-
-            elif current.parent is previous: # Moving down
-                previous = current
-                if viewpoint[current.split.dim] <= current.split.pos:
-                    if current.right is not None:
-                        current = current.right
-                    else:
-                        previous = current.right
-                else:
-                    if current.left is not None:
-                        current = current.left
-                    else:
-                        previous = current.left
-
-            elif current.right is previous: # Moving up from right
-                previous = current
-                if viewpoint[current.split.dim] <= current.split.pos:
-                    if current.left is not None:
-                        current = current.left
-                    else:
-                        current = current.parent
-                else:
-                    current = current.parent
-
-            elif current.left is previous: # Moving up from left child
-                previous = current
-                if viewpoint[current.split.dim] > current.split.pos:
-                    if current.right is not None:
-                        current = current.right
-                    else:
-                        current = current.parent
-                else:
-                    current = current.parent
-
-            return current, previous
-
-        cdef int point_in_node(self,
-                               np.float64_t[:] point):
-            cdef int i
-            cdef int inside = 1
-            for i in range(3):
-                inside *= self.left_edge[i] <= point[i]
-                inside *= self.right_edge[i] > point[i]
-            return inside
-
-        cdef Node _find_node(self, np.float64_t[:] point):
-            while _kd_is_leaf(self) == 0:
-                if point[self.split.dim] < self.split.pos:
-                    self = self.left
-                else:
-                    self = self.right
-            return self
-
-        def find_node(self,
-                      np.float64_t[:] point):
-            """
-            Find the AMRKDTree node enclosing a position
-            """
-            assert(point_in_node(self, point))
-            return _find_node(self, point)
+    def find_node(self,
+                  np.float64_t[:] point):
+        """
+        Find the AMRKDTree node enclosing a position
+        """
+        assert(point_in_node(self, point))
+        return _find_node(self, point)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

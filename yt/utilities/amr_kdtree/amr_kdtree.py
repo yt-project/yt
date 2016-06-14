@@ -25,15 +25,10 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
     scatter_image
 from yt.utilities.lib.amr_kdtools import \
     Node, \
-    add_grids, \
     find_node, \
     kd_is_leaf, \
-    set_dirty, \
     depth_traverse, \
     depth_first_touch, \
-    kd_traverse, \
-    get_left_edge, \
-    get_right_edge, \
     kd_sum_volume, \
     kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -95,7 +90,7 @@ class Tree(object):
         gles = np.array([g.LeftEdge for g in grids])
         gres = np.array([g.RightEdge for g in grids])
         gids = np.array([g.id for g in grids], dtype="int64")
-        add_grids(self.trunk, gids.size, gles, gres, gids,
+        self.trunk.add_grids(gids.size, gles, gres, gids,
                     self.comm_rank, self.comm_size)
         del gles, gres, gids, grids
 
