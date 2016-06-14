@@ -474,6 +474,13 @@ class RAMSESIndex(OctreeIndex):
         for level in range(self.max_level+1):
             self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
 
+    def _get_particle_type_counts(self):
+        npart = 0
+        for dom in self.domains:
+            npart += dom.local_particle_count
+
+        return {'io': npart}
+
     def print_stats(self):
         
         # This function prints information based on the fluid on the grids,

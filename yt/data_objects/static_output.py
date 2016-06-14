@@ -15,6 +15,7 @@ Dataset and related data structures.
 #-----------------------------------------------------------------------------
 
 import functools
+import itertools
 import numpy as np
 import os
 import time
@@ -24,6 +25,8 @@ from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
 
 from yt.config import ytcfg
+from yt.fields.derived_field import \
+    DerivedField
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -62,7 +65,6 @@ from yt.units.yt_array import \
 from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
-
 from yt.geometry.coordinates.api import \
     CoordinateHandler, \
     CartesianCoordinateHandler, \
@@ -171,6 +173,7 @@ class Dataset(object):
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
+    _particle_type_counts = None
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, string_types):
@@ -590,7 +593,10 @@ class Dataset(object):
     def _get_field_info(self, ftype, fname = None):
         self.index
         if fname is None:
-            ftype, fname = "unknown", ftype
+            if isinstance(ftype, DerivedField):
+                ftype, fname = ftype.name
+            else:
+                ftype, fname = "unknown", ftype
         guessing_type = False
         if ftype == "unknown":
             guessing_type = True
@@ -761,6 +767,27 @@ class Dataset(object):
             if field[0] in self.particle_types_raw:
                 fields[field[0]].append(field[1])
         return fields
+
+    @property
+    def particles_exist(self):
+        for pt, f in itertools.product(self.particle_types_raw, self.field_list):
+            if pt == f[0]:
+                return True
+        return False
+
+    @property
+    def particle_type_counts(self):
+        self.index
+        if self.particles_exist is False:
+            return {}
+
+        # frontends or index implementation can populate this dict while
+        # creating the index if they know particle counts at that time
+        if self._particle_type_counts is not None:
+            return self._particle_type_counts
+
+        self._particle_type_counts = self.index._get_particle_type_counts()
+        return self._particle_type_counts
 
     @property
     def ires_factor(self):

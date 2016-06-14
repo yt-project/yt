@@ -1330,8 +1330,6 @@ and then uses smoothing kernels to deposit those fields to an underlying
 grid structure as spatial fields as described in :ref:`loading-gadget-data`.  
 To load Gizmo datasets using the standard HDF5 output format::
 
-.. code-block:: python
-
    import yt
    ds = yt.load("snapshot_600.hdf5")
 

@@ -17,7 +17,8 @@ import numpy as np
 from collections import defaultdict
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
-    NeedsGridType
+    NeedsGridType, \
+    NeedsParameterValue
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -26,7 +27,7 @@ class FieldDetector(defaultdict):
     _id_offset = 0
     domain_id = 0
 
-    def __init__(self, nd = 16, ds = None, flat = False):
+    def __init__(self, nd = 16, ds = None, flat = False, field_parameters=None):
         self.nd = nd
         self.flat = flat
         self._spatial = not flat
@@ -36,6 +37,7 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = np.ones(3, "float64")
+        self.field_parameters = field_parameters
         class fake_dataset(defaultdict):
             pass
 
@@ -106,6 +108,32 @@ class FieldDetector(defaultdict):
                 for i in nfd.requested_parameters:
                     if i not in self.requested_parameters:
                         self.requested_parameters.append(i)
+            except NeedsParameterValue as npv:
+                # redo field detection with a new FieldDetector, ensuring
+                # all needed field parameter values are set
+                for param in npv.parameter_values:
+                    # temporarily remove any ValidateParameter instances for
+                    # this field to avoid infinitely re-raising
+                    # NeedsParameterValue exceptions
+                    saved_validators = []
+                    for i, validator in enumerate(finfo.validators):
+                        params = getattr(validator, 'parameters', [])
+                        if param in params:
+                            saved_validators.append(validator)
+                            del finfo.validators[i]
+
+                    for pv in npv.parameter_values[param]:
+                        nfd = FieldDetector(self.nd, ds=self.ds,
+                                            field_parameters={param: pv})
+                        vv = finfo(nfd)
+                        for i in nfd.requested:
+                            if i not in self.requested:
+                                self.requested.append(i)
+                        for i in nfd.requested_parameters:
+                            if i not in self.requested_parameters:
+                                self.requested_parameters.append(i)
+
+                    finfo.validators.extend(saved_validators)
             if vv is not None:
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
@@ -176,6 +204,8 @@ class FieldDetector(defaultdict):
         }
 
     def get_field_parameter(self, param, default = 0.0):
+        if self.field_parameters and param in self.field_parameters:
+            return self.field_parameters[param]
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return self.ds.arr(np.random.random(3) * 1e-2, self.fp_units[param])

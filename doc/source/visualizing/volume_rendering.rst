@@ -31,8 +31,8 @@ rendered; this can be used to prototype visualizations, inject annotation such
 as grid or continent lines, and then to render a production-quality
 visualization.  By changing the "lens" used, a single camera path can output
 images suitable for planetarium domes, immersive and head tracking systems
-(such as the Oculus Rift or recent "spherical" movie viewers such as the
-mobile YouTube app), as well as standard screens.
+(such as the Oculus Rift or recent 360-degree/virtual reality movie viewers
+such as the mobile YouTube app), as well as standard screens.
 
 .. image:: _images/scene_diagram.svg
    :width: 50%
@@ -327,13 +327,19 @@ Spherical and Stereo Spherical
 
 The :class:`~yt.visualization.volume_rendering.lens.SphericalLens` produces
 a cylindrical-spherical projection.  Movies rendered in this way can be
-displayed in head-tracking devices (e.g. Oculus Rift) or in YouTube 360 view
-(for more information see `the YouTube help
-<https://support.google.com/youtube/answer/6178631?hl=en>`, but it's a
-simple matter of running a script on an encoded movie file.)
+displayed as YouTube 360-degree videos (for more information see
+`the YouTube help: Upload 360-degree videos
+<https://support.google.com/youtube/answer/6178631?hl=en>`_).
 :class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`
 is identical to :class:`~yt.visualization.volume_rendering.lens.SphericalLens`
-but it produces two images from nearby camera positions for use in 3D viewing.
+but it produces two images from nearby camera positions for virtual reality
+movies, which can be displayed in head-tracking devices (e.g. Oculus Rift)
+or in mobile YouTube app with Google Cardboard (for more information
+see `the YouTube help: Upload virtual reality videos
+<https://support.google.com/youtube/answer/6316263?hl=en>`_).
+`This virtual reality video
+<https://youtu.be/ZYWY53X7UQE>`_ on YouTube is an example produced with
+:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`.
 
 .. _annotated-vr-example:
 

@@ -45,9 +45,11 @@ yt/utilities/lib/mesh_construction.cpp
 yt/utilities/lib/mesh_intersection.cpp
 yt/utilities/lib/mesh_samplers.cpp
 yt/utilities/lib/mesh_traversal.cpp
+yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/particle_mesh_operations.c
+yt/utilities/lib/primitives.c
 yt/utilities/lib/origami.c
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/pixelization_routines.c
