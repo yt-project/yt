@@ -631,12 +631,12 @@ cdef class Node:
                 current = current.parent
                 previous = current.right
 
-    def breadth_traverse(Node tree):
+    def breadth_traverse(self):
         '''
         Yields a breadth-first traversal of the kd tree always going to
         the left child before the right.
         '''
-        current = tree
+        current = self
         previous = None
         while current is not None:
             yield current
