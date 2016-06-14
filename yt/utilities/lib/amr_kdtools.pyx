@@ -553,7 +553,7 @@ cdef class Node:
                 return np.prod(self.right_edge - self.left_edge)
             else: return 0.0
         else:
-            return kd_node_check(self.left)+kd_node_check(self.right)
+            return self.left.kd_node_check()+self.right.kd_node_check()
 
     def kd_is_leaf(self):
         cdef int has_l_child = self.left == None

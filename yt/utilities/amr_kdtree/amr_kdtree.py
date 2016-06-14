@@ -29,7 +29,6 @@ from yt.utilities.lib.amr_kdtools import \
     kd_is_leaf, \
     depth_traverse, \
     depth_first_touch, \
-    kd_node_check
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
@@ -121,7 +120,7 @@ class Tree(object):
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
         mylog.debug('AMRKDTree volume = %e' % vol)
-        kd_node_check(self.trunk)
+        self.trunk.kd_node_check()
 
     def sum_cells(self, all_cells=False):
         cells = 0
@@ -576,5 +575,5 @@ if __name__ == "__main__":
     t2 = time()
 
     print(hv.tree.trunk.kd_sum_volume())
-    print(kd_node_check(hv.tree.trunk))
+    print(hv.tree.trunk.kd_node_check())
     print('Time: %e seconds' % (t2-t1))
