@@ -351,7 +351,7 @@ cdef class Node:
         split.pos = split_pos
 
         # Create a Split
-        divide(self, split)
+        self.divide(split)
 
         # Populate Left Node
         #print 'Inserting left node', self.left_edge, self.right_edge
@@ -409,7 +409,7 @@ cdef class Node:
         split.pos = split_pos
 
         # Create a Split
-        divide(self, split)
+        self.divide(split)
 
         less_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
         greater_index = cvarray(format="q", shape=(ngrids,), itemsize=sizeof(np.int64_t))
@@ -495,7 +495,7 @@ cdef class Node:
         split.pos = new_pos
 
         # Create a Split
-        divide(self, split)
+        self.divide(split)
 
         #lnew_gre[big_dim] = new_pos
         # Populate Left Node
