@@ -26,7 +26,6 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
 from yt.utilities.lib.amr_kdtools import \
     Node, \
     find_node, \
-    kd_is_leaf, \
     depth_traverse, \
     depth_first_touch, \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -127,7 +126,7 @@ class Tree(object):
         for node in depth_traverse(self.trunk):
             if node.grid == -1:
                 continue
-            if not all_cells and not kd_is_leaf(node):
+            if not all_cells and not node.kd_is_leaf():
                 continue
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
