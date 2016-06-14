@@ -177,7 +177,7 @@ cdef class Node:
 
         # If we should continue to split based on parallelism, do so!
         if self.should_i_split(rank, size):
-            geo_split(self, gle, gre, grid_id, rank, size)
+            self.geo_split(gle, gre, grid_id, rank, size)
             return
 
         cdef int contained = 1
@@ -295,7 +295,7 @@ cdef class Node:
         if ngrids == 1:
             # If we should continue to split based on parallelism, do so!
             if self.should_i_split(rank, size):
-                geo_split(self, gles[0,:], gres[0,:], gids[0], rank, size)
+                self.geo_split(gles[0,:], gres[0,:], gids[0], rank, size)
                 return
 
             for i in range(3):
