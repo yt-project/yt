@@ -338,6 +338,9 @@ class sdist(_sdist):
         cythonize(cython_extensions)
         _sdist.run(self)
 
+packages = find_packages()
+package_data = dict((pkg, ['*.pxd']) for pkg in packages)
+
 setup(
     name="yt",
     version=VERSION,
@@ -369,7 +372,8 @@ setup(
             'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
     ]
     },
-    packages=find_packages(),
+    packages=packages,
+    package_data = package_data,
     setup_requires=[
         'numpy',
         'cython>=0.22',
@@ -390,7 +394,7 @@ setup(
     zip_safe=False,
     scripts=["scripts/iyt"],
     data_files=MAPSERVER_FILES + [(SHADERS_DIR, SHADERS_FILES)],
-    ext_modules=cython_extensions + extensions
+    ext_modules=cython_extensions + extensions,
 )
 
 # This info about 'ckdtree' should be incorporated somehow...
