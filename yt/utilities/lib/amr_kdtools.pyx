@@ -727,7 +727,7 @@ cdef class Node:
         Find the AMRKDTree node enclosing a position
         """
         assert(self.point_in_node(point))
-        return _find_node(self, point)
+        return self._find_node(point)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

@@ -36,5 +36,5 @@ cdef class Node:
     cdef int level
 
 cdef int point_in_node(np.float64_t[:] point)
-cdef Node _find_node(Node node, np.float64_t[:] point)
+cdef Node _find_node(np.float64_t[:] point)
 cdef int _kd_is_leaf()
