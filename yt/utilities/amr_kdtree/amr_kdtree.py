@@ -26,7 +26,6 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
 from yt.utilities.lib.amr_kdtools import \
     Node, \
     find_node, \
-    depth_first_touch, \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
@@ -497,7 +496,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         gridids = []
         splitdims = []
         splitposs = []
-        for node in depth_first_touch(self.tree.trunk):
+        for node in self.tree.trunk.depth_first_touch():
             nids.append(node.node_id)
             les.append(node.get_left_edge())
             res.append(node.get_right_edge())

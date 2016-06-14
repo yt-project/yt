@@ -613,12 +613,12 @@ cdef class Node:
                 current = current.parent
                 previous = current.right
 
-    def depth_first_touch(Node tree, max_node=None):
+    def depth_first_touch(self, max_node=None):
         '''
         Yields a depth-first traversal of the kd tree always going to
         the left child before the right.
         '''
-        current = tree
+        current = self
         previous = None
         if max_node is None:
             max_node = np.inf
