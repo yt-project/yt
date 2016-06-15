@@ -704,7 +704,7 @@ function do_setup_py
 if type -P curl &>/dev/null
 then
     echo "Using curl"
-    export GETFILE="curl -sSO"
+    export GETFILE="curl -sSOL"
 else
     echo "Using wget"
     export GETFILE="wget -nv"

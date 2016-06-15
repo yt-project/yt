@@ -70,6 +70,9 @@ class Clump(object):
         if parent is not None:
             self.data.parent = self.parent.data
 
+        if parent is not None:
+            self.data.parent = self.parent.data
+
         # List containing characteristics about clumps that are to be written 
         # out by the write routines.
         if clump_info is None:

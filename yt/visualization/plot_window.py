@@ -64,7 +64,8 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
-    YTPlotCallbackError
+    YTPlotCallbackError, \
+    YTDataTypeUnsupported
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -984,6 +985,8 @@ class PWViewerMPL(PlotWindow):
                 callback = CallbackMaker(*args[1:], **kwargs)
                 try:
                     callback(cbw)
+                except YTDataTypeUnsupported as e:
+                    six.reraise(YTDataTypeUnsupported, e)
                 except Exception as e:
                     six.reraise(YTPlotCallbackError,
                                 YTPlotCallbackError(callback._type_name, e),

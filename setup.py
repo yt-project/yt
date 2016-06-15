@@ -189,14 +189,10 @@ lib_exts = [
     "amr_kdtools"
 ]
 for ext_name in lib_exts:
-    lib_deps = []
-    if ext_name == 'misc_utilities':
-        lib_deps.append('yt/geometry/selection_routines.pxd')
     cython_extensions.append(
         Extension("yt.utilities.lib.{}".format(ext_name),
                   ["yt/utilities/lib/{}.pyx".format(ext_name)],
-                  libraries=std_libs,
-                  depends=lib_deps))
+                  libraries=std_libs))
 
 lib_exts = ["write_array", "ragged_arrays", "line_integral_convolution"]
 for ext_name in lib_exts:
@@ -222,9 +218,6 @@ extensions = [
               glob.glob("yt/utilities/spatial/src/*.c")),
     Extension("yt.visualization._MPL",
               ["yt/visualization/_MPL.c"],
-              libraries=std_libs),
-    Extension("yt.utilities.data_point_utilities",
-              ["yt/utilities/data_point_utilities.c"],
               libraries=std_libs),
 ]
 

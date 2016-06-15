@@ -26,7 +26,8 @@ import numpy as np
 from io import BytesIO
 
 
-from .base_plot_types import ImagePlotMPL
+from .base_plot_types import \
+    PlotMPL, ImagePlotMPL
 from .plot_container import \
     ImagePlotContainer, \
     log_transform, linear_transform, get_log_minorticks, \
@@ -41,7 +42,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
-    get_ipython_api_version
+    get_ipython_api_version, \
+    matplotlib_style_context
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -60,25 +62,33 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
+class PlotContainer(OrderedDict):
+    def __missing__(self, key):
+        plot = PlotMPL((10, 8), [0.1, 0.1, 0.8, 0.8], None, None)
+        self[key] = plot
+        return self[key]
+
 class FigureContainer(OrderedDict):
-    def __init__(self):
+    def __init__(self, plots):
+        self.plots = plots
         super(FigureContainer, self).__init__()
 
     def __missing__(self, key):
-        from matplotlib.figure import Figure
-        figure = Figure((10, 8))
-        self[key] = figure
+        self[key] = self.plots[key].figure
         return self[key]
 
+    def __iter__(self):
+        return iter(self.plots)
+
+
 class AxesContainer(OrderedDict):
-    def __init__(self, fig_container):
-        self.fig_container = fig_container
+    def __init__(self, plots):
+        self.plots = plots
         self.ylim = {}
         super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
-        figure = self.fig_container[key]
-        self[key] = figure.add_subplot(111)
+        self[key] = self.plots[key].axes
         return self[key]
 
     def __setitem__(self, key, value):
@@ -227,7 +237,7 @@ class ProfilePlot(object):
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
         
     @validate_plot
-    def save(self, name=None, suffix=None):
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
         Saves a 1d profile plot.
 
@@ -238,14 +248,16 @@ class ProfilePlot(object):
         suffix : string
             Specify the image type by its suffix. If not specified, the output
             type will be inferred from the filename. Defaults to PNG.
+        mpl_kwargs : dict
+            A dict of keyword arguments to be passed to matplotlib.
         """
         if not self._plot_valid:
             self._setup_plots()
-        unique = set(self.figures.values())
-        if len(unique) < len(self.figures):
+        unique = set(self.plots.values())
+        if len(unique) < len(self.plots):
             iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.figures)
+            iters = iteritems(self.plots)
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
@@ -261,24 +273,23 @@ class ProfilePlot(object):
             if sfx != '':
                 suffix = sfx
                 prefix = name[:name.rfind(suffix)]
-                fullname = True 
+                fullname = True
             else:
                 prefix = name
         xfn = self.profiles[0].x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
-        canvas_cls = get_canvas(name)
         fns = []
-        for uid, fig in iters:
+        for uid, plot in iters:
             if isinstance(uid, tuple):
                 uid = uid[1]
-            canvas = canvas_cls(fig)
             if fullname:
                 fns.append("%s%s" % (prefix, suffix))
             else:
                 fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
             mylog.info("Saving %s", fns[-1])
-            canvas.print_figure(fns[-1])
+            with matplotlib_style_context():
+                plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
         return fns
 
     @validate_plot
@@ -325,7 +336,8 @@ class ProfilePlot(object):
         for uid, fig in iters:
             canvas = mpl.FigureCanvasAgg(fig)
             f = BytesIO()
-            canvas.print_figure(f)
+            with matplotlib_style_context():
+                canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read()).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
@@ -352,10 +364,14 @@ class ProfilePlot(object):
             axes.set_ylim(*self.axes.ylim[fname])
             if any(self.label):
                 axes.legend(loc="best")
+        self._set_font_properties()
         self._plot_valid = True
 
     @classmethod
     def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        from matplotlib.font_manager import FontProperties
+        obj._font_properties = FontProperties(family='stixgeneral', size=18)
+        obj._font_color = None
         obj.profiles = ensure_list(profiles)
         obj.x_log = None
         obj.y_log = {}
@@ -368,8 +384,9 @@ class ProfilePlot(object):
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
         obj.plot_spec = plot_specs
-        obj.figures = FigureContainer()
-        obj.axes = AxesContainer(obj.figures)
+        obj.plots = PlotContainer()
+        obj.figures = FigureContainer(obj.plots)
+        obj.axes = AxesContainer(obj.plots)
         obj._setup_plots()
         return obj
 
@@ -596,6 +613,11 @@ class ProfilePlot(object):
                 # Continue on to the next profile.
                 break
         return self
+
+    def _set_font_properties(self):
+        for f in self.plots:
+            self.plots[f]._set_font_properties(
+                self._font_properties, self._font_color)
 
     def _get_field_log(self, field_y, profile):
         yfi = profile.field_info[field_y]
@@ -1046,6 +1068,63 @@ class PhasePlot(ImagePlotContainer):
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
+
+    @invalidate_plot
+    def set_font(self, font_dict=None):
+        """set the font and font properties
+
+        Parameters
+        ----------
+        font_dict : dict
+        A dict of keyword parameters to be passed to
+        :py:class:`matplotlib.font_manager.FontProperties`.
+
+        Possible keys include
+        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
+          'monospace'.
+        * style - The font style. Either normal, italic or oblique.
+        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
+          'orange'.
+        * variant: Either normal or small-caps.
+        * size: Either an relative value of xx-small, x-small, small, medium,
+          large, x-large, xx-large or an absolute font size, e.g. 12
+        * stretch: A numeric value in the range 0-1000 or one of
+          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
+          semi-expanded, expanded, extra-expanded or ultra-expanded
+        * weight: A numeric value in the range 0-1000 or one of ultralight,
+          light, normal, regular, book, medium, roman, semibold, demibold, demi,
+          bold, heavy, extra bold, or black
+
+        See the matplotlib font manager API documentation for more details.
+        http://matplotlib.org/api/font_manager_api.html
+
+        Notes
+        -----
+        Mathtext axis labels will only obey the `size` and `color` keyword.
+
+        Examples
+        --------
+        This sets the font to be 24-pt, blue, sans-serif, italic, and
+        bold-face.
+
+        >>> prof = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> slc.set_font({'family':'sans-serif', 'style':'italic',
+                          'weight':'bold', 'size':24, 'color':'blue'})
+
+        """
+        from matplotlib.font_manager import FontProperties
+
+        if font_dict is None:
+            font_dict = {}
+        if 'color' in font_dict:
+            self._font_color = font_dict.pop('color')
+        # Set default values if the user does not explicitly set them.
+        # this prevents reverting to the matplotlib defaults.
+        font_dict.setdefault('family', 'stixgeneral')
+        font_dict.setdefault('size', 18)
+        self._font_properties = \
+            FontProperties(**font_dict)
+        return self
 
     @invalidate_plot
     def set_title(self, field, title):

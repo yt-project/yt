@@ -477,6 +477,9 @@ def test_latex_repr():
     test_unit = Unit('cm**-3', base_value=1.0, registry=ds.unit_registry)
     assert_equal(test_unit.latex_repr, '\\frac{1}{\\rm{cm}^{3}}')
 
+    test_unit = Unit('m_geom/l_geom**3')
+    assert_equal(test_unit.latex_repr, '\\frac{1}{M_\\odot^{2}}')
+
 def test_latitude_longitude():
     lat = unit_symbols.lat
     lon = unit_symbols.lon

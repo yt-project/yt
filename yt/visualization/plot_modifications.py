@@ -21,6 +21,7 @@ import matplotlib
 import numpy as np
 
 from distutils.version import LooseVersion
+from functools import wraps
 
 from yt.funcs import \
     mylog, iterable
@@ -37,20 +38,48 @@ from yt.utilities.lib.line_integral_convolution import \
     line_integral_convolution_2d
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
+from yt.utilities.exceptions import \
+    YTDataTypeUnsupported
 
 from . import _MPL
 
 callback_registry = {}
 
+def _verify_geometry(func):
+    @wraps(func)
+    def _check_geometry(self, plot):
+        geom = plot.data.ds.coordinates.name
+        supp = self._supported_geometries
+        cs = getattr(self, "coord_system", None)
+        if supp is None or geom in supp:
+            return func(self, plot)
+        if cs in ("axis", "figure") and "force" not in supp:
+            return func(self, plot)
+        raise YTDataTypeUnsupported(geom, supp)
+    return _check_geometry
+
 class RegisteredCallback(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         callback_registry[name] = cls
+        cls.__call__ = _verify_geometry(cls.__call__)
 
 @add_metaclass(RegisteredCallback)
 class PlotCallback(object):
+    # _supported_geometries is set by subclasses of PlotCallback to a tuple of
+    # strings corresponding to the names of the geometries that a callback
+    # supports.  By default it is None, which means it supports everything.
+    # Note that if there's a coord_system parameter that is set to "axis" or
+    # "figure" this is disregarded.  If "force" is included in the tuple, it
+    # will *not* check whether or not the coord_system is in axis or figure,
+    # and will only look at the geometries.
+    _supported_geometries = None
+
     def __init__(self, *args, **kwargs):
         pass
+
+    def __call__(self, plot):
+        raise NotImplementedError
 
     def project_coords(self, plot, coord):
         """
@@ -248,6 +277,7 @@ class VelocityCallback(PlotCallback):
     Cutting Planes).
     """
     _type_name = "velocity"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -293,6 +323,7 @@ class MagFieldCallback(PlotCallback):
     clearly seen for fields with substantial variation in field strength.
     """
     _type_name = "magnetic_field"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, factor=16, scale=None, scale_units=None, normalize=False):
         PlotCallback.__init__(self)
         self.factor = factor
@@ -326,6 +357,7 @@ class QuiverCallback(PlotCallback):
     (see matplotlib.axes.Axes.quiver for more info)
     """
     _type_name = "quiver"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, field_x, field_y, factor=16, scale=None,
                  scale_units=None, normalize=False, bv_x=0, bv_y=0):
         PlotCallback.__init__(self)
@@ -405,6 +437,7 @@ class ContourCallback(PlotCallback):
     queried.
     """
     _type_name = "contour"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, field, ncont=5, factor=4, clim=None,
                  plot_args=None, label=False, take_log=None,
                  label_args=None, text_args=None, data_source=None):
@@ -538,6 +571,7 @@ class GridBoundaryCallback(PlotCallback):
     can change the linewidth of the displayed grids.
     """
     _type_name = "grids"
+    _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
                  periodic=True, min_level=None, max_level=None,
@@ -652,6 +686,7 @@ class StreamlineCallback(PlotCallback):
     *field_color* is a field to be used to colormap the streamlines.
     """
     _type_name = "streamlines"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, field_x, field_y, factor=16,
                  density=1, field_color=None, plot_args=None):
         PlotCallback.__init__(self)
@@ -758,6 +793,7 @@ class LinePlotCallback(PlotCallback):
 
     """
     _type_name = "line"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, p1, p2, data_coords=False, coord_system="data",
                  plot_args=None):
         PlotCallback.__init__(self)
@@ -798,6 +834,7 @@ class ImageLineCallback(LinePlotCallback):
 
     """
     _type_name = "image_line"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, p1, p2, data_coords=False, coord_system='axis',
                  plot_args=None):
         super(ImageLineCallback, self).__init__(p1, p2, data_coords,
@@ -817,6 +854,7 @@ class CuttingQuiverCallback(PlotCallback):
     *field_y*, skipping every *factor* datapoint in the discretization.
     """
     _type_name = "cquiver"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, field_x, field_y, factor):
         PlotCallback.__init__(self)
         self.field_x = field_x
@@ -862,6 +900,7 @@ class ClumpContourCallback(PlotCallback):
     Take a list of *clumps* and plot them as a set of contours.
     """
     _type_name = "clumps"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
         if plot_args is None: plot_args = {}
@@ -990,6 +1029,7 @@ class ArrowCallback(PlotCallback):
 
     """
     _type_name = "arrow"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, pos, code_size=None, length=0.03, width=0.0001,
                  head_width=0.01, head_length=0.01,
                  starting_pos=None, coord_system='data', plot_args=None):
@@ -1105,6 +1145,7 @@ class MarkerAnnotateCallback(PlotCallback):
 
     """
     _type_name = "marker"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
         def_plot_args = {'color':'w', 's':50}
         self.pos = pos
@@ -1178,6 +1219,7 @@ class SphereCallback(PlotCallback):
 
     """
     _type_name = "sphere"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, center, radius, circle_args=None,
                  text=None, coord_system='data', text_args=None):
         def_text_args = {'color':'white'}
@@ -1293,6 +1335,7 @@ class TextLabelCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "text"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         def_text_args = {'color':'white'}
@@ -1337,6 +1380,7 @@ class PointAnnotateCallback(TextLabelCallback):
 
     """
     _type_name = "point"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, pos, text, data_coords=False, coord_system='data',
                  text_args=None, inset_box_args=None):
         super(PointAnnotateCallback, self).__init__(pos, text, data_coords,
@@ -1379,6 +1423,7 @@ class HaloCatalogCallback(PlotCallback):
     _type_name = 'halos'
     region = None
     _descriptor = None
+    _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
                  width=None, annotate_field=None, text_args=None,
@@ -1486,6 +1531,7 @@ class ParticleCallback(PlotCallback):
     _type_name = "particles"
     region = None
     _descriptor = None
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
                  ptype='all', minimum_mass=None, alpha=1.0):
         PlotCallback.__init__(self)
@@ -1626,6 +1672,7 @@ class MeshLinesCallback(PlotCallback):
 
     """
     _type_name = "mesh_lines"
+    _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, plot_args=None):
         super(MeshLinesCallback, self).__init__()
@@ -1690,6 +1737,7 @@ class TriangleFacetsCallback(PlotCallback):
     of the geometry represented by the triangles.
     """
     _type_name = "triangle_facets"
+    _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, triangle_vertices, plot_args=None):
         super(TriangleFacetsCallback, self).__init__()
@@ -1814,6 +1862,7 @@ class TimestampCallback(PlotCallback):
     >>> s.annotate_timestamp()
     """
     _type_name = "timestamp"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
                  redshift=False, time_format="t = {time:.1f} {units}",
                  time_unit=None, redshift_format="z = {redshift:.2f}",
@@ -1999,6 +2048,7 @@ class ScaleCallback(PlotCallback):
     >>> s.annotate_scale()
     """
     _type_name = "scale"
+    _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
                  max_frac=0.16, min_frac=0.015, coord_system='axis',
                  text_args=None, size_bar_args=None, draw_inset_box=False,
@@ -2176,6 +2226,7 @@ class RayCallback(PlotCallback):
 
     """
     _type_name = "ray"
+    _supported_geometries = ("cartesian", "spectral_cube", "force")
     def __init__(self, ray, arrow=False, plot_args=None):
         PlotCallback.__init__(self)
         def_plot_args = {'color':'white', 'linewidth':2}
@@ -2322,6 +2373,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                              lim=(0.5,0.65))
     """
     _type_name = "line_integral_convolution"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, field_x, field_y, texture=None, kernellen=50.,
                  lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
         PlotCallback.__init__(self)
@@ -2417,6 +2469,7 @@ class CellEdgesCallback(PlotCallback):
     >>> s.save()
     """
     _type_name = "cell_edges"
+    _supported_geometries = ("cartesian", "spectral_cube")
     def __init__(self, line_width=1.0, alpha = 1.0, color=(0.0, 0.0, 0.0)):
         PlotCallback.__init__(self)
         self.line_width = line_width
