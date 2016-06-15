@@ -24,6 +24,7 @@ from yt.utilities.lib.pixelization_routines import \
 
 class GeographicCoordinateHandler(CoordinateHandler):
     radial_axis = "altitude"
+    name = "geographic"
 
     def __init__(self, ds, ordering = None):
         if not ordering:
@@ -324,6 +325,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
 class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     radial_axis = "depth"
+    name = "internal"
     
     def _setup_radial_fields(self, registry):
         # Altitude is the radius from the central zone minus the radius of the

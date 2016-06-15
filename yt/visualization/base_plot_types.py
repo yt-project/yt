@@ -19,7 +19,8 @@ from yt.funcs import \
     get_image_suffix, \
     mylog, \
     iterable, \
-    get_brewer_cmap
+    get_brewer_cmap, \
+    matplotlib_style_context
 import numpy as np
 
 
@@ -70,6 +71,9 @@ class PlotMPL(object):
             axes.set_position(axrect)
             self.axes = axes
         self.canvas = FigureCanvasAgg(self.figure)
+        for which in ['major', 'minor']:
+            for axis in 'xy':
+                self.axes.tick_params(which=which, axis=axis, direction='in')
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
@@ -97,8 +101,22 @@ class PlotMPL(object):
             mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
             canvas = self.canvas
 
-        canvas.print_figure(name, **mpl_kwargs)
+        with matplotlib_style_context():
+            canvas.print_figure(name, **mpl_kwargs)
         return name
+
+    def _get_labels(self):
+        ax = self.axes
+        labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+        labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
+                   ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
+        return labels
+
+    def _set_font_properties(self, font_properties, font_color):
+        for label in self._get_labels():
+            label.set_fontproperties(font_properties)
+            if font_color is not None:
+                label.set_color(self.font_color)
 
 
 class ImagePlotMPL(PlotMPL):
@@ -144,12 +162,15 @@ class ImagePlotMPL(PlotMPL):
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
+        for which in ['major', 'minor']:
+            self.cax.tick_params(which=which, axis='y', direction='in')
 
     def _repr_png_(self):
         from ._mpl_imports import FigureCanvasAgg
         canvas = FigureCanvasAgg(self.figure)
         f = BytesIO()
-        canvas.print_figure(f)
+        with matplotlib_style_context():
+            canvas.print_figure(f)
         f.seek(0)
         return f.read()
 
@@ -250,6 +271,13 @@ class ImagePlotMPL(PlotMPL):
         self.axes.set_position(axrect)
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
+
+    def _get_labels(self):
+        labels = super(ImagePlotMPL, self)._get_labels()
+        cbax = self.cb.ax
+        labels += cbax.yaxis.get_ticklabels()
+        labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+        return labels
 
     def hide_axes(self):
         """
