@@ -566,36 +566,6 @@ cdef class Node:
             return 1
         return 0
 
-    def step_depth(Node current, Node previous):
-        '''
-        Takes a single step in the depth-first traversal
-        '''
-        if current._kd_is_leaf() == 1: # At a leaf, move back up
-            previous = current
-            current = current.parent
-
-        elif current.parent is previous: # Moving down, go left first
-            previous = current
-            if current.left is not None:
-                current = current.left
-            elif current.right is not None:
-                current = current.right
-            else:
-                current = current.parent
-
-        elif current.left is previous: # Moving up from left, go right
-            previous = current
-            if current.right is not None:
-                current = current.right
-            else:
-                current = current.parent
-
-        elif current.right is previous: # Moving up from right child, move up
-            previous = current
-            current = current.parent
-
-        return current, previous
-
     def depth_traverse(self, max_node=None):
         '''
         Yields a depth-first traversal of the kd tree always going to
@@ -655,55 +625,6 @@ cdef class Node:
             yield current
             current, previous = step_viewpoint(current, previous, viewpoint)
 
-    def step_viewpoint(Node current,
-                       Node previous,
-                       viewpoint):
-        '''
-        Takes a single step in the viewpoint based traversal.  Always
-        goes to the node furthest away from viewpoint first.
-        '''
-        if current._kd_is_leaf() == 1: # At a leaf, move back up
-            previous = current
-            current = current.parent
-        elif current.split.dim is None: # This is a dead node
-            previous = current
-            current = current.parent
-
-        elif current.parent is previous: # Moving down
-            previous = current
-            if viewpoint[current.split.dim] <= current.split.pos:
-                if current.right is not None:
-                    current = current.right
-                else:
-                    previous = current.right
-            else:
-                if current.left is not None:
-                    current = current.left
-                else:
-                    previous = current.left
-
-        elif current.right is previous: # Moving up from right
-            previous = current
-            if viewpoint[current.split.dim] <= current.split.pos:
-                if current.left is not None:
-                    current = current.left
-                else:
-                    current = current.parent
-            else:
-                current = current.parent
-
-        elif current.left is previous: # Moving up from left child
-            previous = current
-            if viewpoint[current.split.dim] > current.split.pos:
-                if current.right is not None:
-                    current = current.right
-                else:
-                    current = current.parent
-            else:
-                current = current.parent
-
-        return current, previous
-
     cdef int point_in_node(self,
                            np.float64_t[:] point):
         cdef int i
@@ -757,6 +678,85 @@ cdef int should_i_build(self, int rank, int size):
         return 1
     else:
         return 0
+
+def step_depth(Node current, Node previous):
+    '''
+    Takes a single step in the depth-first traversal
+    '''
+    if current._kd_is_leaf() == 1: # At a leaf, move back up
+        previous = current
+        current = current.parent
+
+    elif current.parent is previous: # Moving down, go left first
+        previous = current
+        if current.left is not None:
+            current = current.left
+        elif current.right is not None:
+            current = current.right
+        else:
+            current = current.parent
+
+    elif current.left is previous: # Moving up from left, go right
+        previous = current
+        if current.right is not None:
+            current = current.right
+        else:
+            current = current.parent
+
+    elif current.right is previous: # Moving up from right child, move up
+        previous = current
+        current = current.parent
+
+    return current, previous
+
+def step_viewpoint(Node current,
+                   Node previous,
+                   viewpoint):
+    '''
+    Takes a single step in the viewpoint based traversal.  Always
+    goes to the node furthest away from viewpoint first.
+    '''
+    if current._kd_is_leaf() == 1: # At a leaf, move back up
+        previous = current
+        current = current.parent
+    elif current.split.dim is None: # This is a dead node
+        previous = current
+        current = current.parent
+
+    elif current.parent is previous: # Moving down
+        previous = current
+        if viewpoint[current.split.dim] <= current.split.pos:
+            if current.right is not None:
+                current = current.right
+            else:
+                previous = current.right
+        else:
+            if current.left is not None:
+                current = current.left
+            else:
+                previous = current.left
+
+    elif current.right is previous: # Moving up from right
+        previous = current
+        if viewpoint[current.split.dim] <= current.split.pos:
+            if current.left is not None:
+                current = current.left
+            else:
+                current = current.parent
+        else:
+            current = current.parent
+
+    elif current.left is previous: # Moving up from left child
+        previous = current
+        if viewpoint[current.split.dim] > current.split.pos:
+            if current.right is not None:
+                current = current.right
+            else:
+                current = current.parent
+        else:
+            current = current.parent
+
+    return current, previous
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
