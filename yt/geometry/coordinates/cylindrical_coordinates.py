@@ -28,6 +28,7 @@ from yt.utilities.lib.pixelization_routines import \
 #
 
 class CylindricalCoordinateHandler(CoordinateHandler):
+    name = "cylindrical"
 
     def __init__(self, ds, ordering = ('r', 'z', 'theta')):
         super(CylindricalCoordinateHandler, self).__init__(ds, ordering)

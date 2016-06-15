@@ -167,7 +167,8 @@ def validate_comparison_units(this, other, op_string):
     # Check that other is a YTArray.
     if hasattr(other, 'units'):
         if this.units.expr is other.units.expr:
-            return other
+            if this.units.base_value == other.units.base_value:
+                return other
         if not this.units.same_dimensions_as(other.units):
             raise YTUnitOperationError(op_string, this.units, other.units)
         return other.in_units(this.units)

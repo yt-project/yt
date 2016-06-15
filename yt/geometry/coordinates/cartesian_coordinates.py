@@ -29,6 +29,7 @@ from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 
 
 class CartesianCoordinateHandler(CoordinateHandler):
+    name = "cartesian"
 
     def __init__(self, ds, ordering = ('x','y','z')):
         super(CartesianCoordinateHandler, self).__init__(ds, ordering)

@@ -26,7 +26,7 @@ answer_tests:
   local_gdf_000:
     - yt/frontends/gdf/tests/test_outputs.py
 
-  local_gizmo_000:
+  local_gizmo_001:
     - yt/frontends/gizmo/tests/test_outputs.py
 
   local_halos_000:
