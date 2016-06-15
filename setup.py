@@ -338,9 +338,6 @@ class sdist(_sdist):
         cythonize(cython_extensions)
         _sdist.run(self)
 
-packages = find_packages()
-package_data = dict((pkg, ['*.pxd']) for pkg in packages)
-
 setup(
     name="yt",
     version=VERSION,
@@ -372,8 +369,8 @@ setup(
             'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
     ]
     },
-    packages=packages,
-    package_data = package_data,
+    packages=find_packages(),
+    package_data = {'':['*.pxd']},
     setup_requires=[
         'numpy',
         'cython>=0.22',
