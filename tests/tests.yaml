@@ -14,7 +14,7 @@ answer_tests:
   local_fits_000:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_001:
+  local_flash_002:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_000:
@@ -39,7 +39,7 @@ answer_tests:
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
   
-  local_pw_000:
+  local_pw_001:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
