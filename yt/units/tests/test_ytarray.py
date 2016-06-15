@@ -626,6 +626,29 @@ def test_fix_length():
     new_length = fix_length(length, ds=ds)
     yield assert_equal, YTQuantity(10, 'cm'), new_length
 
+def test_code_unit_combinations():
+    """
+    Test comparing code units coming from different datasets
+    """
+    ds1 = fake_random_ds(64, nprocs=1, length_unit=1)
+    ds2 = fake_random_ds(64, nprocs=1, length_unit=10)
+
+    q1 = ds1.quan(1, 'code_length')
+    q2 = ds2.quan(1, 'code_length')
+
+    assert_equal(10*q1, q2)
+    assert_equal(q1/q2, 0.1)
+    assert_true(q1 < q2)
+    assert_true(q2 > q1)
+    assert_true(not bool(q1 > q2))
+    assert_true(not bool(q2 < q1))
+    assert_true(q1 != q2)
+    assert_true(not bool(q1 == q2))
+
+    assert_equal((q1 + q2).in_cgs().value, 11)
+    assert_equal((q2 + q1).in_cgs().value, 11)
+    assert_equal((q1 - q2).in_cgs().value, -9)
+    assert_equal((q2 - q1).in_cgs().value, 9)
 
 def test_ytarray_pickle():
     ds = fake_random_ds(64, nprocs=1)
