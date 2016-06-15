@@ -273,8 +273,7 @@ class VelocityCallback(PlotCallback):
     True, the velocity fields will be scaled by their local
     (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field
-    strength (normalize is not implemented and thus ignored for
-    Cutting Planes).
+    strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
@@ -290,7 +289,9 @@ class VelocityCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_velocity_x",
                                         "cutting_plane_velocity_y",
-                                        self.factor)
+                                        self.factor, scale=self.scale,
+                                        normalize=self.normalize,
+                                        scale_units=self.scale_units)
         else:
             ax = plot.data.axis
             (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
@@ -336,7 +337,9 @@ class MagFieldCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
                                         "cutting_plane_magnetic_field_y",
-                                        self.factor)
+                                        self.factor, scale=self.scale, 
+                                        scale_units=self.scale_units, 
+                                        normalize=self.normalize)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
@@ -855,11 +858,16 @@ class CuttingQuiverCallback(PlotCallback):
     """
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, field_x, field_y, factor):
+
+    def __init__(self, field_x, field_y, factor=16, scale=None,
+                 scale_units=None, normalize=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
         self.factor = factor
+        self.scale = scale
+        self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -870,6 +878,7 @@ class CuttingQuiverCallback(PlotCallback):
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
+
         pixX = pixelize_off_axis_cartesian(
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
@@ -877,7 +886,7 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
                                int(nx), int(ny),
-                               (x0, x1, y0, y1),).transpose()
+                               (x0, x1, y0, y1)).transpose()
         pixY = pixelize_off_axis_cartesian(
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
@@ -885,10 +894,16 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_y],
                                int(nx), int(ny),
-                               (x0, x1, y0, y1),).transpose()
+                               (x0, x1, y0, y1)).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
-        plot._axes.quiver(X,Y, pixX, pixY)
+
+        if self.normalize:
+            nn = np.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
+
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
