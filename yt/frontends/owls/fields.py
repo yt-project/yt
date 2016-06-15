@@ -76,8 +76,6 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         smoothed_suffixes = ("_number_density", "_density", "_mass")
 
-
-
         # we add particle element fields for stars and gas
         #-----------------------------------------------------
         if ptype in self._add_elements:
@@ -144,6 +142,9 @@ class OWLSFieldInfo(SPHFieldInfo):
                     symbol = ion[0:1].capitalize()
                     roman = int(ion[1:])
 
+                if (ptype, symbol + "_fraction") not in self.field_aliases:
+                    continue
+
                 pstr = "_p" + str(roman-1)
                 yt_ion = symbol + pstr
 
@@ -165,6 +166,9 @@ class OWLSFieldInfo(SPHFieldInfo):
                 else:
                     symbol = ion[0:1].capitalize()
                     roman = int(ion[1:])
+
+                if (ptype, symbol + "_fraction") not in self.field_aliases:
+                    continue
 
                 pstr = "_p" + str(roman-1)
                 yt_ion = symbol + pstr
@@ -200,6 +204,9 @@ class OWLSFieldInfo(SPHFieldInfo):
             else:
                 symbol = ion[0:1].capitalize()
                 roman = int(ion[1:])
+
+            if (ptype, symbol + "_fraction") not in self.field_aliases:
+                continue
 
             pstr = "_p" + str(roman-1)
             yt_ion = symbol + pstr
