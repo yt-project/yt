@@ -71,6 +71,7 @@ def validate_iterable_width(width, ds, unit=None):
                     ds.quan(width[0], fix_unitary(width[1])))
 
 class CoordinateHandler(object):
+    name = None
     
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
