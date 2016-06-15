@@ -363,6 +363,7 @@ setup(
     ]
     },
     packages=find_packages(),
+    package_data = {'':['*.pxd']},
     setup_requires=[
         'numpy',
         'cython>=0.22',
@@ -383,7 +384,7 @@ setup(
     zip_safe=False,
     scripts=["scripts/iyt"],
     data_files=MAPSERVER_FILES + [(SHADERS_DIR, SHADERS_FILES)],
-    ext_modules=cython_extensions + extensions
+    ext_modules=cython_extensions + extensions,
 )
 
 # This info about 'ckdtree' should be incorporated somehow...
