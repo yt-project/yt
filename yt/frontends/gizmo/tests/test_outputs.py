@@ -34,13 +34,16 @@ fields = OrderedDict(
         (('gas', 'velocity_magnitude'), None),
         (("deposit", "all_count"), None),
         (("deposit", "all_cic"), None),
+        (("deposit", "PartType0_density"), None),
     ]
 )
 
-@requires_ds(FIRE_m12i)
-def test_GizmoDataset():
-    ds = data_dir_load(FIRE_m12i)
+g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
+
+@requires_ds(g64, big_data=True)
+def test_gizmo_64():
+    ds = data_dir_load(g64)
     assert isinstance(ds, GizmoDataset)
-    for test in sph_answer(ds, 'snapshot_600', 4786950, fields):
-        test_GizmoDataset.__name__ = test.description
+    for test in sph_answer(ds, 'snap_N64L16_135', 524288, fields):
+        test_gizmo_64.__name__ = test.description
         yield test

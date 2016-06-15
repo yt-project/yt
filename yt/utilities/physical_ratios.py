@@ -3,10 +3,11 @@ import numpy as np
 # Physical Constants and Units Conversion Factors
 #
 # Values for these constants, unless otherwise noted, are drawn from IAU,
-# IUPAC, and NIST data, whichever is newer.
+# IUPAC, NIST, and NASA data, whichever is newer.
 # http://maia.usno.navy.mil/NSFA/IAU2009_consts.html
 # http://goldbook.iupac.org/list_goldbook_phys_constants_defs.html
 # http://physics.nist.gov/cuu/Constants/index.html
+# http://nssdc.gsfc.nasa.gov/planetary/factsheet/jupiterfact.html
 
 # Elementary masses
 mass_electron_grams = 9.10938291e-28
@@ -29,6 +30,8 @@ mpc_per_kpc   = 1e-3
 mpc_per_pc    = 1e-6
 mpc_per_au    = 4.84813682e-12
 mpc_per_rsun  = 2.253962e-14
+mpc_per_rearth= 2.06470307893e-16
+mpc_per_rjup  = 2.26566120943e-15
 mpc_per_miles = 5.21552871e-20
 mpc_per_km    = 3.24077929e-20
 mpc_per_cm    = 3.24077929e-25
@@ -40,6 +43,8 @@ km_per_cm     = 1e-5
 m_per_cm      = 1e-2
 ly_per_cm     = 1.05702341e-18
 rsun_per_cm   = 1.4378145e-11
+rearth_per_cm = 1.56961033e-9 # Mean (volumetric) radius
+rjup_per_cm   = 1.43039006737e-10 # Mean (volumetric) radius
 au_per_cm     = 6.68458712e-14
 ang_per_cm    = 1.0e8
 
@@ -49,6 +54,8 @@ kpc_per_mpc   = 1.0 / mpc_per_kpc
 pc_per_mpc    = 1.0 / mpc_per_pc
 au_per_mpc    = 1.0 / mpc_per_au
 rsun_per_mpc  = 1.0 / mpc_per_rsun
+rearth_per_mpc= 1.0 / mpc_per_rearth
+rjup_per_mpc  = 1.0 / mpc_per_rjup
 miles_per_mpc = 1.0 / mpc_per_miles
 km_per_mpc    = 1.0 / mpc_per_km
 cm_per_mpc    = 1.0 / mpc_per_cm
@@ -59,6 +66,8 @@ pc_per_km     = 1.0 / km_per_pc
 cm_per_pc     = 1.0 / pc_per_cm
 cm_per_ly     = 1.0 / ly_per_cm
 cm_per_rsun   = 1.0 / rsun_per_cm
+cm_per_rearth = 1.0 / rearth_per_cm
+cm_per_rjup   = 1.0 / rjup_per_cm
 cm_per_au     = 1.0 / au_per_cm
 cm_per_ang    = 1.0 / ang_per_cm
 

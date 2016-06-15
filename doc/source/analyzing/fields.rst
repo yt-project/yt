@@ -14,14 +14,126 @@ thought of as "particle" fields.  The word "particle" here is gradually falling
 out of favor, as these discrete fields can be any type of sparsely populated
 data.
 
+What are fields?
+----------------
+
+Fields in yt are denoted by a two-element tuple, of the form ``(field_type,
+field_name)``. The first element, the "field type" is a category for a
+field. Possible field types used in yt include *gas* (for fluid mesh fields
+defined on a mesh) or *io* (for fields defined at particle locations). Field
+types can also correspond to distinct particle of fluid types in a single
+simulation. For example, a plasma physics simulation using the Particle in Cell
+method might have particle types corresponding to *electrons* and *ions*. See
+:ref:`known-field-types` below for more info about field types in yt.
+
+The second element of field tuples, the "field name", denotes the specific field
+to select, given the field type. Possible field names include *density*,
+*velocity_x* or *pressure* --- these three fields are examples of field names
+that might be used for a fluid defined on a mesh. Examples of particle fields
+include *particle_mass*, *particle_position*, or *particle_velocity_x*. In
+general, particle field names are prefixed by "particle\_", which makes it easy
+to distinguish between a particle field or a mesh field when no field type is
+provided.
+
+What fields are available?
+--------------------------
+
+We provide a full list of fields that yt recognizes by default at
+:ref:`field-list`.  If you want to create additional custom derived fields,
+see :ref:`creating-derived-fields`.
+
+Every dataset has an attribute, ``ds.fields``.  This attribute possesses
+attributes itself, each of which is a "field type," and each field type has as
+its attributes the fields themselves.  When one of these is printed, it returns
+information about the field and things like units and so on.  You can use this
+for tab-completing as well as easier access to information.
+
+As an example, you might browse the available fields like so:
+
+.. code-block:: python
+
+  print(dir(ds.fields))
+  print(dir(ds.fields.gas))
+  print(ds.fields.gas.density)
+
+On an Enzo dataset, the result from the final command would look something like
+this:::
+
+  Alias Field for "('enzo', 'Density')" (gas, density): (units: g/cm**3)
+
+You can use this to easily explore available fields, particularly through
+tab-completion in Jupyter/IPython.
+
+For a more programmatic method of accessing fields, you can utilize the
+``ds.field_list``, ``ds.derived_field_list`` and some accessor methods to gain
+information about fields.  The full list of fields available for a dataset can
+be found as the attribute ``field_list`` for native, on-disk fields and
+``derived_field_list`` for derived fields (``derived_field_list`` is a superset
+of ``field_list``).  You can view these lists by examining a dataset like this:
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   print(ds.field_list)
+   print(ds.derived_field_list)
+
+By using the ``field_info()`` class, one can access information about a given
+field, like its default units or the source code for it.
+
+.. code-block:: python
+
+   ds = yt.load("my_data")
+   ds.index
+   print(ds.field_info["gas", "pressure"].get_units())
+   print(ds.field_info["gas", "pressure"].get_source())
+
+Using fields to access data
+---------------------------
+
+The primary *use* of fields in yt is to access data from a dataset. For example,
+if I want to use a data object (see :ref:`Data-objects` for more detail about
+data objects) to access the ``('gas', 'density')`` field, one can do any of the
+following:
+
+.. code-block:: python
+
+    ad = ds.all_data()
+
+    # just a field name
+    density = ad['density']
+
+    # field tuple with no parentheses
+    density = ad['gas', 'density']
+
+    # full field tuple
+    density = ad[('gas', 'density')]
+
+    # through the ds.fields object
+    density = ad[ds.fields.gas.density]
+
+The first data access example is the simplest. In that example, the field type
+is inferred from the name of the field. The next two examples use the field type
+explicitly, this might be necessary if there is more than one field type with a
+"density" field defined in the same dataset. The third example is slightly more
+verbose but is syntactically identical to the second example due to the way
+indexing works in the Python language.
+
+The final example uses the ``ds.fields`` object described above. This way of
+accessing fields lends itself to interactive use, especially if you make heavy
+use of IPython's tab completion features. Any of these ways of denoting the
+``('gas', 'density')`` field can be used when supplying a field name to a yt
+data object, analysis routines, or plotting and visualization function.
+
+Accessing Fields without a Field Type
+-------------------------------------
+
 In previous versions of yt, there was a single mechanism of accessing fields on
-a data container -- by their name, which was mandated to be a single string,
-and which often varied between different code frontends.  yt 3.0 allows
-for datasets containing multiple different types of fluid fields, mesh fields,
-particles (with overlapping or disjoint lists of fields).  To enable accessing
-these fields in a meaningful, simple way, the mechanism for accessing them has
-changed to take an optional *field type* in addition to the *field name* of
-the form ('*field type*', '*field name*').
+a data container -- by their name, which was mandated to be a single string, and
+which often varied between different code frontends.  yt 3.0 allows for datasets
+containing multiple different types of fluid fields, mesh fields, particles
+(with overlapping or disjoint lists of fields). However, to preserve backward
+compatibility and make interactive use simpler, yt will still accept field names
+given as a string and will try to infer the field type given a field name.
 
 As an example, we may be in a situation where have multiple types of particles
 which possess the ``particle_position`` field.  In the case where a data
@@ -30,9 +142,9 @@ specify which particular particle type we want to query:
 
 .. code-block:: python
 
-   print(ad["humans", "particle_position"])
-   print(ad["dogs", "particle_position"])
-   print(ad["dinosaurs", "particle_position"])
+   print(ad["dark_matter", "particle_position"])
+   print(ad["stars", "particle_position"])
+   print(ad["black_holes", "particle_position"])
 
 Each of these three fields may have different sizes.  In order to enable
 falling back on asking only for a field by the name, yt will use the most
@@ -45,7 +157,8 @@ velocity:
 
    print(ad["particle_velocity"])
 
-it would select ``dinosaurs`` as the field type.
+it would select ``black_holes`` as the field type, since the last field accessed
+used that field type.
 
 The same operations work for fluid and mesh fields.  As an example, in some
 cosmology simulations, we may want to examine the mass of particles in a region
@@ -188,58 +301,6 @@ The field plugins currently available include:
  * Magnetic field-related fields
  * Species fields, such as for chemistry species (yt can recognize the entire
    periodic table in field names and construct ionization fields as need be)
-
-What fields are available?
---------------------------
-
-We provide a full list of fields that yt recognizes by default at
-:ref:`field-list`.  If you want to create additional custom derived fields,
-see :ref:`creating-derived-fields`.
-
-Every dataset has an attribute, ``ds.fields``.  This attribute possesses
-attributes itself, each of which is a "field type," and each field type has as
-its attributes the fields themselves.  When one of these is printed, it returns
-information about the field and things like units and so on.  You can use this
-for tab-completing as well as easier access to information.
-
-As an example, you might browse the available fields like so:
-
-.. code-block:: python
-
-  print(dir(ds.fields))
-  print(dir(ds.fields.gas))
-  print(ds.fields.gas.density)
-
-On an Enzo dataset, the result from the final command would look something like
-this:::
-
-  Alias Field for "('enzo', 'Density')" (gas, density): (units: g/cm**3)
-
-You can use this to easily explore available fields, particularly through
-tab-completion in Jupyter/IPython.
-
-For a more programmatic method of accessing fields, you can utilize the
-``ds.field_list``, ``ds.derived_field_list`` and some accessor methods to gain
-information about fields.  The full list of fields available for a dataset can
-be found as the attribute ``field_list`` for native, on-disk fields and
-``derived_field_list`` for derived fields (``derived_field_list`` is a superset
-of ``field_list``).  You can view these lists by examining a dataset like this:
-
-.. code-block:: python
-
-   ds = yt.load("my_data")
-   print(ds.field_list)
-   print(ds.derived_field_list)
-
-By using the ``field_info()`` class, one can access information about a given
-field, like its default units or the source code for it.
-
-.. code-block:: python
-
-   ds = yt.load("my_data")
-   ds.index
-   print(ds.field_info["gas", "pressure"].get_units())
-   print(ds.field_info["gas", "pressure"].get_source())
 
 .. _bfields:
 

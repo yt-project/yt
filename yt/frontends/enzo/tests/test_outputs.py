@@ -83,6 +83,7 @@ def test_galaxy0030():
     for test in big_patch_amr(ds, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
+    assert_equal(ds.particle_type_counts, {'io': 1124453})
 
 @requires_ds(enzotiny)
 def test_simulated_halo_mass_function():
@@ -152,3 +153,6 @@ def test_active_particle_datasets():
         [f for f in apcos.field_list if f[0] == 'CenOstriker'])
 
     assert_equal(apcos_fields, real_apcos_fields)
+
+    assert_equal(apcos.particle_type_counts,
+                 {'CenOstriker': 899755, 'DarkMatter': 32768})

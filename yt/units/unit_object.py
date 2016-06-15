@@ -110,8 +110,25 @@ def get_latex_representation(expr, registry):
             symbol_table[ex] = registry.lut[str(ex)][3]
         except:
             symbol_table[ex] = r"\rm{" + str(ex).replace('_', '\ ') + "}"
+
+    # invert the symbol table dict to look for keys with identical values
+    invert_symbols = {}
+    for key, value in symbol_table.items():
+        if value not in invert_symbols:
+            invert_symbols[value] = [key]
+        else:
+            invert_symbols[value].append(key)
+
+    # if there are any units with identical latex representations, substitute
+    # units to avoid  uncanceled terms in the final latex expresion.
+    for val in invert_symbols:
+        symbols = invert_symbols[val]
+        for i in range(1, len(symbols)):
+            expr = expr.subs(symbols[i], symbols[0])
+
     latex_repr = latex(expr, symbol_names=symbol_table, mul_symbol="dot",
                        fold_frac_powers=True, fold_short_frac=True)
+
     if latex_repr == '1':
         return ''
     else:
@@ -258,7 +275,11 @@ class Unit(Expr):
     def latex_repr(self):
         if self._latex_repr is not None:
             return self._latex_repr
-        self._latex_repr = get_latex_representation(self.expr, self.registry)
+        if self.expr.is_Atom:
+            expr = self.expr
+        else:
+            expr = self.expr.copy()
+        self._latex_repr = get_latex_representation(expr, self.registry)
         return self._latex_repr
 
     ### Some sympy conventions

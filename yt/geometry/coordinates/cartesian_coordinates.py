@@ -29,6 +29,7 @@ import yt.visualization._MPL as _MPL
 
 
 class CartesianCoordinateHandler(CoordinateHandler):
+    name = "cartesian"
 
     def __init__(self, ds, ordering = ('x','y','z')):
         super(CartesianCoordinateHandler, self).__init__(ds, ordering)
@@ -76,10 +77,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
             field_data = ad[field]
             buff_size = size[0:dimension] + (1,) + size[dimension:]
 
+            ax = data_source.axis
+            xax = self.x_axis[ax]
+            yax = self.y_axis[ax]
             c = np.float64(data_source.center[dimension].d)
-            bounds.insert(2*dimension, c)
-            bounds.insert(2*dimension, c)
-            bounds = np.reshape(bounds, (3, 2))
+
+            extents = np.zeros((3, 2))
+            extents[ax] = np.array([c, c])
+            extents[xax] = bounds[0:2]
+            extents[yax] = bounds[2:4]
 
             # if this is an element field, promote to 2D here
             if len(field_data.shape) == 1:
@@ -101,13 +107,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
             img = pixelize_element_mesh(coords,
                                         indices,
-                                        buff_size, field_data, bounds,
+                                        buff_size, field_data, extents,
                                         index_offset=offset)
 
             # re-order the array and squeeze out the dummy dim
-            ax = data_source.axis
-            xax = self.x_axis[ax]
-            yax = self.y_axis[ax]
             return np.squeeze(np.transpose(img, (yax, xax, ax)))
 
         elif dimension < 3:

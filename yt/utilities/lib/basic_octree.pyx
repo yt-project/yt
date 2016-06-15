@@ -296,8 +296,7 @@ cdef class Octree:
 
     @cython.cdivision(True)
     cdef np.float64_t fbe_node_separation(self, OctreeNode *node1, OctreeNode *node2):
-        # Find the distance between the two nodes. To match FindBindingEnergy
-        # in data_point_utilities.c, we'll do this in code units.
+        # Find the distance between the two nodes.
         cdef np.float64_t dx1, dx2, p1, p2, dist
         cdef int i
         dist = 0.0

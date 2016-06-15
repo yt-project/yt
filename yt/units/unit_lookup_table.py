@@ -23,7 +23,7 @@ from yt.utilities.physical_ratios import \
     planck_charge_esu, planck_energy_erg, planck_mass_grams, \
     planck_temperature_K, planck_time_s, mass_hydrogen_grams, \
     grams_per_pound, standard_gravity_cm_per_s2, pascal_per_atm, \
-    newton_cgs
+    newton_cgs, cm_per_rearth, cm_per_rjup
 import numpy as np
 
 # Lookup a unit symbol with the symbol string, and provide a tuple with the
@@ -87,6 +87,8 @@ default_unit_symbol_lut = {
     "msun": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
     "Rsun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
     "rsun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
+    "R_sun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
+    "r_sun": (cm_per_rsun, dimensions.length, 0.0, r"R_\odot"),
     "Lsun": (luminosity_sun_ergs_per_sec, dimensions.power, 0.0, r"L_\odot"),
     "Tsun": (temp_sun_kelvin, dimensions.temperature, 0.0, r"T_\odot"),
     "Zsun": (metallicity_sun, dimensions.dimensionless, 0.0, r"Z_\odot"),
@@ -151,6 +153,12 @@ default_unit_symbol_lut = {
     "m_geom": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
     "l_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**2, dimensions.length, 0.0, r"M_\odot"),
     "t_geom": (newton_cgs*mass_sun_grams/speed_of_light_cm_per_s**3, dimensions.time, 0.0, r"M_\odot"),
+
+    # Some Solar System units
+    "R_earth": (cm_per_rearth, dimensions.length, 0.0, r"R_\oplus"),
+    "r_earth": (cm_per_rearth, dimensions.length, 0.0, r"R_\oplus"),
+    "R_jup": (cm_per_rjup, dimensions.length, 0.0, r"R_\mathrm{Jup}"),
+    "r_jup": (cm_per_rjup, dimensions.length, 0.0, r"R_\mathrm{Jup}"),
 }
 
 # This dictionary formatting from magnitude package, credit to Juan Reyero.
