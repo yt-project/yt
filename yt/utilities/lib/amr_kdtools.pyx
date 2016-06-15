@@ -105,6 +105,7 @@ cdef class Node:
             node.dirty = state
 
     def kd_traverse(self, viewpoint=None):
+        cdef Node node
         if viewpoint is None:
             for node in self.depth_traverse():
                 if node._kd_is_leaf() == 1 and node.grid != -1:
