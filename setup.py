@@ -219,9 +219,6 @@ extensions = [
     Extension("yt.visualization._MPL",
               ["yt/visualization/_MPL.c"],
               libraries=std_libs),
-    Extension("yt.utilities.data_point_utilities",
-              ["yt/utilities/data_point_utilities.c"],
-              libraries=std_libs),
 ]
 
 # EMBREE
