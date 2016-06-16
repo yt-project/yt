@@ -64,7 +64,8 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
-    YTPlotCallbackError
+    YTPlotCallbackError, \
+    YTDataTypeUnsupported
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -102,7 +103,7 @@ def get_oblique_window_parameters(normal, center, width, ds, depth=None):
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
 
-    w = tuple(el.in_units('unitary') for el in width)
+    w = tuple(el.in_units('code_length') for el in width)
     bounds = tuple(((2*(i % 2))-1)*w[i//2]/2 for i in range(len(w)*2))
 
     return (bounds, center)
@@ -984,6 +985,8 @@ class PWViewerMPL(PlotWindow):
                 callback = CallbackMaker(*args[1:], **kwargs)
                 try:
                     callback(cbw)
+                except YTDataTypeUnsupported as e:
+                    six.reraise(YTDataTypeUnsupported, e)
                 except Exception as e:
                     six.reraise(YTPlotCallbackError,
                                 YTPlotCallbackError(callback._type_name, e),

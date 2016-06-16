@@ -90,6 +90,10 @@ def add_species_field_by_density(registry, ftype, species,
                        particle_type = particle_type,
                        units = unit_system["number_density"])
 
+    return [(ftype, "%s_number_density" % species),
+            (ftype, "%s_density" % species),
+            (ftype, "%s_mass" % species)]
+
 def add_species_field_by_fraction(registry, ftype, species, 
                                   particle_type = False):
     """
@@ -113,6 +117,10 @@ def add_species_field_by_fraction(registry, ftype, species,
                        function = _create_number_density_func(ftype, species),
                        particle_type = particle_type,
                        units = unit_system["number_density"])
+
+    return [(ftype, "%s_number_density" % species),
+            (ftype, "%s_density" % species),
+            (ftype, "%s_mass" % species)]
 
 def add_species_aliases(registry, ftype, alias_species, species):
     """

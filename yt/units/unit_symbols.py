@@ -116,11 +116,11 @@ mile = quan(1.0, "mile")
 
 Msun = solar_mass = quan(1.0, "Msun")
 msun = quan(1.0, "msun")
-Rsun = solar_radius = quan(1.0, "Rsun")
-rsun = quan(1.0, "rsun")
-Lsun = lsun = solar_luminosity = quan(1.0, "Lsun")
-Tsun = solar_temperature = quan(1.0, "Tsun")
-Zsun = solar_metallicity = quan(1.0, "Zsun")
+Rsun = R_sun = solar_radius = quan(1.0, "Rsun")
+rsun = r_sun = quan(1.0, "rsun")
+Lsun = lsun = l_sun = solar_luminosity = quan(1.0, "Lsun")
+Tsun = T_sun = solar_temperature = quan(1.0, "Tsun")
+Zsun = Z_sun = solar_metallicity = quan(1.0, "Zsun")
 
 #
 # Misc Astronomical units
@@ -129,6 +129,10 @@ Zsun = solar_metallicity = quan(1.0, "Zsun")
 AU = astronomical_unit = quan(1.0, "AU")
 au = quan(1.0, "au")
 ly = light_year = quan(1.0, "ly")
+Rearth = R_earth = earth_radius = quan(1.0, 'R_earth')
+rearth = r_earth = quan(1.0, 'r_earth')
+Rjup = R_jup = jupiter_radius = quan(1.0, 'R_jup')
+rjup = r_jup = quan(1.0, 'r_jup')
 
 #
 # Physical units
