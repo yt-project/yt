@@ -31,7 +31,6 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler2D, \
     Q1Sampler2D, \
     W1Sampler3D
-from cython.parallel cimport prange, parallel
 
 cdef extern from "pixelization_constants.h":
     enum:
