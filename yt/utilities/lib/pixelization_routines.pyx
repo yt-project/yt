@@ -539,7 +539,9 @@ cdef int check_face_dot(int nvertices,
                 return 0
     return 1
 
-
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
                           buff_size,
