@@ -48,6 +48,9 @@ def test_output_00080():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
     assert_equal(ds.particle_type_counts, {'io': 1090895})
+    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
+    density_field = cgrid["density"]
+    assert_equal((density_field == 0.0).sum(), 0)
 
 @requires_file(output_00080)
 def test_RAMSESDataset():
