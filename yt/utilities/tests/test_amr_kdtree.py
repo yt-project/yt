@@ -14,7 +14,9 @@ Unit test the ARMKDTree in yt.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.amr_kdtree.api import AMRKDTree
-from yt.utilities.lib.amr_kdtools import Node
+# Much like the test that uses the import statement below, this is also disabled
+# until needed. Fido was taking issue with it so it has been commented out.
+#from yt.utilities.lib.amr_kdtools import Node
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from yt.frontends.stream.api import load_uniform_grid, refine_amr

@@ -19,8 +19,6 @@ cdef struct Split:
     int dim
     np.float64_t pos
 
-#cdef class Node
-
 cdef class Node:
     cdef public Node left
     cdef public Node right
