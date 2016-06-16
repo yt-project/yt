@@ -86,7 +86,7 @@ cdef class Node:
     def __dealloc__(self):
         if self.split != NULL: free(self.split)
 
-# Begin input of converted methods
+    # Begin input of converted methods
 
     def get_left_edge(self):
         le = np.empty(3, dtype='float64')
@@ -101,6 +101,7 @@ cdef class Node:
         return re
 
     def set_dirty(self, bint state):
+        cdef Node node
         for node in self.depth_traverse():
             node.dirty = state
 
