@@ -1,12 +1,8 @@
-import numpy as np
-
 from yt.utilities.exceptions import \
     YTBoundsDefinitionError
 
 from yt.testing import \
-    fake_random_ds, \
-    assert_equal, \
-    assert_rel_equal
+    fake_random_ds
 from numpy.testing import \
     assert_raises
 
