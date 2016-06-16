@@ -55,7 +55,9 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
         that was constructed during the rendering. Useful for further
         modifications, rotations, etc.
 
-    Example:
+    Examples
+    --------
+
     >>> import yt
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
     >>> sc = yt.create_scene(ds)
@@ -123,7 +125,9 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None,
         that was constructed during the rendering. Useful for further
         modifications, rotations, etc.
 
-    Example:
+    Examples
+    --------
+
     >>> import yt
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
     >>> im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
