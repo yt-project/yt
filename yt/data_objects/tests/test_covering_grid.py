@@ -6,6 +6,8 @@ from yt.testing import \
     fake_random_ds, \
     assert_equal, \
     assert_almost_equal
+from yt.utilities.answer_testing.framework import \
+    data_dir_load
 
 def setup():
     from yt.config import ytcfg
