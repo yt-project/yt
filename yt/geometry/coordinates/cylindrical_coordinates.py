@@ -21,9 +21,8 @@ from .coordinate_handler import \
     _get_coord_fields, \
     cylindrical_to_cartesian, \
     cartesian_to_cylindrical
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
+    pixelize_cartesian, pixelize_cylinder
 #
 # Cylindrical fields
 #
@@ -114,11 +113,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
-                             bounds, int(antialias),
-                             period, int(periodic)).transpose()
+        buff = pixelize_cartesian(data_source['px'], data_source['py'],
+                                  data_source['pdx'], data_source['pdy'],
+                                  data_source[field], size[0], size[1],
+                                  bounds, int(antialias),
+                                  period, int(periodic)).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
