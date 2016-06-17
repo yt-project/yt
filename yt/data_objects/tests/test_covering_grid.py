@@ -1,13 +1,13 @@
 import numpy as np
 
+from yt import \
+    load
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import \
     requires_file, \
     fake_random_ds, \
     assert_equal, \
     assert_almost_equal
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
 
 def setup():
     from yt.config import ytcfg
@@ -125,9 +125,9 @@ def test_arbitrary_grid():
             yield assert_almost_equal, cg["density"], ag["density"]
 
 output_00080 = "output_00080/info_00080.txt"
-@requires_ds(output_00080)
+@requires_file(output_00080)
 def test_octree_cg():
-    ds = data_dir_load(output_00080)
+    ds = load(output_00080)
     cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
     density_field = cgrid["density"]
     assert_equal((density_field == 0.0).sum(), 0)
