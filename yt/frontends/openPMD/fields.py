@@ -131,6 +131,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
                 # We can not reasonably infer field type by name in openPMD
+                mylog.info(fname, field, unit)
                 if "T" in unit or "kg/(A*s**2)" in unit:
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)), )
@@ -142,6 +143,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
                     # We can not reasonably infer field type by name in openPMD
+                    mylog.info(fname, field, unit, axis)
                     if "T" in unit or "kg/(A*s**2)" in unit:
                         self._mag_fields.append(ytname)
                     self.known_other_fields += ((ytname, (unit, aliases, None)), )
@@ -179,9 +181,10 @@ class openPMDFieldInfo(FieldInfoContainer):
         values of new fields e.g. calculate out of E-field and B-field the
         Poynting vector
         """
-        from yt.fields.magnetic_field import \
-            setup_magnetic_field_aliases
-        setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
+        if len(self._mag_fields) > 0:
+            from yt.fields.magnetic_field import \
+                setup_magnetic_field_aliases
+            setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
         # Set up aliases first so the setup for poynting can use them
         setup_poynting_vector(self)
 

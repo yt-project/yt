@@ -23,7 +23,7 @@ import h5py
 import numpy as np
 from collections import defaultdict
 from .data_structures import openPMDBasePath
-from .misc import *
+from .misc import get_component
 
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -48,10 +48,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._setBasePath(self._handle, self.ds._filepath)
         self.meshesPath = self._handle["/"].attrs["meshesPath"]
         self.particlesPath = self._handle["/"].attrs["particlesPath"]
+        self._array_fields = {}
         self._cached_ptype = ""
         self._cache = {}
-        self._component_getter = ComponentGetter()
-
 
     def _fill_cache(self, ptype):
         # Get a particle species (e.g. /data/3500/particles/e/)
@@ -65,15 +64,15 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         pos = {}
         off = {}
         for ax in axes:
-            pos[ax] = self._component_getter.get_component(pds, "position/" + ax)
-            off[ax] = self._component_getter.get_component(pds, "positionOffset/" + ax)
+            pos[ax] = np.array(get_component(pds, "position/" + ax), dtype="float64")
+            off[ax] = np.array(get_component(pds, "positionOffset/" + ax), dtype="float64")
             self._cache[ax] = pos[ax] + off[ax]
         # Pad accordingly with zeros to make 1D/2D datasets compatible
+        # These have to be the same shape as the existing axes dataset since that equals the number of particles
         for req in "xyz":
             if req not in axes:
-                self._cache[req] = np.zeros(self._cache['x'].shape)
+                self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
         self._cached_ptype = ptype
-
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -106,7 +105,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     if ptype not in self._cached_ptype:
                         self._fill_cache(ptype)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
-
 
     def _read_particle_fields(self, chunks, ptf, selector):
         """
@@ -160,7 +158,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     pds = ds[self.particlesPath + "/" + spec]
                     for field in parallel_objects(field_list):
                         nfield = "/".join(field.split("_")[1:])
-                        data = self._component_getter.get_component(pds, nfield)
+                        data = get_component(pds, nfield)
+                        mylog.debug("data {}".format(data))
+                        mylog.debug("mask {}".format(mask))
                         yield ((ptype, field), data[mask])
 
 
@@ -326,7 +326,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         else:
             ds = self._handle[self.basePath + self.meshesPath]
             nfield = fname.replace("_", "/").replace("-","_")
-        data = self._component_getter.get_component(ds, nfield)
+        data = get_component(ds, nfield)
         return np.array(data).flatten()
 
     def _read_chunk_data(self, chunk, fields):
@@ -378,8 +378,11 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             for g in grids:
                 for ftype, fname in fluid_fields:
                     # TODO update basePath for different files
-                    data = self._read_data((ftype, fname))
-                    # data = f[self.basePath + self.meshPath + fname.replace("_", "/").replace("-","_")]
+                    #data = self._read_data((ftype, fname))
+                    ds = self._handle[self.basePath + self.meshesPath]
+                    nfield = fname.replace("_", "/").replace("-","_")
+                    data = get_component(ds, nfield)
+                    mylog.debug("data.shape = {}".format(data.shape))
                     rv[(ftype,fname)] = np.array(data).flatten()
             f.close()
         return rv

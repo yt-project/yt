@@ -773,22 +773,39 @@ def is_const_component(record_component):
     return "value" in record_component.attrs.keys()
 
 
-class ComponentGetter():
+def get_component(group, component_name, index=0, offset=None):
+    # TODO - Make slicing possible for higher dimensional data
+    """Grab a component from a group
 
-    _c = {}
+    Parameters
+    ----------
+    group: hdf5 group to get whole/masked component from
+    component_name: string of a component (relative path) inside the group
+    index: (optional) start index of data to return
+    offset: (optional) size of the data to return
 
-    def get_component(self, group, component_name):
-        self._c = {}
-        record_component = group[component_name]
-        mylog.debug("openPMD - misc - get_component: {}".format(record_component.name))
-        if record_component.name not in self._c:
-            if is_const_component(record_component):
-                self._c[record_component.name] = \
-                    np.full(record_component.attrs["shape"],
-                            record_component.attrs["value"] * record_component.attrs["unitSI"])
-            else:
-                self._c[record_component.name] = record_component.value * record_component.attrs["unitSI"]
-        return self._c[record_component.name]
+    Returns
+    -------
+    n-dimensional numpy array filled with values of component
+    """
+
+    record_component = group[component_name]
+    mylog.debug("openPMD - misc - get_component: {}[{}:{}]".format(record_component.name, index, offset))
+    if is_const_component(record_component):
+        # This allows for masking of the component
+        # Slicing data directly at the h5py layer improves performance
+        if offset != None:
+            shape = offset - index
+        else:
+            shape = record_component.attrs["shape"] - index
+        # Our component is constant, craft an array by hand
+        return np.full(shape, record_component.attrs["value"] * record_component.attrs["unitSI"])
+    else:
+        if offset != None:
+            offset += index
+        # Component is a dataset, return it (possibly masked)
+        # Slicing is not smart, supplying lower dimensional indices only slices those dimensions
+        return record_component[index:offset] * record_component.attrs["unitSI"]
 
 
 def parse_unitDimension(unitDimension):
