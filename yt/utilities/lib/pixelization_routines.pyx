@@ -291,32 +291,26 @@ def pixelize_off_axis_cartesian(
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_cylinder(np.float64_t[:] radius,
+def pixelize_cylinder(np.float64_t[:,:] buff,
+                      np.float64_t[:] radius,
                       np.float64_t[:] dradius,
                       np.float64_t[:] theta,
                       np.float64_t[:] dtheta,
-                      buff_size,
                       np.float64_t[:] field,
-                      extents, input_img = None):
+                      extents):
 
-    cdef np.ndarray[np.float64_t, ndim=2] img
     cdef np.float64_t x, y, dx, dy, r0, theta0
     cdef np.float64_t rmax, x0, y0, x1, y1
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
     
-    cdef int imax = radius.argmax()
+    cdef int imax = np.asarray(radius).argmax()
     rmax = radius[imax] + dradius[imax]
           
-    if input_img is None:
-        img = np.zeros((buff_size[0], buff_size[1]))
-        img[:] = np.nan
-    else:
-        img = input_img
     x0, x1, y0, y1 = extents
-    dx = (x1 - x0) / img.shape[0]
-    dy = (y1 - y0) / img.shape[1]
+    dx = (x1 - x0) / buff.shape[0]
+    dy = (y1 - y0) / buff.shape[1]
     cdef np.float64_t rbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
@@ -365,15 +359,11 @@ def pixelize_cylinder(np.float64_t[:] radius,
                 x = r_i * sintheta
                 pi = <int>((x - x0)/dx)
                 pj = <int>((y - y0)/dy)
-                if pi >= 0 and pi < img.shape[0] and \
-                   pj >= 0 and pj < img.shape[1]:
-                    if img[pi, pj] != img[pi, pj]:
-                        img[pi, pj] = 0.0
-                    img[pi, pj] = field[i]
-                r_i += 0.5*dx 
+                if pi >= 0 and pi < buff.shape[0] and \
+                   pj >= 0 and pj < buff.shape[1]:
+                    buff[pi, pj] = field[i]
+                r_i += 0.5*dx
             theta_i += dthetamin
-
-    return img
 
 cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
                                 np.float64_t *x, np.float64_t *y):

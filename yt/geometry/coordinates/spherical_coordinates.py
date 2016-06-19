@@ -123,18 +123,21 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
         name = self.axis_name[dimension]
+        buff = np.zeros(size, dtype="f8")
         if name == 'theta':
-            buff = pixelize_cylinder(data_source['px'],
-                                     data_source['pdx'],
-                                     data_source['py'],
-                                     data_source['pdy'],
-                                     size, data_source[field], bounds)
+            pixelize_cylinder(buff,
+                              data_source['px'],
+                              data_source['pdx'],
+                              data_source['py'],
+                              data_source['pdy'],
+                              data_source[field], bounds)
         elif name == 'phi':
-            buff = pixelize_cylinder(data_source['px'],
-                                     data_source['pdx'],
-                                     data_source['py'],
-                                     data_source['pdy'],
-                                     size, data_source[field], bounds)
+            pixelize_cylinder(buff,
+                             data_source['px'],
+                             data_source['pdx'],
+                             data_source['py'],
+                             data_source['pdy'],
+                             data_source[field], bounds)
             buff = buff.transpose()
         else:
             raise RuntimeError

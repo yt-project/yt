@@ -185,9 +185,9 @@ class GeographicCoordinateHandler(CoordinateHandler):
         else:
             # We should never get here!
             raise NotImplementedError
-        buff = pixelize_cylinder(r, data_source['pdy'],
-                                 px, pdx,
-                                 size, data_source[field], bounds)
+        buff = np.zeros(size, dtype="f8")
+        pixelize_cylinder(buff, r, data_source['pdy'],
+                          px, pdx, data_source[field], bounds)
         if do_transpose:
             buff = buff.transpose()
         return buff

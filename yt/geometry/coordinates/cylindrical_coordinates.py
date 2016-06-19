@@ -122,11 +122,13 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = pixelize_cylinder(data_source['px'],
-                                 data_source['pdx'],
-                                 data_source['py'],
-                                 data_source['pdy'],
-                                 size, data_source[field], bounds)
+        buff = np.zeros(size, dtype="f8")
+        pixelize_cylinder(buff,
+                          data_source['px'],
+                          data_source['pdx'],
+                          data_source['py'],
+                          data_source['pdy'],
+                          data_source[field], bounds)
         return buff
 
     _x_pairs = (('r', 'theta'), ('z', 'r'), ('theta', 'r'))

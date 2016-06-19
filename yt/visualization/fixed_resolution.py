@@ -515,10 +515,10 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
 
     def __getitem__(self, item) :
         if item in self.data: return self.data[item]
-        buff = pixelize_cylinder(self.data_source["r"], self.data_source["dr"],
-                                 self.data_source["theta"], self.data_source["dtheta"],
-                                 self.buff_size, self.data_source[item].astype("float64"),
-                                 self.radius)
+        buff = np.zeros(self.buff_size, dtype="f8")
+        pixelize_cylinder(buff, self.data_source["r"], self.data_source["dr"],
+                          self.data_source["theta"], self.data_source["dtheta"],
+                          self.data_source[item].astype("float64"), self.radius)
         self[item] = buff
         return buff
 
