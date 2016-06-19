@@ -53,11 +53,11 @@ cdef extern from "pixelization_constants.h":
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
-                       np.ndarray[np.float64_t, ndim=1] py,
-                       np.ndarray[np.float64_t, ndim=1] pdx,
-                       np.ndarray[np.float64_t, ndim=1] pdy,
-                       np.ndarray[np.float64_t, ndim=1] data,
+def pixelize_cartesian(np.float64_t[:] px,
+                       np.float64_t[:] py,
+                       np.float64_t[:] pdx,
+                       np.float64_t[:] pdy,
+                       np.float64_t[:] data,
                        int cols, int rows, bounds,
                        int antialias = 1,
                        period = None,
@@ -296,12 +296,12 @@ def pixelize_off_axis_cartesian(
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
-                      np.ndarray[np.float64_t, ndim=1] dradius,
-                      np.ndarray[np.float64_t, ndim=1] theta,
-                      np.ndarray[np.float64_t, ndim=1] dtheta,
+def pixelize_cylinder(np.float64_t[:] radius,
+                      np.float64_t[:] dradius,
+                      np.float64_t[:] theta,
+                      np.float64_t[:] dtheta,
                       buff_size,
-                      np.ndarray[np.float64_t, ndim=1] field,
+                      np.float64_t[:] field,
                       extents, input_img = None):
 
     cdef np.ndarray[np.float64_t, ndim=2] img
@@ -389,12 +389,12 @@ cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
-                    np.ndarray[np.float64_t, ndim=1] dtheta,
-                    np.ndarray[np.float64_t, ndim=1] phi,
-                    np.ndarray[np.float64_t, ndim=1] dphi,
+def pixelize_aitoff(np.float64_t[:] theta,
+                    np.float64_t[:] dtheta,
+                    np.float64_t[:] phi,
+                    np.float64_t[:] dphi,
                     buff_size,
-                    np.ndarray[np.float64_t, ndim=1] field,
+                    np.float64_t[:] field,
                     extents, input_img = None,
                     np.float64_t theta_offset = 0.0,
                     np.float64_t phi_offset = 0.0):
