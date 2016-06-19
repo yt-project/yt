@@ -395,18 +395,18 @@ class QuiverCallback(PlotCallback):
         if self.bv_y != 0.0:
             # Workaround for 0.0 without units
             fv_y -= self.bv_y
-        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+        pixX = np.zeros((nx, ny), dtype="f8")
+        pixY = np.zeros((nx, ny), dtype="f8")
+        pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
-                                  fv_x, int(nx), int(ny),
+                                  fv_x,
                                   (x0, x1, y0, y1), 0, # bounds, antialias
-                                  (period_x, period_y), periodic,
-                                  ).transpose()
-        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  (period_x, period_y), periodic)
+        pixelize_cartesian(pixY, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
-                                  fv_y, int(nx), int(ny),
+                                  fv_y,
                                   (x0, x1, y0, y1), 0, # bounds, antialias
-                                  (period_x, period_y), periodic,
-                                  ).transpose()
+                                  (period_x, period_y), periodic)
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -702,27 +702,29 @@ class StreamlineCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
-        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+        pixX = np.zeros((nx, ny), dtype="f8")
+        pixY = np.zeros((nx, ny), dtype="f8")
+        pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
                                   plot.data[self.field_x],
-                                  int(nx), int(ny),
-                                  (x0, x1, y0, y1),).transpose()
-        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  (x0, x1, y0, y1))
+        pixelize_cartesian(pixY, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
                                   plot.data[self.field_y],
-                                  int(nx), int(ny),
-                                  (x0, x1, y0, y1),).transpose()
+                                  (x0, x1, y0, y1))
         if self.field_color:
-            self.field_color = pixelize_cartesian(
+            field_colors = np.zeros((nx, ny), dtype="f8")
+            pixelize_cartesian(field_colors,
                         plot.data['px'], plot.data['py'],
                         plot.data['pdx'], plot.data['pdy'],
-                        plot.data[self.field_color], int(nx), int(ny),
-                        (x0, x1, y0, y1),).transpose()
-
+                        plot.data[self.field_color],
+                        (x0, x1, y0, y1))
+        else:
+            field_colors = None
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
-                           'density': self.dens, 'color':self.field_color}
+                           'density': self.dens, 'color':field_colors}
         streamplot_args.update(self.plot_args)
         plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -934,12 +936,12 @@ class ClumpContourCallback(PlotCallback):
             xf_copy = clump[xf].copy().in_units("code_length")
             yf_copy = clump[yf].copy().in_units("code_length")
 
-            temp = pixelize_cartesian(xf_copy, yf_copy,
+            temp = np.zeros((nx, ny), dtype="f8")
+            pixelize_cartesian(temp, xf_copy, yf_copy,
                                  clump[dxf].in_units("code_length")/2.0,
                                  clump[dyf].in_units("code_length")/2.0,
                                  clump[dxf].d*0.0+i+1, # inits inside Pixelize
-                                 int(nx), int(ny),
-                             (x0, x1, y0, y1), 0).transpose()
+                             (x0, x1, y0, y1), 0)
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent, **self.plot_args)
@@ -2485,14 +2487,14 @@ class CellEdgesCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0]
         ny = plot.image._A.shape[1]
-        im = pixelize_cartesian(plot.data['px'],
+        im = np.zeros((nx, ny), dtype="f8")
+        pixelize_cartesian(im, plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
                                 plot.data['pdy'],
                                 plot.data['px'], # dummy field
-                                int(nx), int(ny),
                                 (x0, x1, y0, y1),
-                                line_width=self.line_width).transpose()
+                                line_width=self.line_width)
         # New image:
         im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
         im_buffer[im>0,3] = 255

@@ -53,12 +53,13 @@ cdef extern from "pixelization_constants.h":
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_cartesian(np.float64_t[:] px,
+def pixelize_cartesian(np.float64_t[:,:] buff,
+                       np.float64_t[:] px,
                        np.float64_t[:] py,
                        np.float64_t[:] pdx,
                        np.float64_t[:] pdy,
                        np.float64_t[:] data,
-                       int cols, int rows, bounds,
+                       bounds,
                        int antialias = 1,
                        period = None,
                        int check_period = 1,
@@ -77,7 +78,6 @@ def pixelize_cartesian(np.float64_t[:] px,
     cdef int yiter[2]
     cdef np.float64_t xiterv[2]
     cdef np.float64_t yiterv[2]
-    cdef np.ndarray[np.float64_t, ndim=2] my_array
     if period is not None:
         period_x = period[0]
         period_y = period[1]
@@ -87,18 +87,15 @@ def pixelize_cartesian(np.float64_t[:] px,
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> rows)
-    px_dy = height / (<np.float64_t> cols)
+    px_dx = width / (<np.float64_t> buff.shape[0])
+    px_dy = height / (<np.float64_t> buff.shape[1])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
-    if rows == 0 or cols == 0:
-        raise YTPixelizeError("Cannot scale to zero size")
     if px.shape[0] != py.shape[0] or \
        px.shape[0] != pdx.shape[0] or \
        px.shape[0] != pdy.shape[0] or \
        px.shape[0] != data.shape[0]:
         raise YTPixelizeError("Arrays are not of correct shape.")
-    my_array = np.zeros((rows, cols), "float64")
     xiter[0] = yiter[0] = 0
     xiterv[0] = yiterv[0] = 0.0
     # Here's a basic outline of what we're going to do here.  The xiter and
@@ -160,8 +157,8 @@ def pixelize_cartesian(np.float64_t[:] px,
                     # truncated, but no similar truncation was done in the
                     # comparison of j to rc (double).  So give ourselves a
                     # bonus row and bonus column here.
-                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), rows)
-                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), cols)
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), buff.shape[0])
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), buff.shape[1])
                     for i in range(lr, rr):
                         lypx = px_dy * i + y_min
                         rypx = px_dy * (i+1) + y_min
@@ -186,7 +183,7 @@ def pixelize_cartesian(np.float64_t[:] px,
                                             fabs(cy - (ysp-dysp)))
                                 ld_y *= ipx_dy
                                 if ld_x <= line_width or ld_y <= line_width:
-                                    my_array[j,i] = 1.0
+                                    buff[i,j] = 1.0
                             elif antialias == 1:
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
@@ -199,11 +196,9 @@ def pixelize_cartesian(np.float64_t[:] px,
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
                                 if overlap1 * overlap2 == 0.0: continue
-                                my_array[j,i] += (dsp * overlap1) * overlap2
+                                buff[i,j] += (dsp * overlap1) * overlap2
                             else:
-                                my_array[j,i] = dsp
-                            
-    return my_array
+                                buff[i,j] = dsp
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -311,7 +306,7 @@ def pixelize_cylinder(np.float64_t[:] radius,
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
     
-    imax = radius.argmax()
+    cdef int imax = radius.argmax()
     rmax = radius[imax] + dradius[imax]
           
     if input_img is None:
