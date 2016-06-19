@@ -536,14 +536,14 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = pixelize_off_axis_cartesian(
+        buff = np.zeros(self.buff_size, dtype="f8")
+        pixelize_off_axis_cartesian(buff,
                                self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
                                self.data_source['px'],  self.data_source['py'],
                                self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
                                self.data_source.center, self.data_source._inv_mat, indices,
                                self.data_source[item],
-                               self.buff_size[0], self.buff_size[1],
-                               bounds).transpose()
+                               bounds)
         ia = ImageArray(buff, input_units=self.data_source[item].units,
                         info=self._get_info(item))
         self[item] = ia

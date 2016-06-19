@@ -867,21 +867,21 @@ class CuttingQuiverCallback(PlotCallback):
         ny = plot.image._A.shape[1] / self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
 
-        pixX = pixelize_off_axis_cartesian(
+        pixX = np.zeros((nx, ny), dtype="f8")
+        pixY = np.zeros((nx, ny), dtype="f8")
+        pixelize_off_axis_cartesian(pixX,
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
-                               int(nx), int(ny),
                                (x0, x1, y0, y1)).transpose()
-        pixY = pixelize_off_axis_cartesian(
+        pixelize_off_axis_cartesian(pixY,
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_y],
-                               int(nx), int(ny),
                                (x0, x1, y0, y1)).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))

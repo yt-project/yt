@@ -204,6 +204,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pixelize_off_axis_cartesian(
+                       np.float64_t[:,:] buff,
                        np.float64_t[:] x,
                        np.float64_t[:] y,
                        np.float64_t[:] z,
@@ -216,7 +217,7 @@ def pixelize_off_axis_cartesian(
                        np.float64_t[:,:] inv_mat,
                        np.int64_t[:] indices,
                        np.float64_t[:] data,
-                       int cols, int rows, bounds):
+                       bounds):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
     cdef int i, j, p, ip
@@ -225,7 +226,6 @@ def pixelize_off_axis_cartesian(
     cdef np.float64_t xsp, ysp, zsp, dxsp, dysp, dzsp, dsp
     cdef np.float64_t pxsp, pysp, cxpx, cypx, cx, cy, cz
     # Some periodicity helpers
-    cdef np.ndarray[np.float64_t, ndim=2] my_array
     cdef np.ndarray[np.int64_t, ndim=2] mask
     x_min = bounds[0]
     x_max = bounds[1]
@@ -233,12 +233,10 @@ def pixelize_off_axis_cartesian(
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> rows)
-    px_dy = height / (<np.float64_t> cols)
+    px_dx = width / (<np.float64_t> buff.shape[0])
+    px_dy = height / (<np.float64_t> buff.shape[1])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
-    if rows == 0 or cols == 0:
-        raise YTPixelizeError("Cannot scale to zero size")
     if px.shape[0] != py.shape[0] or \
        px.shape[0] != pdx.shape[0] or \
        px.shape[0] != pdy.shape[0] or \
@@ -246,8 +244,7 @@ def pixelize_off_axis_cartesian(
        px.shape[0] != indices.shape[0] or \
        px.shape[0] != data.shape[0]:
         raise YTPixelizeError("Arrays are not of correct shape.")
-    my_array = np.zeros((rows, cols), "float64")
-    mask = np.zeros((rows, cols), "int64")
+    mask = np.zeros((buff.shape[0], buff.shape[1]), "int64")
     with nogil:
         for ip in range(indices.shape[0]):
             p = indices[ip]
@@ -269,8 +266,8 @@ def pixelize_off_axis_cartesian(
                 continue
             lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
             lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
-            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), rows)
-            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), cols)
+            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[0])
+            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[1])
             for i in range(lr, rr):
                 cypx = px_dy * (i + 0.5) + y_min
                 for j in range(lc, rc):
@@ -283,10 +280,11 @@ def pixelize_off_axis_cartesian(
                        fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
-                    my_array[i, j] += dsp
-    my_array /= mask
-    return my_array.T
-
+                    buff[i, j] += dsp
+    for i in range(buff.shape[0]):
+        for j in range(buff.shape[1]):
+            if mask[i,j] == 0: continue
+            buff[i,j] /= mask[i,j]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
