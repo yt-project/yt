@@ -1169,7 +1169,7 @@ class YTSearchCmd(YTCommand):
         for i, c in enumerate(sorted(candidates)):
             print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
-                record = get_metadata(c)
+                record = get_metadata(c, args.full_output)
             except YTOutputNotIdentified:
                 continue
             records.append(record)
