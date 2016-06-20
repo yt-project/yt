@@ -875,14 +875,14 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
-                               (x0, x1, y0, y1)).transpose()
+                               (x0, x1, y0, y1))
         pixelize_off_axis_cartesian(pixY,
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_y],
-                               (x0, x1, y0, y1)).transpose()
+                               (x0, x1, y0, y1))
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
 
