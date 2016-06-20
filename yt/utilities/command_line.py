@@ -43,6 +43,7 @@ from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
+from yt.utilities.metadata import get_metadata
 from yt.utilities.exceptions import \
     YTOutputNotIdentified
 
@@ -1150,11 +1151,6 @@ class YTSearchCmd(YTCommand):
     def __call__(self, args):
         from yt.utilities.parameter_file_storage import \
             output_type_registry
-        attrs = ("dimensionality", "refine_by", "domain_dimensions",
-                 "current_time", "domain_left_edge", "domain_right_edge",
-                 "unique_identifier", "current_redshift", 
-                 "cosmological_simulation", "omega_matter", "omega_lambda",
-                 "hubble_constant", "dataset_type")
         candidates = []
         for base, dirs, files in os.walk(".", followlinks=True):
             print("(% 10i candidates) Examining %s" % (len(candidates), base))
@@ -1173,26 +1169,10 @@ class YTSearchCmd(YTCommand):
         for i, c in enumerate(sorted(candidates)):
             print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
-                ds = load(c)
+                record = get_metadata(c)
             except YTOutputNotIdentified:
                 continue
-            record = {'filename': c}
-            for a in attrs:
-                v = getattr(ds, a, None)
-                if v is None:
-                    continue
-                if hasattr(v, "tolist"):
-                    v = v.tolist()
-                record[a] = v
-            if args.full_output:
-                params = {}
-                for p, v in ds.parameters.items():
-                    if hasattr(v, "tolist"):
-                        v = v.tolist()
-                    params[p] = v
-                record['params'] = params
             records.append(record)
-            ds.close()
         with open(args.output, "w") as f:
             json.dump(records, f, indent=4)
         print("Identified %s records output to %s" % (
