@@ -129,7 +129,8 @@ class IOHandlerOWLS(BaseIOHandler):
             pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
             keys = f.keys()
         else:
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][int(ptype[-1])]
+            pt = int(index_ptype[-1])
+            pcount = f["/Header"].attrs["NumPart_ThisFile"][pt]
             keys = [index_ptype]
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
