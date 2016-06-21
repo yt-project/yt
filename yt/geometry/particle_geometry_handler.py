@@ -89,7 +89,7 @@ class ParticleIndex(Index):
             over_refine = ds.over_refine_factor)
         self.oct_handler.n_ref = ds.n_ref
         only_on_root(mylog.info, "Allocating for %0.3e particles "
-                                 "(particle type '%s')",
+                                 "(index particle type '%s')",
                      self.total_particles, index_ptype)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
