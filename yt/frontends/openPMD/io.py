@@ -52,7 +52,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._cached_ptype = ""
         self._cache = {}
 
-    def _fill_cache(self, ptype):
+    def _fill_cache(self, ptype, index=0, offset=None):
         # Get a particle species (e.g. /data/3500/particles/e/)
         if "io" in ptype:
             spec = self._handle[self.basePath + self.particlesPath].keys()[0]
@@ -64,15 +64,15 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         pos = {}
         off = {}
         for ax in axes:
-            pos[ax] = np.array(get_component(pds, "position/" + ax), dtype="float64")
-            off[ax] = np.array(get_component(pds, "positionOffset/" + ax), dtype="float64")
+            pos[ax] = np.array(get_component(pds, "position/" + ax, index, offset), dtype="float64")
+            off[ax] = np.array(get_component(pds, "positionOffset/" + ax, index, offset), dtype="float64")
             self._cache[ax] = pos[ax] + off[ax]
         # Pad accordingly with zeros to make 1D/2D datasets compatible
         # These have to be the same shape as the existing axes dataset since that equals the number of particles
         for req in "xyz":
             if req not in axes:
                 self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
-        self._cached_ptype = ptype
+        # TODO self._cached_ptype = ptype
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -103,7 +103,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
-                        self._fill_cache(ptype)
+                        index = g.ActiveDimensions[0] * 8e6
+                        offset = g.NumberOfParticles
+                        self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -146,7 +148,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
-                        self._fill_cache(ptype)
+                        index = g.ActiveDimensions[0] * 8e6
+                        offset = g.NumberOfParticles
+                        self._fill_cache(ptype, index, offset)
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
                         continue
@@ -158,7 +162,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     pds = ds[self.particlesPath + "/" + spec]
                     for field in parallel_objects(field_list):
                         nfield = "/".join(field.split("_")[1:])
-                        data = get_component(pds, nfield)
+                        data = get_component(pds, nfield, index, offset)
                         #mylog.debug("data {}".format(data))
                         #mylog.debug("mask {}".format(mask))
                         yield ((ptype, field), data[mask])

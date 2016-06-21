@@ -368,12 +368,12 @@ class openPMDDataset(Dataset, openPMDBasePath):
 
         # We set the highest dimensionality in the simulation as the global one
         fshape = None
-        for mesh in f[self.basePath + meshesPath].keys():
-            for axis in f[self.basePath + meshesPath + "/" + mesh].keys():
-                try:
+        try:
+            for mesh in f[self.basePath + meshesPath].keys():
+                for axis in f[self.basePath + meshesPath + "/" + mesh].keys():
                     fshape = np.maximum(fshape, f[self.basePath + meshesPath + "/" + mesh + "/" + axis].shape)
-                except:
-                    pass
+        except:
+            pass
         if len(fshape) < 1:
             self.dimensionality = 0
             for species in f[self.basePath + particlesPath].keys():
