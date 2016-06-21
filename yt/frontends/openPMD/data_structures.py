@@ -201,15 +201,13 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             self:
                 A reference to self
         """
+        # TODO For the moment we only create grids if there are particles present
         try:
             f = self.dataset._handle
             bp = self.basePath
             pp = f.attrs["particlesPath"]
             spec = f[bp + pp].keys()[0]
-            # Using particlePatches as grids
-            # We assume particlePatches to be present
-            # self.num_grids = f[bp + pp + spec + "/particlePatches/numParticles"].size
-            # Alternatively, we could do this by setting an upper bound for the size of each grid
+            # We could do this by setting an upper bound for the size of each grid
             # Applying a (rough) 100MB restriction to particle data
             pos = f[bp + pp + spec + "/position"].keys()[0]
             if is_const_component(f[bp + pp + spec + "/position/" + pos]):
@@ -217,10 +215,11 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             else:
                 numparts = f[bp + pp + spec + "/position/" + pos].len()
             self.np = numparts
-            # For 3D: about 8 Mio. particles * 3 dimensions
-            self.ppg = 8e6
-            # For 2D: about 12,5 Mio particles
-            # For 1D: about 25 Mio. particles
+            gridsize = 100 * 10**6  # Bytes
+            # For 3D: about 8 Mio. particles per grid
+            # For 2D: about 12,5 Mio. particles per grid
+            # For 1D: about 25 Mio. particles per grid
+            self.ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
             from math import ceil
             # Use an upper bound of equally sized grids, last one might be smaller
             self.num_grids = int(ceil(self.np/self.ppg))

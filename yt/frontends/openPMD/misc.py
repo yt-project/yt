@@ -789,19 +789,19 @@ def get_component(group, component_name, index=0, offset=None):
     n-dimensional numpy array filled with values of component
     """
 
-    mylog.debug("openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+    mylog.debug("openPMD - misc - get_component: {}/{}[{} + {}]".format(group.name, component_name, index, offset))
     record_component = group[component_name]
     if is_const_component(record_component):
         # This allows for masking of the component
         # Slicing data directly at the h5py layer improves performance
-        if offset != None:
+        if offset is not None:
             shape = offset - index
         else:
             shape = record_component.attrs["shape"] - index
         # Our component is constant, craft an array by hand
         return np.full(shape, record_component.attrs["value"] * record_component.attrs["unitSI"])
     else:
-        if offset != None:
+        if offset is not None:
             offset += index
         # Component is a dataset, return it (possibly masked)
         # Slicing is not smart, supplying lower dimensional indices only slices those dimensions

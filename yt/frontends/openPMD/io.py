@@ -103,7 +103,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
-                        index = g.ActiveDimensions[0] * 8e6
+                        index = int(g.ActiveDimensions[0] * 8e6)
                         offset = g.NumberOfParticles
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -148,7 +148,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
-                        index = g.ActiveDimensions[0] * 8e6
+                        index = int(g.ActiveDimensions[0] * 8e6)
                         offset = g.NumberOfParticles
                         self._fill_cache(ptype, index, offset)
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
