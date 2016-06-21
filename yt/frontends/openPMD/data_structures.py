@@ -30,6 +30,7 @@ import h5py
 import numpy as np
 import os
 import re
+from math import ceil
 from yt.utilities.logger import ytLogger as mylog
 from .misc import get_component, is_const_component
 
@@ -210,9 +211,8 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             # For 2D: about 12,5 Mio. particles per grid
             # For 1D: about 25 Mio. particles per grid
             self.ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
-            from math import ceil
             # Use an upper bound of equally sized grids, last one might be smaller
-            self.num_grids = int(ceil(self.np/(self.ppg*1.0)))
+            self.num_grids = int(ceil(self.np*self.ppg**-1))
         except:
             mylog.info("Could not detect particlePatch, falling back to single grid!")
             self.num_grids = 1
@@ -232,22 +232,33 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             Each of these variables is an array with an entry for each of the self.num_grids grids.
             Additionally, grids must be an array of AMRGridPatch objects that already know their IDs.
         """
-        # TODO Does NOT work for 1D/2D yet
+        # TODO This (particle grid-data) needs to be included in every grid
+        # TODO Furthermore, we have to use grids from meshes to represent a physical layout
+        # dim = self.dataset.dimensionality
+        # for i in range(self.num_grids):
+        #     if i != self.num_grids-1:
+        #         self.grid_particle_count[i] = self.ppg
+        #     else:
+        #         # The last grid need not be the same size as the previous ones
+        #         self.grid_particle_count[i] = self.np%self.ppg
+        #     # The edges have in fact nothing to do with physical boundaries, they are sections of the raw data
+        #     self.grid_left_edge[i] = [i*self.num_grids**-1] * dim
+        #     self.grid_right_edge[i] = [(i+1)*self.num_grids**-1] * dim
+        #     self.grid_dimensions[i] = self.grid_right_edge[i] - self.grid_left_edge[i]
+        #     mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
+        #     mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
+        #     mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
+        #     mylog.debug("self.grid_particle_count[{}] - {}".format(i, self.grid_particle_count[i]))
+
         dim = self.dataset.dimensionality
+
         for i in range(self.num_grids):
-            if i != self.num_grids-1:
-                self.grid_particle_count[i] = self.ppg
-            else:
-                # The last grid need not be the same size as the previous ones
-                self.grid_particle_count[i] = self.np%self.ppg
-            # The edges have in fact nothing to do with physical boundaries, they are sections of the raw data
-            self.grid_left_edge[i] = [i*self.num_grids**-1, i*self.num_grids**-1, i*self.num_grids**-1][:dim]
-            self.grid_right_edge[i] = [(i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1][:dim]
-            self.grid_dimensions[i] = self.grid_right_edge[i] - self.grid_left_edge[i]
-            mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
-            mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
-            mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
-            mylog.debug("self.grid_particle_count[{}] - {}".format(i, self.grid_particle_count[i]))
+            self.grid_left_edge[i][:dim] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
+            self.grid_left_edge[i][0] = i * self.num_grids**-1
+            self.grid_right_edge[i][:dim] = self.dataset.domain_right_edge.copy()  # (N, 3) <= float64
+            self.grid_right_edge[i][0] = (i + 1) * self.num_grids**-1
+            self.grid_dimensions[i][:dim] = self.dataset.domain_dimensions[:dim]  # (N, 3) <= int
+            self.grid_dimensions[i][0] *= self.num_grids**-1
 
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
