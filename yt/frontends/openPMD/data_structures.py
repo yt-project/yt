@@ -210,14 +210,20 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             # We assume particlePatches to be present
             # self.num_grids = f[bp + pp + spec + "/particlePatches/numParticles"].size
             # Alternatively, we could do this by setting an upper bound for the size of each grid
-            # Applying a 100MB restriction to particle data
+            # Applying a (rough) 100MB restriction to particle data
             pos = f[bp + pp + spec + "/position"].keys()[0]
             if is_const_component(f[bp + pp + spec + "/position/" + pos]):
                 numparts = f[bp + pp + spec + "/position/" + pos].attrs["shape"]
             else:
                 numparts = f[bp + pp + spec + "/position/" + pos].len()
-            mylog.debug("numparts {}".format(numparts))
-            self.num_grids = 1
+            self.np = numparts
+            # For 3D: about 8 Mio. particles * 3 dimensions
+            self.ppg = 8e6
+            # For 2D: about 12,5 Mio particles
+            # For 1D: about 25 Mio. particles
+            from math import ceil
+            # Use an upper bound of equally sized grids, last one might be smaller
+            self.num_grids = int(ceil(self.np/self.ppg))
         except:
             mylog.info("Could not detect particlePatch, falling back to single grid!")
             self.num_grids = 1
@@ -247,47 +253,16 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         pp = f.attrs["particlesPath"]
         spec = f[bp + pp].keys()[0]
 
-        offset = {}
-        extent = {}
-        pds = f[bp + pp + "/" + spec + "/particlePatches"]
-        numpart = pds["numParticles"]
-        for axis in f[bp + pp + "/" + spec + "/particlePatches/offset"].keys():
-            offset[axis] = get_component(pds, "offset/{}".format(axis))
-            extent[axis] = get_component(pds, "extent/{}".format(axis))
-        # try:
-        #     # TODO Multiply by unitSI
-        #     pds = f[bp + pp + "/" + spec + "/particlePatches"]
-        #     numpart = get_component(pds, "numParticles")
-        #     for axis in f[bp + pp + "/" + spec + "/particlePatches/offset"].keys():
-        #         mylog.debug("getting ")
-        #         offset[axis] = get_component(pds, "offset/{}".format(axis))
-        #         #offset[axis] = f[bp + pp + "/" + spec + "/particlePatches/offset/" + axis][:]
-        #         extent[axis] = get_component(pds, "extent/{}".format(axis))
-        #         #extent[axis] = f[bp + pp + "/" + spec + "/particlePatches/extent/" + axis][:]
-        # except:
-        #     numpart = 0 # Size of ANY of the attributes of the species
-        #     offset["x"] = [0]
-        #     extent["x"] = [1] # Extent of the whole simulation, read from mesh?
-
-        for req in "xyz"[:self.ds.dimensionality]:
-            if req not in offset:
-                offset[req] = np.zeros(len(offset[offset.keys()[0]]))
-                extent[req] = np.zeros(len(offset[offset.keys()[0]]))
-
-        dims = self.dataset.domain_left_edge.shape[0]#self.dimensionality
-
         # TODO Does NOT work for 1D/2D yet
         for i in range(self.num_grids):
-            self.grid_left_edge[i] = [offset["x"][i],
-                                      offset["y"][i],
-                                      offset["z"][i]]
-            self.grid_right_edge[i] = [offset["x"][i]+extent["x"][i],
-                                       offset["y"][i]+extent["y"][i],
-                                       offset["z"][i]+extent["z"][i]]
-            self.grid_dimensions[i] = [extent["x"][i],
-                                       extent["y"][i],
-                                       extent["z"][i]]
-            self.grid_particle_count[i] = numpart[i]
+            if i != self.num_grids-1:
+                self.grid_particle_count[i] = self.ppg
+            else:
+                # The last grid need not be the same size as the previous ones
+                self.grid_particle_count[i] = self.np%self.ppg
+            self.grid_left_edge[i] = [i/self.num_grids, i/self.num_grids, i/self.num_grids]
+            self.grid_right_edge[i] = [i+1/self.num_grids, i+1/self.num_grids, i+1/self.num_grids]
+            self.grid_dimensions[i] = self.grid_right_edge[i] - self.grid_left_edge[i]
             mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
             mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
             mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
@@ -393,12 +368,12 @@ class openPMDDataset(Dataset, openPMDBasePath):
 
         # We set the highest dimensionality in the simulation as the global one
         fshape = None
-        try:
-            for mesh in f[self.basePath + meshesPath].keys():
-                for axis in f[self.basePath + meshesPath + "/" + mesh].keys():
+        for mesh in f[self.basePath + meshesPath].keys():
+            for axis in f[self.basePath + meshesPath + "/" + mesh].keys():
+                try:
                     fshape = np.maximum(fshape, f[self.basePath + meshesPath + "/" + mesh + "/" + axis].shape)
-        except:
-            pass
+                except:
+                    pass
         if len(fshape) < 1:
             self.dimensionality = 0
             for species in f[self.basePath + particlesPath].keys():
