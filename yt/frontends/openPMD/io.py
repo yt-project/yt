@@ -101,7 +101,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 if g.filename is None:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    mylog.debug("openPMD - _read_particle_coords: {}, {}".format(ptype, field_list))
+                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
                         self._fill_cache(ptype)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -144,7 +144,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
                 ds = f[self.basePath]
                 for ptype, field_list in sorted(ptf.items()):
-                    mylog.debug("openPMD - _read_particle_fields: {}, {}".format(ptype, field_list))
+                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
                         self._fill_cache(ptype)
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
@@ -159,8 +159,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     for field in parallel_objects(field_list):
                         nfield = "/".join(field.split("_")[1:])
                         data = get_component(pds, nfield)
-                        mylog.debug("data {}".format(data))
-                        mylog.debug("mask {}".format(mask))
+                        #mylog.debug("data {}".format(data))
+                        #mylog.debug("mask {}".format(mask))
                         yield ((ptype, field), data[mask])
 
 
