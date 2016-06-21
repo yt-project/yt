@@ -167,13 +167,8 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         # self.fields[g.id][fname] is the pattern here
-        index_ptype = self.index_ptype
-        if index_ptype == "all":
-            ptypes = self.ds.particle_types_raw
-        else:
-            ptypes = [index_ptype]
         morton = []
-        for ptype in ptypes:
+        for ptype in self.ds.particle_types_raw:
             try:
                 pos = np.column_stack(self.fields[data_file.filename][
                     (ptype, "particle_position_%s" % ax)] for ax in 'xyz')
