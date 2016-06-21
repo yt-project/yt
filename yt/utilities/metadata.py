@@ -1,6 +1,4 @@
 from yt.convenience import load
-from yt.utilities.parameter_file_storage import \
-    output_type_registry
 from yt.utilities.exceptions import \
     YTOutputNotIdentified
 
