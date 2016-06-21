@@ -135,11 +135,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
 
             From yt doc:
             self.field_list must be populated as a list of strings corresponding to "native" fields in the data files.
-
-            Parameters
-            ----------
-            self:
-                A reference to self
         """
         # TODO This only parses one file
         f = self.dataset._handle
@@ -195,11 +190,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
 
             From yt doc:
             this must set self.num_grids to be the total number of grids (equiv AMRGridPatch'es) in the simulation
-
-            Parameters
-            ----------
-            self:
-                A reference to self
         """
         # TODO For the moment we only create grids if there are particles present
         try:
@@ -222,7 +212,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             self.ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
             from math import ceil
             # Use an upper bound of equally sized grids, last one might be smaller
-            self.num_grids = int(ceil(self.np/self.ppg))
+            self.num_grids = int(ceil(self.np/(self.ppg*1.0)))
         except:
             mylog.info("Could not detect particlePatch, falling back to single grid!")
             self.num_grids = 1
@@ -241,21 +231,18 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             with the appropriate information.
             Each of these variables is an array with an entry for each of the self.num_grids grids.
             Additionally, grids must be an array of AMRGridPatch objects that already know their IDs.
-
-            Parameters
-            ----------
-            self:
-                A reference to self
         """
         # TODO Does NOT work for 1D/2D yet
+        dim = self.dataset.dimensionality
         for i in range(self.num_grids):
             if i != self.num_grids-1:
                 self.grid_particle_count[i] = self.ppg
             else:
                 # The last grid need not be the same size as the previous ones
                 self.grid_particle_count[i] = self.np%self.ppg
-            self.grid_left_edge[i] = [i*self.num_grids**-1, i*self.num_grids**-1, i*self.num_grids**-1]
-            self.grid_right_edge[i] = [(i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1]
+            # The edges have in fact nothing to do with physical boundaries, they are sections of the raw data
+            self.grid_left_edge[i] = [i*self.num_grids**-1, i*self.num_grids**-1, i*self.num_grids**-1][:dim]
+            self.grid_right_edge[i] = [(i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1][:dim]
             self.grid_dimensions[i] = self.grid_right_edge[i] - self.grid_left_edge[i]
             mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
             mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
@@ -275,11 +262,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             From yt doc:
             this initializes the grids by calling _prepare_grid() and _setup_dx() on all of them.
             Additionally, it should set up Children and Parent lists on each grid object.
-
-            Parameters
-            ----------
-            self:
-                A reference to self
         """
 
         # self._reconstruct_parent_child()
@@ -329,11 +311,6 @@ class openPMDDataset(Dataset, openPMDBasePath):
         """
             From yt doc:
             handle conversion between the different physical units and the code units
-
-            Parameters
-            ----------
-            self:
-                A reference to self
         """
         # We hardcode these to 1.0 since every dataset can have different code <-> physical scaling
         # We get the actual unit by multiplying with "unitSI" when getting our data from disk
@@ -347,11 +324,6 @@ class openPMDDataset(Dataset, openPMDBasePath):
         """
             From yt doc:
             read in metadata describing the overall data on disk
-
-            Parameters
-            ----------
-            self:
-                A reference to self
         """
         f = self._handle
         meshesPath = f.attrs["meshesPath"].decode()
