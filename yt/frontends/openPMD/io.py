@@ -103,7 +103,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
-                        index = int(g.ActiveDimensions[0] * 8e6)
+                        index = int(g.ActiveDimensions[0] * self.ds.index.ppg)
                         offset = g.NumberOfParticles
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -148,7 +148,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
                     if ptype not in self._cached_ptype:
-                        index = int(g.ActiveDimensions[0] * 8e6)
+                        index = int(g.ActiveDimensions[0] * self.ds.index.ppg)
                         offset = g.NumberOfParticles
                         self._fill_cache(ptype, index, offset)
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
@@ -210,28 +210,12 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
     #             raise RuntimeError
     #
     #     rv = {f: np.array([]) for f in fields}
-    #     for field in fields:
-    #         ftype, fname = field
-    #         for chunk in chunks:
-    #             for g in chunk.objs:
-    #                 mylog.debug("g.select({}, {}, rv[{}], {})".format(selector, data, field,ind))
-    #                 rv.update(self._read_chunk_data(chunk, fields))
+    #     for chunk in chunks:
+    #         for grid in chunk.objs:
+    #             for ftype, fname in fields:
+    #                 data = self._read_particle_fields(chunks, ptf, selector)
+    #                 rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
     #     return rv
-    #     # for chunk in chunks:
-    #     #     for i in self._read_chunk_data(chunk,fields):
-    #     #         mylog.info("self._read_chunk_data({},{}):{}".format(chunk,fields,i))
-    #
-    #         # for grid in chunk.objs:
-    #         #     for ftype, fname in fields:
-    #         #         data = self._read_data((ftype, fname))
-    #         #         rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
-    #
-    #     """
-    #     From Exo 2
-    #     for field in fields:
-    #             for g in chunk.objs:
-    #                             ind += g.select(selector, data, rv[field], ind)
-    #     """
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         """

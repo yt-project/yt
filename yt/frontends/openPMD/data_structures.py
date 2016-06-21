@@ -247,11 +247,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             self:
                 A reference to self
         """
-        f = self.dataset._handle
-        bp = self.basePath
-        pp = f.attrs["particlesPath"]
-        spec = f[bp + pp].keys()[0]
-
         # TODO Does NOT work for 1D/2D yet
         for i in range(self.num_grids):
             if i != self.num_grids-1:
@@ -259,8 +254,8 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             else:
                 # The last grid need not be the same size as the previous ones
                 self.grid_particle_count[i] = self.np%self.ppg
-            self.grid_left_edge[i] = [i/self.num_grids, i/self.num_grids, i/self.num_grids]
-            self.grid_right_edge[i] = [i+1/self.num_grids, i+1/self.num_grids, i+1/self.num_grids]
+            self.grid_left_edge[i] = [i*self.num_grids**-1, i*self.num_grids**-1, i*self.num_grids**-1]
+            self.grid_right_edge[i] = [(i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1, (i+1)*self.num_grids**-1]
             self.grid_dimensions[i] = self.grid_right_edge[i] - self.grid_left_edge[i]
             mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
             mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
