@@ -1,6 +1,4 @@
 from yt.convenience import load
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified
 
 DEFAULT_ATTRS = ("dimensionality", "refine_by", "domain_dimensions",
                  "current_time", "domain_left_edge", "domain_right_edge",
