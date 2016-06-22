@@ -368,15 +368,15 @@ class LightRay(CosmologySplice):
 
         """
 
-        if start_position and hasattr(start_position, 'units'):
+        if start_position is not None and hasattr(start_position, 'units'):
             start_position = start_position.to('unitary')
-        elif start_position:
+        elif start_position is not None :
             start_position = self.ds.arr(
                 start_position, 'code_length').to('unitary')
 
-        if end_position and hasattr(end_position, 'units'):
+        if end_position is not None and hasattr(end_position, 'units'):
             end_position = end_position.to('unitary')
-        elif end_position:
+        elif end_position is not None :
             end_position = self.ds.arr(
                 end_position, 'code_length').to('unitary')
 
