@@ -10,4 +10,3 @@ pytz==2016.4
 six==1.10.0
 snowballstemmer==1.2.1
 Sphinx==1.4.1
-sphinx-bootstrap-theme==0.4.8
