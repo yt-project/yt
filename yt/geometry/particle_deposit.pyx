@@ -329,6 +329,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] field
     cdef public object ofield
     def initialize(self):
+        if not all(_ > 1 for _ in self.nvals):
+            from yt.utilities.exceptions import YTBoundsDefinitionError
+            raise YTBoundsDefinitionError(
+                "CIC requires minimum of 2 zones in all dimensions",
+                self.nvals)
         self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 

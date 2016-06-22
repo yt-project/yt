@@ -239,7 +239,9 @@ cdef class SelectorObject:
                     spos[2] = pos[2] - sdds[2]/2.0
                     for k in range(2):
                         ch = NULL
-                        if root.children != NULL:
+                        # We only supply a child if we are actually going to
+                        # look at the next level.
+                        if root.children != NULL and next_level == 1:
                             ch = root.children[cind(i, j, k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
                             # Note that visitor.pos is always going to be the

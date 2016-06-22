@@ -216,9 +216,6 @@ extensions = [
               depends=glob.glob("yt/frontends/artio/artio_headers/*.c")),
     Extension("yt.utilities.spatial._distance_wrap",
               glob.glob("yt/utilities/spatial/src/*.c")),
-    Extension("yt.visualization._MPL",
-              ["yt/visualization/_MPL.c"],
-              libraries=std_libs),
 ]
 
 # EMBREE
