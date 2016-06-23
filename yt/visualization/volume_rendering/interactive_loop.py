@@ -14,6 +14,8 @@ Event loop for Interactive Data Visualization
 
 # This is a part of the experimental Interactive Data Visualization
 
+import os
+
 import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
@@ -116,7 +118,11 @@ class RenderingContext(object):
     '''
     should_quit = False
     def __init__(self, width=1024, height=1024, title="vol_render"):
+        curdir = os.getcwd()
         glfw.Init()
+        # glfw sometimes changes the current working directory, see
+        # https://github.com/adamlwgriffiths/cyglfw3/issues/21
+        os.chdir(curdir)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)

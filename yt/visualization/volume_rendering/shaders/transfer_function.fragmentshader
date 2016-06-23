@@ -48,8 +48,13 @@ void main()
     vec3 range = right_edge - left_edge;
     vec4 new_color;
     bool ray_in_bb = true;
+    // Take into account that texture is clamped
+    vec3 nds = range / dx;
+    vec3 tle = 1.0 / (2.0 * nds);
+    vec3 tre = 1.0 - tle;
+    vec3 tdd = tre - tle;
     while (ray_in_bb) {
-        tex_curr_pos = (ray_position - left_edge)/range;
+        tex_curr_pos = tle + tdd * (ray_position - left_edge) / range;
         vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
         //new_color = texture(cmap, tex_sample.r);
         new_color = vec4(0.0);

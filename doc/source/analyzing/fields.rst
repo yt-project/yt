@@ -98,22 +98,31 @@ following:
 .. code-block:: python
 
     ad = ds.all_data()
+
+    # just a field name
     density = ad['density']
+
+    # field tuple with no parentheses
     density = ad['gas', 'density']
+
+    # full field tuple
     density = ad[('gas', 'density')]
-    dnesity = ad[ds.fields.gas.density]
+
+    # through the ds.fields object
+    density = ad[ds.fields.gas.density]
 
 The first data access example is the simplest. In that example, the field type
 is inferred from the name of the field. The next two examples use the field type
 explicitly, this might be necessary if there is more than one field type with a
-"density" field defined in the same simulation. The third example is a slightly
-more verbose and is syntactically identical to the second example due to the way
-indexing functions in Python. The final example uses the ``ds.fields` object
-described above. This way of accessing fields lends itself to interactive use,
-especially if you make heavy use of IPython's tab completion features. Any of
-these ways of denoting the ``('gas', 'density')`` field can be used when
-supplying a field name to a yt data object, analysis routines, or plotting and
-visualization function.
+"density" field defined in the same dataset. The third example is slightly more
+verbose but is syntactically identical to the second example due to the way
+indexing works in the Python language.
+
+The final example uses the ``ds.fields`` object described above. This way of
+accessing fields lends itself to interactive use, especially if you make heavy
+use of IPython's tab completion features. Any of these ways of denoting the
+``('gas', 'density')`` field can be used when supplying a field name to a yt
+data object, analysis routines, or plotting and visualization function.
 
 Accessing Fields without a Field Type
 -------------------------------------

@@ -633,6 +633,10 @@ class DarkMatterARTDataset(ARTDataset):
             return False
         if not f.endswith(suffix):
             return False
+        if "s0" not in f:
+            # ATOMIC.DAT, for instance, passes the other tests, but then dies
+            # during _find_files because it can't be split.
+            return False
         with open(f, 'rb') as fh:
             try:
                 amr_prefix, amr_suffix = filename_pattern['amr']

@@ -191,6 +191,14 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
                                 if overlap1 < 0.0: continue
+                                # This next line is not commented out because
+                                # it's an oddity; we actually want to skip
+                                # depositing if the overlap is zero, and that's
+                                # how it used to work when we were more
+                                # conservative about the iteration indices.
+                                # This will reduce artifacts if we ever move to
+                                # compositing instead of replacing bitmaps.
+                                if overlap1 * overlap2 == 0.0: continue
                                 my_array[j,i] += (dsp * overlap1) * overlap2
                             else:
                                 my_array[j,i] = dsp
@@ -275,14 +283,14 @@ def pixelize_off_axis_cartesian(
                     cx = inv_mat[0,0]*cxpx + inv_mat[0,1]*cypx + center[0]
                     cy = inv_mat[1,0]*cxpx + inv_mat[1,1]*cypx + center[1]
                     cz = inv_mat[2,0]*cxpx + inv_mat[2,1]*cypx + center[2]
-                    if fabs(xsp - cx) * 0.95 > dxsp or \
-                       fabs(ysp - cy) * 0.95 > dysp or \
-                       fabs(zsp - cz) * 0.95 > dzsp:
+                    if fabs(xsp - cx) * 0.99 > dxsp or \
+                       fabs(ysp - cy) * 0.99 > dysp or \
+                       fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
                     my_array[i, j] += dsp
     my_array /= mask
-    return my_array
+    return my_array.T
 
 
 @cython.cdivision(True)

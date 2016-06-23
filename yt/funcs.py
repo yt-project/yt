@@ -963,3 +963,24 @@ def get_requests():
     except ImportError:
         requests = None
     return requests
+
+@contextlib.contextmanager
+def dummy_context_manager(*args, **kwargs):
+    yield
+
+def matplotlib_style_context(style_name=None, after_reset=True):
+    """Returns a context manager for controlling matplotlib style.
+
+    Arguments are passed to matplotlib.style.context() if specified. Defaults
+    to setting "classic" style, after resetting to the default config parameters.
+
+    On older matplotlib versions (<=1.5.0) where matplotlib.style isn't
+    available, returns a dummy context manager.
+    """
+    if style_name is None:
+        style_name = 'classic'
+    try:
+        import matplotlib.style
+        return matplotlib.style.context(style_name, after_reset=after_reset)
+    except ImportError:
+        return dummy_context_manager()
