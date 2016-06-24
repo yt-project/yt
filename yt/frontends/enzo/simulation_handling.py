@@ -102,11 +102,12 @@ class EnzoSimulation(SimulationTimeSeries):
                                        dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
             self.length_unit = self.quan(self.box_size, "Mpccm / h",
                                          registry=self.unit_registry)
-            self.box_size = self.length_unit
-            self.domain_left_edge = self.domain_left_edge * self.length_unit
-            self.domain_right_edge = self.domain_right_edge * self.length_unit
         else:
             self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
+            self.length_unit = self.quan(self.parameters["LengthUnits"], "cm")
+        self.box_size = self.length_unit
+        self.domain_left_edge = self.domain_left_edge * self.length_unit
+        self.domain_right_edge = self.domain_right_edge * self.length_unit
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_length", self.length_unit)
 
@@ -552,6 +553,7 @@ class EnzoSimulation(SimulationTimeSeries):
         self.parameters['StopCycle'] = 100000
         self.parameters['dtDataDump'] = 0.
         self.parameters['CycleSkipDataDump'] = 0.
+        self.parameters['LengthUnits'] = 1.
         self.parameters['TimeUnits'] = 1.
 
     def _find_outputs(self):
