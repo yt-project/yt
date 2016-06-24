@@ -981,6 +981,8 @@ def matplotlib_style_context(style_name=None, after_reset=True):
         style_name = 'classic'
     try:
         import matplotlib.style
-        return matplotlib.style.context(style_name, after_reset=after_reset)
+        if style_name in matplotlib.style.available:
+            return matplotlib.style.context(style_name, after_reset=after_reset)
     except ImportError:
-        return dummy_context_manager()
+        pass
+    return dummy_context_manager()
