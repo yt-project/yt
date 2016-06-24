@@ -72,7 +72,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         for req in "xyz":
             if req not in axes:
                 self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
-        # TODO self._cached_ptype = ptype
+        self._cached_ptype = str((ptype, index, offset))
 
     def _read_particle_coords(self, chunks, ptf):
         """
@@ -102,9 +102,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     continue
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
-                    if ptype not in self._cached_ptype:
-                        index = int(g.ActiveDimensions[0] * self.ds.index.ppg)
-                        offset = g.NumberOfParticles
+                    index = g.part_ind
+                    offset = g.off_part
+                    if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
 
@@ -143,13 +143,12 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 if g.filename is None:
                     continue
                 f = self._handle
-
                 ds = f[self.basePath]
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype, field_list in parallel_objects(sorted(ptf.items())):
                     mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
-                    if ptype not in self._cached_ptype:
-                        index = int(g.ActiveDimensions[0] * self.ds.index.ppg)
-                        offset = g.NumberOfParticles
+                    index = g.part_ind
+                    offset = g.off_part
+                    if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
@@ -160,7 +159,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     else:
                         spec = ptype
                     pds = ds[self.particlesPath + "/" + spec]
-                    for field in parallel_objects(field_list):
+                    for field in parallel_objects(field_list, 8):
                         nfield = "/".join(field.split("_")[1:])
                         data = get_component(pds, nfield, index, offset)
                         #mylog.debug("data {}".format(data))
@@ -251,39 +250,34 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             - keys are (ftype, fname) tuples representing a field
             - values are numpy arrays with data form that field
         """
-        mylog.info("_read_fluid_selection")
+        mylog.info("_read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
         rv = {}
         chunks = list(chunks)
         if selector.__class__.__name__ == "GridSelector":
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
-            # TODO We can probably skip this since the following loops do this, anyway
-            # g = chunks[0].objs[0]
-            # rv.update(self._read_chunk_data(chunks[0],fields))
-            #f = h5py.File(u(g.filename), 'r')
-            #for ftype, fname in fields:
-            #    rv[ftype, fname] = self._read_data(g, fname)
-            #f.close()
-            # return rv
-
-
 
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
+        ind = {}
         for field in fields:
             rv[field] = np.empty(size, dtype="float64")
+            ind[field] = 0
 
-        for chunk in chunks:
-            rv.update(self._read_chunk_data(chunk, fields))
-            # for g in chunk.objs:
-                # # WHY do we create a filehandle but not use it?
-                # f = h5py.File(u(g.filename), 'r')
-                # ###self._handle = f
-                # for ftype, fname in fields:
-                #     # WHY call with g (a grid) as self?
-                #     rv[ftype, fname] = self._read_data(g, fname)
-                # f.close()
+        for ftype, fname in parallel_objects(fields, 8):
+            field = (ftype, fname)
+            for chunk in chunks:
+                for g in chunk.objs:
+                    ds = self._handle[self.basePath + self.meshesPath]
+                    nfield = fname.replace("_", "/").replace("-","_")
+                    index = g.mesh_ind
+                    offset = g.off_mesh
+                    data = np.array(get_component(ds, nfield, index, offset)).flatten()
+                    off = ind[field] + data.size
+                    mylog.debug("({}, {})[{}:{}]".format(ftype, fname, ind[field], off))
+                    rv[ftype, fname][ind[field]:off] = data
+                    ind[field] = off
         return rv
 
     def _read_data(self, field):
@@ -340,7 +334,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             - keys are (ftype, fname) field tuples
             - values are flat numpy arrays with data form that field
         """
-        mylog.debug("_read_chunk_data")
+        mylog.debug("_read_chunk_data {} {}".format(chunk, fields))
         rv = {}
         fluid_fields, particle_fields = [], []
         for ftype, fname in fields:
@@ -359,18 +353,19 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             if g.filename is None:
                 continue
             grids_by_file[g.filename].append(g)
+        rv = {f: np.array([]) for f in fields}
         for filename in grids_by_file:
             grids = grids_by_file[filename]
             grids.sort()
-            f = h5py.File(filename, 'r')
-            for g in grids:
-                for ftype, fname in fluid_fields:
+            #f = h5py.File(filename, 'r')
+            for ftype, fname in fluid_fields:
+                for g in grids:
                     # TODO update basePath for different files
                     #data = self._read_data((ftype, fname))
                     ds = self._handle[self.basePath + self.meshesPath]
                     nfield = fname.replace("_", "/").replace("-","_")
-                    data = get_component(ds, nfield)
-                    mylog.debug("data.shape = {}".format(data.shape))
-                    rv[(ftype,fname)] = np.array(data).flatten()
-            f.close()
+                    data = get_component(ds, nfield, g.get_global_startindex()[0], g.ActiveDimensions[0])
+                    rv[ftype, fname] = np.concatenate((rv[ftype, fname], np.array(data).flatten()))
+                    mylog.debug("rv = {}".format(rv))
+            #f.close()
         return rv

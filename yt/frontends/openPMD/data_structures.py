@@ -97,9 +97,18 @@ class openPMDGrid(AMRGridPatch):
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
-    def __init__(self, id, index, level=-1):
+    part_ind = 0
+    off_part = 0
+    mesh_ind = 0
+    off_mesh = 0
+
+    def __init__(self, id, index, level=-1, pi=0, op=0, mi=0, om=0):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
+        self.part_ind = pi
+        self.off_part = op
+        self.mesh_ind = mi
+        self.off_mesh = om
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -152,9 +161,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                 output_fields.append(group.replace("_","-"))
         self.field_list = [("openPMD", str(c)) for c in output_fields]
 
-        def is_const_component(record_component):
-            return ("value" in record_component.attrs.keys())
-
         particle_fields = []
         if self.basePath + particlesPath in f:
             for particleName in f[self.basePath + particlesPath].keys():
@@ -193,6 +199,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             this must set self.num_grids to be the total number of grids (equiv AMRGridPatch'es) in the simulation
         """
         # TODO For the moment we only create grids if there are particles present
+        # TODO This breaks datasets with multiple types of particles and different amounts of particles
         try:
             f = self.dataset._handle
             bp = self.basePath
@@ -202,10 +209,9 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             # Applying a (rough) 100MB restriction to particle data
             pos = f[bp + pp + spec + "/position"].keys()[0]
             if is_const_component(f[bp + pp + spec + "/position/" + pos]):
-                numparts = f[bp + pp + spec + "/position/" + pos].attrs["shape"]
+                self.np = f[bp + pp + spec + "/position/" + pos].attrs["shape"]
             else:
-                numparts = f[bp + pp + spec + "/position/" + pos].len()
-            self.np = numparts
+                self.np = f[bp + pp + spec + "/position/" + pos].len()
             gridsize = 100 * 10**6  # Bytes
             # For 3D: about 8 Mio. particles per grid
             # For 2D: about 12,5 Mio. particles per grid
@@ -250,21 +256,37 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         #     mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
         #     mylog.debug("self.grid_particle_count[{}] - {}".format(i, self.grid_particle_count[i]))
 
-        dim = self.dataset.dimensionality
-
-        for i in range(self.num_grids):
-            self.grid_left_edge[i][:dim] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
-            self.grid_left_edge[i][0] = i * self.num_grids**-1
-            self.grid_right_edge[i][:dim] = self.dataset.domain_right_edge.copy()  # (N, 3) <= float64
-            self.grid_right_edge[i][0] = (i + 1) * self.num_grids**-1
-            self.grid_dimensions[i][:dim] = self.dataset.domain_dimensions[:dim]  # (N, 3) <= int
-            self.grid_dimensions[i][0] *= self.num_grids**-1
-
+        # There is only one refinement level in openPMD
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
-        # You have to initialize the grids
+
+        remaining = self.dataset.domain_dimensions[0]
+
         for i in range(self.num_grids):
-            self.grids[i] = self.grid(i, self, self.grid_levels[i, 0])
+            self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
+            self.grid_left_edge[i][0] = i * self.num_grids**-1
+            self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()  # (N, 3) <= float64
+            self.grid_right_edge[i][0] = (i + 1) * self.num_grids**-1
+            self.grid_dimensions[i] = self.dataset.domain_dimensions  # (N, 3) <= int
+            if i != self.num_grids-1:
+                self.grid_dimensions[i][0] = int(ceil(self.grid_dimensions[i][0] * self.num_grids**-1))
+                remaining -= self.grid_dimensions[i][0]
+                nap = self.ppg
+            else:
+                # The last grid need not be the same size as the previous ones
+                self.grid_dimensions[i][0] = remaining
+                nap = self.np % self.ppg
+            self.grid_particle_count[i] = nap
+            # You have to initialize the grids
+            self.grids[i] = self.grid(
+                i, self, self.grid_levels[i, 0],
+                pi=i*self.ppg, op=nap,
+                mi=int(ceil(self.dataset.domain_dimensions[0] * self.num_grids**-1)) * i, om=self.grid_dimensions[i][0])
+            mylog.debug("remaining {}".format(remaining))
+            mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
+            mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
+            mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
+            mylog.debug("self.grid_particle_count[{}] - {}".format(i, self.grid_particle_count[i]))
 
     def _populate_grid_objects(self):
         """
@@ -363,15 +385,15 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # TODO fill me with actual start and end positions in reasonable units
         # This COULD be done with minimum/maximum particle positions in the simulation
         # or through extent of the field meshes
-        self.domain_left_edge = np.zeros(self.dimensionality, dtype=np.float64)
-        self.domain_right_edge = np.ones(self.dimensionality, dtype=np.float64)
+        self.domain_left_edge = np.zeros(3, dtype=np.float64)
+        self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         # gridding of the meshes (assumed all mesh entries are on the same mesh)
-        self.domain_dimensions = np.ones(self.dimensionality, dtype=np.int64)
+        self.domain_dimensions = np.ones(3, dtype=np.int64)
         self.domain_dimensions[:self.dimensionality] = fshape
 
         # TODO assumes non-periodic boundary conditions
-        self.periodicity = np.zeros(self.dimensionality, dtype=np.bool)
+        self.periodicity = np.zeros(3, dtype=np.bool)
 
         self.current_time = f[self.basePath].attrs["time"]  # <= simulation time in code units
 
