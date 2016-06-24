@@ -66,10 +66,10 @@ class EnzoSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> es = yt.simulation("my_simulation.par", "Enzo")
+    >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
     >>> es.get_time_series()
     >>> for ds in es:
-    ...     print ds.current_time
+    ...     print(ds.current_time)
 
     """
 
@@ -200,26 +200,14 @@ class EnzoSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> es = yt.simulation("my_simulation.par", "Enzo")
-
+        >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
         >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"),
                                redshift_data=False)
-
-        >>> es.get_time_series(redshifts=[3, 2, 1, 0])
-
-        >>> es.get_time_series(final_cycle=100000)
-
-        >>> # after calling get_time_series
-        >>> for ds in es.piter():
-        ...     p = ProjectionPlot(ds, 'x', "density")
-        ...     p.save()
-
-        >>> # An example using the setup_function keyword
-        >>> def print_time(ds):
-        ...     print ds.current_time
-        >>> es.get_time_series(setup_function=print_time)
         >>> for ds in es:
-        ...     SlicePlot(ds, "x", "Density").save()
+        ...     print(ds.current_time)
+        >>> es.get_time_series(redshifts=[3, 2, 1, 0])
+        >>> for ds in es:
+        ...     print(ds.current_time)
 
         """
 
