@@ -646,6 +646,7 @@ class EnzoCosmology(Cosmology):
                            omega_curvature=omega_curvature,
                            unit_registry=unit_registry)
         self.initial_redshift = initial_redshift
+        self.initial_time = self.t_from_z(self.initial_redshift)
         # time units = 1 / sqrt(4 * pi * G rho_0 * (1 + z_i)**3),
         # rho_0 = (3 * Omega_m * h**2) / (8 * pi * G)
         self.time_unit = ((1.5 * self.omega_matter * self.hubble_constant**2 *
