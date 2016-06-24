@@ -831,7 +831,6 @@ cdef class RegionSelector(SelectorObject):
         for i in range(3):
             region_width[i] = RE[i] - LE[i]
             p[i] = dobj.ds.periodicity[i]
-            DW[i] = DW[i]
             if region_width[i] <= 0:
                 raise RuntimeError(
                     "Region right edge[%s] < left edge: width = %s" % (
