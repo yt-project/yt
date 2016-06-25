@@ -19,7 +19,7 @@ cimport numpy as np
 cdef struct GridTreeNode:
     np.int32_t num_children
     np.int32_t level
-    np.int64_t index
+    np.int64_t index # Note: this is always zero-indexed!
     np.float64_t left_edge[3]
     np.float64_t right_edge[3]
     GridTreeNode **children

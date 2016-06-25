@@ -36,6 +36,7 @@ cdef class GridTree:
 cdef class GridTreeSelector:
     cdef GridTree tree
     cdef np.uint8_t[:] mask
+    cdef np.uint8_t[:] grid_mask
     cdef np.uint64_t size
     cdef np.uint64_t cell_count
     cdef np.uint8_t initialized

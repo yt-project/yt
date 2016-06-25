@@ -364,7 +364,6 @@ class GridIndex(Index):
         gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         fast_index = dobj._current_chunk._fast_index
-        fast_index = None
         for g in gobjs:
             gfiles[g.filename].append(g)
         # We can apply a heuristic here to make sure we aren't loading too
@@ -389,9 +388,13 @@ class GridIndex(Index):
             gs = gfiles[fn]
             for grids in (gs[pos:pos + size] for pos
                           in range(0, len(gs), size)):
+                this_loop = np.zeros(self.grids.size, "uint8")
+                for g in grids:
+                    this_loop[g.id - g._id_offset] = 1
+                fast_index2 = self.grid_tree.selector(this_loop)
                 dc = YTDataChunk(dobj, "io", grids,
                         self._count_selection(dobj, grids),
-                        cache = cache, fast_index = fast_index)
+                        cache = cache, fast_index = fast_index2)
                 # We allow four full chunks to be included.
                 with self.io.preload(dc, preload_fields, 
                             4.0 * size):

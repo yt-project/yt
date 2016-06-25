@@ -98,8 +98,8 @@ cdef class GridTree:
                 self.root_grids[k] = self.grids[i] 
                 k = k + 1
 
-    def selector(self):
-        return GridTreeSelector(self)
+    def selector(self, np.uint8_t[:] grid_mask = None):
+        return GridTreeSelector(self, grid_mask)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -146,11 +146,15 @@ cdef class GridTree:
         return grids_basic.view(dtype=np.dtype(dtn))
 
 cdef class GridTreeSelector:
-    def __cinit__(self, GridTree tree):
+    def __cinit__(self, GridTree tree, np.uint8_t[:] grid_mask = None):
         self.tree = tree
         cdef int i
         cdef np.uint64_t size = 0
+        if grid_mask is None:
+            grid_mask = np.ones(self.tree.num_grids, dtype="uint8")
+        self.grid_mask = grid_mask
         for i in range(self.tree.num_grids):
+            if grid_mask[i] == 0: continue
             size += (self.tree.grids[i].dims[0] *
                      self.tree.grids[i].dims[1] *
                      self.tree.grids[i].dims[2])
@@ -190,8 +194,10 @@ cdef class GridTreeSelector:
         if selector.select_bbox(grid.left_edge, grid.right_edge) == 0:
             # Note that this does not increment the global_index.
             return
-        visitor.setup_tuples(grid)
-        selector.visit_grid_cells(visitor, grid, self.initialized, self.mask)
+        # Note: grid.index is 0-indexed
+        if self.grid_mask[grid.index] == 1:
+            visitor.setup_tuples(grid)
+            selector.visit_grid_cells(visitor, grid, self.initialized, self.mask)
         for i in range(grid.num_children):
             self.recursively_visit_grid(visitor, selector, grid.children[i])
 
@@ -221,7 +227,7 @@ cdef class GridTreeSelector:
         cdef np.ndarray[np.int64_t, ndim=2] icoords 
         visitor.icoords = np.empty((size, 3), dtype="int64")
         self.visit_grids(visitor, selector)
-        return visitor.icoords
+        return np.asarray(visitor.icoords)
 
     def select_ires(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill ires with a selector
@@ -231,7 +237,7 @@ cdef class GridTreeSelector:
             size = self.count(selector)
         visitor.ires = np.empty(size, dtype="int64")
         self.visit_grids(visitor, selector)
-        return visitor.ires
+        return np.asarray(visitor.ires)
 
     def select_fcoords(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill fcoords with a selector
@@ -241,7 +247,7 @@ cdef class GridTreeSelector:
             size = self.count(selector)
         visitor.fcoords = np.empty((size, 3), dtype="float64")
         self.visit_grids(visitor, selector)
-        return visitor.fcoords
+        return np.asarray(visitor.fcoords)
 
     def select_fwidth(self, SelectorObject selector, np.uint64_t size = -1):
         # Fill fwidth with a selector
@@ -251,7 +257,7 @@ cdef class GridTreeSelector:
             size = self.count(selector)
         visitor.fwidth = np.empty((size, 3), dtype="float64")
         self.visit_grids(visitor, selector)
-        return visitor.fwidth
+        return np.asarray(visitor.fwidth)
     
 cdef class MatchPointsToGrids:
 
