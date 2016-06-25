@@ -392,8 +392,9 @@ class GridIndex(Index):
                 for g in grids:
                     this_loop[g.id - g._id_offset] = 1
                 fast_index2 = self.grid_tree.selector(this_loop)
-                dc = YTDataChunk(dobj, "io", grids,
-                        self._count_selection(dobj, grids),
+                chunk_size = self._count_selection(dobj, grids,
+                        fast_index = fast_index2)
+                dc = YTDataChunk(dobj, "io", grids, chunk_size,
                         cache = cache, fast_index = fast_index2)
                 # We allow four full chunks to be included.
                 with self.io.preload(dc, preload_fields, 
