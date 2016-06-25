@@ -140,6 +140,22 @@ class IndexProxy(object):
             return getattr(self.ds.index, name)
         raise AttributeError
 
+class MutableAttribute(object):
+    """A descriptor for mutable data"""
+    def __init__(self):
+        self.data = weakref.WeakKeyDictionary()
+
+    def __get__(self, instance, owner):
+        ret = self.data.get(instance, None)
+        try:
+            ret = ret.copy()
+        except AttributeError:
+            pass
+        return ret
+
+    def __set__(self, instance, value):
+        self.data[instance] = value
+
 def requires_index(attr_name):
     @property
     def ireq(self):
@@ -287,6 +303,12 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+
+    domain_left_edge = MutableAttribute()
+    domain_right_edge = MutableAttribute()
+    domain_width = MutableAttribute()
+    domain_dimensions = MutableAttribute()
+    domain_center = MutableAttribute()
 
     @property
     def _mrep(self):
