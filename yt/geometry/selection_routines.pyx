@@ -506,7 +506,7 @@ cdef class SelectorObject:
             return
         if level == self.max_level:
             this_level = 1
-        cdef np.uint8_t child_masked, selected
+        cdef np.uint8_t selected
         for i in range(3):
             left_edge[i] = grid.left_edge[i]
             right_edge[i] = grid.right_edge[i]
@@ -533,11 +533,7 @@ cdef class SelectorObject:
                         if use_cache:
                             selected = cached_mask[visitor.global_index]
                         else:
-                            if this_level == 1:
-                                child_masked = 0
-                            else:
-                                child_masked = child_mask[i,j,k]
-                            if child_masked == 0:
+                            if this_level == 1 or child_mask[i,j,k] == 1:
                                 selected = self.select_cell(pos, dds)
                             else:
                                 selected = 0
