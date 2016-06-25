@@ -218,7 +218,7 @@ cdef class GridTreeSelector:
         self.initialized = 1
         return self.cell_count
 
-    def select_icoords(self, SelectorObject selector, np.uint64_t size = -1):
+    def select_icoords(self, SelectorObject selector, np.int64_t size = -1):
         # Fill icoords with a selector
         cdef ICoordsGrids visitor
         visitor = ICoordsGrids()
@@ -229,7 +229,7 @@ cdef class GridTreeSelector:
         self.visit_grids(visitor, selector)
         return np.asarray(visitor.icoords)
 
-    def select_ires(self, SelectorObject selector, np.uint64_t size = -1):
+    def select_ires(self, SelectorObject selector, np.int64_t size = -1):
         # Fill ires with a selector
         cdef IResGrids visitor
         visitor = IResGrids()
@@ -239,7 +239,7 @@ cdef class GridTreeSelector:
         self.visit_grids(visitor, selector)
         return np.asarray(visitor.ires)
 
-    def select_fcoords(self, SelectorObject selector, np.uint64_t size = -1):
+    def select_fcoords(self, SelectorObject selector, np.int64_t size = -1):
         # Fill fcoords with a selector
         cdef FCoordsGrids visitor
         visitor = FCoordsGrids()
@@ -249,7 +249,7 @@ cdef class GridTreeSelector:
         self.visit_grids(visitor, selector)
         return np.asarray(visitor.fcoords)
 
-    def select_fwidth(self, SelectorObject selector, np.uint64_t size = -1):
+    def select_fwidth(self, SelectorObject selector, np.int64_t size = -1):
         # Fill fwidth with a selector
         cdef FWidthGrids visitor
         visitor = FWidthGrids()
