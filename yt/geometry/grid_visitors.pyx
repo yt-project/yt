@@ -70,6 +70,11 @@ cdef class GridVisitor:
     cdef void expand_mask(self, np.uint8_t[:,:,:] child_mask) nogil:
         cdef int ti, i, j, k
         cdef int *tup
+        # Is it faster to do a broadcast?
+        for i in range(child_mask.shape[0]):
+            for j in range(child_mask.shape[1]):
+                for k in range(child_mask.shape[2]):
+                    child_mask[i,j,k] = 0
         for ti in range(self.n_tuples):
             # k is if we're inside a given child tuple.  We check each one
             # individually, and invalidate if we're outside.
@@ -77,7 +82,7 @@ cdef class GridVisitor:
             for i in range(tup[0], tup[1]):
                 for j in range(tup[2], tup[3]):
                     for k in range(tup[4], tup[5]):
-                        child_mask[i,j,k] = 0
+                        child_mask[i,j,k] = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
