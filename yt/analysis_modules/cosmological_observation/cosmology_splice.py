@@ -40,7 +40,8 @@ class CosmologySplice(object):
             omega_lambda=self.simulation.omega_lambda)
 
     def create_cosmology_splice(self, near_redshift, far_redshift,
-                                minimal=True, deltaz_min=0.0,
+                                minimal=True, max_box_fraction=1.0,
+                                deltaz_min=0.0,
                                 time_data=True, redshift_data=True):
         r"""Create list of datasets capable of spanning a redshift
         interval.
@@ -63,6 +64,11 @@ class CosmologySplice(object):
             many entries as possible within the redshift
             interval.
             Default: True.
+        max_box_fraction : float
+            In terms of the size of the domain, the maximum length a light
+            ray segment can be in order to span the redshift interval from
+            one dataset to another.
+            Default: 1.0 (the size of the box)
         deltaz_min : float
             Specifies the minimum delta z between consecutive datasets
             in the returned
@@ -133,36 +139,39 @@ class CosmologySplice(object):
             z_Tolerance = 1e-3
             z = far_redshift
 
-            # fill redshift space with datasets
-            while ((z > near_redshift) and
-                   (np.abs(z - near_redshift) > z_Tolerance)):
+            # Sort data outputs by proximity to current redshift.
+            self.splice_outputs.sort(key=lambda obj:np.fabs(z - obj['redshift']))
+            cosmology_splice.append(self.splice_outputs[0])
+            z = cosmology_splice[-1]["redshift"]
+            z_target = z - max_box_fraction * cosmology_splice[-1]["dz_max"]
 
-                # For first data dump, choose closest to desired redshift.
-                if (len(cosmology_splice) == 0):
-                    # Sort data outputs by proximity to current redshift.
-                    self.splice_outputs.sort(key=lambda obj:np.fabs(z - \
-                        obj['redshift']))
-                    cosmology_splice.append(self.splice_outputs[0])
+            # fill redshift space with datasets
+            while ((z_target > near_redshift) and
+                   (np.abs(z_target - near_redshift) > z_Tolerance)):
 
                 # Move forward from last slice in stack until z > z_max.
-                else:
-                    current_slice = cosmology_splice[-1]
-                    while current_slice['next'] is not None and \
-                            (z < current_slice['next']['redshift'] or \
-                                 np.abs(z - current_slice['next']['redshift']) <
-                                 z_Tolerance):
-                        current_slice = current_slice['next']
+                current_slice = cosmology_splice[-1]
 
-                    if current_slice is cosmology_splice[-1]:
-                        near_redshift = cosmology_splice[-1]['redshift'] - \
-                          cosmology_splice[-1]['dz_max']
-                        mylog.error("Cosmology splice incomplete due to insufficient data outputs.")
+                while current_slice["next"] is not None:
+                    current_slice = current_slice['next']
+                    if current_slice["next"] is None:
                         break
-                    else:
-                        cosmology_splice.append(current_slice)
+                    if current_slice["next"]["redshift"] < z_target:
+                        break
 
-                z = cosmology_splice[-1]['redshift'] - \
-                  cosmology_splice[-1]['dz_max']
+                if current_slice["redshift"] < z_target:
+                    raise RuntimeError(
+                        ("Cannot create cosmology splice: " +
+                         "Getting from z = %f to %f requires " +
+                         "max_box_fraction = %f, but max_box_fraction "
+                         "is set to %f") %
+                         (z, z_target, (z - current_slice["redshift"]) /
+                          cosmology_splice[-1]["dz_max"],
+                          max_box_fraction))
+
+                cosmology_splice.append(current_slice)
+                z = current_slice["redshift"]
+                z_target = z - max_box_fraction * current_slice["dz_max"]
 
         # Make light ray using maximum number of datasets (minimum spacing).
         else:
