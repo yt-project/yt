@@ -59,9 +59,9 @@ cdef class GridVisitor:
             # Now we fill them in
             for j in range(3):
                 si = (c.start_index[j] / self.ref_factor) - grid.start_index[j]
-                ei = si + c.dims[j]/self.ref_factor - 1
-                self.child_tuples[i][j*2+0] = iclip(si, 0, grid.dims[j] - 1)
-                self.child_tuples[i][j*2+1] = iclip(ei, 0, grid.dims[j] - 1)
+                ei = si + c.dims[j]/self.ref_factor
+                self.child_tuples[i][j*2+0] = iclip(si, 0, grid.dims[j])
+                self.child_tuples[i][j*2+1] = iclip(ei, 0, grid.dims[j])
         self.n_tuples = grid.num_children
 
     @cython.boundscheck(False)
