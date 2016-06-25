@@ -1461,6 +1461,22 @@ cdef class RaySelector(SelectorObject):
         if total == 0: return None
         return mask.astype("bool")
 
+    @cython.initializedcheck(False)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int _get_dt(self, VolumeContainer *vc,
+                     np.float64_t[:,:,::1] t,
+                     np.float64_t[:,:,::1] dt,
+                     np.uint8_t[:,:,::1] child_mask):
+        cdef IntegrationAccumulator ia
+        ia.hits = 0
+        ia.t = <np.float64_t *> &t[0,0,0]
+        ia.dt = <np.float64_t *> &dt[0,0,0]
+        ia.child_mask = <np.uint8_t *> &child_mask[0,0,0]
+        walk_volume(vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        return ia.hits
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -1469,15 +1485,10 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=1] tr, dtr
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i, j, k, ni
-        cdef IntegrationAccumulator ia
         cdef VolumeContainer vc
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
         dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
         child_mask = gobj.child_mask
-        ia.t = <np.float64_t *> t.data
-        ia.dt = <np.float64_t *> dt.data
-        ia.child_mask = <np.uint8_t *> child_mask.data
-        ia.hits = 0
         _ensure_code(gobj.LeftEdge)
         _ensure_code(gobj.RightEdge)
         _ensure_code(gobj.dds)
@@ -1487,9 +1498,9 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
-        tr = np.zeros(ia.hits, dtype="float64")
-        dtr = np.zeros(ia.hits, dtype="float64")
+        ni = self._get_dt(&vc, t, dt, child_mask.view("uint8"))
+        tr = np.zeros(ni, dtype="float64")
+        dtr = np.zeros(ni, dtype="float64")
         ni = 0
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
@@ -1498,8 +1509,8 @@ cdef class RaySelector(SelectorObject):
                         tr[ni] = t[i, j, k]
                         dtr[ni] = dt[i, j, k]
                         ni += 1
-        if not (ni == ia.hits):
-            print ni, ia.hits
+        if not (ni == dtr.size):
+            print ni, dtr.size
         return dtr, tr
 
     @cython.boundscheck(False)
