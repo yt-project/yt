@@ -124,11 +124,12 @@ class CosmologySplice(object):
  
         if near_redshift == far_redshift:
             self.simulation.get_time_series(redshifts=[near_redshift])
-            cosmology_splice.append({'time': self.simulation[0].current_time,
-                                     'redshift': self.simulation[0].current_redshift,
-                                     'filename': os.path.join(self.simulation[0].fullpath,
-                                                              self.simulation[0].basename),
-                                     'next': None})
+            cosmology_splice.append(
+                {'time': self.simulation[0].current_time,
+                 'redshift': self.simulation[0].current_redshift,
+                 'filename': os.path.join(self.simulation[0].fullpath,
+                                          self.simulation[0].basename),
+                 'next': None})
             mylog.info("create_cosmology_splice: Using %s for z = %f ." %
                        (cosmology_splice[0]['filename'], near_redshift))
             return cosmology_splice
