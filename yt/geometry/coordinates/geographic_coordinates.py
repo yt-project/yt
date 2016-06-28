@@ -325,7 +325,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
 class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     radial_axis = "depth"
-    name = "internal"
+    name = "internal_geographic"
     
     def _setup_radial_fields(self, registry):
         # Altitude is the radius from the central zone minus the radius of the
