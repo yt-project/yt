@@ -26,6 +26,10 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.units.dimensions import \
+    dimensionless as sympy_one
+from yt.units.unit_object import \
+    Unit
 from yt.utilities.exceptions import \
     YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import \
@@ -211,12 +215,22 @@ class GDFDataset(Dataset):
                 current_unit = h5f["/dataset_units/%s" % unit_name]
                 value = current_unit.value
                 unit = current_unit.attrs["unit"]
+                # need to convert to a Unit object and check dimensions
+                # because unit can be things like
+                # 'dimensionless/dimensionless**3' so naive string
+                # comparisons are insufficient
+                unit = Unit(unit, registry=self.unit_registry)
+                if unit_name.endswith('_unit') and unit.dimensions is sympy_one:
+                    un = unit_name[:-5]
+                    un = un.replace('magnetic', 'magnetic_field', 1)
+                    unit = self.unit_system[un]
+                    setattr(self, unit_name, self.quan(value, unit))
                 setattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = unit.decode('utf8')
+                    self.field_units[unit_name] = str(unit)
         else:
             self.length_unit = self.quan(1.0, "cm")
             self.mass_unit = self.quan(1.0, "g")
