@@ -674,10 +674,11 @@ cdef inline np.int64_t _parent_id(np.int64_t node_id):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef int should_i_build(self, int rank, int size):
-    Node self
-    if (self.node_id < size) or (self.node_id >= 2*size):
+    cdef Node node
+    node = self
+    if (node.node_id < size) or (node.node_id >= 2*size):
         return 1
-    elif self.node_id - size == rank:
+    elif node.node_id - size == rank:
         return 1
     else:
         return 0
