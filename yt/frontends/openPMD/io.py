@@ -51,27 +51,32 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._array_fields = {}
         self._cached_ptype = ""
         self._cache = {}
+        self._cachecntr = {}
 
     def _fill_cache(self, ptype, index=0, offset=None):
-        # Get a particle species (e.g. /data/3500/particles/e/)
-        if "io" in ptype:
-            spec = self._handle[self.basePath + self.particlesPath].keys()[0]
+        if str((ptype, index, offset)) not in self._cachecntr:
+            # Get a particle species (e.g. /data/3500/particles/e/)
+            if "io" in ptype:
+                spec = self._handle[self.basePath + self.particlesPath].keys()[0]
+            else:
+                spec = ptype
+            pds = self._handle[self.basePath + self.particlesPath + "/" + spec]
+            # Get 1D-Arrays for individual particle positions along axes
+            axes = [str(ax) for ax in pds["position"].keys()]
+            pos = {}
+            off = {}
+            for ax in axes:
+                pos[ax] = get_component(pds, "position/" + ax, index, offset)
+                off[ax] = get_component(pds, "positionOffset/" + ax, index, offset)
+                self._cache[ax] = pos[ax] + off[ax]
+            # Pad accordingly with zeros to make 1D/2D datasets compatible
+            # These have to be the same shape as the existing axes dataset since that equals the number of particles
+            for req in "xyz":
+                if req not in axes:
+                    self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
+            self._cachecntr[str((ptype, index, offset))] = (self._cache['x'], self._cache['y'], self._cache['z'])
         else:
-            spec = ptype
-        pds = self._handle[self.basePath + self.particlesPath + "/" + spec]
-        # Get 1D-Arrays for individual particle positions along axes
-        axes = [str(ax) for ax in pds["position"].keys()]
-        pos = {}
-        off = {}
-        for ax in axes:
-            pos[ax] = np.array(get_component(pds, "position/" + ax, index, offset), dtype="float64")
-            off[ax] = np.array(get_component(pds, "positionOffset/" + ax, index, offset), dtype="float64")
-            self._cache[ax] = pos[ax] + off[ax]
-        # Pad accordingly with zeros to make 1D/2D datasets compatible
-        # These have to be the same shape as the existing axes dataset since that equals the number of particles
-        for req in "xyz":
-            if req not in axes:
-                self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
+            self._cache['x'], self._cache['y'], self._cache['z'] = self._cachecntr[str((ptype, index, offset))]
         self._cached_ptype = str((ptype, index, offset))
 
     def _read_particle_coords(self, chunks, ptf):

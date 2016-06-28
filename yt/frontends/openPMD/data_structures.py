@@ -40,7 +40,11 @@ class openPMDBasePathException(Exception):
 
 
 class openPMDBasePath:
-    def  _setBasePath(self, handle, filepath):
+    def _setNonStandardBasePath(self, handle):
+        iteration = handle["/data"].keys()[0]
+        self.basePath = "/data/{}/".format(iteration)
+
+    def _setBasePath(self, handle, filepath):
         """
         Set the base path for the first iteration found in the file.
         TODO implement into distinct methods:
@@ -90,15 +94,15 @@ class openPMDBasePath:
 
 
 class openPMDGrid(AMRGridPatch):
-    # TODO THIS IS NOT TRUE FOR THE YT SENSE OF "GRID"
     """
-    This class defines the characteristics of the grids
-    Actually there is only one grid for the whole simulation box
+        This class defines the characteristics of the grids
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
+    # TODO consider these for every ptype
     part_ind = 0
     off_part = 0
+    # TODO consider these for every ftype
     mesh_ind = 0
     off_mesh = 0
 
@@ -126,11 +130,13 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
 
     def __init__(self, ds, dataset_type='openPMD'):
         self.dataset_type = dataset_type
-        # for now, the index file is the dataset!
         self.dataset = ds
         self.index_filename = ds.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._setBasePath(self.dataset._handle, self.directory)
+        if self.dataset._nonstandard:
+            self._setNonStandardBasePath(self, self.dataset._handle)
+        else:
+            self._setBasePath(self.dataset._handle, self.directory)
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
@@ -194,7 +200,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
 
     def _count_grids(self):
         """
-            Counts the number of grids in the dataSet. (Only one in the current standard)
+            Counts the number of grids in the dataSet.
 
             From yt doc:
             this must set self.num_grids to be the total number of grids (equiv AMRGridPatch'es) in the simulation
@@ -290,6 +296,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
     """
     _index_class = openPMDHierarchy
     _field_info_class = openPMDFieldInfo
+    _nonstandard = True
 
     def __init__(self, filename, dataset_type='openPMD',
                  storage_filename=None,
@@ -297,7 +304,10 @@ class openPMDDataset(Dataset, openPMDBasePath):
                  unit_system="mks"):
         self._handle = HDF5FileHandler(filename)
         self._filepath = os.path.dirname(filename)
-        self._setBasePath(self._handle, self._filepath)
+        if self._nonstandard:
+            self._setNonStandardBasePath(self._handle)
+        else:
+            self._setBasePath(self._handle, self._filepath)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
@@ -333,8 +343,12 @@ class openPMDDataset(Dataset, openPMDBasePath):
         """
         f = self._handle
         bp = self.basePath
-        mp = f.attrs["meshesPath"]
-        pp = f.attrs["particlesPath"]
+        if self._nonstandard:
+            mp = "fields"
+            pp = "particles"
+        else:
+            mp = f.attrs["meshesPath"]
+            pp = f.attrs["particlesPath"]
 
         self.unique_identifier = 0
         self.parameters = 0  # no additional parameters  <= full of code-specific items of use
@@ -380,6 +394,9 @@ class openPMDDataset(Dataset, openPMDBasePath):
             Checks whether the supplied file adheres to the required openPMD standards
             and thus can be read by this frontend
         """
+        if "iexplicitlyacceptthatthismightfail" in args[1]:
+            self._nonstandard = True
+            return True
         try:
             f = validator.open_file(args[0])
         except:
