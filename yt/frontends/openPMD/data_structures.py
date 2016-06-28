@@ -148,13 +148,14 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         """
         # TODO This only parses one file
         f = self.dataset._handle
-        meshesPath = f.attrs["meshesPath"]
-        particlesPath = f.attrs["particlesPath"]
+        bp = self.basePath
+        mp = f.attrs["meshesPath"]
+        pp = f.attrs["particlesPath"]
         output_fields = []
 
-        for group in f[self.basePath + meshesPath].keys():
+        for group in f[bp + mp].keys():
             try:
-                for direction in f[self.basePath + meshesPath + group].keys():
+                for direction in f[bp + mp + group].keys():
                     output_fields.append(group + "_" + direction)
             except:
                 # This is for dataSets, they do not have keys
@@ -162,17 +163,17 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         self.field_list = [("openPMD", str(c)) for c in output_fields]
 
         particle_fields = []
-        if self.basePath + particlesPath in f:
-            for particleName in f[self.basePath + particlesPath].keys():
-                for record in f[self.basePath + particlesPath + particleName].keys():
-                    if is_const_component(f[self.basePath + particlesPath + particleName + "/" + record]):
+        if bp + pp in f:
+            for particleName in f[bp + pp].keys():
+                for record in f[bp + pp + particleName].keys():
+                    if is_const_component(f[bp + pp + particleName + "/" + record]):
                         # Record itself (e.g. particle_mass) is constant
                         particle_fields.append(particleName + "_" + record)
                     elif 'particlePatches' not in record:
                         try:
                             # Create a field for every axis (x,y,z) of every property (position)
                             # of every species (electrons)
-                            keys = f[self.basePath + particlesPath + particleName + "/" + record].keys()
+                            keys = f[bp + pp + particleName + "/" + record].keys()
                             for axis in keys:
                                 particle_fields.append(particleName + "_" + record + "_" + axis)
                         except:
@@ -182,7 +183,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                     else:
                         # We probably do not want particlePatches as accessible field lists
                         pass
-            if len(f[self.basePath + particlesPath].keys()) > 1:
+            if len(f[bp + pp].keys()) > 1:
                 # There is more than one particle species, use the specific names as field types
                 self.field_list.extend(
                     [(str(c).split("_")[0], ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
@@ -199,7 +200,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             this must set self.num_grids to be the total number of grids (equiv AMRGridPatch'es) in the simulation
         """
         # TODO For the moment we only create grids if there are particles present
-        # TODO This breaks datasets with multiple types of particles and different amounts of particles
+        # TODO every species might (read: does) have a different number of active particles
         try:
             f = self.dataset._handle
             bp = self.basePath
@@ -238,30 +239,11 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             Each of these variables is an array with an entry for each of the self.num_grids grids.
             Additionally, grids must be an array of AMRGridPatch objects that already know their IDs.
         """
-        # TODO This (particle grid-data) needs to be included in every grid
-        # TODO Furthermore, we have to use grids from meshes to represent a physical layout
-        # dim = self.dataset.dimensionality
-        # for i in range(self.num_grids):
-        #     if i != self.num_grids-1:
-        #         self.grid_particle_count[i] = self.ppg
-        #     else:
-        #         # The last grid need not be the same size as the previous ones
-        #         self.grid_particle_count[i] = self.np%self.ppg
-        #     # The edges have in fact nothing to do with physical boundaries, they are sections of the raw data
-        #     self.grid_left_edge[i] = [i*self.num_grids**-1] * dim
-        #     self.grid_right_edge[i] = [(i+1)*self.num_grids**-1] * dim
-        #     self.grid_dimensions[i] = self.grid_right_edge[i] - self.grid_left_edge[i]
-        #     mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
-        #     mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
-        #     mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
-        #     mylog.debug("self.grid_particle_count[{}] - {}".format(i, self.grid_particle_count[i]))
-
         # There is only one refinement level in openPMD
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
 
         remaining = self.dataset.domain_dimensions[0]
-
         for i in range(self.num_grids):
             self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
             self.grid_left_edge[i][0] = i * self.num_grids**-1
@@ -277,16 +259,10 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                 self.grid_dimensions[i][0] = remaining
                 nap = self.np % self.ppg
             self.grid_particle_count[i] = nap
-            # You have to initialize the grids
             self.grids[i] = self.grid(
                 i, self, self.grid_levels[i, 0],
                 pi=i*self.ppg, op=nap,
                 mi=int(ceil(self.dataset.domain_dimensions[0] * self.num_grids**-1)) * i, om=self.grid_dimensions[i][0])
-            mylog.debug("remaining {}".format(remaining))
-            mylog.debug("self.grid_left_edge[{}] - {}".format(i, self.grid_left_edge[i]))
-            mylog.debug("self.grid_right_edge[{}] - {}".format(i, self.grid_right_edge[i]))
-            mylog.debug("self.grid_dimensions[{}] - {}".format(i, self.grid_dimensions[i]))
-            mylog.debug("self.grid_particle_count[{}] - {}".format(i, self.grid_particle_count[i]))
 
     def _populate_grid_objects(self):
         """
@@ -296,9 +272,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             this initializes the grids by calling _prepare_grid() and _setup_dx() on all of them.
             Additionally, it should set up Children and Parent lists on each grid object.
         """
-
-        # self._reconstruct_parent_child()
-
         for i in range(self.num_grids):
             self.grids[i]._prepare_grid()
             self.grids[i]._setup_dx()
@@ -359,25 +332,26 @@ class openPMDDataset(Dataset, openPMDBasePath):
             read in metadata describing the overall data on disk
         """
         f = self._handle
-        meshesPath = f.attrs["meshesPath"].decode()
-        particlesPath = f.attrs["particlesPath"].decode()
+        bp = self.basePath
+        mp = f.attrs["meshesPath"]
+        pp = f.attrs["particlesPath"]
 
-        self.unique_identifier = 0  # no identifier
+        self.unique_identifier = 0
         self.parameters = 0  # no additional parameters  <= full of code-specific items of use
 
         # We set the highest dimensionality in the simulation as the global one
         fshape = None
         try:
-            for mesh in f[self.basePath + meshesPath].keys():
-                for axis in f[self.basePath + meshesPath + "/" + mesh].keys():
-                    fshape = np.maximum(fshape, f[self.basePath + meshesPath + "/" + mesh + "/" + axis].shape)
+            for mesh in f[bp + mp].keys():
+                for axis in f[bp + mp + "/" + mesh].keys():
+                    fshape = np.maximum(fshape, f[bp + mp + "/" + mesh + "/" + axis].shape)
         except:
             pass
         if len(fshape) < 1:
             self.dimensionality = 0
-            for species in f[self.basePath + particlesPath].keys():
+            for species in f[bp + pp].keys():
                 self.dimensionality = max(
-                    len(f[self.basePath + particlesPath + "/" + species].keys()),
+                    len(f[bp + pp + "/" + species].keys()),
                     self.dimensionality)
         else:
             self.dimensionality = len(fshape)
@@ -392,14 +366,11 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.domain_dimensions = np.ones(3, dtype=np.int64)
         self.domain_dimensions[:self.dimensionality] = fshape
 
-        # TODO assumes non-periodic boundary conditions
+        self.current_time = f[bp].attrs["time"]
+        # We here assume non-periodic boundary conditions
         self.periodicity = np.zeros(3, dtype=np.bool)
-
-        self.current_time = f[self.basePath].attrs["time"]  # <= simulation time in code units
-
         # Used for AMR, not applicable for us
         self.refine_by = 1
-
         # Not a cosmological simulation
         self.cosmological_simulation = 0
 

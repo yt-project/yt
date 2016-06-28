@@ -795,7 +795,7 @@ def get_component(group, component_name, index=0, offset=None):
         # This allows for masking of the component
         # Slicing data directly at the h5py layer improves performance
         if offset is not None:
-            shape = offset - index
+            shape = offset
         else:
             shape = record_component.attrs["shape"] - index
         # Our component is constant, craft an array by hand

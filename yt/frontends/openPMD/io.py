@@ -159,7 +159,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     else:
                         spec = ptype
                     pds = ds[self.particlesPath + "/" + spec]
-                    for field in parallel_objects(field_list, 8):
+                    for field in parallel_objects(field_list, -1):
                         nfield = "/".join(field.split("_")[1:])
                         data = get_component(pds, nfield, index, offset)
                         #mylog.debug("data {}".format(data))
@@ -265,7 +265,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             rv[field] = np.empty(size, dtype="float64")
             ind[field] = 0
 
-        for ftype, fname in parallel_objects(fields, 8):
+        for ftype, fname in parallel_objects(fields, -1):
             field = (ftype, fname)
             for chunk in chunks:
                 for g in chunk.objs:
