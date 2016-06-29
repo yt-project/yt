@@ -13,6 +13,7 @@ Derived field base class.
 
 import contextlib
 import inspect
+import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
@@ -100,6 +101,9 @@ class DerivedField(object):
         self.not_in_all = not_in_all
         self.display_field = display_field
         if particle_type == True:
+            warnings.warn("particle_type for derived fields "
+                          "has been replaced with sampling_type = 'particle'",
+                          DeprecationWarning)
             sampling_type = "particle"
         self.sampling_type = sampling_type
         self.vector_field = vector_field
