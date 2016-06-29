@@ -132,7 +132,6 @@ def generate_doap():
             f.write(templates["foaf"] % {'realname': dev_name})
             f.write("</developer>\n")
         for release in known_releases + get_release_tags():
-            print release
             f.write(templates["release"] % {
                 'name': "yt " + release[0], 'revision': release[0], 'date': release[1]}
             )
