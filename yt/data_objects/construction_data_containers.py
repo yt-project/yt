@@ -537,8 +537,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self._use_pbar = use_pbar
         self.global_startindex = np.rint(
             (self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
-        self.domain_width = np.rint((self.ds.domain_right_edge -
-                    self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
         self.get_data(fields)
 
@@ -833,7 +831,6 @@ class LevelState(object):
     current_level = None
     global_startindex = None
     old_global_startindex = None
-    domain_iwidth = None
     fields = None
     data_source = None
 
@@ -982,8 +979,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.left_edge = ls.global_startindex * ls.current_dx \
                      + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        ls.domain_iwidth = np.rint((self.ds.domain_right_edge -
-                    self.ds.domain_left_edge)/ls.current_dx).astype('int64')
         ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
         self._setup_data_source(ls)
         return ls
@@ -1022,7 +1017,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.left_edge = ls.global_startindex * ls.current_dx \
                      + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64')
         input_left = (level_state.old_global_startindex) * rf  + 1
         new_fields = []
         for input_field in level_state.fields:
