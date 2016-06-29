@@ -884,6 +884,21 @@ The number of cells in an oct is defined by the expression
 It's recommended that if you want higher-resolution, try reducing the value of
 ``n_ref`` to 32 or 16.
 
+Also yt can be set to generate the global mesh index according to a specific
+type of particles instead of all the particles through the parameter
+``index_ptype``. For example, to build the octree only according to the
+``"PartType0"`` particles, you can do:
+
+.. code-block:: python
+
+   ds = yt.load("snapshot_061.hdf5", index_ptype='PartType0')
+
+By default, ``index_ptype`` is set to ``"all"``, which means all the particles.
+Currently this feature only works for the Gadget HDF5 and OWLS datasets. To
+bring the feature to other frontends, it's recommended to refer to this
+`PR <https://bitbucket.org/yt_analysis/yt/pull-requests/1985/add-particle-type-aware-octree/diff>`_
+for implementation details.
+
 .. _gadget-field-spec:
 
 Field Specifications
