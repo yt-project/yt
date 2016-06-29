@@ -927,7 +927,8 @@ cdef class RegionSelector(SelectorObject):
             return 0
         if level == self.max_level:
             this_level = 1
-        cdef int si[3], ei[3]
+        cdef int si[3]
+        cdef int ei[3]
         #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
         #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
         #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
@@ -1060,47 +1061,48 @@ cdef class DiskSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         # Until we can get our OBB/OBB intersection correct, disable this.
         return 1
-        cdef np.float64_t *arr[2]
-        cdef np.float64_t pos[3], H, D, R2, temp
-        cdef int i, j, k, n
-        cdef int all_under = 1
-        cdef int all_over = 1
-        cdef int any_radius = 0
-        # A moment of explanation (revised):
-        #    The disk and bounding box collide if any of the following are true:
-        #    1) the center of the disk is inside the bounding box
-        #    2) any corner of the box lies inside the disk
-        #    3) the box spans the plane (!all_under and !all_over) and at least
-        #       one corner is within the cylindrical radius
+        # cdef np.float64_t *arr[2]
+        # cdef np.float64_t pos[3]
+        # cdef np.float64_t H, D, R2, temp
+        # cdef int i, j, k, n
+        # cdef int all_under = 1
+        # cdef int all_over = 1
+        # cdef int any_radius = 0
+        # # A moment of explanation (revised):
+        # #    The disk and bounding box collide if any of the following are true:
+        # #    1) the center of the disk is inside the bounding box
+        # #    2) any corner of the box lies inside the disk
+        # #    3) the box spans the plane (!all_under and !all_over) and at least
+        # #       one corner is within the cylindrical radius
 
-        # check if disk center lies inside bbox
-        if left_edge[0] <= self.center[0] <= right_edge[0] and \
-           left_edge[1] <= self.center[1] <= right_edge[1] and \
-           left_edge[2] <= self.center[2] <= right_edge[2] :
-            return 1
+        # # check if disk center lies inside bbox
+        # if left_edge[0] <= self.center[0] <= right_edge[0] and \
+        #    left_edge[1] <= self.center[1] <= right_edge[1] and \
+        #    left_edge[2] <= self.center[2] <= right_edge[2] :
+        #     return 1
 
-        # check all corners
-        arr[0] = left_edge
-        arr[1] = right_edge
-        for i in range(2):
-            pos[0] = arr[i][0]
-            for j in range(2):
-                pos[1] = arr[j][1]
-                for k in range(2):
-                    pos[2] = arr[k][2]
-                    H = D = 0
-                    for n in range(3):
-                        temp = self.difference(pos[n], self.center[n], n)
-                        H += (temp * self.norm_vec[n])
-                        D += temp*temp
-                    R2 = (D - H*H)
-                    if R2 < self.radius2 :
-                        any_radius = 1
-                        if fabs(H) < self.height: return 1
-                    if H < 0: all_over = 0
-                    if H > 0: all_under = 0
-        if all_over == 0 and all_under == 0 and any_radius == 1: return 1
-        return 0
+        # # check all corners
+        # arr[0] = left_edge
+        # arr[1] = right_edge
+        # for i in range(2):
+        #     pos[0] = arr[i][0]
+        #     for j in range(2):
+        #         pos[1] = arr[j][1]
+        #         for k in range(2):
+        #             pos[2] = arr[k][2]
+        #             H = D = 0
+        #             for n in range(3):
+        #                 temp = self.difference(pos[n], self.center[n], n)
+        #                 H += (temp * self.norm_vec[n])
+        #                 D += temp*temp
+        #             R2 = (D - H*H)
+        #             if R2 < self.radius2 :
+        #                 any_radius = 1
+        #                 if fabs(H) < self.height: return 1
+        #             if H < 0: all_over = 0
+        #             if H > 0: all_under = 0
+        # if all_over == 0 and all_under == 0 and any_radius == 1: return 1
+        # return 0
 
     def _hash_vals(self):
         return (("norm_vec[0]", self.norm_vec[0]),

@@ -1042,99 +1042,99 @@ cdef int walk_volume(VolumeContainer *vc,
 
 def hp_pix2vec_nest(long nside, long ipix):
     raise NotImplementedError
-    cdef double v[3]
-    healpix_interface.pix2vec_nest(nside, ipix, v)
-    cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
-    tr[0] = v[0]
-    tr[1] = v[1]
-    tr[2] = v[2]
-    return tr
+    # cdef double v[3]
+    # healpix_interface.pix2vec_nest(nside, ipix, v)
+    # cdef np.ndarray[np.float64_t, ndim=1] tr = np.empty((3,), dtype='float64')
+    # tr[0] = v[0]
+    # tr[1] = v[1]
+    # tr[2] = v[2]
+    # return tr
 
 def arr_pix2vec_nest(long nside,
                      np.ndarray[np.int64_t, ndim=1] aipix):
     raise NotImplementedError
-    cdef int n = aipix.shape[0]
-    cdef int i
-    cdef double v[3]
-    cdef long ipix
-    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 3), dtype='float64')
-    for i in range(n):
-        ipix = aipix[i]
-        healpix_interface.pix2vec_nest(nside, ipix, v)
-        tr[i,0] = v[0]
-        tr[i,1] = v[1]
-        tr[i,2] = v[2]
-    return tr
+    # cdef int n = aipix.shape[0]
+    # cdef int i
+    # cdef double v[3]
+    # cdef long ipix
+    # cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 3), dtype='float64')
+    # for i in range(n):
+    #     ipix = aipix[i]
+    #     healpix_interface.pix2vec_nest(nside, ipix, v)
+    #     tr[i,0] = v[0]
+    #     tr[i,1] = v[1]
+    #     tr[i,2] = v[2]
+    # return tr
 
 def hp_vec2pix_nest(long nside, double x, double y, double z):
     raise NotImplementedError
-    cdef double v[3]
-    v[0] = x
-    v[1] = y
-    v[2] = z
-    cdef long ipix
-    healpix_interface.vec2pix_nest(nside, v, &ipix)
-    return ipix
+    # cdef double v[3]
+    # v[0] = x
+    # v[1] = y
+    # v[2] = z
+    # cdef long ipix
+    # healpix_interface.vec2pix_nest(nside, v, &ipix)
+    # return ipix
 
 def arr_vec2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] x,
                      np.ndarray[np.float64_t, ndim=1] y,
                      np.ndarray[np.float64_t, ndim=1] z):
     raise NotImplementedError
-    cdef int n = x.shape[0]
-    cdef int i
-    cdef double v[3]
-    cdef long ipix
-    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
-    for i in range(n):
-        v[0] = x[i]
-        v[1] = y[i]
-        v[2] = z[i]
-        healpix_interface.vec2pix_nest(nside, v, &ipix)
-        tr[i] = ipix
-    return tr
+    # cdef int n = x.shape[0]
+    # cdef int i
+    # cdef double v[3]
+    # cdef long ipix
+    # cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    # for i in range(n):
+    #     v[0] = x[i]
+    #     v[1] = y[i]
+    #     v[2] = z[i]
+    #     healpix_interface.vec2pix_nest(nside, v, &ipix)
+    #     tr[i] = ipix
+    # return tr
 
 def hp_pix2ang_nest(long nside, long ipnest):
     raise NotImplementedError
-    cdef double theta, phi
-    healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
-    return (theta, phi)
+    # cdef double theta, phi
+    # healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+    # return (theta, phi)
 
 def arr_pix2ang_nest(long nside, np.ndarray[np.int64_t, ndim=1] aipnest):
     raise NotImplementedError
-    cdef int n = aipnest.shape[0]
-    cdef int i
-    cdef long ipnest
-    cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 2), dtype='float64')
-    cdef double theta, phi
-    for i in range(n):
-        ipnest = aipnest[i]
-        healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
-        tr[i,0] = theta
-        tr[i,1] = phi
-    return tr
+    # cdef int n = aipnest.shape[0]
+    # cdef int i
+    # cdef long ipnest
+    # cdef np.ndarray[np.float64_t, ndim=2] tr = np.zeros((n, 2), dtype='float64')
+    # cdef double theta, phi
+    # for i in range(n):
+    #     ipnest = aipnest[i]
+    #     healpix_interface.pix2ang_nest(nside, ipnest, &theta, &phi)
+    #     tr[i,0] = theta
+    #     tr[i,1] = phi
+    # return tr
 
 def hp_ang2pix_nest(long nside, double theta, double phi):
     raise NotImplementedError
-    cdef long ipix
-    healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
-    return ipix
+    # cdef long ipix
+    # healpix_interface.ang2pix_nest(nside, theta, phi, &ipix)
+    # return ipix
 
 def arr_ang2pix_nest(long nside,
                      np.ndarray[np.float64_t, ndim=1] atheta,
                      np.ndarray[np.float64_t, ndim=1] aphi):
     raise NotImplementedError
-    cdef int n = atheta.shape[0]
-    cdef int i
-    cdef long ipnest
-    cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
-    cdef double theta, phi
-    for i in range(n):
-        theta = atheta[i]
-        phi = aphi[i]
-        healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
-        tr[i] = ipnest
-    return tr
+    # cdef int n = atheta.shape[0]
+    # cdef int i
+    # cdef long ipnest
+    # cdef np.ndarray[np.int64_t, ndim=1] tr = np.zeros(n, dtype='int64')
+    # cdef double theta, phi
+    # for i in range(n):
+    #     theta = atheta[i]
+    #     phi = aphi[i]
+    #     healpix_interface.ang2pix_nest(nside, theta, phi, &ipnest)
+    #     tr[i] = ipnest
+    # return tr
 
 @cython.boundscheck(False)
 @cython.cdivision(False)
@@ -1144,86 +1144,81 @@ def pixelize_healpix(long nside,
                      long ntheta, long nphi,
                      np.ndarray[np.float64_t, ndim=2] irotation):
     raise NotImplementedError
-    # We will first to pix2vec, rotate, then calculate the angle
-    cdef int i, j, thetai, phii
-    cdef long ipix
-    cdef double v0[3], v1[3]
-    cdef double pi = 3.1415926
-    cdef np.float64_t pi2 = pi/2.0
-    cdef np.float64_t phi, theta
-    cdef np.ndarray[np.float64_t, ndim=2] results
-    cdef np.ndarray[np.int32_t, ndim=2] count
-    results = np.zeros((ntheta, nphi), dtype="float64")
-    count = np.zeros((ntheta, nphi), dtype="int32")
+    # # We will first to pix2vec, rotate, then calculate the angle
+    # cdef int i, j, thetai, phii
+    # cdef long ipix
+    # cdef double v0[3], v1[3]
+    # cdef double pi = 3.1415926
+    # cdef np.float64_t pi2 = pi/2.0
+    # cdef np.float64_t phi, theta
+    # cdef np.ndarray[np.float64_t, ndim=2] results
+    # cdef np.ndarray[np.int32_t, ndim=2] count
+    # results = np.zeros((ntheta, nphi), dtype="float64")
+    # count = np.zeros((ntheta, nphi), dtype="int32")
 
-    cdef np.float64_t phi0 = 0
-    cdef np.float64_t dphi = 2.0 * pi/(nphi-1)
+    # cdef np.float64_t phi0 = 0
+    # cdef np.float64_t dphi = 2.0 * pi/(nphi-1)
 
-    cdef np.float64_t theta0 = 0
-    cdef np.float64_t dtheta = pi/(ntheta-1)
-    # We assume these are the rotated theta and phi
-    for thetai in range(ntheta):
-        theta = theta0 + dtheta * thetai
-        for phii in range(nphi):
-            phi = phi0 + dphi * phii
-            # We have our rotated vector
-            v1[0] = cos(phi) * sin(theta)
-            v1[1] = sin(phi) * sin(theta)
-            v1[2] = cos(theta)
-            # Now we rotate back
-            for i in range(3):
-                v0[i] = 0
-                for j in range(3):
-                    v0[i] += v1[j] * irotation[j,i]
-            # Get the pixel this vector is inside
-            healpix_interface.vec2pix_nest(nside, v0, &ipix)
-            results[thetai, phii] = values[ipix]
-            count[i, j] += 1
-    return results, count
-    #for i in range(ntheta):
-    #    for j in range(nphi):
-    #        if count[i,j] > 0:
-    #            results[i,j] /= count[i,j]
-    #return results, count
+    # cdef np.float64_t theta0 = 0
+    # cdef np.float64_t dtheta = pi/(ntheta-1)
+    # # We assume these are the rotated theta and phi
+    # for thetai in range(ntheta):
+    #     theta = theta0 + dtheta * thetai
+    #     for phii in range(nphi):
+    #         phi = phi0 + dphi * phii
+    #         # We have our rotated vector
+    #         v1[0] = cos(phi) * sin(theta)
+    #         v1[1] = sin(phi) * sin(theta)
+    #         v1[2] = cos(theta)
+    #         # Now we rotate back
+    #         for i in range(3):
+    #             v0[i] = 0
+    #             for j in range(3):
+    #                 v0[i] += v1[j] * irotation[j,i]
+    #         # Get the pixel this vector is inside
+    #         healpix_interface.vec2pix_nest(nside, v0, &ipix)
+    #         results[thetai, phii] = values[ipix]
+    #         count[i, j] += 1
+    # return results, count
 
 def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
                         long nside,
                         np.ndarray[np.float64_t, ndim=2] image,
                         np.ndarray[np.float64_t, ndim=2] irotation):
     raise NotImplementedError
-    cdef double pi = np.pi
-    cdef int i, j, k, l
-    cdef np.float64_t x, y, z, zb
-    cdef np.float64_t dx, dy, inside
-    cdef double v0[3], v1[3]
-    dx = 2.0 / (image.shape[1] - 1)
-    dy = 2.0 / (image.shape[0] - 1)
-    cdef np.float64_t s2 = sqrt(2.0)
-    cdef long ipix
-    for i in range(image.shape[1]):
-        x = (-1.0 + i*dx)*s2*2.0
-        for j in range(image.shape[0]):
-            y = (-1.0 + j * dy)*s2
-            zb = (x*x/8.0 + y*y/2.0 - 1.0)
-            if zb > 0: continue
-            z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
-            z = z**0.5
-            # Longitude
-            phi = (2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi)
-            # Latitude
-            # We shift it into co-latitude
-            theta = (asin(z*y) + pi/2.0)
-            # Now to account for rotation we translate into vectors
-            v1[0] = cos(phi) * sin(theta)
-            v1[1] = sin(phi) * sin(theta)
-            v1[2] = cos(theta)
-            for k in range(3):
-                v0[k] = 0
-                for l in range(3):
-                    v0[k] += v1[l] * irotation[l,k]
-            healpix_interface.vec2pix_nest(nside, v0, &ipix)
-            #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
-            image[j, i] = pix_image[ipix]
+    # cdef double pi = np.pi
+    # cdef int i, j, k, l
+    # cdef np.float64_t x, y, z, zb
+    # cdef np.float64_t dx, dy, inside
+    # cdef double v0[3], v1[3]
+    # dx = 2.0 / (image.shape[1] - 1)
+    # dy = 2.0 / (image.shape[0] - 1)
+    # cdef np.float64_t s2 = sqrt(2.0)
+    # cdef long ipix
+    # for i in range(image.shape[1]):
+    #     x = (-1.0 + i*dx)*s2*2.0
+    #     for j in range(image.shape[0]):
+    #         y = (-1.0 + j * dy)*s2
+    #         zb = (x*x/8.0 + y*y/2.0 - 1.0)
+    #         if zb > 0: continue
+    #         z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
+    #         z = z**0.5
+    #         # Longitude
+    #         phi = (2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi)
+    #         # Latitude
+    #         # We shift it into co-latitude
+    #         theta = (asin(z*y) + pi/2.0)
+    #         # Now to account for rotation we translate into vectors
+    #         v1[0] = cos(phi) * sin(theta)
+    #         v1[1] = sin(phi) * sin(theta)
+    #         v1[2] = cos(theta)
+    #         for k in range(3):
+    #             v0[k] = 0
+    #             for l in range(3):
+    #                 v0[k] += v1[l] * irotation[l,k]
+    #         healpix_interface.vec2pix_nest(nside, v0, &ipix)
+    #         #print "Rotated", v0[0], v0[1], v0[2], v1[0], v1[1], v1[2], ipix, pix_image[ipix]
+    #         image[j, i] = pix_image[ipix]
 
 def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
         nimy=1, int nimi=0, int nimj=0, np.float64_t off_theta=0.0, np.float64_t
