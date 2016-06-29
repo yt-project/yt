@@ -253,12 +253,9 @@ class FLASHDataset(Dataset):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
         self.temperature_unit = self.quan(temperature_factor, "K")
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        
+
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
-        self.unit_registry.modify("code_temperature",
-                                  self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,

@@ -43,6 +43,7 @@ from yt.utilities.parameter_file_storage import \
     ParameterFileStore, \
     NoParameterShelf, \
     output_type_registry
+from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
@@ -237,14 +238,18 @@ class Dataset(object):
         self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
-        self._parse_parameter_file()
-        self.set_units()
-        self._setup_coordinate_handler()
 
         create_code_unit_system(self)
         if unit_system == "code":
             unit_system = str(self)
+        else:
+            unit_system = str(unit_system).lower()
+
         self.unit_system = unit_system_registry[unit_system]
+
+        self._parse_parameter_file()
+        self.set_units()
+        self._setup_coordinate_handler()
 
         # Because we need an instantiated class to check the ds's existence in
         # the cache, we move that check to here from __new__.  This avoids
@@ -865,18 +870,30 @@ class Dataset(object):
         self._set_code_unit_attributes()
         # here we override units, if overrides have been provided.
         self._override_code_units()
+
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
         if hasattr(self, 'magnetic_unit'):
-            # If we do not have this set, but some fields come in in
-            # "code_magnetic", this will allow them to remain in that unit.
+            # if the magnetic unit is in T, we need to recreate the code unit
+            # system as an MKS-like system
+            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
+
+                if self.unit_system == unit_system_registry[str(self)]:
+                    unit_system_registry.pop(str(self))
+                    create_code_unit_system(self, current_mks_unit='A')
+                    self.unit_system = unit_system_registry[str(self)]
+                elif str(self.unit_system) == 'mks':
+                    pass
+                else:
+                    self.magnetic_unit = \
+                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
             self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         vel_unit = getattr(
             self, "velocity_unit", self.length_unit / self.time_unit)
         pressure_unit = getattr(
             self, "pressure_unit",
-            self.mass_unit / (self.length_unit * self.time_unit)**2)
+            self.mass_unit / (self.length_unit * (self.time_unit)**2))
         temperature_unit = getattr(self, "temperature_unit", 1.0)
         density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
         self.unit_registry.modify("code_velocity", vel_unit)
