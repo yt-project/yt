@@ -891,7 +891,7 @@ type of particles instead of all the particles through the parameter
 
 .. code-block:: python
 
-   ds = yt.load("snapshot_061.hdf5", index_ptype='PartType0')
+   ds = yt.load("snapshot_061.hdf5", index_ptype="PartType0")
 
 By default, ``index_ptype`` is set to ``"all"``, which means all the particles.
 Currently this feature only works for the Gadget HDF5 and OWLS datasets. To
