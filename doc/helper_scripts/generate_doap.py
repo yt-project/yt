@@ -40,36 +40,13 @@ templates = {"header": r"""<Project xmlns:rdf="http://www.w3.org/1999/02/22-rdf-
 """
 }
 
-releases = [
+known_releases = [
+    ("0.3"  , "2007-12-17"),
     ("1.0.1", "2008-10-25"),
     ("1.5"  , "2009-11-04"),
     ("1.6"  , "2010-01-22"),
     ("1.6.1", "2010-02-11"),
     ("1.7"  , "2010-06-27"),
-    ("2.0"  , "2011-01-17"),
-    ("2.0.1", "2011-01-20"),
-    ("2.1"  , "2011-04-06"),
-    ("2.2"  , "2011-09-02"),
-    ("2.3"  , "2011-12-15"),
-    ("2.4"  , "2012-08-02"),
-    ("2.5"  , "2013-03-01"),
-    ("2.5.1", "2013-03-31"),
-    ("2.5.2", "2013-05-01"),
-    ("2.5.3", "2013-06-03"),
-    ("2.5.4", "2013-07-02"),
-    ("2.5.5", "2013-08-23"),
-    ("2.6"  , "2013-11-23"),
-    ("2.6.1", "2013-12-03"),
-    ("2.6.2", "2014-02-28"),
-    ("2.6.3", "2014-07-23"),
-    ("3.0"  , "2014-08-04"),
-    ("3.0.1", "2014-09-01"),
-    ("3.0.2", "2014-10-03"),
-    ("3.0.3", "2014-11-03"),
-    ("3.1"  , "2015-01-14"),
-    ("3.2"  , "2015-07-24"),
-    ("3.2.1", "2015-09-09"),
-    ("3.2.2", "2015-11-13"),
 ]
 
 yt_provider = pkg_resources.get_provider("yt")
@@ -96,6 +73,19 @@ name_mappings = {
 name_ignores = ["convert-repo"]
 
 lastname_sort = lambda a: a.rsplit(None, 1)[-1]
+
+def get_release_tags():
+    c = hglib.open(yt_path)
+    releases = {}
+    for name, rev, node, islocal in c.tags():
+        if name.startswith("yt-"):
+            releases[name] = node
+    rr = []
+    for name, node in sorted(releases.items()):
+        date = c.log(node)[-1][-1]
+        rr.append((date, name[3:]))
+    rr.sort()
+    return [(_[1], _[0].strftime("%Y-%M-%d")) for _ in rr]
 
 def developer_names():
     cmd = hglib.util.cmdbuilder("churn", "-c")
@@ -141,7 +131,8 @@ def generate_doap():
             f.write("<developer>\n")
             f.write(templates["foaf"] % {'realname': dev_name})
             f.write("</developer>\n")
-        for release in releases:
+        for release in known_releases + get_release_tags():
+            print release
             f.write(templates["release"] % {
                 'name': "yt " + release[0], 'revision': release[0], 'date': release[1]}
             )
