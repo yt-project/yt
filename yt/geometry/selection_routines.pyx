@@ -2091,19 +2091,28 @@ def points_in_cells(
 
 cdef class BooleanSelector(SelectorObject):
 
-    def __init__(self, dobj1, dobj2):
+    def __init__(self, dobj):
         # Note that this has a different API than the other selector objects,
         # so will not work as a traditional data selector.
-        self.min_level = -1
-        self.max_level = 100
-        if not hasattr(dobj1, "selector"):
-            self.sel1 = dobj1
+        if not hasattr(dobj.dobj1, "selector"):
+            self.sel1 = dobj.dobj1
         else:
-            self.sel1 = dobj1.selector
-        if not hasattr(dobj2, "selector"):
-            self.sel2 = dobj2
+            self.sel1 = dobj.dobj1.selector
+        if not hasattr(dobj.dobj2, "selector"):
+            self.sel2 = dobj.dobj2
         else:
-            self.sel2 = dobj2.selector
+            self.sel2 = dobj.dobj2.selector
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
+        return self.operation(rv1, rv2)
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        return -1
 
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
@@ -2120,18 +2129,12 @@ cdef class BooleanSelector(SelectorObject):
         cdef int rv2 = self.sel2.select_sphere(pos, radius)
         return self.operation(rv1, rv2)
 
-    cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
-        cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
-        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
-        return self.operation(rv1, rv2)
-
     cdef int operation(self, int rv1, int rv2) nogil:
-        return 0
+        return -1
 
 cdef class BooleanANDSelector(BooleanSelector):
     cdef int operation(self, int rv1, int rv2) nogil:
-        if rv1 == 1 and rv2 == 1: return 1
+        if rv1 == rv2 == 1: return 1
         return 0
 
     def _hash_vals(self):
@@ -2143,6 +2146,22 @@ cdef class BooleanORSelector(BooleanSelector):
     cdef int operation(self, int rv1, int rv2) nogil:
         if rv1 == 1 or rv2 == 1: return 1
         return 0
+
+    def select_grids(self,
+                     np.ndarray[np.float64_t, ndim=2] left_edges,
+                     np.ndarray[np.float64_t, ndim=2] right_edges,
+                     np.ndarray[np.int32_t, ndim=2] levels):
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] rv1
+        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] rv2
+        cdef np.ndarray[np.uint8_t, ndim=1] rv
+        rv = np.ones(left_edges.shape[0], dtype="uint8")
+        rv1 = self.sel1.select_grids(left_edges, right_edges, levels)
+        rv2 = self.sel2.select_grids(left_edges, right_edges, levels)
+        cdef int i
+        for i in range(rv1.size):
+            if rv1[i] == rv2[i] == 0: rv[i] = 0
+        return rv.astype("bool")
+
 
     def _hash_vals(self):
         return (self.sel1._hash_vals() +
@@ -2169,9 +2188,19 @@ cdef class BooleanNOTSelector(BooleanSelector):
 
 cdef class BooleanXORSelector(BooleanSelector):
     cdef int operation(self, int rv1, int rv2) nogil:
-        if rv1 == rv2:
-            return 0
-        return 1
+        if rv1 == 1 and rv2 == 0:
+            return 1
+        elif rv1 == 0 and rv2 == 1:
+            return 1
+        return 0
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
+        cdef int rv2 = self.sel2.select_grid(left_edge, right_edge, level, o)
+        if rv1 == 1 or rv2 == 1: return 1
+        return 0
 
     def _hash_vals(self):
         return (self.sel1._hash_vals() +

@@ -1782,13 +1782,17 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
 class YTBooleanOperator(YTSelectionContainer3D):
     _type_name = "bool"
+    _con_args = ("op", "dobj1", "dobj2")
     def __init__(self, op, dobj1, dobj2, ds = None, field_parameters = None,
                  data_source = None):
         YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
                 data_source)
-        name = "Boolean%sSelector" % (op.upper(),)
+        self.op = op.upper()
+        self.dobj1 = dobj1
+        self.dobj2 = dobj2
+        name = "Boolean%sSelector" % (self.op,)
         sel_cls = getattr(yt.geometry.selection_routines, name)
-        self._selector = sel_cls(dobj1, dobj2)
+        self._selector = sel_cls(self)
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
