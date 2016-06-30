@@ -8,7 +8,7 @@ answer_tests:
   local_chombo_000:
     - yt/frontends/chombo/tests/test_outputs.py
 
-  local_enzo_000:
+  local_enzo_001:
     - yt/frontends/enzo
 
   local_fits_000:
