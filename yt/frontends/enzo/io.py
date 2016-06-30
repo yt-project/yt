@@ -440,7 +440,8 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             f = h5py.File(g.filename, 'r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
-                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname).value)
+                rv[(ftype, fname)] = np.atleast_3d(
+                    gds.get(fname).value.transpose())
             f.close()
             return rv
         if size is None:
