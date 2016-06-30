@@ -2088,3 +2088,92 @@ def points_in_cells(
             if mask[p]: break
 
     return mask
+
+cdef class BooleanSelector(SelectorObject):
+
+    def __init__(self, dobj1, dobj2):
+        # Note that this has a different API than the other selector objects,
+        # so will not work as a traditional data selector.
+        self.min_level = -1
+        self.max_level = 100
+        if not hasattr(dobj1, "selector"):
+            self.sel1 = dobj1
+        else:
+            self.sel1 = dobj1.selector
+        if not hasattr(dobj2, "selector"):
+            self.sel2 = dobj2
+        else:
+            self.sel2 = dobj2.selector
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        return self.operation(rv1, rv2)
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        cdef int rv2 = self.sel2.select_point(pos)
+        return self.operation(rv1, rv2)
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        return self.operation(rv1, rv2)
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
+        return self.operation(rv1, rv2)
+
+    cdef int operation(self, int rv1, int rv2) nogil:
+        return 0
+
+cdef class BooleanANDSelector(BooleanSelector):
+    cdef int operation(self, int rv1, int rv2) nogil:
+        if rv1 == 1 and rv2 == 1: return 1
+        return 0
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("and",) +
+                self.sel2._hash_vals())
+
+cdef class BooleanORSelector(BooleanSelector):
+    cdef int operation(self, int rv1, int rv2) nogil:
+        if rv1 == 1 or rv2 == 1: return 1
+        return 0
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("or",) +
+                self.sel2._hash_vals())
+
+cdef class BooleanNOTSelector(BooleanSelector):
+    # This selector mandates that sel2 is an AlwaysSelector, or something like
+    # that, as it's ignored.
+    cdef int operation(self, int rv1, int rv2) nogil:
+        # Ignore t
+        if rv2 == 0:
+            # This shouldn't happen!
+            return -1
+        elif rv1 == 0:
+            return 1
+        elif rv1 == 1:
+            return 0
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("not",) +
+                self.sel2._hash_vals())
+
+cdef class BooleanXORSelector(BooleanSelector):
+    cdef int operation(self, int rv1, int rv2) nogil:
+        if rv1 == rv2:
+            return 0
+        return 1
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("xor",) +
+                self.sel2._hash_vals())

@@ -1314,7 +1314,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self.index._identify_base_chunk(self)
         return self._current_chunk.fcoords_vertex
 
-
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
     _dimensionality = 0
@@ -1759,6 +1758,37 @@ class YTSelectionContainer3D(YTSelectionContainer):
         from what might be expected from the geometric volume.
         """
         return self.quantities.total_quantity(("index", "cell_volume"))
+
+    def __or__(self, other):
+        assert(isinstance(other, YTSelectionContainer3D))
+        assert(self.ds is other.ds)
+        # Should maybe do something with field parameters here
+        return YTBooleanOperator("OR", self, other, ds = self.ds)
+
+    def __invert__(self):
+        # ~obj
+        asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
+        return YTBooleanOperator("NOT", self, asel, ds = self.ds)
+
+    def __xor__(self, other):
+        assert(isinstance(other, YTSelectionContainer3D))
+        assert(self.ds is other.ds)
+        return YTBooleanOperator("XOR", self, other, ds = self.ds)
+
+    def __and__(self, other):
+        assert(isinstance(other, YTSelectionContainer3D))
+        assert(self.ds is other.ds)
+        return YTBooleanOperator("AND", self, other, ds = self.ds)
+
+class YTBooleanOperator(YTSelectionContainer3D):
+    _type_name = "bool"
+    def __init__(self, op, dobj1, dobj2, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        name = "Boolean%sSelector" % (op.upper(),)
+        sel_cls = getattr(yt.geometry.selection_routines, name)
+        self._selector = sel_cls(dobj1, dobj2)
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
