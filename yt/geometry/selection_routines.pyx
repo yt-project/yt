@@ -2103,39 +2103,44 @@ cdef class BooleanSelector(SelectorObject):
         else:
             self.sel2 = dobj.dobj2.selector
 
+cdef class BooleanANDSelector(BooleanSelector):
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
+        if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
-        return self.operation(rv1, rv2)
+        if rv2 == 0: return 0
+        return 1
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
-        return -1
+        cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge, level, o)
+        if rv2 == 0: return 0
+        return 1
 
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
         cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_cell(pos, dds)
-        return self.operation(rv1, rv2)
+        if rv2 == 0: return 0
+        return 1
 
     cdef int select_point(self, np.float64_t pos[3]) nogil:
         cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_point(pos)
-        return self.operation(rv1, rv2)
+        if rv2 == 0: return 0
+        return 1
 
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 0: return 0
         cdef int rv2 = self.sel2.select_sphere(pos, radius)
-        return self.operation(rv1, rv2)
-
-    cdef int operation(self, int rv1, int rv2) nogil:
-        return -1
-
-cdef class BooleanANDSelector(BooleanSelector):
-    cdef int operation(self, int rv1, int rv2) nogil:
-        if rv1 == rv2 == 1: return 1
-        return 0
+        if rv2 == 0: return 0
+        return 1
 
     def _hash_vals(self):
         return (self.sel1._hash_vals() +
@@ -2143,25 +2148,43 @@ cdef class BooleanANDSelector(BooleanSelector):
                 self.sel2._hash_vals())
 
 cdef class BooleanORSelector(BooleanSelector):
-    cdef int operation(self, int rv1, int rv2) nogil:
-        if rv1 == 1 or rv2 == 1: return 1
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
+        if rv2 == 1: return 1
         return 0
 
-    def select_grids(self,
-                     np.ndarray[np.float64_t, ndim=2] left_edges,
-                     np.ndarray[np.float64_t, ndim=2] right_edges,
-                     np.ndarray[np.int32_t, ndim=2] levels):
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] rv1
-        cdef np.ndarray[np.uint8_t, ndim=1, cast=True] rv2
-        cdef np.ndarray[np.uint8_t, ndim=1] rv
-        rv = np.ones(left_edges.shape[0], dtype="uint8")
-        rv1 = self.sel1.select_grids(left_edges, right_edges, levels)
-        rv2 = self.sel2.select_grids(left_edges, right_edges, levels)
-        cdef int i
-        for i in range(rv1.size):
-            if rv1[i] == rv2[i] == 0: rv[i] = 0
-        return rv.astype("bool")
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge, level, o)
+        if rv2 == 1: return 1
+        return 0
 
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        if rv2 == 1: return 1
+        return 0
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_point(pos)
+        if rv2 == 1: return 1
+        return 0
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        if rv2 == 1: return 1
+        return 0
 
     def _hash_vals(self):
         return (self.sel1._hash_vals() +
@@ -2169,6 +2192,42 @@ cdef class BooleanORSelector(BooleanSelector):
                 self.sel2._hash_vals())
 
 cdef class BooleanNOTSelector(BooleanSelector):
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # We always return True here, because we don't have a "fully included"
+        # check anywhere else.
+        return 1
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge, level, o)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_point(pos)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        if rv2 == 0: return 0
+        return 1
+
     # This selector mandates that sel2 is an AlwaysSelector, or something like
     # that, as it's ignored.
     cdef int operation(self, int rv1, int rv2) nogil:
