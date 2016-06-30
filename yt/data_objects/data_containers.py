@@ -1781,6 +1781,35 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return YTBooleanOperator("AND", self, other, ds = self.ds)
 
 class YTBooleanOperator(YTSelectionContainer3D):
+    """
+    This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
+    multiple data objects.
+
+    This object is not designed to be created directly; it is designed to be
+    created implicitly by using one of the bitwise operations (&, |, ^, ~) on
+    one or two other data objects.  These correspond to the appropriate boolean
+    operations, and the resultant object can be nested.
+
+    Parameters
+    ----------
+    op : string
+        Can be AND, OR, XOR or NOT.
+    dobj1 : YTSelectionContainer3D
+        The first selection object
+    dobj2 : YTSelectionContainer3D
+        The second object
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> sp = ds.sphere("c", 0.1)
+    >>> dd = ds.r[:,:,:]
+    >>> new_obj = sp ^ dd
+    >>> print(new_obj.sum("cell_volume"), dd.sum("cell_volume") -
+    ...    sp.sum("cell_volume"))
+    """
     _type_name = "bool"
     _con_args = ("op", "dobj1", "dobj2")
     def __init__(self, op, dobj1, dobj2, ds = None, field_parameters = None,
