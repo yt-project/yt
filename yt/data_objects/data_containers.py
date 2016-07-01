@@ -1780,6 +1780,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
         assert(self.ds is other.ds)
         return YTBooleanOperator("AND", self, other, ds = self.ds)
 
+    def __add__(self, other):
+        return self.__or__(other)
+
+    def __sub__(self, other):
+        assert(isinstance(other, YTSelectionContainer3D))
+        assert(self.ds is other.ds)
+        return YTBooleanOperator("NEG", self, other, ds = self.ds)
+
 class YTBooleanOperator(YTSelectionContainer3D):
     """
     This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
