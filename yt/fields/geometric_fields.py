@@ -104,8 +104,13 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                        display_field=False)
 
     def _morton_index(field, data):
-        """A float64 view on a uint64 field that is the morton index of the
-        cell-centers."""
+        """This is the morton index, which is properly a uint64 field.  Because
+        we make some assumptions that the fields returned by derived fields are
+        float64, this returns a "view" on the data that is float64.  To get
+        back the original uint64, you need to call .view("uint64") on it;
+        however, it should be true that if you sort the uint64, you will get
+        the same order as if you sort the float64 view.
+        """
         eps = np.finfo("f8").eps
         uq = data.ds.domain_left_edge.uq
         LE = data.ds.domain_left_edge - eps * uq

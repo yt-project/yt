@@ -343,6 +343,9 @@ def test_morton_index():
     mi = ds.r["index", "morton_index"]
     mi2 = mi.view("uint64")
     assert_equal(np.unique(mi2).size, mi2.size)
+    a1 = np.argsort(mi)
+    a2 = np.argsort(mi2)
+    assert_array_equal(a1, a2)
 
 if __name__ == "__main__":
     setup()
