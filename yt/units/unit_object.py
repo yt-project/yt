@@ -26,6 +26,8 @@ from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks, \
     angle
+from yt.units.equivalencies import \
+    equivalence_registry
 from yt.units.unit_lookup_table import \
     unit_prefixes, prefixable_units, latex_prefixes, \
     default_base_units
@@ -432,6 +434,25 @@ class Unit(Expr):
                 return False
         return True
 
+    def list_equivalencies(self):
+        """
+        Lists the possible equivalencies associated with this unit object
+        """
+        for k, v in equivalence_registry.items():
+            if self.has_equivalent(k):
+                print(v())
+
+    def has_equivalent(self, equiv):
+        """
+        Check to see if this unit object as an equivalent unit in *equiv*.
+        """
+        try:
+            this_equiv = equivalence_registry[equiv]()
+        except KeyError:
+            raise KeyError("No such equivalence \"%s\"." % equiv)
+        old_dims = self.dimensions
+        return old_dims in this_equiv.dims
+
     def get_base_equivalent(self, unit_system="cgs"):
         """
         Create and return dimensionally-equivalent units in a specified base.
@@ -652,6 +673,8 @@ def _get_system_unit_string(dimensions, base_units):
     my_dims = dimensions.expand()
     if my_dims is dimensionless:
         return ""
+    if my_dims in base_units:
+        return base_units[my_dims]
     for factor in my_dims.as_ordered_factors():
         dim = list(factor.free_symbols)[0]
         unit_string = str(base_units[dim])

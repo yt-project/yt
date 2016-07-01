@@ -568,3 +568,14 @@ class YTDataTypeUnsupported(YTException):
         v = "This operation is not supported for data of geometry %s; " % self.this
         v += "It supports data of geometries %s" % (self.supported,)
         return v
+
+class YTBoundsDefinitionError(YTException):
+    def __init__(self, message, bounds):
+        self.bounds = bounds
+        self.message = message
+
+    def __str__(self):
+        v  = "This operation has encountered a bounds error: "
+        v += self.message
+        v += " Specified bounds are %s" % self.bounds
+        return v

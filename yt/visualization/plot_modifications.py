@@ -41,8 +41,6 @@ from yt.utilities.lib.mesh_triangulation import triangulate_indices
 from yt.utilities.exceptions import \
     YTDataTypeUnsupported
 
-from . import _MPL
-
 callback_registry = {}
 
 def _verify_geometry(func):
@@ -273,8 +271,7 @@ class VelocityCallback(PlotCallback):
     True, the velocity fields will be scaled by their local
     (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field
-    strength (normalize is not implemented and thus ignored for
-    Cutting Planes).
+    strength.
     """
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube")
@@ -290,7 +287,9 @@ class VelocityCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_velocity_x",
                                         "cutting_plane_velocity_y",
-                                        self.factor)
+                                        self.factor, scale=self.scale,
+                                        normalize=self.normalize,
+                                        scale_units=self.scale_units)
         else:
             ax = plot.data.axis
             (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
@@ -336,7 +335,9 @@ class MagFieldCallback(PlotCallback):
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
                                         "cutting_plane_magnetic_field_y",
-                                        self.factor)
+                                        self.factor, scale=self.scale, 
+                                        scale_units=self.scale_units, 
+                                        normalize=self.normalize)
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
@@ -394,24 +395,18 @@ class QuiverCallback(PlotCallback):
         if self.bv_y != 0.0:
             # Workaround for 0.0 without units
             fv_y -= self.bv_y
-        pixX = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             fv_x,
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1), 0, # bounds, antialias
-                             (period_x, period_y), periodic,
-                             ).transpose()
-        pixY = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             fv_y,
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1), 0, # bounds, antialias
-                             (period_x, period_y), periodic,
-                             ).transpose()
+        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  fv_x, int(nx), int(ny),
+                                  (x0, x1, y0, y1), 0, # bounds, antialias
+                                  (period_x, period_y), periodic,
+                                  ).transpose()
+        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  fv_y, int(nx), int(ny),
+                                  (x0, x1, y0, y1), 0, # bounds, antialias
+                                  (period_x, period_y), periodic,
+                                  ).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -605,11 +600,12 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
         else:
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
-        GLE, GRE, levels = [], [], []
+        GLE, GRE, levels, block_ids = [], [], [], []
         for block, mask in plot.data.blocks:
             GLE.append(block.LeftEdge.in_units("code_length"))
             GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
+            block_ids.append(block.id)
         if len(GLE) == 0: return
         # Retain both units and registry
         GLE = YTArray(GLE, input_units = GLE[0].units)
@@ -618,11 +614,12 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
-        # sorts the three arrays in order of ascending level - this makes images look nicer
+        # sorts the four arrays in order of ascending level - this makes images look nicer
         new_indices = np.argsort(levels)
         levels = levels[new_indices]
         GLE = GLE[new_indices]
         GRE = GRE[new_indices]
+        block_ids = np.array(block_ids)[new_indices]
 
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
@@ -667,12 +664,11 @@ class GridBoundaryCallback(PlotCallback):
                     np.logical_and(xwidth > self.min_pix_ids,
                                    ywidth > self.min_pix_ids),
                     np.logical_and(levels >= min_level, levels <= max_level))
-                active_ids = np.unique(plot.data['grid_indices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
                         left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
                         left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                        "%d" % active_ids[i], clip_on=True)
+                        "%d" % block_ids[i], clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
@@ -707,28 +703,22 @@ class StreamlineCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
-        pixX = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[self.field_x],
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1),).transpose()
-        pixY = _MPL.Pixelize(plot.data['px'],
-                             plot.data['py'],
-                             plot.data['pdx'],
-                             plot.data['pdy'],
-                             plot.data[self.field_y],
-                             int(nx), int(ny),
-                             (x0, x1, y0, y1),).transpose()
+        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  plot.data[self.field_x],
+                                  int(nx), int(ny),
+                                  (x0, x1, y0, y1),).transpose()
+        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  plot.data['pdx'], plot.data['pdy'],
+                                  plot.data[self.field_y],
+                                  int(nx), int(ny),
+                                  (x0, x1, y0, y1),).transpose()
         if self.field_color:
-            self.field_color = _MPL.Pixelize(plot.data['px'],
-                                             plot.data['py'],
-                                             plot.data['pdx'],
-                                             plot.data['pdy'],
-                                             plot.data[self.field_color],
-                                             int(nx), int(ny),
-                                             (x0, x1, y0, y1),).transpose()
+            self.field_color = pixelize_cartesian(
+                        plot.data['px'], plot.data['py'],
+                        plot.data['pdx'], plot.data['pdy'],
+                        plot.data[self.field_color], int(nx), int(ny),
+                        (x0, x1, y0, y1),).transpose()
 
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
@@ -855,11 +845,16 @@ class CuttingQuiverCallback(PlotCallback):
     """
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, field_x, field_y, factor):
+
+    def __init__(self, field_x, field_y, factor=16, scale=None,
+                 scale_units=None, normalize=None):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
         self.factor = factor
+        self.scale = scale
+        self.scale_units = scale_units
+        self.normalize = normalize
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -870,6 +865,7 @@ class CuttingQuiverCallback(PlotCallback):
         nx = plot.image._A.shape[0] / self.factor
         ny = plot.image._A.shape[1] / self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
+
         pixX = pixelize_off_axis_cartesian(
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
@@ -877,7 +873,7 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
                                int(nx), int(ny),
-                               (x0, x1, y0, y1),).transpose()
+                               (x0, x1, y0, y1)).transpose()
         pixY = pixelize_off_axis_cartesian(
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
@@ -885,10 +881,16 @@ class CuttingQuiverCallback(PlotCallback):
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_y],
                                int(nx), int(ny),
-                               (x0, x1, y0, y1),).transpose()
+                               (x0, x1, y0, y1)).transpose()
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
-        plot._axes.quiver(X,Y, pixX, pixY)
+
+        if self.normalize:
+            nn = np.sqrt(pixX**2 + pixY**2)
+            pixX /= nn
+            pixY /= nn
+
+        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
         plot._axes.hold(False)
@@ -933,7 +935,7 @@ class ClumpContourCallback(PlotCallback):
             xf_copy = clump[xf].copy().in_units("code_length")
             yf_copy = clump[yf].copy().in_units("code_length")
 
-            temp = _MPL.Pixelize(xf_copy, yf_copy,
+            temp = pixelize_cartesian(xf_copy, yf_copy,
                                  clump[dxf].in_units("code_length")/2.0,
                                  clump[dyf].in_units("code_length")/2.0,
                                  clump[dxf].d*0.0+i+1, # inits inside Pixelize

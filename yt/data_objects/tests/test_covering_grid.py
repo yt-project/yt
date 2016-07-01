@@ -1,7 +1,10 @@
 import numpy as np
 
+from yt import \
+    load
 from yt.frontends.stream.data_structures import load_particles
 from yt.testing import \
+    requires_file, \
     fake_random_ds, \
     assert_equal, \
     assert_almost_equal
@@ -120,3 +123,11 @@ def test_arbitrary_grid():
             ag = ds.arbitrary_grid([0.0, 0.0, 0.0], [1.0, 1.0, 1.0],
                     2**ref_level * ds.domain_dimensions)
             yield assert_almost_equal, cg["density"], ag["density"]
+
+output_00080 = "output_00080/info_00080.txt"
+@requires_file(output_00080)
+def test_octree_cg():
+    ds = load(output_00080)
+    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
+    density_field = cgrid["density"]
+    assert_equal((density_field == 0.0).sum(), 0)

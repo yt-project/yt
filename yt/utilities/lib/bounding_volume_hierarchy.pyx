@@ -397,8 +397,6 @@ cdef class BVHMeshSampler(ImageSampler):
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
-        cdef np.ndarray[np.float64_t, ndim=1] data
-        cdef np.ndarray[np.int64_t, ndim=1] used
         nx = im.nv[0]
         ny = im.nv[1]
         size = nx * ny

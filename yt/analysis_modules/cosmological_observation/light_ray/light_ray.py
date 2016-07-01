@@ -289,13 +289,15 @@ class LightRay(CosmologySplice):
         seed : optional, int
             Seed for the random number generator.
             Default: None.
-        start_position : optional, list of floats
+        start_position : optional, iterable of floats or YTArray.
             Used only if creating a light ray from a single dataset.
             The coordinates of the starting position of the ray.
+            If specified without units, it is assumed to be in code units.
             Default: None.
-        end_position : optional, list of floats
+        end_position : optional, iterable of floats or YTArray.
             Used only if creating a light ray from a single dataset.
             The coordinates of the ending position of the ray.
+            If specified without units, it is assumed to be in code units.
             Default: None.
         trajectory : optional, list of floats
             Used only if creating a light ray from a single dataset.
@@ -365,6 +367,19 @@ class LightRay(CosmologySplice):
         ...                       use_peculiar_velocity=True)
 
         """
+
+        if start_position is not None and hasattr(start_position, 'units'):
+            start_position = start_position.to('unitary')
+        elif start_position is not None :
+            start_position = self.ds.arr(
+                start_position, 'code_length').to('unitary')
+
+        if end_position is not None and hasattr(end_position, 'units'):
+            end_position = end_position.to('unitary')
+        elif end_position is not None :
+            end_position = self.ds.arr(
+                end_position, 'code_length').to('unitary')
+
         if get_los_velocity is not None:
             use_peculiar_velocity = get_los_velocity
             mylog.warn("'get_los_velocity' kwarg is deprecated. Use 'use_peculiar_velocity' instead.")
@@ -413,8 +428,8 @@ class LightRay(CosmologySplice):
                 setup_function(ds)
 
             if start_position is not None:
-                my_segment["start"] = ds.arr(my_segment["start"], "code_length")
-                my_segment["end"] = ds.arr(my_segment["end"], "code_length")
+                my_segment["start"] = ds.arr(my_segment["start"], "unitary")
+                my_segment["end"] = ds.arr(my_segment["end"], "unitary")
             else:
                 my_segment["start"] = ds.domain_width * my_segment["start"] + \
                   ds.domain_left_edge
@@ -442,6 +457,10 @@ class LightRay(CosmologySplice):
                        (my_segment['redshift'], my_segment['start'],
                         my_segment['end']))
 
+            # Convert segment units from unitary to code length for sub_ray
+            my_segment['start'] = my_segment['start'].to('code_length')
+            my_segment['end'] = my_segment['end'].to('code_length')
+
             # Break periodic ray into non-periodic segments.
             sub_segments = periodic_ray(my_segment['start'], my_segment['end'],
                                         left=ds.domain_left_edge,
@@ -462,6 +481,7 @@ class LightRay(CosmologySplice):
                 sub_data['dl'].extend(sub_ray['dts'][asort] *
                                       vector_length(sub_ray.start_point,
                                                     sub_ray.end_point))
+
                 for field in data_fields:
                     sub_data[field].extend(sub_ray[field][asort])
 
