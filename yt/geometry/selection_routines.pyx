@@ -2296,3 +2296,191 @@ cdef class BooleanNEGSelector(BooleanSelector):
         return (self.sel1._hash_vals() +
                 ("neg",) +
                 self.sel2._hash_vals())
+
+cdef class ChainedBooleanSelector(SelectorObject):
+    cdef int n_obj
+    cdef np.ndarray selectors
+    def __init__(self, dobj):
+        # These are data objects, not selectors
+        self.n_obj = len(dobj.data_objects)
+        self.selectors = np.empty(self.n_obj, dtype="object")
+        for i in range(self.n_obj):
+            self.selectors[i] = dobj.data_objects[i].selector
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        with gil:
+            return self._select_bbox(left_edge, right_edge)
+
+    cdef int _select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]):
+        return 0
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        with gil:
+            return self._select_grid(left_edge, right_edge, level, o)
+
+    cdef int _select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL):
+        return 0
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        with gil:
+            return self._select_cell(pos, dds)
+
+    cdef int _select_cell(self, np.float64_t pos[3], np.float64_t dds[3]):
+        return 0
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        with gil:
+            return self._select_point(pos)
+
+    cdef int _select_point(self, np.float64_t pos[3]):
+        return 0
+
+    cdef int select_sphere(self, np.float64_t pos[3],
+                                 np.float64_t radius) nogil:
+        with gil:
+            return self._select_sphere(pos, radius)
+
+    cdef int _select_sphere(self, np.float64_t pos[3],
+                                 np.float64_t radius):
+        return 0
+
+cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_bbox(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3]):
+        cdef np.ndarray[object, ndim=1] sels = self.selectors
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>sels[i]).select_bbox(left_edge, right_edge) == 0:
+                return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_grid(left_edge, right_edge, level, o) == 0:
+                return 0
+            return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_cell(self, np.float64_t pos[3], np.float64_t dds[3]):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_cell(pos, dds) == 0:
+                return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_point(self, np.float64_t pos[3]):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_point(pos) == 0:
+                return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_sphere(self, np.float64_t pos[3], np.float64_t radius):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_sphere(pos, radius) == 0:
+                return 0
+        return 1
+
+    def _hash_vals(self):
+        v = ("chained_and",)
+        for s in self.selectors:
+            v += s._hash_vals()
+        return v
+
+intersection_selector = ChainedBooleanANDSelector
+
+cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_bbox(left_edge, right_edge) == 1:
+                return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_grid(left_edge, right_edge, level, o) == 1:
+                return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_cell(self, np.float64_t pos[3], np.float64_t dds[3]):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_cell(pos, dds) == 1:
+                return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_point(self, np.float64_t pos[3]):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_point(pos) == 1:
+                return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int _select_sphere(self, np.float64_t pos[3], np.float64_t radius):
+        cdef np.ndarray[object, ndim=1] sels
+        cdef int i
+        for i in range(self.n_obj):
+            if (<SelectorObject>self.selectors[i]).select_sphere(pos, radius) == 1:
+                return 1
+        return 0
+
+    def _hash_vals(self):
+        v = ("chained_or",)
+        for s in self.selectors:
+            v += s._hash_vals()
+        return v
+
+union_selector = ChainedBooleanORSelector
+
