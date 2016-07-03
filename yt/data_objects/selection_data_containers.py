@@ -857,3 +857,75 @@ class YTCutRegion(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
+
+class YTDataObjectIntersection(YTSelectionContainer3D):
+    """
+    This is a more efficient method of selecting the intersection of multiple
+    data selection objects.
+
+    Creating one of these objects returns the intersection of all of the
+    sub-objects; it is designed to be a faster method than chaining & ("and")
+    operations to create a single, large intersection.
+
+    Parameters
+    ----------
+    data_objects : Iterable of YTSelectionContainer3D
+        The data objects to intersect
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.15)
+    >>> sp2 = ds.sphere((0.38, 0.51, 0.55), 0.1)
+    >>> sp3 = ds.sphere((0.35, 0.5, 0.6), 0.15)
+    >>> new_obj = ds.intersection((sp1, sp2, sp3))
+    >>> print(new_obj.sum("cell_volume"))
+    """
+    _type_name = "intersection"
+    _con_args = ("data_objects",)
+    def __init__(self, data_objects, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        # ensure_list doesn't check for tuples
+        if isinstance(data_objects, tuple):
+            data_objects = list(data_objects)
+        self.data_objects = ensure_list(data_objects)
+
+class YTDataObjectUnion(YTSelectionContainer3D):
+    """
+    This is a more efficient method of selecting the union of multiple
+    data selection objects.
+
+    Creating one of these objects returns the union of all of the sub-objects;
+    it is designed to be a faster method than chaining | (or) operations to
+    create a single, large union.
+
+    Parameters
+    ----------
+    data_objects : Iterable of YTSelectionContainer3D
+        The data objects to union
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.1)
+    >>> sp2 = ds.sphere((0.3, 0.5, 0.15), 0.1)
+    >>> sp3 = ds.sphere((0.5, 0.5, 0.9), 0.1)
+    >>> new_obj = ds.union((sp1, sp2, sp3))
+    >>> print(new_obj.sum("cell_volume"))
+    """
+    _type_name = "union"
+    _con_args = ("data_objects",)
+    def __init__(self, data_objects, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        # ensure_list doesn't check for tuples
+        if isinstance(data_objects, tuple):
+            data_objects = list(data_objects)
+        self.data_objects = ensure_list(data_objects)
