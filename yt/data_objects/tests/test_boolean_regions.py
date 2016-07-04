@@ -42,6 +42,8 @@ def test_boolean_spheres_no_overlap():
     bo1 = sp1 & sp2
     bo2 = sp1 - sp2
     bo3 = sp1 | sp2 # also works with +
+    bo4 = ds.union([sp1, sp2])
+    bo5 = ds.intersection([sp1, sp2])
     # This makes sure the original containers didn't change.
     new_i1 = sp1["index","morton_index"]
     new_i1.sort()
@@ -52,12 +54,16 @@ def test_boolean_spheres_no_overlap():
     # Now make sure the indices also behave as we expect.
     empty = np.array([])
     assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
     b2 = bo2["index","morton_index"]
     b2.sort()
     assert_array_equal(b2, i1)
     b3 = bo3["index","morton_index"]
     b3.sort()
     assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    assert_array_equal(b4, ii)
  
 def test_boolean_spheres_overlap():
     r"""Test to make sure that boolean objects (spheres, overlap)
@@ -75,6 +81,8 @@ def test_boolean_spheres_overlap():
     bo1 = sp1 & sp2
     bo2 = sp1 - sp2
     bo3 = sp1 | sp2
+    bo4 = ds.union([sp1, sp2])
+    bo5 = ds.intersection([sp1, sp2])
     # Now make sure the indices also behave as we expect.
     lens = np.intersect1d(i1, i2)
     apple = np.setdiff1d(i1, i2)
@@ -88,6 +96,12 @@ def test_boolean_spheres_overlap():
     assert_array_equal(b1, lens)
     assert_array_equal(b2, apple)
     assert_array_equal(b3, both)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
 
 def test_boolean_regions_no_overlap():
     r"""Test to make sure that boolean objects (regions, no overlap)
@@ -110,6 +124,8 @@ def test_boolean_regions_no_overlap():
     bo1 = re1 & re2
     bo2 = re1 - re2
     bo3 = re1 | re2
+    bo4 = ds.union([re1, re2])
+    bo5 = ds.intersection([re1, re2])
     # This makes sure the original containers didn't change.
     new_i1 = re1["index","morton_index"]
     new_i1.sort()
@@ -120,12 +136,18 @@ def test_boolean_regions_no_overlap():
     # Now make sure the indices also behave as we expect.
     empty = np.array([])
     assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
     b2 = bo2["index","morton_index"]
     b2.sort()
     assert_array_equal(b2, i1 )
     b3 = bo3["index","morton_index"]
     b3.sort()
     assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
 
 def test_boolean_regions_overlap():
     r"""Test to make sure that boolean objects (regions, overlap)
@@ -143,6 +165,8 @@ def test_boolean_regions_overlap():
     bo1 = re1 & re2
     bo2 = re1 - re2
     bo3 = re1 | re2
+    bo4 = ds.union([re1, re2])
+    bo5 = ds.intersection([re1, re2])
     # Now make sure the indices also behave as we expect.
     cube = np.intersect1d(i1, i2)
     bite_cube = np.setdiff1d(i1, i2)
@@ -156,6 +180,13 @@ def test_boolean_regions_overlap():
     assert_array_equal(b1, cube)
     assert_array_equal(b2, bite_cube)
     assert_array_equal(b3, both)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
+
 
 def test_boolean_cylinders_no_overlap():
     r"""Test to make sure that boolean objects (cylinders, no overlap)
@@ -178,6 +209,8 @@ def test_boolean_cylinders_no_overlap():
     bo1 = cyl1 & cyl2
     bo2 = cyl1 - cyl2
     bo3 = cyl1 | cyl2
+    bo4 = ds.union([cyl1, cyl2])
+    bo5 = ds.intersection([cyl1, cyl2])
     # This makes sure the original containers didn't change.
     new_i1 = cyl1["index","morton_index"]
     new_i1.sort()
@@ -188,12 +221,18 @@ def test_boolean_cylinders_no_overlap():
     # Now make sure the indices also behave as we expect.
     empty = np.array([])
     assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
     b2 = bo2["index","morton_index"]
     b2.sort()
     assert_array_equal(b2, i1)
     b3 = bo3["index","morton_index"]
     b3.sort()
     assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
 
 def test_boolean_cylinders_overlap():
     r"""Test to make sure that boolean objects (cylinders, overlap)
@@ -211,6 +250,8 @@ def test_boolean_cylinders_overlap():
     bo1 = cyl1 & cyl2
     bo2 = cyl1 - cyl2
     bo3 = cyl1 | cyl2
+    bo4 = ds.union([cyl1, cyl2])
+    bo5 = ds.intersection([cyl1, cyl2])
     # Now make sure the indices also behave as we expect.
     vlens = np.intersect1d(i1, i2)
     bite_disk = np.setdiff1d(i1, i2)
@@ -224,6 +265,13 @@ def test_boolean_cylinders_overlap():
     assert_array_equal(b1, vlens)
     assert_array_equal(b2, bite_disk)
     assert_array_equal(b3, both)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
+
 
 def test_boolean_ellipsoids_no_overlap():
     r"""Test to make sure that boolean objects (ellipsoids, no overlap)
@@ -246,6 +294,8 @@ def test_boolean_ellipsoids_no_overlap():
     bo1 = ell1 & ell2
     bo2 = ell1 - ell2
     bo3 = ell1 | ell2
+    bo4 = ds.union([ell1, ell2])
+    bo5 = ds.intersection([ell1, ell2])
     # This makes sure the original containers didn't change.
     new_i1 = ell1["index","morton_index"]
     new_i1.sort()
@@ -256,12 +306,19 @@ def test_boolean_ellipsoids_no_overlap():
     # Now make sure the indices also behave as we expect.
     empty = np.array([])
     assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
     b2 = bo2["index","morton_index"]
     b2.sort()
     assert_array_equal(b2, i1)
     b3 = bo3["index","morton_index"]
     b3.sort()
     assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+
 
 def test_boolean_ellipsoids_overlap():
     r"""Test to make sure that boolean objects (ellipsoids, overlap)
@@ -279,6 +336,8 @@ def test_boolean_ellipsoids_overlap():
     bo1 = ell1 & ell2
     bo2 = ell1 - ell2
     bo3 = ell1 | ell2
+    bo4 = ds.union([ell1, ell2])
+    bo5 = ds.intersection([ell1, ell2])
     # Now make sure the indices also behave as we expect.
     overlap = np.intersect1d(i1, i2)
     diff = np.setdiff1d(i1, i2)
@@ -292,6 +351,12 @@ def test_boolean_ellipsoids_overlap():
     assert_array_equal(b1, overlap)
     assert_array_equal(b2, diff)
     assert_array_equal(b3, both)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
 
 def test_boolean_mix_periodicity():
     r"""Test that a hybrid boolean region behaves as we expect.
@@ -314,6 +379,8 @@ def test_boolean_mix_periodicity():
     # a jumble, the region minus the sp+cyl
     bo3 = re - (sp | cyl)
     # Now make sure the indices also behave as we expect.
+    bo4 = ds.union([re, sp, cyl])
+    bo5 = ds.intersection([re, sp, cyl])
     expect = np.setdiff1d(rei, spi)
     ii = bo1["index","morton_index"]
     ii.sort()
@@ -329,4 +396,14 @@ def test_boolean_mix_periodicity():
     ii = bo3["index","morton_index"]
     ii.sort()
     assert_array_equal(expect, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    ii = np.union1d(np.union1d(rei, cyli), spi)
+    ii.sort()
+    assert_array_equal(ii, b4)
+    ii = np.intersect1d(np.intersect1d(rei, cyli), spi)
+    ii.sort()
+    assert_array_equal(ii, b5)
 
