@@ -26,7 +26,6 @@ from yt.funcs import \
     fix_length
 from yt.geometry.selection_routines import \
     points_in_cells
-import yt.geometry.selection_routines as selection_routines
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.exceptions import \
