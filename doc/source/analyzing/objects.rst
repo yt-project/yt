@@ -648,7 +648,7 @@ will yield slightly higher performance than a sequence of calls to ``+`` or
    usp = ds.union( [sp1, sp2, sp3] )
 
 The ``isp`` and ``usp`` objects will act the same as a set of chained ``&`` and
-``|`` operations (respectively) but will be somewhat faster.
+``|`` operations (respectively) but are somewhat easier to construct.
 
 .. _extracting-connected-sets:
 
