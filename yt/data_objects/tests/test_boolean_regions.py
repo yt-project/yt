@@ -1,6 +1,6 @@
 from yt.testing import \
-        fake_amr_ds, \
-        assert_array_equal
+    fake_amr_ds, \
+    assert_array_equal
 import numpy as np
 
 def get_ds():
