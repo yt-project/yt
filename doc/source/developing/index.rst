@@ -17,6 +17,7 @@ and contributing code!
    :maxdepth: 2
 
    developing
+   extensions
    building_the_docs
    testing
    debugdrive
