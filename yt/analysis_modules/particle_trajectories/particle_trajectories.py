@@ -339,7 +339,7 @@ class ParticleTrajectories(object):
         """
         fid = h5py.File(filename, "w")
         fields = [field for field in sorted(self.field_data.keys())]
-        fid.create_dataset("particle_indices", dtype=np.int32,
+        fid.create_dataset("particle_indices", dtype=np.int64,
                            data=self.indices)
         fid.create_dataset("particle_time", data=self.times)
         for field in fields:
