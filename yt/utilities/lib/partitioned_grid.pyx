@@ -17,6 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, calloc, free, abs
+from .fixed_interpolator cimport offset_interpolate
 
 cdef class PartitionedGrid:
 
@@ -28,8 +29,7 @@ cdef class PartitionedGrid:
                   mask,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
-                  np.ndarray[np.int64_t, ndim=1] dims,
-		  star_kdtree_container star_tree = None):
+                  np.ndarray[np.int64_t, ndim=1] dims):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
         cdef np.ndarray[np.uint8_t, ndim=3] mask_data
@@ -56,16 +56,6 @@ cdef class PartitionedGrid:
             tdata = data[i]
             c.data[i] = <np.float64_t *> tdata.data
         c.mask = <np.uint8_t *> mask_data.data
-        if star_tree is None:
-            self.star_list = NULL
-        else:
-            self.set_star_tree(star_tree)
-
-    def set_star_tree(self, star_kdtree_container star_tree):
-        self.star_list = star_tree.tree
-        self.star_sigma_num = 2.0*star_tree.sigma**2.0
-        self.star_er = 2.326 * star_tree.sigma
-        self.star_coeff = star_tree.coeff
 
     def __dealloc__(self):
         # The data fields are not owned by the container, they are owned by us!

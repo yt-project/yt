@@ -17,7 +17,6 @@ Definitions for the partitioned grid
 import numpy as np
 cimport numpy as np
 cimport cython
-cimport kdtree_utils
 from .volume_container cimport VolumeContainer
 
 cdef class PartitionedGrid:
@@ -27,7 +26,6 @@ cdef class PartitionedGrid:
     cdef public object RightEdge
     cdef public int parent_grid_id
     cdef VolumeContainer *container
-    cdef kdtree_utils.kdtree *star_list
     cdef np.float64_t star_er
     cdef np.float64_t star_sigma_num
     cdef np.float64_t star_coeff
