@@ -31,7 +31,7 @@ from yt.utilities.lib.grid_traversal import \
     pixelize_healpix, arr_fisheye_vectors, arr_pix2vec_nest
 from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
-from yt.utilities.image_samplers import \
+from yt.utilities.lib.image_samplers import \
     ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, InterpolatedProjectionSampler
 from yt.utilities.lib.misc_utilities import \

@@ -125,3 +125,14 @@ def get_corners(le, re):
         [re[0], re[1], re[2]],
         [le[0], re[1], re[2]],
         ], dtype='float64')
+
+def ensure_code_unit_params(params):
+    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
+        param = params[param_name]
+        if hasattr(param, 'in_units'):
+            params[param_name] = param.in_units('code_length')
+    bounds = params['bounds']
+    if hasattr(bounds[0], 'units'):
+        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
+    return params
+
