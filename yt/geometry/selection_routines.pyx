@@ -530,13 +530,14 @@ cdef class SelectorObject:
                         # We short-circuit if we have a cache; if we don't, we
                         # only set selected to true if it's *not* masked by a
                         # child and it *is* selected.
-                        if use_cache:
+                        if use_cache == 1:
                             selected = cached_mask[visitor.global_index]
                         else:
                             if this_level == 1 or child_mask[i,j,k] == 1:
                                 selected = self.select_cell(pos, dds)
                             else:
                                 selected = 0
+                            cached_mask[visitor.global_index] = selected
                         visitor.visit(grid, selected)
                         visitor.global_index += 1
                         pos[2] += dds[2]

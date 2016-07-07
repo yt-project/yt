@@ -127,9 +127,8 @@ cdef class MaskGridCells(GridVisitor):
     @cython.cdivision(True)
     cdef void visit(self, GridTreeNode *grid, np.uint8_t selected) nogil:
         # Set our bitarray -- we're creating a mask -- if we are selected.
-        if selected == 0: return
-        self.mask[self.global_index] = 1
-        self.count += 1
+        self.mask[self.global_index] = selected
+        self.count += selected
         # No need to increment anything.
 
 cdef class ICoordsGrids(GridVisitor):

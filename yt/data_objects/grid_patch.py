@@ -282,14 +282,14 @@ class AMRGridPatch(YTSelectionContainer):
     def select_icoords(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='int64')
-        coords = convert_mask_to_indices(mask, self._last_count)
+        coords = convert_mask_to_indices(mask, self._last_count, transpose=0)
         coords += self.get_global_startindex()[None, :]
         return coords
 
     def select_fcoords(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
         if mask is None: return np.empty((0,3), dtype='float64')
-        coords = convert_mask_to_indices(mask, self._last_count).astype("float64")
+        coords = convert_mask_to_indices(mask, self._last_count, transpose=0).astype("float64")
         coords += 0.5
         coords *= self.dds[None, :]
         coords += self.LeftEdge[None, :]
