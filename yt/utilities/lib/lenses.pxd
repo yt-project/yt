@@ -29,7 +29,21 @@ cdef extern from "platform_dep.h":
 cdef extern from "limits.h":
     cdef int SHRT_MAX
 
-cdef struct ImageContainer
+cdef struct ImageContainer:
+    np.float64_t[:,:,:] vp_pos
+    np.float64_t[:,:,:] vp_dir
+    np.float64_t *center
+    np.float64_t[:,:,:] image
+    np.float64_t[:,:] zbuffer
+    np.int64_t[:,:] image_used
+    np.int64_t[:,:] mesh_lines
+    np.float64_t pdx, pdy
+    np.float64_t bounds[4]
+    np.float64_t[:,:] camera_data   # position, width, unit_vec[0,2]
+    int nv[2]
+    np.float64_t *x_vec
+    np.float64_t *y_vec
+
 
 ctypedef void calculate_extent_function(ImageContainer *image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil

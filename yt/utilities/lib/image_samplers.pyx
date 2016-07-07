@@ -43,6 +43,20 @@ from vec3_ops cimport dot, subtract, L2_norm, fma
 
 from cpython.exc cimport PyErr_CheckSignals
 
+cdef struct VolumeRenderAccumulator:
+    int n_fits
+    int n_samples
+    FieldInterpolationTable *fits
+    int field_table_ids[6]
+    np.float64_t star_coeff
+    np.float64_t star_er
+    np.float64_t star_sigma_num
+    kdtree_utils.kdtree *star_list
+    np.float64_t *light_dir
+    np.float64_t *light_rgba
+    int grey_opacity
+
+
 cdef class ImageSampler:
     def __init__(self,
                   np.float64_t[:,:,:] vp_pos,
@@ -89,7 +103,8 @@ cdef class ImageSampler:
                 self.extent_function = lenses.calculate_extent_perspective
             else:
                 self.extent_function = lenses.calculate_extent_null
-            self.vector_function = lenses.generate_vector_info_null
+            self.\
+                vector_function = lenses.generate_vector_info_null
 
         # These assignments are so we can track the objects and prevent their
         # de-allocation from reference counts.  Note that we do this to the

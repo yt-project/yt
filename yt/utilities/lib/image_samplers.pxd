@@ -21,41 +21,16 @@ cimport kdtree_utils
 from .volume_container cimport VolumeContainer
 from .lenses cimport \
     calculate_extent_function, \
-    generate_vector_info_function
+    generate_vector_info_function, \
+    ImageContainer
 from .partitioned_grid cimport PartitionedGrid
-
-from field_interpolation_tables cimport \
-    FieldInterpolationTable
 
 DEF Nch = 4
 
-cdef struct ImageContainer:
-    np.float64_t[:,:,:] vp_pos
-    np.float64_t[:,:,:] vp_dir
-    np.float64_t *center
-    np.float64_t[:,:,:] image
-    np.float64_t[:,:] zbuffer
-    np.int64_t[:,:] image_used
-    np.int64_t[:,:] mesh_lines
-    np.float64_t pdx, pdy
-    np.float64_t bounds[4]
-    np.float64_t[:,:] camera_data   # position, width, unit_vec[0,2]
-    int nv[2]
-    np.float64_t *x_vec
-    np.float64_t *y_vec
-
-cdef struct VolumeRenderAccumulator:
-    int n_fits
-    int n_samples
-    FieldInterpolationTable *fits
-    int field_table_ids[6]
-    np.float64_t star_coeff
-    np.float64_t star_er
-    np.float64_t star_sigma_num
-    kdtree_utils.kdtree *star_list
-    np.float64_t *light_dir
-    np.float64_t *light_rgba
-    int grey_opacity
+# NOTE: We don't want to import the field_interpolator_tables here, as it
+# breaks a bunch of C++ interop.  Maybe some day it won't.  So, we just forward
+# declare.
+cdef struct VolumeRenderAccumulator
 
 cdef struct ImageAccumulator:
     np.float64_t rgba[Nch]
