@@ -206,7 +206,7 @@ class ParticleTrajectories(object):
             dd_first = ds_first.all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
-                if self.data_series[0].field_info[fd].particle_type:
+                if self.data_series[0]._get_field_info(*fd).particle_type:
                     self.particle_fields.append(field)
             particles = np.empty((self.num_indices,self.num_steps))
             particles[:] = np.nan
