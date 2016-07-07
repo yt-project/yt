@@ -33,7 +33,6 @@ class Lens(ParallelAnalysisInterface):
         self.viewpoint = None
         self.sub_samples = 5
         self.num_threads = 0
-        self.double_check = False
         self.box_vectors = None
         self.origin = None
         self.back_center = None

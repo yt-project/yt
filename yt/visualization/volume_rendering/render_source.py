@@ -136,7 +136,7 @@ class VolumeSource(RenderSource):
         self.field = field
         self.volume = None
         self.current_image = None
-        self.double_check = False
+        self.check_nans = False
         self.num_threads = 0
         self.num_samples = 10
         self.sampler_type = 'volume-render'
@@ -275,7 +275,7 @@ class VolumeSource(RenderSource):
 
         mylog.debug("Casting rays")
         total_cells = 0
-        if self.double_check:
+        if self.check_nans:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
                     if np.any(np.isnan(data)):
@@ -292,7 +292,7 @@ class VolumeSource(RenderSource):
                                                  call_from_VR=True)
         if zbuffer is None:
             self.zbuffer = ZBuffer(self.current_image,
-                                   np.inf*np.ones(self.current_image.shape[:2]))
+                                   np.full(self.current_image.shape[:2], np.inf))
         return self.current_image
 
     def finalize_image(self, camera, image, call_from_VR=False):

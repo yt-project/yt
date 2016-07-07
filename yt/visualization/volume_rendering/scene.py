@@ -91,7 +91,7 @@ class Scene(object):
         r"""Create a new Scene instance"""
         super(Scene, self).__init__()
         self.sources = OrderedDict()
-        self.last_render = None
+        self._last_render = None
         # A non-public attribute used to get around the fact that we can't
         # pass kwargs into _repr_png_()
         self._sigma_clip = None
@@ -100,7 +100,13 @@ class Scene(object):
         """Returns the volume rendering source indexed by ``source_num``"""
         return list(itervalues(self.sources))[source_num]
 
-    def _iter_opaque_sources(self):
+    def __getitem__(self, item):
+        if item in self.sources:
+            return self.sources[item]
+        return self.get_source(source_num)
+
+    @property
+    def opaque_sources(self):
         """
         Iterate over opaque RenderSource objects,
         returning a tuple of (key, source)
@@ -110,7 +116,8 @@ class Scene(object):
                     issubclass(OpaqueSource, type(source)):
                 yield k, source
 
-    def _iter_transparent_sources(self):
+    @property
+    def transparent_sources(self):
         """
         Iterate over transparent RenderSource objects,
         returning a tuple of (key, source)
@@ -139,7 +146,7 @@ class Scene(object):
         data_sources = (VolumeSource, MeshSource, GridSource)
 
         if isinstance(render_source, data_sources):
-            self.set_new_unit_registry(
+            self._set_new_unit_registry(
                 render_source.data_source.ds.unit_registry)
 
         line_annotation_sources = (GridSource, BoxSource, CoordinateVectorSource)
@@ -155,7 +162,10 @@ class Scene(object):
 
         return self
 
-    def set_new_unit_registry(self, input_registry):
+    def __setitem__(self, key, value):
+        return self.add_source(value, key)
+
+    def _set_new_unit_registry(self, input_registry):
         self.unit_registry = UnitRegistry(
             add_default_symbols=False,
             lut=input_registry.lut)
@@ -210,7 +220,7 @@ class Scene(object):
         assert(camera is not None)
         self._validate()
         bmp = self.composite(camera=camera)
-        self.last_render = bmp
+        self._last_render = bmp
         return bmp
 
     def save(self, fname=None, sigma_clip=None):
@@ -282,11 +292,11 @@ class Scene(object):
             suffix = '.png'
             fname = '%s%s' % (fname, suffix)
 
-        if self.last_render is None:
+        if self._last_render is None:
             self.render()
 
         mylog.info("Saving render %s", fname)
-        self.last_render.write_png(fname, sigma_clip=sigma_clip)
+        self._last_render.write_png(fname, sigma_clip=sigma_clip)
 
 
     def save_annotated(self, fname=None, label_fmt=None,
@@ -338,13 +348,13 @@ class Scene(object):
         --------
 
         >>> sc.save_annotated("fig.png", 
-        >>>                   text_annotate=[[(0.05, 0.05), 
-        >>>                                   "t = {}".format(ds.current_time.d),
-        >>>                                   dict(horizontalalignment="left")],
-        >>>                                  [(0.5,0.95), 
-        >>>                                   "simulation title",
-        >>>                                   dict(color="y", fontsize="24",
-        >>>                                        horizontalalignment="center")]])
+        ...                   text_annotate=[[(0.05, 0.05),
+        ...                                   "t = {}".format(ds.current_time.d),
+        ...                                   dict(horizontalalignment="left")],
+        ...                                  [(0.5,0.95),
+        ...                                   "simulation title",
+        ...                                   dict(color="y", fontsize="24",
+        ...                                        horizontalalignment="center")]])
 
         """
         import matplotlib.pyplot as plt
@@ -370,7 +380,7 @@ class Scene(object):
             suffix = '.png'
             fname = '%s%s' % (fname, suffix)
 
-        if self.last_render is None:
+        if self._last_render is None:
             self.render()
 
         # which transfer function?
@@ -380,7 +390,7 @@ class Scene(object):
         if rs.data_source.ds._get_field_info(rs.field).take_log:
             label = r'$\rm{log}\ $' + label
 
-        ax = self._show_mpl(self.last_render.swapaxes(0,1),
+        ax = self._show_mpl(self._last_render.swapaxes(0, 1),
                             sigma_clip=sigma_clip, dpi=dpi)
         self._annotate(ax.axes, tf, label=label, label_fmt=label_fmt)
         plt.tight_layout()
@@ -476,13 +486,13 @@ class Scene(object):
         if camera is None:
             camera = self.camera
         empty = camera.lens.new_image(camera)
-        opaque = ZBuffer(empty, np.ones(empty.shape[:2]) * np.inf)
+        opaque = ZBuffer(empty, np.full(empty.shape[:2], np.inf))
 
-        for k, source in self._iter_opaque_sources():
+        for k, source in self.opaque_sources:
             source.render(camera, zbuffer=opaque)
             im = source.zbuffer.rgba
 
-        for k, source in self._iter_transparent_sources():
+        for k, source in self.transparent_sources:
             im = source.render(camera, zbuffer=opaque)
 
         return im
@@ -702,7 +712,7 @@ class Scene(object):
             The opacity of the mesh lines. Default is 255 (solid).
 
         """
-        for k, source in self._iter_opaque_sources():
+        for k, source in self.opaque_sources:
             if isinstance(source, MeshSource):
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
@@ -853,11 +863,11 @@ class Scene(object):
         return self._quan
 
     def _repr_png_(self):
-        if self.last_render is None:
+        if self._last_render is None:
             self.render()
-        png = self.last_render.write_png(filename=None,
-                                         sigma_clip=self._sigma_clip,
-                                         background='black')
+        png = self._last_render.write_png(filename=None,
+                                          sigma_clip=self._sigma_clip,
+                                          background='black')
         self._sigma_clip = None
         return png
 
