@@ -103,7 +103,7 @@ class Scene(object):
     def __getitem__(self, item):
         if item in self.sources:
             return self.sources[item]
-        return self.get_source(source_num)
+        return self.get_source(item)
 
     @property
     def opaque_sources(self):
