@@ -26,8 +26,10 @@ from yt.geometry.oct_container cimport \
 from yt.geometry.oct_visitors cimport \
     Oct
 from .amr_kdtools cimport Node
-from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
-    vc_index, vc_pos_index
+from .partitioned_grid cimport \
+    PartitionedGrid
+from .volume_container cimport \
+    VolumeContainer, vc_index, vc_pos_index
 import sys
 
 cdef inline ContourID *contour_create(np.int64_t contour_id,

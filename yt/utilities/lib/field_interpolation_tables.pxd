@@ -18,8 +18,6 @@ cimport numpy as np
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 from libc.stdlib cimport malloc
 
-DEF Nch = 4
-
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
     # externally.
