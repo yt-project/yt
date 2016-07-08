@@ -38,7 +38,7 @@ class RegionExpression(object):
         if isinstance(item, tuple) and isinstance(item[1], string_types):
             return self.all_data[item]
         if isinstance(item, slice):
-            item = tuple(item for _ in range(3))
+            item = (item, item, item)
         if len(item) != self.ds.dimensionality:
             # Not the right specification, and we don't want to do anything
             # implicitly.
