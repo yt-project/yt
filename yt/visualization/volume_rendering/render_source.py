@@ -145,7 +145,6 @@ class VolumeSource(RenderSource):
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        # In the future these will merge
         self.tfh = TransferFunctionHelper(self.data_source.pf)
         self.tfh.set_field(self.field)
         self._transfer_function = None
