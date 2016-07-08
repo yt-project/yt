@@ -524,11 +524,11 @@ echo "the script if you aren't such a fan."
 echo
 
 printf "%-18s = %s so I " "INST_CONDA" "${INST_CONDA}"
-get_willwont ${INST_PY3}
+get_willwont ${INST_CONDA}
 echo "be installing a conda-based python environment"
 
 printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
-get_willwont ${INST_PY3}
+get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
 
 printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
