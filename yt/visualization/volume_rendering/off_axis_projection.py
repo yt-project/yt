@@ -177,17 +177,11 @@ def off_axis_projection(data_source, center, normal_vector,
     vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
-    mylog.debug("Casting rays")
-    double_check = False
-    if double_check:
-        for brick in vol.volume.bricks:
-            for data in brick.my_data:
-                if np.any(np.isnan(data)):
-                    raise RuntimeError
-
     fields = [vol.field]
     if vol.weight_field is not None:
         fields.append(vol.weight_field)
+
+    mylog.debug("Casting rays")
 
     for i, (grid, mask) in enumerate(data_source.blocks):
         data = [(grid[f] * mask).astype("float64") for f in fields]
