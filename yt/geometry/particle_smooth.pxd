@@ -23,14 +23,11 @@ from libc.math cimport sqrt
 from yt.utilities.lib.fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 from .particle_deposit cimport kernel_func, get_kernel_func, gind
+from yt.utilities.lib.distance_queue cimport NeighborList, Neighbor_compare, \
+    r2dist
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
-
-cdef struct NeighborList
-cdef struct NeighborList:
-    np.int64_t pn       # Particle number
-    np.float64_t r2     # radius**2
 
 cdef class ParticleSmoothOperation:
     # We assume each will allocate and define their own temporary storage
