@@ -37,7 +37,7 @@ cdef class DistanceQueue:
     cdef np.float64_t DW[3]
     cdef bint periodicity[3]
     cdef NeighborList* neighbors # flat array
-    cdef void setup(self, np.float64_t DW[3], bint periodicity[3])
+    cdef void _setup(self, np.float64_t DW[3], bint periodicity[3])
     cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
                             np.float64_t cpos[3])
     cdef void neighbor_reset(self)

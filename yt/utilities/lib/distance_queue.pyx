@@ -66,9 +66,14 @@ cdef class DistanceQueue:
         self.neighbor_reset()
         for i in range(3):
             self.DW[i] = 0
-            self.periodicit[i] = False
+            self.periodicity[i] = False
 
-    cdef void setup(self, np.float64_t DW[3], bint periodicity[3]):
+    cdef void _setup(self, np.float64_t DW[3], bint periodicity[3]):
+        for i in range(3):
+            self.DW[i] = DW[i]
+            self.periodicity[i] = periodicity[i]
+
+    def setup(self, np.float64_t[:] DW, periodicity):
         for i in range(3):
             self.DW[i] = DW[i]
             self.periodicity[i] = periodicity[i]
@@ -121,3 +126,18 @@ cdef class DistanceQueue:
             self.neighbors[i].r2 = 1e300
             self.neighbors[i].pn = -1
         self.curn = 0
+
+    def find_nearest(self, np.float64_t[:] center, np.float64_t[:,:] points):
+        cdef int i, j
+        cdef np.float64_t ppos[3], cpos[3]
+        self.neighbor_reset()
+        for i in range(3):
+            cpos[i] = center[i]
+        for j in range(points.shape[0]):
+            for i in range(3):
+                ppos[i] = points[j,i]
+            self.neighbor_eval(j, ppos, cpos)
+        rv = np.empty(self.curn, dtype="int64")
+        for i in range(self.curn):
+            rv[i] = self.neighbors[i].pn
+        return rv
