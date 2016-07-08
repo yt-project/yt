@@ -17,6 +17,8 @@ A queue for evaluating distances to discrete points
 cimport cython
 cimport numpy as np
 import numpy as np
+from libc.stdlib cimport malloc, free
+from libc.string cimport memmove
 
 cdef struct NeighborList:
     np.int64_t pn       # Particle number
@@ -28,3 +30,14 @@ cdef np.float64_t r2dist(np.float64_t ppos[3],
                          np.float64_t DW[3],
                          bint periodicity[3],
                          np.float64_t max_dist2)
+
+cdef class DistanceQueue:
+    cdef int maxn
+    cdef int curn
+    cdef np.float64_t DW[3]
+    cdef bint periodicity[3]
+    cdef NeighborList* neighbors # flat array
+    cdef void setup(self, np.float64_t DW[3], bint periodicity[3])
+    cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
+                            np.float64_t cpos[3])
+    cdef void neighbor_reset(self)
