@@ -118,7 +118,7 @@ class TransferFunctionHelper(object):
         """
         if self.bounds is None:
             mylog.info('Calculating data bounds. This may take a while.' +
-                       '  Set the .bounds to avoid this.')
+                       '  Set the TranferFunctionHelper.bounds to avoid this.')
             self.set_bounds()
 
         if self.log:
