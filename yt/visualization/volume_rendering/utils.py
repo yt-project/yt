@@ -1,4 +1,6 @@
 import numpy as np
+from yt.data_objects.data_containers import \
+    YTSelectionContainer3D
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
 from yt.utilities.lib.grid_traversal import \
@@ -13,6 +15,11 @@ except ImportError:
 def data_source_or_all(data_source):
     if isinstance(data_source, Dataset):
         data_source = data_source.all_data()
+    if not isinstance(data_source, (YTSelectionContainer3D, type(None))):
+        raise RuntimeError(
+            "The data_source is not a valid 3D data container.\n"
+            "Expected an ojbect of type YTSelectionContainer3D but received "
+            "an object of type %s." % type(data_source))
     return data_source
 
 
