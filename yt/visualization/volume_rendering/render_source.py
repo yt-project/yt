@@ -146,17 +146,34 @@ class VolumeSource(RenderSource):
         assert(self.data_source is not None)
 
         # In the future these will merge
-        self.transfer_function = None
-        self.tfh = None
+        self.tfh = TransferFunctionHelper(self.data_source.pf)
+        self.tfh.set_field(self.field)
+        self._transfer_function = None
         if auto:
             self.build_defaults()
+
+    @property
+    def transfer_function(self):
+        """The transfer function associated with this VolumeSource"""
+        if self._transfer_function is not None:
+            return self._transfer_function
+
+        if self.tfh.tf is not None:
+            self._transfer_function = self.tfh.tf
+            return self._transfer_function
+
+        mylog.info("Creating default transfer function")
+        self.tfh.set_field(self.field)
+        self.tfh.build_transfer_function()
+        self.tfh.setup_default()
+        self._transfer_function = self.tfh.tf
+
+        return self._transfer_function
 
     def build_defaults(self):
         """Sets a default volume and transfer function"""
         mylog.info("Creating default volume")
         self.build_default_volume()
-        mylog.info("Creating default transfer function")
-        self.build_default_transfer_function()
 
     def set_transfer_function(self, transfer_function):
         """Set transfer function for this source"""
@@ -182,15 +199,6 @@ class VolumeSource(RenderSource):
 
         if self.transfer_function is None:
             raise RuntimeError("Transfer Function not Supplied")
-
-    def build_default_transfer_function(self):
-        """Sets up a transfer function"""
-        self.tfh = \
-            TransferFunctionHelper(self.data_source.pf)
-        self.tfh.set_field(self.field)
-        self.tfh.build_transfer_function()
-        self.tfh.setup_default()
-        self.transfer_function = self.tfh.tf
 
     def build_default_volume(self):
         """Sets up an AMRKDTree based on the VolumeSource's field"""
