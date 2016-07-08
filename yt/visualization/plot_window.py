@@ -1533,6 +1533,8 @@ class OffAxisProjectionDummyDataSource(object):
         self.fields = fields
         self.interpolated = interpolated
         self.resolution = resolution
+        if weight is not None:
+            weight = self.dd._determine_fields(weight)[0]
         self.weight_field = weight
         self.volume = volume
         self.no_ghost = no_ghost
