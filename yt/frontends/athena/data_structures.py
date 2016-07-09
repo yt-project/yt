@@ -317,7 +317,8 @@ class AthenaHierarchy(GridIndex):
         # know the extent of all the grids.
         glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
+        dre_units = self.dataset.domain_right_edge.uq
+        self.dataset.domain_right_edge = np.round(new_dre, decimals=12)*dre_units
         self.dataset.domain_width = \
                 (self.dataset.domain_right_edge -
                  self.dataset.domain_left_edge)

@@ -462,8 +462,9 @@ class FLASHParticleDataset(FLASHDataset):
         # fix the domain dimensions
         super(FLASHParticleDataset, self)._parse_parameter_file()
         nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.zeros(3, "int32")
-        self.domain_dimensions[:self.dimensionality] = nz
+        domain_dimensions = np.zeros(3, "int32")
+        domain_dimensions[:self.dimensionality] = nz
+        self.domain_dimensions = domain_dimensions
         self.filename_template = self.parameter_filename
         self.file_count = 1
 

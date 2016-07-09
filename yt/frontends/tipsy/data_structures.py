@@ -225,8 +225,8 @@ class TipsyDataset(ParticleDataset):
         if self.bounding_box is None and (
                 self.domain_left_edge is None or
                 self.domain_right_edge is None):
-            self.domain_left_edge = np.nan
-            self.domain_right_edge = np.nan
+            self.domain_left_edge = np.array([np.nan, np.nan, np.nan])
+            self.domain_right_edge = np.array([np.nan, np.nan, np.nan])
             self.index
         super(TipsyDataset, self)._set_derived_attrs()
 
