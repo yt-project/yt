@@ -853,6 +853,9 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
+        px = px.astype('int64')
+        py = py.astype('int64')
+
         if len(px.shape) == 1:
             zlines(empty, z, px, py, dz, self.colors, self.color_stride)
         else:
@@ -1149,6 +1152,9 @@ class CoordinateVectorSource(OpaqueSource):
             z = zbuffer.z
 
         # Draw the vectors
+
+        px = px.astype('int64')
+        py = py.astype('int64')
 
         if len(px.shape) == 1:
             zlines(empty, z, px, py, dz, self.colors, self.color_stride)
