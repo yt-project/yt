@@ -17,7 +17,9 @@ from __future__ import absolute_import
 import operator
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import \
+    iterable, \
+    mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.amr_kdtree.amr_kdtools import \
     receive_and_reduce, \
@@ -174,14 +176,17 @@ class AMRKDTree(ParallelAnalysisInterface):
         regenerate_data = self.fields is None or \
                           len(self.fields) != len(new_fields) or \
                           self.fields != new_fields or force
+        if not iterable(log_fields):
+            log_fields = [log_fields]
+        new_log_fields = list(log_fields)
         self.tree.trunk.set_dirty(regenerate_data)
         self.fields = new_fields
 
         if self.log_fields is not None and not regenerate_data:
-            flip_log = list(map(operator.ne, self.log_fields, log_fields))
+            flip_log = list(map(operator.ne, self.log_fields, new_log_fields))
         else:
-            flip_log = [False] * len(log_fields)
-        self.log_fields = log_fields
+            flip_log = [False] * len(new_log_fields)
+        self.log_fields = new_log_fields
 
         self.no_ghost = no_ghost
         del self.bricks, self.brick_dimensions
@@ -189,7 +194,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         bricks = []
 
         for b in self.traverse():
-            list(map(_apply_log, b.my_data, flip_log, log_fields))
+            list(map(_apply_log, b.my_data, flip_log, self.log_fields))
             bricks.append(b)
         self.bricks = np.array(bricks)
         self.brick_dimensions = np.array(self.brick_dimensions)
