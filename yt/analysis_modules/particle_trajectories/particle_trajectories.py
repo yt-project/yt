@@ -20,6 +20,7 @@ from yt.funcs import mylog, get_pbar
 from yt.units.yt_array import array_like_field
 from yt.config import ytcfg
 from collections import OrderedDict
+from IPython import embed
 
 import numpy as np
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -97,7 +98,7 @@ class ParticleTrajectories(object):
         for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
             dd = ds.all_data()
             idx_field = dd._determine_fields("particle_index")[0]
-            newtags = dd[idx_field].ndarray_view().astype("int64")
+            newtags = dd[idx_field].v.astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
             sorts = np.argsort(newtags[mask])
             self.array_indices.append(np.where(np.in1d(indices, newtags, assume_unique=True))[0])
@@ -206,7 +207,7 @@ class ParticleTrajectories(object):
             dd_first = ds_first.all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
-                if self.data_series[0].field_info[fd].particle_type:
+                if self.data_series[0]._get_field_info(*fd).particle_type:
                     self.particle_fields.append(field)
             particles = np.empty((self.num_indices,self.num_steps))
             particles[:] = np.nan
@@ -219,13 +220,13 @@ class ParticleTrajectories(object):
                 if field in self.particle_fields:
                     # This is easy... just get the particle fields
                     dd = ds.all_data()
-                    pfield = dd[fd].ndarray_view()[mask][sort]
+                    pfield = dd[fd].v[mask][sort]
                 else:
                     # This is hard... must loop over grids
                     pfield = np.zeros((self.num_indices))
-                    x = self["particle_position_x"][:,step].ndarray_view()
-                    y = self["particle_position_y"][:,step].ndarray_view()
-                    z = self["particle_position_z"][:,step].ndarray_view()
+                    x = self["particle_position_x"][:,step].v
+                    y = self["particle_position_y"][:,step].v
+                    z = self["particle_position_z"][:,step].v
                     # This will fail for non-grid index objects
                     particle_grids, particle_grid_inds = ds.index._find_points(x,y,z)
                     for grid in particle_grids:
@@ -338,10 +339,10 @@ class ParticleTrajectories(object):
         >>> trajs.write_out_h5("orbit_trajectories")                
         """
         fid = h5py.File(filename, "w")
-        fields = [field for field in sorted(self.field_data.keys())]
-        fid.create_dataset("particle_indices", dtype=np.int32,
+        fid.create_dataset("particle_indices", dtype=np.int64,
                            data=self.indices)
-        fid.create_dataset("particle_time", data=self.times)
-        for field in fields:
-            fid.create_dataset("%s" % field, data=self[field])
         fid.close()
+        self.times.write_hdf5(filename, dataset_name="particle_times")
+        fields = [field for field in sorted(self.field_data.keys())]
+        for field in fields:
+            self[field].write_hdf5(filename, dataset_name="%s" % field)
