@@ -1499,7 +1499,7 @@ else # INST_CONDA -eq 1
             ROCKSTAR_LIBRARY_PATH=${DEST_DIR}/lib
         fi
         pushd ${YT_DIR} &> /dev/null
-        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE}
+        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
         popd &> /dev/null
     fi
 
