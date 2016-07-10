@@ -744,6 +744,12 @@ function get_ytdata
     ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
+function test_install
+{
+    echo "Testing that yt can be imported"
+    ( python -c "import yt" 2>&1 ) 1>> ${LOG_FILE} || do_exit
+}
+
 ORIG_PWD=`pwd`
 
 if [ -z "${DEST_DIR}" ]
@@ -1238,6 +1244,8 @@ then
     ( cp ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
     sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate.csh
 
+    test_install
+
     function print_afterword
     {
         echo
@@ -1481,6 +1489,8 @@ else # INST_CONDA -eq 1
         ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE}
         popd &> /dev/null
     fi
+
+    test_install
 
     echo
     echo
