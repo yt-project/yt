@@ -119,6 +119,19 @@ then
         exit 1
     fi
     DEST_SUFFIX="yt-conda"
+    if [ $INST_YT_SOUCE -eq 0 ]
+    then
+        if [ -z "${PYTHONPATH}" ]
+        then
+           echo "The PYTHONPATH environment variable is set to \"$PYTHONPATH\"."
+           echo
+           echo "If dependencies of yt (numpy, scipy, matplotlib) are installed"
+           echo "to this path, this may cause issues. Exit the install script"
+           echo "with Ctrl-C and unset PYTHONPATH if you are unsure."
+           echo "Hit enter to continue."
+           read -p "[hit enter]"
+        fi
+    fi
 else
     if [ $INST_YT_SOURCE -eq 0 ]
     then
