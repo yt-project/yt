@@ -83,8 +83,9 @@ class TransferFunctionHelper(object):
         field: string
             The field to be rendered.
         """
+        if field != self.field:
+            self.log = self.ds._get_field_info(field).take_log
         self.field = field
-        self.log = self.ds._get_field_info(self.field).take_log
 
     def set_log(self, log):
         """
