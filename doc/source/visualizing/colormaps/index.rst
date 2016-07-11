@@ -10,12 +10,12 @@ visualization functions usually allow you to specify a colormap with the
 
 In yt 3.3, we changed the default yt colormap from ``algae`` to ``arbre``.
 This colormap was designed and voted on by the yt community and is designed to
-be easier for different color sensitivities as well as when printed in black
-and white.  In 3.3, additional colormaps ``dusk``, ``hypnotoad`` and
-``octarine`` were also added, following the same guidelines.  For a deeper
-dive into colormaps, see Stéfan van der Walt's SciPy 2015 talk about the new
-matplotlib colormap ``viridis`` at https://www.youtube.com/watch?v=xAoljeRJ3lU
-.
+be easier for people with different color sensitivities as well as when printed
+in black and white.  In 3.3, additional colormaps ``dusk``, ``hypnotoad`` and
+``octarine`` were also added, following the same guidelines.  For a deeper dive
+into colormaps, see the SciPy 2015 talk by Stéfan van der Walt and Nathaniel
+Smith about the new matplotlib colormap ``viridis`` at
+https://www.youtube.com/watch?v=xAoljeRJ3lU .
 
 To specify a different default colormap (including ``viridis``), in your yt
 configuration file (see :ref:`configuration-file`) you can set the value
