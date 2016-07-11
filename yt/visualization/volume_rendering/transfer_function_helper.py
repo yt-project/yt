@@ -131,11 +131,13 @@ class TransferFunctionHelper(object):
         return self.tf
 
     def setup_default(self):
-        """docstring for setup_default"""
-        if self.log:
-            mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
-        else:
-            mi, ma = self.bounds
+        """Setup a default colormap
+
+        Creates a ColorTransferFunction including 10 gaussian layers whose
+        colors smaple the 'spectral' colormap. Also attempts to scale the
+        transfer function to produce a natural contrast ratio.
+
+        """
         self.tf.add_layers(10, colormap='spectral')
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
         self.tf.funcs[-1].y *= 2*factor
