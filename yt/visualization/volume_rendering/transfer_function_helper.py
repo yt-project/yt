@@ -163,6 +163,7 @@ class TransferFunctionHelper(object):
         from matplotlib.figure import Figure
         if self.tf is None:
             self.build_transfer_function()
+            self.setup_default()
         tf = self.tf
         if self.log:
             xfunc = np.logspace
