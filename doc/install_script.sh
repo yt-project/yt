@@ -121,6 +121,9 @@ then
     DEST_SUFFIX="yt-conda"
     if [ -n "${PYTHONPATH}" ]
     then
+        echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+        echo "*******************************************************"
+        echo
         echo "The PYTHONPATH environment variable is set to:"
         echo
         echo "    $PYTHONPATH"
@@ -129,6 +132,9 @@ then
         echo "to this path, this may cause issues. Exit the install script"
         echo "with Ctrl-C and unset PYTHONPATH if you are unsure."
         echo "Hit enter to continue."
+        echo
+        echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+        echo "*******************************************************"
         read -p "[hit enter]"
     fi
 else
