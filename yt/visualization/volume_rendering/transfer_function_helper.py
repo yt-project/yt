@@ -99,8 +99,6 @@ class TransferFunctionHelper(object):
             Sets whether the transfer function should use log or linear space.
         """
         self.log = log
-        self.ds.index
-        self.ds._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
         """
