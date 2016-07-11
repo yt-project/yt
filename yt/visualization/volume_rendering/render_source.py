@@ -193,6 +193,7 @@ class VolumeSource(RenderSource):
 
         mylog.info("Creating transfer function")
         self.tfh.set_field(self.field)
+        self.tfh.set_log(self.log_field)
         self.tfh.build_transfer_function()
         self.tfh.setup_default()
         self._transfer_function = self.tfh.tf
@@ -201,6 +202,7 @@ class VolumeSource(RenderSource):
 
     @transfer_function.setter
     def transfer_function(self, value):
+        self.tfh.tf = None
         valid_types = (TransferFunction, ColorTransferFunction,
                        ProjectionTransferFunction, type(None))
         if not isinstance(value, valid_types):
@@ -257,9 +259,16 @@ class VolumeSource(RenderSource):
                 "VolumeSource.field can only be a single field but received "
                 "multiple fields: %s") % field
         field = field[0]
-        log_field = self.data_source.ds.field_info[field].take_log
+        if self._field != field:
+            log_field = self.data_source.ds.field_info[field].take_log
+            self.tfh.bounds = None
+        else:
+            log_field = self._log_field
         self._log_field = log_field
         self._field = value
+        self.transfer_function = None
+        self.tfh.set_field(value)
+        self.tfh.set_log(log_field)
 
     @property
     def log_field(self):
@@ -269,6 +278,8 @@ class VolumeSource(RenderSource):
     @log_field.setter
     @invalidate_volume
     def log_field(self, value):
+        self.transfer_function = None
+        self.tfh.set_log(value)
         self._log_field = value
 
     @property
