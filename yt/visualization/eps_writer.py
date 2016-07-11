@@ -1045,7 +1045,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     >>>           "special.jpg"]
     >>> cbs=[]
     >>> cbs.append(return_cmap("arbre", "Density [cm$^{-3}$]", (0,10), False))
-    >>> cbs.append(return_cmap("hypnotoad", "HI Density", (0,5), False))
+    >>> cbs.append(return_cmap("kelp", "HI Density", (0,5), False))
     >>> cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
     >>> cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
     >>> 

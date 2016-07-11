@@ -427,12 +427,12 @@ def expand_keywords(keywords, full=False):
     --------
     >>> keywords = {}
     >>> keywords['dpi'] = (50, 100, 200)
-    >>> keywords['cmap'] = ('arbre', 'hypnotoad')
+    >>> keywords['cmap'] = ('arbre', 'kelp')
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print list_of_kwargs
 
     array([{'cmap': 'arbre', 'dpi': 50},
-           {'cmap': 'hypnotoad', 'dpi': 100},
+           {'cmap': 'kelp', 'dpi': 100},
            {'cmap': 'arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
@@ -441,9 +441,9 @@ def expand_keywords(keywords, full=False):
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'arbre', 'dpi': 100},
            {'cmap': 'arbre', 'dpi': 200},
-           {'cmap': 'hypnotoad', 'dpi': 50},
-           {'cmap': 'hypnotoad', 'dpi': 100},
-           {'cmap': 'hypnotoad', 'dpi': 200}], dtype=object)
+           {'cmap': 'kelp', 'dpi': 50},
+           {'cmap': 'kelp', 'dpi': 100},
+           {'cmap': 'kelp', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)
