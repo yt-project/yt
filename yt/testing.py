@@ -427,23 +427,23 @@ def expand_keywords(keywords, full=False):
     --------
     >>> keywords = {}
     >>> keywords['dpi'] = (50, 100, 200)
-    >>> keywords['cmap'] = ('algae', 'jet')
+    >>> keywords['cmap'] = ('arbre', 'hypnotoad')
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50},
-           {'cmap': 'jet', 'dpi': 100},
-           {'cmap': 'algae', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'arbre', 'dpi': 50},
+           {'cmap': 'hypnotoad', 'dpi': 100},
+           {'cmap': 'arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50},
-           {'cmap': 'algae', 'dpi': 100},
-           {'cmap': 'algae', 'dpi': 200},
-           {'cmap': 'jet', 'dpi': 50},
-           {'cmap': 'jet', 'dpi': 100},
-           {'cmap': 'jet', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'arbre', 'dpi': 50},
+           {'cmap': 'arbre', 'dpi': 100},
+           {'cmap': 'arbre', 'dpi': 200},
+           {'cmap': 'hypnotoad', 'dpi': 50},
+           {'cmap': 'hypnotoad', 'dpi': 100},
+           {'cmap': 'hypnotoad', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)

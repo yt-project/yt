@@ -664,7 +664,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.sample_colormap(-7.0, 0.01, colormap='algae')
+        >>> tf.sample_colormap(-7.0, 0.01, colormap='arbre')
         """
         v = np.float64(v)
         if col_bounds is None:
@@ -710,8 +710,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         >>> def linramp(vals, minval, maxval):
         ...     return (vals - vals.min())/(vals.(max) - vals.min())
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='algae')
-        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='arbre')
+        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='arbre',
         ...                    scale_func = linramp)
         """
         mi = np.float64(mi)
