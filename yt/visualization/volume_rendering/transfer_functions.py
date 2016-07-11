@@ -708,7 +708,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> def linramp(vals, minval, maxval):
-        ...     return (vals - vals.min())/(vals.(max) - vals.min())
+        ...     return (vals - vals.min())/(vals.max() - vals.min())
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='algae')
         >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
