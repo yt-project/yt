@@ -62,7 +62,8 @@ class VariousVRTests(TestCase):
         im, sc = yt.volume_render(self.ds)
 
         volume_source = sc.get_source(0)
-        volume_source.set_fields([('gas', 'velocity_x'), ('gas', 'density')])
+        volume_source.set_field(('gas', 'velocity_x'))
+        volume_source.set_weight_field(('gas', 'density'))
         sc.render()
 
     def test_rotation_volume_rendering(self):
