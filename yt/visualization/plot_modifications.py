@@ -162,18 +162,32 @@ class PlotCallback(object):
         Given a set of x,y (and z) coordinates and a coordinate system,
         convert the coordinates (and transformation) ready for final plotting.
 
-        Coordinate systems
-        ------------------
+        Parameters
+        ----------
+        
+        plot: a PlotMPL subclass
+           The plot that we are converting coordinates for
 
-        data : 3D data coordinates relative to original dataset
+        coord: array-like
+           Coordinates in some coordinate system.
 
-        plot : 2D coordinates as defined by the final axis locations
+        coord_system: string
 
-        axis : 2D coordinates within the axis object from (0,0) in lower left
-               to (1,1) in upper right.  Same as matplotlib axis coords.
+            Possible values include:
 
-        figure : 2D coordinates within figure object from (0,0) in lower left
-                 to (1,1) in upper right.  Same as matplotlib figure coords.
+            * ``'data'``
+                3D data coordinates relative to original dataset
+
+            * ``'plot'``
+                2D coordinates as defined by the final axis locations
+
+            * ``'axis'``
+                2D coordinates within the axis object from (0,0) in lower left
+                to (1,1) in upper right.  Same as matplotlib axis coords.
+
+            * ``'figure'``
+                2D coordinates within figure object from (0,0) in lower left
+                to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # if in data coords, project them to plot coords
         if coord_system == "data":
