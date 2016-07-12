@@ -13,6 +13,11 @@ rendering capabilities are implemented in software, requiring no specialized
 hardware. Optimized versions implemented with OpenGL and utilizing graphics
 processors are being actively developed.
 
+.. note::
+
+   There is a Jupyter notebook containing a volume rendering tutorial available
+   at :ref:`volume-rendering-tutorial`.
+
 Volume Rendering Introduction
 -----------------------------
 
@@ -166,8 +171,70 @@ TransferFunctionHelper
 Because good transfer functions can be difficult to generate, the
 :class:`~yt.visualization.volume_rendering.transfer_function_helper.TransferFunctionHelper`
 exists in order to help create and modify transfer functions with smart
-defaults for your datasets.  To see a full example on how to use this
-interface, follow the annotated :ref:`transfer-function-helper-tutorial`.
+defaults for your datasets.
+
+To ease constructing transfer functions, each ``VolumeSource`` instance has a
+``TransferFunctionHelper`` instance associated with it. This is the easiest way
+to construct and customize a ``ColorTransferFunction`` for a volume rendering.
+
+In the following example, we make use of the ``TransferFunctionHelper``
+associated with a scene's ``VolumeSource`` to create an appealing transfer
+function between a physically motivated range of densities in a cosmological
+simulation:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('Enzo_64/DD0043/data0043')
+
+   sc = yt.create_scene(ds, lens_type='perspective')
+
+   # Get a reference to the VolumeSource associated with this scene
+   # It is the first source associated with the scene, so we can refer to it
+   # using index 0.
+   source = sc[0]
+
+   # Set the bounds of the transfer function
+   source.tfh.set_bounds((3e-31, 5e-27))
+
+   # set that the transfer function should be evaluated in log space
+   source.tfh.set_log(True)
+
+   # Make underdense regions appear opaque
+   source.tfh.grey_opacity = True
+
+   # Plot the transfer function, along with the CDF of the density field to
+   # see how the transfer function corresponds to structure in the CDF
+   source.tfh.plot('transfer_function.png', profile_field='density')
+
+   # save the image, flooring especially bright pixels for better contrast
+   sc.save('rendering.png', sigma_clip=6.0)
+
+For fun, let's make the same volume_rendering, but this time setting
+``grey_opacity=False``, which will make overdense regions stand out more:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('Enzo_64/DD0043/data0043')
+
+   sc = yt.create_scene(ds, lens_type='perspective')
+
+   source = sc[0]
+
+   # Set transfer function properties
+   source.tfh.set_bounds((3e-31, 5e-27))
+   source.tfh.set_log(True)
+   source.tfh.grey_opacity = False
+
+   source.tfh.plot('transfer_function.png', profile_field='density')
+
+   sc.save('rendering.png', sigma_clip=4.0)
+
+To see a full example on how to use the ``TransferFunctionHelper`` interface,
+follow the annotated :ref:`transfer-function-helper-tutorial`.
 
 Color Transfer Functions
 ++++++++++++++++++++++++
@@ -177,26 +244,168 @@ is the standard way to map dataset field values to colors, brightnesses,
 and opacities in the rendered rays.  One can add discrete features to the
 transfer function, which will render isocontours in the field data and
 works well for visualizing nested structures in a simulation.  Alternatively,
-one can add continuous features to the transfer function, which tends to
-produce better results for most datasets.
+one can also add continuous features to the transfer function.
 
-In order to modify a
+See :ref:`cookbook-custom-transfer-function` for an annotated, runnable tutorial
+explaining usage of the ColorTransferFunction.
+
+There are several methods to create a
 :class:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction`
-use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers`,
-which will add evenly spaced isocontours along the transfer
-function; use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`,
-which will sample a colormap at a given value;
-use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`,
-which will allow you to specify the colors directly on the transfer function,
-and use
-:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`,
-where you can map a segment of the transfer function space to an entire
-colormap at a single alpha value.
+for a volume rendering. We will describe the low-level interface for
+constructing color transfer functions here, and provide examples for each
+option.
 
-See :ref:`cookbook-custom-transfer-function` for an example usage.
+add_layers
+""""""""""
+
+The easiest way to create a ColorTransferFunction is to use the
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_layers` function,
+which will add evenly spaced isocontours along the transfer function, sampling a
+colormap to determine the colors of the layers.
+
+.. python-script::
+
+   import numpy as np
+   import yt
+
+   ds = yt.load('Enzo_64/DD0043/data0043')
+
+   sc = yt.create_scene(ds, lens_type='perspective')
+
+   source = sc[0]
+
+   source.set_field('density')
+   source.set_log(True)
+
+   bounds = (3e-31, 5e-27)
+
+   # Since this rendering is done in log space, the transfer function needs
+   # to be specified in log space.
+   tf = yt.ColorTransferFunction(np.log10(bounds))
+
+   tf.add_layers(5, colormap='arbre')
+
+   source.tfh.tf = tf
+   source.tfh.bounds = bounds
+
+   source.tfh.plot('transfer_function.png', profile_field='density')
+
+   sc.save('rendering.png', sigma_clip=6)
+
+sample_colormap
+"""""""""""""""
+
+To add a single gaussian layer with a color determined by a colormap value, use
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.sample_colormap`.
+
+.. python-script::
+
+   import numpy as np
+   import yt
+
+   ds = yt.load('Enzo_64/DD0043/data0043')
+
+   sc = yt.create_scene(ds, lens_type='perspective')
+
+   source = sc[0]
+
+   source.set_field('density')
+   source.set_log(True)
+
+   bounds = (3e-31, 5e-27)
+
+   # Since this rendering is done in log space, the transfer function needs
+   # to be specified in log space.
+   tf = yt.ColorTransferFunction(np.log10(bounds))
+
+   tf.sample_colormap(np.log10(1e-30), w=.01, colormap='arbre')
+
+   source.tfh.tf = tf
+   source.tfh.bounds = bounds
+
+   source.tfh.plot('transfer_function.png', profile_field='density')
+
+   sc.save('rendering.png', sigma_clip=6)
+   
+
+add_gaussian
+""""""""""""
+
+If you would like to add a gaussian with a customized color or no color, use
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.add_gaussian`.
+
+.. python-script::
+
+   import numpy as np
+   import yt
+
+   ds = yt.load('Enzo_64/DD0043/data0043')
+
+   sc = yt.create_scene(ds, lens_type='perspective')
+
+   source = sc[0]
+
+   source.set_field('density')
+   source.set_log(True)
+
+   bounds = (3e-31, 5e-27)
+
+   # Since this rendering is done in log space, the transfer function needs
+   # to be specified in log space.
+   tf = yt.ColorTransferFunction(np.log10(bounds))
+
+   tf.add_gaussian(np.log10(1e-29), width=.005, height=[0.753, 1.0, 0.933, 1.0])
+
+   source.tfh.tf = tf
+   source.tfh.bounds = bounds
+
+   source.tfh.plot('transfer_function.png', profile_field='density')
+
+   sc.save('rendering.png', sigma_clip=6)
+
+
+map_to_colormap
+"""""""""""""""
+
+Finally, to map a colormap directly to a range in densities use
+:meth:`~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction.map_to_colormap`. This
+makes it possible to map a segment of the transfer function space to a colormap
+at a single alpha value. Where the above options produced layered volume
+renderings, this allows all of the density values in a dataset to contribute to
+the volume rendering.
+
+.. python-script::
+
+   import numpy as np
+   import yt
+
+   ds = yt.load('Enzo_64/DD0043/data0043')
+
+   sc = yt.create_scene(ds, lens_type='perspective')
+
+   source = sc[0]
+
+   source.set_field('density')
+   source.set_log(True)
+
+   bounds = (3e-31, 5e-27)
+
+   # Since this rendering is done in log space, the transfer function needs
+   # to be specified in log space.
+   tf = yt.ColorTransferFunction(np.log10(bounds))
+
+   def linramp(vals, minval, maxval):
+       return (vals - vals.min())/(vals.max() - vals.min())
+
+   tf.map_to_colormap(np.log10(3e-31), np.log10(5e-27), colormap='arbre', 
+                      scale_func=linramp)
+
+   source.tfh.tf = tf
+   source.tfh.bounds = bounds
+
+   source.tfh.plot('transfer_function.png', profile_field='density')
+
+   sc.save('rendering.png', sigma_clip=6)   
 
 Projection Transfer Function
 ++++++++++++++++++++++++++++
@@ -351,8 +560,8 @@ Annotated Examples
              information can be hard.  We've provided information about best
              practices and tried to make the interface easy to develop nice
              visualizations, but getting them *just right* is often
-             time-consuming.  It's usually best to start out simple with the
-             built-in helper interface, and expand on that as you need.
+             time-consuming.  It's usually best to start out simple and expand 
+             and tweak as needed.
 
 The scene interface provides a modular interface for creating renderings
 of arbitrary data sources. As such, manual composition of a scene can require
@@ -412,6 +621,12 @@ function to quickly set up defaults is:
   # sc is an instance of a Scene object, which allows you to further refine
   # your renderings and later save them.
 
+  # Let's zoom in and take a closer look
+  sc.camera.width = (300, 'kpc')
+  sc.camera.switch_orientation()
+
+  # Save the zoomed in rendering
+  sc.save('zoomed_rendering.png')
 
 Alternatively, if you don't want to immediately generate an image of your
 volume rendering, and you just want access to the default scene object,
@@ -423,12 +638,39 @@ function. Example:
 
 .. python-script::
 
-  import yt
-  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-  sc = yt.create_scene(ds, 'density')
+    import numpy as np
+    import yt
+  
 
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    sc = yt.create_scene(ds, 'density')
 
-For a more in-depth tutorial on how to create a Scene and modify its contents,
+    source = sc[0]
+
+    source.transfer_function = yt.ColorTransferFunction(
+        np.log10((1e-30, 1e-23)), grey_opacity=True)
+
+    def linramp(vals, minval, maxval):
+        return (vals - vals.min())/(vals.max() - vals.min())
+
+    source.transfer_function.map_to_colormap(
+        np.log10(1e-25), np.log10(8e-24), colormap='arbre', scale_func=linramp)
+
+    # For this low resolution dataset it's very important to use interpolated
+    # vertex centered data to avoid artifacts. For high resolution data this
+    # setting may cause a substantial slowdown for marginal visual improvement.
+    source.set_use_ghost_zones(True)
+
+    cam = sc.camera
+
+    cam.width = 15*yt.units.kpc
+    cam.focus = ds.domain_center
+    cam.normal_vector = [-0.3, -0.3, 1]
+    cam.switch_orientation()
+
+    sc.save('rendering.png')
+
+For an in-depth tutorial on how to create a Scene and modify its contents,
 see this annotated :ref:`volume-rendering-tutorial`.
 
 
@@ -574,14 +816,14 @@ Opacity
 ^^^^^^^
 
 There are currently two models for opacity when rendering a volume, which are
-controlled in the ColorTransferFunction with the keyword
-grey_opacity=False(default)/True. The first (default) will act such for each of
-the r,g,b channels, each channel is only opaque to itself.  This means that if
-a ray that has some amount of red then encounters material that emits blue, the
-red will still exist and in the end that pixel will be a combination of blue
-and red.  However, if the ColorTransferFunction is set up with
-grey_opacity=True, then blue will be opaque to red, and only the blue emission
-will remain.
+controlled in the ``ColorTransferFunction`` with the keyword
+``grey_opacity=False`` or ``True`` (the default). The first will act such for
+each of the red, green, and blue channels, each channel is only opaque to
+itself.  This means that if a ray that has some amount of red then encounters
+material that emits blue, the red will still exist and in the end that pixel
+will be a combination of blue and red.  However, if the ColorTransferFunction is
+set up with grey_opacity=True, then blue will be opaque to red, and only the
+blue emission will remain.
 
 For an in-depth example, please see the cookbook example on opaque renders here:
 :ref:`cookbook-opaque_rendering`.
