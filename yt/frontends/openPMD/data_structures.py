@@ -30,7 +30,7 @@ import h5py
 import numpy as np
 import os
 import re
-from math import ceil
+from math import ceil, floor
 from yt.utilities.logger import ytLogger as mylog
 from .misc import get_component, is_const_component
 
@@ -134,7 +134,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         self.index_filename = ds.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         if self.dataset._nonstandard:
-            self._setNonStandardBasePath(self, self.dataset._handle)
+            self._setNonStandardBasePath(self.dataset._handle)
         else:
             self._setBasePath(self.dataset._handle, self.directory)
         GridIndex.__init__(self, ds, dataset_type)
@@ -155,8 +155,12 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         # TODO This only parses one file
         f = self.dataset._handle
         bp = self.basePath
-        mp = f.attrs["meshesPath"]
-        pp = f.attrs["particlesPath"]
+        if self.dataset._nonstandard:
+            mp = "fields/"
+            pp = "particles/"
+        else:
+            mp = f.attrs["meshesPath"]
+            pp = f.attrs["particlesPath"]
         output_fields = []
 
         for group in f[bp + mp].keys():
@@ -207,28 +211,30 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         """
         # TODO For the moment we only create grids if there are particles present
         # TODO every species might (read: does) have a different number of active particles
-        try:
-            f = self.dataset._handle
-            bp = self.basePath
+        # TODO Calculate the ppg not solely on particle count, also on meshsize
+        f = self.dataset._handle
+        bp = self.basePath
+        if self.dataset._nonstandard:
+            mp = "fields/"
+            pp = "particles/"
+        else:
+            mp = f.attrs["meshesPath"]
             pp = f.attrs["particlesPath"]
-            spec = f[bp + pp].keys()[0]
-            # We could do this by setting an upper bound for the size of each grid
-            # Applying a (rough) 100MB restriction to particle data
-            pos = f[bp + pp + spec + "/position"].keys()[0]
-            if is_const_component(f[bp + pp + spec + "/position/" + pos]):
-                self.np = f[bp + pp + spec + "/position/" + pos].attrs["shape"]
-            else:
-                self.np = f[bp + pp + spec + "/position/" + pos].len()
-            gridsize = 100 * 10**6  # Bytes
-            # For 3D: about 8 Mio. particles per grid
-            # For 2D: about 12,5 Mio. particles per grid
-            # For 1D: about 25 Mio. particles per grid
-            self.ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
-            # Use an upper bound of equally sized grids, last one might be smaller
-            self.num_grids = int(ceil(self.np*self.ppg**-1))
-        except:
-            mylog.info("Could not detect particlePatch, falling back to single grid!")
-            self.num_grids = 1
+        spec = f[bp + pp].keys()[0]
+        pos = f[bp + pp + spec + "/position"].keys()[0]
+        # We could do this by setting an upper bound for the size of each grid
+        # Applying a (rough) 100MB restriction to particle data
+        if is_const_component(f[bp + pp + spec + "/position/" + pos]):
+            self.np = f[bp + pp + spec + "/position/" + pos].attrs["shape"]
+        else:
+            self.np = f[bp + pp + spec + "/position/" + pos].len()
+        gridsize = 100 * 10**6  # Bytes
+        # For 3D: about 8 Mio. particles per grid
+        # For 2D: about 12,5 Mio. particles per grid
+        # For 1D: about 25 Mio. particles per grid
+        self.ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
+        # Use an upper bound of equally sized grids, last one might be smaller
+        self.num_grids = int(ceil(self.np*self.ppg**-1))
 
     def _parse_index(self):
         """
@@ -250,25 +256,37 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         self.grids = np.empty(self.num_grids, dtype='object')
 
         remaining = self.dataset.domain_dimensions[0]
+        meshindex = 0
+        meshedge = self.dataset.domain_left_edge.copy()[0]
         for i in range(self.num_grids):
-            self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
-            self.grid_left_edge[i][0] = i * self.num_grids**-1
-            self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()  # (N, 3) <= float64
-            self.grid_right_edge[i][0] = (i + 1) * self.num_grids**-1
             self.grid_dimensions[i] = self.dataset.domain_dimensions  # (N, 3) <= int
-            if i != self.num_grids-1:
-                self.grid_dimensions[i][0] = int(ceil(self.grid_dimensions[i][0] * self.num_grids**-1))
-                remaining -= self.grid_dimensions[i][0]
+            prev = remaining
+            remaining -= self.grid_dimensions[i][0] * self.num_grids**-1
+            self.grid_dimensions[i][0] = int(round(prev, 0) - round(remaining, 0))
+            #self.grid_dimensions[i][0] = int(floor(self.dataset.domain_dimensions[0]*self.num_grids**-1))
+            if i != self.num_grids - 1:
                 nap = self.ppg
             else:
                 # The last grid need not be the same size as the previous ones
-                self.grid_dimensions[i][0] = remaining
+                #self.grid_dimensions[i][0] = remaining
                 nap = self.np % self.ppg
+            self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
+            self.grid_left_edge[i][0] = meshedge
+            self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()  # (N, 3) <= float64
+            self.grid_right_edge[i][0] = self.grid_left_edge[i][0] \
+                                         + self.grid_dimensions[i][0]\
+                                          * self.dataset.domain_dimensions[0]**-1\
+                                          * self.dataset.domain_right_edge[0]
+            meshedge = self.grid_right_edge[i][0]
             self.grid_particle_count[i] = nap
             self.grids[i] = self.grid(
                 i, self, self.grid_levels[i, 0],
-                pi=i*self.ppg, op=nap,
-                mi=int(ceil(self.dataset.domain_dimensions[0] * self.num_grids**-1)) * i, om=self.grid_dimensions[i][0])
+                pi=i*self.ppg,
+                op=nap,
+                mi=meshindex,
+                om=self.grid_dimensions[i][0])
+            meshindex += self.grid_dimensions[i][0]
+            remaining -= self.grid_dimensions[i][0]
 
     def _populate_grid_objects(self):
         """
@@ -296,7 +314,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
     """
     _index_class = openPMDHierarchy
     _field_info_class = openPMDFieldInfo
-    _nonstandard = True
+    _nonstandard = False
 
     def __init__(self, filename, dataset_type='openPMD',
                  storage_filename=None,
@@ -313,7 +331,11 @@ class openPMDDataset(Dataset, openPMDBasePath):
                          unit_system=unit_system)
         self.storage_filename = storage_filename
         self.fluid_types += ('openPMD',)
-        parts = tuple(str(c) for c in self._handle[self.basePath + self._handle.attrs["particlesPath"]].keys())
+        if self._nonstandard:
+            pp = "particles"
+        else:
+            pp = self._handle.attrs["particlesPath"]
+        parts = tuple(str(c) for c in self._handle[self.basePath + pp].keys())
         if len(parts) > 1:
             # Only use infile particle names if there is more than one species
             self.particle_types = parts
@@ -380,7 +402,10 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.domain_dimensions = np.ones(3, dtype=np.int64)
         self.domain_dimensions[:self.dimensionality] = fshape
 
-        self.current_time = f[bp].attrs["time"]
+        if self._nonstandard:
+            self.current_time = 0
+        else:
+            self.current_time = f[bp].attrs["time"]
         # We here assume non-periodic boundary conditions
         self.periodicity = np.zeros(3, dtype=np.bool)
         # Used for AMR, not applicable for us
@@ -394,9 +419,6 @@ class openPMDDataset(Dataset, openPMDBasePath):
             Checks whether the supplied file adheres to the required openPMD standards
             and thus can be read by this frontend
         """
-        if "iexplicitlyacceptthatthismightfail" in args[1]:
-            self._nonstandard = True
-            return True
         try:
             f = validator.open_file(args[0])
         except:
@@ -411,5 +433,12 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # and the meshes
         result_array += validator.check_iterations(f, verbose, extension_pic)
         if result_array[0] != 0:
-            return False
+            try:
+                if "/data" in f and f["/data"].keys()[0].isdigit():
+                    self._nonstandard = True
+                    mylog.info("Reading a file with the openPMD frontend that does not respect standards? "
+                                "Just understand that you're on your own for this!")
+                    return True
+            except:
+                return False
         return True

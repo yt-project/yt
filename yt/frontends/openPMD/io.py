@@ -25,6 +25,8 @@ from collections import defaultdict
 from .data_structures import openPMDBasePath
 from .misc import get_component
 
+import random
+
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
@@ -45,9 +47,14 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
         self.ds = ds
         self._handle = ds._handle
-        self._setBasePath(self._handle, self.ds._filepath)
-        self.meshesPath = self._handle["/"].attrs["meshesPath"]
-        self.particlesPath = self._handle["/"].attrs["particlesPath"]
+        if self.ds._nonstandard:
+            self._setNonStandardBasePath(self._handle)
+            self.meshesPath = "fields/"
+            self.particlesPath = "particles/"
+        else:
+            self._setBasePath(self._handle, self.ds._filepath)
+            self.meshesPath = self._handle["/"].attrs["meshesPath"]
+            self.particlesPath = self._handle["/"].attrs["particlesPath"]
         self._array_fields = {}
         self._cached_ptype = ""
         self._cache = {}
@@ -55,6 +62,10 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
 
     def _fill_cache(self, ptype, index=0, offset=None):
         if str((ptype, index, offset)) not in self._cachecntr:
+            # Do not let the cache size get out of hand
+            if len(self._cachecntr) > 20:
+                self._cachecntr.pop(random.choice(self._cachecntr.keys()))
+
             # Get a particle species (e.g. /data/3500/particles/e/)
             if "io" in ptype:
                 spec = self._handle[self.basePath + self.particlesPath].keys()[0]
@@ -66,8 +77,11 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             pos = {}
             off = {}
             for ax in axes:
-                pos[ax] = get_component(pds, "position/" + ax, index, offset)
-                off[ax] = get_component(pds, "positionOffset/" + ax, index, offset)
+                pos[ax] = get_component(pds, "position/" + ax, index, offset, self.ds._nonstandard)
+                if self.ds._nonstandard:
+                    off[ax] = get_component(pds, "globalCellIdx/" + ax, index, offset, self.ds._nonstandard)
+                else:
+                    off[ax] = get_component(pds, "positionOffset/" + ax, index, offset, self.ds._nonstandard)
                 self._cache[ax] = pos[ax] + off[ax]
             # Pad accordingly with zeros to make 1D/2D datasets compatible
             # These have to be the same shape as the existing axes dataset since that equals the number of particles
@@ -157,6 +171,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                         self._fill_cache(ptype, index, offset)
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
+                        mylog.info("Mask is none!")
                         continue
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     if "io" in ptype:
@@ -166,7 +181,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     pds = ds[self.particlesPath + "/" + spec]
                     for field in parallel_objects(field_list, -1):
                         nfield = "/".join(field.split("_")[1:])
-                        data = get_component(pds, nfield, index, offset)
+                        data = get_component(pds, nfield, index, offset, self.ds._nonstandard)
                         #mylog.debug("data {}".format(data))
                         #mylog.debug("mask {}".format(mask))
                         yield ((ptype, field), data[mask])
@@ -256,8 +271,15 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             - values are numpy arrays with data form that field
         """
         mylog.info("_read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
+        f = self._handle
+        bp = self.basePath
+        if self.ds._nonstandard:
+            mp = "fields/"
+        else:
+            mp = f.attrs["meshesPath"]
         rv = {}
         chunks = list(chunks)
+
         if selector.__class__.__name__ == "GridSelector":
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
@@ -274,13 +296,12 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             field = (ftype, fname)
             for chunk in chunks:
                 for g in chunk.objs:
-                    ds = self._handle[self.basePath + self.meshesPath]
+                    ds = f[bp + mp]
                     nfield = fname.replace("_", "/").replace("-","_")
                     index = g.mesh_ind
                     offset = g.off_mesh
-                    data = np.array(get_component(ds, nfield, index, offset)).flatten()
+                    data = np.array(get_component(ds, nfield, index, offset, self.ds._nonstandard)).flatten()
                     off = ind[field] + data.size
-                    mylog.debug("({}, {})[{}:{}]".format(ftype, fname, ind[field], off))
                     rv[ftype, fname][ind[field]:off] = data
                     ind[field] = off
         return rv
@@ -369,7 +390,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     #data = self._read_data((ftype, fname))
                     ds = self._handle[self.basePath + self.meshesPath]
                     nfield = fname.replace("_", "/").replace("-","_")
-                    data = get_component(ds, nfield, g.get_global_startindex()[0], g.ActiveDimensions[0])
+                    data = get_component(ds, nfield, g.get_global_startindex()[0], g.ActiveDimensions[0], self.ds._nonstandard)
                     rv[ftype, fname] = np.concatenate((rv[ftype, fname], np.array(data).flatten()))
                     mylog.debug("rv = {}".format(rv))
             #f.close()

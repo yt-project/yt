@@ -773,7 +773,7 @@ def is_const_component(record_component):
     return "value" in record_component.attrs.keys()
 
 
-def get_component(group, component_name, index=0, offset=None):
+def get_component(group, component_name, index=0, offset=None, nonstandard=False):
     # TODO - Make slicing possible for higher dimensional data
     """Grab a component from a group
 
@@ -789,8 +789,23 @@ def get_component(group, component_name, index=0, offset=None):
     n-dimensional numpy array filled with values of component
     """
 
-    mylog.debug("openPMD - misc - get_component: {}/{}[{} + {}]".format(group.name, component_name, index, offset))
     record_component = group[component_name]
+    if nonstandard:
+        try:
+            unitSI = record_component.attrs["sim_unit"]
+            if "globalCellIdx" in component_name:
+                it = group["/data"].keys()[0]
+                len = group["/data/" + it].attrs['unit_length']
+                # TODO which of these is x,y,z?
+                width = group["/data/" + it].attrs['cell_width']
+                height = group["/data/" + it].attrs['cell_width']
+                depth = group["/data/" + it].attrs['cell_width']
+                unitSI *= len
+        except:
+            unitSI = 1.0
+    else:
+        unitSI = record_component.attrs["unitSI"]
+    #mylog.debug("unitSI is {}".format(unitSI))
     if is_const_component(record_component):
         # This allows for masking of the component
         # Slicing data directly at the h5py layer improves performance
@@ -799,13 +814,15 @@ def get_component(group, component_name, index=0, offset=None):
         else:
             shape = record_component.attrs["shape"] - index
         # Our component is constant, craft an array by hand
-        return np.full(shape, record_component.attrs["value"] * record_component.attrs["unitSI"])
+        mylog.debug("openPMD - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
+        return np.full(shape, record_component.attrs["value"] * unitSI)
     else:
         if offset is not None:
             offset += index
         # Component is a dataset, return it (possibly masked)
         # Slicing is not smart, supplying lower dimensional indices only slices those dimensions
-        return record_component[index:offset] * record_component.attrs["unitSI"]
+        mylog.debug("openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+        return record_component[index:offset] * unitSI
 
 
 def parse_unitDimension(unitDimension):

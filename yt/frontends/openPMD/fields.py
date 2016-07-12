@@ -120,13 +120,23 @@ class openPMDFieldInfo(FieldInfoContainer):
 
     def __init__(self, ds, field_list):
         f = ds._handle
-        fields = f[ds.basePath + f.attrs["meshesPath"]]
+        bp = ds.basePath
+        if ds._nonstandard:
+            mp = "fields/"
+            pp = "particles/"
+        else:
+            mp = f.attrs["meshesPath"]
+            pp = f.attrs["particlesPath"]
+        fields = f[bp + mp]
         for fname in fields.keys():
             field = fields.get(fname)
             if "dataset" in str(field).split(" ")[1]:
-                # We have a dataset, don't consider axes since yt does all the work for us
+                # We have a dataset, don't consider axes. This appears to be a vector field of single dimensionality
                 ytname = str("_".join([fname.replace("_", "-")]))
-                parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+                if ds._nonstandard:
+                    parsed = ""
+                else:
+                    parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
                 unit = str(yt.YTQuantity(1, parsed).units)
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
@@ -136,9 +146,16 @@ class openPMDFieldInfo(FieldInfoContainer):
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)), )
             else:
-                for axis in field.attrs["axisLabels"]:
+                if ds._nonstandard:
+                    axes = "xyz"  # I naively assume all fields in pre-oPMD files are 3D
+                else:
+                    axes = field.attrs["axisLabels"]
+                for axis in axes:
                     ytname = str("_".join([fname.replace("_", "-"), axis]))
-                    parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+                    if ds._nonstandard:
+                        parsed = ""
+                    else:
+                        parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
                     unit = str(yt.YTQuantity(1, parsed).units)
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
@@ -151,22 +168,31 @@ class openPMDFieldInfo(FieldInfoContainer):
             mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
 
         particle_fields = ()
-        particles = f[ds.basePath + f.attrs["particlesPath"]]
+        particles = f[bp + pp]
         for species in particles.keys():
             for attrib in particles.get(species).keys():
                 if "weighting" in attrib:
                     particle_fields += (("particle_weighting", ("", [], None)),)
                     continue
                 try:
-                    parsed = parse_unitDimension(
-                        np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype='int'))
+                    if ds._nonstandard:
+                        if "globalCellIdx" in attrib or "position" in attrib:
+                            parsed = "m"  # Required for spatial selection of particles
+                        else:
+                            parsed = ""
+                    else:
+                        parsed = parse_unitDimension(
+                            np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype='int'))
                     unit = str(yt.YTQuantity(1, parsed).units)
                     name = ["particle", attrib]
                     for axis in particles.get(species).get(attrib).keys():
+                        aliases = []
                         if axis in "rxyz":
                             name = ["particle", attrib, axis]
                         ytname = str("_".join(name))
-                        particle_fields += ((ytname, (unit, [], None)), )
+                        if ds._nonstandard and "globalCellIdx" in ytname:
+                            aliases.append(ytname.replace("globalCellIdx", "positionOffset"))
+                        particle_fields += ((ytname, (unit, aliases, None)), )
                 except:
                     mylog.info("{}_{} does not seem to have unitDimension".format(species, attrib))
         self.known_particle_fields = particle_fields
