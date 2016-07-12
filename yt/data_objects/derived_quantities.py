@@ -594,6 +594,8 @@ class MaxLocation(SampleAtMaxFieldValues):
 
     """
     def __call__(self, field):
+        # Make sure we have an index
+        self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MaxLocation, self).__call__(field, sample_fields)
         if len(rv) == 1: rv = rv[0]
@@ -641,6 +643,8 @@ class MinLocation(SampleAtMinFieldValues):
 
     """
     def __call__(self, field):
+        # Make sure we have an index
+        self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MinLocation, self).__call__(field, sample_fields)
         if len(rv) == 1: rv = rv[0]
