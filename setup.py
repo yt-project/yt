@@ -76,7 +76,8 @@ else:
 
 cython_extensions = [
     Extension("yt.analysis_modules.photon_simulator.utils",
-              ["yt/analysis_modules/photon_simulator/utils.pyx"]),
+              ["yt/analysis_modules/photon_simulator/utils.pyx"],
+              include_dirs=["yt/utilities/lib"]),
     Extension("yt.analysis_modules.ppv_cube.ppv_utils",
               ["yt/analysis_modules/ppv_cube/ppv_utils.pyx"],
               libraries=std_libs),
