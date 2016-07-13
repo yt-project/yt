@@ -26,7 +26,7 @@ extension module and distribute and version it independently.
 Hooks for Extensions
 --------------------
 
-Starting with version 3.3 of yt, any packaged named with the prefix ``yt_`` is
+Starting with version 3.3 of yt, any package named with the prefix ``yt_`` is
 importable from the namespace ``yt.extensions``.  For instance, the
 ``yt_interaction`` package ( https://bitbucket.org/data-exp-lab/yt_interaction
 ) is importable as ``yt.extensions.interaction``.
