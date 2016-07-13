@@ -8,9 +8,16 @@ Extension Packages
           this plan was designed.
 
 As of version 3.3 of yt, we have put into place new methods for easing the
-process of developing extensions to yt.  We have created a few pieces of
-infrastructure for developing extensions, making them discoverable, and
-distributing them to collaborators.
+process of developing "extensions" to yt.  Extensions might be analysis
+packages, visualization tools, or other software projects that use yt as a base
+engine but that are versioned, developed and distributed separately.  This
+brings with it the advantage of retaining control over the versioning,
+contribution guidelines, scope, etc, while also providing a mechanism for
+disseminating information about it, and potentially a method of interacting
+with other extensions.
+
+We have created a few pieces of infrastructure for developing extensions,
+making them discoverable, and distributing them to collaborators.
 
 If you have a module you would like to retain some external control over, or
 that you don't feel would fit into yt, we encourage you to build it as an
