@@ -452,6 +452,14 @@ class Profile1D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
 
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        with the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import ProfilePlot
+        return ProfilePlot.from_profiles(self)
+
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
     A 1D profile object loaded from a ytdata dataset.
@@ -568,6 +576,14 @@ class Profile2D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.PhasePlot with
+        the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import PhasePlot
+        return PhasePlot.from_profile(self)
 
 class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
     """

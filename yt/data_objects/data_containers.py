@@ -813,8 +813,9 @@ class YTDataContainer(object):
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
 
-    def hist(self, field, weight = None, bins = None):
+    def hist(self, fields, weight = None, bins = None, range = None):
         raise NotImplementedError
+        
 
     def mean(self, field, axis=None, weight='ones'):
         r"""Compute the mean of a field, optionally along an axis, with a
