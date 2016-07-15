@@ -324,7 +324,7 @@ def fake_hexahedral_ds():
     return ds
 
 
-def fake_vr_orientation_test_ds(N = 96):
+def fake_vr_orientation_test_ds(N = 96, scale=1):
     """
     create a toy dataset that puts a sphere at (0,0,0), a single cube
     on +x, two cubes on +y, and three cubes on +z in a domain from
@@ -334,11 +334,21 @@ def fake_vr_orientation_test_ds(N = 96):
     This dataset allows you to easily explore orientations and
     handiness in VR and other renderings
 
+    Parameters:
+    -----------
+
+    N: integer
+       The number of cells along each direction
+
+    scale: float
+       A spatial scale, the domain boundaries will be multiplied by scale to
+       test datasets that have spatial different scales (e.g. data in CGS units)
+
     """
     from yt.frontends.stream.api import load_uniform_grid
 
-    xmin = ymin = zmin = -1.0
-    xmax = ymax = zmax = 1.0
+    xmin = ymin = zmin = -1.0 * scale
+    xmax = ymax = zmax = 1.0 * scale
 
     dcoord = (xmax - xmin)/N
 
