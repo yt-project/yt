@@ -177,7 +177,7 @@ class LightRay(CosmologySplice):
                                            redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
-                                      left_edge=None, right_edge=None, min_level=0,
+                                      left_edge=None, right_edge=None, min_level=None,
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -765,8 +765,8 @@ def periodic_ray(start, end, left=None, right=None):
 
     return segments
 
-def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_level=0,
-                     my_random=None):
+def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500,
+                     min_level=None, my_random=None):
     if my_random is None:
         my_random = np.random.RandomState()
     i = 0
@@ -782,7 +782,7 @@ def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_le
         i += 1
         test_ray = ds.ray(start, end)
         if (end >= left_edge).all() and (end <= right_edge).all() and \
-                (test_ray["grid_level"] >= min_level).all():
+          (min_level is None or (test_ray["grid_level"] >= min_level).all()):
             mylog.info("Found ray after %d attempts." % i)
             del test_ray
             return start, end.d
