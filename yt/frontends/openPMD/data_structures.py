@@ -373,16 +373,17 @@ class openPMDDataset(Dataset, openPMDBasePath):
             pp = f.attrs["particlesPath"]
 
         self.unique_identifier = 0
-        self.parameters = 0  # no additional parameters  <= full of code-specific items of use
+        self.parameters = 0
 
-        # We set the highest dimensionality in the simulation as the global one
-        fshape = None
+        # We assume all fields to have the same shape
         try:
-            for mesh in f[bp + mp].keys():
-                for axis in f[bp + mp + "/" + mesh].keys():
-                    fshape = np.maximum(fshape, f[bp + mp + "/" + mesh + "/" + axis].shape)
+            mesh = f[bp + mp].keys()[0]
+            axis = f[bp + mp + "/" + mesh].keys()[0]
+            fshape = f[bp + mp + "/" + mesh + "/" + axis].shape
         except:
-            pass
+            mylog.warning("Could not detect shape of simulated field! "
+                          "Assuming a single cell and thus setting fshape to [1, 1, 1]!")
+            fshape = np.array([1, 1, 1])
         if len(fshape) < 1:
             self.dimensionality = 0
             for species in f[bp + pp].keys():
@@ -392,25 +393,40 @@ class openPMDDataset(Dataset, openPMDBasePath):
         else:
             self.dimensionality = len(fshape)
 
-        # TODO fill me with actual start and end positions in reasonable units
-        # This COULD be done with minimum/maximum particle positions in the simulation
-        # or through extent of the field meshes
-        self.domain_left_edge = np.zeros(3, dtype=np.float64)
-        self.domain_right_edge = np.ones(3, dtype=np.float64)
-
         # gridding of the meshes (assumed all mesh entries are on the same mesh)
         self.domain_dimensions = np.ones(3, dtype=np.int64)
         self.domain_dimensions[:self.dimensionality] = fshape
+
+        self.domain_left_edge = np.empty(3, dtype=np.float64)
+        self.domain_right_edge = np.empty(3, dtype=np.float64)
+        try:
+            mesh = f[bp + mp].keys()[0]
+            if self._nonstandard:
+                offset = np.zeros(3, dtype=np.float64)
+                width = f[bp].attrs['cell_width']
+                height = f[bp].attrs['cell_height']
+                depth = f[bp].attrs['cell_depth']
+                spacing = [width, height, depth]
+                unitSI = f[bp].attrs['unit_length']
+            else:
+                offset = f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"]
+                spacing = f[bp + mp + "/" + mesh].attrs["gridSpacing"]
+                unitSI = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
+            self.domain_left_edge = offset * unitSI
+            self.domain_right_edge = self.domain_left_edge + self.domain_dimensions * spacing * unitSI
+        except:
+            mylog.warning("The domain extent could not be calculated! Setting the field extent to 1m**dimensionality! "
+                          "This WILL break particle-overplotting!")
+            self.domain_left_edge = np.zeros(3, dtype=np.float64)
+            self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         if self._nonstandard:
             self.current_time = 0
         else:
             self.current_time = f[bp].attrs["time"]
-        # We here assume non-periodic boundary conditions
+
         self.periodicity = np.zeros(3, dtype=np.bool)
-        # Used for AMR, not applicable for us
         self.refine_by = 1
-        # Not a cosmological simulation
         self.cosmological_simulation = 0
 
     @classmethod

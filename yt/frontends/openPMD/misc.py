@@ -783,6 +783,7 @@ def get_component(group, component_name, index=0, offset=None, nonstandard=False
     component_name: string of a component (relative path) inside the group
     index: (optional) start index of data to return
     offset: (optional) size of the data to return
+    nonstandard: (optional) bool to signal whether to assume (non)standard PMD
 
     Returns
     -------
@@ -796,31 +797,23 @@ def get_component(group, component_name, index=0, offset=None, nonstandard=False
             if "globalCellIdx" in component_name:
                 it = group["/data"].keys()[0]
                 len = group["/data/" + it].attrs['unit_length']
-                # TODO which of these is x,y,z?
-                width = group["/data/" + it].attrs['cell_width']
-                height = group["/data/" + it].attrs['cell_width']
-                depth = group["/data/" + it].attrs['cell_width']
                 unitSI *= len
         except:
             unitSI = 1.0
     else:
         unitSI = record_component.attrs["unitSI"]
-    #mylog.debug("unitSI is {}".format(unitSI))
     if is_const_component(record_component):
-        # This allows for masking of the component
-        # Slicing data directly at the h5py layer improves performance
         if offset is not None:
             shape = offset
         else:
             shape = record_component.attrs["shape"] - index
-        # Our component is constant, craft an array by hand
+        # component is constant, craft an array by hand
         mylog.debug("openPMD - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
         return np.full(shape, record_component.attrs["value"] * unitSI)
     else:
         if offset is not None:
             offset += index
-        # Component is a dataset, return it (possibly masked)
-        # Slicing is not smart, supplying lower dimensional indices only slices those dimensions
+        # component is a dataset, return it (possibly masked)
         mylog.debug("openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
         return record_component[index:offset] * unitSI
 

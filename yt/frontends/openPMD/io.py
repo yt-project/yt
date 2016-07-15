@@ -33,13 +33,8 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 
 
 class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
-    # TODO Data should be loaded chunk-wise to support parallelism. Fields can be chunked arbitrarily in space, particles should be read via particlePatches.
-    # TODO Maybe reuse hdf5 file handles in loops?
     # TODO Change strategies when dealing with different iterationEncoding?
-    # TODO since the standard allows \w+ regexes, replace _'s in oPMD for yt
 
-    # TODO Unify numpy data types?
-    # THERE WAS EVEN A GLOBAL VARIABLE FOR THIS
     _field_dtype = "float32"
     _dataset_type = "openPMD"
 
@@ -61,10 +56,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._cachecntr = {}
 
     def _fill_cache(self, ptype, index=0, offset=None):
-        if str((ptype, index, offset)) not in self._cachecntr:
-            # Do not let the cache size get out of hand
-            if len(self._cachecntr) > 20:
-                self._cachecntr.pop(random.choice(self._cachecntr.keys()))
+        if str((ptype, index, offset)) not in self._cached_ptype: #self._cachecntr:
 
             # Get a particle species (e.g. /data/3500/particles/e/)
             if "io" in ptype:
@@ -88,9 +80,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             for req in "xyz":
                 if req not in axes:
                     self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
-            self._cachecntr[str((ptype, index, offset))] = (self._cache['x'], self._cache['y'], self._cache['z'])
-        else:
-            self._cache['x'], self._cache['y'], self._cache['z'] = self._cachecntr[str((ptype, index, offset))]
         self._cached_ptype = str((ptype, index, offset))
 
     def _read_particle_coords(self, chunks, ptf):
@@ -179,62 +168,10 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     else:
                         spec = ptype
                     pds = ds[self.particlesPath + "/" + spec]
-                    for field in parallel_objects(field_list, -1):
+                    for field in field_list:
                         nfield = "/".join(field.split("_")[1:])
                         data = get_component(pds, nfield, index, offset, self.ds._nonstandard)
-                        #mylog.debug("data {}".format(data))
-                        #mylog.debug("mask {}".format(mask))
                         yield ((ptype, field), data[mask])
-
-
-    # def _read_particle_selection(self, chunks, selector, fields):
-    #     """
-    #         Reads masked selection of particles from specified fields.
-    #
-    #         Receives a collection of data "chunks", a selector describing which "chunks" you are concerned with and
-    #         a list of fields.
-    #         It should create and return a dictionary whose keys are the fields,
-    #         and whose values are numpy arrays containing the data.
-    #         The data should actually be read via the _read_chunk_data() method.
-    #
-    #         Parameters
-    #         ----------
-    #         chunks:
-    #             A list of chunks
-    #             A chunk is a list of grids
-    #
-    #         selector:
-    #             yt-project.org/docs/dev/quickstart/data_inspection.html?highlight=selector#Examining-Data-in-Regions
-    #             yt-project.org/doc/developing/creating_datatypes.html
-    #             A region (in and/or outside your domain) specifying the field you want to read
-    #
-    #         fields:
-    #             A list of (fname, ftype) tuples representing a field
-    #
-    #         size:
-    #             Size of the data arrays you want to read
-    #
-    #         Returns
-    #         -------
-    #         A dictionary:
-    #         - keys are (ftype, fname) tuples representing a field
-    #         - values are numpy arrays with data form that field
-    #     """
-    #     mylog.debug("Read particle selection")
-    #     rv = {}
-    #     chunks = list(chunks)
-    #
-    #     if selector.__class__.__name__ == "GridSelector":
-    #         if not (len(chunks) == len(chunks[0].objs) == 1):
-    #             raise RuntimeError
-    #
-    #     rv = {f: np.array([]) for f in fields}
-    #     for chunk in chunks:
-    #         for grid in chunk.objs:
-    #             for ftype, fname in fields:
-    #                 data = self._read_particle_fields(chunks, ptf, selector)
-    #                 rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
-    #     return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         """
@@ -292,7 +229,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             rv[field] = np.empty(size, dtype="float64")
             ind[field] = 0
 
-        for ftype, fname in parallel_objects(fields, -1):
+        for ftype, fname in fields:
             field = (ftype, fname)
             for chunk in chunks:
                 for g in chunk.objs:
@@ -300,98 +237,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     nfield = fname.replace("_", "/").replace("-","_")
                     index = g.mesh_ind
                     offset = g.off_mesh
-                    data = np.array(get_component(ds, nfield, index, offset, self.ds._nonstandard)).flatten()
-                    off = ind[field] + data.size
-                    rv[ftype, fname][ind[field]:off] = data
-                    ind[field] = off
-        return rv
-
-    def _read_data(self, field):
-        """
-            Reads data from file belonging to a (mesh or particle) field
-
-            Parameters
-            ----------
-            fieldname:
-                Field to get the data for
-
-            Returns
-            -------
-            A flat numpy array
-        """
-        ftype, fname = field
-        mylog.debug("openPMD - _read_data - reading field: {}.{}".format(ftype, fname))
-
-        if ftype in self.ds.particle_types:
-            if "io" in ftype:
-                # There is only one particle species, use that one ("io" does not suffice)
-                spec = self._handle[self.basePath + self.particlesPath].keys()[0]
-            else:
-                # Use the provided ftype that corresponds to the species name in the hdf5 file
-                spec = str(ftype)
-            ds = self._handle[self.basePath + self.particlesPath].get(spec)
-            nfield = "/".join(fname.split("_")[1:]).replace("-","_")
-        else:
-            ds = self._handle[self.basePath + self.meshesPath]
-            nfield = fname.replace("_", "/").replace("-","_")
-        data = get_component(ds, nfield)
-        return np.array(data).flatten()
-
-    def _read_chunk_data(self, chunk, fields):
-        """
-            Reads fields specified in the chunk from disk.
-
-            From yt doc:
-            Receives a "chunk" of data along with a list of fields we want to read. It loops over all the grid objects
-            within the "chunk" of data and reads from disk the specific fields,
-            returning a dictionary whose keys are the fields and whose values are numpy arrays of the data.
-
-            Parameters
-            ----------
-            chunk:
-                A single chunk is a list of grids
-
-            fields:
-                A list of fields to be read
-
-            Returns
-            -------
-            A dictionary:
-            - keys are (ftype, fname) field tuples
-            - values are flat numpy arrays with data form that field
-        """
-        mylog.debug("_read_chunk_data {} {}".format(chunk, fields))
-        rv = {}
-        fluid_fields, particle_fields = [], []
-        for ftype, fname in fields:
-            if ftype in self.ds.particle_types:
-                particle_fields.append((ftype, fname))
-            else:
-                fluid_fields.append((ftype, fname))
-        if len(particle_fields) > 0:
-            selector = AlwaysSelector(self.ds)
-            rv.update(self._read_particle_selection(
-                [chunk], selector, particle_fields))
-        if len(fluid_fields) == 0: return rv
-        grids_by_file = defaultdict(list)
-        # Read fluid fields
-        for g in chunk.objs:
-            if g.filename is None:
-                continue
-            grids_by_file[g.filename].append(g)
-        rv = {f: np.array([]) for f in fields}
-        for filename in grids_by_file:
-            grids = grids_by_file[filename]
-            grids.sort()
-            #f = h5py.File(filename, 'r')
-            for ftype, fname in fluid_fields:
-                for g in grids:
-                    # TODO update basePath for different files
-                    #data = self._read_data((ftype, fname))
-                    ds = self._handle[self.basePath + self.meshesPath]
-                    nfield = fname.replace("_", "/").replace("-","_")
-                    data = get_component(ds, nfield, g.get_global_startindex()[0], g.ActiveDimensions[0], self.ds._nonstandard)
-                    rv[ftype, fname] = np.concatenate((rv[ftype, fname], np.array(data).flatten()))
-                    mylog.debug("rv = {}".format(rv))
-            #f.close()
+                    data = np.array(get_component(ds, nfield, index, offset, self.ds._nonstandard))
+                    nd = g.select(selector, data, rv[field], ind[field])
+                    ind[field] += nd
+        for i in rv:
+            rv[i].flatten()
         return rv
