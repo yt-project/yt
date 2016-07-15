@@ -11,7 +11,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \

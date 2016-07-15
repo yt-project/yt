@@ -26,7 +26,7 @@ from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
 from yt.units.unit_object import Unit
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.field_data import YTFieldData
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -938,7 +938,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     data from profile[<field_name>].
 
     >>> ds = load("DD0046/DD0046")
-    >>> ad = ds.h.all_data()
+    >>> ad = ds.all_data()
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])

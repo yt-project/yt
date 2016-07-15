@@ -22,6 +22,7 @@ import shelve
 
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import wraps
 
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.fields.derived_field import \
@@ -65,6 +66,8 @@ import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.profiles import create_profile
 
 data_object_registry = {}
 
@@ -90,12 +93,6 @@ def restore_field_information_state(func):
         grid.field_parameters = old_params
         return tr
     return save_state
-
-class YTFieldData(dict):
-    """
-    A Container object for field data, instead of just having it be a dict.
-    """
-    pass
 
 class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
@@ -813,9 +810,79 @@ class YTDataContainer(object):
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
 
-    def hist(self, fields, weight = None, bins = None, range = None):
-        raise NotImplementedError
-        
+    def profile(self, bin_fields, fields, n_bins=64,
+                   extrema=None, logs=None, units=None,
+                   weight_field="cell_mass",
+                   accumulation=False, fractional=False,
+                   deposition='ngp'):
+        r"""
+        Create a 1, 2, or 3D profile object from this data_source.
+
+        The dimensionality of the profile object is chosen by the number of
+        fields given in the bin_fields argument.  This simply calls
+        :func:`yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        bin_fields : list of strings
+            List of the binning fields for profiling.
+        fields : list of strings
+            The fields to be profiled.
+        n_bins : int or list of ints
+            The number of bins in each dimension.  If None, 64 bins for
+            each bin are used for each bin field.
+            Default: 64.
+        extrema : dict of min, max tuples
+            Minimum and maximum values of the bin_fields for the profiles.
+            The keys correspond to the field names. Defaults to the extrema
+            of the bin_fields of the dataset. If a units dict is provided, extrema
+            are understood to be in the units specified in the dictionary.
+        logs : dict of boolean values
+            Whether or not to log the bin_fields for the profiles.
+            The keys correspond to the field names. Defaults to the take_log
+            attribute of the field.
+        units : dict of strings
+            The units of the fields in the profiles, including the bin_fields.
+        weight_field : str or tuple field identifier
+            The weight field for computing weighted average for the profile
+            values.  If None, the profile values are sums of the data in
+            each bin.
+        accumulation : bool or list of bools
+            If True, the profile values for a bin n are the cumulative sum of
+            all the values from bin 0 to n.  If -True, the sum is reversed so
+            that the value for bin n is the cumulative sum from bin N (total bins)
+            to n.  If the profile is 2D or 3D, a list of values can be given to
+            control the summation in each dimension independently.
+            Default: False.
+        fractional : If True the profile values are divided by the sum of all
+            the profile data such that the profile represents a probability
+            distribution function.
+        deposition : Controls the type of deposition used for ParticlePhasePlots.
+            Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
+            ignored the if the input fields are not of particle type.
+
+
+        Examples
+        --------
+
+        Create a 1d profile.  Access bin field from profile.x and field
+        data from profile[<field_name>].
+
+        >>> ds = load("DD0046/DD0046")
+        >>> ad = ds.all_data()
+        >>> profile = ad.profile(ad, [("gas", "density")],
+        ...                          [("gas", "temperature"),
+        ...                          ("gas", "velocity_x")])
+        >>> print (profile.x)
+        >>> print (profile["gas", "temperature"])
+        >>> plot = profile.plot()
+        """
+        p = create_profile(self, bin_fields, fields, n_bins=64,
+                   extrema=None, logs=None, units=None,
+                   weight_field="cell_mass",
+                   accumulation=False, fractional=False,
+                   deposition='ngp')
+        return p
 
     def mean(self, field, axis=None, weight='ones'):
         r"""Compute the mean of a field, optionally along an axis, with a
