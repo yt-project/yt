@@ -177,7 +177,7 @@ class LightRay(CosmologySplice):
                                            redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
-                                      left_edge=None, right_edge=None,
+                                      left_edge=None, right_edge=None, min_level=0,
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -243,7 +243,7 @@ class LightRay(CosmologySplice):
                           self.light_ray_solution[q]['end'] = \
                           non_periodic_ray(ds, left_edge, right_edge,
                             self.light_ray_solution[q]['traversal_box_fraction'],
-                                           my_random=my_random)
+                                           my_random=my_random, min_level=min_level)
                         del ds
                     else:
                         self.light_ray_solution[q]['start'] = my_random.random_sample(3)
@@ -395,6 +395,7 @@ class LightRay(CosmologySplice):
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
                                            left_edge=left_edge, right_edge=right_edge,
+                                           min_level=min_level,
                                            start_position=start_position,
                                            end_position=end_position,
                                            trajectory=trajectory,
@@ -759,7 +760,7 @@ def periodic_ray(start, end, left=None, right=None):
 
     return segments
 
-def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_level=2,
+def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500, min_level=0,
                      my_random=None):
     if my_random is None:
         my_random = np.random.RandomState()
