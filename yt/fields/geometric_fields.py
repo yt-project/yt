@@ -32,6 +32,9 @@ from yt.utilities.math_utils import \
     get_cyl_z, get_sph_r, \
     get_sph_theta, get_sph_phi
 
+from yt.utilities.lib.geometry_utils import \
+    compute_morton
+
 @register_field_plugin
 def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     unit_system = registry.ds.unit_system
@@ -111,6 +114,27 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                        units="",
                        display_field=False)
 
+    def _morton_index(field, data):
+        """This is the morton index, which is properly a uint64 field.  Because
+        we make some assumptions that the fields returned by derived fields are
+        float64, this returns a "view" on the data that is float64.  To get
+        back the original uint64, you need to call .view("uint64") on it;
+        however, it should be true that if you sort the uint64, you will get
+        the same order as if you sort the float64 view.
+        """
+        eps = np.finfo("f8").eps
+        uq = data.ds.domain_left_edge.uq
+        LE = data.ds.domain_left_edge - eps * uq
+        RE = data.ds.domain_right_edge + eps * uq
+        # .ravel() only copies if it needs to
+        morton = compute_morton(data["index", "x"].ravel(),
+                                data["index", "y"].ravel(),
+                                data["index", "z"].ravel(), LE, RE)
+        morton.shape = data["index", "x"].shape
+        return morton.view("f8")
+    registry.add_field(("index", "morton_index"), function=_morton_index,
+                       units = "")
+        
     def _spherical_radius(field, data):
         """The spherical radius component of the positions of the mesh cells.
 
