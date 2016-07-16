@@ -421,7 +421,7 @@ class StereoPerspectiveLens(Lens):
         camera.width[1] = camera.width[0] * (2. * res[1] / res[0])
 
         if self.disparity is None:
-            self.disparity = 2. * camera.width[0] / camera.resolution[0]
+            self.disparity = 3. * camera.width[0] / camera.resolution[0]
 
         px_left, py_left, dz_left = self._get_px_py_dz(
             camera, pos, res, -self.disparity)
