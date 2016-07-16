@@ -22,9 +22,11 @@ from nose.tools import assert_true
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal
+    assert_array_almost_equal, assert_raises
 from yt.utilities.answer_testing.framework import \
     requires_ds, data_dir_load, PlotWindowAttributeTest
+from yt.utilities.exceptions import \
+    YTInvalidFieldType
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
@@ -419,3 +421,11 @@ def test_on_off_compare():
     sl_off = OffAxisSlicePlot(ds, L, 'density', center=[0,0,0], north_vector=north_vector)
 
     assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+
+def test_plot_particle_field_error():
+    ds = fake_random_ds(32, particles=100)
+    assert_raises(YTInvalidFieldType, SlicePlot, ds, 2, 'particle_mass')
+    assert_raises(
+        YTInvalidFieldType, SlicePlot, ds, 2, ['particle_mass', 'density'])
+    assert_raises(
+        YTInvalidFieldType, SlicePlot, ds, 2, ['density', 'particle_mass'])

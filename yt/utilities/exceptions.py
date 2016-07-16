@@ -545,6 +545,20 @@ class YTInvalidShaderType(YTException):
     def __str__(self):
         return "Can't identify shader_type for file '%s.'" % (self.source)
 
+class YTInvalidFieldType(YTException):
+    def __init__(self, fields):
+        self.fields = fields
+
+    def __str__(self):
+        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can only "
+               "plot fields that\n"
+               "are defined on a mesh, but received the following particle "
+               "fields:\n\n"
+               "    %s\n\n"
+               "Did you mean to use ParticlePlot or plot a deposited particle "
+               "field instead?" % self.fields)
+        return msg
+
 class YTUnknownUniformKind(YTException):
     def __init__(self, kind):
         self.kind = kind

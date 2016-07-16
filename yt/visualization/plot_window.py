@@ -65,7 +65,8 @@ from yt.utilities.exceptions import \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
     YTPlotCallbackError, \
-    YTDataTypeUnsupported
+    YTDataTypeUnsupported, \
+    YTInvalidFieldType
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
@@ -185,6 +186,7 @@ class PlotWindow(ImagePlotContainer):
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
+        self._validate_mesh_fields()
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique is False:
@@ -272,6 +274,16 @@ class PlotWindow(ImagePlotContainer):
         # Restore the override fields
         for key in self.override_fields:
             self._frb[key]
+
+    def _validate_mesh_fields(self):
+        canonical_fields = self.data_source._determine_fields(self.fields)
+        invalid_fields = []
+        for field in canonical_fields:
+            if self.data_source.ds.field_info[field].particle_type is True:
+                invalid_fields.append(field)
+
+        if len(invalid_fields) > 0:
+            raise YTInvalidFieldType(invalid_fields)
 
     @property
     def width(self):
