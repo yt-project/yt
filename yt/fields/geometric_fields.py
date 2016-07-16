@@ -51,21 +51,33 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
 
     def _grid_level(field, data):
         """The AMR refinement level"""
-        return np.ones(data.ActiveDimensions)*(data.Level)
+        arr = np.ones(data.ires.shape, dtype="float64") 
+        arr *= data.ires
+        if data._spatial:
+            return data._reshape_vals(arr)
+        return arr
 
     registry.add_field(("index", "grid_level"),
                        function=_grid_level,
                        units="",
-                       validators=[ValidateGridType(), ValidateSpatial(0)])
+                       validators=[ValidateSpatial(0)])
 
     def _grid_indices(field, data):
         """The index of the leaf grid the mesh cells exist on"""
-        return np.ones(data["index", "ones"].shape)*(data.id-data._id_offset)
+        if hasattr(data, "domain_id"):
+            this_id = data.domain_id
+        else:
+            this_id = data.id - data._id_offset
+        arr = np.ones(data["index", "ones"].shape)
+        arr *= this_id
+        if data._spatial:
+            return data._reshape_vals(arr)
+        return arr
 
     registry.add_field(("index", "grid_indices"),
                        function=_grid_indices,
                        units="",
-                       validators=[ValidateGridType(), ValidateSpatial(0)],
+                       validators=[ValidateSpatial(0)],
                        take_log=False)
 
     def _ones_over_dx(field, data):
