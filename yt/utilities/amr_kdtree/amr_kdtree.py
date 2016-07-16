@@ -28,6 +28,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.lib.grid_traversal import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
+from yt.geometry.grid_geometry_handler import GridIndex
 
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],
@@ -137,6 +138,11 @@ class Tree(object):
 
 
 class AMRKDTree(ParallelAnalysisInterface):
+    r"""A KDTree for AMR data. 
+
+    Not applicable to particle or octree-based datasets.
+
+    """
 
     fields = None
     log_fields = None
@@ -144,6 +150,9 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def __init__(self, ds, min_level=None, max_level=None,
                  data_source=None):
+
+        if not issubclass(ds.index.__class__, GridIndex):
+            raise RuntimeError("AMRKDTree does not support particle or octree-based data.")
 
         ParallelAnalysisInterface.__init__(self)
 
