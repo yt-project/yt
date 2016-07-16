@@ -1105,7 +1105,7 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Create vectors in the x,y,z directions
         for i in range(3):
-            positions[2*i+1, i] += camera.width.d[i] / 16.0
+            positions[2*i+1, i] += camera.width.in_units('code_length').d[i] / 16.0
 
         # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
