@@ -301,7 +301,7 @@ following:
 Off Axis Projection Plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Internally, off axis projections are created using :ref:`the-camera-interface`
+Internally, off axis projections are created using :ref:`camera`
 by applying the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`.
 In this use case, the volume renderer casts a set of plane parallel rays, one

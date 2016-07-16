@@ -193,7 +193,7 @@ It's now possible to import all yt functionality using ``import yt``. Rather
 than using ``from yt.mods import *``, we suggest using ``import yt`` in new
 scripts.  Most commonly used yt functionality is attached to the ``yt`` module.
 Load a dataset with ``yt.load()``, create a phase plot using ``yt.PhasePlot``,
-and much more, see :ref:`the api docs api-reference` to learn more about what's
+and much more, see the api docs :ref:`api-reference` to learn more about what's
 in the ``yt`` namespace, or just use tab completion in IPython: ``yt.<tab>``.
 
 It's still possible to use ``from yt.mods import *`` to create an interactive
