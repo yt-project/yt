@@ -98,7 +98,7 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     See Also
     --------
-    add_callback, add_filter, add_finding_method, add_quantity
+    add_callback, add_filter, add_quantity, add_recipe
 
     """
 
