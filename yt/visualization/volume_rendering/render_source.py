@@ -811,8 +811,8 @@ class PointSource(OpaqueSource):
     Parameters
     ----------
     positions: array, shape (N, 3)
-        These positions, in data-space coordinates, are the points to be
-        added to the scene.
+        The positions of points to be added to the scene. If specified wih no
+        units, the positions will be assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.
@@ -829,18 +829,19 @@ class PointSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
+    >>> from yt.units import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    
+
     >>> im, sc = yt.volume_render(ds)
-    
+
     >>> npoints = 1000
-    >>> vertices = np.random.random([npoints, 3])
+    >>> vertices = np.random.random([npoints, 3]) * 1000 * kpc
     >>> colors = np.random.random([npoints, 4])
     >>> colors[:,3] = 1.0
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
-    
+
     >>> im = sc.render()
 
     """
@@ -912,19 +913,25 @@ class LineSource(OpaqueSource):
     This class provides a mechanism for adding lines to a scene; these
     points will be opaque, and can also be colored.
 
+    .. note::
+
+        If adding a LineSource to your rendering causes the image to appear
+        blank or fades a VolumeSource, try lowering the values specified in
+        the alpha channel of the ``colors`` array.
+
     Parameters
     ----------
     positions: array, shape (N, 2, 3)
-        These positions, in data-space coordinates, are the starting and
-        stopping points for each pair of lines. For example,
-        positions[0][0] and positions[0][1] would give the (x, y, z)
+        The positions of the starting and stopping points for each line.
+        For example,positions[0][0] and positions[0][1] would give the (x, y, z)
         coordinates of the beginning and end points of the first line,
-        respectively.
+        respectively. If specified with no units, assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
-        point running from 0..1.  Note that they correspond to the line
-        segment succeeding each point; this means that strictly speaking
-        they need only be (N-1) in length.
+        point running from 0..1.  The fourth channels correspond to r, g, b, and
+        alpha values. Note that they correspond to the line segment succeeding
+        each point; this means that strictly speaking they need only be (N-1)
+        in length.
     color_stride : int, optional
         The stride with which to access the colors when putting them on the
         scene.
@@ -938,20 +945,21 @@ class LineSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
+    >>> from yt.units import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    
+
     >>> im, sc = yt.volume_render(ds)
-    
-    >>> npoints = 100
-    >>> vertices = np.random.random([npoints, 2, 3])
-    >>> colors = np.random.random([npoints, 4])
+
+    >>> nlines = 4
+    >>> vertices = np.random.random([nlines, 2, 3]) * 600 * kpc
+    >>> colors = np.random.random([nlines, 4])
     >>> colors[:,3] = 1.0
-    
+
     >>> lines = LineSource(vertices, colors)
     >>> sc.add_source(lines)
 
     >>> im = sc.render()
-    
+
     """
 
     _image = None

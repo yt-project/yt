@@ -34,7 +34,9 @@ from .render_source import \
     GridSource, \
     RenderSource, \
     MeshSource, \
-    VolumeSource
+    VolumeSource, \
+    PointSource, \
+    LineSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -157,6 +159,10 @@ class Scene(object):
                 raise NotImplementedError(
                     "Line annotation sources are not supported for %s."
                     % (type(self.camera.lens).__name__), )
+
+        if isinstance(render_source, (LineSource, PointSource)):
+            render_source.positions = \
+                self.arr(render_source.positions).in_units('code_length').d
 
         self.sources[keyname] = render_source
 

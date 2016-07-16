@@ -303,6 +303,26 @@ new developments and the infrastructure described in :ref:`volume_rendering`.
 
 .. yt_cookbook:: vol-annotated.py
 
+.. _cookbook-vol-points:
+
+Volume Rendering with Points
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrate how to make a volume rendering composited with point
+sources. This could represent star or dark matter particles, for example.
+
+.. yt_cookbook:: vol-points.py
+
+.. _cookbook-vol-lines:
+
+Volume Rendering with Lines
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrate how to make a volume rendering composited with point
+sources.
+
+.. yt_cookbook:: vol-lines.py
+
 .. _cookbook-opengl_vr:
 
 Advanced Interactive Data Visualization
