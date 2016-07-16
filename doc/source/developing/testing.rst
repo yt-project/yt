@@ -487,7 +487,7 @@ Enabling Answer Tests on Jenkins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
-integration server <http://tests.yt-project.org>`_. While unit tests are
+integration server <https://tests.yt-project.org>`_. While unit tests are
 autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in

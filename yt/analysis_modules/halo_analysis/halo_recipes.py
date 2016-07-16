@@ -47,7 +47,7 @@ def calculate_virial_quantities(hc, fields,
     1. Create a sphere data container.
     2. Create 1D radial profiles of overdensity and any requested fields.
     3. Call virial_quantities callback to interpolate profiles for
-       value of critical overdensity.
+        value of critical overdensity.
     4. Delete profile and sphere objects from halo.
 
     Parameters

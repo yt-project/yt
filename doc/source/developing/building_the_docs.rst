@@ -176,6 +176,7 @@ used to generate the yt documentation during the release of yt 3.2 in 2015.
 .. _Sphinx: http://sphinx-doc.org/
 .. _pandoc: http://johnmacfarlane.net/pandoc/
 .. _ffmpeg: http://www.ffmpeg.org/
+.. _IPython: https://ipython.org/
 
 You will also need the full yt suite of `yt test data
 <http://yt-project.org/data/>`_, including the larger datasets that are not used

@@ -121,8 +121,8 @@ groups in six phase-space dimensions and one time dimension, which
 allows for robust (grid-independent, shape-independent, and noise-
 resilient) tracking of substructure. The code is prepackaged with yt,
 but also `separately available <https://bitbucket.org/gfcstanford/rockstar>`_. The lead
-developer is Peter Behroozi, and the methods are described in `Behroozi
-et al. 2011 <http://arxiv.org/abs/1110.4372>`_.
+developer is Peter Behroozi, and the methods are described in
+`Behroozi et al. 2011 <http://adsabs.harvard.edu/abs/2011arXiv1110.4372B>`_.
 In order to run the Rockstar halo finder in yt, make sure you've
 :ref:`installed it so that it can integrate with yt <rockstar-installation>`.
 
@@ -191,6 +191,8 @@ We use the halo list classes to recover the information.
 
 Inside the ``outbase`` directory there is a text file named ``datasets.txt``
 that records the connection between ds names and the Rockstar file names.
+
+.. _rockstar_installation:
 
 Installing Rockstar
 """""""""""""""""""

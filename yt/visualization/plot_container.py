@@ -469,7 +469,7 @@ class ImagePlotContainer(object):
 
         >>> slc = SlicePlot(ds, 'x', 'Density')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24, 'color':'blue'})
+        ...               'weight':'bold', 'size':24, 'color':'blue'})
 
         """
         from matplotlib.font_manager import FontProperties

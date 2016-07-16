@@ -1109,7 +1109,7 @@ class PhasePlot(ImagePlotContainer):
 
         >>> prof = ProfilePlot(ds.all_data(), 'density', 'temperature')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24, 'color':'blue'})
+        ...               'weight':'bold', 'size':24, 'color':'blue'})
 
         """
         from matplotlib.font_manager import FontProperties
