@@ -186,7 +186,6 @@ class PlotWindow(ImagePlotContainer):
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
-        self._validate_mesh_fields()
         self._set_window(bounds) # this automatically updates the data and plot
         self.origin = origin
         if self.data_source.center is not None and oblique is False:
@@ -1256,6 +1255,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect)
+        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1428,6 +1428,7 @@ class ProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
+        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1524,6 +1525,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
                              oblique=True, fontsize=fontsize)
+        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1667,6 +1669,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
             periodic=False, oblique=True, fontsize=fontsize)
+        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
