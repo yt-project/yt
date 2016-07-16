@@ -811,7 +811,7 @@ class PointSource(OpaqueSource):
     Parameters
     ----------
     positions: array, shape (N, 3)
-        The positions of points to be added to the scene. If specified wih no
+        The positions of points to be added to the scene. If specified with no
         units, the positions will be assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
@@ -928,7 +928,7 @@ class LineSource(OpaqueSource):
         respectively. If specified with no units, assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
-        point running from 0..1.  The fourth channels correspond to r, g, b, and
+        point running from 0..1.  The four channels correspond to r, g, b, and
         alpha values. Note that they correspond to the line segment succeeding
         each point; this means that strictly speaking they need only be (N-1)
         in length.

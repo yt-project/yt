@@ -308,7 +308,7 @@ new developments and the infrastructure described in :ref:`volume_rendering`.
 Volume Rendering with Points
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This recipe demonstrate how to make a volume rendering composited with point
+This recipe demonstrates how to make a volume rendering composited with point
 sources. This could represent star or dark matter particles, for example.
 
 .. yt_cookbook:: vol-points.py
@@ -318,7 +318,7 @@ sources. This could represent star or dark matter particles, for example.
 Volume Rendering with Lines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This recipe demonstrate how to make a volume rendering composited with point
+This recipe demonstrates how to make a volume rendering composited with point
 sources.
 
 .. yt_cookbook:: vol-lines.py
