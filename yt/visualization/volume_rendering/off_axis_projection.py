@@ -127,10 +127,8 @@ def off_axis_projection(data_source, center, normal_vector,
     funits = data_source.ds._get_field_info(item).units
 
     vol = VolumeSource(data_source, item)
-    ptf = ProjectionTransferFunction()
-    vol.set_transfer_function(ptf)
     if weight is None:
-        vol.set_fields([item])
+        vol.set_field(item)
     else:
         # This is a temporary field, which we will remove at the end.
         weightfield = ("index", "temp_weightfield")
@@ -147,7 +145,10 @@ def off_axis_projection(data_source, center, normal_vector,
         deps, _ = data_source.ds.field_info.check_derived_fields([weightfield])
         data_source.ds.field_dependencies.update(deps)
         fields = [weightfield, weight]
-        vol.set_fields(fields)
+        vol.set_field(weightfield)
+        vol.set_weight_field(weight)
+    ptf = ProjectionTransferFunction()
+    vol.set_transfer_function(ptf)
     camera = sc.add_camera(data_source)
     camera.set_width(width)
     if not iterable(resolution):
@@ -176,15 +177,11 @@ def off_axis_projection(data_source, center, normal_vector,
     vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
-    mylog.debug("Casting rays")
-    double_check = False
-    if double_check:
-        for brick in vol.volume.bricks:
-            for data in brick.my_data:
-                if np.any(np.isnan(data)):
-                    raise RuntimeError
+    fields = [vol.field]
+    if vol.weight_field is not None:
+        fields.append(vol.weight_field)
 
-    fields = vol.field
+    mylog.debug("Casting rays")
 
     for i, (grid, mask) in enumerate(data_source.blocks):
         data = [(grid[f] * mask).astype("float64") for f in fields]

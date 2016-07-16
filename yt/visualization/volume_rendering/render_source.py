@@ -12,6 +12,7 @@ RenderSource Class
 # -----------------------------------------------------------------------------
 
 import numpy as np
+from functools import wraps
 from yt.config import \
     ytcfg
 from yt.funcs import mylog, ensure_numpy_array
@@ -42,6 +43,37 @@ try:
 except ImportError:
     mesh_construction = NotAModule("pyembree")
     ytcfg["yt", "ray_tracing_engine"] = "yt"
+
+
+def invalidate_volume(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        ret = f(*args, **kwargs)
+        obj = args[0]
+        if isinstance(obj._transfer_function, ProjectionTransferFunction):
+            obj.sampler_type = 'projection'
+            obj._log_field = False
+            obj._use_ghost_zones = False
+        del obj.volume
+        obj._volume_valid = False
+        return ret
+    return wrapper
+
+def validate_volume(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        obj = args[0]
+        fields = [obj.field]
+        log_fields = [obj.log_field]
+        if obj.weight_field is not None:
+            fields.append(obj.weight_field)
+            log_fields.append(obj.log_field)
+        if obj._volume_valid is False:
+            obj.volume.set_fields(fields, log_fields,
+                                  no_ghost=(not obj.use_ghost_zones))
+        obj._volume_valid = True
+        return f(*args, **kwargs)
+    return wrapper
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -94,9 +126,6 @@ class VolumeSource(RenderSource):
         data object or dataset.
     fields : string
         The name of the field(s) to be rendered.
-    auto: bool, optional
-        If True, will build a default AMRKDTree and transfer function based
-        on the data.
 
     Examples
     --------
@@ -128,47 +157,157 @@ class VolumeSource(RenderSource):
     _image = None
     data_source = None
 
-    def __init__(self, data_source, field, auto=True):
+    def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
-        self.field = field
-        self.volume = None
         self.current_image = None
         self.check_nans = False
         self.num_threads = 0
         self.num_samples = 10
         self.sampler_type = 'volume-render'
 
-        # Error checking
-        assert(self.field is not None)
-        assert(self.data_source is not None)
+        self._volume_valid = False
 
-        # In the future these will merge
+        # these are caches for properties, defined below
+        self._volume = None
+        self._transfer_function = None
+        self._field = field
+        self._log_field = self.data_source.ds.field_info[field].take_log
+        self._use_ghost_zones = False
+        self._weight_field = None
+
+        self.tfh = TransferFunctionHelper(self.data_source.pf)
+        self.tfh.set_field(self.field)
+
+    @property
+    def transfer_function(self):
+        """The transfer function associated with this VolumeSource"""
+        if self._transfer_function is not None:
+            return self._transfer_function
+
+        if self.tfh.tf is not None:
+            self._transfer_function = self.tfh.tf
+            return self._transfer_function
+
+        mylog.info("Creating transfer function")
+        self.tfh.set_field(self.field)
+        self.tfh.set_log(self.log_field)
+        self.tfh.build_transfer_function()
+        self.tfh.setup_default()
+        self._transfer_function = self.tfh.tf
+
+        return self._transfer_function
+
+    @transfer_function.setter
+    def transfer_function(self, value):
+        self.tfh.tf = None
+        valid_types = (TransferFunction, ColorTransferFunction,
+                       ProjectionTransferFunction, type(None))
+        if not isinstance(value, valid_types):
+            raise RuntimeError("transfer_function not a valid type, "
+                               "received object of type %s" % type(value))
+        if isinstance(value, ProjectionTransferFunction):
+            self.sampler_type = 'projection'
+            if self._volume is not None:
+                fields = [self.field]
+                if self.weight_field is not None:
+                    fields.append(self.weight_field)
+                self._volume_valid = False
+        self._transfer_function = value
+
+    @property
+    def volume(self):
+        """The abstract volume associated with this VolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using a KDTree
+        """
+        if self._volume is None:
+            mylog.info("Creating volume")
+            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
+            self._volume = volume
+
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        assert(isinstance(value, AMRKDTree))
+        del self._volume
+        self._field = value.fields
+        self._log_field = value.log_fields
+        self._volume = value
+        self._volume_valid is True
+
+    @volume.deleter
+    def volume(self):
+        del self._volume
+        self._volume = None
+
+    @property
+    def field(self):
+        """The field to be rendered"""
+        return self._field
+
+    @field.setter
+    @invalidate_volume
+    def field(self, value):
+        field = self.data_source._determine_fields(value)
+        if len(field) > 1:
+            raise RuntimeError(
+                "VolumeSource.field can only be a single field but received "
+                "multiple fields: %s") % field
+        field = field[0]
+        if self._field != field:
+            log_field = self.data_source.ds.field_info[field].take_log
+            self.tfh.bounds = None
+        else:
+            log_field = self._log_field
+        self._log_field = log_field
+        self._field = value
         self.transfer_function = None
-        self.tfh = None
-        if auto:
-            self.build_defaults()
+        self.tfh.set_field(value)
+        self.tfh.set_log(log_field)
 
-    def build_defaults(self):
-        """Sets a default volume and transfer function"""
-        mylog.info("Creating default volume")
-        self.build_default_volume()
-        mylog.info("Creating default transfer function")
-        self.build_default_transfer_function()
+    @property
+    def log_field(self):
+        """Whether or not the field rendering is computed in log space"""
+        return self._log_field
+
+    @log_field.setter
+    @invalidate_volume
+    def log_field(self, value):
+        self.transfer_function = None
+        self.tfh.set_log(value)
+        self._log_field = value
+
+    @property
+    def use_ghost_zones(self):
+        """Whether or not ghost zones are used to estimate vertex-centered data
+        values at grid boundaries"""
+        return self._use_ghost_zones
+
+    @use_ghost_zones.setter
+    @invalidate_volume
+    def use_ghost_zones(self, value):
+        self._use_ghost_zones = value
+
+    @property
+    def weight_field(self):
+        """The weight field for the rendering
+
+        Currently this is only used for off-axis projections.
+        """
+        return self._weight_field
+
+    @weight_field.setter
+    @invalidate_volume
+    def weight_field(self, value):
+        self._weight_field = value
 
     def set_transfer_function(self, transfer_function):
         """Set transfer function for this source"""
-        if not isinstance(transfer_function,
-                          (TransferFunction, ColorTransferFunction,
-                           ProjectionTransferFunction)):
-            raise RuntimeError("transfer_function not of correct type")
-        if isinstance(transfer_function, ProjectionTransferFunction):
-            self.sampler_type = 'projection'
-            self.volume.set_fields([self.field], log_fields=[False], 
-                                   no_ghost=True, force=True)
-
         self.transfer_function = transfer_function
         return self
 
@@ -177,53 +316,71 @@ class VolumeSource(RenderSource):
         if self.data_source is None:
             raise RuntimeError("Data source not initialized")
 
-        if self.volume is None:
-            raise RuntimeError("Volume not initialized")
-
-        if self.transfer_function is None:
-            raise RuntimeError("Transfer Function not Supplied")
-
-    def build_default_transfer_function(self):
-        """Sets up a transfer function"""
-        self.tfh = \
-            TransferFunctionHelper(self.data_source.pf)
-        self.tfh.set_field(self.field)
-        self.tfh.build_transfer_function()
-        self.tfh.setup_default()
-        self.transfer_function = self.tfh.tf
-
-    def build_default_volume(self):
-        """Sets up an AMRKDTree based on the VolumeSource's field"""
-        self.volume = AMRKDTree(self.data_source.pf,
-                                data_source=self.data_source)
-        log_fields = [self.data_source.pf.field_info[self.field].take_log]
-        mylog.debug('Log Fields:' + str(log_fields))
-        self.volume.set_fields([self.field], log_fields, True)
-
     def set_volume(self, volume):
         """Associates an AMRKDTree with the VolumeSource"""
-        assert(isinstance(volume, AMRKDTree))
-        del self.volume
         self.volume = volume
+        return self
 
-    def set_fields(self, fields, no_ghost=True):
-        """Set the source's fields to render
+    def set_field(self, field):
+        """Set the source's field to render
 
         Parameters
         ----------
 
-        fields: field name or list of field names
-            The field or fields to render
-        no_ghost: boolean
-            If False, the AMRKDTree estimates vertex centered data using ghost
-            zones, which can eliminate seams in the resulting volume rendering.
-            Defaults to True for performance reasons.
+        field: field name
+            The field to render
         """
-        fields = self.data_source._determine_fields(fields)
-        log_fields = [self.data_source.ds.field_info[f].take_log
-                      for f in fields]
-        self.volume.set_fields(fields, log_fields, no_ghost)
-        self.field = fields
+        self.field = field
+        return self
+
+    def set_log(self, log_field):
+        """Set whether the rendering of the source's field is done in log space
+
+        Generally volume renderings of data whose values span a large dynamic
+        range should be done on log space and volume renderings of data with
+        small dynamic range should be done in linear space.
+
+        Parameters
+        ----------
+
+        log_field: boolean
+            If True, the volume rendering will be done in log space, and if False
+            will be done in linear space.
+        """
+        self.log_field = log_field
+        return self
+
+    def set_weight_field(self, weight_field):
+        """Set the source's weight field
+
+        .. note::
+
+          This is currently only used for renderings using the
+          ProjectionTransferFunction
+
+        Parameters
+        ----------
+
+        weight_field: field name
+            The weight field to use in the rendering
+        """
+        self.weight_field = weight_field
+        return self
+
+    def set_use_ghost_zones(self, use_ghost_zones):
+        """Set whether or not interpolation at grid edges uses ghost zones
+
+        Parameters
+        ----------
+
+        use_ghost_zones: boolean
+            If True, the AMRKDTree estimates vertex centered data using ghost
+            zones, which can eliminate seams in the resulting volume rendering.
+            Defaults to False for performance reasons.
+
+        """
+        self.use_ghost_zones = use_ghost_zones
+        return self
 
     def set_sampler(self, camera, interpolated=True):
         """Sets a volume render sampler
@@ -233,10 +390,10 @@ class VolumeSource(RenderSource):
         sampler types are supported.
 
         The 'interpolated' argument is only meaningful for projections. If True,
-        the data is first interpolated to the cell vertices, and then tri-linearly
-        interpolated to the ray sampling positions. If False, then the cell-centered
-        data is simply accumulated along the ray. Interpolation is always performed
-        for volume renderings.
+        the data is first interpolated to the cell vertices, and then
+        tri-linearly interpolated to the ray sampling positions. If False, then
+        the cell-centered data is simply accumulated along the
+        ray. Interpolation is always performed for volume renderings.
 
         """
         if self.sampler_type == 'volume-render':
@@ -250,6 +407,7 @@ class VolumeSource(RenderSource):
         self.sampler = sampler
         assert(self.sampler is not None)
 
+    @validate_volume
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
 
@@ -308,7 +466,8 @@ class VolumeSource(RenderSource):
             Whether or not this is being called from a higher level in the VR
             interface. Used to set the correct orientation.
         """
-        image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
+        if self._volume is not None:
+            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
@@ -320,7 +479,7 @@ class VolumeSource(RenderSource):
 
     def __repr__(self):
         disp = "<Volume Source>:%s " % str(self.data_source)
-        disp += "transfer_function:%s" % str(self.transfer_function)
+        disp += "transfer_function:%s" % str(self._transfer_function)
         return disp
 
 

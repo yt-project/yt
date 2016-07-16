@@ -38,7 +38,7 @@ print(kd_low_res.count_cells())
 # again.
 
 render_source.set_volume(kd_low_res)
-render_source.set_fields('density')
+render_source.set_field('density')
 sc.render()
 sc.save("v1.png", sigma_clip=6.0)
 

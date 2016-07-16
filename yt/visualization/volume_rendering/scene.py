@@ -292,8 +292,7 @@ class Scene(object):
             suffix = '.png'
             fname = '%s%s' % (fname, suffix)
 
-        if self._last_render is None:
-            self.render()
+        self.render()
 
         mylog.info("Saving render %s", fname)
         self._last_render.write_png(fname, sigma_clip=sigma_clip)
@@ -380,8 +379,7 @@ class Scene(object):
             suffix = '.png'
             fname = '%s%s' % (fname, suffix)
 
-        if self._last_render is None:
-            self.render()
+        self.render()
 
         # which transfer function?
         rs = rensources[0]
