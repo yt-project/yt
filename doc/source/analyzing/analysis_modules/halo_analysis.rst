@@ -14,3 +14,4 @@ and using the halo mass function.
    halo_finders
    halo_mass_function
    halo_merger_tree
+   ellipsoid_analysis
