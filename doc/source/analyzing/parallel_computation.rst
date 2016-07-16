@@ -21,7 +21,7 @@ Currently, yt is able to perform the following actions in parallel:
 * Derived Quantities (total mass, angular momentum, etc) (:ref:`creating_derived_quantities`,
   :ref:`derived-quantities`)
 * 1-, 2-, and 3-D profiles (:ref:`generating-profiles-and-histograms`)
-* Halo finding (:ref:`halo_finding`)
+* Halo analysis (:ref:`halo_analysis`)
 * Volume rendering (:ref:`volume_rendering`)
 * Isocontours & flux calculations (:ref:`extracting-isocontour-information`)
 
@@ -194,7 +194,7 @@ has been shown to obtain good results overall.
 
 The following operations use spatial decomposition:
 
-* :ref:`halo_finding`
+* :ref:`halo_analysis`
 * :ref:`volume_rendering`
 
 Grid Decomposition
@@ -501,7 +501,7 @@ biggest concern for halo finding is the amount of memory needed.  There is
 subtle art in estimating the amount of memory needed for halo finding, but a
 rule of thumb is that the HOP halo finder is the most memory intensive
 (:func:`HaloFinder`), and Friends of Friends (:func:`FOFHaloFinder`) being the
-most memory-conservative. For more information, see :ref:`halo_finding`.
+most memory-conservative. For more information, see :ref:`halo_analysis`.
 
 **Volume Rendering**
 

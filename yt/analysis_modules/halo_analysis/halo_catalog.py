@@ -269,6 +269,7 @@ class HaloCatalog(ParallelAnalysisInterface):
 
         Parameters
         ----------
+
         halo_recipe : string
             The name of the recipe.
 
@@ -292,6 +293,7 @@ class HaloCatalog(ParallelAnalysisInterface):
 
         Available Recipes
         -----------------
+
         calculate_virial_quantities
 
         """

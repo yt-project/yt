@@ -114,6 +114,7 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     Parameters
     ----------
+
     fields : field or list of fields
         The field or fields of which the average value is to be calculated.
     weight : field
@@ -358,6 +359,7 @@ class WeightedVariance(DerivedQuantity):
 
     Parameters
     ----------
+
     fields : field or list of fields
         The field or fields of which the variance and mean values are
         to be calculated.
@@ -582,6 +584,7 @@ class MaxLocation(SampleAtMaxFieldValues):
 
     Parameters
     ----------
+
     field : field
         The field over which the extrema are to be calculated.
 
@@ -631,6 +634,7 @@ class MinLocation(SampleAtMinFieldValues):
 
     Parameters
     ----------
+
     field : field
         The field over which the extrema are to be calculated.
 
