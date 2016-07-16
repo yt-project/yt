@@ -3,15 +3,17 @@
 Halo Analysis
 =============
 
-Using halo catalogs, understanding the different halo finding methods,
-and using the halo mass function.
+This section covers halo finding, performing extra analysis on halos,
+and the halo mass function calculator.  If you already have halo
+catalogs and simply want to load them into yt, see
+:ref:`halo-catalog-data`.
 
 .. toctree::
    :maxdepth: 2
 
-   halo_transition
    halo_catalogs
    halo_finders
    halo_mass_function
+   halo_transition
    halo_merger_tree
    ellipsoid_analysis
