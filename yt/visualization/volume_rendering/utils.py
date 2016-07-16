@@ -3,7 +3,7 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer3D
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
-from yt.utilities.lib.grid_traversal import \
+from yt.utilities.lib.image_samplers import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
 
 from yt.utilities.on_demand_imports import NotAModule
@@ -121,17 +121,6 @@ def new_projection_sampler(camera, render_source):
     sampler = ProjectionSampler(*args, **kwargs)
     return sampler
 
-def ensure_code_unit_params(params):
-    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
-        param = params[param_name]
-        if hasattr(param, 'in_units'):
-            params[param_name] = param.in_units('code_length')
-    bounds = params['bounds']
-    if hasattr(bounds[0], 'units'):
-        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
-
-    return params
-
 def get_corners(le, re):
     return np.array([
         [le[0], le[1], le[2]],
@@ -143,3 +132,14 @@ def get_corners(le, re):
         [re[0], re[1], re[2]],
         [le[0], re[1], re[2]],
         ], dtype='float64')
+
+def ensure_code_unit_params(params):
+    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
+        param = params[param_name]
+        if hasattr(param, 'in_units'):
+            params[param_name] = param.in_units('code_length')
+    bounds = params['bounds']
+    if hasattr(bounds[0], 'units'):
+        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
+    return params
+
