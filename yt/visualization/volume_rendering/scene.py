@@ -161,8 +161,9 @@ class Scene(object):
                     % (type(self.camera.lens).__name__), )
 
         if isinstance(render_source, (LineSource, PointSource)):
-            render_source.positions = \
-                self.arr(render_source.positions).in_units('code_length').d
+            if isinstance(render_source.positions, YTArray):
+                render_source.positions = \
+                    self.arr(render_source.positions).in_units('code_length').d
 
         self.sources[keyname] = render_source
 
