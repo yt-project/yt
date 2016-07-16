@@ -657,7 +657,9 @@ class SpinParameter(DerivedQuantity):
     Given by Equation 3 of Peebles (1971, A&A, 11, 377), the spin parameter
     is defined as
 
-    lambda = (L \* |E|^(1/2)) / (G \* M^5/2),
+    .. math::
+
+      \lambda = (L * |E|^(1/2)) / (G * M^5/2),
 
     where L is the total angular momentum, E is the total energy (kinetic and
     potential), G is the gravitational constant, and M is the total mass.

@@ -392,7 +392,6 @@ def fake_vr_orientation_test_ds(N = 96):
     return ds
 
 def expand_keywords(keywords, full=False):
-
     """
     expand_keywords is a means for testing all possible keyword
     arguments in the nosetests.  Simply pass it a dictionary of all the
@@ -408,23 +407,28 @@ def expand_keywords(keywords, full=False):
     list.  Be careful, by using full=True, you may be in for an exponentially
     larger number of tests!
 
+    Parameters
+    ----------
+
     keywords : dict
         a dictionary where the keys are the keywords for the function,
         and the values of each key are the possible values that this key
         can take in the function
 
-   full : bool
+    full : bool
         if set to True, every possible combination of given keywords is
         returned
 
     Returns
     -------
+
     array of dicts
         An array of dictionaries to be individually passed to the appropriate
         function matching these kwargs.
 
     Examples
     --------
+
     >>> keywords = {}
     >>> keywords['dpi'] = (50, 100, 200)
     >>> keywords['cmap'] = ('arbre', 'kelp')
