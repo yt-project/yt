@@ -1357,7 +1357,7 @@ For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard 
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 
-.. _loading-pyne-data:
+.. _halo-catalog-data:
 
 Halo Catalog Data
 -----------------
@@ -1513,6 +1513,8 @@ information.  At this time, halo member particles cannot be loaded.
    ad = ds.all_data()
    # The halo mass
    print(ad["FOF", "particle_mass"])
+
+.. _loading-pyne-data:
 
 PyNE Data
 ---------
