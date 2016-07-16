@@ -1,28 +1,42 @@
 .. _halo_catalog:
 
-Halo Catalogs
-=============
+Halo Finding and Analysis
+=========================
 
-Creating Halo Catalogs
-----------------------
-
-In yt 3.0, operations relating to the analysis of halos (halo finding,
-merger tree creation, and individual halo analysis) are all brought
-together into a single framework. This framework is substantially
-different from the halo analysis machinery available in yt-2.x and is
-entirely backward incompatible.
-For a direct translation of various halo analysis tasks using yt-2.x
-to yt-3.0 please see :ref:`halo-transition`.
-
-A catalog of halos can be created from any initial dataset given to halo
-catalog through data_ds. These halos can be found using friends-of-friends,
-HOP, and Rockstar. The finder_method keyword dictates which halo finder to
-use. The available arguments are :ref:`fof`, :ref:`hop`, and :ref:`rockstar`.
-For more details on the relative differences between these halo finders see
-:ref:`halo_finding`.
-
-The class which holds all of the halo information is the
+In yt-3.x, halo finding and analysis are combined into a single
+framework called the
 :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
+This framework is substantially different from the halo analysis
+machinery available in yt-2.x and is entirely backward incompatible.
+For a direct translation of various halo analysis tasks using yt-2.x
+to yt-3.x, see :ref:`halo-transition`.
+
+.. _halo_catalog_finding:
+
+Halo Finding
+------------
+
+If you already have a halo catalog, either produced by one of the methods
+below or in a format described in :ref:`halo-catalog-data`, and want to
+perform further analysis, skip to :ref:`halo_catalog_analysis`.
+
+Three halo finding methods exist within yt.  These are:
+
+* :ref:`fof`: a basic friend-of-friends algorithm (e.g. `Efstathiou et al. (1985)
+  <http://adsabs.harvard.edu/abs/1985ApJS...57..241E>`_)
+* :ref:`hop`: `Eisenstein and Hut (1998)
+  <http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_.
+* :ref:`rockstar`: a 6D phase-space halo finder developed by Peter Behroozi that
+  scales well and does substructure finding (`Behroozi et al.
+  2011 <http://adsabs.harvard.edu/abs/2011arXiv1110.4372B>`_)
+
+Halo finding is performed through the creation of a
+:class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
+object.  The dataset on which halo finding is to be performed should
+be loaded and given to the
+:class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
+along with the ``finder_method`` keyword to specify the method to be
+used.
 
 .. code-block:: python
 
@@ -31,6 +45,177 @@ The class which holds all of the halo information is the
 
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    hc = HaloCatalog(data_ds=data_ds, finder_method='hop')
+   hc.create()
+
+The ``finder_method`` options should be given as "fof", "hop", or
+"rockstar".  Each of these methods has their own set of keyword
+arguments to control functionality.  These can specified in the form
+of a dictinoary using the ``finder_kwargs`` keyword.
+
+.. code-block:: python
+
+   import yt
+   from yt.analysis_modules.halo_analysis.api import HaloCatalog
+
+   data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
+   hc = HaloCatalog(data_ds=data_ds, finder_method='fof',
+                    finder_kwargs={"ptype": "stars",
+                                   "padding": 0.02})
+   hc.create()
+
+For a full list of keywords for each halo finder, see
+:class:`~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder`,
+:class:`~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder`,
+and
+:class:`~yt.analysis_modules.halo_finding.rockstar.rockstar.RockstarHaloFinder`.
+
+FOF
+^^^
+
+This is a basic friends-of-friends algorithm.  See
+`Efstathiou et al. (1985)
+<http://adsabs.harvard.edu/abs/1985ApJS...57..241E>`_ for more
+details as well as
+:class:`~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder`.
+
+HOP
+^^^
+
+The version of HOP used in yt is an upgraded version of the
+`publicly available HOP code
+<http://cmb.as.arizona.edu/~eisenste/hop/hop.html>`_. Support
+for 64-bit floats and integers has been added, as well as
+parallel analysis through spatial decomposition. HOP builds
+groups in this fashion:
+
+#. Estimates the local density at each particle using a
+   smoothing kernel.
+
+#. Builds chains of linked particles by 'hopping' from one
+   particle to its densest neighbor. A particle which is
+   its own densest neighbor is the end of the chain.
+
+#. All chains that share the same densest particle are
+   grouped together.
+
+#. Groups are included, linked together, or discarded
+   depending on the user-supplied over density
+   threshold parameter. The default is 160.0.
+
+See the `HOP method paper
+<http://adsabs.harvard.edu/abs/1998ApJ...498..137E>`_ for
+full details as well as
+:class:`~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder`.
+
+Rockstar
+^^^^^^^^
+
+Rockstar uses an adaptive hierarchical refinement of friends-of-friends
+groups in six phase-space dimensions and one time dimension, which
+allows for robust (grid-independent, shape-independent, and noise-
+resilient) tracking of substructure. The code is prepackaged with yt,
+but also `separately available <https://bitbucket.org/gfcstanford/rockstar>`_. The lead
+developer is Peter Behroozi, and the methods are described in `Behroozi
+et al. 2011 <http://arxiv.org/abs/1110.4372>`_.
+In order to run the Rockstar halo finder in yt, make sure you've
+:ref:`installed it so that it can integrate with yt <rockstar-installation>`.
+
+At the moment, Rockstar does not support multiple particle masses,
+instead using a fixed particle mass. This will not affect most dark matter
+simulations, but does make it less useful for finding halos from the stellar
+mass. In simulations where the highest-resolution particles all have the
+same mass (ie: zoom-in grid based simulations), one can set up a particle
+filter to select the lowest mass particles and perform the halo finding
+only on those.  See the this cookbook recipe for an example:
+:ref:`cookbook-rockstar-nested-grid`.
+
+To run the Rockstar Halo finding, you must launch python with MPI and
+parallelization enabled. While Rockstar itself does not require MPI to run,
+the MPI libraries allow yt to distribute particle information across multiple
+nodes.
+
+.. warning:: At the moment, running Rockstar inside of yt on multiple compute nodes
+   connected by an Infiniband network can be problematic. Therefore, for now
+   we recommend forcing the use of the non-Infiniband network (e.g. Ethernet)
+   using this flag: ``--mca btl ^openib``.
+   For example, here is how Rockstar might be called using 24 cores:
+   ``mpirun -n 24 --mca btl ^openib python ./run_rockstar.py --parallel``.
+
+The script above configures the Halo finder, launches a server process which
+disseminates run information and coordinates writer-reader processes.
+Afterwards, it launches reader and writer tasks, filling the available MPI
+slots, which alternately read particle information and analyze for halo
+content.
+
+The RockstarHaloFinder class has these options that can be supplied to the
+halo catalog through the ``finder_kwargs`` argument:
+
+* ``dm_type``, the index of the dark matter particle. Default is 1.
+* ``outbase``, This is where the out*list files that Rockstar makes should be
+  placed. Default is 'rockstar_halos'.
+* ``num_readers``, the number of reader tasks (which are idle most of the
+  time.) Default is 1.
+* ``num_writers``, the number of writer tasks (which are fed particles and
+  do most of the analysis). Default is MPI_TASKS-num_readers-1.
+  If left undefined, the above options are automatically
+  configured from the number of available MPI tasks.
+* ``force_res``, the resolution that Rockstar uses for various calculations
+  and smoothing lengths. This is in units of Mpc/h.
+  If no value is provided, this parameter is automatically set to
+  the width of the smallest grid element in the simulation from the
+  last data snapshot (i.e. the one where time has evolved the
+  longest) in the time series:
+  ``ds_last.index.get_smallest_dx() * ds_last['Mpch']``.
+* ``total_particles``, if supplied, this is a pre-calculated
+  total number of dark matter
+  particles present in the simulation. For example, this is useful
+  when analyzing a series of snapshots where the number of dark
+  matter particles should not change and this will save some disk
+  access time. If left unspecified, it will
+  be calculated automatically. Default: ``None``.
+* ``dm_only``, if set to ``True``, it will be assumed that there are
+  only dark matter particles present in the simulation.
+  This option does not modify the halos found by Rockstar, however
+  this option can save disk access time if there are no star particles
+  (or other non-dark matter particles) in the simulation. Default: ``False``.
+
+Rockstar dumps halo information in a series of text (halo*list and
+out*list) and binary (halo*bin) files inside the ``outbase`` directory.
+We use the halo list classes to recover the information.
+
+Inside the ``outbase`` directory there is a text file named ``datasets.txt``
+that records the connection between ds names and the Rockstar file names.
+
+Installing Rockstar
+"""""""""""""""""""
+
+Because of changes in the Rockstar API over time, yt only currently works with
+a slightly older version of Rockstar.  This version of Rockstar has been
+slightly patched and modified to run as a library inside of yt. By default it
+is not installed with yt, but installation is very easy.  The
+:ref:`install-script` used to install yt from source has a line:
+``INST_ROCKSTAR=0`` that must be changed to ``INST_ROCKSTAR=1``.  You can
+rerun this installer script over the top of an existing installation, and
+it will only install components missing from the existing installation.
+You can do this as follows.  Put your freshly modified install_script in
+the parent directory of the yt installation directory (e.g. the parent of
+``$YT_DEST``, ``yt-x86_64``, ``yt-i386``, etc.), and rerun the installer:
+
+.. code-block:: bash
+
+    cd $YT_DEST
+    cd ..
+    vi install_script.sh  // or your favorite editor to change INST_ROCKSTAR=1
+    bash < install_script.sh
+
+This will download Rockstar and install it as a library in yt.
+
+.. _halo_catalog_analysis:
+
+Analysis Using Halo Catalogs
+----------------------------
+
+
 
 A halo catalog may also be created from already run rockstar outputs.
 This method is not implemented for previously run friends-of-friends or
@@ -60,8 +245,6 @@ A data object can also be supplied via the keyword ``data_source``,
 associated with either dataset, to control the spatial region in
 which halo analysis will be performed.
 
-Analysis Using Halo Catalogs
-----------------------------
 
 Analysis is done by adding actions to the
 :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
