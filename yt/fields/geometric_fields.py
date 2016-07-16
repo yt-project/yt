@@ -18,7 +18,6 @@ import numpy as np
 
 from .derived_field import \
     ValidateParameter, \
-    ValidateGridType, \
     ValidateSpatial
 
 from .field_functions import \
