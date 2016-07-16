@@ -471,10 +471,10 @@ class VolumeSource(RenderSource):
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if call_from_VR is True: 
+        if call_from_VR is True:
             image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
+            image[:, :, 3] = 1
         return image
 
     def __repr__(self):
@@ -858,7 +858,6 @@ class PointSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
-            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -974,7 +973,6 @@ class LineSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
-            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -1016,14 +1014,15 @@ class LineSource(OpaqueSource):
         py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
+                   self.color_stride)
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors, 
-                   self.color_stride)
-            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors, 
-                   self.color_stride)
+            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
+                   self.colors.astype('float64'), self.color_stride)
+            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
+                   self.colors.astype('float64'), self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -1180,7 +1179,7 @@ class GridSource(LineSource):
         colors = apply_colormap(
             levels*1.0,
             color_bounds=[0, self.data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]*alpha/255.
+            cmap_name=cmap)[0, :, :]/255.
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
@@ -1230,9 +1229,9 @@ class CoordinateVectorSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.zeros((3, 4))
-            colors[0, 0] = alpha  # x is red
-            colors[1, 1] = alpha  # y is green
-            colors[2, 2] = alpha  # z is blue
+            colors[0, 0] = 1.0  # x is red
+            colors[1, 1] = 1.0  # y is green
+            colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
         self.color_stride = 2
@@ -1316,14 +1315,15 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
+                   self.color_stride)
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors,
-                   self.color_stride)
-            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors,
-                   self.color_stride)
+            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
+                   self.colors.astype('float64'), self.color_stride)
+            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
+                   self.colors.astype('float64'), self.color_stride)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

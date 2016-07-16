@@ -348,8 +348,10 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
         if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
             continue
 
-        for i in range(4):
-            alpha[i] = colors[j/points_per_color, i]
+        for i in range(3):
+            alpha[i] = (colors[j/points_per_color, i] *
+                        colors[j/points_per_color, 3])
+        alpha[3] = colors[j/points_per_color, 3]
 
         if x0 < x1:
             sx = 1
