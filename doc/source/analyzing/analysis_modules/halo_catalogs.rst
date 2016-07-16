@@ -212,32 +212,20 @@ This will download Rockstar and install it as a library in yt.
 
 .. _halo_catalog_analysis:
 
-Analysis Using Halo Catalogs
-----------------------------
+Extra Halo Analysis
+-------------------
 
-
-
-A halo catalog may also be created from already run rockstar outputs.
-This method is not implemented for previously run friends-of-friends or
-HOP finders. Even though rockstar creates one file per processor,
-specifying any one file allows the full catalog to be loaded. Here we
-only specify the file output by the processor with ID 0. Note that the
-argument for supplying a rockstar output is `halos_ds`, not `data_ds`.
-
-.. code-block:: python
-
-   halos_ds = yt.load(path+'rockstar_halos/halos_0.0.bin')
-   hc = HaloCatalog(halos_ds=halos_ds)
-
-Although supplying only the binary output of the rockstar halo finder
-is sufficient for creating a halo catalog, it is not possible to find
-any new information about the identified halos. To associate the halos
-with the dataset from which they were found, supply arguments to both
-halos_ds and data_ds.
+As a reminder, all halo catalogs created by the methods outlined in
+:ref:`halo_catalog_finding` as well as those in the formats discussed in
+:ref:`halo-catalog-data` can be loaded in to yt as first-class datasets.
+Once a halo catalog has been created, further analysis can be performed
+by providing both the halo catalog and the original simulation dataset to
+the
+:class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
 
 .. code-block:: python
 
-   halos_ds = yt.load(path+'rockstar_halos/halos_0.0.bin')
+   halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
    data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
    hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
 
@@ -245,21 +233,27 @@ A data object can also be supplied via the keyword ``data_source``,
 associated with either dataset, to control the spatial region in
 which halo analysis will be performed.
 
-
-Analysis is done by adding actions to the
+The :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
+allows the user to create a pipeline of analysis actions that will be
+performed on all halos in the existing catalog.  The analysis can be
+performed in parallel with separate processors or groups of processors
+being allocated to perform the entire pipeline on individual halos.
+The pipeline is setup by adding actions to the
 :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`.
 Each action is represented by a callback function that will be run on
 each halo.  There are four types of actions:
 
-* Filters
-* Quantities
-* Callbacks
-* Recipes
+* :ref:`halo_catalog_filters`
+* :ref:`halo_catalog_quantities`
+* :ref:`halo_catalog_callbacks`
+* :ref:`halo_catalog_recipes`
 
 A list of all available filters, quantities, and callbacks can be found in
 :ref:`halo_analysis_ref`.
 All interaction with this analysis can be performed by importing from
 halo_analysis.
+
+.. _halo_catalog_filters:
 
 Filters
 ^^^^^^^
@@ -300,6 +294,8 @@ An example of defining your own filter:
 
    # ... Later on in your script
    hc.add_filter("my_filter")
+
+.. _halo_catalog_quantities:
 
 Quantities
 ^^^^^^^^^^
@@ -359,6 +355,8 @@ This quantity will then be accessible for functions called later via the
    # ... Anywhere after "my_quantity" has been called
    hc.add_callback("print_quantity")
 
+.. _halo_catalog_callbacks:
+
 Callbacks
 ^^^^^^^^^
 
@@ -396,6 +394,8 @@ An example of defining your own callback:
 
    # ...  Later on in your script
    hc.add_callback("my_callback")
+
+.. _halo_catalog_recipes:
 
 Recipes
 ^^^^^^^
@@ -441,8 +441,8 @@ Note, that unlike callback, filter, and quantity functions that take a ``Halo``
 object as the first argument, recipe functions should take a ``HaloCatalog``
 object as the first argument.
 
-Running Analysis
-----------------
+Running the Pipeline
+--------------------
 
 After all callbacks, quantities, and filters have been added, the
 analysis begins with a call to HaloCatalog.create.
@@ -473,7 +473,7 @@ Saving and Reloading Halo Catalogs
 
 A :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
 saved to disk can be reloaded as a yt dataset with the
-standard call to load. Any side data, such as profiles, can be reloaded
+standard call to ``yt.load``. Any side data, such as profiles, can be reloaded
 with a ``load_profiles`` callback and a call to
 :func:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog.load`.
 
@@ -486,8 +486,8 @@ with a ``load_profiles`` callback and a call to
                    filename="virial_profiles")
    hc.load()
 
-Worked Example of Halo Catalog in Action
-----------------------------------------
+Halo Catalog in Action
+----------------------
 
 For a full example of how to use these methods together see
 :ref:`halo-analysis-example`.
