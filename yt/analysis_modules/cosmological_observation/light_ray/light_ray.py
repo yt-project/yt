@@ -647,8 +647,8 @@ class LightRay(CosmologySplice):
         for q, my_segment in enumerate(self.light_ray_solution):
             f.write("%04d    %.6f %.6f % .10f % .10f % .10f % .10f % .10f % .10f %s\n" % \
                     (q, my_segment['redshift'], my_segment['traversal_box_fraction'],
-                     my_segment['start'][0], my_segment['start'][1], my_segment['start'][2],
-                     my_segment['end'][0], my_segment['end'][1], my_segment['end'][2],
+                     my_segment['start'],
+                     my_segment['end'],
                      my_segment['filename']))
         f.close()
 
