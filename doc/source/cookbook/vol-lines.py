@@ -3,11 +3,11 @@ import numpy as np
 from yt.visualization.volume_rendering.api import LineSource
 from yt.units import kpc
 
-np.random.seed(1234567)
-
 ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 
-im, sc = yt.volume_render(ds)
+sc = yt.create_scene(ds)
+
+np.random.seed(1234567)
 
 nlines = 50
 vertices = (np.random.random([nlines, 2, 3]) - 0.5) * 250 * kpc
