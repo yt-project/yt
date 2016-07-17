@@ -273,7 +273,7 @@ class LightRay(CosmologySplice):
                             'near_redshift':self.near_redshift})
 
     def make_light_ray(self, seed=None,
-                       left_edge=None, right_edge=None, 
+                       left_edge=None, right_edge=None, min_level=None,
                        start_position=None, end_position=None,
                        trajectory=None,
                        fields=None, setup_function=None,
