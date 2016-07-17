@@ -267,6 +267,8 @@ class HaloCatalog(ParallelAnalysisInterface):
         and/or filters called in succession.  Recipes can be used to store a more
         complex series of analysis tasks as a single entity.
 
+        Currently, the available recipe is ``calculate_virial_quantities``.
+
         Parameters
         ----------
 
