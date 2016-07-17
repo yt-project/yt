@@ -1,22 +1,23 @@
 import yt
-import numpy as np
-from yt.visualization.volume_rendering.api import BoxSource, CoordinateVectorSource
 
 # Load the dataset.
 ds = yt.load("Enzo_64/DD0043/data0043")
-sc = yt.create_scene(ds, ('gas','density'))
-sc.get_source(0).transfer_function.grey_opacity=True
+sc = yt.create_scene(ds, ('gas', 'density'))
 
-sc.annotate_domain(ds)
+# You may need to adjust the alpha values to get a rendering with good contrast
+# For annotate_domain, the fourth color value is alpha.
+
+# Draw the domain boundary
+sc.annotate_domain(ds, color=[1, 1, 1, 0.01])
 sc.render()
 sc.save("%s_vr_domain.png" % ds)
 
-sc.annotate_grids(ds)
+# Draw the grid boundaries
+sc.annotate_grids(ds, alpha=0.01)
 sc.render()
 sc.save("%s_vr_grids.png" % ds)
 
-# Here we can draw the coordinate vectors on top of the image by processing
-# it through the camera. Then save it out.
-sc.annotate_axes()
+# Draw a coordinate axes triad
+sc.annotate_axes(alpha=0.01)
 sc.render()
 sc.save("%s_vr_coords.png" % ds)
