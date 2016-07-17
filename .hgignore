@@ -37,9 +37,11 @@ yt/utilities/lib/element_mappings.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
 yt/utilities/lib/geometry_utils.c
+yt/utilities/lib/image_samplers.c
 yt/utilities/lib/image_utilities.c
 yt/utilities/lib/interpolators.c
 yt/utilities/lib/kdtree.c
+yt/utilities/lib/lenses.c
 yt/utilities/lib/line_integral_convolution.c
 yt/utilities/lib/mesh_construction.cpp
 yt/utilities/lib/mesh_intersection.cpp
@@ -49,6 +51,7 @@ yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
 yt/utilities/lib/particle_mesh_operations.c
+yt/utilities/lib/partitioned_grid.c
 yt/utilities/lib/primitives.c
 yt/utilities/lib/origami.c
 yt/utilities/lib/particle_mesh_operations.c
