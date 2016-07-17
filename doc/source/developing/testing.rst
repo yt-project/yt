@@ -103,7 +103,7 @@ To create new unit tests:
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
    assert statements or functions.  
-# Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
+#. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
    ``argument_two``, etc.  For example ``yield assert_equal, 1.0, 1.0`` would be
    captured by nose as a test that asserts that 1.0 is equal to 1.0.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for

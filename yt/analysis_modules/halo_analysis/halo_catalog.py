@@ -291,11 +291,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         >>>
         >>> hc.create()
 
-        Available Recipes
-        -----------------
-
-        calculate_virial_quantities
-
         """
 
         halo_recipe = recipe_registry.find(recipe, *args, **kwargs)

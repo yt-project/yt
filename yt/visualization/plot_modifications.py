@@ -1852,11 +1852,9 @@ class TimestampCallback(PlotCallback):
 
             "plot" -- the 2D coordinates defined by the actual plot limits
 
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
@@ -1866,8 +1864,7 @@ class TimestampCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
-                  'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
+        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
@@ -2028,11 +2025,9 @@ class ScaleCallback(PlotCallback):
 
             "plot" -- the 2D coordinates defined by the actual plot limits
 
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties
@@ -2051,8 +2046,7 @@ class ScaleCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
-        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 
-                    'alpha': 0.5, 'boxstyle': 'square'}``
+        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
 
     Example

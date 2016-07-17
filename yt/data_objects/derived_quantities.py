@@ -537,7 +537,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
 
     Parameters
     ----------
-    field : field
+    field : tuple or string
         The field over which the extrema are to be calculated.
     sample_fields : list of fields
         The fields to sample and return at the minimum value.
@@ -585,7 +585,7 @@ class MaxLocation(SampleAtMaxFieldValues):
     Parameters
     ----------
 
-    field : field
+    field : tuple or string
         The field over which the extrema are to be calculated.
 
     Examples
@@ -611,7 +611,7 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
 
     Parameters
     ----------
-    field : field
+    field : tuple or string
         The field over which the extrema are to be calculated.
     sample_fields : list of fields
         The fields to sample and return at the minimum value.
@@ -635,7 +635,7 @@ class MinLocation(SampleAtMinFieldValues):
     Parameters
     ----------
 
-    field : field
+    field : tuple or string
         The field over which the extrema are to be calculated.
 
     Examples
