@@ -28,7 +28,7 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
 from yt.utilities.lib.amr_kdtools import Node
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.lib.grid_traversal import PartitionedGrid
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
 
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],

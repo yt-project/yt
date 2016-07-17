@@ -21,7 +21,7 @@ from yt.funcs import mylog, get_pbar
 from yt.utilities.lib.contour_finding import \
     ContourTree, TileContourTree, link_node_contours, \
     update_joins
-from yt.utilities.lib.grid_traversal import \
+from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 
 def identify_contours(data_source, field, min_val, max_val,

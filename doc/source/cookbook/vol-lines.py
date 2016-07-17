@@ -12,7 +12,7 @@ np.random.seed(1234567)
 nlines = 50
 vertices = (np.random.random([nlines, 2, 3]) - 0.5) * 250 * kpc
 colors = np.random.random([nlines, 4])
-colors[:, 3] = 1.0
+colors[:, 3] = 0.1
 
 lines = LineSource(vertices, colors)
 sc.add_source(lines)

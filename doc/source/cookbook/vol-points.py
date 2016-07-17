@@ -12,7 +12,8 @@ np.random.seed(1234567)
 npoints = 1000
 vertices = np.random.random([npoints, 3])*200*kpc
 colors = np.random.random([npoints, 4])
-colors[:, 3] = 1.0
+colors[:, 3] = 1
+colors *= 0.1
 
 points = PointSource(vertices, colors=colors)
 sc.add_source(points)

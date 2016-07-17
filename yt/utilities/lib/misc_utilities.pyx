@@ -348,8 +348,10 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
         if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
             continue
 
-        for i in range(4):
-            alpha[i] = colors[j/points_per_color, i]
+        for i in range(3):
+            alpha[i] = (colors[j/points_per_color, i] *
+                        colors[j/points_per_color, 3])
+        alpha[3] = colors[j/points_per_color, 3]
 
         if x0 < x1:
             sx = 1
@@ -428,8 +430,10 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
         z0 = zs[j]
         if (x0 < 0 or x0 >= nx): continue
         if (y0 < 0 or y0 >= ny): continue
-        for i in range(4):
-            alpha[i] = colors[j/points_per_color, i]
+        for i in range(3):
+            alpha[i] = (colors[j/points_per_color, i] *
+                        colors[j/points_per_color, 3])
+        alpha[3] = colors[j/points_per_color, 3]
         if flip:
             yi0 = ny - y0
         else:
