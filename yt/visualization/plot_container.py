@@ -435,7 +435,7 @@ class ImagePlotContainer(object):
 
         font_dict : dict
           A dict of keyword parameters to be passed to
-          :py:class:`matplotlib.font_manager.FontProperties`.
+          :class:`matplotlib.font_manager.FontProperties`.
 
           Possible keys include
           * family - The font family. Can be serif, sans-serif, cursive,

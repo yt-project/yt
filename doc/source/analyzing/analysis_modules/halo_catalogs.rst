@@ -192,7 +192,7 @@ We use the halo list classes to recover the information.
 Inside the ``outbase`` directory there is a text file named ``datasets.txt``
 that records the connection between ds names and the Rockstar file names.
 
-.. _rockstar_installation:
+.. _rockstar-installation:
 
 Installing Rockstar
 """""""""""""""""""

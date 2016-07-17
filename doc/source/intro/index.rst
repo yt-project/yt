@@ -105,7 +105,7 @@ datasets.  These analysis modules operate somewhat autonomous and oftentimes
 use external libraries or codes.  While they are installed with yt, they are
 not loaded by default in every session so you have to call them specifically.
 Examples include :ref:`halo analysis <halo-analysis>` (including
-:ref:`halo finding <halo_analysis>`, :ref:`merger trees <merger_tree>`,
+:ref:`halo finding <halo-analysis>`, :ref:`merger trees <merger_tree>`,
 :ref:`halo mass functions <halo_mass_function>`), :ref:`synthetic observations
 <synthetic-observations>` (including :ref:`cosmological light cones
 <light-cone-generator>`, :ref:`cosmological light rays <light-ray-generator>`,

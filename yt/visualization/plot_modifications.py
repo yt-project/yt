@@ -1866,7 +1866,7 @@ class TimestampCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: ``{'boxstyle':'square,pad=0.3', 'facecolor':'black',
+        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
                   'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
@@ -2051,8 +2051,8 @@ class ScaleCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
-        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor', 'white',
-                   'alpha': 0.5, 'boxstyle': 'square'}``
+        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 
+                    'alpha': 0.5, 'boxstyle': 'square'}``
 
 
     Example
