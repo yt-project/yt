@@ -7,9 +7,10 @@
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import os
 import sys
 import argparse
-from yt.config import CURRENT_CONFIG_FILE
+from yt.config import CURRENT_CONFIG_FILE, __OLD_CONFIG_FILE
 from yt.extern.six.moves import configparser
 
 CONFIG = configparser.SafeConfigParser()
@@ -34,6 +35,21 @@ def write_config(fd=None):
     else:
         CONFIG.write(fd)
 
+def migrate_config():
+    if not os.path.exists(__OLD_CONFIG_FILE):
+        print("Old config not found.")
+        sys.exit()
+    cp = configparser.ConfigParser()
+    cfgs = [__OLD_CONFIG_FILE]
+    if os.path.exists(CURRENT_CONFIG_FILE):
+        cfgs += CURRENT_CONFIG_FILE
+        
+    cp.read(cfgs)
+    print("Writing new config file to: {}".format(CURRENT_CONFIG_FILE))
+    write_config()
+    print("Removing old config file: {}".format(__OLD_CONFIG_FILE))
+    os.remove(__OLD_CONFIG_FILE)
+
 
 def rm_config(section, option):
     CONFIG.remove_option(section, option)
@@ -48,6 +64,7 @@ def main():
     get_parser = subparsers.add_parser('get', help='get a config value')
     set_parser = subparsers.add_parser('set', help='set a config value')
     rm_parser = subparsers.add_parser('rm', help='remove a config option')
+    migrate_parser = subparsers.add_parser('migrate', help='migrate old config file')
     subparsers.add_parser('list', help='show all config values')
 
     get_parser.add_argument(
@@ -71,6 +88,8 @@ def main():
         set_config(args.section, args.option, args.value)
     elif args.cmd == 'list':
         write_config(sys.stdout)
+    elif args.cmd == 'migrate':
+        migrate_config()
     elif args.cmd == 'rm':
         rm_config(args.section, args.option)
 

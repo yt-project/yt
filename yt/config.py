@@ -16,6 +16,7 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import os
+import warnings
 from yt.extern.six.moves import configparser
 
 ytcfg_defaults = dict(
@@ -102,16 +103,12 @@ if os.path.exists(__OLD_CONFIG_FILE):
         open(__OLD_CONFIG_FILE + ".old", "w").write(f)
         new_cp.write(open(__OLD_CONFIG_FILE, "w"))
 
-    # migrate to new location
-    if not os.path.exists(CURRENT_CONFIG_FILE):
-        print("************************************************")
-        print("* Migrating configuration file to new location *")
-        print("************************************************")
-        cp = configparser.ConfigParser()
-        cp.read([__OLD_CONFIG_FILE])
-        with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
-            cp.write(new_cfg)
-        os.remove(__OLD_CONFIG_FILE)
+    msg = (
+        "The configuration file {} is deprecated. "
+        "Please migrate your config to {} by running: "
+        "'yt-config migrate'"
+    )
+    warnings.warn(msg.format(__OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
 
 if not os.path.exists(CURRENT_CONFIG_FILE):
     cp = configparser.ConfigParser()
