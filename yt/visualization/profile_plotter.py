@@ -1071,36 +1071,45 @@ class PhasePlot(ImagePlotContainer):
 
     @invalidate_plot
     def set_font(self, font_dict=None):
-        """set the font and font properties
+        """
+
+        Set the font and font properties.
 
         Parameters
         ----------
+
         font_dict : dict
-        A dict of keyword parameters to be passed to :class:`matplotlib.font_manager.FontProperties`.
+            A dict of keyword parameters to be passed to 
+            :class:`matplotlib.font_manager.FontProperties`.
 
-        Possible keys include
-        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or 'monospace'.
-        * style - The font style. Either normal, italic or oblique.
-        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and 'orange'.
-        * variant - Either normal or small-caps.
-        * size - Either a relative value of xx-small, x-small, small, medium,
-          large, x-large, xx-large or an absolute font size, e.g. 12
-        * stretch - A numeric value in the range 0-1000 or one of
-          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
-          semi-expanded, expanded, extra-expanded or ultra-expanded
-        * weight - A numeric value in the range 0-1000 or one of ultralight,
-          light, normal, regular, book, medium, roman, semibold, demibold, demi,
-          bold, heavy, extra bold, or black
+            Possible keys include:
 
-        See the matplotlib font manager API documentation for more details.
-        http://matplotlib.org/api/font_manager_api.html
+            * family - The font family. Can be serif, sans-serif, cursive,
+              'fantasy', or 'monospace'.
+            * style - The font style. Either normal, italic or oblique.
+            * color - A valid color string like 'r', 'g', 'red', 'cobalt', 
+              and 'orange'.
+            * variant - Either normal or small-caps.
+            * size - Either a relative value of xx-small, x-small, small, 
+              medium, large, x-large, xx-large or an absolute font size, e.g. 12
+            * stretch - A numeric value in the range 0-1000 or one of
+              ultra-condensed, extra-condensed, condensed, semi-condensed,
+              normal, semi-expanded, expanded, extra-expanded or ultra-expanded
+            * weight - A numeric value in the range 0-1000 or one of ultralight,
+              light, normal, regular, book, medium, roman, semibold, demibold,
+              demi, bold, heavy, extra bold, or black
+
+            See the matplotlib font manager API documentation for more details.
+            http://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
+
         Mathtext axis labels will only obey the `size` and `color` keyword.
 
         Examples
         --------
+
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
