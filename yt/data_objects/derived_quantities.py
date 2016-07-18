@@ -115,9 +115,9 @@ class WeightedAverageQuantity(DerivedQuantity):
     Parameters
     ----------
 
-    fields : field or list of fields
+    fields : string / tuple, or list of strings / tuples
         The field or fields of which the average value is to be calculated.
-    weight : field
+    weight : string or tuple
         The weight field.
 
     Examples
@@ -360,10 +360,9 @@ class WeightedVariance(DerivedQuantity):
     Parameters
     ----------
 
-    fields : field or list of fields
-        The field or fields of which the variance and mean values are
-        to be calculated.
-    weight : field
+    fields : string / tuple, or list of strings / tuples
+        The field or fields of which the average value is to be calculated.
+    weight : string or tuple
         The weight field.
 
     Examples
