@@ -39,12 +39,7 @@ def migrate_config():
     if not os.path.exists(__OLD_CONFIG_FILE):
         print("Old config not found.")
         sys.exit()
-    cp = configparser.ConfigParser()
-    cfgs = [__OLD_CONFIG_FILE]
-    if os.path.exists(CURRENT_CONFIG_FILE):
-        cfgs += CURRENT_CONFIG_FILE
-        
-    cp.read(cfgs)
+    CONFIG.read(__OLD_CONFIG_FILE)
     print("Writing new config file to: {}".format(CURRENT_CONFIG_FILE))
     write_config()
     print("Removing old config file: {}".format(__OLD_CONFIG_FILE))
