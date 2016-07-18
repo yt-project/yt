@@ -131,6 +131,17 @@ def get_axes_unit(width, ds):
             axes_unit = None
     return axes_unit
 
+def validate_mesh_fields(data_source, fields):
+    canonical_fields = data_source._determine_fields(fields)
+    invalid_fields = []
+    for field in canonical_fields:
+        if data_source.ds.field_info[field].particle_type is True:
+            invalid_fields.append(field)
+
+    if len(invalid_fields) > 0:
+        raise YTInvalidFieldType(invalid_fields)
+
+
 class PlotWindow(ImagePlotContainer):
     r"""
     A ploting mechanism based around the concept of a window into a
@@ -273,16 +284,6 @@ class PlotWindow(ImagePlotContainer):
         # Restore the override fields
         for key in self.override_fields:
             self._frb[key]
-
-    def _validate_mesh_fields(self):
-        canonical_fields = self.data_source._determine_fields(self.fields)
-        invalid_fields = []
-        for field in canonical_fields:
-            if self.data_source.ds.field_info[field].particle_type is True:
-                invalid_fields.append(field)
-
-        if len(invalid_fields) > 0:
-            raise YTInvalidFieldType(invalid_fields)
 
     @property
     def width(self):
@@ -1252,10 +1253,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
                            center=center, data_source=data_source)
             slc.get_data(fields)
+        validate_mesh_fields(slc, fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect)
-        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1413,6 +1414,11 @@ class ProjectionPlot(PWViewerMPL):
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
 
+        # We don't use the plot's data source for validation like in the other
+        # plotting classes to avoid an exception
+        test_data_source = ds.all_data()
+        validate_mesh_fields(test_data_source, fields)
+
         if isinstance(ds, YTSpatialPlotDataset):
             proj = ds.all_data()
             proj.axis = axis
@@ -1428,7 +1434,6 @@ class ProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
-        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1520,12 +1525,12 @@ class OffAxisSlicePlot(PWViewerMPL):
                                  field_parameters=field_parameters,
                                  data_source=data_source)
             cutting.get_data(fields)
+        validate_mesh_fields(cutting, fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
                              oblique=True, fontsize=fontsize)
-        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1659,17 +1664,22 @@ class OffAxisProjectionPlot(PWViewerMPL):
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector, method=method)
+
+        validate_mesh_fields(OffAxisProj, fields)
+
         if max_level is not None:
             OffAxisProj.dd.max_level = max_level
-        # If a non-weighted, integral projection, assure field-label reflects that
+
+        # If a non-weighted, integral projection, assure field label
+        # reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
+
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
             periodic=False, oblique=True, fontsize=fontsize)
-        self._validate_mesh_fields()
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
