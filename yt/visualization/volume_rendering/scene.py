@@ -422,7 +422,6 @@ class Scene(object):
         ax.set_position([0, 0, 1, 1])
 
         if sigma_clip is not None:
-            print("here: sigma_clip = {}".format(sigma_clip))
             nz = im[im > 0.0]
             nim = im / (nz.mean() + sigma_clip * np.std(nz))
             nim[nim > 1.0] = 1.0
@@ -431,7 +430,7 @@ class Scene(object):
         else:
             nim = im
         axim = plt.imshow(nim[:,:,:3]/nim[:,:,:3].max(),
-                          interpolation="nearest")
+                          interpolation="bilinear")
 
         return axim
 
