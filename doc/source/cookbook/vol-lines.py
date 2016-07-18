@@ -10,7 +10,7 @@ sc = yt.create_scene(ds)
 np.random.seed(1234567)
 
 nlines = 50
-vertices = (np.random.random([nlines, 2, 3]) - 0.5) * 250 * kpc
+vertices = (np.random.random([nlines, 2, 3]) - 0.5) * 200 * kpc
 colors = np.random.random([nlines, 4])
 colors[:, 3] = 0.1
 
@@ -19,4 +19,4 @@ sc.add_source(lines)
 
 sc.camera.width = 300*kpc
 
-sc.save()
+sc.save(sigma_clip=4.0)

@@ -9,15 +9,12 @@ sc = yt.create_scene(ds, ('gas', 'density'))
 
 # Draw the domain boundary
 sc.annotate_domain(ds, color=[1, 1, 1, 0.01])
-sc.render()
-sc.save("%s_vr_domain.png" % ds)
+sc.save("%s_vr_domain.png" % ds, sigma_clip=4)
 
 # Draw the grid boundaries
 sc.annotate_grids(ds, alpha=0.01)
-sc.render()
-sc.save("%s_vr_grids.png" % ds)
+sc.save("%s_vr_grids.png" % ds, sigma_clip=4)
 
 # Draw a coordinate axes triad
 sc.annotate_axes(alpha=0.01)
-sc.render()
-sc.save("%s_vr_coords.png" % ds)
+sc.save("%s_vr_coords.png" % ds, sigma_clip=4)
