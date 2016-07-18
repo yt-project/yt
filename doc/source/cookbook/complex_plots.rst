@@ -318,7 +318,7 @@ sources. This could represent star or dark matter particles, for example.
 Volume Rendering with Lines
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This recipe demonstrates how to make a volume rendering composited with point
+This recipe demonstrates how to make a volume rendering composited with line
 sources.
 
 .. yt_cookbook:: vol-lines.py
