@@ -767,6 +767,14 @@ def periodic_ray(start, end, left=None, right=None):
 
 def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500,
                      min_level=None, my_random=None):
+
+    max_length = vector_length(left_edge, right_edge)
+    if ray_length > max_length:
+        raise RuntimeError(
+            ("The maximum segment length in the region %s to %s is %s, " +
+             "but the ray length requested is %s.  Decrease ray length.") %
+             (left_edge, right_edge, max_length, ray_length))
+
     if my_random is None:
         my_random = np.random.RandomState()
     i = 0
@@ -780,9 +788,10 @@ def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500,
                     np.sin(phi) * np.sin(theta),
                     np.cos(theta)])
         i += 1
-        test_ray = ds.ray(start, end)
+        test_ray = ds.ray(start, end.d)
         if (end >= left_edge).all() and (end <= right_edge).all() and \
-          (min_level is None or (test_ray["grid_level"] >= min_level).all()):
+          (min_level is None or min_level <= 0 or
+           (test_ray["grid_level"] >= min_level).all()):
             mylog.info("Found ray after %d attempts." % i)
             del test_ray
             return start, end.d
