@@ -424,8 +424,21 @@ def test_on_off_compare():
 
 def test_plot_particle_field_error():
     ds = fake_random_ds(32, particles=100)
-    assert_raises(YTInvalidFieldType, SlicePlot, ds, 2, 'particle_mass')
-    assert_raises(
-        YTInvalidFieldType, SlicePlot, ds, 2, ['particle_mass', 'density'])
-    assert_raises(
-        YTInvalidFieldType, SlicePlot, ds, 2, ['density', 'particle_mass'])
+
+    field_names = [
+        'particle_mass',
+        ['particle_mass', 'density'],
+        ['density', 'particle_mass'],
+    ]
+
+    objects_normals = [
+        (SlicePlot, 2),
+        (SlicePlot, [1, 1, 1]),
+        (ProjectionPlot, 2),
+        (OffAxisProjectionPlot, [1, 1, 1]),
+    ]
+
+    for object, normal in objects_normals:
+        for field_name_list in field_names:
+            assert_raises(
+                YTInvalidFieldType, object, ds, normal, field_name_list)
