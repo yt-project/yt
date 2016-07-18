@@ -11,6 +11,258 @@ Contributors
 The `CREDITS file <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ contains the
 most up-to-date list of everyone who has contributed to the yt source code.
 
+Version 3.3
+-----------
+
+Major enhancements
+^^^^^^^^^^^^^^^^^^
+
+* Totally re-worked volume rendering API.
+* Support for unstructured mesh visualization.
+* Interactive Data Visualization for AMR and unstructured mesh datasets.
+* Several new colormaps, including a new default.
+* Enhancements and usability improvements for analysis modules, especially the ``absorption_spectrum``, ``photon_simulator``, and ``light_ray`` modules.
+* Numpy-like operations.
+* A line integral convolution plot modification.
+* A yt search command.
+* Many speed optimizations, including to the volume rendering, units, tests, covering grids, the absorption spectrum and photon simulator analysis modules, and ghost zone generation.
+* Packaging and release-related improvements: better install and setup scripts, automated PR backporting.
+* Readability improvements to the codebase, including linting, removing dead code, and refactoring much of the Cython.
+* Improvements to the CI infrastructure, including more extensible answer tests and automated testing for Python 3 and Windows.
+* Numerous documentation improvements, including formatting tweaks, bugfixes, and many new cookbook recipes.
+* ExodusII, ytdata, GAMER, and Gizmo frontends.
+* Base Unit Systems.
+* Support for geographic (lat/lon) coordinates.
+* Several improvements for SPH codes, including alternative smoothing kernels, an `add_smoothed_particle_field` function, and particle type-aware octree construction. 
+* Roundtrip conversions between Pint and yt units.
+* Added halo data containers for gadget_fof frontend.
+* Enabled support for spherical datasets in the BoxLib frontend.
+* Many new tests have been added.
+* Better hashing for Selector objects.
+
+Minor enhancements and bugfixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* Fixed many bugs related to Python 3 compatibility
+* Fixed bugs related to compatibility issues with newer versions of numpy
+* Added the ability to export data objects to a Pandas dataframe
+* Added support for the fabs ufunc to YTArray
+* Fixed two licensings issues
+* Fixed a number of bugs related to Windows compatability.
+* We now avoid hard-to-decipher tracebacks when loading empty files or directories
+* Fixed a bug related to ART star particle creation time field
+* Fixed a bug caused by using the wrong int type for indexing in particle deposit
+* Fixed a NameError bug in comparing temperature units with offsets
+* Fixed an API bug in YTArray casting during coercion from YTQuantity
+* Added loadtxt and savetxt convenience functions for ``YTArray``
+* Fixed an issue caused by not sort species names with Enzo
+* Fixed a units bug for RAMSES when ``boxlen > 1``.
+* Fixed ``process_chunk`` function for non-cartesian geometry.
+* Added ``scale_factor`` attribute to cosmological simulation datasets
+* Fixed a bug where "center" vectors are used instead of "normal" vectors in get_sph_phi(), etc.
+* Fixed issues involving invalid FRBs when uses called _setup_plots in their scripts
+* Added a ``text_args`` keyword to ``annotate_scale()`` callback
+* Added a print_stats function for RAMSES
+* Fixed a number of bugs in the Photon Simulator
+* Added support for particle fields to the [Min,Max]Location derived quantities
+* Fixed some units bugs for Gadget cosmology simulations
+* Fixed a bug with Gadget/GIZMO StarFormationRate units
+* Fixed an issue in TimeSeriesData where all the filenames were getting passed to ``load`` on each processor.
+* Fixed a units bug in the Tipsy frontend
+* Ensured that ARTIOIndex.get_smallest_dx() returns a quantity with units
+* Ensured that plots are valid after invalidating the figure
+* Fixed a bug regarding code unit labels
+* Fixed a bug with reading Tipsy Aux files
+* Added an effective redshift field to the Light Ray analysis module for use in AbsorptionSpectrum
+* Fixed a bug with the redshift calculation in LightRay analysis module
+* Fixed a bug in the Orion frontend when you had more than 10 on-disk particle fields in the file
+* Detect more types of ART files
+* Update derived_field_list in add_volume_weighted_smoothed_field
+* Fixed casting issues for 1D and 2D Enzo simulations
+* Avoid type indirection when setting up data object entry points
+* Fixed issues with SIMPUT files
+* Fixed loading athena data in python3 with provided parameters
+* Tipsy cosmology unit fixes
+* Fixed bad unit labels for compound units
+* Making the xlim and ylim of the PhasePlot plot axes controllable
+* Adding grid_arrays to grid_container
+* An Athena and a GDF bugfix
+* A small bugfix and some small enhancements for sunyaev_zeldovich
+* Defer to coordinate handlers for width
+* Make array_like_field return same units as get_data
+* Fixing bug in ray "dts" and "t" fields
+* Check against string_types not str
+* Closed a loophole that allowed improper LightRay use
+* Enabling AbsorptionSpectrum to deposit unresolved spectral lines
+* Fixed an ART byte/string/array issue
+* Changing AbsorptionSpectrum attribute lambda_bins to be lambda_field for consistency
+* No longer require user to save to disk when generating an AbsorptionSpectrum
+* ParticlePlot FRBs can now use save_as_dataset and save attributes properly
+* Added checks to assure ARTIO creates a metal_density field from existing metal fields.
+* Added mask to LightRay to assure output elements have non-zero density (a problem in some SPH datasets)
+* Added a "fields" attribute to datasets
+* Updated the TransferFunctionHelper to work with new profiles
+* Fixed a bug where the field_units kwarg to load_amr_grids didn't do anything
+* Changed photon_simulator's output file structure
+* Fixed a bug related to setting output_units.
+* Implemented ptp operation.
+* Added effects of transverse doppler redshift to LightRay
+* Fixed a casting error for float and int64 multiplication in sdf class
+* Added ability to read and write YTArrays to and from groups within HDF5 files
+* Made ftype of "on-disk" stream fields "stream"
+* Fixed a strings decoding issue in the photon simulator
+* Fixed an incorrect docstring in load_uniform_grid
+* Made PlotWindow show/hide helpers for axes and colorbar return self
+* Made Profile objects store field metadata.
+* Ensured GDF unit names are strings
+* Tought off_axis_projection about its resolution keyword.
+* Reintroduced sanitize_width for polar/cyl coordinates.
+* We now fail early when load_uniform_grid is passed data with an incorrect shape
+* Replaced progress bar with tqdm
+* Fixed redshift scaling of "Overdensity" field in yt-2.x
+* Fixed several bugs in the eps_writer
+* Fixed bug affecting 2D BoxLib simulations.
+* Implemented to_json and from_json for the UnitRegistry object
+* Fixed a number of issues with ds.find_field_values_at_point[s]
+* Fixed a bug where sunrise_exporter was using wrong imports
+* Import HUGE from utilities.physical_ratios
+* Fixed bug in ARTIO table look ups
+* Adding support for longitude and latitude
+* Adding halo data containers for gadget_fof frontend.
+* Can now compare YTArrays without copying them
+* Fixed several bugs related to active particle datasets
+* Angular_momentum_vector now only includes space for particle fields if they exist.
+* Image comparison tests now print a meaningful error message if they fail.
+* Fixed numpy 1.11 compatibility issues.
+* Changed _skip_cache to be True by default.
+* Enable support for spherical datasets in the BoxLib frontend.
+* Fixed a bug in add_deposited_particle_field.
+* Fixed issues with input sanitization in the point data object.
+* Fixed a copy/paste error introduced by refactoring WeightedMenParticleField
+* Fixed many formatting issues in the docs build
+* Now avoid creating particle unions for particle types that have no common fields
+* Patched ParticlePlot to work with filtered particle fields.
+* Fixed a couple corner cases in gadget_fof frontend
+* We now properly normalise all normal vectors in functions that take a normal vector (for e.g get_sph_theta)
+* Fixed a bug where the transfer function features were not always getting cleared properly.
+* Made the Chombo frontend is_valid method smarter.
+* Added a get_hash() function to yt/funcs.py which returns a hash for a file
+* Added Sievert to the default unit symbol table
+* Corrected an issue with periodic "wiggle" in AbsorptionSpectrum instances
+* Made ``ds.field_list`` sorted by default
+* Bug fixes for the Nyx frontend
+* Fixed a bug where the index needed to be created before calling derived quantities
+* Made latex_repr a property, computed on-demand
+* Fixed a bug in off-axis slice deposition
+* Fixed a bug with some types of octree block traversal
+* Ensured that mpi operations retain ImageArray type instead of downgrading to YTArray parent class
+* Added a call to _setup_plots in the custom colorbar tickmark example
+* Fixed two minor bugs in save_annocated
+* Added ability to specify that DatasetSeries is not a mixed data type
+* Fixed a memory leak in ARTIO
+* Fixed copy/paste error in to_frb method.
+* Ensured that particle dataset max_level is consistent with the index max_level
+* Fixed an issue where fields were getting added multiple times to field_info.field_list
+* Enhanced annotate_ray and annotate_arrow callbacks
+* Added GDF answer tests
+* Made the YTFieldTypeNotFound exception more informative
+* Added a new function, fake_vr_orientation_test_ds(), for use in testing
+* Ensured that instances of subclasses of YTArray have the correct type
+* Re-enabled max_level for projections, ProjectionPlot, and OffAxisProjectionPlot
+* Fixed a bug in the Orion 2 field definitions
+* Fixed a bug caused by matplotlib not being added to install_requires
+* Edited PhasePlot class to have an annotate_title method
+* Implemented annotate_cell_edges
+* Handled KeyboardInterrupt in volume rendering Cython loop
+* Made old halo finders now accept ptype
+* Updated the latex commands in yt cheatsheet
+* Fixed a circular dependency loop bug in abar field definition for FLASH datasets
+* Added neutral species aliases as described in YTEP 0003
+* Fixed a logging issue: don't create a StreamHandler unless we will use it
+* Correcting how theta and phi are calculated in ``_particle_velocity_spherical_radius``, ``_particle_velocity_spherical_theta``, ``_particle_velocity_cylindrical_radius``, and ``_particle_velocity_cylindrical_theta``
+* Fixed a bug related to the field dictionary in ``load_particles``
+* Allowed for the special case of supplying width as a tuple of tuples
+* Made yt compile with MSVC on Windows
+* Fixed a bug involving mask for dt in octree
+* Merged the get_yt.sh and install_script.sh into one
+* Added tests for the install script
+* Allowed use axis names instead of dimensions for spherical pixelization
+* Fixed a bug where close() wasn't being called in HDF5FileHandler
+* Enhanced commandline image upload/delete
+* Added get_brewer_cmap to get brewer colormaps without importing palettable at the top level
+* Fixed a bug where a parallel_root_only function was getting called inside another parallel_root_only function
+* Exit the install script early if python can't import '_ssl' module
+* Make PlotWindow's annotate_clear method invalidate the plot
+* Adding int wrapper to avoid deprecation warning from numpy
+* Automatically create vector fields for magnetic_field
+* Allow users to completely specify the filename of a 1D profile
+* Force nose to produce meaningful traceback for cookbook recipes' tests
+* Fixed x-ray display_name and documentation
+* Try to guess and load particle file for FLASH dataset
+* Sped up top-level yt import
+* Set the field type correctly for fields added as particle fields
+* Added a position location method for octrees
+* Fixed a copy/paste error in uhstack function
+* Made trig functions give correct results when supplied data with dimensions of angle but units that aren't radian
+* Print out some useful diagnostic information if check_for_openmp() fails
+* Give user-added derived fields a default field type
+* Added support for periodicity in annotate_particles.
+* Added a check for whether returned field has units in volume-weighted smoothed fields
+* Casting array indices as ints in colormaps infrastructure
+* Fixed a bug where the standard particle fields weren't getting set up correctly for the Orion frontends
+* Enabled LightRay to accept loaded datasets instead of just filenames
+* Allowed for adding or subtracting arrays filled with zeros without checking units.
+* Fixed a bug in selection for semistructured meshes.
+* Removed 'io' from enzo particle types for active particle datasets
+* Added support for FLASH particle datasets.
+* Silenced a deprecation warning from IPython
+* Eliminated segfaults in KDTree construction
+* Fixed add_field handling when passed a tuple
+* Ensure field parameters are correct for fields that need ghost zones
+* Made it possible to use DerivedField instances to access data
+* Added ds.particle_type_counts
+* Bug fix and improvement for generating Google Cardboard VR in StereoSphericalLens
+* Made DarkMatterARTDataset more robust in its _is_valid
+* Added Earth radius to units
+* Deposit hydrogen fields to grid in gizmo frontend
+* Switch to index values being int64
+* ValidateParameter ensures parameter values are used during field detection
+* Switched to using cythonize to manage dependencies in the setup script
+* ProfilePlot style changes and refactoring
+* Cancel terms with identical LaTeX representations in a LaTeX representation of a unit
+* Only return early from comparison validation if base values are equal
+* Enabled particle fields for clump objects
+* Added validation checks for data types in callbacks
+* Enabled modification of image axis names in coordinate handlers
+* Only add OWLS/EAGLE ion fields if they are present
+* Ensured that PlotWindow plots continue to look the same under matplotlib 2.0
+* Fixed bug in quiver callbacks for off-axis slice plots
+* Only visit octree children if going to next level
+* Check that CIC always gets at least two cells
+* Fixed compatibility with matplotlib 1.4.3 and earlier
+* Fixed two EnzoSimulation bugs
+* Moved extraction code from YTSearchCmd to its own utility module
+* Changed amr_kdtree functions to be Node class methods
+* Sort block indices in order of ascending levels to match order of grid patches
+* MKS code unit system fixes
+* Disabled bounds checking on pixelize_element_mesh
+* Updated light_ray.py for domain width != 1
+* Implemented a DOAP file generator
+* Fixed bugs for 2D and 1D enzo IO
+* Converted mutable Dataset attributes to be properties that return copies
+* Allowing LightRay segments to extend further than one box length
+* Fixed a divide-by-zero error that occasionally happens in triangle_plane_intersect
+* Make sure we have an index in subclassed derived quantities
+* Added an initial draft of an extensions document
+* Made it possible to pass field tuples to command-line plotting
+* Ensured the positions of coordinate vector lines are in code units
+* Added a minus sign to definition of sz_kinetic field
+* Added grid_levels and grid_indices fields to octrees
+* Added a morton_index derived field
+* Added Exception to AMRKDTree in the case of particle of oct-based data
+
+
+
 Version 3.2
 -----------
 
@@ -611,7 +863,7 @@ Version 2.3
  * WebGL interface for isocontours and a pannable map widget added to Reason
  * Performance improvements for volume rendering
  * Adaptive HEALPix support
- * Column density calculations (see :ref:`radial-column-density`)
+ * Column density calculations
  * Massive speedup for 1D profiles
  * Lots more, bug fixes etc.
  * Substantial improvements to the documentation, including
@@ -733,9 +985,9 @@ Version 1.6
 -----------
 
 Version 1.6 is a point release, primarily notable for the new parallel halo
-finder (see :ref:`halo_finding`)
+finder (see :ref:`halo-analysis`)
 
- * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo_finding` )
+ * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
  * (Beta) Software ray casting and volume rendering
    (see :ref:`volume_rendering`)
  * Rewritten, faster and better contouring engine for clump identification
