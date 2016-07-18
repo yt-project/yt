@@ -67,20 +67,28 @@ ytcfg_defaults = dict(
     default_colormap = 'arbre',
     ray_tracing_engine = 'embree',
     )
+
+CONFIG_DIR = os.environ.get(
+    'XDG_CONFIG_HOME', os.path.join(os.path.expanduser('~'), '.config', 'yt'))
+if not os.path.exists(CONFIG_DIR):
+    os.makedirs(CONFIG_DIR)
+
+CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, 'ytrc')
+__OLD_CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.yt', 'config')
+
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten
 # without them.
 
-__fn = os.path.expanduser("~/.yt/config")
-if os.path.exists(__fn):
-    f = open(__fn).read()
+if os.path.exists(__OLD_CONFIG_FILE):
+    f = open(__OLD_CONFIG_FILE).read()
     if any(header in f for header in ["[lagos]","[raven]","[fido]","[enki]"]):
         print("***********************************************************")
         print("* Upgrading configuration file to new format; saving old. *")
         print("***********************************************************")
         # This is of the old format
         cp = configparser.ConfigParser()
-        cp.read(__fn)
+        cp.read(__OLD_CONFIG_FILE)
         # NOTE: To avoid having the 'DEFAULT' section here,
         # we are not passing in ytcfg_defaults to the constructor.
         new_cp = configparser.ConfigParser()
@@ -91,16 +99,25 @@ if os.path.exists(__fn):
                 if option.lower() in ytcfg_defaults:
                     new_cp.set("yt", option, cp.get(section, option))
                     print("Setting %s to %s" % (option, cp.get(section, option)))
-        open(__fn + ".old", "w").write(f)
-        new_cp.write(open(__fn, "w"))
-# Pathological check for Kraken
-#elif os.path.exists("~/"):
-#    if not os.path.exists("~/.yt"):
-#            print "yt is creating a new directory, ~/.yt ."
-#            os.mkdir(os.path.exists("~/.yt/"))
-#    # Now we can read in and write out ...
-#    new_cp = configparser.ConfigParser(ytcfg_defaults)
-#    new_cp.write(__fn)
+        open(__OLD_CONFIG_FILE + ".old", "w").write(f)
+        new_cp.write(open(__OLD_CONFIG_FILE, "w"))
+
+    # migrate to new location
+    if not os.path.exists(CURRENT_CONFIG_FILE):
+        print("************************************************")
+        print("* Migrating configuration file to new location *")
+        print("************************************************")
+        cp = configparser.ConfigParser()
+        cp.read([__OLD_CONFIG_FILE])
+        with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
+            cp.write(new_cfg)
+        os.remove(__OLD_CONFIG_FILE)
+
+if not os.path.exists(CURRENT_CONFIG_FILE):
+    cp = configparser.ConfigParser()
+    cp.add_section("yt")
+    with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
+        cp.write(new_cfg)
 
 class YTConfigParser(configparser.ConfigParser):
     def __setitem__(self, key, val):
@@ -108,12 +125,8 @@ class YTConfigParser(configparser.ConfigParser):
     def __getitem__(self, key):
         self.get(key[0], key[1])
 
-if os.path.exists(os.path.expanduser("~/.yt/config")):
-    ytcfg = YTConfigParser(ytcfg_defaults)
-    ytcfg.read(['yt.cfg', os.path.expanduser('~/.yt/config')])
-else:
-    ytcfg = YTConfigParser(ytcfg_defaults)
-    ytcfg.read(['yt.cfg'])
+ytcfg = YTConfigParser(ytcfg_defaults)
+ytcfg.read([__OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])
 if not ytcfg.has_section("yt"):
     ytcfg.add_section("yt")
 

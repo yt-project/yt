@@ -18,9 +18,9 @@ custom default values to be used in future sessions.
 Configuration File Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.yt/config`` as a configuration
+yt will look for and recognize the file ``$HOME/.config/yt/ytrc`` as a configuration
 file, containing several options that can be modified and adjusted to control
-runtime behavior.  For example, a sample ``$HOME/.yt/config`` file could look
+runtime behavior.  For example, a sample ``$HOME/.config/yt/ytrc`` file could look
 like:
 
 .. code-block:: none

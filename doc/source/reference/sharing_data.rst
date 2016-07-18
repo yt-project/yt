@@ -36,7 +36,7 @@ out of the way, you can go to http://hub.yt-project.org/login and log in with
 your new password.  You can then receive your API key by clicking on your
 username in the upper left.
 
-After you have gotten your API key, place it in in your ``~/.yt/config`` file:
+After you have gotten your API key, place it in in your ``~/.config/yt/ytrc`` file:
 
 .. code-block:: none
 
