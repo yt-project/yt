@@ -863,7 +863,7 @@ Version 2.3
  * WebGL interface for isocontours and a pannable map widget added to Reason
  * Performance improvements for volume rendering
  * Adaptive HEALPix support
- * Column density calculations
+ * Column density calculations (see :ref:`radial-column-density`)
  * Massive speedup for 1D profiles
  * Lots more, bug fixes etc.
  * Substantial improvements to the documentation, including
@@ -985,9 +985,9 @@ Version 1.6
 -----------
 
 Version 1.6 is a point release, primarily notable for the new parallel halo
-finder (see :ref:`halo-analysis`)
+finder (see :ref:`halo-finding`)
 
- * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
+ * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo-finding` )
  * (Beta) Software ray casting and volume rendering
    (see :ref:`volume_rendering`)
  * Rewritten, faster and better contouring engine for clump identification
