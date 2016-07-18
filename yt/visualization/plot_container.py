@@ -622,8 +622,11 @@ class ImagePlotContainer(object):
             if api_version in ('0.10', '0.11'):
                 self._send_zmq()
             else:
-                from IPython.display import display
-                display(self)
+                #from IPython.display import display
+                #display(self)
+                for k,v in sorted(iteritems(self.plots)):
+                    v.show()
+
         else:
             raise YTNotInsideNotebook
 

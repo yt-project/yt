@@ -144,7 +144,8 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj`
+    or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
