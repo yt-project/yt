@@ -17,19 +17,11 @@ openPMD-specific IO functions
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.extern.six import u, b, iteritems
-from yt.geometry.selection_routines import mask_fill, AlwaysSelector
 from yt.utilities.logger import ytLogger as mylog
 import h5py
 import numpy as np
-from collections import defaultdict
 from .data_structures import openPMDBasePath
 from .misc import get_component
-
-import random
-
-
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
 
 
 class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
@@ -56,8 +48,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         self._cachecntr = {}
 
     def _fill_cache(self, ptype, index=0, offset=None):
-        if str((ptype, index, offset)) not in self._cached_ptype: #self._cachecntr:
-
+        if str((ptype, index, offset)) not in self._cached_ptype:
             # Get a particle species (e.g. /data/3500/particles/e/)
             if "io" in ptype:
                 spec = self._handle[self.basePath + self.particlesPath].keys()[0]
@@ -104,14 +95,24 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             x_coords, y_coords and z_coords are arrays of positions/coordinates of all particles of that type
         """
         chunks = list(chunks)
+        f = self._handle
+        ds = f[self.basePath]
         for chunk in chunks:
             for g in chunk.objs:
                 if g.filename is None:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
-                    index = g.part_ind
-                    offset = g.off_part
+                    if "io" in ptype:
+                        spec = ds[self.particlesPath].keys()[0]
+                    else:
+                        spec = ptype
+                    for gridptype, idx in g.part_ind:
+                        if str(gridptype) == str(spec):
+                            index = idx
+                    for gridptype, ofs in g.off_part:
+                        if str(gridptype) == str(spec):
+                            offset = ofs
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -146,27 +147,31 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
              - in a specified field
         """
         chunks = list(chunks)
+        f = self._handle
+        ds = f[self.basePath]
         for chunk in chunks:
             for g in chunk.objs:
                 if g.filename is None:
                     continue
-                f = self._handle
-                ds = f[self.basePath]
-                for ptype, field_list in parallel_objects(sorted(ptf.items())):
+                for ptype, field_list in sorted(ptf.items()):
                     mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
-                    index = g.part_ind
-                    offset = g.off_part
-                    if str((ptype, index, offset)) not in self._cached_ptype:
-                        self._fill_cache(ptype, index, offset)
-                    mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
-                    if mask is None:
-                        mylog.info("Mask is none!")
-                        continue
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     if "io" in ptype:
                         spec = ds[self.particlesPath].keys()[0]
                     else:
                         spec = ptype
+                    for gridptype, idx in g.part_ind:
+                        if str(gridptype) == str(spec):
+                            index = idx
+                    for gridptype, ofs in g.off_part:
+                        if str(gridptype) == str(spec):
+                            offset = ofs
+                    if str((ptype, index, offset)) not in self._cached_ptype:
+                        self._fill_cache(ptype, index, offset)
+                    mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
+                    if mask is None:
+                        mylog.debug("Particle selection mask is None!")
+                        continue
                     pds = ds[self.particlesPath + "/" + spec]
                     for field in field_list:
                         nfield = "/".join(field.split("_")[1:])
@@ -238,8 +243,13 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     index = g.mesh_ind
                     offset = g.off_mesh
                     data = np.array(get_component(ds, nfield, index, offset, self.ds._nonstandard))
-                    nd = g.select(selector, data, rv[field], ind[field])
-                    ind[field] += nd
+                    # The following is a modified AMRGridPatch.select(...)
+                    mask = g._get_selector_mask(selector)
+                    if data.shape is not mask.shape:
+                        data = data.reshape(mask.shape)  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                    count = g.count(selector)
+                    rv[field][ind[field]:ind[field] + count] = data[mask]
+                    ind[field] += count
         for i in rv:
             rv[i].flatten()
         return rv
