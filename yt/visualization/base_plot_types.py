@@ -70,20 +70,6 @@ class CallbackWrapper(object):
         self.font_color = font_color
         self.field = field
 
-def _set_canvas():
-        backend = str(matplotlib.get_backend())
-        for key in backend_dict.keys():
-            if key == backend:
-                mod = __import__('matplotlib.backends', globals(), locals(),
-                                 [backend_dict[key][0]], -1)
-                submod = getattr(mod, backend_dict[key][0])
-                FigureCanvas = getattr(submod, backend_dict[key][1])
-                if len(backend_dict[key]) > 2:
-                    FigureManager = getattr(submod, backend_dict[key][2])
-                    return [FigureCanvas, FigureManager]
-                else:
-                    return [FigureCanvas]
-
 
 class PlotMPL(object):
     """A base class for all yt plots made using matplotlib, that is backend independent.
@@ -121,6 +107,7 @@ class PlotMPL(object):
             backend = str(matplotlib.get_backend())
         else:
             backend = 'agg'
+
         for key in backend_dict.keys():
             if key == backend:
                 mod = __import__('matplotlib.backends', globals(), locals(),
@@ -135,10 +122,12 @@ class PlotMPL(object):
 
     @classmethod
     def ion(cls):
+        """Toggles interactive backends on."""
         cls.interactive = True
 
     @classmethod
     def ioff(cls):
+        """Toggles interactive backends off."""
         cls.interactive = False
 
     def save(self, name, mpl_kwargs=None, canvas=None):
