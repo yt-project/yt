@@ -89,7 +89,6 @@ class GDFHierarchy(GridIndex):
         h5f = h5py.File(self.index_filename, 'r')
         self.dataset_type = dataset_type
         GridIndex.__init__(self, ds, dataset_type)
-        self.max_level = 10  # FIXME
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
