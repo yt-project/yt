@@ -155,8 +155,7 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
-    ioff
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \

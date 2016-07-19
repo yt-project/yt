@@ -70,9 +70,6 @@ class CallbackWrapper(object):
         self.font_color = font_color
         self.field = field
 
-def ioff():
-    matplotlib.rcParams['backend'] = 'Agg'
-
 def _set_canvas():
         backend = str(matplotlib.get_backend())
         for key in backend_dict.keys():
@@ -92,7 +89,10 @@ class PlotMPL(object):
     """A base class for all yt plots made using matplotlib, that is backend independent.
 
     """
-    def __init__(self, fsize, axrect, figure, axes, backend_classes=_set_canvas()):
+
+    interactive = False
+
+    def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
         import matplotlib.figure
         self._plot_valid = True
@@ -107,12 +107,39 @@ class PlotMPL(object):
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        self.canvas = backend_classes[0](self.figure)
-        if len(backend_classes) > 1:
-            self.manager = backend_classes[1](self.canvas, 1)
+        canvasClasses = PlotMPL.set_canvas()
+        self.canvas = canvasClasses[0]
+        if len(canvasClasses) > 1:
+            self.manager = canvasClasses[1](self.canvas, 1)
         for which in ['major', 'minor']:
             for axis in 'xy':
                 self.axes.tick_params(which=which, axis=axis, direction='in')
+
+    @classmethod
+    def _set_canvas(cls):
+        if PlotMPL.interactive:
+            backend = str(matplotlib.get_backend())
+        else:
+            backend = 'agg'
+        for key in backend_dict.keys():
+            if key == backend:
+                mod = __import__('matplotlib.backends', globals(), locals(),
+                                 [backend_dict[key][0]], -1)
+                submod = getattr(mod, backend_dict[key][0])
+                FigureCanvas = getattr(submod, backend_dict[key][1])
+                if len(backend_dict[key]) > 2:
+                    FigureManager = getattr(submod, backend_dict[key][2])
+                    return [FigureCanvas, FigureManager]
+                else:
+                    return [FigureCanvas]
+
+    @classmethod
+    def ion(cls):
+        cls.interactive = True
+
+    @classmethod
+    def ioff(cls):
+        cls.interactive = False
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
