@@ -57,9 +57,9 @@ cdef int walk_volume(VolumeContainer *vc,
     cdef np.float64_t tl, temp_x, temp_y = -1
     if max_t > 1.0: max_t = 1.0
     direction = -1
-    if vc.left_edge[0] <= v_pos[0] and v_pos[0] <= vc.right_edge[0] and \
-       vc.left_edge[1] <= v_pos[1] and v_pos[1] <= vc.right_edge[1] and \
-       vc.left_edge[2] <= v_pos[2] and v_pos[2] <= vc.right_edge[2]:
+    if vc.left_edge[0] <= v_pos[0] and v_pos[0] < vc.right_edge[0] and \
+       vc.left_edge[1] <= v_pos[1] and v_pos[1] < vc.right_edge[1] and \
+       vc.left_edge[2] <= v_pos[2] and v_pos[2] < vc.right_edge[2]:
         intersect_t = 0.0
         direction = 3
     for i in range(3):
