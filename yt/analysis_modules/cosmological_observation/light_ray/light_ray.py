@@ -123,6 +123,12 @@ class LightRay(CosmologySplice):
                  time_data=True, redshift_data=True,
                  find_outputs=False, load_kwargs=None):
 
+        if near_redshift is not None and
+            far_redshift is not None and
+            near_redshift >= far_redshift:
+            raise RuntimeError(
+                "near_redshift must be less than far_redshift.")
+
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift
         self.use_minimum_datasets = use_minimum_datasets
@@ -797,5 +803,6 @@ def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500,
             return start, end.d
         del test_ray
         if i > max_iter:
-            mylog.info("Exceed iteration limit.")
-            return None, None
+            raies RuntimeError(
+                ("Failed to create segment in %d attempts.  " +
+                 "Decreasing ray length is recommended") % i)
