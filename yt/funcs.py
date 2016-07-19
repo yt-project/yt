@@ -986,3 +986,4 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     except ImportError:
         pass
     return dummy_context_manager()
+

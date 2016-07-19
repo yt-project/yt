@@ -155,7 +155,8 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
+    ioff
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \
@@ -168,7 +169,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system
 
 from yt.convenience import \
-    load, simulation
+    load, simulation, ion, ioff
 
 from yt.testing import run_nose
 

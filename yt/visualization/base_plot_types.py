@@ -40,7 +40,8 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                            'FigureManagerGTK3Agg'],
                'WebAgg': ['backend_webagg', 'FigureCanvasWebAgg'],
                'nbAgg': ['backend_nbagg', 'FigureCanvasNbAgg',
-                         'FigureManagerNbAgg']}
+                         'FigureManagerNbAgg'],
+                'Agg': ['backend_agg', 'FigureCanvasAgg']}
 
 
 class CallbackWrapper(object):
@@ -69,20 +70,22 @@ class CallbackWrapper(object):
         self.font_color = font_color
         self.field = field
 
+def ioff():
+    matplotlib.use('Agg')
 
 def _set_canvas():
-    backend = str(matplotlib.get_backend())
-    for key in backend_dict.keys():
-        if key == backend:
-            mod = __import__('matplotlib.backends', globals(), locals(),
-                             [backend_dict[key][0]], -1)
-            submod = getattr(mod, backend_dict[key][0])
-            FigureCanvas = getattr(submod, backend_dict[key][1])
-            if len(backend_dict[key]) > 2:
-                FigureManager = getattr(submod, backend_dict[key][2])
-                return [FigureCanvas, FigureManager]
-            else:
-                return [FigureCanvas]
+        backend = str(matplotlib.get_backend())
+        for key in backend_dict.keys():
+            if key == backend:
+                mod = __import__('matplotlib.backends', globals(), locals(),
+                                 [backend_dict[key][0]], -1)
+                submod = getattr(mod, backend_dict[key][0])
+                FigureCanvas = getattr(submod, backend_dict[key][1])
+                if len(backend_dict[key]) > 2:
+                    FigureManager = getattr(submod, backend_dict[key][2])
+                    return [FigureCanvas, FigureManager]
+                else:
+                    return [FigureCanvas]
 
 
 class PlotMPL(object):

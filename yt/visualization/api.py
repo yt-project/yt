@@ -58,4 +58,5 @@ from .profile_plotter import \
     PhasePlot
 
 from .base_plot_types import \
-    get_multi_plot
+    get_multi_plot, \
+    ioff
