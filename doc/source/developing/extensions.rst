@@ -3,7 +3,7 @@
 Extension Packages
 ==================
 
-.. note:: For some additional discussion, see :ref:`YTEP-0029
+.. note:: For some additional discussion, see `YTEP-0029
           <http://ytep.readthedocs.io/en/latest/YTEPs/YTEP-0029.html>`_, where
           this plan was designed.
 
