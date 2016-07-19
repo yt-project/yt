@@ -389,6 +389,9 @@ setup(
         'IPython',
         'cython',
     ],
+    extras_require = {
+        'hub':  ["girder_client"]
+    },
     cmdclass={'sdist': sdist, 'build_ext': build_ext, 'build_py': build_py},
     author="The yt project",
     author_email="yt-dev@lists.spacepope.org",
