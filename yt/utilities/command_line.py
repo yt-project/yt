@@ -26,7 +26,7 @@ import tempfile
 import json
 import pprint
 
-from yt.config import ytcfg
+from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
@@ -44,6 +44,7 @@ from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
 from yt.utilities.metadata import get_metadata
+from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
     YTOutputNotIdentified, YTFieldNotParseable
 
@@ -560,22 +561,23 @@ class YTHubRegisterCmd(YTCommand):
     name = "hub_register"
     description = \
         """
-        Register a user on the Hub: http://hub.yt-project.org/
+        Register a user on the Hub: http://hub.yt/
         """
     def __call__(self, args):
-        # We need these pieces of information:
-        #   1. Name
-        #   2. Email
-        #   3. Username
-        #   4. Password (and password2)
-        #   5. (optional) URL
-        #   6. "Secret" key to make it epsilon harder for spammers
-        if ytcfg.get("yt","hub_api_key") != "":
+        try:
+            import requests
+        except ImportError:
+            print("yt {} requires requests to be installed".format(self.name))
+            print("Please install them using you python package manager, e.g.:")
+            print("   pip install requests --user")
+            exit()
+        if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
-            print("~/.yt/config .  Delete this if you want to force a")
+            print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
             print("new user registration.")
+            exit()
         print("Awesome!  Let's start by registering a new user for you.")
-        print("Here's the URL, for reference: http://hub.yt-project.org/ ")
+        print("Here's the URL, for reference: http://hub.yt/ ")
         print()
         print("As always, bail out with Ctrl-C at any time.")
         print()
@@ -586,8 +588,11 @@ class YTHubRegisterCmd(YTCommand):
         print()
         print("To start out, what's your name?")
         print()
-        name = input("Name? ")
-        if len(name) == 0: sys.exit(1)
+        first_name = input("First Name? ")
+        if len(first_name) == 0: sys.exit(1)
+        print()
+        last_name = input("Last Name? ")
+        if len(last_name) == 0: sys.exit(1)
         print()
         print("And your email address?")
         print()
@@ -604,33 +609,32 @@ class YTHubRegisterCmd(YTCommand):
             print("Sorry, they didn't match!  Let's try again.")
             print()
         print()
-        print("Would you like a URL displayed for your user?")
-        print("Leave blank if no.")
-        print()
-        url = input("URL? ")
-        print()
         print("Okay, press enter to register.  You should receive a welcome")
         print("message at %s when this is complete." % email)
         print()
         input()
-        data = dict(name = name, email = email, username = username,
-                    password = password1, password2 = password2,
-                    url = url, zap = "rowsdower")
-        data = urllib.parse.urlencode(data)
-        hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib.request.Request(hub_url, data)
-        try:
-            urllib.request.urlopen(req).read()
-        except urllib.error.HTTPError as exc:
-            if exc.code == 400:
-                print("Sorry, the Hub couldn't create your user.")
-                print("You can't register duplicate users, which is the most")
-                print("common cause of this error.  All values for username,")
-                print("name, and email must be unique in our system.")
-                sys.exit(1)
-        except urllib.URLError as exc:
-            print("Something has gone wrong.  Here's the error message.")
-            raise exc
+
+        data = dict(firstName=first_name, email=email, login=username,
+                    password=password1, lastName=last_name, admin=False)
+        hub_url = ytcfg.get("yt", "hub_url")
+        req = requests.post(hub_url + "/user", data=data)
+      
+        if req.ok:
+            headers = {'Girder-Token': req.json()['authToken']['token']}
+        else:
+            if req.status_code == 400:
+                print("Registration failed with 'Bad request':")
+                print(req.json()["message"])
+            exit(1)
+        print("User registration successful")
+        print("Obtaining API key...")
+        req = requests.post(hub_url + "/api_key", headers=headers,
+                            data={'name': 'ytcmd', 'active': True})
+        apiKey = req.json()["key"]
+
+        print("Storing API key in configuration file")
+        set_config("yt", "hub_api_key", apiKey)
+        
         print()
         print("SUCCESS!")
         print()
@@ -814,7 +818,7 @@ class YTNotebookUploadCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
         """
-        Upload an IPython notebook to hub.yt-project.org.
+        Upload an IPython notebook to hub.yt.
         """
 
     name = "upload_notebook"
