@@ -12,6 +12,7 @@ code.
 
    code_support
    command-line
+   sharing_data
    api/api
    configuration
    python_introduction
