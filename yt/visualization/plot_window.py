@@ -23,7 +23,9 @@ import sys
 from distutils.version import LooseVersion
 from numbers import Number
 
-from .base_plot_types import ImagePlotMPL
+from .base_plot_types import \
+    ImagePlotMPL, \
+    ioff
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
