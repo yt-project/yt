@@ -651,7 +651,7 @@ straightforward.
 .. _multiple-PRs:
 
 Working with Multiple BitBucket Pull Requests
-+++++++++++++++++++++++++++++++++++++++++++++
+---------------------------------------------
 
 Once you become active developing for yt, you may be working on
 various aspects of the code or bugfixes at the same time.  Currently,

@@ -23,7 +23,8 @@ from .cylindrical_coordinates import \
 from .spherical_coordinates import \
     SphericalCoordinateHandler
 from .geographic_coordinates import \
-    GeographicCoordinateHandler
+     GeographicCoordinateHandler, \
+     InternalGeographicCoordinateHandler
 from .spec_cube_coordinates import \
     SpectralCubeCoordinateHandler
 

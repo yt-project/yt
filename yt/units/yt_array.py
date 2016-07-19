@@ -167,7 +167,8 @@ def validate_comparison_units(this, other, op_string):
     # Check that other is a YTArray.
     if hasattr(other, 'units'):
         if this.units.expr is other.units.expr:
-            return other
+            if this.units.base_value == other.units.base_value:
+                return other
         if not this.units.same_dimensions_as(other.units):
             raise YTUnitOperationError(op_string, this.units, other.units)
         return other.in_units(this.units)
@@ -595,18 +596,21 @@ class YTArray(np.ndarray):
             The unit that you wish to convert to.
         equiv : string
             The equivalence you wish to use. To see which equivalencies are
-            supported for this unitful quantity, try the :meth:`list_equivalencies`
-            method.
+            supported for this unitful quantity, try the
+            :meth:`list_equivalencies` method.
 
         Examples
         --------
         >>> a = yt.YTArray(1.0e7,"K")
         >>> a.to_equivalent("keV", "thermal")
         """
-        unit_quan = YTQuantity(1.0, unit, registry=self.units.registry)
+        conv_unit = Unit(unit, registry=self.units.registry)
         this_equiv = equivalence_registry[equiv]()
-        if self.has_equivalent(equiv) and (unit_quan.has_equivalent(equiv) or this_equiv._one_way):
-            new_arr = this_equiv.convert(self, unit_quan.units.dimensions, **kwargs)
+        oneway_or_equivalent = (
+            conv_unit.has_equivalent(equiv) or this_equiv._one_way)
+        if self.has_equivalent(equiv) and oneway_or_equivalent:
+            new_arr = this_equiv.convert(
+                self, conv_unit.dimensions, **kwargs)
             if isinstance(new_arr, tuple):
                 try:
                     return YTArray(new_arr[0], new_arr[1]).in_units(unit)
@@ -622,21 +626,14 @@ class YTArray(np.ndarray):
         Lists the possible equivalencies associated with this YTArray or
         YTQuantity.
         """
-        for k,v in equivalence_registry.items():
-            if self.has_equivalent(k):
-                print(v())
+        self.units.list_equivalencies()
 
     def has_equivalent(self, equiv):
         """
         Check to see if this YTArray or YTQuantity has an equivalent unit in
         *equiv*.
         """
-        try:
-            this_equiv = equivalence_registry[equiv]()
-        except KeyError:
-            raise KeyError("No such equivalence \"%s\"." % equiv)
-        old_dims = self.units.dimensions
-        return old_dims in this_equiv.dims
+        return self.units.has_equivalent(equiv)
 
     def ndarray_view(self):
         """

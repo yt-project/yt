@@ -50,11 +50,11 @@ cdef inline np.float64_t fclip(np.float64_t f,
                       np.float64_t a, np.float64_t b) nogil:
     return fmin(fmax(f, a), b)
 
-cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
+cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1) nogil:
     if i0 > i1: return i0
     return i1
 
-cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1):
+cdef inline np.int64_t i64min(np.int64_t i0, np.int64_t i1) nogil:
     if i0 < i1: return i0
     return i1
 

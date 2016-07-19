@@ -25,8 +25,11 @@ from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
 from yt.geometry.oct_visitors cimport \
     Oct
-from .amr_kdtools cimport _find_node, Node
-from .grid_traversal cimport VolumeContainer, PartitionedGrid
+from .amr_kdtools cimport Node
+from .partitioned_grid cimport \
+    PartitionedGrid
+from .volume_container cimport \
+    VolumeContainer
 import sys
 
 cdef inline ContourID *contour_create(np.int64_t contour_id,
@@ -448,7 +451,7 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                                 pos[ax] = vc0.dims[ax]
                                 my_pos[ax] = vc0.dims[ax]-1
                             get_spos(vc0, pos[0], pos[1], pos[2], ax, spos)
-                            adj_node = _find_node(trunk, spos)
+                            adj_node = trunk._find_node(spos)
                             vc1 = vcs[adj_node.node_ind]
                             if spos_contained(vc1, spos):
                                 m1 = vc0.mask[my_pos[0], my_pos[1], my_pos[2]]

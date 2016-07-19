@@ -537,8 +537,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self._use_pbar = use_pbar
         self.global_startindex = np.rint(
             (self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
-        self.domain_width = np.rint((self.ds.domain_right_edge -
-                    self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
         self.get_data(fields)
 
@@ -833,7 +831,6 @@ class LevelState(object):
     current_level = None
     global_startindex = None
     old_global_startindex = None
-    domain_iwidth = None
     fields = None
     data_source = None
 
@@ -982,8 +979,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.left_edge = ls.global_startindex * ls.current_dx \
                      + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        ls.domain_iwidth = np.rint((self.ds.domain_right_edge -
-                    self.ds.domain_left_edge)/ls.current_dx).astype('int64')
         ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
         self._setup_data_source(ls)
         return ls
@@ -1022,7 +1017,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.left_edge = ls.global_startindex * ls.current_dx \
                      + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64')
         input_left = (level_state.old_global_startindex) * rf  + 1
         new_fields = []
         for input_field in level_state.fields:
@@ -1231,20 +1225,22 @@ class YTSurface(YTSelectionContainer3D):
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
-        r"""This exports the surface to the OBJ format, suitable for visualization
-        in many different programs (e.g., Blender).  NOTE: this exports an .obj file
-        and an .mtl file, both with the general 'filename' as a prefix.
-        The .obj file points to the .mtl file in its header, so if you move the 2
-        files, make sure you change the .obj header to account for this. ALSO NOTE:
-        the emit_field needs to be a combination of the other 2 fields used to
-        have the emissivity track with the color.
+        r"""Export the surface to the OBJ format
+
+        Suitable for visualization in many different programs (e.g., Blender).
+        NOTE: this exports an .obj file and an .mtl file, both with the general
+        'filename' as a prefix.  The .obj file points to the .mtl file in its
+        header, so if you move the 2 files, make sure you change the .obj header
+        to account for this. ALSO NOTE: the emit_field needs to be a combination
+        of the other 2 fields used to have the emissivity track with the color.
 
         Parameters
-         ----------
+        ----------
+
         filename : string
-            The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files
-            are created.
+            The file this will be exported to.  This cannot be a file-like
+            object. If there are no file extentions included - both obj & mtl
+            files are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
             from 0.0 (invisible) to 1.0 (opaque).
@@ -1253,8 +1249,8 @@ class YTSurface(YTSelectionContainer3D):
         color_field : string
             Should a field be sample and colormapped?
         emit_field : string
-            Should we track the emissivity of a field?
-              NOTE: this should be a combination of the other 2 fields being used.
+            Should we track the emissivity of a field? This should be a
+            combination of the other 2 fields being used.
         color_map : string
             Which color map should be applied?
         color_log : bool
@@ -1298,12 +1294,14 @@ class YTSurface(YTSelectionContainer3D):
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
-        ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
+        ...     return (data['density']*data['density'] *
+        ...             np.sqrt(data['temperature']))
         >>> ds.add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', emit_field = 'emissivity',
+        ...                      color_field='temperature',
+        ...                      emit_field='emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """

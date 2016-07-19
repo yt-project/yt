@@ -253,12 +253,9 @@ class FLASHDataset(Dataset):
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "cm/s")
         self.temperature_unit = self.quan(temperature_factor, "K")
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        
+
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
-        self.unit_registry.modify("code_temperature",
-                                  self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
@@ -387,6 +384,9 @@ class FLASHDataset(Dataset):
         elif self.dimensionality < 3 and self.geometry == "spherical":
             mylog.warning("Extending phi dimension to 2PI + left edge.")
             self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+        if self.dimensionality == 1 and self.geometry == "spherical":
+            mylog.warning("Extending theta dimension to PI + left edge.")
+            self.domain_right_edge[1] = self.domain_left_edge[1] + np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
@@ -465,8 +465,9 @@ class FLASHParticleDataset(FLASHDataset):
         # fix the domain dimensions
         super(FLASHParticleDataset, self)._parse_parameter_file()
         nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.zeros(3, "int32")
-        self.domain_dimensions[:self.dimensionality] = nz
+        domain_dimensions = np.zeros(3, "int32")
+        domain_dimensions[:self.dimensionality] = nz
+        self.domain_dimensions = domain_dimensions
         self.filename_template = self.parameter_filename
         self.file_count = 1
 

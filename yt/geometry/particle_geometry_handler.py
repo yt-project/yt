@@ -14,6 +14,7 @@ Particle-only geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import collections
 import numpy as np
 import os
 import weakref
@@ -37,6 +38,13 @@ class ParticleIndex(Index):
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
+    @property
+    def index_ptype(self):
+        if hasattr(self.dataset, "index_ptype"):
+            return self.dataset.index_ptype
+        else:
+            return "all"
+
     def _setup_geometry(self):
         mylog.debug("Initializing Particle Geometry Handler.")
         self._initialize_particle_handler()
@@ -51,6 +59,13 @@ class ParticleIndex(Index):
                    self.dataset.domain_left_edge)
         return dx.min()
 
+    def _get_particle_type_counts(self):
+        result = collections.defaultdict(lambda: 0)
+        for df in self.data_files:
+            for k in df.total_particles.keys():
+                result[k] += df.total_particles[k]
+        return dict(result)
+
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
@@ -61,14 +76,21 @@ class ParticleIndex(Index):
         cls = self.dataset._file_class
         self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
                            for i in range(ndoms)]
-        self.total_particles = sum(
-                sum(d.total_particles.values()) for d in self.data_files)
+        index_ptype = self.index_ptype
+        if index_ptype == "all":
+            self.total_particles = sum(
+                    sum(d.total_particles.values()) for d in self.data_files)
+        else:
+            self.total_particles = sum(
+                    d.total_particles[index_ptype] for d in self.data_files)
         ds = self.dataset
         self.oct_handler = ParticleOctreeContainer(
             [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
             over_refine = ds.over_refine_factor)
         self.oct_handler.n_ref = ds.n_ref
-        only_on_root(mylog.info, "Allocating for %0.3e particles", self.total_particles)
+        only_on_root(mylog.info, "Allocating for %0.3e particles "
+                                 "(index particle type '%s')",
+                     self.total_particles, index_ptype)
         # No more than 256^3 in the region finder.
         N = min(len(self.data_files), 256) 
         self.regions = ParticleRegions(
@@ -92,10 +114,17 @@ class ParticleIndex(Index):
         #   * Broadcast back a serialized octree to join
         #
         # For now we will do this in serial.
+        index_ptype = self.index_ptype
+        # Set the index_ptype attribute of self.io dynamically here, so we don't
+        # need to assume that the dataset has the attribute.
+        self.io.index_ptype = index_ptype
         morton = np.empty(self.total_particles, dtype="uint64")
         ind = 0
         for data_file in self.data_files:
-            npart = sum(data_file.total_particles.values())
+            if index_ptype == "all":
+                npart = sum(data_file.total_particles.values())
+            else:
+                npart = data_file.total_particles[index_ptype]
             morton[ind:ind + npart] = \
                 self.io._initialize_index(data_file, self.regions)
             ind += npart

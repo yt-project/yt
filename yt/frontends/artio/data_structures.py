@@ -182,6 +182,17 @@ class ARTIOIndex(Index):
         return (self.dataset.domain_width /
                 (self.dataset.domain_dimensions * 2**(self.max_level))).min()
 
+    def _get_particle_type_counts(self):
+        # this could be done in the artio C interface without creating temporary
+        # arrays but I don't want to touch that code
+        # if a future brave soul wants to try, take a look at
+        # `read_sfc_particles` in _artio_caller.pyx
+        result = {}
+        ad = self.ds.all_data()
+        for ptype in self.ds.particle_types_raw:
+            result[ptype] = ad[ptype, 'PID'].size
+        return result
+
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 

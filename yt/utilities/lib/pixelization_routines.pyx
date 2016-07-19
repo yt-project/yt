@@ -18,7 +18,8 @@ cimport numpy as np
 cimport cython
 cimport libc.math as math
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
-from yt.utilities.exceptions import YTPixelizeError, \
+from yt.utilities.exceptions import \
+    YTPixelizeError, \
     YTElementTypeNotRecognized
 from libc.stdlib cimport malloc, free
 from vec3_ops cimport dot, cross, subtract
@@ -30,7 +31,6 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler2D, \
     Q1Sampler2D, \
     W1Sampler3D
-
 
 cdef extern from "pixelization_constants.h":
     enum:
@@ -190,6 +190,14 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
                                 if overlap1 < 0.0: continue
+                                # This next line is not commented out because
+                                # it's an oddity; we actually want to skip
+                                # depositing if the overlap is zero, and that's
+                                # how it used to work when we were more
+                                # conservative about the iteration indices.
+                                # This will reduce artifacts if we ever move to
+                                # compositing instead of replacing bitmaps.
+                                if overlap1 * overlap2 == 0.0: continue
                                 my_array[j,i] += (dsp * overlap1) * overlap2
                             else:
                                 my_array[j,i] = dsp
@@ -274,14 +282,14 @@ def pixelize_off_axis_cartesian(
                     cx = inv_mat[0,0]*cxpx + inv_mat[0,1]*cypx + center[0]
                     cy = inv_mat[1,0]*cxpx + inv_mat[1,1]*cypx + center[1]
                     cz = inv_mat[2,0]*cxpx + inv_mat[2,1]*cypx + center[2]
-                    if fabs(xsp - cx) * 0.95 > dxsp or \
-                       fabs(ysp - cy) * 0.95 > dysp or \
-                       fabs(zsp - cz) * 0.95 > dzsp:
+                    if fabs(xsp - cx) * 0.99 > dxsp or \
+                       fabs(ysp - cy) * 0.99 > dysp or \
+                       fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
                     my_array[i, j] += dsp
     my_array /= mask
-    return my_array
+    return my_array.T
 
 
 @cython.cdivision(True)
@@ -544,8 +552,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           buff_size,
                           np.ndarray[np.float64_t, ndim=2] field,
                           extents, 
-                          int index_offset = 0,
-                          double thresh = -1.0):
+                          int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
     # Two steps:
@@ -592,27 +599,10 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
 
     # if we are in 2D land, the 1 cell thick dimension had better be 'z'
     if ndim == 2:
-        assert(buff_size[2] == 1)
+        if buff_size[2] != 1:
+            raise RuntimeError("Slices of 2D datasets must be "
+                               "perpendicular to the 'z' direction.")
     
-    ax = -1
-    for i in range(3):
-        if buff_size[i] == 1:
-            ax = i
-    if ax == -1:
-        raise RuntimeError
-    xax = yax = -1
-    if ax == 0:
-        xax = 1
-        yax = 2
-    elif ax == 1:
-        xax = 1
-        yax = 2
-    elif ax == 2:
-        xax = 0
-        yax = 1
-    if xax == -1 or yax == -1:
-        raise RuntimeError
-
     # allocate temporary storage
     vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
     field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
@@ -627,66 +617,58 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         else:
             idds[i] = 1.0 / dds[i]
 
-    for ci in range(conn.shape[0]):
+    with cython.boundscheck(False):
+        for ci in range(conn.shape[0]):
 
-        # Fill the vertices
-        LE[0] = LE[1] = LE[2] = 1e60
-        RE[0] = RE[1] = RE[2] = -1e60
+            # Fill the vertices
+            LE[0] = LE[1] = LE[2] = 1e60
+            RE[0] = RE[1] = RE[2] = -1e60
 
-        for n in range(num_field_vals):
-            field_vals[n] = field[ci, n]
+            for n in range(num_field_vals):
+                field_vals[n] = field[ci, n]
 
-        for n in range(nvertices):
-            cj = conn[ci, n] - index_offset
+            for n in range(nvertices):
+                cj = conn[ci, n] - index_offset
+                for i in range(ndim):
+                    vertices[ndim*n + i] = coords[cj, i]
+                    LE[i] = fmin(LE[i], vertices[ndim*n+i])
+                    RE[i] = fmax(RE[i], vertices[ndim*n+i])
+
+            use = 1
             for i in range(ndim):
-                vertices[ndim*n + i] = coords[cj, i]
-                LE[i] = fmin(LE[i], vertices[ndim*n+i])
-                RE[i] = fmax(RE[i], vertices[ndim*n+i])
+                if RE[i] < pLE[i] or LE[i] >= pRE[i]:
+                    use = 0
+                    break
+                pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
+                pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
 
-        use = 1
-        for i in range(ndim):
-            if RE[i] < pLE[i] or LE[i] >= pRE[i]:
-                use = 0
-                break
-            pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
-            pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
+            # override for the 2D case
+            if ndim == 2:
+                pstart[2] = 0
+                pend[2] = 0
 
-        # override for the 2D case
-        if ndim == 2:
-            pstart[2] = 0
-            pend[2] = 0
+            if use == 0:
+                continue
 
-        if use == 0:
-            continue
-
-        # Now our bounding box intersects, so we get the extents of our pixel
-        # region which overlaps with the bounding box, and we'll check each
-        # pixel in there.
-        for pi in range(pstart[0], pend[0] + 1):
-            ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
-            for pj in range(pstart[1], pend[1] + 1):
-                ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
-                for pk in range(pstart[2], pend[2] + 1):
-                    ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
-                    # Now we just need to figure out if our ppoint is within
-                    # our set of vertices.
-                    sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
-                    if not sampler.check_inside(mapped_coord):
-                        continue
-                    # if thresh is negative, we do the normal sample operation
-                    if thresh < 0.0:
+            # Now our bounding box intersects, so we get the extents of our pixel
+            # region which overlaps with the bounding box, and we'll check each
+            # pixel in there.
+            for pi in range(pstart[0], pend[0] + 1):
+                ppoint[0] = (pi + 0.5) * dds[0] + pLE[0]
+                for pj in range(pstart[1], pend[1] + 1):
+                    ppoint[1] = (pj + 0.5) * dds[1] + pLE[1]
+                    for pk in range(pstart[2], pend[2] + 1):
+                        ppoint[2] = (pk + 0.5) * dds[2] + pLE[2]
+                        # Now we just need to figure out if our ppoint is within
+                        # our set of vertices.
+                        sampler.map_real_to_unit(mapped_coord, vertices, ppoint)
+                        if not sampler.check_inside(mapped_coord):
+                            continue
                         if (num_field_vals == 1):
                             img[pi, pj, pk] = field_vals[0]
                         else:
                             img[pi, pj, pk] = sampler.sample_at_unit_point(mapped_coord,
                                                                            field_vals)
-                    else:
-                        # otherwise, we draw the element boundaries
-                        if sampler.check_near_edge(mapped_coord, thresh, xax):
-                            img[pi, pj, pk] = 1.0
-                        elif sampler.check_near_edge(mapped_coord, thresh, yax):
-                            img[pi, pj, pk] = 1.0
-
     free(vertices)
     free(field_vals)
     return img

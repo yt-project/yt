@@ -19,4 +19,3 @@ by default when you "import yt".  Read up on these advanced tools below.
    two_point_functions
    clump_finding
    particle_trajectories
-   ellipsoid_analysis

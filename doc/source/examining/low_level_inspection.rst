@@ -232,3 +232,28 @@ yt method for generating plots, and allows the user the freedom to use
 whatever interface they wish for displaying and saving their image data.
 You can use the :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
 to accomplish this as described in :ref:`fixed-resolution-buffers`.
+
+High-level Information about Particles
+--------------------------------------
+
+There are a number of high-level helpers attached to ``Dataset`` objects to find
+out information about the particles in an output file. First, one can check if
+there are any particles in a dataset at all by examining
+``ds.particles_exist``. This will be ``True`` for datasets the include particles
+and ``False`` otherwise.
+
+One can also see which particle types are available in a dataset. Particle types
+that are available in the dataset's on-disk output are known as "raw" particle
+types, and they will appear in ``ds.particle_types_raw``. Particle types that
+are dynamically defined via a particle filter of a particle union will also
+appear in the ``ds.particle_types`` list. If the simulation only has one
+particle type on-disk, its name will by ``'io'``. If there is more than one
+particle type, the names of the particle types will be inferred from the output
+file. For example, Gadget HDF5 files have particle type names like ``PartType0``
+and ``PartType1``, while Enzo data, which usually only has one particle type,
+will only have a particle named ``io``.
+
+Finally, one can see the number of each particle type by inspecting
+``ds.particle_type_counts``. This will be a dictionary mappying the names of
+particle types in ``ds.particle_types_raw`` to the number of each particle type
+in a simulation output.
