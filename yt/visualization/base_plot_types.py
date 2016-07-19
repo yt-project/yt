@@ -107,7 +107,7 @@ class PlotMPL(object):
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        canvasClasses = PlotMPL.set_canvas()
+        canvasClasses = PlotMPL._set_canvas()
         self.canvas = canvasClasses[0]
         if len(canvasClasses) > 1:
             self.manager = canvasClasses[1](self.canvas, 1)
