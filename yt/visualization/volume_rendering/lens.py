@@ -288,7 +288,12 @@ class PerspectiveLens(Lens):
 
 
 class StereoPerspectiveLens(Lens):
-    """A lens that includes two sources for perspective rays, for 3D viewing"""
+    """A lens that includes two sources for perspective rays, for 3D viewing
+
+    The degree of differences between the left and right images is controlled by 
+    the disparity (the maximum distance between cooresponding points in the left
+    and right images). By default, the disparity is set to be 3 pixels.
+    """
 
     def __init__(self):
         super(StereoPerspectiveLens, self).__init__()
@@ -310,7 +315,7 @@ class StereoPerspectiveLens(Lens):
             * (2. * camera.resolution[1] / camera.resolution[0])
 
         if self.disparity is None:
-            self.disparity = camera.width[0] / 2.e3
+            self.disparity = 3. * camera.width[0] / camera.resolution[0]
 
         if render_source.zbuffer is not None:
             image = render_source.zbuffer.rgba
@@ -416,7 +421,7 @@ class StereoPerspectiveLens(Lens):
         camera.width[1] = camera.width[0] * (2. * res[1] / res[0])
 
         if self.disparity is None:
-            self.disparity = camera.width[0] / 2.e3
+            self.disparity = 3. * camera.width[0] / camera.resolution[0]
 
         px_left, py_left, dz_left = self._get_px_py_dz(
             camera, pos, res, -self.disparity)
