@@ -59,7 +59,7 @@ def main():
     get_parser = subparsers.add_parser('get', help='get a config value')
     set_parser = subparsers.add_parser('set', help='set a config value')
     rm_parser = subparsers.add_parser('rm', help='remove a config option')
-    migrate_parser = subparsers.add_parser('migrate', help='migrate old config file')
+    subparsers.add_parser('migrate', help='migrate old config file')
     subparsers.add_parser('list', help='show all config values')
 
     get_parser.add_argument(
