@@ -120,12 +120,11 @@ class LightRay(CosmologySplice):
                  near_redshift=None, far_redshift=None,
                  use_minimum_datasets=True, max_box_fraction=1.0,
                  deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
-                 time_data=True, redshift_data=True,
+                 high_res_box_size_fraction=1.0, time_data=True, 
+                 redshift_data=True,
                  find_outputs=False, load_kwargs=None):
 
-        if near_redshift is not None and
-            far_redshift is not None and
-            near_redshift >= far_redshift:
+        if near_redshift is not None and far_redshift is not None and near_redshift >= far_redshift:
             raise RuntimeError(
                 "near_redshift must be less than far_redshift.")
 
@@ -134,6 +133,7 @@ class LightRay(CosmologySplice):
         self.use_minimum_datasets = use_minimum_datasets
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
+        self.high_res_box_size_fraction = high_res_box_size_fraction
         self.parameter_filename = parameter_filename
         if load_kwargs is None:
             self.load_kwargs = {}
@@ -178,12 +178,13 @@ class LightRay(CosmologySplice):
               self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                            minimal=self.use_minimum_datasets,
                                            max_box_fraction=max_box_fraction,
+                                           high_res_box_size_fraction=self.high_res_box_size_fraction,
                                            deltaz_min=self.deltaz_min,
                                            time_data=time_data,
                                            redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
-                                      left_edge=None, right_edge=None, min_level=None,
+                                      left_edge=None, right_edge=None, min_level=None, 
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -231,7 +232,7 @@ class LightRay(CosmologySplice):
                 self.light_ray_solution[q]['traversal_box_fraction'] = \
                     self.cosmology.comoving_radial_distance(z_next, \
                         self.light_ray_solution[q]['redshift']).in_units("Mpccm / h") / \
-                        self.simulation.box_size
+                        self.simulation.box_size  
 
                 # Get dataset axis and center.
                 # If using box coherence, only get start point and vector if
@@ -771,7 +772,7 @@ def periodic_ray(start, end, left=None, right=None):
 
     return segments
 
-def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500,
+def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=5000,
                      min_level=None, my_random=None):
 
     max_length = vector_length(left_edge, right_edge)
@@ -803,6 +804,6 @@ def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=500,
             return start, end.d
         del test_ray
         if i > max_iter:
-            raies RuntimeError(
+            raise RuntimeError(
                 ("Failed to create segment in %d attempts.  " +
                  "Decreasing ray length is recommended") % i)

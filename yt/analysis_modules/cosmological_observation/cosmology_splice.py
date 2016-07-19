@@ -41,7 +41,7 @@ class CosmologySplice(object):
 
     def create_cosmology_splice(self, near_redshift, far_redshift,
                                 minimal=True, max_box_fraction=1.0,
-                                deltaz_min=0.0,
+                                deltaz_min=0.0, high_res_box_size_fraction=1.0,
                                 time_data=True, redshift_data=True):
         r"""Create list of datasets capable of spanning a redshift
         interval.
@@ -69,6 +69,11 @@ class CosmologySplice(object):
             ray segment can be in order to span the redshift interval from
             one dataset to another.
             Default: 1.0 (the size of the box)
+        high_res_box_size_fraction : float
+            In terms of the size of the domain, the size of the region that
+            will be used to calculate the redshift interval from one dataset
+            to another.  Must be <= 1.0.
+            Default:  1.0 (the size of the box)
         deltaz_min : float
             Specifies the minimum delta z between consecutive datasets
             in the returned
@@ -100,7 +105,7 @@ class CosmologySplice(object):
         else:
             mylog.error('Both time_data and redshift_data are False.')
             return
-
+        
         # Link datasets in list with pointers.
         # This is used for connecting datasets together.
         for i, output in enumerate(self.splice_outputs):
@@ -120,6 +125,8 @@ class CosmologySplice(object):
         # Calculate minimum delta z for each data dump.
         self._calculate_deltaz_min(deltaz_min=deltaz_min)
 
+        self.high_res_box_size_fraction = high_res_box_size_fraction
+        
         cosmology_splice = []
  
         if near_redshift == far_redshift:
@@ -264,7 +271,7 @@ class CosmologySplice(object):
                 rounded += np.power(10.0, (-1.0*decimals))
             z = rounded
 
-            deltaz_max = self._deltaz_forward(z, self.simulation.box_size)
+            deltaz_max = self._deltaz_forward(z, self.simulation.box_size*self.high_res_box_size_fraction)
             outputs.append({'redshift': z, 'dz_max': deltaz_max})
             z -= deltaz_max
 
@@ -285,7 +292,7 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        target_distance = self.simulation.box_size
+        target_distance = self.simulation.box_size #* self.high_res_box_size_fraction
 
         for output in self.splice_outputs:
             z = output['redshift']
