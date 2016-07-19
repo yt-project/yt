@@ -20,7 +20,6 @@ from yt.funcs import mylog, get_pbar
 from yt.units.yt_array import array_like_field
 from yt.config import ytcfg
 from collections import OrderedDict
-from IPython import embed
 
 import numpy as np
 from yt.utilities.on_demand_imports import _h5py as h5py
