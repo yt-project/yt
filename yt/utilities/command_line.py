@@ -39,6 +39,7 @@ from yt.funcs import \
     enable_plugins
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
+from yt.extern.six.moves.urllib.parse import urlparse
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
@@ -823,31 +824,39 @@ class YTNotebookUploadCmd(YTCommand):
 
     name = "upload_notebook"
     def __call__(self, args):
+        try:
+            import girder_client
+        except ImportError:
+            print("yt {} requires girder_client to be installed".format(self.name))
+            print("Please install them using you python package manager, e.g.:")
+            print("   pip install girder_client --user")
+            exit()
+
         filename = args.file
         if not os.path.isfile(filename):
             raise IOError(filename)
         if not filename.endswith(".ipynb"):
             print("File must be an IPython notebook!")
             return 1
-        import json
-        try:
-            t = json.loads(open(filename).read())['metadata']['name']
-        except (ValueError, KeyError):
-            print("File does not appear to be an IPython notebook.")
-        if len(t) == 0:
-            t = filename.strip(".ipynb")
-        from yt.utilities.minimal_representation import MinimalNotebook
-        mn = MinimalNotebook(filename, t)
-        rv = mn.upload()
+        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
+        gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
+        gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
+        username = gc.get("/user/me")["login"]
+        gc.upload(filename, "/user/{}/Public".format(username))
+
+        _id = gc.resourceLookup(
+            "/user/{}/Public/{}".format(username, filename))["_id"]
+        _fid = next(gc.listFile(_id))["_id"]
         print("Upload successful!")
         print()
         print("To access your raw notebook go here:")
         print()
-        print("  %s" % (rv['url']))
+        print("  {}://{}/#item/{}".format(hub_url.scheme, hub_url.netloc, _id))
         print()
         print("To view your notebook go here:")
         print()
-        print("  %s" % (rv['url'].replace("/go/", "/nb/")))
+        print("  http://nbviewer.jupyter.org/urls/{}/file/{}/download".format(
+            hub_url.netloc + hub_url.path, _fid))
         print()
 
 class YTPlotCmd(YTCommand):
