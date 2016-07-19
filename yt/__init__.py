@@ -169,7 +169,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system
 
 from yt.convenience import \
-    load, simulation, ion, ioff
+    load, simulation
 
 from yt.testing import run_nose
 
