@@ -378,7 +378,7 @@ setup(
     package_data = {'':['*.pxd']},
     setup_requires=[
         'numpy',
-        'cython>=0.22',
+        'cython>=0.24',
     ],
     install_requires=[
         'matplotlib',
