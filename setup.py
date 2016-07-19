@@ -32,14 +32,6 @@ try:
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
-setuptools_ver = \
-    LooseVersion(pkg_resources.get_distribution("setuptools").version)
-if setuptools_ver < LooseVersion("18.0"):
-    print("Your setuptools version is too old to properly handle cython extensions.")
-    print("Please update setuptools before proceeding:")
-    print("    pip install -U setuptools")
-    sys.exit(1)
-
 MAPSERVER_FILES = []
 MAPSERVER_DIRS = [
     "",
@@ -382,7 +374,7 @@ setup(
     ],
     install_requires=[
         'matplotlib',
-        'setuptools>=18.0',
+        'setuptools>=19.6',
         'sympy',
         'numpy',
         'IPython',
