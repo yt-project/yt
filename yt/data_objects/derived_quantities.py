@@ -114,9 +114,10 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     Parameters
     ----------
-    fields : field or list of fields
+
+    fields : string / tuple, or list of strings / tuples
         The field or fields of which the average value is to be calculated.
-    weight : field
+    weight : string or tuple
         The weight field.
 
     Examples
@@ -358,10 +359,10 @@ class WeightedVariance(DerivedQuantity):
 
     Parameters
     ----------
-    fields : field or list of fields
-        The field or fields of which the variance and mean values are
-        to be calculated.
-    weight : field
+
+    fields : string / tuple, or list of strings / tuples
+        The field or fields of which the average value is to be calculated.
+    weight : string or tuple
         The weight field.
 
     Examples
@@ -535,7 +536,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
 
     Parameters
     ----------
-    field : field
+    field : tuple or string
         The field over which the extrema are to be calculated.
     sample_fields : list of fields
         The fields to sample and return at the minimum value.
@@ -582,7 +583,8 @@ class MaxLocation(SampleAtMaxFieldValues):
 
     Parameters
     ----------
-    field : field
+
+    field : tuple or string
         The field over which the extrema are to be calculated.
 
     Examples
@@ -608,7 +610,7 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
 
     Parameters
     ----------
-    field : field
+    field : tuple or string
         The field over which the extrema are to be calculated.
     sample_fields : list of fields
         The fields to sample and return at the minimum value.
@@ -631,7 +633,8 @@ class MinLocation(SampleAtMinFieldValues):
 
     Parameters
     ----------
-    field : field
+
+    field : tuple or string
         The field over which the extrema are to be calculated.
 
     Examples

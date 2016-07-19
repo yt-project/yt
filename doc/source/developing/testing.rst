@@ -103,7 +103,7 @@ To create new unit tests:
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
    assert statements or functions.  
-# Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
+#. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
    ``argument_two``, etc.  For example ``yield assert_equal, 1.0, 1.0`` would be
    captured by nose as a test that asserts that 1.0 is equal to 1.0.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
@@ -484,7 +484,7 @@ Enabling Answer Tests on Jenkins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
-integration server <http://tests.yt-project.org>`_. While unit tests are
+integration server <https://tests.yt-project.org>`_. While unit tests are
 autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
