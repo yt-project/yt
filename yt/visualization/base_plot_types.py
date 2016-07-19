@@ -41,7 +41,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                'WebAgg': ['backend_webagg', 'FigureCanvasWebAgg'],
                'nbAgg': ['backend_nbagg', 'FigureCanvasNbAgg',
                          'FigureManagerNbAgg'],
-                'Agg': ['backend_agg', 'FigureCanvasAgg']}
+                'agg': ['backend_agg', 'FigureCanvasAgg']}
 
 
 class CallbackWrapper(object):
@@ -71,7 +71,7 @@ class CallbackWrapper(object):
         self.field = field
 
 def ioff():
-    matplotlib.use('Agg')
+    matplotlib.rcParams['backend'] = 'Agg'
 
 def _set_canvas():
         backend = str(matplotlib.get_backend())
