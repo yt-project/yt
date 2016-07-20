@@ -118,7 +118,7 @@ class PlotMPL(object):
         for key in backend_dict.keys():
             if key == backend:
                 mod = __import__('matplotlib.backends', globals(), locals(),
-                                 [backend_dict[key][0]], -1)
+                                 [backend_dict[key][0]], 0)
                 submod = getattr(mod, backend_dict[key][0])
                 FigureCanvas = getattr(submod, backend_dict[key][1])
                 if len(backend_dict[key]) > 2:
