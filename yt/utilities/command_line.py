@@ -144,14 +144,16 @@ class YTCommand(object):
         self = cls()
         # Check for some things we know; for instance, comma separated
         # field names should be parsed as tuples.
-        if hasattr(args, 'field') and ',' in args.field:
-            if args.field.count(",") > 1:
-                raise YTFieldNotParseable(args.field)
-            args.field = tuple(_.strip() for _ in args.field.split(","))
-        if hasattr(args, 'weight') and ',' in args.weight:
-            if args.weight.count(",") > 1:
-                raise YTFieldNotParseable(args.weight)
-            args.weight = tuple(_.strip() for _ in args.weight.split(","))
+        if hasattr(args, 'field'):
+            if args.field is not None and ',' in args.field:
+                if args.field.count(",") > 1:
+                    raise YTFieldNotParseable(args.field)
+                args.field = tuple(_.strip() for _ in args.field.split(","))
+        if hasattr(args, 'weight'):
+            if args.weight is not None and ',' in args.weight:
+                if args.weight.count(",") > 1:
+                    raise YTFieldNotParseable(args.weight)
+                args.weight = tuple(_.strip() for _ in args.weight.split(","))
         # Some commands need to be run repeatedly on datasets
         # In fact, this is the rule and the opposite is the exception
         # BUT, we only want to parse the arguments once.
