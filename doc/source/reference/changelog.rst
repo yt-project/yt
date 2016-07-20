@@ -17,6 +17,7 @@ Version 3.3
 Major enhancements
 ^^^^^^^^^^^^^^^^^^
 
+* Raw and processed data from selections, projections, profiles and so forth can now be saved in a ytdata format and loaded back in by yt.
 * Totally re-worked volume rendering API.
 * Support for unstructured mesh visualization.
 * Interactive Data Visualization for AMR and unstructured mesh datasets.
