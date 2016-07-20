@@ -129,6 +129,9 @@ or if you want to draw lines connecting different regions or
 vertices.  For instance, lines can be used to draw outlines of regions or
 continents.
 
+Worked examples of using the ``LineSource`` and ``PointSource`` are available at
+:ref:`cookbook-vol-points` and :ref:`cookbook-vol-lines`.
+
 .. _volume_rendering_annotations:
 
 Annotations

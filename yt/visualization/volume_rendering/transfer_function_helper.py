@@ -47,7 +47,7 @@ class TransferFunctionHelper(object):
         self.log = False
         self.tf = None
         self.bounds = None
-        self.grey_opacity = True 
+        self.grey_opacity = False
         self.profiles = {}
 
     def set_bounds(self, bounds=None):
