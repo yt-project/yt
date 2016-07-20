@@ -668,7 +668,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         sfh.update({0:data})
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
-        grid_dimensions = domain_dimensions.reshape(nprocs, len(domain_dimensions)).astype("int32")
+        grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if length_unit is None:
         length_unit = 'code_length'
