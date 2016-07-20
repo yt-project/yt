@@ -287,7 +287,7 @@ def map_to_colors(buff, cmap_name):
 
 def strip_colormap_data(fn = "color_map_data.py",
             cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu",
-                     "kamae")):
+                     "kamae", "kelp", "arbre", "octarine", "dusk")):
     import pprint
     from . import color_maps as rcm
     f = open(fn, "w")

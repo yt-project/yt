@@ -17,8 +17,7 @@ cimport cython
 cimport numpy as np
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 from libc.stdlib cimport malloc
-
-DEF Nch = 4
+from libc.math cimport isnormal
 
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
@@ -33,10 +32,6 @@ cdef struct FieldInterpolationTable:
     int weight_field_id
     int weight_table_id
     int nbins
-
-cdef extern from "math.h":
-    double expf(double x) nogil
-    int isnormal(double x) nogil
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

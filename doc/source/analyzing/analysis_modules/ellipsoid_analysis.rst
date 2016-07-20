@@ -4,10 +4,9 @@ Halo Ellipsoid Analysis
 =======================
 .. sectionauthor:: Geoffrey So <gso@physics.ucsd.edu>
 
-.. warning:: This is my first attempt at modifying the yt source code,
-   so the program may be bug ridden.  Please send yt-dev an email and
-   address to Geoffrey So if you discover something wrong with this
-   portion of the code.
+.. warning:: This functionality is currently broken and needs to
+   be updated to make use of the :ref:`halo_catalog` framework.
+   Anyone interested in doing so should contact the yt-dev list.
 
 Purpose
 -------

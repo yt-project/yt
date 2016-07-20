@@ -3,6 +3,7 @@ import numpy as np
 from yt import \
     load
 from yt.testing import \
+    fake_amr_ds, \
     fake_random_ds, \
     fake_particle_ds, \
     assert_almost_equal, \
@@ -336,6 +337,15 @@ def test_add_field_string_aliasing():
     ds.field_info['particle_mass_alias']
     ds.field_info['all', 'particle_mass_alias']
     
+
+def test_morton_index():
+    ds = fake_amr_ds()
+    mi = ds.r["index", "morton_index"]
+    mi2 = mi.view("uint64")
+    assert_equal(np.unique(mi2).size, mi2.size)
+    a1 = np.argsort(mi)
+    a2 = np.argsort(mi2)
+    assert_array_equal(a1, a2)
 
 if __name__ == "__main__":
     setup()
