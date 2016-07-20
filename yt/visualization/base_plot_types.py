@@ -44,6 +44,15 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                 'agg': ['backend_agg', 'FigureCanvasAgg']}
 
 
+"""condition that interactive backends can be used."""
+interactivity = False
+
+"""Sets the condition that interactive backends can be used."""
+def set_interactivity():
+    global interactivity
+    interactivity = not interactivity
+
+
 class CallbackWrapper(object):
     def __init__(self, viewer, window_plot, frb, field, font_properties, 
                  font_color):
@@ -76,8 +85,6 @@ class PlotMPL(object):
 
     """
 
-    interactive = False
-
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
         import matplotlib.figure
@@ -93,7 +100,7 @@ class PlotMPL(object):
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        canvasClasses = PlotMPL._set_canvas()
+        canvasClasses = self._set_canvas()
         self.canvas = canvasClasses[0](self.figure)
         if len(canvasClasses) > 1:
             self.manager = canvasClasses[1](self.canvas, 1)
@@ -101,9 +108,9 @@ class PlotMPL(object):
             for axis in 'xy':
                 self.axes.tick_params(which=which, axis=axis, direction='in')
 
-    @classmethod
-    def _set_canvas(cls):
-        if PlotMPL.interactive:
+    def _set_canvas(self):
+        self.interactivity = interactivity
+        if interactivity:
             backend = str(matplotlib.get_backend())
         else:
             backend = 'agg'
@@ -119,16 +126,6 @@ class PlotMPL(object):
                     return [FigureCanvas, FigureManager]
                 else:
                     return [FigureCanvas]
-
-    @classmethod
-    def ion(cls):
-        """Toggles interactive backends on."""
-        cls.interactive = True
-
-    @classmethod
-    def ioff(cls):
-        """Toggles interactive backends off."""
-        cls.interactive = False
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""

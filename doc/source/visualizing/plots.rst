@@ -17,6 +17,22 @@ taking a quick look at simulation outputs.  Simple mechanisms exist for making
 plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
 which are described below.
 
+.. _viewing-plots:
+
+Viewing Plots
+-------------
+
+YT uses an environment neutral plotting mechanism that detects the appropriate
+matplotlib configuration for a given environment, however it defaults to a basic
+renderer. To utilize interactive plots in matplotlib supported
+environments, simply call the ``set_interactivity()`` function. Below is an
+example in a jupyter notebook environment:
+
+.. code-block:: python
+   %matplotlib notebook
+   import yt
+   yt.set_interactivity()
+
 .. _simple-inspection:
 
 Slices & Projections
