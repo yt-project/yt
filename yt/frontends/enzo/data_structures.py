@@ -483,6 +483,15 @@ class EnzoHierarchy(GridIndex):
             random_sample = np.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
 
+    def _get_particle_type_counts(self):
+        try:
+            ret = {}
+            for ptype in self.grid_active_particle_count:
+                ret[ptype] = self.grid_active_particle_count[ptype].sum()
+            return ret
+        except AttributeError:
+            return super(EnzoHierarchy, self)._get_particle_type_counts()
+
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
         """
         Returns a structure of arrays with all of the particles'

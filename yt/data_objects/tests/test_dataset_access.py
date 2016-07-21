@@ -1,4 +1,8 @@
-from yt.testing import fake_amr_ds, assert_equal
+from yt.testing import \
+    assert_equal, \
+    fake_amr_ds, \
+    fake_particle_ds, \
+    fake_random_ds
 
 # This will test the "dataset access" method.
 
@@ -37,3 +41,10 @@ def test_accessing_all_data():
     rho *= 2.0
     yield assert_equal, dd["density"]*2.0, ds.r["density"]
     yield assert_equal, dd["gas", "density"]*2.0, ds.r["gas", "density"]
+
+def test_particle_counts():
+    ds = fake_random_ds(16, particles=100)
+    assert ds.particle_type_counts == {'io': 100}
+
+    pds = fake_particle_ds(npart=128)
+    assert pds.particle_type_counts == {'io': 128}

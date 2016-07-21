@@ -43,8 +43,9 @@ from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
+from yt.utilities.metadata import get_metadata
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified
+    YTOutputNotIdentified, YTFieldNotParseable
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -141,6 +142,16 @@ class YTCommand(object):
     @classmethod
     def run(cls, args):
         self = cls()
+        # Check for some things we know; for instance, comma separated
+        # field names should be parsed as tuples.
+        if getattr(args, 'field', None) is not None and ',' in args.field:
+            if args.field.count(",") > 1:
+                raise YTFieldNotParseable(args.field)
+            args.field = tuple(_.strip() for _ in args.field.split(","))
+        if getattr(args, 'weight', None) is not None and ',' in args.weight:
+            if args.weight.count(",") > 1:
+                raise YTFieldNotParseable(args.weight)
+            args.weight = tuple(_.strip() for _ in args.weight.split(","))
         # Some commands need to be run repeatedly on datasets
         # In fact, this is the rule and the opposite is the exception
         # BUT, we only want to parse the arguments once.
@@ -198,11 +209,13 @@ _common_options = dict(
     field   = dict(short="-f", longname="--field",
                    action="store", type=str,
                    dest="field", default="density",
-                   help="Field to color by"),
+                   help=("Field to color by, "
+                         "use a comma to separate field tuple values")),
     weight  = dict(short="-g", longname="--weight",
                    action="store", type=str,
                    dest="weight", default=None,
-                   help="Field to weight projections with"),
+                   help=("Field to weight projections with, "
+                         "use a comma to separate field tuple values")),
     cmap    = dict(longname="--colormap",
                    action="store", type=str,
                    dest="cmap", default=_default_colormap,
@@ -1150,11 +1163,6 @@ class YTSearchCmd(YTCommand):
     def __call__(self, args):
         from yt.utilities.parameter_file_storage import \
             output_type_registry
-        attrs = ("dimensionality", "refine_by", "domain_dimensions",
-                 "current_time", "domain_left_edge", "domain_right_edge",
-                 "unique_identifier", "current_redshift", 
-                 "cosmological_simulation", "omega_matter", "omega_lambda",
-                 "hubble_constant", "dataset_type")
         candidates = []
         for base, dirs, files in os.walk(".", followlinks=True):
             print("(% 10i candidates) Examining %s" % (len(candidates), base))
@@ -1173,26 +1181,10 @@ class YTSearchCmd(YTCommand):
         for i, c in enumerate(sorted(candidates)):
             print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
-                ds = load(c)
+                record = get_metadata(c, args.full_output)
             except YTOutputNotIdentified:
                 continue
-            record = {'filename': c}
-            for a in attrs:
-                v = getattr(ds, a, None)
-                if v is None:
-                    continue
-                if hasattr(v, "tolist"):
-                    v = v.tolist()
-                record[a] = v
-            if args.full_output:
-                params = {}
-                for p, v in ds.parameters.items():
-                    if hasattr(v, "tolist"):
-                        v = v.tolist()
-                    params[p] = v
-                record['params'] = params
             records.append(record)
-            ds.close()
         with open(args.output, "w") as f:
             json.dump(records, f, indent=4)
         print("Identified %s records output to %s" % (

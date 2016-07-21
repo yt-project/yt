@@ -884,6 +884,21 @@ The number of cells in an oct is defined by the expression
 It's recommended that if you want higher-resolution, try reducing the value of
 ``n_ref`` to 32 or 16.
 
+Also yt can be set to generate the global mesh index according to a specific
+type of particles instead of all the particles through the parameter
+``index_ptype``. For example, to build the octree only according to the
+``"PartType0"`` particles, you can do:
+
+.. code-block:: python
+
+   ds = yt.load("snapshot_061.hdf5", index_ptype="PartType0")
+
+By default, ``index_ptype`` is set to ``"all"``, which means all the particles.
+Currently this feature only works for the Gadget HDF5 and OWLS datasets. To
+bring the feature to other frontends, it's recommended to refer to this
+`PR <https://bitbucket.org/yt_analysis/yt/pull-requests/1985/add-particle-type-aware-octree/diff>`_
+for implementation details.
+
 .. _gadget-field-spec:
 
 Field Specifications
@@ -1342,24 +1357,91 @@ For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard 
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 
-.. _loading-pyne-data:
+.. _halo-catalog-data:
 
 Halo Catalog Data
 -----------------
 
 yt has support for reading halo catalogs produced by Rockstar and the inline
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
-particle datasets where each particle represents a single halo.  Member particles
-for individual halos can be accessed through halo data containers.  Further halo
-analysis can be performed using :ref:`halo_catalog`.
+particle datasets where each particle represents a single halo.  For example,
+this means that the `particle_mass` field refers to the mass of the halos.  For
+Gadget FOF/SUBFIND catalogs, the member particles for a given halo can be
+accessed by creating `halo` data containers.  See :ref:`halo_containers` for
+more information.
 
-In the case where halo catalogs are written to multiple files, one must only
-give the path to one of them.
+If you have access to both the halo catalog and the simulation snapshot from
+the same redshift, additional analysis can be performed for each halo using
+:ref:`halo_catalog`.
+
+.. _rockstar:
+
+Rockstar
+^^^^^^^^
+
+Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
+In the case where multiple files were produced, one need only provide the path
+to a single one of them.  The field type for all fields is "halos".  Some fields
+of note available from Rockstar are:
+
++----------------+---------------------------+
+| Rockstar field | yt field name             |
++================+===========================+
+| halo id        | particle_identifier       |
++----------------+---------------------------+
+| virial mass    | particle_mass             |
++----------------+---------------------------+
+| virial radius  | virial_radius             |
++----------------+---------------------------+
+| halo position  | particle_position_(x,y,z) |
++----------------+---------------------------+
+| halo velocity  | particle_velocity_(x,y,z) |
++----------------+---------------------------+
+
+Numerous other Rockstar fields exist.  To see them, check the field list by
+typing `ds.field_list` for a dataset loaded as `ds`.  Like all other datasets,
+fields must be accessed through :ref:`Data-objects`.
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ad = ds.all_data()
+   # halo masses
+   print(ad["halos", "particle_mass"])
+   # halo radii
+   print(ad["halos", "virial_radius"])
+
+.. _gadget_fof:
 
 Gadget FOF/SUBFIND
 ^^^^^^^^^^^^^^^^^^
 
-The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND).
+Gadget FOF/SUBFIND halo catalogs work in the same way as those created by
+:ref:`rockstar`, except there are two field types: `FOF` for friend-of-friends
+groups and `Subhalo` for halos found with the SUBFIND substructure finder.
+Also like Rockstar, there are a number of fields specific to these halo
+catalogs.
+
++-------------------+---------------------------+
+| FOF/SUBFIND field | yt field name             |
++===================+===========================+
+| halo id           | particle_identifier       |
++-------------------+---------------------------+
+| halo mass         | particle_mass             |
++-------------------+---------------------------+
+| halo position     | particle_position_(x,y,z) |
++-------------------+---------------------------+
+| halo velocity     | particle_velocity_(x,y,z) |
++-------------------+---------------------------+
+| num. of particles | particle_number           |
++-------------------+---------------------------+
+| num. of subhalos  | subhalo_number (FOF only) |
++-------------------+---------------------------+
+
+Many other fields exist, especially for SUBFIND subhalos.  Check the field
+list by typing `ds.field_list` for a dataset loaded as `ds`.  Like all
+other datasets, fields must be accessed through :ref:`Data-objects`.
 
 .. code-block:: python
 
@@ -1384,6 +1466,11 @@ underscore and the index.
 
    # x component of the spin
    print(ad["Subhalo", "SubhaloSpin_0"])
+
+.. _halo_containers:
+
+Halo Data Containers
+^^^^^^^^^^^^^^^^^^^^
 
 Halo member particles are accessed by creating halo data containers with the
 type of halo ("Group" or "Subhalo") and the halo id.  Scalar values for halos
@@ -1416,8 +1503,8 @@ OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
 
 OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.
-The two field types are "FOF" and "SUBFIND".  At this time, halo member particles
-cannot be loaded.
+The two field types are `FOF` and `SUBFIND`.  See :ref:`gadget_fof` for more
+information.  At this time, halo member particles cannot be loaded.
 
 .. code-block:: python
 
@@ -1427,19 +1514,7 @@ cannot be loaded.
    # The halo mass
    print(ad["FOF", "particle_mass"])
 
-Rockstar
-^^^^^^^^
-
-Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
-The single field type available is "halos".
-
-.. code-block:: python
-
-   import yt
-   ds = yt.load("rockstar_halos/halos_0.0.bin")
-   ad = ds.all_data()
-   # The halo mass
-   print(ad["halos", "particle_mass"])
+.. _loading-pyne-data:
 
 PyNE Data
 ---------

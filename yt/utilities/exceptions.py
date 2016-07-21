@@ -545,6 +545,20 @@ class YTInvalidShaderType(YTException):
     def __str__(self):
         return "Can't identify shader_type for file '%s.'" % (self.source)
 
+class YTInvalidFieldType(YTException):
+    def __init__(self, fields):
+        self.fields = fields
+
+    def __str__(self):
+        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can only "
+               "plot fields that\n"
+               "are defined on a mesh, but received the following particle "
+               "fields:\n\n"
+               "    %s\n\n"
+               "Did you mean to use ParticlePlot or plot a deposited particle "
+               "field instead?" % self.fields)
+        return msg
+
 class YTUnknownUniformKind(YTException):
     def __init__(self, kind):
         self.kind = kind
@@ -558,3 +572,24 @@ class YTUnknownUniformSize(YTException):
 
     def __str__(self):
         return "Can't determine size specification for %s" % (self.size_spec)
+
+class YTDataTypeUnsupported(YTException):
+    def __init__(self, this, supported):
+        self.supported = supported
+        self.this = this
+
+    def __str__(self):
+        v = "This operation is not supported for data of geometry %s; " % self.this
+        v += "It supports data of geometries %s" % (self.supported,)
+        return v
+
+class YTBoundsDefinitionError(YTException):
+    def __init__(self, message, bounds):
+        self.bounds = bounds
+        self.message = message
+
+    def __str__(self):
+        v  = "This operation has encountered a bounds error: "
+        v += self.message
+        v += " Specified bounds are %s" % self.bounds
+        return v

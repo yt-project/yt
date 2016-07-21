@@ -490,6 +490,8 @@ cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
     cdef np.float64_t t
     for j in range(3):
         vec[j] = p1[j] - p0[j]
+    if vec[ax] == 0.0:
+        return  # bail if the line is in the plane
     t = (coord - p0[ax])/vec[ax]
     # We know that if they're on opposite sides, it has to intersect.  And we
     # won't get called otherwise.
@@ -521,7 +523,7 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
         for j in range(3):
             p0[j] = triangles[i, 0, j]
             p1[j] = triangles[i, 1, j]
-            p3[j] = triangles[i, 2, j]            
+            p3[j] = triangles[i, 2, j]
             plane_norm[j] = 0.0
         plane_norm[ax] = 1.0
         subtract(p1, p0, E0)

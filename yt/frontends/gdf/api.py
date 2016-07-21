@@ -23,3 +23,5 @@ add_gdf_field = GDFFieldInfo.add_field
 
 from .io import \
       IOHandlerGDFHDF5
+
+from . import tests

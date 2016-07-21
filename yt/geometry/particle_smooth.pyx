@@ -392,7 +392,8 @@ cdef class ParticleSmoothOperation:
                              Oct **oct = NULL, int extra_layer = 0):
         cdef OctInfo oi
         cdef Oct *ooct
-        cdef Oct **neighbors, **first_layer
+        cdef Oct **neighbors
+        cdef Oct **first_layer
         cdef int j, total_neighbors = 0, initial_layer = 0
         cdef int layer_ind = 0
         cdef np.int64_t moff = octree.get_domain_offset(domain_id)
@@ -530,7 +531,10 @@ cdef class ParticleSmoothOperation:
         # domains for them, and the number of particles for each.
         cdef int ni, i, j, k
         cdef np.int64_t offset, pn, pc
-        cdef np.float64_t pos[3], cp, r2_trunc, r2, ex[2], DR[2], dist
+        cdef np.float64_t pos[3] 
+        cdef np.float64_t ex[2] 
+        cdef np.float64_t DR[2]
+        cdef np.float64_t cp, r2_trunc, r2, dist
         self.neighbor_reset()
         for ni in range(nneighbors):
             if nind[ni] == -1: continue

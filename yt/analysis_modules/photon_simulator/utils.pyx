@@ -1,31 +1,32 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-from libc.math cimport exp
 
-cdef double gfac = 1.0/np.sqrt(np.pi)
-
+cdef extern from "platform_dep.h":
+    double erf(double x)
+    
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def broaden_lines(np.ndarray[np.float64_t, ndim=1] E0,
                   np.ndarray[np.float64_t, ndim=1] sigma,
                   np.ndarray[np.float64_t, ndim=1] amp,
-                  np.ndarray[np.float64_t, ndim=1] E):
+                  np.ndarray[np.float64_t, ndim=1] ebins):
 
-    cdef int i, j, n
-    cdef double x, isigma, iamp
-    cdef np.ndarray[np.float64_t, ndim=1] lines
+    cdef int i, j, n, m
+    cdef double x, isigma
+    cdef np.ndarray[np.float64_t, ndim=1] cdf, vec
 
     n = E0.shape[0]
-    m = E.shape[0]
-    lines = np.zeros(m)
-
+    m = ebins.shape[0]
+    cdf = np.zeros(m)
+    vec = np.zeros(m-1)
+    
     for i in range(n):
         isigma = 1.0/sigma[i]
-        iamp = gfac*amp[i]*isigma
         for j in range(m):
-            x = (E[j]-E0[i])*isigma
-            lines[j] += iamp*exp(-x*x)
-
-    return lines
+            x = (ebins[j]-E0[i])*isigma
+            cdf[j] = 0.5*(1+erf(x))
+        for j in range(m-1):
+            vec[j] = vec[j] + (cdf[j+1] - cdf[j])*amp[i]
+    return vec

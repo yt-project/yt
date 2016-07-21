@@ -23,12 +23,13 @@ from .coordinate_handler import \
     cylindrical_to_cartesian
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_element_mesh, pixelize_off_axis_cartesian
+    pixelize_element_mesh, pixelize_off_axis_cartesian, \
+    pixelize_cartesian
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
-import yt.visualization._MPL as _MPL
 
 
 class CartesianCoordinateHandler(CoordinateHandler):
+    name = "cartesian"
 
     def __init__(self, ds, ordering = ('x','y','z')):
         super(CartesianCoordinateHandler, self).__init__(ds, ordering)
@@ -127,7 +128,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
+        buff = pixelize_cartesian(data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field], size[0], size[1],
                              bounds, int(antialias),

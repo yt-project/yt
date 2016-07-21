@@ -15,6 +15,7 @@ Profile classes, to deal with generating and obtaining profiles
 
 import numpy as np
 
+from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
@@ -249,8 +250,11 @@ class ProfileND(ParallelAnalysisInterface):
 
     def __getitem__(self, field):
         fname = self.field_map.get(field, None)
-        if fname is None and isinstance(field, tuple):
-            fname = self.field_map.get(field[1], None)
+        if fname is None:
+            if isinstance(field, tuple):
+                fname = self.field_map.get(field[1], None)
+            elif isinstance(field, DerivedField):
+                fname = self.field_map.get(field.name[1], None)
         if fname is None:
             raise KeyError(field)
         else:
@@ -425,6 +429,7 @@ class Profile1D(ProfileND):
         rv = self._get_data(chunk, fields)
         if rv is None: return
         fdata, wdata, (bf_x,) = rv
+        bf_x.convert_to_units(self.field_info[self.x_field].output_units)
         bin_ind = np.digitize(bf_x, self.x_bins) - 1
         new_bin_profile1d(bin_ind, wdata, fdata,
                       storage.weight_values, storage.values,
@@ -530,7 +535,9 @@ class Profile2D(ProfileND):
         rv = self._get_data(chunk, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y) = rv
+        bf_x.convert_to_units(self.field_info[self.x_field].output_units)
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
+        bf_y.convert_to_units(self.field_info[self.y_field].output_units)
         bin_ind_y = np.digitize(bf_y, self.y_bins) - 1
         new_bin_profile2d(bin_ind_x, bin_ind_y, wdata, fdata,
                       storage.weight_values, storage.values,
@@ -792,8 +799,11 @@ class Profile3D(ProfileND):
         rv = self._get_data(chunk, fields)
         if rv is None: return
         fdata, wdata, (bf_x, bf_y, bf_z) = rv
+        bf_x.convert_to_units(self.field_info[self.x_field].output_units)
         bin_ind_x = np.digitize(bf_x, self.x_bins) - 1
+        bf_y.convert_to_units(self.field_info[self.y_field].output_units)
         bin_ind_y = np.digitize(bf_y, self.y_bins) - 1
+        bf_z.convert_to_units(self.field_info[self.z_field].output_units)
         bin_ind_z = np.digitize(bf_z, self.z_bins) - 1
         new_bin_profile3d(bin_ind_x, bin_ind_y, bin_ind_z, wdata, fdata,
                       storage.weight_values, storage.values,

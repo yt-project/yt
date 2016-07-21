@@ -63,7 +63,6 @@ class FITSFileHandler(HDF5FileHandler):
         del self._fits_files
         del self.handle
         self.handle = None
-        super(FITSFileHandler, self).__del__()
 
     def close(self):
         self.handle.close()

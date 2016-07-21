@@ -22,8 +22,10 @@ from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
+from yt.utilities.lib.volume_container cimport \
+    VolumeContainer
 from yt.utilities.lib.grid_traversal cimport \
-    VolumeContainer, sample_function, walk_volume
+    sampler_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 
 cdef extern from "math.h":
@@ -239,7 +241,9 @@ cdef class SelectorObject:
                     spos[2] = pos[2] - sdds[2]/2.0
                     for k in range(2):
                         ch = NULL
-                        if root.children != NULL:
+                        # We only supply a child if we are actually going to
+                        # look at the next level.
+                        if root.children != NULL and next_level == 1:
                             ch = root.children[cind(i, j, k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
                             # Note that visitor.pos is always going to be the
@@ -829,7 +833,6 @@ cdef class RegionSelector(SelectorObject):
         for i in range(3):
             region_width[i] = RE[i] - LE[i]
             p[i] = dobj.ds.periodicity[i]
-            DW[i] = DW[i]
             if region_width[i] <= 0:
                 raise RuntimeError(
                     "Region right edge[%s] < left edge: width = %s" % (
@@ -925,7 +928,8 @@ cdef class RegionSelector(SelectorObject):
             return 0
         if level == self.max_level:
             this_level = 1
-        cdef int si[3], ei[3]
+        cdef int si[3]
+        cdef int ei[3]
         #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
         #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
         #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
@@ -1058,47 +1062,48 @@ cdef class DiskSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         # Until we can get our OBB/OBB intersection correct, disable this.
         return 1
-        cdef np.float64_t *arr[2]
-        cdef np.float64_t pos[3], H, D, R2, temp
-        cdef int i, j, k, n
-        cdef int all_under = 1
-        cdef int all_over = 1
-        cdef int any_radius = 0
-        # A moment of explanation (revised):
-        #    The disk and bounding box collide if any of the following are true:
-        #    1) the center of the disk is inside the bounding box
-        #    2) any corner of the box lies inside the disk
-        #    3) the box spans the plane (!all_under and !all_over) and at least
-        #       one corner is within the cylindrical radius
+        # cdef np.float64_t *arr[2]
+        # cdef np.float64_t pos[3]
+        # cdef np.float64_t H, D, R2, temp
+        # cdef int i, j, k, n
+        # cdef int all_under = 1
+        # cdef int all_over = 1
+        # cdef int any_radius = 0
+        # # A moment of explanation (revised):
+        # #    The disk and bounding box collide if any of the following are true:
+        # #    1) the center of the disk is inside the bounding box
+        # #    2) any corner of the box lies inside the disk
+        # #    3) the box spans the plane (!all_under and !all_over) and at least
+        # #       one corner is within the cylindrical radius
 
-        # check if disk center lies inside bbox
-        if left_edge[0] <= self.center[0] <= right_edge[0] and \
-           left_edge[1] <= self.center[1] <= right_edge[1] and \
-           left_edge[2] <= self.center[2] <= right_edge[2] :
-            return 1
+        # # check if disk center lies inside bbox
+        # if left_edge[0] <= self.center[0] <= right_edge[0] and \
+        #    left_edge[1] <= self.center[1] <= right_edge[1] and \
+        #    left_edge[2] <= self.center[2] <= right_edge[2] :
+        #     return 1
 
-        # check all corners
-        arr[0] = left_edge
-        arr[1] = right_edge
-        for i in range(2):
-            pos[0] = arr[i][0]
-            for j in range(2):
-                pos[1] = arr[j][1]
-                for k in range(2):
-                    pos[2] = arr[k][2]
-                    H = D = 0
-                    for n in range(3):
-                        temp = self.difference(pos[n], self.center[n], n)
-                        H += (temp * self.norm_vec[n])
-                        D += temp*temp
-                    R2 = (D - H*H)
-                    if R2 < self.radius2 :
-                        any_radius = 1
-                        if fabs(H) < self.height: return 1
-                    if H < 0: all_over = 0
-                    if H > 0: all_under = 0
-        if all_over == 0 and all_under == 0 and any_radius == 1: return 1
-        return 0
+        # # check all corners
+        # arr[0] = left_edge
+        # arr[1] = right_edge
+        # for i in range(2):
+        #     pos[0] = arr[i][0]
+        #     for j in range(2):
+        #         pos[1] = arr[j][1]
+        #         for k in range(2):
+        #             pos[2] = arr[k][2]
+        #             H = D = 0
+        #             for n in range(3):
+        #                 temp = self.difference(pos[n], self.center[n], n)
+        #                 H += (temp * self.norm_vec[n])
+        #                 D += temp*temp
+        #             R2 = (D - H*H)
+        #             if R2 < self.radius2 :
+        #                 any_radius = 1
+        #                 if fabs(H) < self.height: return 1
+        #             if H < 0: all_over = 0
+        #             if H > 0: all_under = 0
+        # if all_over == 0 and all_under == 0 and any_radius == 1: return 1
+        # return 0
 
     def _hash_vals(self):
         return (("norm_vec[0]", self.norm_vec[0]),
@@ -2046,3 +2051,42 @@ cdef class HaloParticlesSelector(SelectorObject):
         return ("halo_particles", self.halo_id)
 
 halo_particles_selector = HaloParticlesSelector
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def points_in_cells(
+        np.float64_t[:] cx,
+        np.float64_t[:] cy,
+        np.float64_t[:] cz,
+        np.float64_t[:] dx,
+        np.float64_t[:] dy,
+        np.float64_t[:] dz,
+        np.float64_t[:] px,
+        np.float64_t[:] py,
+        np.float64_t[:] pz):
+    # Take a list of cells and particles and calculate which particles
+    # are enclosed within one of the cells.  This is used for querying
+    # particle fields on clump/contour objects.
+    # We use brute force since the cells are a relatively unordered collection.
+
+    cdef int p, c, n_p, n_c
+
+    n_p = px.size
+    n_c = cx.size
+    mask = np.ones(n_p, dtype="bool")
+
+    for p in range(n_p):
+        for c in range(n_c):
+            if fabs(px[p] - cx[c]) > 0.5 * dx[c]:
+                mask[p] = False
+                continue
+            if fabs(py[p] - cy[c]) > 0.5 * dy[c]:
+                mask[p] = False
+                continue
+            if fabs(pz[p] - cz[c]) > 0.5 * dz[c]:
+                mask[p] = False
+                continue
+            if mask[p]: break
+
+    return mask
