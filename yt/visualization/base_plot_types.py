@@ -48,7 +48,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
 interactivity = False
 
 """Sets the condition that interactive backends can be used."""
-def set_interactivity():
+def toggle_interactivity():
     global interactivity
     interactivity = not interactivity
 
@@ -100,10 +100,10 @@ class PlotMPL(object):
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        canvasClasses = self._set_canvas()
-        self.canvas = canvasClasses[0](self.figure)
-        if len(canvasClasses) > 1:
-            self.manager = canvasClasses[1](self.canvas, 1)
+        canvas_classes = self._set_canvas()
+        self.canvas = canvas_classes[0](self.figure)
+        if len(canvas_classes) > 1:
+            self.manager = canvas_classes[1](self.canvas, 1)
         for which in ['major', 'minor']:
             for axis in 'xy':
                 self.axes.tick_params(which=which, axis=axis, direction='in')
