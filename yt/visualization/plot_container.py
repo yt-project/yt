@@ -617,7 +617,7 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        interactivity = self.plots[self.plots.keys()[0]].interactivity
+        interactivity = self.plots[list(self.plots.keys())[0]].interactivity
         if interactivity:
             for k,v in sorted(iteritems(self.plots)):
                 v.show()
