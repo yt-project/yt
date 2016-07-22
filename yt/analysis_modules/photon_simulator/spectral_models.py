@@ -288,7 +288,7 @@ class TableApecModel(SpectralModel):
 
         tmpspec += np.interp(emid, e_pseudo*self.scale_factor, pseudo)*de/self.scale_factor
 
-        return tmpspec
+        return tmpspec*self.scale_factor
 
     def get_spectrum(self, kT):
         """
