@@ -603,10 +603,13 @@ class LightRay(CosmologySplice):
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
         # Only return LightRay elements with non-zero density
-        if 'density' in data:
-            mask = data['density'] > 0
-            for key in data.keys():
-                data[key] = data[key][mask]
+        mask_fields = ['density', 'temperature']
+        for f in mask_fields:
+            if f in data:
+                mask = data[f] > 0
+                for key in data.keys():
+                    data[key] = data[key][mask]
+
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 
