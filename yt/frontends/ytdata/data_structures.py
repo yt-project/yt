@@ -196,7 +196,8 @@ class YTDataContainerDataset(YTDataset):
 
         # Some data containers can't be recontructed in the same way
         # since this is now particle-like data.
-        if self.parameters["container_type"] in \
+        if self.parameters["data_type"] in ["yt_light_ray"] or \
+          self.parameters["container_type"] in \
           ["cutting", "proj", "ray", "slice"]:
             mylog.info("Returning an all_data data container.")
             return self.all_data()
