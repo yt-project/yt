@@ -609,7 +609,7 @@ class LightRay(CosmologySplice):
         mask_field_units = [Unit(u) for u in mask_field_units]
         for f in data:
             for u in mask_field_units:
-                if data[f].units == u:
+                if data[f].units.same_dimensions_as(u):
                     mask = data[f] > 0
                     if not np.any(mask):
                         raise RuntimeError(
