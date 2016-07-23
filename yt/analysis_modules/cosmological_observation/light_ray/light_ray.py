@@ -21,6 +21,8 @@ from yt.convenience import \
     load
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
+from yt.units.unit_object import \
+    Unit
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
@@ -603,10 +605,18 @@ class LightRay(CosmologySplice):
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
         # Only return LightRay elements with non-zero density
-        if 'density' in data:
-            mask = data['density'] > 0
-            for key in data.keys():
-                data[key] = data[key][mask]
+        mask_field_units = ['K', 'cm**-3', 'g/cm**3']
+        mask_field_units = [Unit(u) for u in mask_field_units]
+        for f in data:
+            for u in mask_field_units:
+                if data[f].units.same_dimensions_as(u):
+                    mask = data[f] > 0
+                    if not np.any(mask):
+                        raise RuntimeError(
+                            "No zones along light ray with nonzero %s. "
+                            "Please modify your light ray trajectory." % (f,))
+                    for key in data.keys():
+                        data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 
