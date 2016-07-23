@@ -613,7 +613,8 @@ class LightRay(CosmologySplice):
                     mask = data[f] > 0
                     if not np.any(mask):
                         raise RuntimeError(
-                            "No zones along light ray with nonzero %s." % (f,))
+                            "No zones along light ray with nonzero %s. "
+                            "Please modify your light ray trajectory." % (f,))
                     for key in data.keys():
                         data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
