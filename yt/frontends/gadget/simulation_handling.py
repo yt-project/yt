@@ -99,9 +99,9 @@ class GadgetSimulation(SimulationTimeSeries):
                                          "cmcm / h", registry=self.unit_registry)
             self.mass_unit = self.quan(self.unit_base["UnitMass_in_g"],
                                          "g / h", registry=self.unit_registry)
-            self.box_size *= self.length_unit
-            self.domain_left_edge *= self.length_unit
-            self.domain_right_edge *= self.length_unit
+            self.box_size = self.box_size * self.length_unit
+            self.domain_left_edge = self.domain_left_edge * self.length_unit
+            self.domain_right_edge = self.domain_right_edge * self.length_unit
         else:
             # Read time from file for non-cosmological sim
             self.time_unit = self.quan(
