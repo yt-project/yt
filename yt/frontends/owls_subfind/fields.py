@@ -14,11 +14,8 @@ OWLSSubfind-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
 
 m_units = "code_mass"
 mdot_units = "code_mass / code_time"

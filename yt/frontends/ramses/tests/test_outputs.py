@@ -14,7 +14,10 @@ RAMSES frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -44,7 +47,7 @@ def test_output_00080():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
-
+    assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
 def test_RAMSESDataset():

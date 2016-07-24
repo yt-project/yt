@@ -1,5 +1,5 @@
 """
-Spherical fields
+Definitions for spherical coordinate systems
 
 
 
@@ -19,11 +19,11 @@ from .coordinate_handler import \
     CoordinateHandler, \
     _unknown_coord, \
     _get_coord_fields
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
 class SphericalCoordinateHandler(CoordinateHandler):
+    name = "spherical"
 
     def __init__(self, ds, ordering = ('r', 'theta', 'phi')):
         super(SphericalCoordinateHandler, self).__init__(ds, ordering)
@@ -122,13 +122,14 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
-        if dimension == 1:
+        name = self.axis_name[dimension]
+        if name == 'theta':
             buff = pixelize_cylinder(data_source['px'],
                                      data_source['pdx'],
                                      data_source['py'],
                                      data_source['pdy'],
                                      size, data_source[field], bounds)
-        elif dimension == 2:
+        elif name == 'phi':
             buff = pixelize_cylinder(data_source['px'],
                                      data_source['pdx'],
                                      data_source['py'],
@@ -236,7 +237,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                      2.0*self.ds.domain_width[ri]]
         elif name == 'phi':
             ri = self.axis_id['r']
-            width = [self.ds.domain_right_edge[ri] / 2.0,
+            width = [self.ds.domain_right_edge[ri],
                      2.0*self.ds.domain_width[ri]]
         return width
 

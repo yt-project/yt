@@ -16,15 +16,17 @@ AMR index container class
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import *
+from yt.funcs import \
+    mylog, ensure_numpy_array, \
+    ensure_list
 from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level, \
     get_box_grids_below_level
 from yt.geometry.grid_container import \
     MatchPointsToGrids, \
     GridTree
 from yt.utilities.physical_ratios import \
     HUGE
+from yt.utilities.exceptions import YTTooParallel
 
 class ObjectFindingMixin(object) :
 
@@ -77,7 +79,7 @@ class ObjectFindingMixin(object) :
             source = self.all_data()
         mylog.debug("Searching %s grids for maximum value of %s",
                     len(source._grids), field)
-        max_val, maxi, mx, my, mz = \
+        max_val, mx, my, mz = \
             source.quantities["MaxLocation"]( field )
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", 
               max_val, mx, my, mz)
@@ -174,12 +176,10 @@ class ObjectFindingMixin(object) :
         *axis*
         """
         # Let's figure out which grids are on the slice
-        mask=np.ones(self.num_grids)
+        mask = np.ones(self.num_grids)
         # So if gRE > coord, we get a mask, if not, we get a zero
         #    if gLE > coord, we get a zero, if not, mask
         # Thus, if the coordinate is between the edges, we win!
-        #ind = np.where( np.logical_and(self.grid_right_edge[:,axis] > coord, \
-                                       #self.grid_left_edge[:,axis] < coord))
         np.choose(np.greater(self.grid_right_edge[:,axis],coord),(0,mask),mask)
         np.choose(np.greater(self.grid_left_edge[:,axis],coord),(mask,0),mask)
         ind = np.where(mask == 1)
@@ -204,8 +204,10 @@ class ObjectFindingMixin(object) :
         Gets back all the grids between a left edge and right edge
         """
         eps = np.finfo(np.float64).eps
-        grid_i = np.where((np.all((self.grid_right_edge - left_edge) > eps, axis=1)
-                         & np.all((right_edge - self.grid_left_edge) > eps, axis=1)) == True)
+        grid_i = np.where(
+            (np.all((self.grid_right_edge - left_edge) > eps, axis=1) &
+             np.all((right_edge - self.grid_left_edge) > eps, axis=1))
+        )
 
         return self.grids[grid_i], grid_i
 

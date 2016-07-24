@@ -15,16 +15,19 @@ API for halo_analysis
 
 
 from .halo_catalog import \
-     HaloCatalog
+    HaloCatalog
 
 from .halo_callbacks import \
-     add_callback
+    add_callback
 
 from .halo_finding_methods import \
-     add_finding_method
+    add_finding_method
 
 from .halo_filters import \
-     add_filter
+    add_filter
      
 from .halo_quantities import \
-     add_quantity
+    add_quantity
+
+from .halo_recipes import \
+    add_recipe

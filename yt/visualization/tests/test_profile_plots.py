@@ -12,7 +12,6 @@ Testsuite for ProfilePlot and PhasePlot
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import itertools
 import os
 import tempfile
 import shutil
@@ -27,6 +26,46 @@ from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
     assert_fname, TEST_FLNMS
+from yt.utilities.answer_testing.framework import \
+    PhasePlotAttributeTest, \
+    requires_ds, \
+    data_dir_load
+
+ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}), 
+                               (((5e-29, 5e7), "Hello YT"), {'color':'b'})],
+             
+             "set_title": [(('cell_mass', 'A phase plot.'), {})],
+             "set_log": [(('cell_mass', False), {})],
+             "set_unit": [(('cell_mass', 'Msun'), {})],
+             "set_xlim": [((1e-27, 1e-24), {})],
+             "set_ylim": [((1e2, 1e6), {})]}
+
+
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+
+@requires_ds(g30, big_data=True)
+def test_phase_plot_attributes():
+    '''
+
+    This iterates over the all the plot modification functions in 
+    ATTR_ARGS. Each time, it compares the images produced by 
+    PhasePlot to the gold standard.
+    
+
+    '''
+
+    x_field = 'density'
+    y_field = 'temperature'
+    z_field = 'cell_mass'
+    decimals = 12
+    ds = data_dir_load(g30)
+    for ax in 'xyz':
+        for attr_name in ATTR_ARGS.keys():
+            for args in ATTR_ARGS[attr_name]:
+                test = PhasePlotAttributeTest(ds, x_field, y_field, z_field, 
+                                               attr_name, args, decimals)
+                test_phase_plot_attributes.__name__ = test.description
+                yield test
 
 class TestProfilePlotSave(unittest.TestCase):
 
@@ -72,6 +111,12 @@ class TestProfilePlotSave(unittest.TestCase):
         assert_array_almost_equal(xlim, (0.3, 0.8))
         assert_array_almost_equal(ylim, (0.4, 0.6))
         phases.append(pp)
+
+        p1 = create_profile(test_ds.all_data(), 'density', 'temperature')
+        p2 = create_profile(test_ds.all_data(), 'density', 'velocity_x')
+        profiles.append(ProfilePlot.from_profiles(
+            [p1, p2], labels=['temperature', 'velocity']))
+
         cls.profiles = profiles
         cls.phases = phases
         cls.ds = test_ds

@@ -13,13 +13,8 @@ ART-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
-from yt.frontends.art.definitions import *
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -62,16 +57,17 @@ class ARTFieldInfo(FieldInfoContainer):
     )
 
     def setup_fluid_fields(self):
+        unit_system = self.ds.unit_system
         def _temperature(field, data):
             r0 = data.ds.parameters['boxh'] / data.ds.parameters['ng']
             tr = data.ds.quan(3.03e5 * r0**2, 'K/code_velocity**2')
             tr *= data.ds.parameters['wmu'] * data.ds.parameters['Om0']
             tr *= (data.ds.parameters['gamma'] - 1.)
             tr /= data.ds.parameters['aexpn']**2
-            return  tr * data['art', 'GasEnergy'] / data['art', 'Density']
+            return tr * data['art', 'GasEnergy'] / data['art', 'Density']
         self.add_field(('gas', 'temperature'),
                        function=_temperature, 
-                       units='K')
+                       units=unit_system["temperature"])
 
         def _get_vel(axis):
             def velocity(field, data):
@@ -81,7 +77,7 @@ class ARTFieldInfo(FieldInfoContainer):
         for ax in 'xyz':
             self.add_field(('gas','velocity_%s' % ax),
                            function = _get_vel(ax),
-                           units='cm/s')
+                           units=unit_system["velocity"])
 
         def _momentum_magnitude(field, data):
             tr = (data['gas','momentum_x']**2 +
@@ -91,7 +87,7 @@ class ARTFieldInfo(FieldInfoContainer):
             return tr
         self.add_field(('gas', 'momentum_magnitude'),
                        function=_momentum_magnitude,
-                       units='g*cm/s')
+                       units=unit_system["momentum"])
 
         def _velocity_magnitude(field, data):
             tr = data['gas','momentum_magnitude']
@@ -99,7 +95,7 @@ class ARTFieldInfo(FieldInfoContainer):
             return tr
         self.add_field(('gas', 'velocity_magnitude'),
                        function=_velocity_magnitude,
-                       units='cm/s')
+                       units=unit_system["velocity"])
 
         def _metal_density(field, data):
             tr = data['gas','metal_ia_density']
@@ -107,7 +103,7 @@ class ARTFieldInfo(FieldInfoContainer):
             return tr
         self.add_field(('gas','metal_density'),
                        function=_metal_density,
-                       units='g/cm**3')
+                       units=unit_system["density"])
 
         def _metal_mass_fraction(field, data):
             tr = data['gas','metal_density']

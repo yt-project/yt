@@ -14,20 +14,20 @@ Rockstar data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
+import os
 
-from yt.utilities.exceptions import *
 from yt.funcs import mylog
+
+from yt.utilities.exceptions import \
+    YTDomainOverflow
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-import yt.utilities.fortran_utils as fpu
 from .definitions import halo_dts
 from yt.utilities.lib.geometry_utils import compute_morton
 
-from yt.geometry.oct_container import _ORDER_MAX
 from operator import attrgetter
 
 class IOHandlerRockstarBinary(BaseIOHandler):

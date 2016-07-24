@@ -13,8 +13,6 @@ Very basic chemical formula parser.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-import string
 import re
 from .periodic_table import periodic_table
 
@@ -31,6 +29,9 @@ class ChemicalFormula:
                 charge = -int(ionization[1:])
             else:
                 raise NotImplementedError
+        elif self.formula_string.startswith('El'):
+            molecule = self.formula_string
+            charge = -1
         else:
             molecule = self.formula_string
             charge = 0

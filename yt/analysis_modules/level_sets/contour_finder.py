@@ -13,15 +13,15 @@ This module contains a routine to search for topologically connected sets
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from itertools import chain
 import numpy as np
 
-from yt.funcs import *
-import yt.utilities.data_point_utilities as data_point_utilities
-from yt.utilities.lib.ContourFinding import \
+from collections import defaultdict
+
+from yt.funcs import mylog, get_pbar
+from yt.utilities.lib.contour_finding import \
     ContourTree, TileContourTree, link_node_contours, \
     update_joins
-from yt.utilities.lib.grid_traversal import \
+from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 
 def identify_contours(data_source, field, min_val, max_val,
@@ -32,7 +32,6 @@ def identify_contours(data_source, field, min_val, max_val,
     contours = {}
     node_ids = []
     DLE = data_source.ds.domain_left_edge
-    selector = getattr(data_source, "base_object", data_source).selector
     masks = dict((g.id, m) for g, m in data_source.blocks)
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
         node.node_ind = len(node_ids)
@@ -52,7 +51,7 @@ def identify_contours(data_source, field, min_val, max_val,
             [contour_ids.view("float64")], mask,
             LE, RE, dims.astype("int64"))
         contours[nid] = (g.Level, node.node_ind, pg, sl)
-    node_ids = np.array(node_ids)
+    node_ids = np.array(node_ids).astype("int64")
     if node_ids.size == 0:
         return 0, {}
     trunk = data_source.tiles.tree.trunk

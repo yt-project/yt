@@ -1,6 +1,10 @@
-from yt.data_objects.profiles import create_profile
-from yt.testing import *
 import numpy as np
+
+from yt.data_objects.profiles import create_profile
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal, \
+    periodicity_cases
 
 def setup():
     from yt.config import ytcfg

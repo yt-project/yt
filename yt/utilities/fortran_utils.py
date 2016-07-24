@@ -290,7 +290,6 @@ def read_record(f, rspec, endian='='):
     net_format += "I"
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
-    vvv = vals[:]
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
         print("S1 = %s ; S2 = %s ; SIZE = %s")

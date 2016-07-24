@@ -34,7 +34,7 @@ from yt.units.yt_array import \
     YTArray, YTQuantity, \
     unary_operators, binary_operators, \
     uconcatenate, uintersect1d, \
-    uunion1d
+    uunion1d, loadtxt, savetxt
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import \
@@ -42,7 +42,7 @@ from yt.testing import \
     assert_allclose_units
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
-    cm, m, g
+    cm, m, g, degree
 from yt.utilities.physical_ratios import \
     metallicity_sun
 
@@ -112,6 +112,20 @@ def test_addition():
     yield assert_raises, YTUnitOperationError, operator.add, a1, a2
     yield assert_raises, YTUnitOperationError, operator.iadd, a1, a2
 
+    # adding with zero is allowed irrespective of the units
+    zeros = np.zeros(3)
+    zeros_yta_dimless = YTArray(zeros, 'dimensionless')
+    zeros_yta_length = YTArray(zeros, 'm')
+    zeros_yta_mass = YTArray(zeros, 'kg')
+    operands = [0, YTQuantity(0), YTQuantity(0, 'kg'), zeros, zeros_yta_dimless,
+                zeros_yta_length, zeros_yta_mass]
+
+    for op in [operator.add, np.add]:
+        for operand in operands:
+            yield operate_and_compare, a1, operand, op, a1
+            yield operate_and_compare, operand, a1, op, a1
+            yield operate_and_compare, 4*m, operand, op, 4*m
+            yield operate_and_compare, operand, 4*m, op, 4*m
 
 def test_subtraction():
     """
@@ -173,6 +187,20 @@ def test_subtraction():
     yield assert_raises, YTUnitOperationError, operator.sub, a1, a2
     yield assert_raises, YTUnitOperationError, operator.isub, a1, a2
 
+    # subtracting with zero is allowed irrespective of the units
+    zeros = np.zeros(3)
+    zeros_yta_dimless = YTArray(zeros, 'dimensionless')
+    zeros_yta_length = YTArray(zeros, 'm')
+    zeros_yta_mass = YTArray(zeros, 'kg')
+    operands = [0, YTQuantity(0), YTQuantity(0, 'kg'), zeros, zeros_yta_dimless,
+                zeros_yta_length, zeros_yta_mass]
+
+    for op in [operator.sub, np.subtract]:
+        for operand in operands:
+            yield operate_and_compare, a1, operand, op, a1
+            yield operate_and_compare, operand, a1, op, -a1
+            yield operate_and_compare, 4*m, operand, op, 4*m
+            yield operate_and_compare, operand, 4*m, op, -4*m
 
 def test_multiplication():
     """
@@ -382,6 +410,7 @@ def test_comparisons():
     a1 = YTArray([1, 2, 3], 'cm')
     a2 = YTArray([2, 1, 3], 'cm')
     a3 = YTArray([.02, .01, .03], 'm')
+    dimless = np.array([2,1,3])
 
     ops = (
         np.less,
@@ -403,12 +432,22 @@ def test_comparisons():
 
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a2, op, answer
+    for op, answer in zip(ops, answers):
+        yield operate_and_compare, a1, dimless, op, answer
 
     for op in ops:
         yield assert_raises, YTUfuncUnitError, op, a1, a3
 
     for op, answer in zip(ops, answers):
         yield operate_and_compare, a1, a3.in_units('cm'), op, answer
+    
+    # Check that comparisons with dimensionless quantities work in both directions.
+    yield operate_and_compare, a3, dimless, np.less, [True, True, True]
+    yield operate_and_compare, dimless, a3, np.less, [False, False, False]
+    yield assert_equal, a1 < 2, [True, False, False]
+    yield assert_equal, a1 < 2, np.less(a1, 2)
+    yield assert_equal, 2 < a1, [False, False, True]
+    yield assert_equal, 2 < a1, np.less(2, a1)
 
 
 def test_unit_conversions():
@@ -466,6 +505,11 @@ def test_unit_conversions():
     yield assert_equal, em3.in_mks(), 1e-7
     yield assert_equal, str(em3.in_mks().units), 'kg/(m*s**2)'
     yield assert_equal, str(em3.in_cgs().units), 'g/(cm*s**2)'
+
+    em3_converted = YTQuantity(1545436840.386756, 'Msun/(Myr**2*kpc)')
+    yield assert_equal, em3.in_base(unit_system="galactic"), em3
+    yield assert_array_almost_equal, em3.in_base(unit_system="galactic"), em3_converted
+    yield assert_equal, str(em3.in_base(unit_system="galactic").units), 'Msun/(Myr**2*kpc)'
 
     dimless = YTQuantity(1.0, "")
     yield assert_equal, dimless.in_cgs(), dimless
@@ -525,17 +569,17 @@ def test_yt_array_yt_quantity_ops():
     a = YTArray(range(10), 'cm')
     b = YTQuantity(5, 'g')
 
-    yield assert_isinstance, a*b, YTArray
-    yield assert_isinstance, b*a, YTArray
+    assert_isinstance(a*b, YTArray)
+    assert_isinstance(b*a, YTArray)
 
-    yield assert_isinstance, a/b, YTArray
-    yield assert_isinstance, b/a, YTArray
+    assert_isinstance(a/b, YTArray)
+    assert_isinstance(b/a, YTArray)
 
-    yield assert_isinstance, a*a, YTArray
-    yield assert_isinstance, a/a, YTArray
+    assert_isinstance(a*a, YTArray)
+    assert_isinstance(a/a, YTArray)
 
-    yield assert_isinstance, b*b, YTQuantity
-    yield assert_isinstance, b/b, YTQuantity
+    assert_isinstance(b*b, YTQuantity)
+    assert_isinstance(b/b, YTQuantity)
 
 
 def test_selecting():
@@ -562,6 +606,17 @@ def test_selecting():
     yield assert_true, a_slice.base is a
 
 
+def test_iteration():
+    """
+    Test that iterating over a YTArray returns a sequence of YTQuantity insances
+    """
+    a = np.arange(3)
+    b = YTArray(np.arange(3), 'cm')
+    for ia, ib, in zip(a, b):
+        yield assert_equal, ia, ib.value
+        yield assert_equal, ib.units, b.units
+
+
 def test_fix_length():
     """
     Test fixing the length of an array. Used in spheres and other data objects
@@ -571,6 +626,29 @@ def test_fix_length():
     new_length = fix_length(length, ds=ds)
     yield assert_equal, YTQuantity(10, 'cm'), new_length
 
+def test_code_unit_combinations():
+    """
+    Test comparing code units coming from different datasets
+    """
+    ds1 = fake_random_ds(64, nprocs=1, length_unit=1)
+    ds2 = fake_random_ds(64, nprocs=1, length_unit=10)
+
+    q1 = ds1.quan(1, 'code_length')
+    q2 = ds2.quan(1, 'code_length')
+
+    assert_equal(10*q1, q2)
+    assert_equal(q1/q2, 0.1)
+    assert_true(q1 < q2)
+    assert_true(q2 > q1)
+    assert_true(not bool(q1 > q2))
+    assert_true(not bool(q2 < q1))
+    assert_true(q1 != q2)
+    assert_true(not bool(q1 == q2))
+
+    assert_equal((q1 + q2).in_cgs().value, 11)
+    assert_equal((q2 + q1).in_cgs().value, 11)
+    assert_equal((q1 - q2).in_cgs().value, -9)
+    assert_equal((q2 - q1).in_cgs().value, 9)
 
 def test_ytarray_pickle():
     ds = fake_random_ds(64, nprocs=1)
@@ -675,6 +753,8 @@ def unary_ufunc_comparison(ufunc, a):
 
         assert_array_equal(ret1, npret1)
         assert_array_equal(ret2, npret2)
+    elif ufunc is np.invert:
+        assert_raises(TypeError, ufunc, a)
     else:
         # There shouldn't be any untested ufuncs.
         assert_true(False)
@@ -693,6 +773,10 @@ def binary_ufunc_comparison(ufunc, a, b):
         elif a.units != b.units:
             assert_raises(YTUnitOperationError, ufunc, a, b)
             return
+    if ufunc in (np.bitwise_and, np.bitwise_or, np.bitwise_xor,
+                 np.left_shift, np.right_shift, np.ldexp):
+        assert_raises(TypeError, ufunc, a, b)
+        return
 
     ret = ufunc(a, b, out=out)
 
@@ -728,8 +812,10 @@ def test_ufuncs():
             a = YTArray([.3, .4, .5], 'cm')
             b = YTArray([.1, .2, .3], 'dimensionless')
             c = np.array(b)
+            d = YTArray([1., 2., 3.], 'g')
             yield binary_ufunc_comparison, ufunc, a, b
             yield binary_ufunc_comparison, ufunc, a, c
+            assert_raises(YTUnitOperationError, ufunc, a, d)
             continue
 
         a = YTArray([.3, .4, .5], 'cm')
@@ -825,6 +911,33 @@ def test_astropy():
     yield assert_array_equal, yt_arr, YTArray.from_astropy(yt_arr.to_astropy())
     yield assert_equal, yt_quan, YTQuantity.from_astropy(yt_quan.to_astropy())
 
+@requires_module("pint")
+def test_pint():
+    from pint import UnitRegistry
+
+    ureg = UnitRegistry()
+    
+    p_arr = np.arange(10)*ureg.km/ureg.hr
+    yt_arr = YTArray(np.arange(10), "km/hr")
+    yt_arr2 = YTArray.from_pint(p_arr)
+
+    p_quan = 10.*ureg.g**0.5/(ureg.mm**3)
+    yt_quan = YTQuantity(10., "sqrt(g)/mm**3")
+    yt_quan2 = YTQuantity.from_pint(p_quan)
+
+    yield assert_array_equal, p_arr, yt_arr.to_pint()
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
+    yield assert_array_equal, yt_arr, yt_arr2
+
+    yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
+    assert p_quan.units == yt_quan.to_pint().units
+    yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
+    yield assert_equal, yt_quan, yt_quan2
+
+    yield assert_array_equal, yt_arr, YTArray.from_pint(yt_arr.to_pint())
+    yield assert_equal, yt_quan, YTQuantity.from_pint(yt_quan.to_pint())
+
 def test_subclass():
 
     class YTASubclass(YTArray):
@@ -848,21 +961,22 @@ def test_subclass():
         ops.append(operator.div)
     for op in ops:
         for inst in (b, ytq, ndf, yta, nda, loq):
-            yield op_comparison, op, a, inst, YTASubclass
+            op_comparison(op, a, inst, YTASubclass)
 
-        yield op_comparison, op, ytq, nda, YTArray
-        yield op_comparison, op, ytq, yta, YTArray
+        op_comparison(op, ytq, nda, YTArray)
+        op_comparison(op, ytq, yta, YTArray)
 
     for op in (operator.add, operator.sub):
-        yield op_comparison, op, nu, nda, YTASubclass
-        yield op_comparison, op, a, b, YTASubclass
-        yield op_comparison, op, a, yta, YTASubclass
-        yield op_comparison, op, a, loq, YTASubclass
+        op_comparison(op, nu, nda, YTASubclass)
+        op_comparison(op, a, b, YTASubclass)
+        op_comparison(op, a, yta, YTASubclass)
+        op_comparison(op, a, loq, YTASubclass)
 
-    yield assert_isinstance, a[0], YTQuantity
-    yield assert_isinstance, a[:], YTASubclass
-    yield assert_isinstance, a[:2], YTASubclass
-
+    assert_isinstance(a[0], YTQuantity)
+    assert_isinstance(a[:], YTASubclass)
+    assert_isinstance(a[:2], YTASubclass)
+    assert_isinstance(YTASubclass(yta), YTASubclass)
+    
 def test_h5_io():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
@@ -878,6 +992,12 @@ def test_h5_io():
 
     yield assert_equal, warr, iarr
     yield assert_equal, warr.units.registry['code_length'], iarr.units.registry['code_length']
+
+    warr.write_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    giarr = YTArray.from_hdf5('test.h5', dataset_name="test_dset", group_name='/arrays/test_group')
+
+    yield assert_equal, warr, giarr
 
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
@@ -1069,3 +1189,35 @@ def test_modified_unit_division():
     yield assert_true, ret == 0.5
     yield assert_true, ret.units.is_dimensionless
     yield assert_true, ret.units.base_value == 1.0
+
+def test_load_and_save():
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    a = YTArray(np.random.random(10), "kpc")
+    b = YTArray(np.random.random(10), "Msun")
+    c = YTArray(np.random.random(10), "km/s")
+
+    savetxt("arrays.dat", [a,b,c], delimiter=",")
+
+    d, e = loadtxt("arrays.dat", usecols=(1,2), delimiter=",")
+
+    yield assert_array_equal, b, d
+    yield assert_array_equal, c, e
+
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+def test_trig_ufunc_degrees():
+    for ufunc in (np.sin, np.cos, np.tan):
+        degree_values = np.random.random(10)*degree
+        radian_values = degree_values.in_units('radian')
+        assert_array_equal(ufunc(degree_values), ufunc(radian_values))
+
+def test_builtin_sum():
+    from yt.units import km
+
+    arr = [1, 2, 3]*km
+    assert_equal(sum(arr), 6*km)
+

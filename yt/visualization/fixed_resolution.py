@@ -13,20 +13,24 @@ Fixed resolution buffer support, along with a primitive image analysis tool.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.funcs import *
-from yt.units.unit_object import Unit
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog, \
+    ensure_list
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
+    pixelize_cylinder, pixelize_off_axis_cartesian
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.frontends.stream.api import load_uniform_grid
 
-from . import _MPL
 import numpy as np
 import weakref
 import re
+import types
 
 class FixedResolutionBuffer(object):
     r"""
@@ -41,12 +45,12 @@ class FixedResolutionBuffer(object):
     requires a deposition step, where individual variable-resolution pixels
     are deposited into a buffer of some resolution, to create an image.
     This object is an interface to that pixelization step: it can deposit
-    multiple fields.  It acts as a standard AMRData object, such that
+    multiple fields.  It acts as a standard YTDataContainer object, such that
     dict-style access returns an image of a given field.
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.data_containers.AMRProjBase` or :class:`yt.data_objects.data_containers.AMRSliceBase`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -160,7 +164,7 @@ class FixedResolutionBuffer(object):
     def _is_ion( self, fname ):
         p = re.compile("_p[0-9]+_")
         result = False
-        if p.search( fname ) != None:
+        if p.search( fname ) is not None:
             result = True
         return result
 
@@ -173,7 +177,7 @@ class FixedResolutionBuffer(object):
 
         p = re.compile("_p[0-9]+_")
         m = p.search( fname )
-        if m != None:
+        if m is not None:
             pstr = m.string[m.start()+1:m.end()-1]
             segments = fname.split("_")
             for i,s in enumerate(segments):
@@ -388,6 +392,85 @@ class FixedResolutionBuffer(object):
                                  geometry=self.ds.geometry,
                                  nprocs=nprocs)
 
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export a fixed resolution buffer to a reloadable yt dataset.
+
+        This function will take a fixed resolution buffer and output a 
+        dataset containing either the fields presently existing or fields 
+        given in the ``fields`` list.  The resulting dataset can be
+        reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.  If not supplied, all the fields that have been queried
+            will be saved.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> proj = ds.proj("density", "x", weight_field="density")
+        >>> frb = proj.to_frb(1.0, (800, 800))
+        >>> fn = frb.save_as_dataset(fields=["density"])
+        >>> ds2 = yt.load(fn)
+        >>> print (ds2.data["density"])
+        [[  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         [  1.25025353e-30   1.25025353e-30   1.25025353e-30 ...,   7.90820691e-31
+            7.90820691e-31   7.90820691e-31]
+         ...,
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]
+         [  1.55834239e-30   1.55834239e-30   1.55834239e-30 ...,   8.51353199e-31
+            8.51353199e-31   8.51353199e-31]] g/cm**3
+
+        """
+
+        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self.data_source._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.data)
+
+        ftypes = dict([(field, "grid") for field in data])
+        extra_attrs = dict([(arg, getattr(self.data_source, arg, None))
+                            for arg in self.data_source._con_args +
+                            self.data_source._tds_attrs])
+        extra_attrs["con_args"] = self.data_source._con_args
+        extra_attrs["left_edge"] = self.ds.arr([self.bounds[0],
+                                                self.bounds[2]])
+        extra_attrs["right_edge"] = self.ds.arr([self.bounds[1],
+                                                 self.bounds[3]])
+        extra_attrs["ActiveDimensions"] = self.buff_size
+        extra_attrs["level"] = 0
+        extra_attrs["data_type"] = "yt_frb"
+        extra_attrs["container_type"] = self.data_source._type_name
+        extra_attrs["dimensionality"] = self.data_source._dimensionality
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
+
     @property
     def limits(self):
         rv = dict(x = None, y = None, z = None)
@@ -453,7 +536,8 @@ class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
-        buff = _MPL.CPixelize( self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
+        buff = pixelize_off_axis_cartesian(
+                               self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
                                self.data_source['px'],  self.data_source['py'],
                                self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
                                self.data_source.center, self.data_source._inv_mat, indices,
@@ -485,15 +569,14 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         width = self.ds.arr((self.bounds[1] - self.bounds[0],
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
-        buff = off_axis_projection(dd.ds, dd.center, dd.normal_vector,
+        buff = off_axis_projection(dd.dd, dd.center, dd.normal_vector,
                                    width, dd.resolution, item,
                                    weight=dd.weight_field, volume=dd.volume,
-                                   no_ghost=dd.no_ghost, interpolated=dd.interpolated,
-                                   north_vector=dd.north_vector, method=dd.method)
-        units = Unit(dd.ds.field_info[item].units, registry=dd.ds.unit_registry)
-        if dd.weight_field is None and dd.method == "integrate":
-            units *= Unit('cm', registry=dd.ds.unit_registry)
-        ia = ImageArray(buff.swapaxes(0,1), input_units=units, info=self._get_info(item))
+                                   no_ghost=dd.no_ghost,
+                                   interpolated=dd.interpolated,
+                                   north_vector=dd.north_vector,
+                                   method=dd.method)
+        ia = ImageArray(buff.swapaxes(0,1), info=self._get_info(item))
         self[item] = ia
         return ia
 
@@ -534,8 +617,9 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
 
-        x_data = self.data_source.dd[self.x_field]
-        y_data = self.data_source.dd[self.y_field]
+        ftype = item[0]
+        x_data = self.data_source.dd[ftype, self.x_field]
+        y_data = self.data_source.dd[ftype, self.y_field]
         data = self.data_source.dd[item]
 
         # convert to pixels

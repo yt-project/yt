@@ -15,12 +15,13 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.extern.six import string_types
+from yt.funcs import only_on_root
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import struct
 import os
-import types
 
 from yt.data_objects.static_output import \
     ParticleFile
@@ -30,8 +31,6 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
-from yt.utilities.definitions import \
-    sec_conversion
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
 
@@ -44,7 +43,7 @@ from .fields import \
     GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], str):
+    if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
 
@@ -76,11 +75,13 @@ class GadgetDataset(ParticleDataset):
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
+                 index_ptype="all",
                  bounding_box = None,
                  header_spec = "default",
                  field_spec = "default",
                  ptype_spec = "default",
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -90,6 +91,7 @@ class GadgetDataset(ParticleDataset):
             ptype_spec, gadget_ptype_specs)
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        self.index_ptype = index_ptype
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -107,7 +109,7 @@ class GadgetDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
-        super(GadgetDataset, self).__init__(filename, dataset_type)
+        super(GadgetDataset, self).__init__(filename, dataset_type, unit_system=unit_system)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
             self.length_unit.convert_to_units('kpccm/h')
@@ -171,7 +173,7 @@ class GadgetDataset(ParticleDataset):
         # It may be possible to deduce whether ComovingIntegration is on
         # somehow, but opinions on this vary.
         if self.omega_lambda == 0.0:
-            mylog.info("Omega Lambda is 0.0, so we are turning off Cosmology.")
+            only_on_root(mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology.")
             self.hubble_constant = 1.0  # So that scaling comes out correct
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
@@ -185,8 +187,8 @@ class GadgetDataset(ParticleDataset):
             cosmo = Cosmology(self.hubble_constant,
                               self.omega_matter, self.omega_lambda)
             self.current_time = cosmo.hubble_time(self.current_redshift)
-            mylog.info("Calculating time from %0.3e to be %0.3e seconds",
-                       hvals["Time"], self.current_time)
+            only_on_root(mylog.info, "Calculating time from %0.3e to be %0.3e seconds",
+                         hvals["Time"], self.current_time)
         self.parameters = hvals
 
         prefix = os.path.abspath(
@@ -204,10 +206,10 @@ class GadgetDataset(ParticleDataset):
         # If no units passed in by user, set a sane default (Gadget-2 users guide).
         if self._unit_base is None:
             if self.cosmological_simulation == 1:
-                mylog.info("Assuming length units are in kpc/h (comoving)")
+                only_on_root(mylog.info, "Assuming length units are in kpc/h (comoving)")
                 self._unit_base = dict(length = (1.0, "kpccm/h"))
             else:
-                mylog.info("Assuming length units are in kpc (physical)")
+                only_on_root(mylog.info, "Assuming length units are in kpc (physical)")
                 self._unit_base = dict(length = (1.0, "kpc"))
 
         # If units passed in by user, decide what to do about
@@ -343,8 +345,10 @@ class GadgetHDF5Dataset(GadgetDataset):
     def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
+                 index_ptype="all",
                  bounding_box = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         if units_override is not None:
@@ -352,8 +356,8 @@ class GadgetHDF5Dataset(GadgetDataset):
                                "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor,
-            bounding_box = bounding_box)
+            over_refine_factor=over_refine_factor, index_ptype=index_ptype,
+            bounding_box = bounding_box, unit_system=unit_system)
 
     def _get_hvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")

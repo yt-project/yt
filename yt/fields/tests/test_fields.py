@@ -1,9 +1,19 @@
-from yt.testing import *
 import numpy as np
+
+from yt import \
+    load
+from yt.testing import \
+    fake_amr_ds, \
+    fake_random_ds, \
+    fake_particle_ds, \
+    assert_almost_equal, \
+    assert_equal, \
+    assert_array_almost_equal_nulp, \
+    assert_array_equal, \
+    assert_raises, \
+    requires_file
 from yt.utilities.cosmology import \
-     Cosmology
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+    Cosmology
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.units.yt_array import \
@@ -11,7 +21,11 @@ from yt.units.yt_array import \
     YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTFieldUnitError, \
-    YTFieldUnitParseError
+    YTFieldUnitParseError, \
+    YTDimensionalityError
+
+base_ds = None
+
 
 def setup():
     global base_ds
@@ -22,7 +36,7 @@ def setup():
         fields.append(("gas", fname))
         units.append(code_units)
 
-    base_ds = fake_random_ds(4, fields=fields, units=units, particles=10)
+    base_ds = fake_random_ds(4, fields=fields, units=units, particles=20)
 
     base_ds.index
     base_ds.cosmological_simulation = 1
@@ -59,6 +73,7 @@ _base_fields = (("gas", "density"),
 
 def realistic_ds(fields, particle_fields, nprocs):
     np.random.seed(int(0x4d3d3d3))
+    global base_ds
     units = [base_ds._get_field_info(*f).units for f in fields]
     punits = [base_ds._get_field_info('io', f).units for f in particle_fields]
     fields = [_strip_ftype(f) for f in fields]
@@ -92,19 +107,6 @@ def _strip_ftype(field):
         return field
     return field[1]
 
-def _expand_field(field):
-    if isinstance(field, tuple):
-        return field
-    if field in KnownStreamFields:
-        fi = KnownStreamFields[field]
-        if fi.particle_type:
-            return ("all", field)
-        else:
-            return ("gas", field)
-    # Otherwise, we just guess.
-    if "particle" in field:
-        return ("all", field)
-    return ("gas", field)
 
 class TestFieldAccess(object):
     description = None
@@ -116,7 +118,7 @@ class TestFieldAccess(object):
         self.nproc = nproc
 
     def __call__(self):
-
+        global base_ds
         field = base_ds._get_field_info(*self.field_name)
         deps = field.get_dependencies(ds = base_ds)
         requested = deps.requested
@@ -179,8 +181,12 @@ class TestFieldAccess(object):
                 assert_array_almost_equal_nulp(v1, res, 4)
 
 def test_all_fields():
+    global base_ds
     for field in sorted(base_ds.field_info):
         if field[1].find("beta_p") > -1:
+            continue
+        if field[1].find("vertex") > -1:
+            # don't test the vertex fields for now
             continue
         if field in base_ds.field_list:
             # Don't know how to test this.  We need some way of having fields
@@ -192,13 +198,40 @@ def test_all_fields():
             yield TestFieldAccess(field, nproc)
 
 def test_add_deposited_particle_field():
-    fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'count')
-    assert_equal(fn, ('deposit', 'io_count_ones'))
+    # NOT tested: "std", "mesh_id", "nearest" and "simple_smooth"
+    global base_ds
     ad = base_ds.all_data()
+
+    # Test "count", "sum" and "cic" method
+    for method in ["count", "sum", "cic"]:
+        fn = base_ds.add_deposited_particle_field(('io', 'particle_mass'), method)
+        expected_fn = 'io_%s' if method == "count" else 'io_%s_mass'
+        assert_equal(fn, ('deposit', expected_fn % method))
+        ret = ad[fn]
+        if method == "count":
+            assert_equal(ret.sum(), ad['particle_ones'].sum())
+        else:
+            assert_almost_equal(ret.sum(), ad['particle_mass'].sum())
+
+    # Test "weighted_mean" method
+    fn = base_ds.add_deposited_particle_field(('io', 'particle_ones'), 'weighted_mean',
+                                              weight_field='particle_ones')
+    assert_equal(fn, ('deposit', 'io_avg_ones'))
     ret = ad[fn]
-    assert_equal(ret.sum(), ad['particle_ones'].sum())
+    # The sum should equal the number of cells that have particles
+    assert_equal(ret.sum(), np.count_nonzero(ad[("deposit", "io_count")]))
+
+@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
+def test_add_smoothed_particle_field():
+    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
+    fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
+    assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
+    ad = ds.all_data()
+    ret = ad[fn]
+    assert_almost_equal(ret.sum(), 3824750.912653606)
 
 def test_add_gradient_fields():
+    global base_ds
     gfields = base_ds.add_gradient_fields(("gas","density"))
     gfields += base_ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_x'),
@@ -236,23 +269,25 @@ def test_add_field_unit_semantics():
 
     ds.add_field(('gas','density_alias_no_units'), function=density_alias)
     ds.add_field(('gas','density_alias_auto'), function=density_alias,
-                 units='auto')
+                 units='auto', dimensions='density')
     ds.add_field(('gas','density_alias_wrong_units'), function=density_alias,
                  units='m/s')
     ds.add_field(('gas','density_alias_unparseable_units'), function=density_alias,
                  units='dragons')
-
+    ds.add_field(('gas','density_alias_auto_wrong_dims'), function=density_alias,
+                 units='auto', dimensions="temperature")
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_no_units')
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_wrong_units')
     assert_raises(YTFieldUnitParseError, get_data, ds,
                   'density_alias_unparseable_units')
+    assert_raises(YTDimensionalityError, get_data, ds, 'density_alias_auto_wrong_dims')
 
     dens = ad['density_alias_auto']
     assert_equal(str(dens.units), 'g/cm**3')
 
     ds.add_field(('gas','dimensionless'), function=unitless_data)
     ds.add_field(('gas','dimensionless_auto'), function=unitless_data,
-                 units='auto')
+                 units='auto', dimensions='dimensionless')
     ds.add_field(('gas','dimensionless_explicit'), function=unitless_data, units='')
     ds.add_field(('gas','dimensionful'), function=unitless_data, units='g/cm**3')
 
@@ -268,6 +303,50 @@ def test_array_like_field():
     u2 = array_like_field(ad, 1., ("all", "particle_mass")).units
     assert u1 == u2
 
+def test_add_field_string():
+    ds = fake_random_ds(16)
+    ad = ds.all_data()
+
+    def density_alias(field, data):
+        return data['density']
+
+    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+
+    ad['density_alias']
+    assert ds.derived_field_list[0] == 'density_alias'
+
+def test_add_field_string_aliasing():
+    ds = fake_random_ds(16)
+
+    def density_alias(field, data):
+        return data['density']
+
+    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+
+    ds.field_info['density_alias']
+    ds.field_info['gas', 'density_alias']
+
+    ds = fake_particle_ds()
+    
+    def pmass_alias(field, data):
+        return data['particle_mass']
+        
+    ds.add_field('particle_mass_alias', function=pmass_alias, 
+                 units='g', particle_type=True)
+
+    ds.field_info['particle_mass_alias']
+    ds.field_info['all', 'particle_mass_alias']
+    
+
+def test_morton_index():
+    ds = fake_amr_ds()
+    mi = ds.r["index", "morton_index"]
+    mi2 = mi.view("uint64")
+    assert_equal(np.unique(mi2).size, mi2.size)
+    a1 = np.argsort(mi)
+    a2 = np.argsort(mi2)
+    assert_array_equal(a1, a2)
+
 if __name__ == "__main__":
     setup()
     for t in test_all_fields():
@@ -275,3 +354,4 @@ if __name__ == "__main__":
     test_add_deposited_particle_field()
     test_add_field_unit_semantics()
     test_array_like_field()
+    test_add_field_string()

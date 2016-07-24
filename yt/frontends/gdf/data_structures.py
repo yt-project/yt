@@ -13,11 +13,11 @@ Data structures for GDF.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
-import types
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import weakref
 import os
+from yt.extern.six import string_types
 from yt.funcs import \
     just_one, ensure_tuple
 from yt.data_objects.grid_patch import \
@@ -26,6 +26,10 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.units.dimensions import \
+    dimensionless as sympy_one
+from yt.units.unit_object import \
+    Unit
 from yt.utilities.exceptions import \
     YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import \
@@ -85,7 +89,6 @@ class GDFHierarchy(GridIndex):
         h5f = h5py.File(self.index_filename, 'r')
         self.dataset_type = dataset_type
         GridIndex.__init__(self, ds, dataset_type)
-        self.max_level = 10  # FIXME
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
@@ -174,10 +177,11 @@ class GDFDataset(Dataset):
 
     def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None, geometry=None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override, unit_system=unit_system)
         self.storage_filename = storage_filename
         self.filename = filename
 
@@ -196,7 +200,7 @@ class GDFDataset(Dataset):
                 self.field_units[field_name] = just_one(field_conv)
             elif 'field_units' in current_field.attrs:
                 field_units = current_field.attrs['field_units']
-                if isinstance(field_units, str):
+                if isinstance(field_units, string_types):
                     current_field_units = current_field.attrs['field_units']
                 else:
                     current_field_units = \
@@ -210,12 +214,22 @@ class GDFDataset(Dataset):
                 current_unit = h5f["/dataset_units/%s" % unit_name]
                 value = current_unit.value
                 unit = current_unit.attrs["unit"]
+                # need to convert to a Unit object and check dimensions
+                # because unit can be things like
+                # 'dimensionless/dimensionless**3' so naive string
+                # comparisons are insufficient
+                unit = Unit(unit, registry=self.unit_registry)
+                if unit_name.endswith('_unit') and unit.dimensions is sympy_one:
+                    un = unit_name[:-5]
+                    un = un.replace('magnetic', 'magnetic_field', 1)
+                    unit = self.unit_system[un]
+                    setattr(self, unit_name, self.quan(value, unit))
                 setattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = unit.decode('utf8')
+                    self.field_units[unit_name] = str(unit)
         else:
             self.length_unit = self.quan(1.0, "cm")
             self.mass_unit = self.quan(1.0, "g")

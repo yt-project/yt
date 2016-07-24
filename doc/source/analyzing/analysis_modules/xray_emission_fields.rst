@@ -9,9 +9,9 @@ X-ray Emission Fields
   If you came here trying to figure out how to create simulated X-ray photons and observations,
   you should go `here <photon_simulator.html>`_ instead.
 
-This functionality provides the ability to create metallicity-dependent 
+This functionality provides the ability to create metallicity-dependent
 X-ray luminosity, emissivity, and photon emissivity fields for a given
-photon energy range.  This works by interpolating from emission tables 
+photon energy range.  This works by interpolating from emission tables
 created from the photoionization code `Cloudy <http://nublado.org/>`_ or
 the collisional ionization database `AtomDB <http://www.atomdb.org>`_. If
 you installed yt with the install script, these data files should be located in
@@ -32,7 +32,7 @@ dataset object, and the minimum and maximum energies of the energy band.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0)
+  xray_fields = add_xray_emissivity_field(ds, 0.5, 7.0)
 
 Additional keyword arguments are:
 
@@ -43,13 +43,14 @@ Additional keyword arguments are:
    for primordial elements and for metals at solar metallicity for the energy range
    0.1 to 100 keV. Default: None.
 
- * **with_metals** (*bool*): If True, use the metallicity field to add the 
-   contribution from metals.  If False, only the emission from H/He is 
+ * **with_metals** (*bool*): If True, use the metallicity field to add the
+   contribution from metals.  If False, only the emission from H/He is
    considered.  Default: True.
 
- * **constant_metallicity** (*float*): If specified, assume a constant 
-   metallicity for the emission from metals.  The *with_metals* keyword 
-   must be set to False to use this.  Default: None.
+ * **constant_metallicity** (*float*): If specified, assume a constant
+   metallicity for the emission from metals.  The *with_metals* keyword
+   must be set to False to use this. It should be given in unit of solar metallicity.
+   Default: None.
 
 The resulting fields can be used like all normal fields. The function will return the names of
 the created fields in a Python list.
@@ -60,7 +61,7 @@ the created fields in a Python list.
   from yt.analysis_modules.spectral_integrator.api import \
        add_xray_emissivity_field
 
-  xray_fields = add_xray_emissivity_field(0.5, 7.0, filename="apec_emissivity.h5")
+  xray_fields = add_xray_emissivity_field(ds, 0.5, 7.0, filename="apec_emissivity.h5")
 
   ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
   plot = yt.SlicePlot(ds, 'x', 'xray_luminosity_0.5_7.0_keV')

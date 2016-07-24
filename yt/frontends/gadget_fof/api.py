@@ -15,12 +15,19 @@ API for GadgetFOF frontend
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-     GadgetFOFDataset
+    GadgetFOFParticleIndex, \
+    GadgetFOFHDF5File, \
+    GadgetFOFDataset, \
+    GadgetFOFHaloParticleIndex, \
+    GadgetFOFHaloDataset, \
+    GagdetFOFHaloContainer
 
 from .io import \
-     IOHandlerGadgetFOFHDF5
+    IOHandlerGadgetFOFHDF5, \
+    IOHandlerGadgetFOFHaloHDF5
 
 from .fields import \
-     GadgetFOFFieldInfo
+    GadgetFOFFieldInfo, \
+    GadgetFOFHaloFieldInfo
 
 from . import tests

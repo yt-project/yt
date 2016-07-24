@@ -13,29 +13,21 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import types
-import imp
-import os
 import numpy as np
 
-from yt.funcs import *
+from yt.config import \
+    ytcfg
+from yt.funcs import \
+    mylog, \
+    get_image_suffix, \
+    get_brewer_cmap
+from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 from .color_maps import mcm
 from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
-import warnings
-try:
-    import palettable
-    has_palettable = True
-except:
-    has_palettable = False
-try:
-    import brewer2mpl
-    has_brewer = True
-except:
-    has_brewer = False
 
 
 def scale_image(image, mi=None, ma=None):
@@ -177,7 +169,7 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
-def write_image(image, filename, color_bounds = None, cmap_name = "algae", func = lambda x: x):
+def write_image(image, filename, color_bounds = None, cmap_name = None, func = lambda x: x):
     r"""Write out a floating point array directly to a PNG file, scaling it and
     applying a colormap.
 
@@ -212,6 +204,8 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
                     (1024, 1024))
     >>> write_image(frb1["Density"], "saved.png")
     """
+    if cmap_name is None:
+        cmap_name = ytcfg.get("yt", "default_colormap")
     if len(image.shape) == 3:
         mylog.info("Using only channel 1 of supplied image")
         image = image[:,:,0]
@@ -219,7 +213,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = "algae", func 
     pw.write_png(to_plot, filename)
     return to_plot
 
-def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda x: x):
+def apply_colormap(image, color_bounds = None, cmap_name = None, func=lambda x: x):
     r"""Apply a colormap to a floating point image, scaling to uint8.
 
     This function will scale an image and directly call libpng to write out a
@@ -244,6 +238,8 @@ def apply_colormap(image, color_bounds = None, cmap_name = 'algae', func=lambda 
     to_plot : uint8 image with colorbar applied.
 
     """
+    if cmap_name is None:
+        cmap_name = ytcfg.get("yt", "default_colormap")
     from yt.data_objects.image_array import ImageArray
     image = ImageArray(func(image))
     if color_bounds is None:
@@ -264,27 +260,17 @@ def map_to_colors(buff, cmap_name):
         try:
             # if cmap is tuple, then we're using palettable or brewer2mpl cmaps
             if isinstance(cmap_name, tuple):
-                if has_palettable:
-                    bmap = palettable.colorbrewer.get_map(*cmap_name)
-                elif has_brewer:
-                    warnings.warn("Using brewer2mpl colormaps is deprecated. "
-                                  "Please install the successor to brewer2mpl, "
-                                  "palettable, with `pip install palettable`. "
-                                  "Colormap tuple names remain unchanged.")
-                    bmap = brewer2mpl.get_map(*cmap_name)
-                else:
-                    raise RuntimeError("Please install palettable to use colorbrewer colormaps")
-                cmap = bmap.get_mpl_colormap(N=cmap_name[2])
+                cmap = get_brewer_cmap(cmap_name)
             else:
                 cmap = mcm.get_cmap(cmap_name)
-            dummy = cmap(0.0)
+            cmap(0.0)
             lut = cmap._lut.T
         except ValueError:
-            print("Your color map was not found in either the extracted" +\
-                " colormap file or matplotlib colormaps")
-            raise KeyError(cmap_name)
+            raise KeyError(
+                "Your color map (%s) was not found in either the extracted"
+                " colormap file or matplotlib colormaps" % cmap_name)
 
-    if isinstance(cmap_name, tuple) and (has_palettable or has_brewer):
+    if isinstance(cmap_name, tuple):
         # If we are using the colorbrewer maps, don't interpolate
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
@@ -301,7 +287,7 @@ def map_to_colors(buff, cmap_name):
 
 def strip_colormap_data(fn = "color_map_data.py",
             cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu",
-                     "kamae")):
+                     "kamae", "kelp", "arbre", "octarine", "dusk")):
     import pprint
     from . import color_maps as rcm
     f = open(fn, "w")
@@ -335,7 +321,7 @@ def splat_points(image, points_x, points_y,
 
 def write_projection(data, filename, colorbar=True, colorbar_label=None, 
                      title=None, limits=None, take_log=True, figsize=(8,6),
-                     dpi=100, cmap_name='algae', extent=None, xlabel=None,
+                     dpi=100, cmap_name=None, extent=None, xlabel=None,
                      ylabel=None):
     r"""Write a projection or volume rendering to disk with a variety of 
     pretty parameters such as limits, title, colorbar, etc.  write_projection
@@ -380,7 +366,10 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
                          title="Offaxis Projection", limits=(1e-5,1e-3), 
                          take_log=True)
     """
-    import matplotlib
+    if cmap_name is None:
+        cmap_name = ytcfg.get("yt", "default_colormap")
+    import matplotlib.figure
+    import matplotlib.colors
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.

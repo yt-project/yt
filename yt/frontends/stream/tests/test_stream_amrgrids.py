@@ -1,8 +1,9 @@
-from yt.testing import *
 import numpy as np
 from yt.utilities.exceptions import YTIntDomainOverflow
 
 from yt import load_amr_grids, ProjectionPlot
+
+from yt.testing import assert_raises
 
 def test_qt_overflow():
     grid_data = []
@@ -47,4 +48,4 @@ def test_refine_by():
 
     domain_dimensions = np.array([8, 8, 8])
 
-    spf = load_amr_grids(grid_data, domain_dimensions, refine_by=ref_by)
+    load_amr_grids(grid_data, domain_dimensions, refine_by=ref_by)

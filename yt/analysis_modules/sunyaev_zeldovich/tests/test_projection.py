@@ -11,12 +11,21 @@ Unit test the sunyaev_zeldovich analysis module.
 #-----------------------------------------------------------------------------
 
 from yt.frontends.stream.api import load_uniform_grid
-from yt.funcs import get_pbar, mylog
-from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, \
-     mh, cm_per_km, kboltz, Tcmb, hcgs, clight, sigma_thompson
-from yt.testing import *
+from yt.funcs import get_pbar
+from yt.utilities.physical_ratios import \
+    cm_per_kpc, \
+    K_per_keV, \
+    cm_per_km
+from yt.utilities.physical_constants import \
+    mh, \
+    kboltz, \
+    Tcmb, \
+    hcgs, \
+    clight, \
+    sigma_thompson
+from yt.testing import requires_module, assert_almost_equal
 from yt.utilities.answer_testing.framework import requires_ds, \
-     GenericArrayTest, data_dir_load, GenericImageTest
+    GenericArrayTest, data_dir_load, GenericImageTest
 try:
     from yt.analysis_modules.sunyaev_zeldovich.projection import SZProjection, I0
 except ImportError:
@@ -118,7 +127,7 @@ def test_M7_onaxis():
     def onaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
     for test in [GenericArrayTest(ds, onaxis_array_func),
-                 GenericImageTest(ds, onaxis_image_func, 3)]:
+                 GenericImageTest(ds, onaxis_image_func, 12)]:
         test_M7_onaxis.__name__ = test.description
         yield test
 
@@ -133,6 +142,6 @@ def test_M7_offaxis():
     def offaxis_image_func(filename_prefix):
         szprj.write_png(filename_prefix)
     for test in [GenericArrayTest(ds, offaxis_array_func),
-                 GenericImageTest(ds, offaxis_image_func, 3)]:
+                 GenericImageTest(ds, offaxis_image_func, 12)]:
         test_M7_offaxis.__name__ = test.description
         yield test

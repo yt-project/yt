@@ -1,12 +1,11 @@
 """Tests for non-cartesian ray tracers."""
-import nose
 import numpy as np
 
-from nose.tools import assert_equal, assert_not_equal, assert_raises, raises, \
-    assert_almost_equal, assert_true, assert_false, assert_in, assert_less_equal, \
-    assert_greater_equal
-from numpy.testing import assert_array_equal, assert_array_almost_equal
-from yt.testing import amrspace
+from yt.testing import \
+    assert_true, \
+    amrspace, \
+    assert_less_equal, \
+    assert_equal
 
 from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace, _cyl2cart
 

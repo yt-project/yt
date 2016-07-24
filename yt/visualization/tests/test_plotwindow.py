@@ -13,6 +13,7 @@ Testsuite for PlotWindow class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import itertools
+import numpy as np
 import os
 import tempfile
 import shutil
@@ -21,12 +22,15 @@ from nose.tools import assert_true
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal
+    assert_array_almost_equal, assert_raises
 from yt.utilities.answer_testing.framework import \
     requires_ds, data_dir_load, PlotWindowAttributeTest
+from yt.utilities.exceptions import \
+    YTInvalidFieldType
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.frontends.stream.api import load_uniform_grid
 from collections import OrderedDict
 
 def setup():
@@ -182,7 +186,7 @@ CALLBACK_TESTS = (
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
     plot_field = 'density'
-    decimals = 3
+    decimals = 12
 
     ds = data_dir_load(M7)
     for ax in 'xyz':
@@ -200,7 +204,7 @@ def test_attributes():
 @requires_ds(WT)
 def test_attributes_wt():
     plot_field = 'density'
-    decimals = 3
+    decimals = 12
 
     ds = data_dir_load(WT)
     ax = 'z'
@@ -291,11 +295,6 @@ class TestSetWidth(unittest.TestCase):
         self.slc.set_width(((0.5, 'cm'), (0.75, 'cm')))
         self._assert_05_075cm()
         assert_true(self.slc._axes_unit_names == ('cm', 'cm'))
-
-    def test_tuple_of_tuples_neq(self):
-        self.slc.set_width(((0.5, 'cm'), (0.0075, 'm')))
-        self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ('cm', 'm'))
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -405,3 +404,41 @@ class TestPlotWindowSave(unittest.TestCase):
         [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
         [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
         assert_true(aun == plot._axes_unit_names)
+
+def test_on_off_compare():
+    # fake density field that varies in the x-direction only
+    den = np.arange(32**3) / 32**2 + 1
+    den = den.reshape(32, 32, 32)
+    den = np.array(den, dtype=np.float64)
+    data = dict(density = (den, "g/cm**3"))
+    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
+    ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
+
+    sl_on = SlicePlot(ds, "z", ["density"])
+
+    L = [0, 0, 1]
+    north_vector = [0, 1, 0]
+    sl_off = OffAxisSlicePlot(ds, L, 'density', center=[0,0,0], north_vector=north_vector)
+
+    assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+
+def test_plot_particle_field_error():
+    ds = fake_random_ds(32, particles=100)
+
+    field_names = [
+        'particle_mass',
+        ['particle_mass', 'density'],
+        ['density', 'particle_mass'],
+    ]
+
+    objects_normals = [
+        (SlicePlot, 2),
+        (SlicePlot, [1, 1, 1]),
+        (ProjectionPlot, 2),
+        (OffAxisProjectionPlot, [1, 1, 1]),
+    ]
+
+    for object, normal in objects_normals:
+        for field_name_list in field_names:
+            assert_raises(
+                YTInvalidFieldType, object, ds, normal, field_name_list)

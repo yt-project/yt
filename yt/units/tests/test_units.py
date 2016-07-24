@@ -15,16 +15,17 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import nose
 import numpy as np
 from numpy.testing import \
     assert_array_almost_equal_nulp, \
-    assert_raises
+    assert_raises, assert_equal
 from nose.tools import assert_true
 import operator
 from sympy import Symbol
 from yt.testing import \
-    fake_random_ds, assert_allclose_units
+    fake_random_ds, assert_allclose_units, \
+    assert_almost_equal
+from yt.units.unit_registry import UnitRegistry
 
 # dimensions
 from yt.units.dimensions import \
@@ -36,8 +37,9 @@ from yt.units.unit_object import Unit, UnitParseError, InvalidUnitOperation
 # objects
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, unit_prefixes, prefixable_units
+import yt.units.unit_symbols as unit_symbols
 # unit definitions
-from yt.utilities.physical_constants import \
+from yt.utilities.physical_ratios import \
     cm_per_pc, sec_per_year, cm_per_km, cm_per_mpc, \
     mass_sun_grams
 
@@ -83,6 +85,9 @@ def test_dimensionless():
     yield assert_true, u2.expr == 1
     yield assert_true, u2.base_value == 1
     yield assert_true, u2.dimensions == 1
+
+    yield assert_equal, u1.latex_repr, ''
+    yield assert_equal, u2.latex_repr, ''
 
 #
 # Start init tests
@@ -222,7 +227,7 @@ def test_create_fail_on_unknown_symbol():
 
     """
     try:
-        u1 = Unit(Symbol("jigawatts"))
+        Unit(Symbol("jigawatts"))
     except UnitParseError:
         yield assert_true, True
     else:
@@ -234,7 +239,7 @@ def test_create_fail_on_bad_symbol_type():
 
     """
     try:
-        u1 = Unit([1])  # something other than Expr and str
+        Unit([1])  # something other than Expr and str
     except UnitParseError:
         yield assert_true, True
     else:
@@ -246,7 +251,7 @@ def test_create_fail_on_bad_dimensions_type():
 
     """
     try:
-        u1 = Unit("a", base_value=1, dimensions="(mass)")
+        Unit("a", base_value=1, dimensions="(mass)")
     except UnitParseError:
         yield assert_true, True
     else:
@@ -261,7 +266,7 @@ def test_create_fail_on_dimensions_content():
     a = Symbol("a")
 
     try:
-        u1 = Unit("a", base_value=1, dimensions=a)
+        Unit("a", base_value=1, dimensions=a)
     except UnitParseError:
         pass
     else:
@@ -274,7 +279,7 @@ def test_create_fail_on_base_value_type():
 
     """
     try:
-        u1 = Unit("a", base_value="a", dimensions=(mass/time))
+        Unit("a", base_value="a", dimensions=(mass/time))
     except UnitParseError:
         yield assert_true, True
     else:
@@ -450,3 +455,55 @@ def test_temperature_offsets():
 
     assert_raises(InvalidUnitOperation, operator.mul, u1, u2)
     assert_raises(InvalidUnitOperation, operator.truediv, u1, u2)
+
+def test_latex_repr():
+    ds = fake_random_ds(64, nprocs=1)
+
+    # create a fake comoving unit
+    ds.unit_registry.add('pccm', ds.unit_registry.lut['pc'][0]/(1+2), length,
+                         "\\rm{pc}/(1+z)")
+
+    test_unit = Unit('Mpccm', registry=ds.unit_registry)
+    assert_almost_equal(test_unit.base_value, cm_per_mpc/3)
+    assert_equal(test_unit.latex_repr, r'\rm{Mpc}/(1+z)')
+
+    test_unit = Unit('code_mass', registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr, '\\rm{code\\ mass}')
+
+    test_unit = Unit('code_mass/code_length**3', registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr,
+                 '\\frac{\\rm{code\\ mass}}{\\rm{code\\ length}^{3}}')
+
+    test_unit = Unit('cm**-3', base_value=1.0, registry=ds.unit_registry)
+    assert_equal(test_unit.latex_repr, '\\frac{1}{\\rm{cm}^{3}}')
+
+    test_unit = Unit('m_geom/l_geom**3')
+    assert_equal(test_unit.latex_repr, '\\frac{1}{M_\\odot^{2}}')
+
+def test_latitude_longitude():
+    lat = unit_symbols.lat
+    lon = unit_symbols.lon
+    deg = unit_symbols.deg
+    yield assert_equal, lat.units.base_offset, 90.0
+    yield assert_equal, (deg*90.0).in_units("lat").value, 0.0
+    yield assert_equal, (deg*180).in_units("lat").value, -90.0
+    yield assert_equal, (lat*0.0).in_units("deg"), deg*90.0
+    yield assert_equal, (lat*-90).in_units("deg"), deg*180
+
+    yield assert_equal, lon.units.base_offset, -180.0
+    yield assert_equal, (deg*0.0).in_units("lon").value, -180.0
+    yield assert_equal, (deg*90.0).in_units("lon").value, -90.0
+    yield assert_equal, (deg*180).in_units("lon").value, 0.0
+    yield assert_equal, (deg*360).in_units("lon").value, 180.0
+
+    yield assert_equal, (lon*-180.0).in_units("deg"), deg*0.0
+    yield assert_equal, (lon*-90.0).in_units("deg"), deg*90.0
+    yield assert_equal, (lon*0.0).in_units("deg"), deg*180.0
+    yield assert_equal, (lon*180.0).in_units("deg"), deg*360
+
+def test_registry_json():
+    reg = UnitRegistry()
+    json_reg = reg.to_json()
+    unserialized_reg = UnitRegistry.from_json(json_reg)
+
+    assert_equal(reg.lut, unserialized_reg.lut)

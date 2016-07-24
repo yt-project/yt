@@ -16,7 +16,6 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import os
-import types
 from yt.extern.six.moves import configparser
 
 ytcfg_defaults = dict(
@@ -30,7 +29,6 @@ ytcfg_defaults = dict(
     loglevel = '20',
     inline = 'False',
     numthreads = '-1',
-    __withinreason = 'False',
     __withintesting = 'False',
     __parallel = 'False',
     __global_parallel_rank = '0',
@@ -41,7 +39,7 @@ ytcfg_defaults = dict(
     storeparameterfiles = 'False',
     parameterfilestore = 'parameter_files.csv',
     maximumstoreddatasets = '500',
-    skip_dataset_cache = 'False',
+    skip_dataset_cache = 'True',
     loadfieldplugins = 'True',
     pluginfilename = 'my_plugins.py',
     parallel_traceback = 'False',
@@ -59,9 +57,15 @@ ytcfg_defaults = dict(
     local_standard_filename = 'local001',
     answer_tests_url = 'http://answers.yt-project.org/{1}_{2}',
     sketchfab_api_key = 'None',
+    imagebin_api_key = 'e1977d9195fe39e',
+    imagebin_upload_url = 'https://api.imgur.com/3/upload',
+    imagebin_delete_url = 'https://api.imgur.com/3/image/{delete_hash}',
     thread_field_detection = 'False',
     ignore_invalid_unit_operation_errors = 'False',
-    chunk_size = '1000'
+    chunk_size = '1000',
+    xray_data_dir = '/does/not/exist',
+    default_colormap = 'arbre',
+    ray_tracing_engine = 'embree',
     )
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten

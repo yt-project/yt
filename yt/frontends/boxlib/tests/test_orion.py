@@ -13,11 +13,13 @@ Orion frontend tests
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+from yt.testing import \
+    assert_equal, \
+    requires_file, \
+    units_override_check
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
-    big_patch_amr, \
     data_dir_load
 from yt.frontends.boxlib.api import OrionDataset
 
@@ -30,7 +32,7 @@ radadvect = "RadAdvect/plt00000"
 def test_radadvect():
     ds = data_dir_load(radadvect)
     yield assert_equal, str(ds), "plt00000"
-    for test in small_patch_amr(radadvect, _fields):
+    for test in small_patch_amr(ds, _fields):
         test_radadvect.__name__ = test.description
         yield test
 
@@ -39,7 +41,7 @@ rt = "RadTube/plt00500"
 def test_radtube():
     ds = data_dir_load(rt)
     yield assert_equal, str(ds), "plt00500"
-    for test in small_patch_amr(rt, _fields):
+    for test in small_patch_amr(ds, _fields):
         test_radtube.__name__ = test.description
         yield test
 
@@ -48,7 +50,7 @@ star = "StarParticles/plrd01000"
 def test_star():
     ds = data_dir_load(star)
     yield assert_equal, str(ds), "plrd01000"
-    for test in small_patch_amr(star, _fields):
+    for test in small_patch_amr(ds, _fields):
         test_star.__name__ = test.description
         yield test
 

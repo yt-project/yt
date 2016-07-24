@@ -13,17 +13,33 @@ Time series analysis functions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import inspect, functools, weakref, glob, types, os
+import inspect
+import functools
+import glob
+import numpy as np
+import os
+import weakref
 
-from yt.funcs import *
+from functools import wraps
+
 from yt.extern.six import add_metaclass, string_types
 from yt.convenience import load
 from yt.config import ytcfg
-from .data_containers import data_object_registry
-from .analyzer_objects import create_quantity_proxy, \
-    analysis_task_registry, AnalysisTask
+from yt.data_objects.data_containers import data_object_registry
+from yt.data_objects.derived_quantities import \
+    derived_quantity_registry
+from yt.data_objects.analyzer_objects import \
+    create_quantity_proxy, \
+    analysis_task_registry, \
+    AnalysisTask
+from yt.funcs import \
+    iterable, \
+    ensure_list, \
+    mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTException
+from yt.utilities.exceptions import \
+    YTException, \
+    YTOutputNotIdentified
 from yt.utilities.parallel_tools.parallel_analysis_interface \
     import parallel_objects, parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -107,6 +123,10 @@ class DatasetSeries(object):
         file provided to the loop.
     setup_function : callable, accepts a ds
         This function will be called whenever a dataset is loaded.
+    mixed_dataset_types : True or False, default False
+        Set to True if the DatasetSeries will load different dataset types, set
+        to False if loading dataset of a single type as this will result in a
+        considerable speed up from not having to figure out the dataset type.
 
     Examples
     --------
@@ -138,8 +158,9 @@ class DatasetSeries(object):
         return ret
 
     def __init__(self, outputs, parallel = True, setup_function = None,
-                 **kwargs):
+                 mixed_dataset_types = False, **kwargs):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
+        self._mixed_dataset_types = mixed_dataset_types
         if iterable(outputs) and not isinstance(outputs, string_types):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
@@ -156,8 +177,8 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, str):
-                ds = load(o, **self.kwargs)
+            if isinstance(o, string_types):
+                ds = self._load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
             else:
@@ -170,8 +191,8 @@ class DatasetSeries(object):
             # This will return a sliced up object!
             return DatasetSeries(self._pre_outputs[key], self.parallel)
         o = self._pre_outputs[key]
-        if isinstance(o, str):
-            o = load(o, **self.kwargs)
+        if isinstance(o, string_types):
+            o = self._load(o, **self.kwargs)
             self._setup_function(o)
         return o
 
@@ -248,13 +269,31 @@ class DatasetSeries(object):
 
         """
         dynamic = False
-        if self.parallel == False:
+        if self.parallel is False:
             njobs = 1
         else:
-            if self.parallel == True: njobs = -1
-            else: njobs = self.parallel
-        return parallel_objects(self, njobs=njobs, storage=storage,
-                                dynamic=dynamic)
+            if self.parallel is True:
+                njobs = -1
+            else:
+                njobs = self.parallel
+
+        for output in parallel_objects(self._pre_outputs, njobs=njobs,
+                                       storage=storage, dynamic=dynamic):
+            if storage is not None:
+                sto, output = output
+
+            if isinstance(output, string_types):
+                ds = self._load(output, **self.kwargs)
+                self._setup_function(ds)
+            else:
+                ds = output
+
+            if storage is not None:
+                next_ret = (sto, ds)
+            else:
+                next_ret = ds
+
+            yield next_ret
 
     def eval(self, tasks, obj=None):
         tasks = ensure_list(tasks)
@@ -267,7 +306,7 @@ class DatasetSeries(object):
                     if style == 'ds':
                         arg = ds
                     elif style == 'data_object':
-                        if obj == None:
+                        if obj is None:
                             obj = DatasetSeriesObject(self, "all_data")
                         arg = obj.get(ds)
                     rv = task.eval(arg)
@@ -323,13 +362,13 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, str):
+        if isinstance(filenames, string_types):
             filenames = get_filenames_from_glob_pattern(filenames)
 
         # This will crash with a less informative error if filenames is not
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
-            if not isinstance(fn, str):
+            if not isinstance(fn, string_types):
                 raise YTOutputNotIdentified("DataSeries accepts a list of "
                                             "strings, but "
                                             "received {0}".format(fn))
@@ -350,6 +389,16 @@ class DatasetSeries(object):
         obj = cls(filenames, parallel = parallel)
         return obj
 
+    _dataset_cls = None
+    def _load(self, output_fn, **kwargs):
+        if self._dataset_cls is not None:
+            return self._dataset_cls(output_fn, **kwargs)
+        elif self._mixed_dataset_types:
+            return load(output_fn, **kwargs)
+        ds = load(output_fn, **kwargs)
+        self._dataset_cls = ds.__class__
+        return ds
+
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):
         self.data_object = data_object
@@ -359,7 +408,7 @@ class TimeSeriesQuantitiesContainer(object):
         if key not in self.quantities: raise KeyError(key)
         q = self.quantities[key]
         def run_quantity_wrapper(quantity, quantity_name):
-            @wraps(quantity_info[quantity_name][1])
+            @wraps(derived_quantity_registry[quantity_name][1])
             def run_quantity(*args, **kwargs):
                 to_run = quantity(*args, **kwargs)
                 return self.data_object.eval(to_run)
@@ -372,7 +421,7 @@ class DatasetSeriesObject(object):
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in quantity_info.items()])
+        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in derived_quantity_registry.items()])
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):
@@ -519,7 +568,7 @@ class SimulationTimeSeries(DatasetSeries):
                 values = self.arr(*values)
             else:
                 values = self.arr(values)
-        values = values.in_cgs()
+        values = values.in_base()
 
         if outputs is None:
             outputs = self.all_outputs

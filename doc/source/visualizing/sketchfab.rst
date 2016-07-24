@@ -47,7 +47,7 @@ calculate a flux, call
 both of these operations will run in parallel.  For more information on enabling
 parallelism in yt, see :ref:`parallel-computation`.
 
-Alternatively, you can make an object called ``YTSurfaceBase`` that makes
+Alternatively, you can make an object called ``YTSurface`` that makes
 this process much easier.  You can create one of these objects by specifying a
 source data object and a field over which to identify a surface at a given
 value.  For example:
@@ -55,7 +55,7 @@ value.  For example:
 .. code-block:: python
 
    import yt
-   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    sphere = ds.sphere("max", (1.0, "Mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
 
@@ -64,7 +64,7 @@ instance:
 
 .. code-block:: python
 
-   print surface["temperature"].min(), surface["temperature"].max()
+   print(surface["temperature"].min(), surface["temperature"].max())
 
 will return the values 11850.7476943 and 13641.0663899.  These values are
 interpolated to the face centers of every triangle that constitutes a portion
@@ -80,8 +80,8 @@ If you want to export this to a `PLY file
 ``export_ply``, which will write to a file and optionally sample a field at
 every face or vertex, outputting a color value to the file as well.  This file
 can then be viewed in MeshLab, Blender or on the website `Sketchfab.com
-<Sketchfab.com>`_.  But if you want to view it on Sketchfab, there's an even
-easier way!
+<https://sketchfab.com>`_.  But if you want to view it on Sketchfab, there's an
+even easier way!
 
 Exporting to Sketchfab
 ----------------------
@@ -101,7 +101,7 @@ model in a website with other supplemental data, or you can use Sketchfab to
 discuss morphological properties of a dataset with collaborators.  It's also
 just plain cool.
 
-The ``YTSurfaceBase`` object includes a method to upload directly to Sketchfab,
+The ``YTSurface`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your
@@ -113,24 +113,23 @@ Now you can run a script like this:
 
 .. code-block:: python
 
-   import yt
-   ds = yt.load("redshift0058")
-   dd = ds.sphere("max", (200, "kpc"))
-   rho = 5e-27
+    import yt
+    from yt.units import kpc
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    dd = ds.sphere(ds.domain_center, (500, "kpc"))
+    rho = 1e-28
 
-   bounds = [(dd.center[i] - 100.0/ds['kpc'],
-              dd.center[i] + 100.0/ds['kpc']) for i in range(3)]
+    bounds = [[dd.center[i] - 250*kpc, dd.center[i] + 250*kpc] for i in range(3)]
 
-   surf = ds.surface(dd, "density", rho)
+    surf = ds.surface(dd, "density", rho)
 
-   upload_id = surf.export_sketchfab(
-       title = "RD0058 - 5e-27",
-       description = "Extraction of Density (colored by Temperature) at 5e-27 " \
-                   + "g/cc from a galaxy formation simulation by Ryan Joung."
-       color_field = "temperature",
-       color_map = "hot",
-       color_log = True,
-       bounds = bounds
+    upload_id = surf.export_sketchfab(
+        title="galaxy0030 - 1e-28",
+        description="Extraction of Density (colored by temperature) at 1e-28 g/cc",
+        color_field="temperature",
+        color_map="hot",
+        color_log=True,
+        bounds=bounds
    )
 
 and yt will extract a surface, convert to a format that Sketchfab.com
@@ -141,15 +140,13 @@ embed code from Sketchfab:
 
 .. raw:: html
 
-   <iframe frameborder="0" height="480" width="854" allowFullScreen
-   webkitallowfullscreen="true" mozallowfullscreen="true"
-   src="http://skfb.ly/l4jh2edcba?autostart=0&transparent=0&autospin=0&controls=1&watermark=1"></iframe>
+     <iframe width="640" height="480" src="https://sketchfab.com/models/ff59dacd55824110ad5bcc292371a514/embed" frameborder="0" allowfullscreen mozallowfullscreen="true" webkitallowfullscreen="true" onmousewheel=""></iframe>
 
 As a note, Sketchfab has a maximum model size of 50MB for the free account.
-50MB is pretty hefty, though, so it shouldn't be a problem for most needs.
-We're working on a way to optionally upload links to the Sketchfab models on
-the `yt Hub <https://hub.yt-project.org/>`_, but for now, if you want to share
-a cool model we'd love to see it!
+50MB is pretty hefty, though, so it shouldn't be a problem for most
+needs. Additionally, if you have an eligible e-mail address associated with a
+school or university, you can request a free professional account, which allows
+models up to 200MB. See https://sketchfab.com/education for details.
 
 OBJ and MTL Files
 -----------------
@@ -167,7 +164,7 @@ galaxy simulation:
 
    import yt
 
-   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
    filename = './surfaces'
@@ -239,7 +236,7 @@ to output one more type of variable on your surfaces.  For example:
 
    import yt
 
-   ds = yt.load("/data/workshop2012/IsolatedGalaxy/galaxy0030/galaxy0030")
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
    filename = './surfaces'

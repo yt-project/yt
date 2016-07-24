@@ -4,13 +4,13 @@ Filtering your Dataset
 ======================
 
 Large datasets are oftentimes too overwhelming to deal with in their
-entirety, and it can be useful and faster 
-to analyze subsets of these datasets.  Furthermore, filtering the dataset 
+entirety, and it can be useful and faster
+to analyze subsets of these datasets.  Furthermore, filtering the dataset
 based on some field condition can reveal subtle information not easily
 accessible by looking at the whole dataset.
 Filters can be generated based on spatial position, say in a sphere
 in the center of your dataset space, or more generally they can be
-defined by the properties of any field in the simulation.  
+defined by the properties of any field in the simulation.
 
 Because `mesh fields` are internally different from `particle fields`,
 there are different ways of filtering each type as indicated below;
@@ -22,11 +22,11 @@ objects) will apply to both types equally.
 Filtering Mesh Fields
 ----------------------
 
-Mesh fields can be filtered by two methods: cut region objects 
-(:class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`) 
+Mesh fields can be filtered by two methods: cut region objects
+(:class:`~yt.data_objects.selection_data_containers.YTCutRegion`)
 and NumPy boolean masks.  Boolean masks are simpler, but they only work
 for examining datasets, whereas cut regions objects create wholly new
-data objects suitable for full analysis (data examination, image generation, 
+data objects suitable for full analysis (data examination, image generation,
 etc.)
 
 Boolean Masks
@@ -40,12 +40,12 @@ array a conditional.  As a general example of this:
     import numpy as np
     a = np.arange(5)
     bigger_than_two = (a > 2)
-    print "Original Array: a = \n%s" % a
-    print "Boolean Mask: bigger_than_two = \n%s" % bigger_than_two
-    print "Masked Array: a[bigger_than_two] = \n%s" % a[bigger_than_two]
+    print("Original Array: a = \n%s" % a)
+    print("Boolean Mask: bigger_than_two = \n%s" % bigger_than_two)
+    print("Masked Array: a[bigger_than_two] = \n%s" % a[bigger_than_two])
 
-Similarly, if you've created a yt data object (e.g. a region, a sphere), you 
-can examine its field values as a NumPy array by simply indexing it with the 
+Similarly, if you've created a yt data object (e.g. a region, a sphere), you
+can examine its field values as a NumPy array by simply indexing it with the
 field name.  Thus, it too can be masked using a NumPy boolean mask.  Let's
 set a simple mask based on the contents of one of our fields.
 
@@ -55,10 +55,10 @@ set a simple mask based on the contents of one of our fields.
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
     hot = ad["temperature"].in_units('K') > 1e6
-    print 'Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"]
-    print "Boolean Mask: hot = \n%s" % hot
-    print 'Temperature of "hot" data: ad["temperature"][hot] = \n%s' % \
-          ad['temperature'][hot]
+    print('Temperature of all data: ad["temperature"] = \n%s' % ad["temperature"])
+    print("Boolean Mask: hot = \n%s" % hot)
+    print('Temperature of "hot" data: ad["temperature"][hot] = \n%s' %
+          ad['temperature'][hot])
 
 This was a simple example, but one can make the conditionals that define
 a boolean mask have multiple parts, and one can stack masks together to
@@ -71,9 +71,9 @@ used if you simply need to access the NumPy arrays:
     ds = yt.load('Enzo_64/DD0042/data0042')
     ad = ds.all_data()
     overpressure_and_fast = (ad["pressure"] > 1e-14) & (ad["velocity_magnitude"].in_units('km/s') > 1e2)
-    print 'Density of all data: ad["density"] = \n%s' % ad['density']
-    print 'Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' % \
-           ad['density'][overpressure_and_fast]
+    print('Density of all data: ad["density"] = \n%s' % ad['density'])
+    print('Density of "overpressure and fast" data: ad["density"][overpressure_and_fast] = \n%s' %
+          ad['density'][overpressure_and_fast])
 
 .. _cut-regions:
 
@@ -94,11 +94,11 @@ cannot operate on both particle fields and mesh fields at the same time.
 Filtering Particle Fields
 -------------------------
 
-Particle filters create new particle fields based on the manipulation and 
+Particle filters create new particle fields based on the manipulation and
 cuts on existing particle fields.  You can apply cuts to them to effectively
 mask out everything except the particles with which you are concerned.
 
-Creating a particle filter takes a few steps.  You must first define a 
+Creating a particle filter takes a few steps.  You must first define a
 function which accepts a data object (e.g. all_data, sphere, etc.)
 as its argument.  It uses the fields and information in this geometric
 object in order to produce some sort of conditional mask that is then returned
@@ -127,7 +127,7 @@ In addition, you may specify a name for the newly defined particle type.  If no
 name is specified, the name for the particle type will be inferred from the name
 of the filter definition --- in this case the inferred name will be ``stars``.
 
-Lastly, the filter must be applied to our dataset of choice.  Note that this 
+Lastly, the filter must be applied to our dataset of choice.  Note that this
 filter can be added to as many datasets as we wish.  It will only actually
 create new filtered fields if the dataset has the required fields, though.
 
@@ -137,13 +137,13 @@ create new filtered fields if the dataset has the required fields, though.
     ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     ds.add_particle_filter('stars')
 
-And that's it!  We can now access all of the ('stars', field) fields from 
+And that's it!  We can now access all of the ('stars', field) fields from
 our dataset ``ds`` and treat them as any other particle field.  In addition,
 it created some ``deposit`` fields, where the particles were deposited on to
 the grid as mesh fields.
 
 As an alternative syntax, you can also define a new particle filter via the
-:func:`~yt.data_objects.particle_filter.add_particle_filter` function.  
+:func:`~yt.data_objects.particle_filter.add_particle_filter` function.
 
 .. code-block:: python
 
@@ -195,16 +195,16 @@ Filtering Fields by Spatial Location: Geometric Objects
 Creating geometric objects for a dataset provides a means for filtering
 a field based on spatial location.  The most commonly used of these are
 spheres, regions (3D prisms), ellipsoids, disks, and rays.  The ``all_data``
-object which gets used throughout this documentation section is an example of 
+object which gets used throughout this documentation section is an example of
 a geometric object, but it defaults to including all the data in the dataset
-volume.  To see all of the geometric objects available, see 
+volume.  To see all of the geometric objects available, see
 :ref:`available-objects`.
 
 Consult the object documentation section for all of the different objects
 one can use, but here is a simple example using a sphere object to filter
-a dataset.  Let's filter out everything not within 10 Mpc of some random 
-location, say [0.2, 0.5, 0.1], in the simulation volume.  The resulting object 
-will only contain grid cells with centers falling inside of our defined sphere, 
+a dataset.  Let's filter out everything not within 10 Mpc of some random
+location, say [0.2, 0.5, 0.1], in the simulation volume.  The resulting object
+will only contain grid cells with centers falling inside of our defined sphere,
 which may look offset based on the presence of different resolution elements
 distributed throughout the dataset.
 

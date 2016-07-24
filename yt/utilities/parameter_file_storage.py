@@ -18,7 +18,7 @@ import os.path
 from itertools import islice
 
 from yt.config import ytcfg
-from yt.funcs import *
+from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_simple_proxy
 
@@ -66,7 +66,7 @@ class ParameterFileStore(object):
         Otherwise, use read-only settings.
 
         """
-        if self._register == False: return
+        if self._register is False: return
         if ytcfg.getboolean("yt", "StoreParameterFiles"):
             self._read_only = False
             self.init_db()

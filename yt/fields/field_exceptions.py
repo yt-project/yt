@@ -13,7 +13,6 @@ Field-related exceptions.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 
 class ValidationException(Exception):
     pass
@@ -46,6 +45,10 @@ class NeedsParameter(ValidationException):
         self.missing_parameters = missing_parameters
     def __str__(self):
         return "(%s)" % (self.missing_parameters)
+
+class NeedsParameterValue(ValidationException):
+    def __init__(self, parameter_values):
+        self.parameter_values = parameter_values
 
 class NeedsConfiguration(ValidationException):
     def __init__(self, parameter, value):

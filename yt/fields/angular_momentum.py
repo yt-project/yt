@@ -15,12 +15,7 @@ native.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import types
 import numpy as np
-import inspect
-import copy
-
-from yt.units.yt_array import YTArray
 
 from .derived_field import \
     ValidateParameter
@@ -29,8 +24,8 @@ from .field_plugin_registry import \
     register_field_plugin
 
 from .vector_operations import \
-     create_magnitude_field
-    
+    create_magnitude_field
+
 from yt.utilities.lib.geometry_utils import \
     obtain_rvec, obtain_rv_vec
 
@@ -42,6 +37,7 @@ def obtain_velocities(data, ftype="gas"):
 
 @register_field_plugin
 def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
+    unit_system = registry.ds.unit_system
     def _specific_angular_momentum_x(field, data):
         xv, yv, zv = obtain_velocities(data, ftype)
         rv = obtain_rvec(data)
@@ -65,26 +61,26 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "specific_angular_momentum_x"),
                         function=_specific_angular_momentum_x,
-                        units="cm**2/s",
+                        units=unit_system["specific_angular_momentum"],
                         validators=[ValidateParameter("center")])
     registry.add_field((ftype, "specific_angular_momentum_y"),
                         function=_specific_angular_momentum_y,
-                        units="cm**2/s",
+                        units=unit_system["specific_angular_momentum"],
                         validators=[ValidateParameter("center")])
     registry.add_field((ftype, "specific_angular_momentum_z"),
                         function=_specific_angular_momentum_z,
-                        units="cm**2/s",
+                        units=unit_system["specific_angular_momentum"],
                         validators=[ValidateParameter("center")])
 
     create_magnitude_field(registry, "specific_angular_momentum",
-                           "cm**2 / s", ftype=ftype)
-    
+                           unit_system["specific_angular_momentum"], ftype=ftype)
+
     def _angular_momentum_x(field, data):
         return data[ftype, "cell_mass"] \
              * data[ftype, "specific_angular_momentum_x"]
     registry.add_field((ftype, "angular_momentum_x"),
                        function=_angular_momentum_x,
-                       units="g * cm**2 / s",
+                       units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center')])
 
     def _angular_momentum_y(field, data):
@@ -92,7 +88,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
              * data[ftype, "specific_angular_momentum_y"]
     registry.add_field((ftype, "angular_momentum_y"),
                        function=_angular_momentum_y,
-                       units="g * cm**2 / s",
+                       units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center')])
 
     def _angular_momentum_z(field, data):
@@ -100,9 +96,8 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
              * data[ftype, "specific_angular_momentum_z"]
     registry.add_field((ftype, "angular_momentum_z"),
                        function=_angular_momentum_z,
-                       units="g * cm**2 / s",
+                       units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center')])
 
     create_magnitude_field(registry, "angular_momentum",
-                           "g * cm**2 / s", ftype=ftype)
-                           
+                           unit_system["angular_momentum"], ftype=ftype)

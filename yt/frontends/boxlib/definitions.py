@@ -12,7 +12,7 @@ Various definitions for various other modules and routines
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from yt.funcs import *
+
 
 # TODO: get rid of enzo parameters we do not need
 parameterDict = {"CosmologyCurrentRedshift": float,

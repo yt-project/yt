@@ -13,16 +13,17 @@ Data structures for Chombo.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import re
 import os
 import weakref
 import numpy as np
 
+from six import string_types
 from stat import \
     ST_CTIME
 
-from yt.funcs import *
+from yt.funcs import mylog
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.extern import six
@@ -30,8 +31,6 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
 from yt.utilities.file_handler import \
     HDF5FileHandler
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -42,6 +41,15 @@ from yt.utilities.lib.misc_utilities import \
 from .fields import ChomboFieldInfo, Orion2FieldInfo, \
     ChomboPICFieldInfo1D, ChomboPICFieldInfo2D, ChomboPICFieldInfo3D, \
     PlutoFieldInfo
+
+
+def is_chombo_hdf5(fn):
+    try:
+        with h5py.File(fn, 'r') as fileh:
+            valid = "Chombo_global" in fileh["/"]
+    except (KeyError, IOError, ImportError):
+        return False
+    return valid
 
 
 class ChomboGrid(AMRGridPatch):
@@ -108,9 +116,10 @@ class ChomboHierarchy(GridIndex):
         self.directory = ds.fullpath
         self._handle = ds._handle
 
-        tr = self._handle['Chombo_global'].attrs.get("testReal", "float32")
+        self._levels = [
+            key for key in self._handle.keys() if key.startswith('level')
+        ]
 
-        self._levels = [key for key in self._handle.keys() if key.startswith('level')]
         GridIndex.__init__(self, ds, dataset_type)
 
         self._read_particles()
@@ -246,7 +255,7 @@ class ChomboDataset(Dataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
@@ -255,7 +264,8 @@ class ChomboDataset(Dataset):
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         Dataset.__init__(self, filename, self.dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -271,7 +281,7 @@ class ChomboDataset(Dataset):
         self.length_unit = self.quan(1.0, "cm")
         self.mass_unit = self.quan(1.0, "g")
         self.time_unit = self.quan(1.0, "s")
-        self.magnetic_unit = self.quan(1.0, "gauss")
+        self.magnetic_unit = self.quan(np.sqrt(4.*np.pi), "gauss")
         self.velocity_unit = self.length_unit / self.time_unit
 
     def _localize(self, f, default):
@@ -349,6 +359,9 @@ class ChomboDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
@@ -446,11 +459,12 @@ class PlutoDataset(ChomboDataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
 
         ChomboDataset.__init__(self, filename, dataset_type, 
                                storage_filename, ini_filename,
-                               units_override=units_override)
+                               units_override=units_override,
+                               unit_system=unit_system)
 
     def _parse_parameter_file(self):
         """
@@ -472,11 +486,11 @@ class PlutoDataset(ChomboDataset):
 
         if pluto_ini_file_exists:
             lines=[line.strip() for line in open(pluto_ini_filename)]
-            self.domain_left_edge = np.zeros(self.dimensionality)
-            self.domain_right_edge = np.zeros(self.dimensionality)
+            domain_left_edge = np.zeros(self.dimensionality)
+            domain_right_edge = np.zeros(self.dimensionality)
             for il,ll in enumerate(lines[lines.index('[Grid]')+2:lines.index('[Grid]')+2+self.dimensionality]):
-                self.domain_left_edge[il] = float(ll.split()[2])
-                self.domain_right_edge[il] = float(ll.split()[-1])
+                domain_left_edge[il] = float(ll.split()[2])
+                domain_right_edge[il] = float(ll.split()[-1])
             self.periodicity = [0]*3
             for il,ll in enumerate(lines[lines.index('[Boundary]')+2:lines.index('[Boundary]')+2+6:2]):
                 self.periodicity[il] = (ll.split()[1] == 'periodic')
@@ -484,6 +498,8 @@ class PlutoDataset(ChomboDataset):
             for il,ll in enumerate(lines[lines.index('[Parameters]')+2:]):
                 if (ll.split()[0] == 'GAMMA'):
                     self.gamma = float(ll.split()[1])
+            self.domain_left_edge = domain_left_edge
+            self.domain_right_edge = domain_right_edge
         else:
             self.domain_left_edge = self._calc_left_edge()
             self.domain_right_edge = self._calc_right_edge()
@@ -504,6 +520,9 @@ class PlutoDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
 
@@ -647,10 +666,13 @@ class Orion2Dataset(ChomboDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
+        if not is_chombo_hdf5(args[0]):
+            return False
+
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if type(args[0]) == type(""):
+        if isinstance(args[0], string_types):
             dir_name = os.path.dirname(os.path.abspath(args[0]))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
@@ -700,6 +722,9 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False

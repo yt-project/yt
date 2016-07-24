@@ -14,32 +14,24 @@ HOP-output data handling
 #-----------------------------------------------------------------------------
 
 import gc
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import math
 import numpy as np
-import random
-import sys
-import glob
-import os
 import os.path as path
 from functools import cmp_to_key
-from collections import defaultdict
 from yt.extern.six import add_metaclass
 from yt.extern.six.moves import zip as izip
 
 from yt.config import ytcfg
 from yt.funcs import mylog, ensure_dir_exists
-from yt.utilities.performance_counters import \
-    time_function, \
-    yt_counters
 from yt.utilities.math_utils import \
     get_rotation_matrix, \
     periodic_dist
 from yt.utilities.physical_constants import \
-    mass_sun_cgs, \
-    TINY
+    mass_sun_cgs
 from yt.utilities.physical_ratios import \
-     rho_crit_g_cm3_h2
+    rho_crit_g_cm3_h2, \
+    TINY
 
 from .hop.EnzoHop import RunHOP
 from .fof.EnzoFOF import RunFOF
@@ -65,7 +57,10 @@ class Halo(object):
 
     def __init__(self, halo_list, id, indices=None, size=None, CoM=None,
         max_dens_point=None, group_total_mass=None, max_radius=None,
-        bulk_vel=None, tasks=None, rms_vel=None, supp=None):
+        bulk_vel=None, tasks=None, rms_vel=None, supp=None, ptype=None):
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
         self.halo_list = halo_list
         self._max_dens = halo_list._max_dens
         self.id = id
@@ -282,10 +277,7 @@ class Halo(object):
         return r.max()
 
     def __getitem__(self, key):
-        if ytcfg.getboolean("yt", "inline") == False:
-            return self.data[key][self.indices]
-        else:
-            return self.data[key][self.indices]
+        return self.data[(self.ptype, key)][self.indices]
 
     def get_sphere(self, center_of_mass=True):
         r"""Returns a sphere source.
@@ -305,7 +297,7 @@ class Halo(object):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
@@ -339,8 +331,6 @@ class Halo(object):
         if ('io','creation_time') in self.data.ds.field_list:
             handle.create_dataset("/%s/creation_time" % gn,
                 data=self['creation_time'])
-        n = handle["/%s" % gn]
-        # set attributes on n
         self._processing = False
 
     def virial_mass(self, virial_overdensity=200., bins=300):
@@ -419,7 +409,7 @@ class Halo(object):
         """
         self.virial_info(bins=bins)
         over = (self.overdensity > virial_overdensity)
-        if (over == True).any():
+        if over.any():
             vir_bin = max(np.arange(bins + 1)[over])
             return vir_bin
         else:
@@ -567,126 +557,6 @@ class Halo(object):
         tilt = np.arctan(-r2[2] / r2[1])
         return (mag_A, mag_B, mag_C, e0_vector[0], e0_vector[1],
             e0_vector[2], tilt)
-
-class RockstarHalo(Halo):
-    _name = "RockstarHalo"
-    # See particle_mask
-    _radjust = 4.
-
-    def maximum_density(self):
-        r"""Not implemented."""
-        return -1
-
-    def maximum_density_location(self):
-        r"""Not implemented."""
-        return self.center_of_mass()
-
-    def write_particle_list(self,handle):
-        r"""Not implemented."""
-        return -1
-
-    def virial_mass(self):
-        r"""Virial mass in Msun/h"""
-        return self.supp['m']
-
-    def virial_radius(self):
-        r"""Virial radius in Mpc/h comoving"""
-        return self.supp['r']
-
-    def __getitem__(self, key):
-        # This function will try to get particle data in one of three ways,
-        # in descending preference.
-        # 1. From saved_fields, e.g. we've already got it.
-        # 2. From the halo binary files off disk.
-        # 3. Use the unique particle indexes of the halo to select a missing
-        # field from a Sphere.
-        if key in self._saved_fields:
-            # We've already got it.
-            return self._saved_fields[key]
-        # Gotta go get it from the Rockstar binary file.
-        if key == 'particle_index':
-            IDs = self._get_particle_data(self.supp['id'],
-                self.halo_list.halo_to_fname, self.size, key)
-            IDs = IDs[IDs.argsort()]
-            self._saved_fields[key] = IDs
-            return self._saved_fields[key]
-        # We won't store this field below in saved_fields because
-        # that would mean keeping two copies of it, one in the yt
-        # machinery and one here.
-        ds = self.ds.sphere(self.CoM, 4 * self.max_radius)
-        return np.take(ds[key][self._ds_sort], self.particle_mask)
-
-    def _get_particle_data(self, halo, fnames, size, field):
-        # Given a list of file names, a halo, its size, and the desired field,
-        # this returns the particle indices for that halo.
-        file = fnames[halo]
-        mylog.info("Getting %d particles from Rockstar binary file %s.", self.supp['num_p'], file)
-        fp = open(file, 'rb')
-        # We need to skip past the header and all the halos.
-        fp.seek(self.halo_list._header_dt.itemsize + \
-            self.halo_list.fname_halos[file] * \
-            self.halo_list._halo_dt.itemsize, os.SEEK_CUR)
-        # Now we skip ahead to where this halos particles begin.
-        fp.seek(self.supp['p_start'] * 8, os.SEEK_CUR)
-        # And finally, read in the ids.
-        IDs = np.fromfile(fp, dtype=np.int64, count=self.supp['num_p'])
-        fp.close()
-        return IDs
-
-    def get_ellipsoid_parameters(self):
-        r"""Calculate the parameters that describe the ellipsoid of
-        the particles that constitute the halo.
-
-        Parameters
-        ----------
-        None
-
-        Returns
-        -------
-        tuple : (cm, mag_A, mag_B, mag_C, e0_vector, tilt)
-            The 6-tuple has in order:
-              #. The center of mass as an array.
-              #. mag_A as a float.
-              #. mag_B as a float.
-              #. mag_C as a float.
-              #. e0_vector as an array.
-              #. tilt as a float.
-
-        Examples
-        --------
-        >>> params = halos[0].get_ellipsoid_parameters()
-        """
-        basic_parameters = self._get_ellipsoid_parameters_basic()
-        toreturn = [self.center_of_mass()]
-        updated = [basic_parameters[0], basic_parameters[1],
-            basic_parameters[2], np.array([basic_parameters[3],
-            basic_parameters[4], basic_parameters[5]]), basic_parameters[6]]
-        toreturn.extend(updated)
-        return tuple(toreturn)
-
-    def get_ellipsoid(self):
-        r"""Returns an ellipsoidal data object.
-
-        This will generate a new, empty ellipsoidal data object for this
-        halo.
-
-        Parameters
-        ----------
-        None.
-
-        Returns
-        -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
-            The ellipsoidal data object.
-
-        Examples
-        --------
-        >>> ell = halos[0].get_ellipsoid()
-        """
-        ep = self.get_ellipsoid_parameters()
-        ell = self.data.ds.ellipsoid(ep[0], ep[1], ep[2], ep[3],
-            ep[4], ep[5])
-        return ell
 
 class HOPHalo(Halo):
     _name = "HOPHalo"
@@ -869,7 +739,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        ellipsoid : `yt.data_objects.data_containers.YTEllipsoidBase`
+        ellipsoid : `yt.data_objects.data_containers.YTEllipsoid`
             The ellipsoidal data object.
 
         Examples
@@ -898,7 +768,7 @@ class LoadedHalo(Halo):
 
         Returns
         -------
-        sphere : `yt.data_objects.api.YTSphereBase`
+        sphere : `yt.data_objects.api.YTSphere`
             The empty data source.
 
         Examples
@@ -962,7 +832,8 @@ class HaloList(object):
 
     _fields = ["particle_position_%s" % ax for ax in 'xyz']
 
-    def __init__(self, data_source, dm_only=True, redshift=-1):
+    def __init__(self, data_source, dm_only=True, redshift=-1,
+                 ptype=None):
         """
         Run hop on *data_source* with a given density *threshold*.  If
         *dm_only* is True (default), only run it on the dark matter particles,
@@ -971,6 +842,9 @@ class HaloList(object):
         """
         self._data_source = data_source
         self.dm_only = dm_only
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
         self._groups = []
         self._max_dens = {}
         self.__obtain_particles()
@@ -987,14 +861,14 @@ class HaloList(object):
             ii = slice(None)
         self.particle_fields = {}
         for field in self._fields:
-            tot_part = self._data_source[field].size
+            tot_part = self._data_source[(self.ptype, field)].size
             if field == "particle_index":
                 self.particle_fields[field] = \
-                    self._data_source[field][ii].astype('int64')
+                    self._data_source[(self.ptype, field)][ii].astype('int64')
             else:
                 self.particle_fields[field] = \
-                    self._data_source[field][ii].astype('float64')
-            del self._data_source[field]
+                    self._data_source[(self.ptype, field)][ii].astype('float64')
+            del self._data_source[(self.ptype, field)]
         self._base_indices = np.arange(tot_part)[ii]
         gc.collect()
 
@@ -1022,11 +896,12 @@ class HaloList(object):
                 cp += counts[i + 1]
                 continue
             group_indices = grab_indices[cp:cp_c]
-            self._groups.append(self._halo_class(self, i, group_indices))
+            self._groups.append(self._halo_class(self, i, group_indices,
+                                                 ptype=self.ptype))
             md_i = np.argmax(dens[cp:cp_c])
             px, py, pz = \
                 [self.particle_fields['particle_position_%s' % ax][group_indices]
-                                            for ax in 'xyz']
+                 for ax in 'xyz']
             self._max_dens[i] = (dens[cp:cp_c][md_i], px[md_i],
                 py[md_i], pz[md_i])
             cp += counts[i + 1]
@@ -1129,135 +1004,6 @@ class HaloList(object):
             f.flush()
         f.close()
 
-class RockstarHaloList(HaloList):
-    _name = "Rockstar"
-    _halo_class = RockstarHalo
-    # see io_internal.h in Rockstar.
-    BINARY_HEADER_SIZE=256
-    _header_dt = np.dtype([('magic', np.uint64), ('snap', np.int64),
-        ('chunk', np.int64), ('scale', np.float32), ('Om', np.float32),
-        ('Ol', np.float32), ('h0', np.float32),
-        ('bounds', (np.float32, 6)), ('num_halos', np.int64),
-        ('num_particles', np.int64), ('box_size', np.float32),
-        ('particle_mass', np.float32), ('particle_type', np.int64),
-        ('unused', (np.byte, BINARY_HEADER_SIZE - 4*12 - 8*6))])
-    # see halo.h.
-    _halo_dt = np.dtype([('id', np.int64), ('pos', (np.float32, 6)),
-        ('corevel', (np.float32, 3)), ('bulkvel', (np.float32, 3)),
-        ('m', np.float32), ('r', np.float32), ('child_r', np.float32),
-        ('vmax_r', np.float32),
-        ('mgrav', np.float32), ('vmax', np.float32),
-        ('rvmax', np.float32), ('rs', np.float32),
-        ('klypin_rs', np.float32),
-        ('vrms', np.float32), ('J', (np.float32, 3)),
-        ('energy', np.float32), ('spin', np.float32),
-        ('alt_m', (np.float32, 4)), ('Xoff', np.float32),
-        ('Voff', np.float32), ('b_to_a', np.float32),
-        ('c_to_a', np.float32), ('A', (np.float32, 3)),
-        ('bullock_spin', np.float32), ('kin_to_pot', np.float32),
-        ('num_p', np.int64),
-        ('num_child_particles', np.int64), ('p_start', np.int64),
-        ('desc', np.int64), ('flags', np.int64), ('n_core', np.int64),
-        ('min_pos_err', np.float32), ('min_vel_err', np.float32),
-        ('min_bulkvel_err', np.float32), ('padding2', np.float32),])
-    # Above, padding* are due to c byte ordering which pads between
-    # 4 and 8 byte values in the struct as to not overlap memory registers.
-    _tocleanup = ['padding2']
-
-    def __init__(self, ds, out_list):
-        ParallelAnalysisInterface.__init__(self)
-        mylog.info("Initializing Rockstar List")
-        self._data_source = None
-        self._groups = []
-        self._max_dens = -1
-        self.ds = ds
-        self.redshift = ds.current_redshift
-        self.out_list = out_list
-        self._data_source = ds.all_data()
-        mylog.info("Parsing Rockstar halo list")
-        self._parse_output()
-        mylog.info("Finished %s"%out_list)
-
-    def _run_finder(self):
-        pass
-
-    def __obtain_particles(self):
-        pass
-
-    def _get_dm_indices(self):
-        pass
-
-    def _get_halos_binary(self, files):
-        """
-        Parse the binary files to get information about halos in higher
-        precision than the text file.
-        """
-        halos = None
-        self.halo_to_fname = {}
-        self.fname_halos = {}
-        for file in files:
-            fp = open(file, 'rb')
-            # read the header
-            header = np.fromfile(fp, dtype=self._header_dt, count=1)
-            # read the halo information
-            new_halos = np.fromfile(fp, dtype=self._halo_dt,
-                count=header['num_halos'])
-            # Record which binary file holds these halos.
-            for halo in new_halos['id']:
-                self.halo_to_fname[halo] = file
-            # Record how many halos are stored in each binary file.
-            self.fname_halos[file] = header['num_halos']
-            # Add to existing.
-            if halos is not None:
-                halos = np.concatenate((new_halos, halos))
-            else:
-                halos = new_halos.copy()
-            fp.close()
-        # Sort them by mass.
-        halos.sort(order='m')
-        halos = np.flipud(halos)
-        return halos
-
-    def _parse_output(self):
-        """
-        Read the out_*.list text file produced
-        by Rockstar into memory."""
-
-        ds = self.ds
-        # In order to read the binary data, we need to figure out which
-        # binary files belong to this output.
-        basedir = os.path.dirname(self.out_list)
-        s = self.out_list.split('_')[-1]
-        s = s.rstrip('.list')
-        n = int(s)
-        fglob = path.join(basedir, 'halos_%d.*.bin' % n)
-        files = glob.glob(fglob)
-        halos = self._get_halos_binary(files)
-        Jc = 1.0
-        length = 1.0 / ds['Mpchcm']
-        conv = dict(pos = np.array([length, length, length,
-                                    1, 1, 1]), # to unitary
-                    r=1.0/ds['kpchcm'], # to unitary
-                    rs=1.0/ds['kpchcm'], # to unitary
-                    )
-        #convert units
-        for name in self._halo_dt.names:
-            halos[name]=halos[name]*conv.get(name,1)
-        # Store the halos in the halo list.
-        for i, row in enumerate(halos):
-            supp = {name:row[name] for name in self._halo_dt.names}
-            # Delete the padding columns. 'supp' below will contain
-            # repeated information, but that's OK.
-            for item in self._tocleanup: del supp[item]
-            halo = RockstarHalo(self, i, size=row['num_p'],
-                CoM=row['pos'][0:3], group_total_mass=row['m'],
-                max_radius=row['r'], bulk_vel=row['bulkvel'],
-                rms_vel=row['vrms'], supp=supp)
-            self._groups.append(halo)
-
-    def write_particle_list(self):
-        pass
-
 class HOPHaloList(HaloList):
     """
     Run hop on *data_source* with a given density *threshold*.  If
@@ -1269,10 +1015,11 @@ class HOPHaloList(HaloList):
     _fields = ["particle_position_%s" % ax for ax in 'xyz'] + \
               ["particle_mass"]
 
-    def __init__(self, data_source, threshold=160.0, dm_only=True):
+    def __init__(self, data_source, threshold=160.0, dm_only=True,
+                 ptype=None):
         self.threshold = threshold
         mylog.info("Initializing HOP")
-        HaloList.__init__(self, data_source, dm_only)
+        HaloList.__init__(self, data_source, dm_only, ptype=ptype)
 
     def _run_finder(self):
         self.densities, self.tags = \
@@ -1307,10 +1054,12 @@ class FOFHaloList(HaloList):
     _name = "FOF"
     _halo_class = FOFHalo
 
-    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1):
+    def __init__(self, data_source, link=0.2, dm_only=True, redshift=-1,
+                 ptype=None):
         self.link = link
         mylog.info("Initializing FOF")
-        HaloList.__init__(self, data_source, dm_only, redshift=redshift)
+        HaloList.__init__(self, data_source, dm_only, redshift=redshift,
+                          ptype=ptype)
 
     def _run_finder(self):
         self.tags = \
@@ -1459,12 +1208,15 @@ class TextHaloList(HaloList):
             halo += 1
 
 class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
-    def __init__(self, ds, data_source, dm_only=True, padding=0.0):
+    def __init__(self, ds, data_source, padding=0.0, ptype=None):
         ParallelAnalysisInterface.__init__(self)
         self.ds = ds
         self.index = ds.index
         self.center = (np.array(data_source.right_edge) +
                        np.array(data_source.left_edge)) / 2.0
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
 
     def _parse_halolist(self, threshold_adjustment):
         groups = []
@@ -1483,7 +1235,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
                     threshold_adjustment
                 max_dens[hi] = [max_dens_temp] + \
                     list(self._max_dens[halo.id])[1:4]
-                groups.append(self._halo_class(self, hi))
+                groups.append(self._halo_class(self, hi, ptype=self.ptype))
                 groups[-1].indices = halo.indices
                 self.comm.claim_object(groups[-1])
                 hi += 1
@@ -1514,9 +1266,11 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         # Note: we already know which halos we own!
         after = my_first_id + len(self._groups)
         # One single fake halo, not owned, does the trick
-        self._groups = [self._halo_class(self, i) for i in range(my_first_id)] + \
+        self._groups = [self._halo_class(self, i, ptype=self.ptype)
+                        for i in range(my_first_id)] + \
                        self._groups + \
-                       [self._halo_class(self, i) for i in range(after, nhalos)]
+                       [self._halo_class(self, i, ptype=self.ptype)
+                        for i in range(after, nhalos)]
         id = 0
         for proc in sorted(halo_info.keys()):
             for halo in self._groups[id:id + halo_info[proc]]:
@@ -1549,7 +1303,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         LE, RE = bounds
         dw = self.ds.domain_right_edge - self.ds.domain_left_edge
         for i, ax in enumerate('xyz'):
-            arr = self._data_source["particle_position_%s" % ax]
+            arr = self._data_source[self.ptype, "particle_position_%s" % ax]
             arr[arr < LE[i] - self.padding] += dw[i]
             arr[arr > RE[i] + self.padding] -= dw[i]
 
@@ -1680,9 +1434,15 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         to the full volume automatically.
     threshold : float
         The density threshold used when building halos. Default = 160.0.
-    dm_only : bool
+    dm_only : bool (deprecated)
         If True, only dark matter particles are used when building halos.
+        This has been deprecated.  Instead, the ptype keyword should be
+        used to specify a particle type.
         Default = True.
+    ptype : string
+        When dm_only is set to False, this sets the type of particle to be
+        used for halo finding, with a default of "all".  This should not be
+        used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
@@ -1706,14 +1466,14 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
     >>> halos = HaloFinder(ds)
     """
     def __init__(self, ds, subvolume=None, threshold=160, dm_only=True,
-            padding=0.02, total_mass=None):
+                 ptype=None, padding=0.02, total_mass=None):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
         self.period = ds.domain_right_edge - ds.domain_left_edge
         self._data_source = ds.all_data()
-        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
-            padding)
+        GenericHaloFinder.__init__(self, ds, self._data_source, padding,
+                                   ptype=ptype)
         # do it once with no padding so the total_mass is correct
         # (no duplicated particles), and on the entire volume, even if only
         # a small part is actually going to be used.
@@ -1721,6 +1481,21 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
                 padding=self.padding)
+
+        if dm_only:
+            mylog.warn("dm_only is deprecated.  " +
+                       "Use ptype to specify a particle type, instead.")
+
+        # Don't allow dm_only=True and setting a ptype.
+        if dm_only and ptype is not None:
+            raise RuntimeError(
+                "If dm_only is True, ptype must be None.  " + \
+                "dm_only must be False if ptype is set.")
+
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
+
         # For scaling the threshold, note that it's a passthrough
         if total_mass is None:
             if dm_only:
@@ -1728,7 +1503,9 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
                 total_mass = \
                     self.comm.mpi_allreduce((self._data_source['all', "particle_mass"][select].in_units('Msun')).sum(dtype='float64'), op='sum')
             else:
-                total_mass = self.comm.mpi_allreduce(self._data_source.quantities["TotalQuantity"]("particle_mass").in_units('Msun'), op='sum')
+                total_mass = self.comm.mpi_allreduce(
+                    self._data_source.quantities.total_quantity(
+                        (self.ptype, "particle_mass")).in_units('Msun'), op='sum')
         # MJT: Note that instead of this, if we are assuming that the particles
         # are all on different processors, we should instead construct an
         # object representing the entire domain and sum it "lazily" with
@@ -1752,9 +1529,10 @@ class HOPHaloFinder(GenericHaloFinder, HOPHaloList):
             sub_mass = self._data_source["particle_mass"][select].in_units('Msun').sum(dtype='float64')
         else:
             sub_mass = \
-                self._data_source.quantities["TotalQuantity"]("particle_mass").in_units('Msun')
+                self._data_source.quantities.total_quantity(
+                    (self.ptype, "particle_mass")).in_units('Msun')
         HOPHaloList.__init__(self, self._data_source,
-            threshold * total_mass / sub_mass, dm_only)
+            threshold * total_mass / sub_mass, dm_only, ptype=self.ptype)
         self._parse_halolist(total_mass / sub_mass)
         self._join_halolists()
 
@@ -1785,9 +1563,15 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         average) used to build the halos. If negative, this is taken to be
         the *actual* linking length, and no other calculations will be
         applied.  Default = 0.2.
-    dm_only : bool
+    dm_only : bool (deprecated)
         If True, only dark matter particles are used when building halos.
+        This has been deprecated.  Instead, the ptype keyword should be
+        used to specify a particle type.
         Default = True.
+    ptype : string
+        When dm_only is set to False, this sets the type of particle to be
+        used for halo finding, with a default of "all".  This should not be
+        used when dm_only is set to True.
     padding : float
         When run in parallel, the finder needs to surround each subvolume
         with duplicated particles for halo finidng to work. This number
@@ -1800,7 +1584,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
     >>> halos = FOFHaloFinder(ds)
     """
     def __init__(self, ds, subvolume=None, link=0.2, dm_only=True,
-        padding=0.02):
+                 ptype=None, padding=0.02):
         if subvolume is not None:
             ds_LE = np.array(subvolume.left_edge)
             ds_RE = np.array(subvolume.right_edge)
@@ -1809,13 +1593,27 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         self.index = ds.index
         self.redshift = ds.current_redshift
         self._data_source = ds.all_data()
-        GenericHaloFinder.__init__(self, ds, self._data_source, dm_only,
-                                   padding)
+        GenericHaloFinder.__init__(self, ds, self._data_source, padding)
         self.padding = 0.0  # * ds["unitary"] # This should be clevererer
         # get the total number of particles across all procs, with no padding
         padded, LE, RE, self._data_source = \
             self.partition_index_3d(ds=self._data_source,
             padding=self.padding)
+
+        if dm_only:
+            mylog.warn("dm_only is deprecated.  " +
+                       "Use ptype to specify a particle type, instead.")
+
+        # Don't allow dm_only=True and setting a ptype.
+        if dm_only and ptype is not None:
+            raise RuntimeError(
+                "If dm_only is True, ptype must be None.  " + \
+                "dm_only must be False if ptype is set.")
+
+        if ptype is None:
+            ptype = "all"
+        self.ptype = ptype
+
         if link > 0.0:
             n_parts = self.comm.mpi_allreduce(self._data_source["particle_position_x"].size, op='sum')
             # get the average spacing between particles
@@ -1843,7 +1641,7 @@ class FOFHaloFinder(GenericHaloFinder, FOFHaloList):
         # here is where the FOF halo finder is run
         mylog.info("Using a linking length of %0.3e", linking_length)
         FOFHaloList.__init__(self, self._data_source, linking_length, dm_only,
-                             redshift=self.redshift)
+                             redshift=self.redshift, ptype=self.ptype)
         self._parse_halolist(1.)
         self._join_halolists()
 
@@ -1913,22 +1711,3 @@ class LoadTextHaloes(GenericHaloFinder, TextHaloList):
         TextHaloList.__init__(self, ds, filename, columns, comment)
 
 LoadTextHalos = LoadTextHaloes
-
-class LoadRockstarHalos(GenericHaloFinder, RockstarHaloList):
-    r"""Load Rockstar halos off disk from Rockstar-output format.
-
-    Parameters
-    ----------
-    fname : String
-        The name of the Rockstar file to read in. Default =
-        "rockstar_halos/out_0.list'.
-
-    Examples
-    --------
-    >>> ds = load("data0005")
-    >>> halos = LoadRockstarHalos(ds, "other_name.out")
-    """
-    def __init__(self, ds, filename = None):
-        if filename is None:
-            filename = 'rockstar_halos/out_0.list'
-        RockstarHaloList.__init__(self, ds, filename)

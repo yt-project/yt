@@ -14,7 +14,9 @@ Test cosmology calculator.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.testing import *
+import numpy as np
+
+from yt.testing import assert_rel_equal
 from yt.utilities.cosmology import \
      Cosmology
 

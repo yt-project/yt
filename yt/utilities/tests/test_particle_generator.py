@@ -1,7 +1,11 @@
 import numpy as np
-from yt.mods import *
-from yt.testing import *
-from yt.utilities.particle_generator import *
+from yt.testing import \
+    assert_almost_equal, \
+    assert_equal
+from yt.utilities.particle_generator import \
+    WithDensityParticleGenerator, \
+    LatticeParticleGenerator, \
+    FromListParticleGenerator
 from yt.frontends.stream.api import load_uniform_grid, refine_amr
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm

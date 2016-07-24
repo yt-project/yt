@@ -15,26 +15,20 @@ Data structures for OWLSSubfind frontend.
 #-----------------------------------------------------------------------------
 
 from collections import defaultdict
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
-import weakref
-import struct
 import glob
-import time
 import os
 
 from .fields import \
     OWLSSubfindFieldInfo
 
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
+from yt.funcs import only_on_root
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
-     mylog
+    mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -42,10 +36,6 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
-import yt.utilities.fortran_utils as fpu
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
 
 class OWLSSubfindParticleIndex(ParticleIndex):
     def __init__(self, ds, dataset_type):
@@ -116,11 +106,13 @@ class OWLSSubfindDataset(Dataset):
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="subfind_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None):
+                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(OWLSSubfindDataset, self).__init__(filename, dataset_type,
-                                                 units_override=units_override)
+                                                 units_override=units_override,
+                                                 unit_system=unit_system)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -135,7 +127,7 @@ class OWLSSubfindDataset(Dataset):
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
-        self.current_time = self.quan(hvals["Time_GYR"] * sec_conversion["Gyr"], "s")
+        self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
         nz = 1 << self.over_refine_factor
@@ -168,7 +160,7 @@ class OWLSSubfindDataset(Dataset):
     def _set_code_unit_attributes(self):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
-            mylog.info("Assuming length units are in Mpc/h (comoving)")
+            only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
             self._unit_base = dict(length = (1.0, "Mpccm/h"))
         # The other same defaults we will use from the standard Gadget
         # defaults.

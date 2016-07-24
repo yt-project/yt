@@ -16,11 +16,10 @@ Oct definitions file
 
 cimport cython
 cimport numpy as np
-from fp_utils cimport *
+from yt.utilities.lib.fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
-from .oct_visitors cimport \
-    OctVisitorData, oct_visitor_function, Oct, cind
+from .oct_visitors cimport OctVisitor, Oct, cind
 from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
 
@@ -59,7 +58,6 @@ cdef class OctreeContainer:
     cdef OctAllocationContainer *cont
     cdef OctAllocationContainer **domains
     cdef Oct ****root_mesh
-    cdef oct_visitor_function *fill_func
     cdef int partial_coverage
     cdef int level_offset
     cdef int nn[3]
@@ -79,13 +77,14 @@ cdef class OctreeContainer:
     cdef np.int64_t get_domain_offset(self, int domain_id)
     cdef void visit_all_octs(self,
                         selection_routines.SelectorObject selector,
-                        oct_visitor_function *func,
-                        OctVisitorData *data,
+                        OctVisitor visitor,
                         int vc = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
-    cdef void setup_data(self, OctVisitorData *data, int domain_id = ?)
     cdef void append_domain(self, np.int64_t domain_count)
+    # The fill_style is the ordering, C or F, of the octs in the file.  "o"
+    # corresponds to C, and "r" is for Fortran.
+    cdef public object fill_style
 
 cdef class SparseOctreeContainer(OctreeContainer):
     cdef OctKey *root_nodes
@@ -98,7 +97,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass
 
-cdef extern from "search.h" nogil:
+cdef extern from "tsearch.h" nogil:
     void *tsearch(const void *key, void **rootp,
                     int (*compar)(const void *, const void *))
     void *tfind(const void *key, const void **rootp,

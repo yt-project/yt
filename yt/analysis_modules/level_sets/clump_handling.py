@@ -19,7 +19,7 @@ import uuid
 
 from yt.fields.derived_field import \
     ValidateSpatial
-from yt.funcs import mylog
+from yt.funcs import mylog, iterable
 from yt.extern.six import string_types
 
 from .clump_info_items import \
@@ -56,6 +56,9 @@ class Clump(object):
         self.quantities = data.quantities
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
+
+        if parent is not None:
+            self.data.parent = self.parent.data
 
         # List containing characteristics about clumps that are to be written 
         # out by the write routines.

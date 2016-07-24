@@ -31,7 +31,8 @@ from yt.data_objects.static_output import \
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.physical_constants import \
-    G, \
+    G
+from yt.utilities.physical_ratios import \
     cm_per_kpc
 
 from .fields import \
@@ -74,7 +75,8 @@ class TipsyDataset(ParticleDataset):
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
                  bounding_box=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         # Because Tipsy outputs don't have a fixed domain boundary, one can
         # specify a bounding box which effectively gives a domain_left_edge
         # and domain_right_edge
@@ -89,7 +91,6 @@ class TipsyDataset(ParticleDataset):
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
             print("%s != (%s == %s + %s + %s)" % (
                 self.parameters['nbodies'],
-                tot,
                 self.parameters['nsph'],
                 self.parameters['ndark'],
                 self.parameters['nstar']))
@@ -112,7 +113,8 @@ class TipsyDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
-        super(TipsyDataset, self).__init__(filename, dataset_type)
+        super(TipsyDataset, self).__init__(filename, dataset_type,
+                                           unit_system=unit_system)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
@@ -223,8 +225,8 @@ class TipsyDataset(ParticleDataset):
         if self.bounding_box is None and (
                 self.domain_left_edge is None or
                 self.domain_right_edge is None):
-            self.domain_left_edge = np.nan
-            self.domain_right_edge = np.nan
+            self.domain_left_edge = np.array([np.nan, np.nan, np.nan])
+            self.domain_right_edge = np.array([np.nan, np.nan, np.nan])
             self.index
         super(TipsyDataset, self)._set_derived_attrs()
 

@@ -14,31 +14,23 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import string, re, gc, time
-from yt.extern.six.moves import cPickle
-from yt.extern.six.moves import zip as izip
 import weakref
 
-from itertools import chain
+from collections import defaultdict
 
-from yt.funcs import *
-from yt.utilities.logger import ytLogger as mylog
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
-from yt.fields.field_info_container import NullFunc
+from yt.funcs import \
+    ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
 from yt.utilities.definitions import MAXLEVEL
-from yt.utilities.physical_constants import sec_per_year
-from yt.utilities.io_handler import io_registry
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
+from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
     GridTree, MatchPointsToGrids
 
-from yt.data_objects.data_containers import data_object_registry
 
 class GridIndex(Index):
     """The index class for patch and block AMR datasets. """
@@ -127,6 +119,9 @@ class GridIndex(Index):
         """
         return self.select_grids(self.grid_levels.max())[0].dds[:].min()
 
+    def _get_particle_type_counts(self):
+        return {self.ds.particle_types_raw[0]: self.grid_particle_count.sum()}
+
     def _initialize_level_stats(self):
         # Now some statistics:
         #   0 = number of grids
@@ -201,7 +196,6 @@ class GridIndex(Index):
              self.ds.current_time.in_units("s"),
              self.ds.current_time.in_units("yr")))
         print("\nSmallest Cell:")
-        u=[]
         for item in ("Mpc", "pc", "AU", "cm"):
             print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
 
@@ -330,9 +324,9 @@ class GridIndex(Index):
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         if sort in ("+level", "level"):
-            giter = sorted(gobjs, key = g.Level)
+            giter = sorted(gobjs, key=lambda g: g.Level)
         elif sort == "-level":
-            giter = sorted(gobjs, key = -g.Level)
+            giter = sorted(gobjs, key=lambda g: -g.Level)
         elif sort is None:
             giter = gobjs
         if preload_fields is None: preload_fields = []

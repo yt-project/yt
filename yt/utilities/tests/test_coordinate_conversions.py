@@ -1,4 +1,6 @@
-from yt.testing import *
+import numpy as np
+
+from yt.testing import assert_array_almost_equal
 from yt.utilities.math_utils import \
     get_sph_r_component, \
     get_sph_theta_component, \

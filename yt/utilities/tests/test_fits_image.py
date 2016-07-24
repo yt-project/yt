@@ -15,7 +15,6 @@ Unit test FITS image creation in yt.
 
 import tempfile
 import os
-import numpy as np
 import shutil
 from yt.testing import fake_random_ds, requires_module
 from yt.convenience import load
@@ -26,7 +25,7 @@ from yt.utilities.fits_image import \
     FITSSlice, FITSOffAxisSlice, \
     FITSOffAxisProjection, \
     assert_same_wcs
-from yt.visualization.volume_rendering.camera import \
+from yt.visualization.volume_rendering.off_axis_projection import \
     off_axis_projection
 
 
@@ -82,8 +81,8 @@ def test_fits_image():
     temp_img = fid2.pop("temperature")
 
     # This already has some assertions in it, so we don't need to do anything
-    # with it other can just make one
-    fid_comb = FITSImageData.from_images([dens_img, temp_img])
+    # with it other than just make one
+    FITSImageData.from_images([dens_img, temp_img])
 
     cut = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
     cut_frb = cut.to_frb((0.5, "unitary"), 128)

@@ -21,10 +21,8 @@ from yt.frontends.stream.api import \
     load_amr_grids
 
 
-def setup():
+def setup_test_ds():
     """Prepare setup specific environment"""
-    global test_ds
-
     grid_data = [
         dict(left_edge=[0.0, 0.0, 0.0], right_edge=[1.0, 1.0, 1.],
              level=0, dimensions=[16, 16, 16]),
@@ -44,12 +42,13 @@ def setup():
 
     for grid in grid_data:
         grid["density"] = \
-            np.random.random(grid["dimensions"]) * 2 ** grid["level"]
-    test_ds = load_amr_grids(grid_data, [16, 16, 16], 1.0)
+            (np.random.random(grid["dimensions"]) * 2 ** grid["level"], "g/cm**3")
+    return load_amr_grids(grid_data, [16, 16, 16])
 
 
 def test_grid_tree():
     """Main test suite for GridTree"""
+    test_ds = setup_test_ds()
     grid_tree = test_ds.index._get_grid_tree()
     indices, levels, nchild, children = grid_tree.return_tree_info()
 
@@ -71,6 +70,7 @@ def test_grid_tree():
 def test_find_points():
     """Main test suite for MatchPoints"""
     num_points = 100
+    test_ds = setup_test_ds()
     randx = np.random.uniform(low=test_ds.domain_left_edge[0],
                               high=test_ds.domain_right_edge[0],
                               size=num_points)
@@ -116,3 +116,12 @@ def test_find_points():
     # Test if find_points fails properly for non equal indices' array sizes
     yield assert_raises, AssertionError, test_ds.index._find_points, \
         [0], 1.0, [2, 3]
+
+def test_grid_arrays_view():
+    ds = setup_test_ds()
+    tree = ds.index._get_grid_tree()
+    grid_arr = tree.grid_arrays
+    yield assert_equal, grid_arr['left_edge'], ds.index.grid_left_edge
+    yield assert_equal, grid_arr['right_edge'], ds.index.grid_right_edge
+    yield assert_equal, grid_arr['dims'], ds.index.grid_dimensions
+    yield assert_equal, grid_arr['level'], ds.index.grid_levels[:,0]

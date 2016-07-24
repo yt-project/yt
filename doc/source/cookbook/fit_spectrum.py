@@ -71,7 +71,6 @@ lr.make_light_ray(seed=123456780,
                   solution_filename='lightraysolution.txt',
                   data_filename='lightray.h5',
                   fields=fields, setup_function=setup_ds,
-                  get_los_velocity=True,
                   njobs=-1)
 
 # Create an AbsorptionSpectrum object extending from

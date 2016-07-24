@@ -18,7 +18,8 @@ import glob
 import os
 
 from yt.convenience import \
-    load, \
+    load
+from yt.funcs import \
     only_on_root
 from yt.data_objects.time_series import \
     SimulationTimeSeries, DatasetSeries
@@ -26,13 +27,15 @@ from yt.units import dimensions
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
-    YTArray, YTQuantity
+    YTArray
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
     InvalidSimulationTimeSeries, \
     MissingParameter, \
     NoStoppingCondition
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified
 from yt.utilities.logger import ytLogger as \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -94,7 +97,11 @@ class GadgetSimulation(SimulationTimeSeries):
                     dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
             self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"],
                                          "cmcm / h", registry=self.unit_registry)
-            self.box_size *= self.length_unit.in_units("Mpccm / h")
+            self.mass_unit = self.quan(self.unit_base["UnitMass_in_g"],
+                                         "g / h", registry=self.unit_registry)
+            self.box_size = self.box_size * self.length_unit
+            self.domain_left_edge = self.domain_left_edge * self.length_unit
+            self.domain_right_edge = self.domain_right_edge * self.length_unit
         else:
             # Read time from file for non-cosmological sim
             self.time_unit = self.quan(
@@ -319,6 +326,9 @@ class GadgetSimulation(SimulationTimeSeries):
 
             self.parameters[param] = vals
 
+        # Domain dimensions for Gadget datasets are always 2x2x2 for octree
+        self.domain_dimensions = np.array([2,2,2])
+
         if self.parameters["ComovingIntegrationOn"]:
             cosmo_attr = {"box_size": "BoxSize",
                           "omega_lambda": "OmegaLambda",
@@ -328,13 +338,32 @@ class GadgetSimulation(SimulationTimeSeries):
             self.final_redshift = 1.0 / self.parameters["TimeMax"] - 1.0
             self.cosmological_simulation = 1
             for a, v in cosmo_attr.items():
-                if not v in self.parameters:
+                if v not in self.parameters:
                     raise MissingParameter(self.parameter_filename, v)
                 setattr(self, a, self.parameters[v])
+            self.domain_left_edge = np.array([0., 0., 0.])
+            self.domain_right_edge = np.array([1., 1., 1.]) * self.parameters['BoxSize']
         else:
             self.cosmological_simulation = 0
             self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = 0.0
+
+    def _find_data_dir(self):
+        """
+        Find proper location for datasets.  First look where parameter file
+        points, but if this doesn't exist then default to the current 
+        directory.
+        """
+        if self.parameters["OutputDir"].startswith("/"):
+            data_dir = self.parameters["OutputDir"]
+        else:
+            data_dir = os.path.join(self.directory,
+                                    self.parameters["OutputDir"])
+        if not os.path.exists(data_dir):
+            mylog.info("OutputDir not found at %s, instead using %s." % 
+                       (data_dir, self.directory))
+            data_dir = self.directory
+        self.data_dir = data_dir
 
     def _snapshot_format(self, index=None):
         """
@@ -342,11 +371,6 @@ class GadgetSimulation(SimulationTimeSeries):
         naming conventions.
         """
 
-        if self.parameters["OutputDir"].startswith("/"):
-            data_dir = self.parameters["OutputDir"]
-        else:
-            data_dir = os.path.join(self.directory,
-                                    self.parameters["OutputDir"])
         if self.parameters["NumFilesPerSnapshot"] > 1:
             suffix = ".0"
         else:
@@ -359,12 +383,15 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "%03d" % index
         filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"],
                                 count, suffix)
-        return os.path.join(data_dir, filename)
+        return os.path.join(self.data_dir, filename)
                 
     def _get_all_outputs(self, find_outputs=False):
         """
         Get all potential datasets and combine into a time-sorted list.
         """
+
+        # Find the data directory where the outputs are
+        self._find_data_dir()
 
         # Create the set of outputs from which further selection will be done.
         if find_outputs:
@@ -372,7 +399,9 @@ class GadgetSimulation(SimulationTimeSeries):
         else:
             if self.parameters["OutputListOn"]:
                 a_values = [float(a) for a in 
-                            open(self.parameters["OutputListFilename"], "r").readlines()]
+                            open(os.path.join(self.data_dir, 
+                                 self.parameters["OutputListFilename"]), 
+                            "r").readlines()]
             else:
                 a_values = [float(self.parameters["TimeOfFirstSnapshot"])]
                 time_max = float(self.parameters["TimeMax"])
@@ -426,7 +455,7 @@ class GadgetSimulation(SimulationTimeSeries):
                 self.final_time = self.quan(self.parameters["TimeMax"], "code_time")
             else:
                 self.final_time = None
-            if not "TimeMax" in self.parameters:
+            if "TimeMax" not in self.parameters:
                 raise NoStoppingCondition(self.parameter_filename)
 
     def _find_outputs(self):
@@ -434,7 +463,6 @@ class GadgetSimulation(SimulationTimeSeries):
         Search for directories matching the data dump keywords.
         If found, get dataset times py opening the ds.
         """
-
         potential_outputs = glob.glob(self._snapshot_format())
         self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["time"])

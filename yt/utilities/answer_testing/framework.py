@@ -15,7 +15,9 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 import logging
+import numpy as np
 import os
+import time
 import hashlib
 import contextlib
 import sys
@@ -25,19 +27,32 @@ import zlib
 import tempfile
 import glob
 
+from collections import defaultdict
+
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
-from yt.testing import *
+from yt.funcs import \
+    get_pbar
+from yt.testing import \
+    assert_equal, \
+    assert_allclose_units, \
+    assert_rel_equal, \
+    assert_almost_equal
 from yt.convenience import load, simulation
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
+from yt.utilities.exceptions import \
+    YTNoOldAnswer, \
+    YTCloudError, \
+    YTOutputNotIdentified
 from yt.utilities.logger import disable_stream_logging
 from yt.utilities.command_line import get_yt_version
 
 import matplotlib.image as mpimg
 import yt.visualization.plot_window as pw
-import yt.extern.progressbar as progressbar
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.profile_plotter as profile_plotter
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False
@@ -171,7 +186,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         url = _url_path.format(self.reference_name, ds_name)
         try:
             resp = urllib.request.urlopen(url)
-        except urllib.error.HTTPError as ex:
+        except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
             for this_try in range(3):
@@ -249,14 +264,13 @@ def can_run_ds(ds_fn, file_check = False):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
-    with temp_cwd(path):
-        if file_check:
-            return os.path.isfile(ds_fn) and \
-                AnswerTestingTest.result_storage is not None
-        try:
-            load(ds_fn)
-        except YTOutputNotIdentified:
-            return False
+    if file_check:
+        return os.path.isfile(os.path.join(path, ds_fn)) and \
+            AnswerTestingTest.result_storage is not None
+    try:
+        load(ds_fn)
+    except YTOutputNotIdentified:
+        return False
     return AnswerTestingTest.result_storage is not None
 
 def can_run_sim(sim_fn, sim_type, file_check = False):
@@ -265,14 +279,13 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
-    with temp_cwd(path):
-        if file_check:
-            return os.path.isfile(sim_fn) and \
-                AnswerTestingTest.result_storage is not None
-        try:
-            simulation(sim_fn, sim_type)
-        except YTOutputNotIdentified:
-            return False
+    if file_check:
+        return os.path.isfile(os.path.join(path, sim_fn)) and \
+            AnswerTestingTest.result_storage is not None
+    try:
+        simulation(sim_fn, sim_type)
+    except YTOutputNotIdentified:
+        return False
     return AnswerTestingTest.result_storage is not None
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
@@ -282,13 +295,12 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     if isinstance(ds_fn, Dataset): return ds_fn
     if not os.path.isdir(path):
         return False
-    with temp_cwd(path):
-        if cls is None:
-            ds = load(ds_fn, *args, **kwargs)
-        else:
-            ds = cls(ds_fn, *args, **kwargs)
-        ds.index
-        return ds
+    if cls is None:
+        ds = load(ds_fn, *args, **kwargs)
+    else:
+        ds = cls(os.path.join(path, ds_fn), *args, **kwargs)
+    ds.index
+    return ds
 
 def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
                  find_outputs=False):
@@ -296,16 +308,17 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
         raise IOError
     if os.path.exists(sim_fn) or not path:
         path = "."
-    with temp_cwd(path):
-        return simulation(sim_fn, sim_type,
-                          find_outputs=find_outputs)
+    return simulation(os.path.join(path, sim_fn), sim_type,
+                      find_outputs=find_outputs)
 
 class AnswerTestingTest(object):
     reference_storage = None
     result_storage = None
     prefix = ""
     def __init__(self, ds_fn):
-        if isinstance(ds_fn, Dataset):
+        if ds_fn is None:
+            self.ds = None
+        elif isinstance(ds_fn, Dataset):
             self.ds = ds_fn
         else:
             self.ds = data_dir_load(ds_fn)
@@ -315,7 +328,8 @@ class AnswerTestingTest(object):
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
-                raise YTNoOldAnswer("%s : %s" % (self.storage_name , self.description))
+                raise YTNoOldAnswer(
+                    "%s : %s" % (self.storage_name, self.description))
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -333,11 +347,12 @@ class AnswerTestingTest(object):
 
     def create_plot(self, ds, plot_type, plot_field, plot_axis, plot_kwargs = None):
         # plot_type should be a string
-        # plot_args should be a tuple
         # plot_kwargs should be a dict
         if plot_type is None:
             raise RuntimeError('Must explicitly request a plot type')
-        cls = getattr(pw, plot_type)
+        cls = getattr(pw, plot_type, None)
+        if cls is None:
+            cls = getattr(particle_plots, plot_type)
         plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
         return plot
 
@@ -388,12 +403,13 @@ class FieldValuesTest(AnswerTestingTest):
 
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
+        field = obj._determine_fields(self.field)[0]
         if self.particle_type:
-            weight_field = "particle_ones"
+            weight_field = (field[0], "particle_ones")
         else:
-            weight_field = "ones"
+            weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
-            self.field, weight=weight_field)
+            field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
         return np.array([avg, mi, ma])
 
@@ -645,21 +661,58 @@ class AnalyticHaloMassFunctionTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        err_msg = ("Analytic halo mass functions not equation for " +
+        err_msg = ("Analytic halo mass functions not equal for " +
                    "fitting function %d.") % self.fitting_function
-        assert_equal(new_result, old_result,
-                     err_msg=err_msg, verbose=True)
+        assert_almost_equal(new_result, old_result,
+                            err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
-    fns = ['old.png', 'new.png']
+    fns = []
+    for i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns.append(tmpname)
     num_images = len(old_result)
     assert(num_images > 0)
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        assert compare_images(fns[0], fns[1], 10**(-decimals)) == None
-        for fn in fns: os.remove(fn)
+        results = compare_images(fns[0], fns[1], 10**(-decimals))
+        if results is not None:
+            if os.environ.get("JENKINS_HOME") is not None:
+                tempfiles = [line.strip() for line in results.split('\n')
+                             if line.endswith(".png")]
+                for fn in tempfiles:
+                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                sys.stderr.write('\n')
+        assert_equal(results, None, results)
+        for fn in fns:
+            os.remove(fn)
 
+class VRImageComparisonTest(AnswerTestingTest):
+    _type_name = "VRImageComparison"
+    _attrs = ('desc',)
+
+    def __init__(self, scene, ds, desc, decimals):
+        super(VRImageComparisonTest, self).__init__(None)
+        self.obj_type = ('vr',)
+        self.ds = ds
+        self.scene = scene
+        self.desc = desc
+        self.decimals = decimals
+
+    def run(self):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        self.scene.render()
+        self.scene.save(tmpname, sigma_clip=1.0)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+        
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
@@ -699,6 +752,50 @@ class PlotWindowAttributeTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
+class PhasePlotAttributeTest(AnswerTestingTest):
+    _type_name = "PhasePlotAttribute"
+    _attrs = ('plot_type', 'x_field', 'y_field', 'z_field',
+              'attr_name', 'attr_args')
+    def __init__(self, ds_fn, x_field, y_field, z_field, 
+                 attr_name, attr_args, decimals, plot_type='PhasePlot'):
+        super(PhasePlotAttributeTest, self).__init__(ds_fn)
+        self.data_source = self.ds.all_data()
+        self.plot_type = plot_type
+        self.x_field = x_field
+        self.y_field = y_field
+        self.z_field = z_field
+        self.plot_kwargs = {}
+        self.attr_name = attr_name
+        self.attr_args = attr_args
+        self.decimals = decimals
+
+    def create_plot(self, data_source, x_field, y_field, z_field, 
+                    plot_type, plot_kwargs=None):
+        # plot_type should be a string
+        # plot_kwargs should be a dict
+        if plot_type is None:
+            raise RuntimeError('Must explicitly request a plot type')
+        cls = getattr(profile_plotter, plot_type, None)
+        if cls is None:
+            cls = getattr(particle_plots, plot_type)
+        plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
+        return plot
+
+    def run(self):
+        plot = self.create_plot(self.data_source, self.x_field, self.y_field,
+                                self.z_field, self.plot_type, self.plot_kwargs)
+        attr = getattr(plot, self.attr_name)
+        attr(*self.attr_args[0], **self.attr_args[1])
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        plot.save(name=tmpname)
+        image = mpimg.imread(tmpname)
+        os.remove(tmpname)
+        return [zlib.compress(image.dumps())]
+
+    def compare(self, new_result, old_result):
+        compare_image_lists(new_result, old_result, self.decimals)
+
 class GenericArrayTest(AnswerTestingTest):
     _type_name = "GenericArray"
     _attrs = ('array_func_name','args','kwargs')
@@ -725,7 +822,7 @@ class GenericArrayTest(AnswerTestingTest):
                                           verbose=True)
         for k in new_result:
             if self.decimals is None:
-                assert_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_result[k])
             else:
                 assert_allclose_units(new_result[k], old_result[k],
                                       10**(-self.decimals))
@@ -768,19 +865,29 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data == False and big_data == True:
+    if run_big_data is False and big_data is True:
         return ffalse
     elif not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
     else:
         return ftrue
 
+def requires_answer_testing():
+    def ffalse(func):
+        return lambda: None
+    def ftrue(func):
+        return func
+    if AnswerTestingTest.result_storage is not None:
+        return ftrue
+    else:
+        return ffalse
+    
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data == False and big_data == True:
+    if run_big_data is False and big_data is True:
         return ffalse
     elif not can_run_ds(ds_fn, file_check):
         return ffalse
@@ -804,7 +911,8 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
-    if not can_run_ds(ds_fn): return
+    if not can_run_ds(ds_fn):
+        return
     dso = [ None, ("sphere", (input_center, (0.1, 'unitary')))]
     yield GridHierarchyTest(ds_fn)
     yield ParentageRelationshipsTest(ds_fn)
@@ -816,6 +924,38 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     yield PixelizedProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
                         dobj_name)
+
+
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    if not can_run_ds(ds):
+        return
+    yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
+                        str(ds), ds_str_repr)
+    dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
+    dd = ds.all_data()
+    yield AssertWrapper("%s_all_data_part_shape" % str(ds), assert_equal,
+                        dd["particle_position"].shape, (ds_nparticles, 3))
+    tot = sum(dd[ptype, "particle_position"].shape[0]
+              for ptype in ds.particle_types if ptype != "all")
+    yield AssertWrapper("%s_all_data_part_total" % str(ds), assert_equal,
+                        tot, ds_nparticles)
+    for dobj_name in dso:
+        dobj = create_obj(ds, dobj_name)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        yield AssertWrapper("%s_mask_test" % str(ds), assert_equal, s1, s2)
+        for field, weight_field in fields.items():
+            if field[0] in ds.particle_types:
+                particle_type = True
+            else:
+                particle_type = False
+            for axis in [0, 1, 2]:
+                if particle_type is False:
+                    yield PixelizedProjectionValuesTest(
+                        ds, axis, field, weight_field,
+                        dobj_name)
+            yield FieldValuesTest(ds, field, dobj_name,
+                                  particle_type=particle_type)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

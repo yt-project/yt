@@ -175,11 +175,16 @@ class KDTree(object):
 
     class node(object):
         if sys.version_info[0] >= 3:
-            def __lt__(self, other): id(self) < id(other)
-            def __gt__(self, other): id(self) > id(other)
-            def __le__(self, other): id(self) <= id(other)
-            def __ge__(self, other): id(self) >= id(other)
-            def __eq__(self, other): id(self) == id(other)
+            def __lt__(self, other):
+                id(self) < id(other)
+            def __gt__(self, other):
+                id(self) > id(other)
+            def __le__(self, other):
+                id(self) <= id(other)
+            def __ge__(self, other):
+                id(self) >= id(other)
+            def __eq__(self, other):
+                id(self) == id(other)
 
     class leafnode(node):
         def __init__(self, idx):
@@ -797,6 +802,7 @@ class KDTree(object):
         result : dok_matrix
             Sparse matrix representing the results in "dictionary of keys" format.
         """
+        from yt.utilities.on_demand_imports import _scipy as scipy
         result = scipy.sparse.dok_matrix((self.n,other.n))
 
         def traverse(node1, rect1, node2, rect2):

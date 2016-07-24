@@ -13,25 +13,27 @@ Data structures for Athena.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
 import numpy as np
+import os
 import weakref
-import glob #ST 9/12
-from yt.funcs import *
+import glob
+
+from yt.funcs import \
+    mylog, \
+    ensure_tuple
 from yt.data_objects.grid_patch import \
-           AMRGridPatch
+    AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
-           Dataset
+    Dataset
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
-from yt.extern.six import PY2, PY3
+from yt.extern.six import PY2
 
 from .fields import AthenaFieldInfo
-from yt.units.yt_array import YTQuantity
 from yt.utilities.decompose import \
     decompose_array, get_psize
 
@@ -75,9 +77,9 @@ def _get_convert(fname):
 
 class AthenaGrid(AMRGridPatch):
     _id_offset = 0
+
     def __init__(self, id, index, level, start, dimensions,
                  file_offset, read_dims):
-        df = index.dataset.filename[4:-4]
         gname = index.grid_filenames[id]
         AMRGridPatch.__init__(self, id, filename = gname,
                               index = index)
@@ -221,7 +223,6 @@ class AthenaHierarchy(GridIndex):
         grid = {}
         grid['read_field'] = None
         grid['read_type'] = None
-        table_read=False
         line = f.readline()
         while grid['read_field'] is None:
             parse_line(line, grid)
@@ -267,7 +268,6 @@ class AthenaHierarchy(GridIndex):
             gridread = {}
             gridread['read_field'] = None
             gridread['read_type'] = None
-            table_read=False
             line = f.readline()
             while gridread['read_field'] is None:
                 parse_line(line, gridread)
@@ -317,7 +317,8 @@ class AthenaHierarchy(GridIndex):
         # know the extent of all the grids.
         glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
+        dre_units = self.dataset.domain_right_edge.uq
+        self.dataset.domain_right_edge = np.round(new_dre, decimals=12)*dre_units
         self.dataset.domain_width = \
                 (self.dataset.domain_right_edge -
                  self.dataset.domain_left_edge)
@@ -326,11 +327,6 @@ class AthenaHierarchy(GridIndex):
                      self.dataset.domain_right_edge)
         self.dataset.domain_dimensions = \
                 np.round(self.dataset.domain_width/gdds[0]).astype('int')
-
-        # Need to reset the units in the dataset based on the correct
-        # domain left/right/dimensions.
-        # DEV: Is this really necessary?
-        #self.dataset._set_code_unit_attributes()
 
         if self.dataset.dimensionality <= 2 :
             self.dataset.domain_dimensions[2] = np.int(1)
@@ -418,8 +414,6 @@ class AthenaHierarchy(GridIndex):
                                 self.grid_levels[i] + 1,
                                 self.grid_left_edge, self.grid_right_edge,
                                 self.grid_levels, mask)
-                #ids = np.where(mask.astype("bool")) # where is a tuple
-                #mask[ids] = True
             grid.Children = [g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1]
         mylog.debug("Second pass; identifying parents")
         for i, grid in enumerate(self.grids): # Second pass
@@ -433,7 +427,6 @@ class AthenaHierarchy(GridIndex):
         return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
-        gfiles = defaultdict(list)
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in gobjs:
             yield YTDataChunk(dobj, "io", [subset],
@@ -447,7 +440,7 @@ class AthenaDataset(Dataset):
 
     def __init__(self, filename, dataset_type='athena',
                  storage_filename=None, parameters=None,
-                 units_override=None, nprocs=1):
+                 units_override=None, nprocs=1, unit_system="cgs"):
         self.fluid_types += ("athena",)
         self.nprocs = nprocs
         if parameters is None:
@@ -464,7 +457,8 @@ class AthenaDataset(Dataset):
                                   "and will be removed in a future release. Use units_override instead.")
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.filename = filename
         if storage_filename is None:
             storage_filename = '%s.yt' % filename.split('/')[-1]
@@ -485,19 +479,10 @@ class AthenaDataset(Dataset):
             # We set these to cgs for now, but they may be overridden later.
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
-
-    def set_code_units(self):
-        super(AthenaDataset, self).set_code_units()
-        mag_unit = getattr(self, "magnetic_unit", None)
-        vel_unit = getattr(self, "velocity_unit", None)
-        if mag_unit is None:
-            self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                         (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                     (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        if vel_unit is None:
-            self.velocity_unit = self.length_unit/self.time_unit
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")

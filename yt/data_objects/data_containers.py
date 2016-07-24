@@ -14,26 +14,42 @@ Various non-grid data containers.
 #-----------------------------------------------------------------------------
 
 import itertools
-import types
 import uuid
-from yt.extern.six import string_types
-
-data_object_registry = {}
 
 import numpy as np
 import weakref
 import shelve
+
+from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.funcs import *
-
 from yt.data_objects.particle_io import particle_handler_registry
+from yt.fields.derived_field import \
+    DerivedField
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.funcs import \
+    get_output_filename, \
+    mylog, \
+    ensure_list, \
+    fix_axis, \
+    iterable
 from yt.units.unit_object import UnitParseError
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
+import yt.units.dimensions as ytdims
 from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
-    YTSpatialFieldUnitError
+    YTSpatialFieldUnitError, \
+    YTCouldNotGenerateField, \
+    YTFieldNotParseable, \
+    YTFieldNotFound, \
+    YTFieldTypeNotFound, \
+    YTDataSelectorNotImplemented, \
+    YTDimensionalityError
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -50,9 +66,10 @@ from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
 
+data_object_registry = {}
+
 def force_array(item, shape):
     try:
-        sh = item.shape
         return item.copy()
     except AttributeError:
         if item:
@@ -98,6 +115,8 @@ class YTDataContainer(object):
     _con_args = ()
     _skip_add = False
     _container_fields = ()
+    _tds_attrs = ()
+    _tds_fields = ()
     _field_cache = None
     _index = None
 
@@ -171,18 +190,18 @@ class YTDataContainer(object):
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.in_cgs())
+            self.center = self.ds.arr(center.copy())
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.in_cgs() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center])
                 self.center.convert_to_units('code_length')
             else:
                 self.center = self.ds.arr(center, 'code_length')
         elif isinstance(center, string_types):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
-             # is this dangerous for race conditions?
+            # is this dangerous for race conditions?
             elif center.lower() in ("max", "m"):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
@@ -331,6 +350,7 @@ class YTDataContainer(object):
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
+                    gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
                     ind += wogz.select(
                         self.selector,
@@ -426,6 +446,154 @@ class YTDataContainer(object):
         else:
             self.index.save_object(self, name)
 
+    def to_dataframe(self, fields = None):
+        r"""Export a data object to a pandas DataFrame.
+
+        This function will take a data object and construct from it and
+        optionally a list of fields a pandas DataFrame object.  If pandas is
+        not importable, this will raise ImportError.
+
+        Parameters
+        ----------
+        fields : list of strings or tuples, default None
+            If this is supplied, it is the list of fields to be exported into
+            the data frame.  If not supplied, whatever fields presently exist
+            will be used.
+
+        Returns
+        -------
+        df : DataFrame
+            The data contained in the object.
+
+        Examples
+        --------
+
+        >>> dd = ds.all_data()
+        >>> df1 = dd.to_dataframe(["density", "temperature"])
+        >>> dd["velocity_magnitude"]
+        >>> df2 = dd.to_dataframe()
+        """
+        import pandas as pd
+        data = {}
+        if fields is not None:
+            for f in fields:
+                data[f] = self[f]
+        else:
+            data.update(self.field_data)
+        df = pd.DataFrame(data)
+        return df
+
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export a data object to a reloadable yt dataset.
+
+        This function will take a data object and output a dataset 
+        containing either the fields presently existing or fields 
+        given in the ``fields`` list.  The resulting dataset can be
+        reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
+            of data container.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.  If not supplied, all the fields that have been queried
+            will be saved.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+        >>> sp = ds.sphere(ds.domain_center, (10, "Mpc"))
+        >>> fn = sp.save_as_dataset(fields=["density", "temperature"])
+        >>> sphere_ds = yt.load(fn)
+        >>> # the original data container is available as the data attribute
+        >>> print (sds.data["density"])
+        [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
+           3.57339907e-30   2.83150720e-30] g/cm**3
+        >>> ad = sphere_ds.all_data()
+        >>> print (ad["temperature"])
+        [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
+           4.54380547e+04   4.72560117e+04] K
+
+        """
+
+        keyword = "%s_%s" % (str(self.ds), self._type_name)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        data = {}
+        if fields is not None:
+            for f in self._determine_fields(fields):
+                data[f] = self[f]
+        else:
+            data.update(self.field_data)
+        # get the extra fields needed to reconstruct the container
+        tds_fields = tuple(self._determine_fields(list(self._tds_fields)))
+        for f in [f for f in self._container_fields + tds_fields \
+                  if f not in data]:
+            data[f] = self[f]
+        data_fields = list(data.keys())
+
+        need_grid_positions = False
+        need_particle_positions = False
+        ptypes = []
+        ftypes = {}
+        for field in data_fields:
+            if field in self._container_fields:
+                ftypes[field] = "grid"
+                need_grid_positions = True
+            elif self.ds.field_info[field].particle_type:
+                if field[0] not in ptypes:
+                    ptypes.append(field[0])
+                ftypes[field] = field[0]
+                need_particle_positions = True
+            else:
+                ftypes[field] = "grid"
+                need_grid_positions = True
+        # projections and slices use px and py, so don't need positions
+        if self._type_name in ["cutting", "proj", "slice"]:
+            need_grid_positions = False
+
+        if need_particle_positions:
+            for ax in "xyz":
+                for ptype in ptypes:
+                    p_field = (ptype, "particle_position_%s" % ax)
+                    if p_field in self.ds.field_info and p_field not in data:
+                        data_fields.append(field)
+                        ftypes[p_field] = p_field[0]
+                        data[p_field] = self[p_field]
+        if need_grid_positions:
+            for ax in "xyz":
+                g_field = ("index", ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
+                g_field = ("index", "d" + ax)
+                if g_field in self.ds.field_info and g_field not in data:
+                    data_fields.append(g_field)
+                    ftypes[g_field] = "grid"
+                    data[g_field] = self[g_field]
+
+        extra_attrs = dict([(arg, getattr(self, arg, None))
+                            for arg in self._con_args + self._tds_attrs])
+        extra_attrs["con_args"] = self._con_args
+        extra_attrs["data_type"] = "yt_data_container"
+        extra_attrs["container_type"] = self._type_name
+        extra_attrs["dimensionality"] = self._dimensionality
+        save_as_dataset(self.ds, filename, data, field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
+
     def to_glue(self, fields, label="yt", data_collection=None):
         """
         Takes specific *fields* in the container and exports them to
@@ -448,6 +616,310 @@ class YTDataContainer(object):
         else:
             data_collection.append(gdata)
 
+    # Numpy-like Operations
+    def argmax(self, field, axis=None):
+        r"""Return the values at which the field is maximized.
+
+        This will, in a parallel-aware fashion, find the maximum value and then
+        return to you the values at that maximum location that are requested
+        for "axis".  By default it will return the spatial positions (in the
+        natural coordinate system), but it can be any field
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to maximize.
+        axis : string or list of strings, optional
+            If supplied, the fields to sample along; if not supplied, defaults
+            to the coordinate fields.  This can be the name of the coordinate
+            fields (i.e., 'x', 'y', 'z') or a list of fields, but cannot be 0,
+            1, 2.
+
+        Returns
+        -------
+        A list of YTQuantities as specified by the axis argument.
+
+        Examples
+        --------
+
+        >>> temp_at_max_rho = reg.argmax("density", axis="temperature")
+        >>> max_rho_xyz = reg.argmax("density")
+        >>> t_mrho, v_mrho = reg.argmax("density", axis=["temperature",
+        ...                 "velocity_magnitude"])
+        >>> x, y, z = reg.argmax("density")
+
+        """
+        if axis is None:
+            mv, pos0, pos1, pos2 = self.quantities.max_location(field)
+            return pos0, pos1, pos2
+        rv = self.quantities.sample_at_max_field_values(field, axis)
+        if len(rv) == 2:
+            return rv[1]
+        return rv[1:]
+
+    def argmin(self, field, axis=None):
+        r"""Return the values at which the field is minimized.
+
+        This will, in a parallel-aware fashion, find the minimum value and then
+        return to you the values at that minimum location that are requested
+        for "axis".  By default it will return the spatial positions (in the
+        natural coordinate system), but it can be any field
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to minimize.
+        axis : string or list of strings, optional
+            If supplied, the fields to sample along; if not supplied, defaults
+            to the coordinate fields.  This can be the name of the coordinate
+            fields (i.e., 'x', 'y', 'z') or a list of fields, but cannot be 0,
+            1, 2.
+
+        Returns
+        -------
+        A list of YTQuantities as specified by the axis argument.
+
+        Examples
+        --------
+
+        >>> temp_at_min_rho = reg.argmin("density", axis="temperature")
+        >>> min_rho_xyz = reg.argmin("density")
+        >>> t_mrho, v_mrho = reg.argmin("density", axis=["temperature",
+        ...                 "velocity_magnitude"])
+        >>> x, y, z = reg.argmin("density")
+
+        """
+        if axis is None:
+            mv, pos0, pos1, pos2 = self.quantities.min_location(field)
+            return pos0, pos1, pos2
+        rv = self.quantities.sample_at_min_field_values(field, axis)
+        if len(rv) == 2:
+            return rv[1]
+        return rv[1:]
+
+    def _compute_extrema(self, field):
+        if self._extrema_cache is None:
+            self._extrema_cache = {}
+        if field not in self._extrema_cache:
+            # Note we still need to call extrema for each field, as of right
+            # now
+            mi, ma = self.quantities.extrema(field)
+            self._extrema_cache[field] = (mi, ma)
+        return self._extrema_cache[field]
+
+    _extrema_cache = None
+    def max(self, field, axis=None):
+        r"""Compute the maximum of a field, optionally along an axis.
+
+        This will, in a parallel-aware fashion, compute the maximum of the
+        given field.  Supplying an axis will result in a return value of a
+        YTProjection, with method 'mip' for maximum intensity.  If the max has
+        already been requested, it will use the cached extrema value.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to maximize.
+        axis : string, optional
+            If supplied, the axis to project the maximum along.
+
+        Returns
+        -------
+        Either a scalar or a YTProjection.
+
+        Examples
+        --------
+
+        >>> max_temp = reg.max("temperature")
+        >>> max_temp_proj = reg.max("temperature", axis="x")
+        """
+        if axis is None:
+            rv = ()
+            fields = ensure_list(field)
+            for f in fields:
+                rv += (self._compute_extrema(f)[1],)
+            if len(fields) == 1:
+                return rv[0]
+            else:
+                return rv
+        elif axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, method="mip")
+            return r
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+
+    def min(self, field, axis=None):
+        r"""Compute the minimum of a field.
+
+        This will, in a parallel-aware fashion, compute the minimum of the
+        given field.  Supplying an axis is not currently supported.  If the max
+        has already been requested, it will use the cached extrema value.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to minimize.
+        axis : string, optional
+            If supplied, the axis to compute the minimum along.
+
+        Returns
+        -------
+        Scalar.
+
+        Examples
+        --------
+
+        >>> min_temp = reg.min("temperature")
+        """
+        if axis is None:
+            rv = ()
+            fields = ensure_list(field)
+            for f in ensure_list(fields):
+                rv += (self._compute_extrema(f)[0],)
+            if len(fields) == 1:
+                return rv[0]
+            else:
+                return rv
+            return rv
+        elif axis in self.ds.coordinates.axis_name:
+            raise NotImplementedError("Minimum intensity projection not"
+                                      " implemented.")
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+
+    def std(self, field, weight=None):
+        raise NotImplementedError
+
+    def ptp(self, field):
+        r"""Compute the range of values (maximum - minimum) of a field.
+
+        This will, in a parallel-aware fashion, compute the "peak-to-peak" of
+        the given field.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to average.
+
+        Returns
+        -------
+        Scalar
+
+        Examples
+        --------
+
+        >>> rho_range = reg.ptp("density")
+        """
+        ex = self._compute_extrema(field)
+        return ex[1] - ex[0]
+
+    def hist(self, field, weight = None, bins = None):
+        raise NotImplementedError
+
+    def mean(self, field, axis=None, weight='ones'):
+        r"""Compute the mean of a field, optionally along an axis, with a
+        weight.
+
+        This will, in a parallel-aware fashion, compute the mean of the
+        given field.  If an axis is supplied, it will return a projection,
+        where the weight is also supplied.  By default the weight is "ones",
+        resulting in a strict average.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to average.
+        axis : string, optional
+            If supplied, the axis to compute the mean along (i.e., to project
+            along)
+        weight : string, optional
+            The field to use as a weight.
+
+        Returns
+        -------
+        Scalar or YTProjection.
+
+        Examples
+        --------
+
+        >>> avg_rho = reg.mean("density", weight="cell_volume")
+        >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
+        """
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
+        elif axis is None:
+            if weight is None:
+                r = self.quantities.total_quantity(field)
+            else:
+                r = self.quantities.weighted_average_quantity(field, weight)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
+    def sum(self, field, axis=None):
+        r"""Compute the sum of a field, optionally along an axis.
+
+        This will, in a parallel-aware fashion, compute the sum of the given
+        field.  If an axis is specified, it will return a projection (using
+        method type "sum", which does not take into account path length) along
+        that axis.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to sum.
+        axis : string, optional
+            If supplied, the axis to sum along.
+
+        Returns
+        -------
+        Either a scalar or a YTProjection.
+
+        Examples
+        --------
+
+        >>> total_vol = reg.sum("cell_volume")
+        >>> cell_count = reg.sum("ones", axis="x")
+        """
+        # Because we're using ``sum`` to specifically mean a sum or a
+        # projection with the method="sum", we do not utilize the ``mean``
+        # function.
+        if axis in self.ds.coordinates.axis_name:
+            with self._field_parameter_state({'axis':axis}):
+                r = self.ds.proj(field, axis, data_source=self, method="sum")
+        elif axis is None:
+            r = self.quantities.total_quantity(field)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
+    def integrate(self, field, axis=None):
+        r"""Compute the integral (projection) of a field along an axis.
+
+        This projects a field along an axis.
+
+        Parameters
+        ----------
+        field : string or tuple of strings
+            The field to project.
+        axis : string
+            The axis to project along.
+
+        Returns
+        -------
+        YTProjection
+
+        Examples
+        --------
+
+        >>> column_density = reg.integrate("density", axis="z")
+        """
+        if axis in self.ds.coordinates.axis_name:
+            r = self.ds.proj(field, axis, data_source=self)
+        else:
+            raise NotImplementedError("Unknown axis %s" % axis)
+        return r
+
     @property
     def _hash(self):
         s = "%s" % self
@@ -468,7 +940,7 @@ class YTDataContainer(object):
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (i, getattr(self, i).in_cgs())
+                s += ", %s=%s" % (i, getattr(self, i).in_base(unit_system=self.ds.unit_system))
             except AttributeError:
                 s += ", %s=%s" % (i, getattr(self, i))
         return s
@@ -513,6 +985,9 @@ class YTDataContainer(object):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)
+            elif isinstance(field, DerivedField):
+                ftype, fname = field.name
+                finfo = field
             else:
                 fname = field
                 finfo = self.ds._get_field_info("unknown", fname)
@@ -536,9 +1011,9 @@ class YTDataContainer(object):
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
             if finfo.particle_type and ftype not in self.ds.particle_types:
-                raise YTFieldTypeNotFound(ftype)
+                raise YTFieldTypeNotFound(ftype, ds=self.ds)
             elif not finfo.particle_type and ftype not in self.ds.fluid_types:
-                raise YTFieldTypeNotFound(ftype)
+                raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
         return explicit_fields
 
@@ -587,6 +1062,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                                    "of lower dimensionality (%u vs %u)" %
                                     (data_source._dimensionality, self._dimensionality))
             self.field_parameters.update(data_source.field_parameters)
+        self.quantities = DerivedQuantityCollection(self)
 
     @property
     def selector(self):
@@ -676,7 +1152,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get.append(field)
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
-        elif self._locked == True:
+        elif self._locked is True:
             raise GenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys())
@@ -739,13 +1215,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         # infer the units from the units of the data we get back
                         # from the field function and use these units for future
                         # field accesses
-                        units = str(getattr(fd, 'units', ''))
+                        units = getattr(fd, 'units', '')
+                        if units == '':
+                            dimensions = ytdims.dimensionless
+                        else:
+                            dimensions = units.dimensions
+                            units = str(units.get_base_equivalent(self.ds.unit_system.name))
+                        if fi.dimensions != dimensions:
+                            raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
                         msg = ("Field %s was added without specifying units, "
                                "assuming units are %s")
                         mylog.warn(msg % (fi.name, units))
-                        continue
                     try:
                         fd.convert_to_units(fi.units)
                     except AttributeError:
@@ -825,6 +1307,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
+
+    @property
+    def fcoords_vertex(self):
+        if self._current_chunk is None:
+            self.index._identify_base_chunk(self)
+        return self._current_chunk.fcoords_vertex
+
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
@@ -949,6 +1438,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.ds.arr(center, 'code_length')
         if iterable(width):
             w, u = width
+            if isinstance(w, tuple) and isinstance(u, tuple):
+                height = u
+                w, u = w
             width = self.ds.quan(w, input_units = u)
         elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')
@@ -956,7 +1448,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             height = width
         elif iterable(height):
             h, u = height
-            height = self.ds.quan(w, input_units = u)
+            height = self.ds.quan(h, input_units = u)
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -983,11 +1475,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self._set_center(center)
         self.coords = None
         self._grids = None
-        self.quantities = DerivedQuantityCollection(self)
 
     def cut_region(self, field_cuts, field_parameters=None):
         """
-        Return an YTCutRegionBase, where the a cell is identified as being inside
+        Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
         previous versions of yt the name 'grid' was used to represent the data
         object used to construct the field cut, as of yt 3.0, this has been
@@ -1245,7 +1736,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         with child cells are left untouched.
         """
         for grid in self._grids:
-            if default_value != None:
+            if default_value is not None:
                 grid[field] = np.ones(grid.ActiveDimensions)*default_value
             grid[field][self._get_point_indices(grid)] = value
 
@@ -1312,167 +1803,3 @@ def _reconstruct_object(*args, **kwargs):
     obj = cls(*new_args)
     obj.field_parameters.update(field_parameters)
     return ReconstructedObject((ds, obj))
-
-class YTBooleanRegionBase(YTSelectionContainer3D):
-    """
-    This will build a hybrid region based on the boolean logic
-    of the regions.
-
-    Parameters
-    ----------
-    regions : list
-        A list of region objects and strings describing the boolean logic
-        to use when building the hybrid region. The boolean logic can be
-        nested using parentheses.
-
-    Examples
-    --------
-    >>> re1 = ds.region([0.5, 0.5, 0.5], [0.4, 0.4, 0.4],
-        [0.6, 0.6, 0.6])
-    >>> re2 = ds.region([0.5, 0.5, 0.5], [0.45, 0.45, 0.45],
-        [0.55, 0.55, 0.55])
-    >>> sp1 = ds.sphere([0.575, 0.575, 0.575], .03)
-    >>> toroid_shape = ds.boolean([re1, "NOT", re2])
-    >>> toroid_shape_with_hole = ds.boolean([re1, "NOT", "(", re2, "OR",
-        sp1, ")"])
-    """
-    _type_name = "boolean"
-    _con_args = ("regions",)
-    def __init__(self, regions, fields = None, ds = None, field_parameters = None, data_source = None):
-        # Center is meaningless, but we'll define it all the same.
-        YTSelectionContainer3D.__init__(self, [0.5]*3, fields, ds, field_parameters, data_source)
-        self.regions = regions
-        self._all_regions = []
-        self._some_overlap = []
-        self._all_overlap = []
-        self._cut_masks = {}
-        self._get_all_regions()
-        self._make_overlaps()
-        self._get_list_of_grids()
-
-    def _get_all_regions(self):
-        # Before anything, we simply find out which regions are involved in all
-        # of this process, uniquely.
-        for item in self.regions:
-            if isinstance(item, bytes): continue
-            self._all_regions.append(item)
-            # So cut_masks don't get messed up.
-            item._boolean_touched = True
-        self._all_regions = np.unique(self._all_regions)
-
-    def _make_overlaps(self):
-        # Using the processed cut_masks, we'll figure out what grids
-        # are left in the hybrid region.
-        pbar = get_pbar("Building boolean", len(self._all_regions))
-        for i, region in enumerate(self._all_regions):
-            try:
-                region._get_list_of_grids() # This is no longer supported.
-                alias = region
-            except AttributeError:
-                alias = region.data         # This is no longer supported.
-            for grid in alias._grids:
-                if grid in self._some_overlap or grid in self._all_overlap:
-                    continue
-                # Get the cut_mask for this grid in this region, and see
-                # if there's any overlap with the overall cut_mask.
-                overall = self._get_cut_mask(grid)
-                local = force_array(alias._get_cut_mask(grid),
-                    grid.ActiveDimensions)
-                # Below we don't want to match empty masks.
-                if overall.sum() == 0 and local.sum() == 0: continue
-                # The whole grid is in the hybrid region if a) its cut_mask
-                # in the original region is identical to the new one and b)
-                # the original region cut_mask is all ones.
-                if (local == np.bitwise_and(overall, local)).all() and \
-                        (local == True).all():
-                    self._all_overlap.append(grid)
-                    continue
-                if (overall == local).any():
-                    # Some of local is in overall
-                    self._some_overlap.append(grid)
-                    continue
-            pbar.update(i)
-        pbar.finish()
-
-    def __repr__(self):
-        # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.ds)
-        s += "["
-        for i, region in enumerate(self.regions):
-            if region in ["OR", "AND", "NOT", "(", ")"]:
-                s += region
-            else:
-                s += region.__repr__()
-            if i < (len(self.regions) - 1): s += ", "
-        s += "]"
-        return s
-
-    def _is_fully_enclosed(self, grid):
-        return (grid in self._all_overlap)
-
-    def _get_list_of_grids(self):
-        self._grids = np.array(self._some_overlap + self._all_overlap,
-            dtype='object')
-
-    def _get_cut_mask(self, grid, field=None):
-        if self._is_fully_enclosed(grid):
-            return True # We do not want child masking here
-        if grid.id in self._cut_masks:
-            return self._cut_masks[grid.id]
-        # If we get this far, we have to generate the cut_mask.
-        return self._get_level_mask(self.regions, grid)
-
-    def _get_level_mask(self, ops, grid):
-        level_masks = []
-        end = 0
-        for i, item in enumerate(ops):
-            if end > 0 and i < end:
-                # We skip over things inside parentheses on this level.
-                continue
-            if isinstance(item, YTDataContainer):
-                # Add this regions cut_mask to level_masks
-                level_masks.append(force_array(item._get_cut_mask(grid),
-                    grid.ActiveDimensions))
-            elif item == "AND" or item == "NOT" or item == "OR":
-                level_masks.append(item)
-            elif item == "(":
-                # recurse down, and we'll append the results, which
-                # should be a single cut_mask
-                open_count = 0
-                for ii, item in enumerate(ops[i + 1:]):
-                    # We look for the matching closing parentheses to find
-                    # where we slice ops.
-                    if item == "(":
-                        open_count += 1
-                    if item == ")" and open_count > 0:
-                        open_count -= 1
-                    elif item == ")" and open_count == 0:
-                        end = i + ii + 1
-                        break
-                level_masks.append(force_array(self._get_level_mask(ops[i + 1:end],
-                    grid), grid.ActiveDimensions))
-                end += 1
-            elif isinstance(item.data, AMRData):
-                level_masks.append(force_array(item.data._get_cut_mask(grid),
-                    grid.ActiveDimensions))
-            else:
-                mylog.error("Item in the boolean construction unidentified.")
-        # Now we do the logic on our level_mask.
-        # There should be no nested logic anymore.
-        # The first item should be a cut_mask,
-        # so that will be our starting point.
-        this_cut_mask = level_masks[0]
-        for i, item in enumerate(level_masks):
-            # I could use a slice above, but I'll keep i consistent instead.
-            if i == 0: continue
-            if item == "AND":
-                # So, the next item in level_masks we want to AND.
-                np.bitwise_and(this_cut_mask, level_masks[i+1], this_cut_mask)
-            if item == "NOT":
-                # It's convenient to remember that NOT == AND NOT
-                np.bitwise_and(this_cut_mask, np.invert(level_masks[i+1]),
-                    this_cut_mask)
-            if item == "OR":
-                np.bitwise_or(this_cut_mask, level_masks[i+1], this_cut_mask)
-        self._cut_masks[grid.id] = this_cut_mask
-        return this_cut_mask

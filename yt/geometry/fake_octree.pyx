@@ -60,7 +60,7 @@ cdef long subdivide(RAMSESOctreeContainer oct_handler,
     print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
     cdef int ddr[3]
     cdef int ii
-    cdef long i,j,k
+    cdef long i
     cdef float rf #random float from 0-1
     if cur_level >= max_level:
         return cur_leaf

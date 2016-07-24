@@ -21,14 +21,15 @@ import numpy as np
 import matplotlib
 import os
 
+from collections import defaultdict
 from functools import wraps
-from matplotlib.font_manager import FontProperties
 
-from ._mpl_imports import FigureCanvasAgg
 from .tick_locators import LogLocator, LinearLocator
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
-    defaultdict, get_image_suffix, \
+    get_image_suffix, \
     get_ipython_api_version, iterable, \
     ensure_list
 from yt.utilities.exceptions import \
@@ -181,6 +182,8 @@ class ImagePlotContainer(object):
     _colorbar_valid = False
 
     def __init__(self, data_source, figure_size, fontsize):
+        from matplotlib.font_manager import FontProperties
+
         self.data_source = data_source
         if iterable(figure_size):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
@@ -189,7 +192,8 @@ class ImagePlotContainer(object):
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._field_transform = {}
-        self._colormaps = defaultdict(lambda: 'algae')
+        self._colormaps = defaultdict(
+            lambda: ytcfg.get("yt", "default_colormap"))
         font_path = matplotlib.get_data_path() + '/fonts/ttf/STIXGeneral.ttf'
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
@@ -418,62 +422,61 @@ class ImagePlotContainer(object):
 
     def _set_font_properties(self):
         for f in self.plots:
-            ax = self.plots[f].axes
-            cbax = self.plots[f].cb.ax
-            labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
-            labels += cbax.yaxis.get_ticklabels()
-            labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
-                       cbax.yaxis.label, cbax.yaxis.get_offset_text(),
-                       ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
-            for label in labels:
-                label.set_fontproperties(self._font_properties)
-                if self._font_color is not None:
-                    label.set_color(self._font_color)
+            self.plots[f]._set_font_properties(
+                self._font_properties, self._font_color)
 
     @invalidate_plot
     @invalidate_figure
     def set_font(self, font_dict=None):
-        """set the font and font properties
+        """
+
+        Set the font and font properties.
 
         Parameters
         ----------
+
         font_dict : dict
-        A dict of keyword parameters to be passed to
-        :py:class:`matplotlib.font_manager.FontProperties`.
+            A dict of keyword parameters to be passed to 
+            :class:`matplotlib.font_manager.FontProperties`.
 
-        Possible keys include
-        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
-          'monospace'.
-        * style - The font style. Either normal, italic or oblique.
-        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
-          'orange'.
-        * variant: Either normal or small-caps.
-        * size: Either an relative value of xx-small, x-small, small, medium,
-          large, x-large, xx-large or an absolute font size, e.g. 12
-        * stretch: A numeric value in the range 0-1000 or one of
-          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
-          semi-expanded, expanded, extra-expanded or ultra-expanded
-        * weight: A numeric value in the range 0-1000 or one of ultralight,
-          light, normal, regular, book, medium, roman, semibold, demibold, demi,
-          bold, heavy, extra bold, or black
+            Possible keys include:
 
-        See the matplotlib font manager API documentation for more details.
-        http://matplotlib.org/api/font_manager_api.html
+            * family - The font family. Can be serif, sans-serif, cursive,
+              'fantasy' or 'monospace'.
+            * style - The font style. Either normal, italic or oblique.
+            * color - A valid color string like 'r', 'g', 'red', 'cobalt',
+              and 'orange'.
+            * variant - Either normal or small-caps.
+            * size - Either a relative value of xx-small, x-small, small,
+              medium, large, x-large, xx-large or an absolute font size, e.g. 12
+            * stretch - A numeric value in the range 0-1000 or one of
+              ultra-condensed, extra-condensed, condensed, semi-condensed,
+              normal, semi-expanded, expanded, extra-expanded or ultra-expanded
+            * weight - A numeric value in the range 0-1000 or one of ultralight,
+              light, normal, regular, book, medium, roman, semibold, demibold,
+              demi, bold, heavy, extra bold, or black
+
+            See the matplotlib font manager API documentation for more details.
+            http://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
+
         Mathtext axis labels will only obey the `size` and `color` keyword.
 
         Examples
         --------
+
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
         >>> slc = SlicePlot(ds, 'x', 'Density')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24, 'color':'blue'})
+        ...               'weight':'bold', 'size':24, 'color':'blue'})
 
         """
+        from matplotlib.font_manager import FontProperties
+
         if font_dict is None:
             font_dict = {}
         if 'color' in font_dict:
@@ -585,6 +588,7 @@ class ImagePlotContainer(object):
 
     @validate_plot
     def _send_zmq(self):
+        from ._mpl_imports import FigureCanvasAgg
         try:
             # pre-IPython v1.0
             from IPython.zmq.pylab.backend_inline import send_figure as display

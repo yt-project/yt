@@ -1,9 +1,9 @@
-# You must run this job in parallel.  
+# You must run this job in parallel.
 # There are several mpi flags which can be useful in order for it to work OK.
-# It requires at least 3 processors in order to run because of the way in which 
-# rockstar divides up the work.  Make sure you have mpi4py installed as per 
+# It requires at least 3 processors in order to run because of the way in which
+# rockstar divides up the work.  Make sure you have mpi4py installed as per
 # http://yt-project.org/docs/dev/analyzing/parallel_computation.html#setting-up-parallel-yt
-    
+
 # Usage: mpirun -np <num_procs> --mca btl ^openib python this_script.py
 
 import yt
@@ -47,16 +47,18 @@ ds.add_particle_filter('max_res_dark_matter')
 
 # If desired, we can see the total number of DM and High-res DM particles
 #if yt.is_root():
-#    print "Simulation has %d DM particles." % ad['dark_matter','particle_type'].shape
-#    print "Simulation has %d Highest Res DM particles." % ad['max_res_dark_matter', 'particle_type'].shape
+#    print("Simulation has %d DM particles." %
+#          ad['dark_matter','particle_type'].shape)
+#    print("Simulation has %d Highest Res DM particles." %
+#          ad['max_res_dark_matter', 'particle_type'].shape)
 
-# Run the halo catalog on the dataset only on the highest resolution dark matter 
+# Run the halo catalog on the dataset only on the highest resolution dark matter
 # particles
 hc = HaloCatalog(data_ds=ds, finder_method='rockstar', \
                  finder_kwargs={'dm_only':True, 'particle_type':'max_res_dark_matter'})
 hc.create()
 
-# Or alternatively, just run the RockstarHaloFinder and later import the 
+# Or alternatively, just run the RockstarHaloFinder and later import the
 # output file as necessary.  You can skip this step if you've already run it
 # once, but be careful since subsequent halo finds will overwrite this data.
 #rhf = RockstarHaloFinder(ds, particle_type="max_res_dark_matter")

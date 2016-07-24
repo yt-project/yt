@@ -1,0 +1,30 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<!-- Leaflet JavaScript -->
+<script type="text/javascript" src="/leaflet/leaflet.js"></script>
+<link rel="stylesheet" href="/leaflet/leaflet.css" />
+<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.1/jquery.min.js"></script>
+<script type="text/javascript">
+  $(document).ready(function() {
+      // initialize the map on the "map" div with a given center and zoom 
+      $("#map").width($(window).width());
+      $("#map").height($(window).height());
+      var map = new L.Map('map', {
+                    center: new L.LatLng(0.0, 0.0),
+                    zoom: 0,
+                });
+
+      // create a CloudMade tile layer
+      var cloudmadeUrl = 'map/{z}/{x}/{y}.png';
+      cloudmade = new L.TileLayer(cloudmadeUrl, {maxZoom: 18});
+
+      // add the CloudMade layer to the map
+      map.addLayer(cloudmade);
+      });
+</script>
+</HEAD>
+<BODY>
+  <DIV id="map" style="height: 512px; width: 512px;"></div>
+</BODY>
+</HTML>

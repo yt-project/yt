@@ -1,6 +1,27 @@
+"""
+Tests for neighbor finding
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+import numpy as np
+
 from yt.fields.particle_fields import \
     add_nearest_neighbor_field
-from yt.testing import *
+from yt.testing import \
+    fake_particle_ds, \
+    assert_equal, \
+    assert_array_almost_equal
+
 
 def test_neighbor_search():
     np.random.seed(0x4d3d3d3)
@@ -26,7 +47,6 @@ def test_neighbor_search():
             DR[DRo < -ds.domain_width[j]/2.0] += ds.domain_width[j]
             r2 += DR*DR
         radius = np.sqrt(r2)
-        iii = np.argsort(radius)
         radius.sort()
         assert(radius[0] == 0.0)
         all_neighbors[i] = radius[63]

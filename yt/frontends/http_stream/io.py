@@ -17,23 +17,22 @@ from __future__ import print_function
 
 import numpy as np
 
+from yt.funcs import \
+    get_requests, \
+    mylog
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
-     compute_morton
-
-try:
-    import requests
-except ImportError:
-    requests = None
+    compute_morton
 
 class IOHandlerHTTPStream(BaseIOHandler):
     _dataset_type = "http_particle_stream"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
     def __init__(self, ds):
-        if requests is None:
-            raise RuntimeError
+        if get_requests() is None:
+            raise ImportError(
+                "This functionality depends on the requests package")
         self._url = ds.base_url
         # This should eventually manage the IO and cache it
         self.total_bytes = 0
@@ -45,6 +44,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         s = "%s/%s/%s/%s" % (self._url,
             data_file.file_id, ftype, fname)
         mylog.info("Loading URL %s", s)
+        requests = get_requests()
         resp = requests.get(s)
         if resp.status_code != 200:
             raise RuntimeError

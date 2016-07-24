@@ -19,16 +19,12 @@ import numpy as np
 from yt.utilities.physical_constants import \
     boltzmann_constant_cgs, \
     mass_hydrogen_cgs, \
-    mass_sun_cgs, \
     mh
 from yt.utilities.linear_interpolators import \
     BilinearFieldInterpolator
 import yt.utilities.fortran_utils as fpu
-from yt.funcs import mylog
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"
@@ -94,7 +90,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
             return rv
         self.add_field(("gas", "temperature"), function=_temperature,
-                        units="K")
+                        units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
 
     def create_cooling_fields(self):

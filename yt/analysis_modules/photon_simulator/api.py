@@ -16,7 +16,9 @@ from .photon_models import \
 
 from .photon_simulator import \
      PhotonList, \
-     EventList
+     EventList, \
+     merge_files, \
+     convert_old_file
 
 from .spectral_models import \
      SpectralModel, \

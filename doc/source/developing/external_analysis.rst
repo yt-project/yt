@@ -89,8 +89,8 @@ Here is the ``axes.h`` file in our imaginary code, which we will then wrap:
         double *ypos;
         double *zpos;
    } ParticleCollection;
-   
-   void calculate_axes(ParticleCollection *part, 
+
+   void calculate_axes(ParticleCollection *part,
             double *ax1, double *ax2, double *ax3);
 
 There are several components to this analysis routine which we will have to
@@ -152,7 +152,7 @@ Here's a rough outline of what should go in ``axes_calculator_setup.py``:
    )
 
 The only variables you should have to change in this are the first six, and
-possibly only the first one.  We'll go through these variables one at a time.  
+possibly only the first one.  We'll go through these variables one at a time.
 
 ``NAME``
    This is the name of our source file, minus the ``.pyx``.  We're also

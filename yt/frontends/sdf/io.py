@@ -15,17 +15,14 @@ SDF data-file handling function
 #-----------------------------------------------------------------------------
 
 import numpy as np
-from yt.funcs import *
-from yt.utilities.exceptions import *
-from yt.units.yt_array import YTArray
 
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-from yt.utilities.fortran_utils import read_record
+from yt.funcs import mylog
+from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.lib.geometry_utils import compute_morton
 
-from yt.geometry.oct_container import _ORDER_MAX
 CHUNKSIZE = 32**3
 
 class IOHandlerSDF(BaseIOHandler):
@@ -48,7 +45,6 @@ class IOHandlerSDF(BaseIOHandler):
                 data_files.update(obj.data_files)
         assert(len(data_files) == 1)
         for data_file in sorted(data_files):
-            pcount = self._handle['x'].size
             yield "dark_matter", (
                 self._handle['x'], self._handle['y'], self._handle['z'])
 
@@ -62,7 +58,6 @@ class IOHandlerSDF(BaseIOHandler):
                 data_files.update(obj.data_files)
         assert(len(data_files) == 1)
         for data_file in sorted(data_files):
-            pcount = self._handle['x'].size
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle['x']
                 y = self._handle['y']

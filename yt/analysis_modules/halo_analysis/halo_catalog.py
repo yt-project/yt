@@ -13,7 +13,7 @@ HaloCatalog object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
@@ -35,6 +35,8 @@ from .halo_finding_methods import \
     finding_method_registry
 from .halo_quantities import \
     quantity_registry
+from .halo_recipes import \
+    recipe_registry
 
 class HaloCatalog(ParallelAnalysisInterface):
     r"""Create a HaloCatalog: an object that allows for the creation and association
@@ -96,7 +98,7 @@ class HaloCatalog(ParallelAnalysisInterface):
 
     See Also
     --------
-    add_callback, add_filter, add_finding_method, add_quantity
+    add_callback, add_filter, add_quantity, add_recipe
 
     """
 
@@ -138,7 +140,7 @@ class HaloCatalog(ParallelAnalysisInterface):
         self.actions = []
         # fields to be written to the halo catalog
         self.quantities = []
-        if not self.halos_ds is None:
+        if self.halos_ds is not None:
             self.add_default_quantities()
 
     def add_callback(self, callback, *args, **kwargs):
@@ -256,6 +258,45 @@ class HaloCatalog(ParallelAnalysisInterface):
 
         halo_filter = filter_registry.find(halo_filter, *args, **kwargs)
         self.actions.append(("filter", halo_filter))
+
+    def add_recipe(self, recipe, *args, **kwargs):
+        r"""
+        Add a recipe to the halo catalog action list.
+
+        A recipe is an operation consisting of a series of callbacks, quantities,
+        and/or filters called in succession.  Recipes can be used to store a more
+        complex series of analysis tasks as a single entity.
+
+        Currently, the available recipe is ``calculate_virial_quantities``.
+
+        Parameters
+        ----------
+
+        halo_recipe : string
+            The name of the recipe.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> from yt.analysis_modules.halo_analysis.api import HaloCatalog
+        >>>
+        >>> data_ds = yt.load('Enzo_64/RD0006/RedshiftOutput0006')
+        >>> halos_ds = yt.load('rockstar_halos/halos_0.0.bin')
+        >>> hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
+        >>>
+        >>> # Filter out less massive halos
+        >>> hc.add_filter("quantity_value", "particle_mass", ">", 1e14, "Msun")
+        >>>
+        >>> # Calculate virial radii
+        >>> hc.add_recipe("calculate_virial_quantities", ["radius", "matter_mass"])
+        >>>
+        >>> hc.create()
+
+        """
+
+        halo_recipe = recipe_registry.find(recipe, *args, **kwargs)
+        halo_recipe(self)
 
     def create(self, save_halos=False, save_catalog=True, njobs=-1, dynamic=False):
         r"""

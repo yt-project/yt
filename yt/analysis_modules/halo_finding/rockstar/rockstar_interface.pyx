@@ -181,13 +181,8 @@ cdef void rh_read_particles(char *filename, particle **p, np.int64_t *num_p):
     cdef unsigned long long pi,fi,i
     cdef np.int64_t local_parts = 0
     ds = rh.ds = rh.tsl.next()
-    block = int(str(filename).rsplit(".")[-1])
-    n = rh.block_ratio
 
     SCALE_NOW = 1.0/(ds.current_redshift+1.0)
-    # Now we want to grab data from only a subset of the grids for each reader.
-    all_fields = set(ds.derived_field_list + ds.field_list)
-
     # First we need to find out how many this reader is going to read in
     # if the number of readers > 1.
     dd = ds.all_data()
@@ -265,7 +260,7 @@ cdef class RockstarInterface:
         global FILENAME, FILE_FORMAT, NUM_SNAPS, STARTING_SNAP, h0, Ol, Om
         global BOX_SIZE, PERIODIC, PARTICLE_MASS, NUM_BLOCKS, NUM_READERS
         global FORK_READERS_FROM_WRITERS, PARALLEL_IO_WRITER_PORT, NUM_WRITERS
-        global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE
+        global rh, SCALE_NOW, OUTBASE, MIN_HALO_OUTPUT_SIZE, OUTPUT_FORMAT
         global OVERLAP_LENGTH, TOTAL_PARTICLES, FORCE_RES, RESTART_SNAP
         if force_res is not None:
             FORCE_RES=np.float64(force_res)

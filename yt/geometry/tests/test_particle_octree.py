@@ -1,18 +1,39 @@
-from yt.testing import *
+"""
+Tests for particle octree
+
+
+
+"""
+
+#-----------------------------------------------------------------------------
+# Copyright (c) 2013, yt Development Team.
+#
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+#-----------------------------------------------------------------------------
+
+
 import numpy as np
+import time
+
+from yt.frontends.stream.data_structures import load_particles
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer, \
     ParticleRegions
 from yt.geometry.oct_container import _ORDER_MAX
-from yt.utilities.lib.geometry_utils import get_morton_indices
-from yt.frontends.stream.api import load_particles
 from yt.geometry.selection_routines import RegionSelector, AlwaysSelector
+from yt.testing import \
+    assert_equal, \
+    requires_file
 from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray
+from yt.utilities.lib.geometry_utils import get_morton_indices
+
 import yt.units.dimensions as dimensions
 import yt.data_objects.api
-import time, os
 
 NPART = 32**3
 DLE = np.array([0.0, 0.0, 0.0])
@@ -77,7 +98,6 @@ def test_save_load_octree():
 def test_particle_octree_counts():
     np.random.seed(int(0x4d3d3d3))
     # Eight times as many!
-    pos = []
     data = {}
     bbox = []
     for i, ax in enumerate('xyz'):
@@ -98,7 +118,6 @@ def test_particle_octree_counts():
 
 def test_particle_overrefine():
     np.random.seed(int(0x4d3d3d3))
-    pos = []
     data = {}
     bbox = []
     for i, ax in enumerate('xyz'):
@@ -124,6 +143,21 @@ def test_particle_overrefine():
                 yield assert_equal, v1[a].size * f, v2[a].size
             cv2 = dd2["cell_volume"].sum(dtype="float64")
             yield assert_equal, cv1, cv2
+
+index_ptype_snap = "snapshot_033/snap_033.0.hdf5"
+@requires_file(index_ptype_snap)
+def test_particle_index_ptype():
+    ds = yt.load(index_ptype_snap)
+    ds_all = yt.load(index_ptype_snap, index_ptype="all")
+    ds_pt0 = yt.load(index_ptype_snap, index_ptype="PartType0")
+    dd = ds.all_data()
+    dd_all = ds_all.all_data()
+    dd_pt0 = ds_pt0.all_data()
+    cv = dd["cell_volume"]
+    cv_all = dd_all["cell_volume"]
+    cv_pt0 = dd_pt0["cell_volume"]
+    yield assert_equal, cv.shape, cv_all.shape
+    yield assert_equal, cv.sum(dtype="float64"), cv_pt0.sum(dtype="float64")
 
 class FakeDS:
     domain_left_edge = None
@@ -189,6 +223,24 @@ if __name__=="__main__":
     for i in test_add_particles_random():
         i[0](*i[1:])
     time.sleep(1)
+
+def test_position_location():
+    np.random.seed(int(0x4d3d3d3))
+    pos = np.random.normal(0.5, scale=0.05, size=(NPART,3)) * (DRE-DLE) + DLE
+    # Now convert to integers
+    data = {}
+    bbox = []
+    for i, ax in enumerate('xyz'):
+        np.clip(pos[:,i], DLE[i], DRE[i], pos[:,i])
+        bbox.append([DLE[i], DRE[i]])
+        data["particle_position_%s" % ax] = pos[:,i]
+    bbox = np.array(bbox)
+    ds = load_particles(data, 1.0, bbox = bbox, over_refine_factor = 2)
+    oct_id, all_octs = ds.index.oct_handler.locate_positions(pos)
+    for oi in sorted(all_octs):
+        this_oct = pos[oct_id == oi]
+        assert(np.all(this_oct >= all_octs[oi]["left_edge"]))
+        assert(np.all(this_oct <= all_octs[oi]["right_edge"]))
 
 os33 = "snapshot_033/snap_033.0.hdf5"
 @requires_file(os33)

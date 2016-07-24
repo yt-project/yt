@@ -15,24 +15,30 @@ ART-specific IO
 
 
 import numpy as np
-import struct
 import os
 import os.path
 import sys
+
+from collections import defaultdict
+
 if sys.version_info >= (3,0,0):
     long = int
-    
-from yt.funcs import *
+
+from yt.frontends.art.definitions import \
+    particle_star_fields, \
+    particle_fields, \
+    star_struct, \
+    hydro_struct
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.utilities.fortran_utils import *
 from yt.utilities.logger import ytLogger as mylog
-from yt.frontends.art.definitions import *
-from yt.utilities.physical_constants import sec_per_year
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.geometry.oct_container import _ORDER_MAX
-from yt.units.yt_array import YTQuantity
-
+from yt.utilities.fortran_utils import \
+    read_vector, \
+    skip
+from yt.units.yt_array import \
+    YTQuantity, \
+    YTArray
 
 class IOHandlerART(BaseIOHandler):
     _dataset_type = "art"
@@ -80,7 +86,6 @@ class IOHandlerART(BaseIOHandler):
         key = (selector, ftype)
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
-        ds = self.ds
         pstr = 'particle_position_%s'
         x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
         mask = selector.select_points(x, y, z, 0.0)
@@ -120,7 +125,7 @@ class IOHandlerART(BaseIOHandler):
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, 
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype,
                                                   self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
@@ -178,7 +183,7 @@ class IOHandlerART(BaseIOHandler):
             # dark_matter -- stars are regular matter.
             tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
-            tr = dict((f, np.array([])) for f in fields)
+            tr = dict((f, np.array([])) for f in [field])
         if self.caching:
             self.cache[field] = tr[field]
             return self.cache[field]
@@ -195,7 +200,6 @@ class IOHandlerDarkMatterART(IOHandlerART):
         count = data_file.ds.parameters['lspecies'][-1]
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
-        dx = (DRE - DLE) / 2**_ORDER_MAX
         with open(data_file.filename, "rb") as f:
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = '>f4', count = totcount*3)
@@ -209,7 +213,6 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
     def _identify_fields(self, domain):
         field_list = []
-        tp = domain.total_particles
         self.particle_field_list = [f for f in particle_fields]
         for ptype in self.ds.particle_types_raw:
             for pfield in self.particle_field_list:
@@ -225,7 +228,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, 
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype,
                                                   self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
@@ -258,17 +261,6 @@ class IOHandlerDarkMatterART(IOHandlerART):
                     data[a: a + size] = i
                     a += size
             tr[field] = data
-        if fname == "particle_creation_time":
-            self.tb, self.ages, data = interpolate_ages(
-                tr[field][-nstars:],
-                self.file_stars,
-                self.tb,
-                self.ages,
-                self.ds.current_time)
-            temp = tr.get(field, np.zeros(npa, 'f8'))
-            temp[-nstars:] = data
-            tr[field] = temp
-            del data
         # We check again, after it's been filled
         if fname.startswith("particle_mass"):
             # We now divide by NGrid in order to make this match up.  Note that
@@ -356,7 +348,6 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     # ioct always represents the index of the next variable
     # not the current, so shift forward one index
     # the last index isn't used
-    ioctso = iocts.copy()
     iocts[1:] = iocts[:-1]  # shift
     iocts = iocts[:nLevel]  # chop off the last, unused, index
     iocts[0] = iOct  # starting value
@@ -400,11 +391,11 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     # Posy   = d_x * (iOctPs(2,iO) + sign ( id , idelta(j,2) ))
     # Posz   = d_x * (iOctPs(3,iO) + sign ( id , idelta(j,3) ))
     # idelta = [[-1,  1, -1,  1, -1,  1, -1,  1],
-              #[-1, -1,  1,  1, -1, -1,  1,  1],
-              #[-1, -1, -1, -1,  1,  1,  1,  1]]
+    #           [-1, -1,  1,  1, -1, -1,  1,  1],
+    #           [-1, -1, -1, -1,  1,  1,  1,  1]]
     # idelta = np.array(idelta)
     # if ncell0 is None:
-        # ncell0 = coarse_grid**3
+    #     ncell0 = coarse_grid**3
     # nchild = 8
     # ndim = 3
     # nshift = nchild -1
@@ -424,15 +415,13 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     f.seek(pos)
     return unitary_center, fl, iocts, nLevel, root_level
 
-def get_ranges(skip, count, field, words=6, real_size=4, np_per_page=4096**2, 
+def get_ranges(skip, count, field, words=6, real_size=4, np_per_page=4096**2,
                   num_pages=1):
     #translate every particle index into a file position ranges
     ranges = []
     arr_size = np_per_page * real_size
-    page_size = words * np_per_page * real_size
     idxa, idxb = 0, 0
     posa, posb = 0, 0
-    left = count
     for page in range(num_pages):
         idxb += np_per_page
         for i, fname in enumerate(['x', 'y', 'z', 'vx', 'vy', 'vz']):
@@ -462,7 +451,7 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     num_pages = os.path.getsize(file)/(real_size*words*np_per_page)
     fh = open(file, 'r')
     skip, count = idxa, idxb - idxa
-    kwargs = dict(words=words, real_size=real_size, 
+    kwargs = dict(words=words, real_size=real_size,
                   np_per_page=np_per_page, num_pages=num_pages)
     arrs = []
     for field in fields:
@@ -495,7 +484,6 @@ def read_star_field(file, field=None):
 
 def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
     f.seek(level_child_offsets[level])
-    nvals = nLevel * (nhydro_vars + 6)  # 2 vars, 2 pads
     ioctch = np.zeros(nLevel, dtype='uint8')
     idc = np.zeros(nLevel, dtype='int32')
 
@@ -639,8 +627,6 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
         return a2t(b2a(tb))
     if len(tb) < n:
         n = len(tb)
-    age_min = a2t(b2a(tb.max(), **kwargs), **kwargs)
-    age_max = a2t(b2a(tb.min(), **kwargs), **kwargs)
     tbs = -1.*np.logspace(np.log10(-tb.min()),
                           np.log10(-tb.max()), n)
     ages = []

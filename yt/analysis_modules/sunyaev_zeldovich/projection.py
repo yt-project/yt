@@ -18,12 +18,14 @@ Chluba, Switzer, Nagai, Nelson, MNRAS, 2012, arXiv:1211.3206
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.config import \
+    ytcfg
 from yt.utilities.physical_constants import sigma_thompson, clight, hcgs, kboltz, mh, Tcmb
-from yt.units.yt_array import YTQuantity
-from yt.funcs import fix_axis, mylog, iterable, get_pbar
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.funcs import fix_axis, get_pbar
+from yt.visualization.volume_rendering.off_axis_projection import \
+    off_axis_projection
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
-     communication_system, parallel_root_only
+    communication_system, parallel_root_only
 from yt import units
 from yt.utilities.on_demand_imports import _astropy
 
@@ -236,7 +238,8 @@ class SZProjection(object):
         nx : integer, optional
             The dimensions on a side of the projection image.
         nz : integer, optional
-            The number of elements along the integration path length.
+            Deprecated, this is still in the function signature for API
+            compatibility
         north_vector : a sequence of floats
             A vector defining the 'up' direction in the plot.  This
             option sets the orientation of the slicing plane.  If not
@@ -250,8 +253,8 @@ class SZProjection(object):
             less notable when the transfer function is smooth and
             broad. Default: True
         source : yt.data_objects.data_containers.YTSelectionContainer, optional
-            If specified, this will be the data source used for selecting regions to project.
-            Currently unsupported in yt 2.x.
+            If specified, this will be the data source used for selecting regions 
+            to project.
 
         Examples
         --------
@@ -261,32 +264,31 @@ class SZProjection(object):
         wd = self.ds.coordinates.sanitize_width(L, width, depth)
         w = tuple(el.in_units('code_length').v for el in wd)
         ctr, dctr = self.ds.coordinates.sanitize_center(center, L)
-        res = (nx, nx, nz)
+        res = (nx, nx)
 
-        if source is not None:
-            mylog.error("Source argument is not currently supported for off-axis S-Z projections.")
-            raise NotImplementedError
+        if source is None:
+            source = self.ds
 
         beta_par = generate_beta_par(L)
         self.ds.add_field(("gas","beta_par"), function=beta_par, units="g/cm**3")
         setup_sunyaev_zeldovich_fields(self.ds)
 
-        dens = off_axis_projection(self.ds, ctr, L, w, res, "density",
+        dens = off_axis_projection(source, ctr, L, w, res, "density",
                                    north_vector=north_vector, no_ghost=no_ghost)
-        Te = off_axis_projection(self.ds, ctr, L, w, res, "t_sz",
+        Te = off_axis_projection(source, ctr, L, w, res, "t_sz",
                                  north_vector=north_vector, no_ghost=no_ghost)/dens
-        bpar = off_axis_projection(self.ds, ctr, L, w, res, "beta_par",
+        bpar = off_axis_projection(source, ctr, L, w, res, "beta_par",
                                    north_vector=north_vector, no_ghost=no_ghost)/dens
-        omega1 = off_axis_projection(self.ds, ctr, L, w, res, "t_squared",
+        omega1 = off_axis_projection(source, ctr, L, w, res, "t_squared",
                                      north_vector=north_vector, no_ghost=no_ghost)/dens
         omega1 = omega1/(Te*Te) - 1.
         if self.high_order:
-            bperp2 = off_axis_projection(self.ds, ctr, L, w, res, "beta_perp_squared", 
+            bperp2 = off_axis_projection(source, ctr, L, w, res, "beta_perp_squared", 
                                          north_vector=north_vector, no_ghost=no_ghost)/dens
-            sigma1 = off_axis_projection(self.ds, ctr, L, w, res, "t_beta_par", 
+            sigma1 = off_axis_projection(source, ctr, L, w, res, "t_beta_par", 
                                          north_vector=north_vector, no_ghost=no_ghost)/dens
             sigma1 = sigma1/Te - bpar
-            kappa1 = off_axis_projection(self.ds, ctr, L, w, res, "beta_par_squared", 
+            kappa1 = off_axis_projection(source, ctr, L, w, res, "beta_par_squared", 
                                          north_vector=north_vector, no_ghost=no_ghost)/dens
             kappa1 -= bpar
         else:
@@ -391,7 +393,7 @@ class SZProjection(object):
         fib.writeto(filename, clobber=clobber)
 
     @parallel_root_only
-    def write_png(self, filename_prefix, cmap_name="algae",
+    def write_png(self, filename_prefix, cmap_name=None,
                   axes_units="kpc", log_fields=None):
         r""" Export images to PNG files. Writes the SZ distortion in all
         specified frequencies as well as the mass-weighted temperature and the
@@ -406,6 +408,9 @@ class SZProjection(object):
         --------
         >>> szprj.write_png("SZsloshing")
         """
+        if cmap_name is None:
+            cmap_name = ytcfg.get("yt", "default_colormap")
+        
         import matplotlib
         matplotlib.use('Agg')
         import matplotlib.pyplot as plt

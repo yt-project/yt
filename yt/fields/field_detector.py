@@ -15,16 +15,10 @@ The field detector.
 
 import numpy as np
 from collections import defaultdict
-from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray
 from .field_exceptions import \
-    ValidationException, \
     NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    FieldUnitsError
+    NeedsParameterValue
 
 class FieldDetector(defaultdict):
     Level = 1
@@ -33,7 +27,7 @@ class FieldDetector(defaultdict):
     _id_offset = 0
     domain_id = 0
 
-    def __init__(self, nd = 16, ds = None, flat = False):
+    def __init__(self, nd = 16, ds = None, flat = False, field_parameters=None):
         self.nd = nd
         self.flat = flat
         self._spatial = not flat
@@ -43,6 +37,7 @@ class FieldDetector(defaultdict):
         self.LeftEdge = [0.0, 0.0, 0.0]
         self.RightEdge = [1.0, 1.0, 1.0]
         self.dds = np.ones(3, "float64")
+        self.field_parameters = field_parameters
         class fake_dataset(defaultdict):
             pass
 
@@ -87,27 +82,18 @@ class FieldDetector(defaultdict):
         return arr.reshape(self.ActiveDimensions, order="C")
 
     def __missing__(self, item):
-        if hasattr(self.ds, "field_info"):
-            if not isinstance(item, tuple):
-                field = ("unknown", item)
-                finfo = self.ds._get_field_info(*field)
-                #mylog.debug("Guessing field %s is %s", item, finfo.name)
-            else:
-                field = item
-            finfo = self.ds._get_field_info(*field)
-            # For those cases where we are guessing the field type, we will
-            # need to re-update -- otherwise, our item will always not have the
-            # field type.  This can lead to, for instance, "unknown" particle
-            # types not getting correctly identified.
-            # Note that the *only* way this works is if we also fix our field
-            # dependencies during checking.  Bug #627 talks about this.
-            item = self.ds._last_freq
+        if not isinstance(item, tuple):
+            field = ("unknown", item)
         else:
-            FI = getattr(self.ds, "field_info", FieldInfo)
-            if item in FI:
-                finfo = FI[item]
-            else:
-                finfo = None
+            field = item
+        finfo = self.ds._get_field_info(*field)
+        # For those cases where we are guessing the field type, we will
+        # need to re-update -- otherwise, our item will always not have the
+        # field type.  This can lead to, for instance, "unknown" particle
+        # types not getting correctly identified.
+        # Note that the *only* way this works is if we also fix our field
+        # dependencies during checking.  Bug #627 talks about this.
+        item = self.ds._last_freq
         if finfo is not None and finfo._function.__name__ != 'NullFunc':
             try:
                 vv = finfo(self)
@@ -122,6 +108,32 @@ class FieldDetector(defaultdict):
                 for i in nfd.requested_parameters:
                     if i not in self.requested_parameters:
                         self.requested_parameters.append(i)
+            except NeedsParameterValue as npv:
+                # redo field detection with a new FieldDetector, ensuring
+                # all needed field parameter values are set
+                for param in npv.parameter_values:
+                    # temporarily remove any ValidateParameter instances for
+                    # this field to avoid infinitely re-raising
+                    # NeedsParameterValue exceptions
+                    saved_validators = []
+                    for i, validator in enumerate(finfo.validators):
+                        params = getattr(validator, 'parameters', [])
+                        if param in params:
+                            saved_validators.append(validator)
+                            del finfo.validators[i]
+
+                    for pv in npv.parameter_values[param]:
+                        nfd = FieldDetector(self.nd, ds=self.ds,
+                                            field_parameters={param: pv})
+                        vv = finfo(nfd)
+                        for i in nfd.requested:
+                            if i not in self.requested:
+                                self.requested.append(i)
+                        for i in nfd.requested_parameters:
+                            if i not in self.requested_parameters:
+                                self.requested_parameters.append(i)
+
+                    finfo.validators.extend(saved_validators)
             if vv is not None:
                 if not self.flat: self[item] = vv
                 else: self[item] = vv.ravel()
@@ -171,10 +183,7 @@ class FieldDetector(defaultdict):
 
     def _read_data(self, field_name):
         self.requested.append(field_name)
-        if hasattr(self.ds, "field_info"):
-            finfo = self.ds._get_field_info(*field_name)
-        else:
-            finfo = FieldInfo[field_name]
+        finfo = self.ds._get_field_info(*field_name)
         if finfo.particle_type:
             self.requested.append(field_name)
             return np.ones(self.NumberOfParticles)
@@ -195,6 +204,8 @@ class FieldDetector(defaultdict):
         }
 
     def get_field_parameter(self, param, default = 0.0):
+        if self.field_parameters and param in self.field_parameters:
+            return self.field_parameters[param]
         self.requested_parameters.append(param)
         if param in ['bulk_velocity', 'center', 'normal']:
             return self.ds.arr(np.random.random(3) * 1e-2, self.fp_units[param])
@@ -237,6 +248,13 @@ class FieldDetector(defaultdict):
             fc.shape = (self.nd*self.nd*self.nd, 3)
         else:
             fc = fc.transpose()
+        return self.ds.arr(fc, input_units = "code_length")
+
+    @property
+    def fcoords_vertex(self):
+        fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
+        if self.flat:
+            fc.shape = (self.nd*self.nd*self.nd, 8, 3)
         return self.ds.arr(fc, input_units = "code_length")
 
     @property

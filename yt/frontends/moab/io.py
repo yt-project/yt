@@ -37,7 +37,7 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
             rv[field] = np.empty(size, dtype=fhandle[field_dname(fname)].dtype)
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [fname for ftype, fname in fields], ngrids)
+                    size, [fname for ft, fn in fields], ngrids)
         for field in fields:
             ftype, fname = field
             ds = np.array(fhandle[field_dname(fname)][:], dtype="float64")
@@ -53,10 +53,8 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         assert(len(chunks) == 1)
-        tags = {}
         rv = {}
         pyne_mesh = self.ds.pyne_mesh
-        mesh = pyne_mesh.mesh
         for field in fields:
             rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)

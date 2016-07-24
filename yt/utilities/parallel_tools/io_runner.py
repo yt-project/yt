@@ -13,7 +13,6 @@ A simple IO staging mechanism
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os
 import np
 from yt.utilities.logger import ytLogger as mylog
 from .parallel_analysis_interface import \

@@ -20,9 +20,15 @@ import unittest
 from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import parameterized, param
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, WIDTH_SPECS
+    assert_fname, WIDTH_SPECS, ATTR_ARGS
+from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \
     fake_particle_ds, assert_array_almost_equal
+from yt.utilities.answer_testing.framework import \
+    requires_ds, \
+    data_dir_load, \
+    PlotWindowAttributeTest, \
+    PhasePlotAttributeTest
 from yt.visualization.api import \
     ParticleProjectionPlot, ParticlePhasePlot
 from yt.units.yt_array import YTArray
@@ -33,6 +39,22 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
+#  override some of the plotwindow ATTR_ARGS
+PROJ_ATTR_ARGS = ATTR_ARGS.copy() 
+PROJ_ATTR_ARGS["set_cmap"] = [(('particle_mass', 'RdBu'), {}), 
+                                  (('particle_mass', 'kamae'), {})]
+PROJ_ATTR_ARGS["set_log"] = [(('particle_mass', False), {})]
+PROJ_ATTR_ARGS["set_zlim"] = [(('particle_mass', 1e-25, 1e-23), {}),
+                                  (('particle_mass', 1e-25, None), 
+                                   {'dynamic_range': 4})]
+
+PHASE_ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}), 
+                               (((5e-29, 5e7), "Hello YT"), {'color':'b'})],
+                   "set_title": [(('particle_mass', 'A phase plot.'), {})],
+                   "set_log": [(('particle_mass', False), {})],
+                   "set_unit": [(('particle_mass', 'Msun'), {})],
+                   "set_xlim": [((-4e7, 4e7), {})],
+                   "set_ylim": [((-4e7, 4e7), {})]}
 
 TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
               'test.ps', 'test.pdf']
@@ -58,6 +80,90 @@ PHASE_FIELDS = [('particle_velocity_x', 'particle_position_z', 'particle_mass'),
                 ('particle_velocity_x', 'particle_velocity_y',
                  ['particle_mass', 'particle_ones'])]
 
+
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+
+@requires_ds(g30, big_data=True)
+def test_particle_projection_answers():
+    '''
+
+    This iterates over the all the plot modification functions in 
+    PROJ_ATTR_ARGS. Each time, it compares the images produced by 
+    ParticleProjectionPlot to the gold standard.
+    
+
+    '''
+
+    plot_field = 'particle_mass'
+    decimals = 12
+    ds = data_dir_load(g30)
+    for ax in 'xyz':
+        for attr_name in PROJ_ATTR_ARGS.keys():
+            for args in PROJ_ATTR_ARGS[attr_name]:
+                test = PlotWindowAttributeTest(ds, plot_field, ax, 
+                                               attr_name,
+                                               args, decimals, 
+                                               'ParticleProjectionPlot')
+                test_particle_projection_answers.__name__ = test.description
+                yield test
+
+
+@requires_ds(g30, big_data=True)
+def test_particle_projection_filter():
+    '''
+
+    This tests particle projection plots for filter fields.
+    
+
+    '''
+
+    def formed_star(pfilter, data):
+        filter = data["all", "creation_time"] > 0
+        return filter
+
+    add_particle_filter("formed_star", function=formed_star, filtered_type='all',
+                        requires=["creation_time"])
+
+    plot_field = ('formed_star', 'particle_mass')
+
+    decimals = 12
+    ds = data_dir_load(g30)
+    ds.add_particle_filter('formed_star')
+    for ax in 'xyz':
+        attr_name = "set_log"
+        for args in PROJ_ATTR_ARGS[attr_name]:
+            test = PlotWindowAttributeTest(ds, plot_field, ax,
+                                           attr_name,
+                                           args, decimals,
+                                           'ParticleProjectionPlot')
+            test_particle_projection_filter.__name__ = test.description
+            yield test
+
+
+@requires_ds(g30, big_data=True)
+def test_particle_phase_answers():
+    '''
+
+    This iterates over the all the plot modification functions in 
+    PHASE_ATTR_ARGS. Each time, it compares the images produced by 
+    ParticlePhasePlot to the gold standard.
+
+    '''
+
+    decimals = 12
+    ds = data_dir_load(g30)
+
+    x_field = 'particle_velocity_x'
+    y_field = 'particle_velocity_y'
+    z_field = 'particle_mass'
+    for attr_name in PHASE_ATTR_ARGS.keys():
+        for args in PHASE_ATTR_ARGS[attr_name]:
+            test = PhasePlotAttributeTest(ds, x_field, y_field, z_field,
+                                          attr_name, args, decimals,
+                                          'ParticlePhasePlot')
+                
+            test_particle_phase_answers.__name__ = test.description
+            yield test
 
 class TestParticlePhasePlotSave(unittest.TestCase):
 

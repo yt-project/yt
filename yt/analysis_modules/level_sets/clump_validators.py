@@ -13,9 +13,8 @@ ClumpValidators and callbacks.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
-from yt.utilities.data_point_utilities import FindBindingEnergy
+from yt.utilities.lib.misc_utilities import \
+    gravitational_binding_energy
 from yt.utilities.operator_registry import \
     OperatorRegistry
 from yt.utilities.physical_constants import \
@@ -66,11 +65,12 @@ def _gravitationally_bound(clump, use_thermal_energy=True,
              (bulk_velocity[2] - clump["all", "particle_velocity_z"])**2)).sum()
 
     potential = clump.data.ds.quan(G *
-        FindBindingEnergy(clump["gas", "cell_mass"].in_cgs(),
-                          clump["index", "x"].in_cgs(),
-                          clump["index", "y"].in_cgs(),
-                          clump["index", "z"].in_cgs(),
-                          truncate, (kinetic / G).in_cgs()),
+        gravitational_binding_energy(
+            clump["gas", "cell_mass"].in_cgs(),
+            clump["index", "x"].in_cgs(),
+            clump["index", "y"].in_cgs(),
+            clump["index", "z"].in_cgs(),
+            truncate, (kinetic / G).in_cgs()),
         kinetic.in_cgs().units)
     
     if truncate and potential >= kinetic:
@@ -78,7 +78,7 @@ def _gravitationally_bound(clump, use_thermal_energy=True,
 
     if use_particles:
         potential += clump.data.ds.quan(G *
-            FindBindingEnergy(
+            gravitational_binding_energy(
                 clump["all", "particle_mass"].in_cgs(),
                 clump["all", "particle_position_x"].in_cgs(),
                 clump["all", "particle_position_y"].in_cgs(),

@@ -1,3 +1,5 @@
+.. _photon_simulator:
+
 Constructing Mock X-ray Observations
 ------------------------------------
 
@@ -11,7 +13,7 @@ simulated X-ray photon lists of events from datasets that yt is able
 to read. The simulated events then can be exported to X-ray telescope
 simulators to produce realistic observations or can be analyzed in-line.
 
-For detailed information about the design of the algorithm in yt, check 
+For detailed information about the design of the algorithm in yt, check
 out `the SciPy 2014 Proceedings. <http://conference.scipy.org/proceedings/scipy2014/zuhone.html>`_.
 
 The algorithm is based off of that implemented in
@@ -43,7 +45,7 @@ cluster to get you started.
 
   Currently, the ``photon_simulator`` analysis module only works with grid-based
   data.
-  
+
 Creating an X-ray observation of a dataset on disk
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -97,10 +99,9 @@ cold fronts.
    To work out the following examples, you should install
    `AtomDB <http://www.atomdb.org>`_ and get the files from the
    `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ auxiliary
-   data package (see the ``xray_data`` `README <xray_data_README.html>`_ 
-   for details on the latter). Make sure that
-   in what follows you specify the full path to the locations of these
-   files.
+   data package (see the :ref:`xray_data_README` for details on the latter). 
+   Make sure that in what follows you specify the full path to the locations 
+   of these files.
 
 To generate photons from this dataset, we have several different things
 we need to set up. The first is a standard yt data object. It could
@@ -132,7 +133,7 @@ here:
 
 .. code:: python
 
-    apec_model = TableApecModel("atomdb_v2.0.2",
+    apec_model = TableApecModel("$SPECTRAL_DATA/spectral",
                                 0.01, 20.0, 20000,
                                 thermal_broad=False,
                                 apec_vers="2.0.2")
@@ -143,12 +144,12 @@ keV, and the number of linearly-spaced bins to bin the spectrum in. If
 the optional keyword ``thermal_broad`` is set to ``True``, the spectral
 lines will be thermally broadened.
 
-.. note:: 
+.. note::
 
-   ``SpectralModel`` objects based on XSPEC models (both the thermal 
-   emission and Galactic absorption models mentioned below) only work 
-   in Python 2.7, since currently PyXspec only works with Python 2.x. 
-   
+   ``SpectralModel`` objects based on XSPEC models (both the thermal
+   emission and Galactic absorption models mentioned below) only work
+   in Python 2.7, since currently PyXspec only works with Python 2.x.
+
 Now that we have our ``SpectralModel`` that gives us a spectrum, we need
 to connect this model to a ``PhotonModel`` that will connect the field
 data in the ``data_source`` to the spectral model to actually generate
@@ -182,11 +183,11 @@ photon energies are generated from the spectrum. It may be set to one of two val
 * ``method="invert_cdf"``: Construct the cumulative distribution function of the spectrum and invert
   it, using uniformly drawn random numbers to determine the photon energies (fast, but relies
   on construction of the CDF and interpolation between the points, so for some spectra it
-  may not be accurate enough). 
+  may not be accurate enough).
 * ``method="accept_reject"``: Generate the photon energies from the spectrum using an acceptance-rejection
-  technique (accurate, but likely to be slow). 
+  technique (accurate, but likely to be slow).
 
-``method="invert_cdf"`` (the default) should be sufficient for most cases. 
+``method="invert_cdf"`` (the default) should be sufficient for most cases.
 
 Next, we need to specify "fiducial" values for the telescope collecting
 area, exposure time, and cosmological redshift. Remember, the initial
@@ -197,7 +198,7 @@ construct a ``Cosmology`` object:
 
 .. code:: python
 
-    A = 6000.
+    A = 3000.
     exp_time = 4.0e5
     redshift = 0.05
     cosmo = Cosmology()
@@ -215,27 +216,27 @@ By default, the angular diameter distance to the object is determined
 from the ``cosmology`` and the cosmological ``redshift``. If a
 ``Cosmology`` instance is not provided, one will be made from the
 default cosmological parameters. The ``center`` keyword argument specifies
-the center of the photon distribution, and the photon positions will be 
+the center of the photon distribution, and the photon positions will be
 rescaled with this value as the origin. This argument accepts the following
 values:
 
 * A NumPy array or list corresponding to the coordinates of the center in
-  units of code length. 
+  units of code length.
 * A ``YTArray`` corresponding to the coordinates of the center in some
-  length units. 
-* ``"center"`` or ``"c"`` corresponds to the domain center. 
-* ``"max"`` or ``"m"`` corresponds to the location of the maximum gas density. 
+  length units.
+* ``"center"`` or ``"c"`` corresponds to the domain center.
+* ``"max"`` or ``"m"`` corresponds to the location of the maximum gas density.
 * A two-element tuple specifying the max or min of a specific field, e.g.,
   ``("min","gravitational_potential")``, ``("max","dark_matter_density")``
 
-If ``center`` is not specified, ``from_scratch`` will attempt to use the 
-``"center"`` field parameter of the ``data_source``. 
+If ``center`` is not specified, ``from_scratch`` will attempt to use the
+``"center"`` field parameter of the ``data_source``.
 
-``from_scratch`` takes a few other optional keyword arguments. If your 
-source is local to the galaxy, you can set its distance directly, using 
-a tuple, e.g. ``dist=(30, "kpc")``. In this case, the ``redshift`` and 
-``cosmology`` will be ignored. Finally, if the photon generating 
-function accepts any parameters, they can be passed to ``from_scratch`` 
+``from_scratch`` takes a few other optional keyword arguments. If your
+source is local to the galaxy, you can set its distance directly, using
+a tuple, e.g. ``dist=(30, "kpc")``. In this case, the ``redshift`` and
+``cosmology`` will be ignored. Finally, if the photon generating
+function accepts any parameters, they can be passed to ``from_scratch``
 via a ``parameters`` dictionary.
 
 At this point, the ``photons`` are distributed in the three-dimensional
@@ -293,12 +294,12 @@ column density :math:`N_H` as input:
 
 .. code:: python
 
-    N_H = 0.1 
-    abs_model = XSpecAbsorbModel("wabs", N_H)  
+    N_H = 0.1
+    abs_model = XSpecAbsorbModel("wabs", N_H)
 
 The second option, ``TableAbsorbModel``, takes as input an HDF5 file
 containing two datasets, ``"energy"`` (in keV), and ``"cross_section"``
-(in cm2), and the Galactic column density :math:`N_H`:
+(in :math:`cm^2`), and the Galactic column density :math:`N_H`:
 
 .. code:: python
 
@@ -307,65 +308,65 @@ containing two datasets, ``"energy"`` (in keV), and ``"cross_section"``
 Now we're ready to project the photons. First, we choose a line-of-sight
 vector ``normal``. Second, we'll adjust the exposure time and the redshift.
 Third, we'll pass in the absorption ``SpectrumModel``. Fourth, we'll
-specify a ``sky_center`` in RA,DEC on the sky in degrees.
+specify a ``sky_center`` in RA and DEC on the sky in degrees.
 
 Also, we're going to convolve the photons with instrument ``responses``.
 For this, you need a ARF/RMF pair with matching energy bins. This is of
 course far short of a full simulation of a telescope ray-trace, but it's
 a quick-and-dirty way to get something close to the real thing. We'll
 discuss how to get your simulated events into a format suitable for
-reading by telescope simulation codes later. If you just want to convolve 
+reading by telescope simulation codes later. If you just want to convolve
 the photons with an ARF, you may specify that as the only response, but some
 ARFs are unnormalized and still require the RMF for normalization. Check with
 the documentation associated with these files for details. If we are using the
-RMF to convolve energies, we must set ``convolve_energies=True``. 
+RMF to convolve energies, we must set ``convolve_energies=True``.
 
 .. code:: python
 
-    ARF = "chandra_ACIS-S3_onaxis_arf.fits"
-    RMF = "chandra_ACIS-S3_onaxis_rmf.fits"
+    ARF = "acisi_aimpt_cy17.arf"
+    RMF = "acisi_aimpt_cy17.rmf"
     normal = [0.0,0.0,1.0]
-    events = photons.project_photons(normal, exp_time_new=2.0e5, redshift_new=0.07, dist_new=None, 
-                                     absorb_model=abs_model, sky_center=(187.5,12.333), responses=[ARF,RMF], 
+    events = photons.project_photons(normal, exp_time_new=2.0e5, redshift_new=0.07, dist_new=None,
+                                     absorb_model=abs_model, sky_center=(187.5,12.333), responses=[ARF,RMF],
                                      convolve_energies=True, no_shifting=False, north_vector=None,
                                      psf_sigma=None)
 
-In this case, we chose a three-vector ``normal`` to specify an arbitrary 
-line-of-sight, but ``"x"``, ``"y"``, or ``"z"`` could also be chosen to 
-project along one of those axes. 
+In this case, we chose a three-vector ``normal`` to specify an arbitrary
+line-of-sight, but ``"x"``, ``"y"``, or ``"z"`` could also be chosen to
+project along one of those axes.
 
-``project_photons`` takes several other optional keyword arguments. 
+``project_photons`` takes several other optional keyword arguments.
 
-* ``no_shifting`` (default ``False``) controls whether or not Doppler 
-  shifting of photon energies is turned on. 
+* ``no_shifting`` (default ``False``) controls whether or not Doppler
+  shifting of photon energies is turned on.
 * ``dist_new`` is a (value, unit) tuple that is used to set a new
   angular diameter distance by hand instead of having it determined
   by the cosmology and the value of the redshift. Should only be used
-  for simulations of nearby objects. 
-* For off-axis ``normal`` vectors,  the ``north_vector`` argument can 
-  be used to control what vector corresponds to the "up" direction in 
-  the resulting event list. 
-* ``psf_sigma`` may be specified to provide a crude representation of 
-  a PSF, and corresponds to the standard deviation (in degress) of a 
-  Gaussian PSF model. 
+  for simulations of nearby objects.
+* For off-axis ``normal`` vectors,  the ``north_vector`` argument can
+  be used to control what vector corresponds to the "up" direction in
+  the resulting event list.
+* ``psf_sigma`` may be specified to provide a crude representation of
+  a PSF, and corresponds to the standard deviation (in degrees) of a
+  Gaussian PSF model.
 
 Let's just take a quick look at the raw events object:
 
 .. code:: python
 
-    print events
+    print(events)
 
 .. code:: python
 
     {'eobs': YTArray([  0.32086522,   0.32271389,   0.32562708, ...,   8.90600621,
-             9.73534237,  10.21614256]) keV, 
+             9.73534237,  10.21614256]) keV,
      'xsky': YTArray([ 187.5177707 ,  187.4887825 ,  187.50733609, ...,  187.5059345 ,
-            187.49897546,  187.47307048]) degree, 
+            187.49897546,  187.47307048]) degree,
      'ysky': YTArray([ 12.33519996,  12.3544496 ,  12.32750903, ...,  12.34907707,
-            12.33327653,  12.32955225]) degree, 
+            12.33327653,  12.32955225]) degree,
      'ypix': array([ 133.85374195,  180.68583074,  115.14110561, ...,  167.61447493,
-            129.17278711,  120.11508562]), 
-     'PI': array([ 27,  15,  25, ..., 609, 611, 672]), 
+            129.17278711,  120.11508562]),
+     'PI': array([ 27,  15,  25, ..., 609, 611, 672]),
      'xpix': array([  86.26331108,  155.15934197,  111.06337043, ...,  114.39586907,
             130.93509652,  192.50639633])}
 
@@ -415,8 +416,8 @@ according to the unconvolved photon energy:
 We can also set ``bin_type="channel"``. If we have convolved our events
 with response files, then any other keywords will be ignored and it will
 try to make a spectrum from the channel information that is contained
-within the RMF. Otherwise, the channels will be determined from the ``emin``, 
-``emax``, and ``nchan`` keywords, and will be numbered from 1 to ``nchan``. 
+within the RMF. Otherwise, the channels will be determined from the ``emin``,
+``emax``, and ``nchan`` keywords, and will be numbered from 1 to ``nchan``.
 For now, we'll stick with the energy spectrum, and plot it up:
 
 .. code:: python
@@ -468,7 +469,7 @@ Creating a X-ray observation from an in-memory dataset
 
 It may be useful, especially for observational applications, to create
 datasets in-memory and then create simulated observations from
-them. Here is a relevant example of creating a toy cluster and evacuating two AGN-blown bubbles in it. 
+them. Here is a relevant example of creating a toy cluster and evacuating two AGN-blown bubbles in it.
 
 First, we create the in-memory dataset (see :ref:`loading-numpy-array`
 for details on how to do this):
@@ -477,7 +478,8 @@ for details on how to do this):
 
    import yt
    import numpy as np
-   from yt.utilities.physical_constants import cm_per_kpc, K_per_keV, mp
+   from yt.utilities.physical_ratios import cm_per_kpc, K_per_keV
+   from yt.units import mp
    from yt.utilities.cosmology import Cosmology
    from yt.analysis_modules.photon_simulator.api import *
    import aplpy
@@ -485,9 +487,9 @@ for details on how to do this):
    R = 1000. # in kpc
    r_c = 100. # in kpc
    rho_c = 1.673e-26 # in g/cm^3
-   beta = 1. 
+   beta = 1.
    T = 4. # in keV
-   nx = 256 
+   nx = 256
 
    bub_rad = 30.0
    bub_dist = 50.0
@@ -497,7 +499,7 @@ for details on how to do this):
    x, y, z = np.mgrid[-R:R:nx*1j,
                       -R:R:nx*1j,
                       -R:R:nx*1j]
- 
+
    r = np.sqrt(x**2+y**2+z**2)
 
    dens = np.zeros(ddims)
@@ -514,7 +516,7 @@ for details on how to do this):
 This created a cluster with a radius of 1 Mpc, a uniform temperature
 of 4 keV, and a density distribution from a :math:`\beta`-model. We then
 evacuated two "bubbles" of radius 30 kpc at a distance of 50 kpc from
-the center. 
+the center.
 
 Now, we create a yt Dataset object out of this dataset:
 
@@ -539,8 +541,8 @@ example:
 .. code:: python
 
    sphere = ds.sphere("c", (1.0,"Mpc"))
-       
-   A = 6000.
+
+   A = 3000.
    exp_time = 2.0e5
    redshift = 0.05
    cosmo = Cosmology()
@@ -554,8 +556,9 @@ example:
                                      exp_time, thermal_model, center="c")
 
 
-   events = photons.project_photons([0.0,0.0,1.0], 
-                                    responses=["sim_arf.fits","sim_rmf.fits"], 
+   events = photons.project_photons([0.0,0.0,1.0],
+                                    responses=["acisi_aimpt_cy17.arf",
+                                               "acisi_aimpt_cy17.rmf"],
                                     absorb_model=abs_model,
                                     north_vector=[0.0,1.0,0.0])
 
@@ -612,7 +615,7 @@ SIMPUT file:
 
 which will write two files, ``"my_events_phlist.fits"`` and
 ``"my_events_simput.fits"``, the former being a auxiliary file for the
-latter. 
+latter.
 
 .. note:: You can only write SIMPUT files if you didn't convolve
    the photons with responses, since the idea is to pass unconvolved
@@ -625,3 +628,31 @@ SIMX. They are 200 ks observations of the two example clusters from above
 .. image:: _images/ds9_sloshing.png
 
 .. image:: _images/ds9_bubbles.png
+
+In November 2015, the structure of the photon and event HDF5 files changed. To
+convert an old-format file to the new format, use the ``convert_old_file`` utility:
+
+.. code:: python
+
+   from yt.analysis_modules.photon_simulator.api import convert_old_file
+   convert_old_file("old_photons.h5", "new_photons.h5", clobber=True)
+   convert_old_file("old_events.h5", "new_events.h5", clobber=True)
+
+This utility will auto-detect the kind of file (photons or events) and will write
+the correct replacement for the new version.
+
+At times it may be convenient to write several ``EventLists`` to disk to be merged
+together later. This can be achieved with the ``merge_files`` utility. It takes a
+list of
+
+.. code:: python
+
+   from yt.analysis_modules.photon_simulator.api import merge_files
+   merge_files(["events_0.h5", "events_1.h5", "events_2.h5"], "merged_events.h5",
+                add_exposure_times=True, clobber=False)
+
+At the current time this utility is very limited, as it only allows merging of
+``EventLists`` which have the same parameters, with the exception of the exposure
+time. If the ``add_exposure_times`` argument to ``merge_files`` is set to ``True``,
+the lists will be merged together with the exposure times added. Otherwise, the
+exposure times of the different files must be equal.

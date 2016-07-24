@@ -1,7 +1,13 @@
-from yt.testing import *
-from yt.data_objects.profiles import \
-    BinnedProfile1D, BinnedProfile2D, BinnedProfile3D
-from yt.frontends.stream.api import load_particles
+import numpy as np
+
+from yt import \
+    load
+from yt.frontends.stream.data_structures import load_particles
+from yt.testing import \
+    requires_file, \
+    fake_random_ds, \
+    assert_equal, \
+    assert_almost_equal
 
 def setup():
     from yt.config import ytcfg
@@ -50,7 +56,7 @@ def test_covering_grid():
             # Now we test other attributes
             yield assert_equal, cg["ones"].max(), 1.0
             yield assert_equal, cg["ones"].min(), 1.0
-            yield assert_equal, cg["grid_level"], 0
+            yield assert_equal, cg["grid_level"], level
             yield assert_equal, cg["cell_volume"].sum(), ds.domain_width.prod()
             for g in ds.index.grids:
                 di = g.get_global_startindex()
@@ -106,3 +112,22 @@ def test_arbitrary_grid():
             deposited_mass = obj["deposit", "all_density"].sum() * volume
 
             yield assert_equal, deposited_mass, ds.quan(1.0, 'g')
+
+    # Test that we get identical results to the covering grid for unigrid data.
+    # Testing AMR data is much harder.
+    for nprocs in [1, 2, 4, 8]:
+        ds = fake_random_ds(32, nprocs = nprocs)
+        for ref_level in [0, 1, 2]:
+            cg = ds.covering_grid(ref_level, [0.0, 0.0, 0.0],
+                    2**ref_level * ds.domain_dimensions)
+            ag = ds.arbitrary_grid([0.0, 0.0, 0.0], [1.0, 1.0, 1.0],
+                    2**ref_level * ds.domain_dimensions)
+            yield assert_almost_equal, cg["density"], ag["density"]
+
+output_00080 = "output_00080/info_00080.txt"
+@requires_file(output_00080)
+def test_octree_cg():
+    ds = load(output_00080)
+    cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
+    density_field = cgrid["density"]
+    assert_equal((density_field == 0.0).sum(), 0)

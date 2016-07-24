@@ -13,24 +13,16 @@ from yt.extern.six import string_types
 import numpy as np
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.data_objects.construction_data_containers import YTCoveringGridBase
-from yt.utilities.on_demand_imports import _astropy, NotAModule
+from yt.data_objects.construction_data_containers import YTCoveringGrid
+from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.units import dimensions
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 import re
 
-pyfits = _astropy.pyfits
-pywcs = _astropy.pywcs
-
-if isinstance(pyfits, NotAModule):
-    HDUList = object
-else:
-    HDUList = pyfits.HDUList
-
-class FITSImageData(HDUList):
+class FITSImageData(object):
 
     def __init__(self, data, fields=None, units=None, width=None, wcs=None):
         r""" Initialize a FITSImageData object.
@@ -92,7 +84,7 @@ class FITSImageData(HDUList):
         exclude_fields = ['x','y','z','px','py','pz',
                           'pdx','pdy','pdz','weight_field']
 
-        super(FITSImageData, self).__init__()
+        self.hdulist = _astropy.pyfits.HDUList()
 
         if isinstance(fields, string_types):
             fields = [fields]
@@ -127,21 +119,21 @@ class FITSImageData(HDUList):
                     self.field_units[key] = "dimensionless"
                 mylog.info("Making a FITS image of field %s" % key)
                 if first:
-                    hdu = pyfits.PrimaryHDU(np.array(img_data[key]))
+                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[key]))
                     first = False
                 else:
-                    hdu = pyfits.ImageHDU(np.array(img_data[key]))
+                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[key]))
                 hdu.name = key
                 hdu.header["btype"] = key
                 if hasattr(img_data[key], "units"):
                     hdu.header["bunit"] = re.sub('()', '', str(img_data[key].units))
-                self.append(hdu)
+                self.hdulist.append(hdu)
 
-        self.shape = self[0].shape
+        self.shape = self.hdulist[0].shape
         self.dimensionality = len(self.shape)
 
         if wcs is None:
-            w = pywcs.WCS(header=self[0].header, naxis=self.dimensionality)
+            w = _astropy.pywcs.WCS(header=self.hdulist[0].header, naxis=self.dimensionality)
             if isinstance(img_data, FixedResolutionBuffer):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
@@ -152,7 +144,7 @@ class FITSImageData(HDUList):
                 yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units).v
                 center = [xctr, yctr]
                 cdelt = [dx,dy]
-            elif isinstance(img_data, YTCoveringGridBase):
+            elif isinstance(img_data, YTCoveringGrid):
                 cdelt = img_data.dds.in_units(units).v
                 center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
             else:
@@ -181,7 +173,7 @@ class FITSImageData(HDUList):
         """
         self.wcs = wcs
         h = self.wcs.to_header()
-        for img in self:
+        for img in self.hdulist:
             for k, v in h.items():
                 img.header[k] = v
 
@@ -192,13 +184,13 @@ class FITSImageData(HDUList):
         headers will be updated.
         """
         if field == "all":
-            for img in self:
+            for img in self.hdulist:
                 img.header[key] = value
         else:
             if field not in self.keys():
                 raise KeyError("%s not an image!" % field)
             idx = self.fields.index(field)
-            self[idx].header[key] = value
+            self.hdulist[idx].header[key] = value
 
     def update_all_headers(self, key, value):
         mylog.warning("update_all_headers is deprecated. "+
@@ -212,10 +204,16 @@ class FITSImageData(HDUList):
         return key in self.fields
 
     def values(self):
-        return [self[k] for k in self.fields]
+        return [self.hdulist[k] for k in self.fields]
 
     def items(self):
-        return [(k, self[k]) for k in self.fields]
+        return [(k, self.hdulist[k]) for k in self.fields]
+
+    def __getitem__(self, item):
+        return self.hdulist[item]
+
+    def info(self):
+        return self.hdulist.info()
 
     @parallel_root_only
     def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
@@ -236,11 +234,11 @@ class FITSImageData(HDUList):
         method of `astropy.io.fits.HDUList`.
         """
         if fields is None:
-            hdus = pyfits.HDUList(self)
+            hdus = self.hdulist
         else:
-            hdus = pyfits.HDUList()
+            hdus = _astropy.pyfits.HDUList()
             for field in fields:
-                hdus.append(self[field])
+                hdus.append(self.hdulist[field])
         hdus.writeto(fileobj, clobber=clobber, **kwargs)
 
     def to_glue(self, label="yt", data_collection=None):
@@ -256,7 +254,7 @@ class FITSImageData(HDUList):
 
         image = Data(label=label)
         image.coords = coordinates_from_header(self.wcs.to_header())
-        for k,f in self.items():
+        for k,f in self.hdulist.items():
             image.add_component(f.data, k)
         if data_collection is None:
             dc = DataCollection([image])
@@ -272,14 +270,14 @@ class FITSImageData(HDUList):
         `aplpy.FITSFigure` constructor.
         """
         import aplpy
-        return aplpy.FITSFigure(self, **kwargs)
+        return aplpy.FITSFigure(self.hdulist, **kwargs)
 
     def get_data(self, field):
         """
         Return the data array of the image corresponding to *field*
         with units attached.
         """
-        return YTArray(self[field].data, self.field_units[field])
+        return YTArray(self.hdulist[field].data, self.field_units[field])
 
     def set_unit(self, field, units):
         """
@@ -288,9 +286,9 @@ class FITSImageData(HDUList):
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
         idx = self.fields.index(field)
-        new_data = YTArray(self[idx].data, self.field_units[field]).in_units(units)
-        self[idx].data = new_data.v
-        self[idx].header["bunit"] = units
+        new_data = YTArray(self.hdulist[idx].data, self.field_units[field]).in_units(units)
+        self.hdulist[idx].data = new_data.v
+        self.hdulist[idx].header["bunit"] = units
         self.field_units[field] = units
 
     def pop(self, key):
@@ -302,7 +300,7 @@ class FITSImageData(HDUList):
         if key not in self.keys():
             raise KeyError("%s not an image!" % key)
         idx = self.fields.index(key)
-        im = super(FITSImageData, self).pop(idx)
+        im = self.hdulist.pop(idx)
         data = YTArray(im.data, self.field_units[key])
         self.field_units.pop(key)
         self.fields.remove(key)
@@ -319,12 +317,12 @@ class FITSImageData(HDUList):
         filename : string
             The name of the file to open.
         """
-        f = pyfits.open(filename)
+        f = _astropy.pyfits.open(filename)
         data = {}
         for hdu in f:
             data[hdu.header["btype"]] = YTArray(hdu.data, hdu.header["bunit"])
         f.close()
-        return cls(data, wcs=pywcs.WCS(header=hdu.header))
+        return cls(data, wcs=_astropy.pywcs.WCS(header=hdu.header))
 
     @classmethod
     def from_images(cls, image_list):
@@ -385,7 +383,7 @@ class FITSImageData(HDUList):
         units = [str(unit) for unit in old_wcs.wcs.cunit]
         new_dx = (YTQuantity(-deltas[0], units[0])*scaleq).in_units("deg")
         new_dy = (YTQuantity(deltas[1], units[1])*scaleq).in_units("deg")
-        new_wcs = pywcs.WCS(naxis=naxis)
+        new_wcs = _astropy.pywcs.WCS(naxis=naxis)
         cdelt = [new_dx.v, new_dy.v]
         cunit = ["deg"]*2
         if naxis == 3:
@@ -440,7 +438,7 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
             nx, ny = image_res
         else:
             nx, ny = image_res, image_res
-    dx, dy = width[0]/nx, width[1]/ny
+    dx = width[0]/nx
     crpix = [0.5*(nx+1), 0.5*(ny+1)]
     if hasattr(ds, "wcs") and not iterable(axis):
         # This is a FITS dataset, so we use it to construct the WCS
@@ -470,7 +468,7 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
     else:
         frb = None
-    w = pywcs.WCS(naxis=2)
+    w = _astropy.pywcs.WCS(naxis=2)
     w.wcs.crpix = crpix
     w.wcs.cdelt = cdelt
     w.wcs.crval = crval
@@ -728,29 +726,32 @@ class FITSOffAxisProjection(FITSImageData):
          The name of the weighting field.  Set to None for no weight.
     image_res : an int or 2-tuple of ints
         Specify the resolution of the resulting image. 
-    depth_res : an int 
-        Specify the resolution of the depth of the projection.
+    depth_res : integer
+        Deprecated, this is still in the function signature for API
+        compatibility
     north_vector : a sequence of floats
-         A vector defining the 'up' direction in the plot.  This
-         option sets the orientation of the slicing plane.  If not
-         set, an arbitrary grid-aligned north-vector is chosen.
+        A vector defining the 'up' direction in the plot.  This
+        option sets the orientation of the slicing plane.  If not
+        set, an arbitrary grid-aligned north-vector is chosen.
     method : string
-         The method of projection.  Valid methods are:
+        The method of projection.  Valid methods are:
 
-         "integrate" with no weight_field specified : integrate the requested
-         field along the line of sight.
+        "integrate" with no weight_field specified : integrate the requested
+        field along the line of sight.
 
-         "integrate" with a weight_field specified : weight the requested
-         field by the weighting field and integrate along the line of sight.
+        "integrate" with a weight_field specified : weight the requested
+        field by the weighting field and integrate along the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not
-         multiply by a path length when performing the integration, and is
-         just a straight summation of the field along the given axis. WARNING:
-         This should only be used for uniform resolution grid datasets, as other
-         datasets may result in unphysical images.
+        "sum" : This method is the same as integrate, except that it does not
+        multiply by a path length when performing the integration, and is
+        just a straight summation of the field along the given axis. WARNING:
+        This should only be used for uniform resolution grid datasets, as other
+        datasets may result in unphysical images.
+    data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+        If specified, this will be the data source used for selecting regions to project.
     """
     def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'),
-                 weight_field=None, image_res=512, depth_res=256,
+                 weight_field=None, image_res=512, depth_res=256, data_source=None,
                  north_vector=None, depth=(1.0,"unitary"), no_ghost=False, method='integrate'):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
@@ -759,9 +760,13 @@ class FITSOffAxisProjection(FITSImageData):
         wd = tuple(el.in_units('code_length').v for el in width)
         if not iterable(image_res):
             image_res = (image_res, image_res)
-        res = (image_res[0], image_res[1], depth_res)
+        res = (image_res[0], image_res[1])
+        if data_source is None:
+            source = ds
+        else:
+            source = data_source
         for field in fields:
-            buf[field] = off_axis_projection(ds, center, normal, wd, res, field,
+            buf[field] = off_axis_projection(source, center, normal, wd, res, field,
                                              no_ghost=no_ghost, north_vector=north_vector,
                                              method=method, weight=weight_field).swapaxes(0, 1)
         center = ds.arr([0.0] * 2, 'code_length')

@@ -1,4 +1,4 @@
-from grid_data_format import *
+from grid_data_format import AthenaDistributedConverter
 import sys
 # Assumes that last input is the basename for the athena dataset.
 # i.e. kh_3d_mhd_hlld_128_beta5000_sub_tanhd.0030

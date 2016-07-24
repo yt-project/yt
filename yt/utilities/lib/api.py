@@ -15,17 +15,18 @@ Compatibility module
 #-----------------------------------------------------------------------------
 
 from .grid_traversal import *
-from .CICDeposit import *
-from .DepthFirstOctree import *
+from .particle_mesh_operations import *
+from .depth_first_octree import *
 from .fortran_reader import *
-from .Interpolators import *
+from .interpolators import *
 from .misc_utilities import *
-from .Octree import *
+from .basic_octree import *
 from .image_utilities import *
-from .PointsInVolume import *
-from .QuadTree import *
-from .RayIntegrators import *
+from .points_in_volume import *
+from .quad_tree import *
+from .ray_integrators import *
 from .marching_cubes import *
 from .write_array import *
 from .mesh_utilities import *
-from .ContourFinding import *
+from .contour_finding import *
+from .line_integral_convolution import *

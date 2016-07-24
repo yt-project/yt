@@ -13,8 +13,6 @@ Fields from interpolating data tables.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from yt.fields.local_fields import add_field
 
 from yt.utilities.linear_interpolators import \

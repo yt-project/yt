@@ -1,5 +1,5 @@
 """
-Cartesian fields
+Definitions for spectral cube coordinate systems
 
 
 
@@ -14,13 +14,13 @@ Cartesian fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
 from .cartesian_coordinates import \
     CartesianCoordinateHandler
 from .coordinate_handler import \
     _get_coord_fields
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
+    name = "spectral_cube"
 
     def __init__(self, ds, ordering = ('x', 'y', 'z')):
         ordering = tuple("xyz"[axis] for axis in
@@ -55,7 +55,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         self.axis_field[self.ds.spec_axis] = _spec_axis
 
     def setup_fields(self, registry):
-        if self.ds.no_cgs_equiv_length == False:
+        if self.ds.no_cgs_equiv_length is False:
             return super(SpectralCubeCoordinateHandler, self
                     ).setup_fields(registry)
         for axi, ax in enumerate("xyz"):

@@ -11,17 +11,22 @@ FITS-specific data structures
 #-----------------------------------------------------------------------------
 
 import stat
-import types
 import numpy as np
 import numpy.core.defchararray as np_char
+import os
+import re
+import time
+import uuid
 import weakref
 import warnings
-import re
-import uuid
 
-from yt.extern.six import iteritems
+
+from collections import defaultdict
+
 from yt.config import ytcfg
-from yt.funcs import *
+from yt.funcs import \
+    mylog, \
+    ensure_list
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -42,7 +47,6 @@ from yt.units.unit_lookup_table import \
     prefixable_units, \
     unit_prefixes
 from yt.units import dimensions
-from yt.units.yt_array import YTQuantity
 from yt.utilities.on_demand_imports import _astropy, NotAModule
 
 
@@ -111,6 +115,8 @@ class FITSHierarchy(GridIndex):
                     field_units = field_units.replace(unit, known_units[unit])
                     n += 1
             if n != len(units): field_units = "dimensionless"
+            if field_units[0] == "/":
+                field_units = "1%s" % field_units
             return field_units
         except KeyError:
             return "dimensionless"
@@ -135,10 +141,10 @@ class FITSHierarchy(GridIndex):
                 mylog.info("Adding field %s to the list of fields." % (fname))
                 self.field_list.append(("io",fname))
                 if k in ["x","y"]:
-                    unit = "code_length"
+                    field_unit = "code_length"
                 else:
-                    unit = v
-                self.dataset.field_units[("io",fname)] = unit
+                    field_unit = v
+                self.dataset.field_units[("io",fname)] = field_unit
             return
         self._axis_map = {}
         self._file_map = {}
@@ -147,7 +153,9 @@ class FITSHierarchy(GridIndex):
         dup_field_index = {}
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
-        known_units = dict([(unit.lower(),unit) for unit in self.ds.unit_registry.lut])
+        known_units = dict(
+            [(unit.lower(), unit) for unit in self.ds.unit_registry.lut]
+        )
         for unit in list(known_units.values()):
             if unit in prefixable_units:
                 for p in ["n","u","m","c","k"]:
@@ -209,8 +217,7 @@ class FITSHierarchy(GridIndex):
         self.num_grids = self.ds.parameters["nprocs"]
 
     def _parse_index(self):
-        f = self._handle # shortcut
-        ds = self.dataset # shortcut
+        ds = self.dataset
 
         # If nprocs > 1, decompose the domain into virtual grids
         if self.num_grids > 1:
@@ -304,7 +311,8 @@ class FITSDataset(Dataset):
                  z_axis_decomp=False,
                  suppress_astropy_warnings=True,
                  parameters=None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
 
         if parameters is None:
             parameters = {}
@@ -410,7 +418,8 @@ class FITSDataset(Dataset):
 
         self.refine_by = 2
 
-        Dataset.__init__(self, fn, dataset_type, units_override=units_override)
+        Dataset.__init__(self, fn, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -418,7 +427,7 @@ class FITSDataset(Dataset):
         Generates the conversion to various physical _units based on the parameter file
         """
         default_length_units = [u for u,v in default_unit_symbol_lut.items()
-                                if str(v[-1]) == "(length)"]
+                                if str(v[1]) == "(length)"]
         more_length_units = []
         for unit in default_length_units:
             if unit in prefixable_units:
@@ -426,9 +435,9 @@ class FITSDataset(Dataset):
         default_length_units += more_length_units
         file_units = []
         cunits = [self.wcs.wcs.cunit[i] for i in range(self.dimensionality)]
-        for i, unit in enumerate(cunits):
+        for unit in (_.to_string() for _ in cunits):
             if unit in default_length_units:
-                file_units.append(unit.name)
+                file_units.append(unit)
         if len(set(file_units)) == 1:
             length_factor = self.wcs.wcs.cdelt[0]
             length_unit = str(file_units[0])
@@ -533,6 +542,13 @@ class FITSDataset(Dataset):
             else:
                 self._setup_spec_cube()
 
+        # Now we can set up some of our parameters for convenience.
+        #self.parameters['wcs'] = dict(self.wcs.to_header())
+        for k, v in self.primary_header.items():
+            self.parameters[k] = v
+        # Remove potential default keys
+        self.parameters.pop('', None)
+
     def _setup_spec_cube(self):
 
         self.spec_cube = True
@@ -619,7 +635,7 @@ class FITSDataset(Dataset):
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         ext = args[0].rsplit(".", 1)[-1]
-        if ext.upper() == "GZ":
+        if ext.upper() in ("GZ", "FZ"):
             # We don't know for sure that there will be > 1
             ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
         if ext.upper() not in ("FITS", "FTS"):
@@ -638,3 +654,17 @@ class FITSDataset(Dataset):
         except:
             pass
         return False
+
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = []
+        for fn, fnl in ((_, _.lower()) for _ in files):
+            if fnl.endswith(".fits") or \
+               fnl.endswith(".fits.gz") or \
+               fnl.endswith(".fits.fz"):
+                candidates.append(fn)
+        # FITS files don't preclude subdirectories
+        return candidates, True
+
+    def close(self):
+        self._handle.close()

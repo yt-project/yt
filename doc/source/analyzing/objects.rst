@@ -1,4 +1,4 @@
-.. _data-objects:
+.. _Data-objects:
 
 Data Objects
 ============
@@ -6,13 +6,13 @@ Data Objects
 What are Data Objects in yt?
 ----------------------------
 
-Data objects (also called *Data Containers*) are used in yt as convenience 
-structures for grouping data in logical ways that make sense in the context 
-of the dataset as a whole.  Some of the data objects are geometrical groupings 
-of data (e.g. sphere, box, cylinder, etc.).  Others represent 
+Data objects (also called *Data Containers*) are used in yt as convenience
+structures for grouping data in logical ways that make sense in the context
+of the dataset as a whole.  Some of the data objects are geometrical groupings
+of data (e.g. sphere, box, cylinder, etc.).  Others represent
 data products derived from your dataset (e.g. slices, streamlines, surfaces).
 Still other data objects group multiple objects together or filter them
-(e.g. data collection, cut region).  
+(e.g. data collection, cut region).
 
 To generate standard plots, objects rarely need to be directly constructed.
 However, for detailed data inspection as well as hand-crafted derived data,
@@ -21,7 +21,7 @@ objects can be exceptionally useful and even necessary.
 How to Create and Use an Object
 -------------------------------
 
-To create an object, you usually only need a loaded dataset, the name of 
+To create an object, you usually only need a loaded dataset, the name of
 the object type, and the relevant parameters for your object.  Here is a common
 example for creating a ``Region`` object that covers all of your data volume.
 
@@ -31,7 +31,7 @@ example for creating a ``Region`` object that covers all of your data volume.
    ds = yt.load("RedshiftOutput0005")
    ad = ds.all_data()
 
-Alternatively, we could create a sphere object of radius 1 kpc on location 
+Alternatively, we could create a sphere object of radius 1 kpc on location
 [0.5, 0.5, 0.5]:
 
 .. code-block:: python
@@ -41,11 +41,11 @@ Alternatively, we could create a sphere object of radius 1 kpc on location
    sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
 
 After an object has been created, it can be used as a data_source to certain
-tasks like ``ProjectionPlot`` (see 
-:class:`~yt.visualization.plot_window.ProjectionPlot`), one can compute the 
-bulk quantities associated with that object (see :ref:`derived-quantities`), 
-or the data can be examined directly. For example, if you want to figure out 
-the temperature at all indexed locations in the central sphere of your 
+tasks like ``ProjectionPlot`` (see
+:class:`~yt.visualization.plot_window.ProjectionPlot`), one can compute the
+bulk quantities associated with that object (see :ref:`derived-quantities`),
+or the data can be examined directly. For example, if you want to figure out
+the temperature at all indexed locations in the central sphere of your
 dataset you could:
 
 .. code-block:: python
@@ -55,13 +55,135 @@ dataset you could:
    sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
 
    # Show all temperature values
-   print sp["temperature"]
+   print(sp["temperature"])
 
    # Print things in a more human-friendly manner: one temperature at a time
-   print "(x,  y,  z) Temperature"
-   print "-----------------------"
+   print("(x,  y,  z) Temperature")
+   print("-----------------------")
    for i in range(sp["temperature"].size):
-       print "(%f,  %f,  %f)    %f" % (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i])
+       print("(%f,  %f,  %f)    %f" %
+             (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
+
+.. _quickly-selecting-data:
+
+Slicing Syntax for Selecting Data
+---------------------------------
+
+yt provides a mechanism for easily selecting data while doing interactive work
+on the command line.  This allows for region selection based on the full domain
+of the object.  Selecting in this manner is exposed through a slice-like
+syntax.  All of these attributes are exposed through the ``RegionExpression``
+object, which is an attribute of a ``DataSet`` object, called ``r``.
+
+Getting All The Data
+^^^^^^^^^^^^^^^^^^^^
+
+The ``.r`` attribute serves as a persistent means of accessing the full data
+from a dataset.  You can access this shorthand operation by querying any field
+on the ``.r`` object, like so:
+
+.. code-block:: python
+
+   ds = yt.load("RedshiftOutput0005")
+   rho = ds.r["density"]
+
+This will return a *flattened* array of data.  The region expression object
+(``r``) doesn't have any derived quantities on it.  This is completely
+equivalent to this set of statements:
+
+.. code-block:: python
+
+   ds = yt.load("RedshiftOutput0005")
+   dd = ds.all_data()
+   rho = dd["density"]
+
+.. warning::
+
+   One thing to keep in mind with accessing data in this way is that it is
+   *persistent*.  It is loaded into memory, and then retained until the dataset
+   is deleted or garbage collected.
+
+Selecting Multiresolution Regions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To select rectilinear regions, where the data is selected the same way that it
+is selected in a :ref:`region-reference`, you can utilize slice-like syntax,
+supplying start and stop, but not supplying a step argument.  This requires
+that three components of the slice must be specified.  These take a start and a
+stop, and are for the three axes in simulation order (if your data is ordered
+z, y, x for instance, this would be in z, y, x order).
+
+The slices can have both position and, optionally, unit values.  These define
+the value with respect to the ``domain_left_edge`` of the dataset.  So for
+instance, you could specify it like so:::
+
+   ds.r[(100, 'kpc'):(200,'kpc'),:,:]
+
+This would return a region that included everything between 100 kpc from the
+left edge of the dataset to 200 kpc from the left edge of the dataset in the
+first dimension, and which spans the entire dataset in the second and third
+dimensions.  By default, if the units are unspecified, they are in the "native"
+code units of the dataset.
+
+This works in all types of datasets, as well.  For instance, if you have a
+geographic dataset (which is usually ordered latitude, longitude, altitude) you
+can easily select, for instance, one hemisphere with a region selection:::
+
+   ds.r[:,-180:0,:]
+
+If you specify a single slice, it will be repeated along all three dimensions.
+For instance, this will give all data:::
+
+   ds.r[:]
+
+And this will select a box running from 0.4 to 0.6 along all three
+dimensions:::
+
+   ds.r[0.4:0.6]
+
+Selecting Fixed Resolution Regions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+yt also provides functionality for selecting regions that have been turned into
+voxels.  This returns an :ref:`arbitrary-grid` object.  It can be created by
+specifying a complex slice "step", where the start and stop follow the same
+rules as above.  This is similar to how the numpy ``mgrid`` operation works.
+For instance, this code block will generate a grid covering the full domain,
+but converted to being 21x35x100 dimensions:::
+
+  region = ds.r[::21j, ::35j, ::100j]
+
+The left and right edges, as above, can be specified to provide bounds as well.
+For instance, to select a 10 meter cube, with 24 cells in each dimension, we
+could supply:::
+
+  region = ds.r[(20,'m'):(30,'m'):24j, (30,'m'):(40,'m'):24j,
+                (7,'m'):(17,'m'):24j]
+
+This can select both particles and mesh fields.  Mesh fields will be 3D arrays,
+and generated through volume-weighted overlap calculations.
+
+Selecting Slices
+^^^^^^^^^^^^^^^^
+
+If one dimension is specified as a single value, that will be the dimension
+along which a slice is made.  This provides a simple means of generating a
+slice from a subset of the data.  For instance, to create a slice of a dataset,
+you can very simply specify the full domain along two axes:::
+
+   sl = ds.r[:,:,0.25]
+
+This can also be very easily plotted:::
+
+   sl = ds.r[:,:,0.25]
+   sl.plot()
+
+This accepts arguments the same way:::
+
+
+   sl = ds.r[(20.1, 'km'):(31.0, 'km'), (504.143,'m'):(1000.0,'m'),
+             (900.1, 'm')]
+   sl.plot()
 
 .. _available-objects:
 
@@ -77,10 +199,10 @@ into:
   Data is selected based on other field criteria
 * *Collection Objects*
   Multiple objects grouped together
-* *Construction Objects* 
+* *Construction Objects*
   Objects represent some sort of data product constructed by additional analysis
 
-If you want to create your own custom data object type, see 
+If you want to create your own custom data object type, see
 :ref:`creating-objects`.
 
 .. _geometric-objects:
@@ -96,82 +218,84 @@ for the grid cell to be incorporated.
 0D Objects
 """"""""""
 
-**Point** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTPointBase`    
+**Point**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTPoint`
     | Usage: ``point(coord, ds=None, field_parameters=None, data_source=None)``
     | A point defined by a single cell at specified coordinates.
 
 1D Objects
 """"""""""
 
-**Ray (Axis-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTOrthoRayBase`
+**Ray (Axis-Aligned)**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTOrthoRay`
     | Usage: ``ortho_ray(axis, coord, ds=None, field_parameters=None, data_source=None)``
-    | A line (of data cells) stretching through the full domain 
+    | A line (of data cells) stretching through the full domain
       aligned with one of the x,y,z axes.  Defined by an axis and a point
-      to be intersected.  Please see this 
+      to be intersected.  Please see this
       :ref:`note about ray data value ordering <ray-data-ordering>`.
 
-**Ray (Arbitrarily-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTRayBase`
+**Ray (Arbitrarily-Aligned)**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTRay`
     | Usage: ``ray(start_coord, end_coord, ds=None, field_parameters=None, data_source=None)``
-    | A line (of data cells) defined by arbitrary start and end coordinates. 
-      Please see this 
+    | A line (of data cells) defined by arbitrary start and end coordinates.
+      Please see this
       :ref:`note about ray data value ordering <ray-data-ordering>`.
 
 2D Objects
 """"""""""
 
-**Slice (Axis-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTSliceBase`
+**Slice (Axis-Aligned)**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTSlice`
     | Usage: ``slice(axis, coord, center=None, ds=None, field_parameters=None, data_source=None)``
-    | A plane normal to one of the axes and intersecting a particular 
+    | A plane normal to one of the axes and intersecting a particular
       coordinate.
 
-**Slice (Arbitrarily-Aligned)** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTCuttingPlaneBase`
+**Slice (Arbitrarily-Aligned)**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTCuttingPlane`
     | Usage: ``cutting(normal, coord, north_vector=None, ds=None, field_parameters=None, data_source=None)``
-    | A plane normal to a specified vector and intersecting a particular 
+    | A plane normal to a specified vector and intersecting a particular
       coordinate.
+
+.. _region-reference:
 
 3D Objects
 """"""""""
 
-**All Data** 
+**All Data**
     | Function :meth:`~yt.data_objects.static_output.Dataset.all_data`
     | Usage: ``all_data(find_max=False)``
-    | ``all_data()`` is a wrapper on the Box Region class which defaults to 
-      creating a Region covering the entire dataset domain.  It is effectively 
+    | ``all_data()`` is a wrapper on the Box Region class which defaults to
+      creating a Region covering the entire dataset domain.  It is effectively
       ``ds.region(ds.domain_center, ds.domain_left_edge, ds.domain_right_edge)``.
 
-**Box Region** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTRegionBase`
+**Box Region**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTRegion`
     | Usage: ``region(center, left_edge, right_edge, fields=None, ds=None, field_parameters=None, data_source=None)``
     | Alternatively: ``box(left_edge, right_edge, fields=None, ds=None, field_parameters=None, data_source=None)``
-    | A box-like region aligned with the grid axis orientation.  It is 
+    | A box-like region aligned with the grid axis orientation.  It is
       defined by a left_edge, a right_edge, and a center.  The left_edge
       and right_edge are the minimum and maximum bounds in the three axes
       respectively.  The center is arbitrary and must only be contained within
       the left_edge and right_edge.  By using the ``box`` wrapper, the center
       is assumed to be the midpoint between the left and right edges.
 
-**Disk/Cylinder** 
-    | Class: :class:`~yt.data_objects.selection_data_containers.YTDiskBase`
+**Disk/Cylinder**
+    | Class: :class:`~yt.data_objects.selection_data_containers.YTDisk`
     | Usage: ``disk(center, normal, radius, height, fields=None, ds=None, field_parameters=None, data_source=None)``
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
 
-**Ellipsoid** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoidBase`
+**Ellipsoid**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoid`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None, data_source=None)``
-    | An ellipsoid with axis magnitudes set by semi_major_axis_length, 
-     semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector 
-     sets the direction of the semi_major_axis.  tilt defines the orientation 
+    | An ellipsoid with axis magnitudes set by semi_major_axis_length,
+     semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector
+     sets the direction of the semi_major_axis.  tilt defines the orientation
      of the semi-medium and semi_minor axes.
 
-**Sphere** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTSphereBase`
+**Sphere**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTSphere`
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
 
@@ -188,24 +312,24 @@ See also the section on :ref:`filtering-data`.
     | easily lead to empty data for non-intersecting regions.
     | Usage: ``slice(axis, coord, ds, data_source=sph)``
 
-**Boolean Regions** 
+**Boolean Regions**
     | **Note: not yet implemented in yt 3.0**
     | Usage: ``boolean()``
     | See :ref:`boolean_data_objects`.
 
-**Filter** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
+**Filter**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTCutRegion`
     | Usage: ``cut_region(base_object, conditionals, ds=None, field_parameters=None)``
-    | A ``cut_region`` is a filter which can be applied to any other data 
-      object.  The filter is defined by the conditionals present, which 
+    | A ``cut_region`` is a filter which can be applied to any other data
+      object.  The filter is defined by the conditionals present, which
       apply cuts to the data in the object.  A ``cut_region`` will work
-      for either particle fields or mesh fields, but not on both simulaneously.
+      for either particle fields or mesh fields, but not on both simultaneously.
       For more detailed information and examples, see :ref:`cut-regions`.
 
-**Collection of Data Objects** 
-    | Class :class:`~yt.data_objects.selection_data_containers.YTDataCollectionBase`
+**Collection of Data Objects**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTDataCollection`
     | Usage: ``data_collection(center, obj_list, ds=None, field_parameters=None)``
-    | A ``data_collection`` is a list of data objects that can be 
+    | A ``data_collection`` is a list of data objects that can be
       sampled and processed as a whole in a single data object.
 
 .. _construction-objects:
@@ -213,53 +337,53 @@ See also the section on :ref:`filtering-data`.
 Construction Objects
 ^^^^^^^^^^^^^^^^^^^^
 
-**Fixed-Resolution Region** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTCoveringGridBase`
+**Fixed-Resolution Region**
+    | Class :class:`~yt.data_objects.construction_data_containers.YTCoveringGrid`
     | Usage: ``covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
     | A 3D region with all data extracted to a single, specified resolution.
       See :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
-**Fixed-Resolution Region with Smoothing** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGridBase`
+**Fixed-Resolution Region with Smoothing**
+    | Class :class:`~yt.data_objects.construction_data_containers.YTSmoothedCoveringGrid`
     | Usage: ``smoothed_covering_grid(level, left_edge, dimensions, fields=None, ds=None, num_ghost_zones=0, use_pbar=True, field_parameters=None)``
-    | A 3D region with all data extracted and interpolated to a single, 
-      specified resolution.  Identical to covering_grid, except that it 
-      interpolates as necessary from coarse regions to fine.  See 
+    | A 3D region with all data extracted and interpolated to a single,
+      specified resolution.  Identical to covering_grid, except that it
+      interpolates as necessary from coarse regions to fine.  See
       :ref:`examining-grid-data-in-a-fixed-resolution-array`.
 
-**Fixed-Resolution Region for Particle Deposition** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase`
+**Fixed-Resolution Region**
+    | Class :class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid`
     | Usage: ``arbitrary_grid(left_edge, right_edge, dimensions, ds=None, field_parameters=None)``
     | When particles are deposited on to mesh fields, they use the existing
       mesh structure, but this may have too much or too little resolution
       relative to the particle locations (or it may not exist at all!).  An
-      `arbitrary_grid` provides a means for generating a new independent mesh 
-      structure for particle deposition.  See :ref:`arbitrary-grid` for more 
-      information.
+      `arbitrary_grid` provides a means for generating a new independent mesh
+      structure for particle deposition and simple mesh field interpolation.
+      See :ref:`arbitrary-grid` for more information.
 
-**Projection** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProjBase`
+**Projection**
+    | Class :class:`~yt.data_objects.construction_data_containers.YTQuadTreeProj`
     | Usage: ``proj(field, axis, weight_field=None, center=None, ds=None, data_source=None, method="integrate", field_parameters=None)``
-    | A 2D projection of a 3D volume along one of the axis directions.  
-      By default, this is a line integral through the entire simulation volume 
+    | A 2D projection of a 3D volume along one of the axis directions.
+      By default, this is a line integral through the entire simulation volume
       (although it can be a subset of that volume specified by a data object
-      with the ``data_source`` keyword).  Alternatively, one can specify 
+      with the ``data_source`` keyword).  Alternatively, one can specify
       a weight_field and different ``method`` values to change the nature
       of the projection outcome.  See :ref:`projection-types` for more information.
 
-**Streamline** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTStreamlineBase`
+**Streamline**
+    | Class :class:`~yt.data_objects.construction_data_containers.YTStreamline`
     | Usage: ``streamline(coord_list, length, fields=None, ds=None, field_parameters=None)``
-    | A ``streamline`` can be traced out by identifying a starting coordinate (or 
+    | A ``streamline`` can be traced out by identifying a starting coordinate (or
       list of coordinates) and allowing it to trace a vector field, like gas
       velocity.  See :ref:`streamlines` for more information.
 
-**Surface** 
-    | Class :class:`~yt.data_objects.construction_data_containers.YTSurfaceBase`
+**Surface**
+    | Class :class:`~yt.data_objects.construction_data_containers.YTSurface`
     | Usage: ``surface(data_source, field, field_value)``
-    | The surface defined by all an isocontour in any mesh field.  An existing 
+    | The surface defined by all an isocontour in any mesh field.  An existing
       data object must be provided as the source, as well as a mesh field
-      and the value of the field which you desire the isocontour.  See 
+      and the value of the field which you desire the isocontour.  See
       :ref:`extracting-isocontour-information`.
 
 .. _derived-quantities:
@@ -268,16 +392,105 @@ Processing Objects: Derived Quantities
 --------------------------------------
 
 Derived quantities are a way of calculating some bulk quantities associated
-with all of the grid cells contained in a data object.  
+with all of the grid cells contained in a data object.
 Derived quantities can be accessed via the ``quantities`` interface.
-Here is an example of how to get the angular momentum vector calculated from 
+Here is an example of how to get the angular momentum vector calculated from
 all the cells contained in a sphere at the center of our dataset.
 
 .. code-block:: python
 
    ds = load("my_data")
    sp = ds.sphere('c', (10, 'kpc'))
-   print sp.quantities.angular_momentum_vector()
+   print(sp.quantities.angular_momentum_vector())
+
+Quickly Processing Data
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Most data objects now have multiple numpy-like methods that allow you to
+quickly process data.  More of these methods will be added over time and added
+to this list.  Most, if not all, of these map to other yt operations and are
+designed as syntactic sugar to slightly simplify otherwise somewhat obtuse
+pipelines.
+
+These operations are parallelized.
+
+You can compute the extrema of a field by using the ``max`` or ``min``
+functions.  This will cache the extrema in between, so calling ``min`` right
+after ``max`` will be considerably faster.  Here is an example:::
+
+  ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+  reg = ds.r[0.3:0.6, 0.2:0.4, 0.9:0.95]
+  min_rho = reg.min("density")
+  max_rho = reg.max("density")
+
+This is equivalent to:::
+
+  min_rho, max_rho = reg.quantities.extrema("density")
+
+The ``max`` operation can also compute the maximum intensity projection:::
+
+  proj = reg.max("density", axis="x")
+  proj.plot()
+
+This is equivalent to:::
+
+  proj = ds.proj("density", "x", data_source=reg, method="mip")
+  proj.plot()
+
+The ``min`` operator does not do this, however, as a minimum intensity
+projection is not currently implemented.
+
+You can also compute the ``mean`` value, which accepts a field, axis and wight
+function.  If the axis is not specified, it will return the average value of
+the specified field, weighted by the weight argument.  The weight argument
+defaults to ``ones``, which performs an arithmetic average.  For instance:::
+
+  mean_rho = reg.mean("density")
+  rho_by_vol = reg.mean("density", weight="cell_volume")
+
+This is equivalent to:::
+
+  mean_rho = reg.quantities.weighted_average("density", weight_field="ones")
+  rho_by_vol = reg.quantities.weighted_average("density",
+                    weight_field="cell_volume")
+
+If an axis is provided, it will project along that axis and return it to you:::
+
+  rho_proj = reg.mean("temperature", axis="y", weight="density")
+  rho_proj.plot()
+
+The ``sum`` function will add all the values in the data object.  It accepts a
+field and, optionally, an axis.  If the axis is left unspecified, it will sum
+the values in the object:::
+
+  vol = reg.sum("cell_volume")
+
+If the axis is specified, it will compute a projection using the method ``sum``
+(which does *not* take into account varying path length!) and return that to
+you.::
+
+  cell_count = reg.sum("ones", axis="z")
+  cell_count.plot()
+
+To compute a projection where the path length *is* taken into account, you can
+use the ``integrate`` function:::
+
+  proj = reg.integrate("density", "x")
+
+All of these projections supply the data object as their base input.
+
+Often, it can be useful to sample a field at the minimum and maximum of a
+different field.  You can use the ``argmax`` and ``argmin`` operations to do
+this.::
+
+  reg.argmin("density", axis="temperature")
+
+This will return the temperature at the minimum density.
+
+If you don't specify an ``axis``, it will return the spatial position of
+the maximum value of the queried field.  Here is an example:::
+
+  x, y, z = reg.argmin("density")
 
 Available Derived Quantities
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -285,7 +498,7 @@ Available Derived Quantities
 **Angular Momentum Vector**
     | Class :class:`~yt.data_objects.derived_quantities.AngularMomentumVector`
     | Usage: ``angular_momentum_vector(use_gas=True, use_particles=True)``
-    | The mass-weighted average angular momentum vector of the particles, gas, 
+    | The mass-weighted average angular momentum vector of the particles, gas,
       or both.
 
 **Bulk Velocity**
@@ -296,8 +509,8 @@ Available Derived Quantities
 **Center of Mass**
     | Class :class:`~yt.data_objects.derived_quantities.CenterOfMass`
     | Usage: ``center_of_mass(use_cells=True, use_particles=False)``
-    | The location of the center of mass. By default, it computes of 
-      the *non-particle* data in the object, but it can be used on 
+    | The location of the center of mass. By default, it computes of
+      the *non-particle* data in the object, but it can be used on
       particles, gas, or both.
 
 **Extrema**
@@ -305,17 +518,27 @@ Available Derived Quantities
     | Usage: ``extrema(fields, non_zero=False)``
     | The extrema of a field or list of fields.
 
-**Maximum Location**
-    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
-    | Usage: ``max_location(fields)``
-    | The maximum of a field or list of fields as well
-      as the x,y,z location of that maximum.
+**Maximum Location Sampling**
+    | Class :class:`~yt.data_objects.derived_quantities.SampleAtMaxFieldValues`
+    | Usage: ``sample_at_max_field_values(fields, sample_fields)``
+    | The value of sample_fields at the maximum value in fields.
+
+**Minimum Location Sampling**
+    | Class :class:`~yt.data_objects.derived_quantities.SampleAtMinFieldValues`
+    | Usage: ``sample_at_min_field_values(fields, sample_fields)``
+    | The value of sample_fields at the minimum value in fields.
 
 **Minimum Location**
     | Class :class:`~yt.data_objects.derived_quantities.MinLocation`
     | Usage: ``min_location(fields)``
     | The minimum of a field or list of fields as well
       as the x,y,z location of that minimum.
+
+**Maximum Location**
+    | Class :class:`~yt.data_objects.derived_quantities.MaxLocation`
+    | Usage: ``max_location(fields)``
+    | The maximum of a field or list of fields as well
+      as the x,y,z location of that maximum.
 
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
@@ -337,28 +560,28 @@ Available Derived Quantities
     | Class :class:`~yt.data_objects.derived_quantities.WeightedAverageQuantity`
     | Usage: ``weighted_average_quantity(fields, weight)``
     | The weighted average of a field (or list of fields)
-      over an entire data object.  If you want an unweighted average, 
+      over an entire data object.  If you want an unweighted average,
       then set your weight to be the field: ``ones``.
 
 **Weighted Variance of a Field**
     | Class :class:`~yt.data_objects.derived_quantities.WeightedVariance`
     | Usage: ``weighted_variance(fields, weight)``
     | The weighted variance of a field (or list of fields)
-      over an entire data object and the weighted mean.  
-      If you want an unweighted variance, then 
+      over an entire data object and the weighted mean.
+      If you want an unweighted variance, then
       set your weight to be the field: ``ones``.
 
 .. _arbitrary-grid:
 
-Arbitrary Grids Objects for Particle Deposition
------------------------------------------------
+Arbitrary Grids Objects
+-----------------------
 
 The covering grid and smoothed covering grid objects mandate that they be
 exactly aligned with the mesh.  This is a
 holdover from the time when yt was used exclusively for data that came in
 regularly structured grid patches, and does not necessarily work as well for
 data that is composed of discrete objects like particles.  To augment this, the
-:class:`~yt.data_objects.construction_data_containers.YTArbitraryGridBase` object 
+:class:`~yt.data_objects.construction_data_containers.YTArbitraryGrid` object
 was created, which enables construction of meshes (onto which particles can be
 deposited or smoothed) in arbitrary regions.  This eliminates any assumptions
 on yt's part about how the data is organized, and will allow for more
@@ -374,10 +597,17 @@ the deposited particle density, like so:
 
    obj = ds.arbitrary_grid([0.0, 0.0, 0.0], [0.99, 0.99, 0.99],
                           dims=[128, 128, 128])
-   print obj["deposit", "all_density"]
+   print(obj["deposit", "all_density"])
 
 While these cannot yet be used as input to projections or slices, slices and
 projections can be taken of the data in them and visualized by hand.
+
+These objects, as of yt 3.3, are now also able to "voxelize" mesh fields.  This
+means that you can query the "density" field and it will return the density
+field as deposited, identically to how it would be deposited in a fixed
+resolution buffer.  Note that this means that contributions from misaligned or
+partially-overlapping cells are added in a volume-weighted way, which makes it
+inappropriate for some types of analysis.
 
 .. _boolean_data_objects:
 
@@ -444,11 +674,11 @@ The first item, ``contour_values``, will be an array of the min value for each
 set of level sets.  The second (``connected_sets``) will be a dict of dicts.
 The key for the first (outer) dict is the level of the contour, corresponding
 to ``contour_values``.  The inner dict returned is keyed by the contour ID.  It
-contains :class:`~yt.data_objects.selection_data_containers.YTCutRegionBase`
-objects.  These can be queried just as any other data object.  The clump finder 
-(:ref:`clump_finding`) differs from the above method in that the contour 
-identification is performed recursively within each individual structure, and 
-structures can be kept or remerged later based on additional criteria, such as 
+contains :class:`~yt.data_objects.selection_data_containers.YTCutRegion`
+objects.  These can be queried just as any other data object.  The clump finder
+(:ref:`clump_finding`) differs from the above method in that the contour
+identification is performed recursively within each individual structure, and
+structures can be kept or remerged later based on additional criteria, such as
 gravitational boundedness.
 
 .. _object-serialization:
@@ -457,69 +687,9 @@ Storing and Loading Objects
 ---------------------------
 
 Often, when operating interactively or via the scripting interface, it is
-convenient to save an object or multiple objects out to disk and then restart
-the calculation later.  For example, this is useful after clump finding 
-(:ref:`clump_finding`), which can be very time consuming.  
-Typically, the save and load operations are used on 3D data objects.  yt
-has a separate set of serialization operations for 2D objects such as
-projections.
-
-yt will save out objects to disk under the presupposition that the
-construction of the objects is the difficult part, rather than the generation
-of the data -- this means that you can save out an object as a description of
-how to recreate it in space, but not the actual data arrays affiliated with
-that object.  The information that is saved includes the dataset off of
-which the object "hangs."  It is this piece of information that is the most
-difficult; the object, when reloaded, must be able to reconstruct a dataset
-from whatever limited information it has in the save file.
-
-You can save objects to an output file using the function 
-:func:`~yt.data_objects.index.save_object`: 
-
-.. code-block:: python
-
-   import yt
-   ds = yt.load("my_data")
-   sp = ds.sphere([0.5, 0.5, 0.5], (10.0, 'kpc'))
-   sp.save_object("sphere_name", "save_file.cpkl")
-
-This will store the object as ``sphere_name`` in the file
-``save_file.cpkl``, which will be created or accessed using the standard
-python module :mod:`shelve`.  
-
-To re-load an object saved this way, you can use the shelve module directly:
-
-.. code-block:: python
-
-   import yt
-   import shelve
-   ds = yt.load("my_data") 
-   saved_fn = shelve.open("save_file.cpkl")
-   ds, sp = saved_fn["sphere_name"]
-
-Additionally, we can store multiple objects in a single shelve file, so we 
-have to call the sphere by name.
-
-For certain data objects such as projections, serialization can be performed
-automatically if ``serialize`` option is set to ``True`` in :ref:`the
-configuration file <configuration-file>` or set directly in the script:
-
-.. code-block:: python
-
-   from yt.config import ytcfg; ytcfg["yt", "serialize"] = "True"
-
-.. note:: Use serialization with caution. Enabling serialization means that
-   once a projection of a dataset has been created (and stored in the .yt file
-   in the same directory), any subsequent changes to that dataset will be
-   ignored when attempting to create the same projection. So if you take a
-   density projection of your dataset in the 'x' direction, then somehow tweak
-   that dataset significantly, and take the density projection again, yt will
-   default to finding the original projection and 
-   :ref:`not your new one <faq-old-data>`.
-
-.. note:: It's also possible to use the standard :mod:`cPickle` module for
-          loading and storing objects -- so in theory you could even save a
-          list of objects!
-
-This method works for clumps, as well, and the entire clump index will be
-stored and restored upon load.
+convenient to save an object to disk and then restart the calculation later or
+transfer the data from a container to another filesystem.  This can be
+particularly useful when working with extremely large datasets.  Field data
+can be saved to disk in a format that allows for it to be reloaded just like
+a regular dataset.  For information on how to do this, see
+:ref:`saving-data-containers`.

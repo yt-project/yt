@@ -13,26 +13,18 @@ Python-based grid handler, not to be confused with the SWIG-handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import pdb
 import weakref
-import itertools
 import numpy as np
-
-from yt.funcs import *
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
-    YTDataContainer, \
     YTSelectionContainer
-from yt.fields.field_exceptions import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.exceptions import \
+    YTFieldTypeNotFound, \
+    YTParticleDepositionNotImplemented
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 
 class AMRGridPatch(YTSelectionContainer):
@@ -234,15 +226,12 @@ class AMRGridPatch(YTSelectionContainer):
         # We will attempt this by creating a datacube that is exactly bigger
         # than the grid by nZones*dx in each direction
         nl = self.get_global_startindex() - n_zones
-        nr = nl + self.ActiveDimensions + 2 * n_zones
         new_left_edge = nl * self.dds + self.ds.domain_left_edge
-        new_right_edge = nr * self.dds + self.ds.domain_left_edge
 
         # Something different needs to be done for the root grid, though
         level = self.Level
         if all_levels:
             level = self.index.max_level + 1
-        args = (level, new_left_edge, new_right_edge)
         kwargs = {'dims': self.ActiveDimensions + 2*n_zones,
                   'num_ghost_zones':n_zones,
                   'use_pbar':False, 'fields':fields}
@@ -331,17 +320,20 @@ class AMRGridPatch(YTSelectionContainer):
     def particle_operation(self, *args, **kwargs):
         raise NotImplementedError
 
-    def deposit(self, positions, fields = None, method = None):
+    def deposit(self, positions, fields = None, method = None,
+                kernel_name = 'cubic'):
         # Here we perform our particle deposition.
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        op = cls(self.ActiveDimensions.prod()) # We allocate number of zones, not number of octs
+        # We allocate number of zones, not number of octs
+        # Everything inside this is fortran ordered, so we reverse it here.
+        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None: return
-        return vals.reshape(self.ActiveDimensions, order="C")
+        return vals.transpose() # Fortran-ordered, so transpose.
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)

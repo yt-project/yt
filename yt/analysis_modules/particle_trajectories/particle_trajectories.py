@@ -13,16 +13,16 @@ from __future__ import print_function
 
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.time_series import DatasetSeries
-from yt.utilities.lib.CICDeposit import CICSample_3
+from yt.utilities.lib.particle_mesh_operations import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
-from yt.funcs import *
+from yt.funcs import mylog, get_pbar
 from yt.units.yt_array import array_like_field
 from yt.config import ytcfg
 from collections import OrderedDict
 
 import numpy as np
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
@@ -206,7 +206,7 @@ class ParticleTrajectories(object):
             dd_first = ds_first.all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
-                if self.data_series[0].field_info[fd].particle_type:
+                if self.data_series[0]._get_field_info(*fd).particle_type:
                     self.particle_fields.append(field)
             particles = np.empty((self.num_indices,self.num_steps))
             particles[:] = np.nan
@@ -339,7 +339,7 @@ class ParticleTrajectories(object):
         """
         fid = h5py.File(filename, "w")
         fields = [field for field in sorted(self.field_data.keys())]
-        fid.create_dataset("particle_indices", dtype=np.int32,
+        fid.create_dataset("particle_indices", dtype=np.int64,
                            data=self.indices)
         fid.create_dataset("particle_time", data=self.times)
         for field in fields:

@@ -15,7 +15,7 @@ A simple periodic table.
 
 import numpy as np
 import numbers
-import types
+from yt.extern.six import string_types
 
 _elements = (
     (1, 1.0079400000, "Hydrogen", "H"),
@@ -164,7 +164,7 @@ class PeriodicTable:
     def __getitem__(self, key):
         if isinstance(key, (np.number, numbers.Number)):
             d = self.elements_by_number
-        elif isinstance(key, str):
+        elif isinstance(key, string_types):
             if len(key) <= 2:
                 d = self.elements_by_symbol
             elif len(key) == 3 and key[0] == "U":

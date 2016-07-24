@@ -1,4 +1,7 @@
-from yt.testing import *
+from yt.testing import \
+    fake_random_ds, \
+    assert_almost_equal, \
+    assert_equal
 
 def setup():
     from yt.config import ytcfg

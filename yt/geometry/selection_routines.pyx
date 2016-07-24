@@ -18,12 +18,14 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
-from fp_utils cimport fclip, iclip, fmax, fmin
+from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
+from yt.utilities.lib.volume_container cimport \
+    VolumeContainer
 from yt.utilities.lib.grid_traversal cimport \
-    VolumeContainer, sample_function, walk_volume
+    sampler_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 
 cdef extern from "math.h":
@@ -164,16 +166,16 @@ cdef class SelectorObject:
         return gridi.astype("bool")
 
     def count_octs(self, OctreeContainer octree, int domain_id = -1):
-        cdef OctVisitorData data
-        octree.setup_data(&data, domain_id)
-        octree.visit_all_octs(self, oct_visitors.count_total_octs, &data)
-        return data.index
+        cdef oct_visitors.CountTotalOcts visitor
+        visitor = oct_visitors.CountTotalOcts(octree, domain_id)
+        octree.visit_all_octs(self, visitor)
+        return visitor.index
 
     def count_oct_cells(self, OctreeContainer octree, int domain_id = -1):
-        cdef OctVisitorData data
-        octree.setup_data(&data, domain_id)
-        octree.visit_all_octs(self, oct_visitors.count_total_cells, &data)
-        return data.index
+        cdef oct_visitors.CountTotalCells visitor
+        visitor = oct_visitors.CountTotalCells(octree, domain_id)
+        octree.visit_all_octs(self, visitor)
+        return visitor.index
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -181,8 +183,7 @@ cdef class SelectorObject:
     cdef void recursively_visit_octs(self, Oct *root,
                         np.float64_t pos[3], np.float64_t dds[3],
                         int level,
-                        oct_visitor_function *func,
-                        OctVisitorData *data,
+                        OctVisitor visitor,
                         int visit_covered = 0):
         # visit_covered tells us whether this octree supports partial
         # refinement.  If it does, we need to handle this specially -- first
@@ -192,9 +193,8 @@ cdef class SelectorObject:
         cdef np.float64_t RE[3]
         cdef np.float64_t sdds[3]
         cdef np.float64_t spos[3]
-        cdef int i, j, k, res, mi
+        cdef int i, j, k, res
         cdef Oct *ch
-        cdef np.uint8_t selected
         # Remember that pos is the *center* of the oct, and dds is the oct
         # width.  So to get to the edges, we add/subtract half of dds.
         for i in range(3):
@@ -204,7 +204,7 @@ cdef class SelectorObject:
             RE[i] = pos[i] + dds[i]/2.0
         #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
         res = self.select_grid(LE, RE, level, root)
-        if res == 1 and data.domain > 0 and root.domain != data.domain:
+        if res == 1 and visitor.domain > 0 and root.domain != visitor.domain:
             res = -1
         cdef int increment = 1
         cdef int next_level, this_level
@@ -241,55 +241,57 @@ cdef class SelectorObject:
                     spos[2] = pos[2] - sdds[2]/2.0
                     for k in range(2):
                         ch = NULL
-                        if root.children != NULL:
+                        # We only supply a child if we are actually going to
+                        # look at the next level.
+                        if root.children != NULL and next_level == 1:
                             ch = root.children[cind(i, j, k)]
                         if iter == 1 and next_level == 1 and ch != NULL:
-                            # Note that data.pos is always going to be the
+                            # Note that visitor.pos is always going to be the
                             # position of the Oct -- it is *not* always going
                             # to be the same as the position of the cell under
                             # investigation.
-                            data.pos[0] = (data.pos[0] << 1) + i
-                            data.pos[1] = (data.pos[1] << 1) + j
-                            data.pos[2] = (data.pos[2] << 1) + k
-                            data.level += 1
+                            visitor.pos[0] = (visitor.pos[0] << 1) + i
+                            visitor.pos[1] = (visitor.pos[1] << 1) + j
+                            visitor.pos[2] = (visitor.pos[2] << 1) + k
+                            visitor.level += 1
                             self.recursively_visit_octs(
-                                ch, spos, sdds, level + 1, func, data,
+                                ch, spos, sdds, level + 1, visitor,
                                 visit_covered)
-                            data.pos[0] = (data.pos[0] >> 1)
-                            data.pos[1] = (data.pos[1] >> 1)
-                            data.pos[2] = (data.pos[2] >> 1)
-                            data.level -= 1
-                        elif this_level == 1 and data.oref > 0:
-                            data.global_index += increment
+                            visitor.pos[0] = (visitor.pos[0] >> 1)
+                            visitor.pos[1] = (visitor.pos[1] >> 1)
+                            visitor.pos[2] = (visitor.pos[2] >> 1)
+                            visitor.level -= 1
+                        elif this_level == 1 and visitor.oref > 0:
+                            visitor.global_index += increment
                             increment = 0
-                            self.visit_oct_cells(data, root, ch, spos, sdds,
-                                                 func, i, j, k)
+                            self.visit_oct_cells(root, ch, spos, sdds,
+                                                 visitor, i, j, k)
                         elif this_level == 1 and increment == 1:
-                            data.global_index += increment
+                            visitor.global_index += increment
                             increment = 0
-                            data.ind[0] = data.ind[1] = data.ind[2] = 0
-                            func(root, data, 1)
+                            visitor.ind[0] = visitor.ind[1] = visitor.ind[2] = 0
+                            visitor.visit(root, 1)
                         spos[2] += sdds[2]
                     spos[1] += sdds[1]
                 spos[0] += sdds[0]
             this_level = 0 # We turn this off for the second pass.
             iter += 1
 
-    cdef void visit_oct_cells(self, OctVisitorData *data, Oct *root, Oct *ch,
+    cdef void visit_oct_cells(self, Oct *root, Oct *ch,
                               np.float64_t spos[3], np.float64_t sdds[3],
-                              oct_visitor_function *func, int i, int j, int k):
+                              OctVisitor visitor, int i, int j, int k):
         # We can short-circuit the whole process if data.oref == 1.
         # This saves us some funny-business.
         cdef int selected
-        if data.oref == 1:
+        if visitor.oref == 1:
             selected = self.select_cell(spos, sdds)
             if ch != NULL:
                 selected *= self.overlap_cells
-            # data.ind refers to the cell, not to the oct.
-            data.ind[0] = i
-            data.ind[1] = j
-            data.ind[2] = k
-            func(root, data, selected)
+            # visitor.ind refers to the cell, not to the oct.
+            visitor.ind[0] = i
+            visitor.ind[1] = j
+            visitor.ind[2] = k
+            visitor.visit(root, selected)
             return
         # Okay, now that we've got that out of the way, we have to do some
         # other checks here.  In this case, spos[] is the position of the
@@ -299,7 +301,7 @@ cdef class SelectorObject:
         cdef np.float64_t dds[3]
         cdef np.float64_t pos[3]
         cdef int ci, cj, ck
-        cdef int nr = (1 << (data.oref - 1))
+        cdef int nr = (1 << (visitor.oref - 1))
         for ci in range(3):
             dds[ci] = sdds[ci] / nr
         # Boot strap at the first index.
@@ -312,10 +314,10 @@ cdef class SelectorObject:
                     selected = self.select_cell(pos, dds)
                     if ch != NULL:
                         selected *= self.overlap_cells
-                    data.ind[0] = ci + i * nr
-                    data.ind[1] = cj + j * nr
-                    data.ind[2] = ck + k * nr
-                    func(root, data, selected)
+                    visitor.ind[0] = ci + i * nr
+                    visitor.ind[1] = cj + j * nr
+                    visitor.ind[2] = ck + k * nr
+                    visitor.visit(root, selected)
                     pos[2] += dds[2]
                 pos[1] += dds[1]
             pos[0] += dds[0]
@@ -360,7 +362,6 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_mesh_mask(self, mesh):
-        cdef int dim[3]
         cdef np.float64_t pos[3]
         cdef np.ndarray[np.int64_t, ndim=2] indices
         cdef np.ndarray[np.float64_t, ndim=2] coords
@@ -389,7 +390,6 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def fill_mesh_cell_mask(self, mesh):
-        cdef int dim[3]
         cdef np.float64_t pos
         cdef np.float64_t le[3]
         cdef np.float64_t re[3]
@@ -398,21 +398,20 @@ cdef class SelectorObject:
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         cdef int i, j, k, selected
         cdef int npoints, nv = mesh._connectivity_length
+        cdef int ndim = mesh.connectivity_coords.shape[1]
         cdef int total = 0
         cdef int offset = mesh._index_offset
-        if nv != 8:
-            raise RuntimeError
         coords = _ensure_code(mesh.connectivity_coords)
         indices = mesh.connectivity_indices
         npoints = indices.shape[0]
         mask = np.zeros(npoints, dtype='uint8')
         for i in range(npoints):
             selected = 0
-            for k in range(3):
+            for k in range(ndim):
                 le[k] = 1e60
                 re[k] = -1e60
             for j in range(nv):
-                for k in range(3):
+                for k in range(ndim):
                     pos = coords[indices[i, j] - offset, k]
                     le[k] = fmin(pos, le[k])
                     re[k] = fmax(pos, re[k])
@@ -436,7 +435,7 @@ cdef class SelectorObject:
         cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds.d
         cdef np.ndarray[np.float64_t, ndim=1] oleft_edge = gobj.LeftEdge.d
         cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
-        cdef int i, j, k
+        cdef int i
         cdef np.float64_t dds[3]
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
@@ -497,10 +496,11 @@ cdef class SelectorObject:
         # aspect of which is the .grid attribute, along with index values and
         # void* pointers to arrays) and a possibly-pre-generated cached mask.
         # Each cell is visited with the grid visitor function.
-        cdef np.float64_t left_edge[3], right_edge[3]
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
         cdef np.float64_t dds[3]
-        cdef int dim[3], level, i
-        cdef int total = 0, this_level = 0
+        cdef int dim[3]
+        cdef int this_level = 0, level, i
         cdef np.float64_t pos[3]
         level = data.grid.level
         if level < self.min_level or level > self.max_level:
@@ -687,7 +687,6 @@ cdef class PointSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        cdef int i
         # point definitely can only be in one cell
         if (left_edge[0] <= self.p[0] < right_edge[0] and
             left_edge[1] <= self.p[1] < right_edge[1] and
@@ -717,8 +716,6 @@ cdef class SphereSelector(SelectorObject):
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
         center = _ensure_code(dobj.center)
-        cdef np.float64_t mi = np.finfo("float64").min
-        cdef np.float64_t ma = np.finfo("float64").max
         for i in range(3):
             self.center[i] = center[i]
             self.bbox[i][0] = self.center[i] - self.radius
@@ -812,6 +809,8 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
+    cdef bint loose_selection
+    cdef bint check_period
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -819,18 +818,21 @@ cdef class RegionSelector(SelectorObject):
         cdef int i
         # We are modifying dobj.left_edge and dobj.right_edge , so here we will
         # do an in-place conversion of those arrays.
-        cdef np.ndarray[np.float64_t, ndim=1] RE = _ensure_code(dobj.right_edge)
-        cdef np.ndarray[np.float64_t, ndim=1] LE = _ensure_code(dobj.left_edge)
-        cdef np.ndarray[np.float64_t, ndim=1] DW = _ensure_code(dobj.ds.domain_width)
-        cdef np.ndarray[np.float64_t, ndim=1] DLE = _ensure_code(dobj.ds.domain_left_edge)
-        cdef np.ndarray[np.float64_t, ndim=1] DRE = _ensure_code(dobj.ds.domain_right_edge)
+        cdef np.float64_t[:] RE = _ensure_code(dobj.right_edge)
+        cdef np.float64_t[:] LE = _ensure_code(dobj.left_edge)
+        cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
+        cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
+        cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
         cdef np.float64_t region_width[3]
         cdef bint p[3]
+        # This is for if we want to include zones that overlap and whose
+        # centers are not strictly included.
+        self.loose_selection = getattr(dobj, "loose_selection", False)
+        self.check_period = False
 
         for i in range(3):
             region_width[i] = RE[i] - LE[i]
             p[i] = dobj.ds.periodicity[i]
-            DW[i] = DW[i]
             if region_width[i] <= 0:
                 raise RuntimeError(
                     "Region right edge[%s] < left edge: width = %s" % (
@@ -839,6 +841,11 @@ cdef class RegionSelector(SelectorObject):
         for i in range(3):
 
             if p[i]:
+                # First, we check if any criteria requires a period check,
+                # without any adjustments.  This is for short-circuiting the
+                # short-circuit of the loop down below in mask filling.
+                if LE[i] < DLE[i] or LE[i] > DRE[i] or RE[i] > DRE[i]:
+                    self.check_period = True
                 # shift so left_edge guaranteed in domain
                 if LE[i] < DLE[i]:
                     LE[i] += DW[i]
@@ -872,8 +879,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        cdef int i, shift, included
-        cdef np.float64_t LE, RE
+        cdef int i
         for i in range(3):
             if (right_edge[i] < self.left_edge[i] and \
                 left_edge[i] >= self.right_edge_shift[i]) or \
@@ -885,6 +891,14 @@ cdef class RegionSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
+        cdef int i
+        if self.loose_selection:
+            for i in range(3):
+                left_edge[i] = pos[i] - dds[i]*0.5
+                right_edge[i] = pos[i] + dds[i]*0.5
+            return self.select_bbox(left_edge, right_edge)
         return self.select_point(pos)
 
     @cython.boundscheck(False)
@@ -897,6 +911,53 @@ cdef class RegionSelector(SelectorObject):
                pos[i] >= self.right_edge[i]:
                 return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3],
+                                np.float64_t dds[3], int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int level):
+        cdef int i, j, k
+        cdef int total = 0, this_level = 0
+        cdef np.float64_t pos[3]
+        if level < self.min_level or level > self.max_level:
+            return 0
+        if level == self.max_level:
+            this_level = 1
+        cdef int si[3]
+        cdef int ei[3]
+        #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
+        #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
+        #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
+        if not self.check_period:
+            for i in range(3):
+                si[i] = <int> ((self.left_edge[i] - left_edge[i])/dds[i])
+                ei[i] = <int> ((self.right_edge[i] - left_edge[i])/dds[i])
+                si[i] = iclip(si[i] - 1, 0, dim[i])
+                ei[i] = iclip(ei[i] + 1, 0, dim[i])
+        else:
+            for i in range(3):
+                si[i] = 0
+                ei[i] = dim[i]
+        with nogil:
+            pos[0] = left_edge[0] + (si[0] + 0.5) * dds[0]
+            for i in range(si[0], ei[0]):
+                pos[1] = left_edge[1] + (si[1] + 0.5) * dds[1]
+                for j in range(si[1], ei[1]):
+                    pos[2] = left_edge[2] + (si[2] + 0.5) * dds[2]
+                    for k in range(si[2], ei[2]):
+                        if child_mask[i, j, k] == 1 or this_level == 1:
+                            mask[i, j, k] = self.select_cell(pos, dds)
+                            total += mask[i, j, k]
+                        pos[2] += dds[2]
+                    pos[1] += dds[1]
+                pos[0] += dds[0]
+        return total
+
 
     def _hash_vals(self):
         return (("left_edge[0]", self.left_edge[0]),
@@ -967,8 +1028,8 @@ cdef class DiskSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_point(self, np.float64_t pos[3]) nogil:
-        cdef np.float64_t h, d, r2, temp, spos
-        cdef int i, j, k
+        cdef np.float64_t h, d, r2, temp
+        cdef int i
         h = d = 0
         for i in range(3):
             temp = self.difference(pos[i], self.center[i], i)
@@ -1001,47 +1062,48 @@ cdef class DiskSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         # Until we can get our OBB/OBB intersection correct, disable this.
         return 1
-        cdef np.float64_t *arr[2]
-        cdef np.float64_t pos[3], H, D, R2, temp
-        cdef int i, j, k, n
-        cdef int all_under = 1
-        cdef int all_over = 1
-        cdef int any_radius = 0
-        # A moment of explanation (revised):
-        #    The disk and bounding box collide if any of the following are true:
-        #    1) the center of the disk is inside the bounding box
-        #    2) any corner of the box lies inside the disk
-        #    3) the box spans the plane (!all_under and !all_over) and at least
-        #       one corner is within the cylindrical radius
+        # cdef np.float64_t *arr[2]
+        # cdef np.float64_t pos[3]
+        # cdef np.float64_t H, D, R2, temp
+        # cdef int i, j, k, n
+        # cdef int all_under = 1
+        # cdef int all_over = 1
+        # cdef int any_radius = 0
+        # # A moment of explanation (revised):
+        # #    The disk and bounding box collide if any of the following are true:
+        # #    1) the center of the disk is inside the bounding box
+        # #    2) any corner of the box lies inside the disk
+        # #    3) the box spans the plane (!all_under and !all_over) and at least
+        # #       one corner is within the cylindrical radius
 
-        # check if disk center lies inside bbox
-        if left_edge[0] <= self.center[0] <= right_edge[0] and \
-           left_edge[1] <= self.center[1] <= right_edge[1] and \
-           left_edge[2] <= self.center[2] <= right_edge[2] :
-            return 1
+        # # check if disk center lies inside bbox
+        # if left_edge[0] <= self.center[0] <= right_edge[0] and \
+        #    left_edge[1] <= self.center[1] <= right_edge[1] and \
+        #    left_edge[2] <= self.center[2] <= right_edge[2] :
+        #     return 1
 
-        # check all corners
-        arr[0] = left_edge
-        arr[1] = right_edge
-        for i in range(2):
-            pos[0] = arr[i][0]
-            for j in range(2):
-                pos[1] = arr[j][1]
-                for k in range(2):
-                    pos[2] = arr[k][2]
-                    H = D = 0
-                    for n in range(3):
-                        temp = self.difference(pos[n], self.center[n], n)
-                        H += (temp * self.norm_vec[n])
-                        D += temp*temp
-                    R2 = (D - H*H)
-                    if R2 < self.radius2 :
-                        any_radius = 1
-                        if fabs(H) < self.height: return 1
-                    if H < 0: all_over = 0
-                    if H > 0: all_under = 0
-        if all_over == 0 and all_under == 0 and any_radius == 1: return 1
-        return 0
+        # # check all corners
+        # arr[0] = left_edge
+        # arr[1] = right_edge
+        # for i in range(2):
+        #     pos[0] = arr[i][0]
+        #     for j in range(2):
+        #         pos[1] = arr[j][1]
+        #         for k in range(2):
+        #             pos[2] = arr[k][2]
+        #             H = D = 0
+        #             for n in range(3):
+        #                 temp = self.difference(pos[n], self.center[n], n)
+        #                 H += (temp * self.norm_vec[n])
+        #                 D += temp*temp
+        #             R2 = (D - H*H)
+        #             if R2 < self.radius2 :
+        #                 any_radius = 1
+        #                 if fabs(H) < self.height: return 1
+        #             if H < 0: all_over = 0
+        #             if H > 0: all_under = 0
+        # if all_over == 0 and all_under == 0 and any_radius == 1: return 1
+        # return 0
 
     def _hash_vals(self):
         return (("norm_vec[0]", self.norm_vec[0]),
@@ -1145,8 +1207,8 @@ cdef class SliceSelector(SelectorObject):
         self.axis = dobj.axis
         self.coord = _ensure_code(dobj.coord)
 
-        ax = (self.axis+1) % 3
-        ay = (self.axis+2) % 3
+        self.ax = (self.axis+1) % 3
+        self.ay = (self.axis+2) % 3
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1463,7 +1525,6 @@ cdef class RaySelector(SelectorObject):
         if nv != 8:
             raise NotImplementedError
         cdef VolumeContainer vc
-        cdef int selected
         child_mask = np.ones((1,1,1), dtype="uint8")
         t = np.zeros((1,1,1), dtype="float64")
         dt = np.zeros((1,1,1), dtype="float64") - 1
@@ -1574,7 +1635,7 @@ cdef class DataCollectionSelector(SelectorObject):
                      np.ndarray[np.float64_t, ndim=2] left_edges,
                      np.ndarray[np.float64_t, ndim=2] right_edges,
                      np.ndarray[np.int32_t, ndim=2] levels):
-        cdef int i, n
+        cdef int n
         cdef int ng = left_edges.shape[0]
         cdef np.ndarray[np.uint8_t, ndim=1] gridi = np.zeros(ng, dtype='uint8')
         cdef np.ndarray[np.int64_t, ndim=1] oids = self.obj_ids
@@ -1990,3 +2051,42 @@ cdef class HaloParticlesSelector(SelectorObject):
         return ("halo_particles", self.halo_id)
 
 halo_particles_selector = HaloParticlesSelector
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def points_in_cells(
+        np.float64_t[:] cx,
+        np.float64_t[:] cy,
+        np.float64_t[:] cz,
+        np.float64_t[:] dx,
+        np.float64_t[:] dy,
+        np.float64_t[:] dz,
+        np.float64_t[:] px,
+        np.float64_t[:] py,
+        np.float64_t[:] pz):
+    # Take a list of cells and particles and calculate which particles
+    # are enclosed within one of the cells.  This is used for querying
+    # particle fields on clump/contour objects.
+    # We use brute force since the cells are a relatively unordered collection.
+
+    cdef int p, c, n_p, n_c
+
+    n_p = px.size
+    n_c = cx.size
+    mask = np.ones(n_p, dtype="bool")
+
+    for p in range(n_p):
+        for c in range(n_c):
+            if fabs(px[p] - cx[c]) > 0.5 * dx[c]:
+                mask[p] = False
+                continue
+            if fabs(py[p] - cy[c]) > 0.5 * dy[c]:
+                mask[p] = False
+                continue
+            if fabs(pz[p] - cz[c]) > 0.5 * dz[c]:
+                mask[p] = False
+                continue
+            if mask[p]: break
+
+    return mask

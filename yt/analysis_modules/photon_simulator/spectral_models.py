@@ -11,13 +11,16 @@ photon simulator.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
-from yt.funcs import *
-from yt.units.yt_array import YTQuantity
-import h5py
-from yt.utilities.on_demand_imports import _astropy, _scipy
-from yt.utilities.physical_constants import hcgs, clight, erg_per_keV, amu_cgs
+
+from yt.funcs import mylog
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.physical_constants import hcgs, clight
+from yt.utilities.physical_ratios import erg_per_keV, amu_grams
+from yt.analysis_modules.photon_simulator.utils import broaden_lines
 
 hc = (hcgs*clight).in_units("keV*angstrom").v
 cl = clight.v
@@ -29,7 +32,7 @@ class SpectralModel(object):
         self.emin = YTQuantity(emin, "keV")
         self.emax = YTQuantity(emax, "keV")
         self.nchan = nchan
-        self.ebins = np.linspace(self.emin, self.emax, nchan+1)
+        self.ebins = YTArray(np.linspace(self.emin, self.emax, nchan+1), "keV")
         self.de = np.diff(self.ebins)
         self.emid = 0.5*(self.ebins[1:]+self.ebins[:-1])
 
@@ -39,13 +42,15 @@ class SpectralModel(object):
     def get_spectrum(self):
         pass
 
+    def cleanup_spectrum(self):
+        pass
+
 class XSpecThermalModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from PyXspec.
 
     Parameters
     ----------
-
     model_name : string
         The name of the thermal emission model.
     emin : float
@@ -62,7 +67,7 @@ class XSpecThermalModel(SpectralModel):
     --------
     >>> mekal_model = XSpecThermalModel("mekal", 0.05, 50.0, 1000)
     """
-    def __init__(self, model_name, emin, emax, nchan, 
+    def __init__(self, model_name, emin, emax, nchan,
                  thermal_broad=False, settings=None):
         self.model_name = model_name
         self.thermal_broad = thermal_broad
@@ -106,6 +111,10 @@ class XSpecThermalModel(SpectralModel):
         cosmic_spec *= self.norm
         metal_spec *= self.norm
         return YTArray(cosmic_spec, "cm**3/s"), YTArray(metal_spec, "cm**3/s")
+    
+    def cleanup_spectrum(self):
+        del self.thermal_comp
+        del self.model
 
 class XSpecAbsorbModel(SpectralModel):
     r"""
@@ -113,7 +122,6 @@ class XSpecAbsorbModel(SpectralModel):
 
     Parameters
     ----------
-
     model_name : string
         The name of the absorption model.
     nH : float
@@ -132,7 +140,7 @@ class XSpecAbsorbModel(SpectralModel):
     --------
     >>> abs_model = XSpecAbsorbModel("wabs", 0.1)
     """
-    def __init__(self, model_name, nH, emin=0.01, emax=50.0, 
+    def __init__(self, model_name, nH, emin=0.01, emax=50.0,
                  nchan=100000, settings=None):
         self.model_name = model_name
         self.nH = nH
@@ -162,16 +170,18 @@ class XSpecAbsorbModel(SpectralModel):
         m.nH = self.nH
         return np.array(self.model.values(0))
 
+    def cleanup_spectrum(self):
+        del self.model
+
 class TableApecModel(SpectralModel):
     r"""
     Initialize a thermal gas emission model from the AtomDB APEC tables
     available at http://www.atomdb.org. This code borrows heavily from Python
     routines used to read the APEC tables developed by Adam Foster at the
-    CfA (afoster@cfa.harvard.edu). 
+    CfA (afoster@cfa.harvard.edu).
 
     Parameters
     ----------
-
     apec_root : string
         The directory root where the APEC model files are stored.
     emin : float
@@ -190,8 +200,8 @@ class TableApecModel(SpectralModel):
 
     Examples
     --------
-    >>> apec_model = TableApecModel("/Users/jzuhone/Data/atomdb_v2.0.2/", 0.05, 50.0,
-    ...                             1000, thermal_broad=True)
+    >>> apec_model = TableApecModel("$SPECTRAL_DATA/spectral/", 0.05, 50.0,
+    ...                             1000, apec_vers="3.0", thermal_broad=True)
     """
     def __init__(self, apec_root, emin, emax, nchan,
                  apec_vers="2.0.2", thermal_broad=False):
@@ -201,7 +211,7 @@ class TableApecModel(SpectralModel):
                                      self.apec_prefix+"_coco.fits")
         self.linefile = os.path.join(self.apec_root,
                                      self.apec_prefix+"_line.fits")
-        super(TableApecModel, self).__init__(emin, emax, nchan)  
+        super(TableApecModel, self).__init__(emin, emax, nchan)
         self.wvbins = hc/self.ebins[::-1].d
         # H, He, and trace elements
         self.cosmic_elem = [1,2,3,4,5,9,11,15,17,19,21,22,23,24,25,27,29,30]
@@ -236,49 +246,49 @@ class TableApecModel(SpectralModel):
         self.maxlam = self.wvbins.max()
         self.scale_factor = 1.0/(1.+zobs)
 
-    def _make_spectrum(self, element, tindex):
+    def _make_spectrum(self, kT, element, tindex):
 
         tmpspec = np.zeros(self.nchan)
 
-        i = np.where((self.line_handle[tindex].data.field('element') == element) &
-                     (self.line_handle[tindex].data.field('lambda') > self.minlam) &
-                     (self.line_handle[tindex].data.field('lambda') < self.maxlam))[0]
+        line_data = self.line_handle[tindex].data
+        coco_data = self.coco_handle[tindex].data
 
-        vec = np.zeros(self.nchan)
-        E0 = hc/self.line_handle[tindex].data.field('lambda')[i]*self.scale_factor
-        amp = self.line_handle[tindex].data.field('epsilon')[i]
+        i = np.where((line_data.field('element') == element) &
+                     (line_data.field('lambda') > self.minlam) &
+                     (line_data.field('lambda') < self.maxlam))[0]
+
+        E0 = hc/line_data.field('lambda')[i].astype("float64")*self.scale_factor
+        amp = line_data.field('epsilon')[i].astype("float64")
         ebins = self.ebins.d
+        de = self.de.d
+        emid = self.emid.d
         if self.thermal_broad:
-            vec = np.zeros(self.nchan)
-            sigma = E0*np.sqrt(self.Tvals[tindex]*erg_per_keV/(self.A[element]*amu_cgs))/cl
-            for E, sig, a in zip(E0, sigma, amp):
-                cdf = _scipy.stats.norm(E,sig).cdf(ebins)
-                vec += np.diff(cdf)*a
+            sigma = E0*np.sqrt(2.*kT*erg_per_keV/(self.A[element]*amu_grams))/cl
+            vec = broaden_lines(E0, sigma, amp, ebins)
         else:
-            ie = np.searchsorted(ebins, E0, side='right')-1
-            for i, a in zip(ie, amp): vec[i] += a
+            vec = np.histogram(E0, ebins, weights=amp)[0]
         tmpspec += vec
 
-        ind = np.where((self.coco_handle[tindex].data.field('Z') == element) &
-                       (self.coco_handle[tindex].data.field('rmJ') == 0))[0]
+        ind = np.where((coco_data.field('Z') == element) &
+                       (coco_data.field('rmJ') == 0))[0]
         if len(ind) == 0:
             return tmpspec
         else:
             ind = ind[0]
 
-        n_cont = self.coco_handle[tindex].data.field('N_Cont')[ind]
-        e_cont = self.coco_handle[tindex].data.field('E_Cont')[ind][:n_cont]*self.scale_factor
-        continuum = self.coco_handle[tindex].data.field('Continuum')[ind][:n_cont]
+        n_cont = coco_data.field('N_Cont')[ind]
+        e_cont = coco_data.field('E_Cont')[ind][:n_cont]
+        continuum = coco_data.field('Continuum')[ind][:n_cont]
 
-        tmpspec += np.interp(self.emid.d, e_cont, continuum)*self.de.d
+        tmpspec += np.interp(emid, e_cont*self.scale_factor, continuum)*de/self.scale_factor
 
-        n_pseudo = self.coco_handle[tindex].data.field('N_Pseudo')[ind]
-        e_pseudo = self.coco_handle[tindex].data.field('E_Pseudo')[ind][:n_pseudo]*self.scale_factor
-        pseudo = self.coco_handle[tindex].data.field('Pseudo')[ind][:n_pseudo]
+        n_pseudo = coco_data.field('N_Pseudo')[ind]
+        e_pseudo = coco_data.field('E_Pseudo')[ind][:n_pseudo]
+        pseudo = coco_data.field('Pseudo')[ind][:n_pseudo]
 
-        tmpspec += np.interp(self.emid.d, e_pseudo, pseudo)*self.de.d
+        tmpspec += np.interp(emid, e_pseudo*self.scale_factor, pseudo)*de/self.scale_factor
 
-        return tmpspec
+        return tmpspec*self.scale_factor
 
     def get_spectrum(self, kT):
         """
@@ -294,12 +304,12 @@ class TableApecModel(SpectralModel):
         dT = (kT-self.Tvals[tindex])/self.dTvals[tindex]
         # First do H,He, and trace elements
         for elem in self.cosmic_elem:
-            cspec_l += self._make_spectrum(elem, tindex+2)
-            cspec_r += self._make_spectrum(elem, tindex+3)            
+            cspec_l += self._make_spectrum(kT, elem, tindex+2)
+            cspec_r += self._make_spectrum(kT, elem, tindex+3)
         # Next do the metals
         for elem in self.metal_elem:
-            mspec_l += self._make_spectrum(elem, tindex+2)
-            mspec_r += self._make_spectrum(elem, tindex+3)
+            mspec_l += self._make_spectrum(kT, elem, tindex+2)
+            mspec_r += self._make_spectrum(kT, elem, tindex+3)
         cosmic_spec = YTArray(cspec_l*(1.-dT)+cspec_r*dT, "cm**3/s")
         metal_spec = YTArray(mspec_l*(1.-dT)+mspec_r*dT, "cm**3/s")
         return cosmic_spec, metal_spec
@@ -310,7 +320,6 @@ class TableAbsorbModel(SpectralModel):
 
     Parameters
     ----------
-
     filename : string
         The name of the table file.
     nH : float
@@ -320,7 +329,6 @@ class TableAbsorbModel(SpectralModel):
     --------
     >>> abs_model = XSpecAbsorbModel("abs_table.h5", 0.1)
     """
-
     def __init__(self, filename, nH):
         if not os.path.exists(filename):
             raise IOError("File does not exist: %s." % filename)

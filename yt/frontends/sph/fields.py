@@ -39,28 +39,10 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Metals", ("code_metallicity", ["metallicity"], None)),
         ("Metallicity", ("code_metallicity", ["metallicity"], None)),
         ("Phi", ("code_length", [], None)),
-        ("StarFormationRate", ("code_mass / code_time", [], None)),
+        ("StarFormationRate", ("Msun / yr", [], None)),
         ("FormationTime", ("code_time", ["creation_time"], None)),
-        # These are metallicity fields that get discovered for FIRE simulations
         ("Metallicity_00", ("", ["metallicity"], None)),
-        ("Metallicity_01", ("", ["He_fraction"], None)),
-        ("Metallicity_02", ("", ["C_fraction"], None)),
-        ("Metallicity_03", ("", ["N_fraction"], None)),
-        ("Metallicity_04", ("", ["O_fraction"], None)),
-        ("Metallicity_05", ("", ["Ne_fraction"], None)),
-        ("Metallicity_06", ("", ["Mg_fraction"], None)),
-        ("Metallicity_07", ("", ["Si_fraction"], None)),
-        ("Metallicity_08", ("", ["S_fraction"], None)),
-        ("Metallicity_09", ("", ["Ca_fraction"], None)),
-        ("Metallicity_10", ("", ["Fe_fraction"], None)),
     )
-
-    def __init__(self, *args, **kwargs):
-        super(SPHFieldInfo, self).__init__(*args, **kwargs)
-        # Special case for FIRE
-        if ("PartType0", "Metallicity_00") in self.field_list:
-            self.species_names += ["He", "C", "N", "O", "Ne", "Mg", "Si", "S",
-                "Ca", "Fe"]
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
         super(SPHFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)

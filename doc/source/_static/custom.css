@@ -40,7 +40,7 @@ be adjusted if the navbar menu changes.
         padding-bottom: 10px;
     }
     /* since 3.1.0 */
-    .navbar-collapse.collapse.in { 
+    .navbar-collapse.collapse.in {
         display: block!important;
     }
     .collapsing {
@@ -48,7 +48,7 @@ be adjusted if the navbar menu changes.
     }
 }
 
-/* 
+/*
 
 Sphinx code literals conflict with the notebook code tag, so we special-case
 literals that are inside text.
@@ -56,7 +56,7 @@ literals that are inside text.
 */
 
 p code {
-    color:  #d14;    
+    color:  #d14;
     white-space: nowrap;
     font-size: 90%;
     background-color: #f9f2f4;
@@ -93,16 +93,16 @@ See: https://github.com/twbs/bootstrap/issues/1768
 */
 
 *[id]:before :not(p) {
-  display: block; 
-  content: " "; 
-  margin-top: -45px; 
-  height: 45px; 
-  visibility: hidden; 
+  display: block;
+  content: " ";
+  margin-top: -45px;
+  height: 45px;
+  visibility: hidden;
 }
 
 /*
 
-Make tables span only half the page. 
+Make tables span only half the page.
 
 */
 

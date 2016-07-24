@@ -13,19 +13,18 @@ Enzo-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import os
 import random
 from contextlib import contextmanager
 
 from yt.utilities.io_handler import \
-    BaseIOHandler, _axis_ids
+    BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.geometry.selection_routines import mask_fill, AlwaysSelector
+from yt.geometry.selection_routines import AlwaysSelector
 from yt.extern.six import u, b, iteritems
-import h5py
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 import numpy as np
-from yt.funcs import *
+
 
 _convert_mass = ("particle_mass","mass")
 
@@ -159,7 +158,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 self._misses += 1
                 ftype, fname = field
                 if fname in gds:
-                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
+                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0, -1)
                 else:
                     rv[(ftype, fname)] = np.zeros(g.ActiveDimensions)
             if self._cache_on:
@@ -188,7 +187,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 gf = self._cached_fields.get(g.id, {})
                 data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
-                data_view = data.swapaxes(0,2)
+                data_view = data.swapaxes(0, -1)
                 nd = 0
                 for field in fields:
                     if field in gf:
@@ -279,7 +278,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 fn = g.filename
             data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
-            data_view = data.swapaxes(0,2)
+            data_view = data.swapaxes(0, -1)
             for field in fluid_fields:
                 if field in gf:
                     self._hits += 1
@@ -305,7 +304,7 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
     _dataset_type = "enzo_packed_3d_gz"
 
     def __init__(self, *args, **kwargs):
-        super(IOHandlerPackgedHDF5GhostZones, self).__init__(*args, **kwargs)
+        super(IOHandlerPackedHDF5GhostZones, self).__init__(*args, **kwargs)
         NGZ = self.ds.parameters.get("NumberOfGhostZones", 3)
         self._base = (slice(NGZ, -NGZ),
                       slice(NGZ, -NGZ),
@@ -357,7 +356,8 @@ class IOHandlerInMemory(BaseIOHandler):
                 raise RuntimeError
             g = chunks[0].objs[0]
             for ftype, fname in fields:
-                rv[(ftype, fname)] = self.grids_in_memory[grid.id][fname].swapaxes(0,2)
+                rv[(ftype, fname)] = \
+                    self.grids_in_memory[g.id][fname].swapaxes(0, 2)
             return rv
         if size is None:
             size = sum((g.count(selector) for chunk in chunks
@@ -440,7 +440,8 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             f = h5py.File(g.filename, 'r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
-                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname).value)
+                rv[(ftype, fname)] = np.atleast_3d(
+                    gds.get(fname).value.transpose())
             f.close()
             return rv
         if size is None:

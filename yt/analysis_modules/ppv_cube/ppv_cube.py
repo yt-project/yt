@@ -14,7 +14,7 @@ import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
 from yt.utilities.fits_image import FITSImageData, sanitize_fits_unit
-from yt.visualization.volume_rendering.camera import off_axis_projection
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
 import yt.units.dimensions as ytdims
@@ -32,7 +32,7 @@ def create_vlos(normal, no_shifting):
         def _v_los(field, data):
             return data.ds.arr(data["zeros"], "cm/s")
     elif isinstance(normal, string_types):
-        def _v_los(field, data): 
+        def _v_los(field, data):
             return -data["velocity_%s" % normal]
     else:
         orient = Orientation(normal)
@@ -50,11 +50,11 @@ fits_info = {"velocity":("m/s","VOPT","v"),
              "wavelength":("angstrom","WAVE","lambda")}
 
 class PPVCube(object):
-    def __init__(self, ds, normal, field, velocity_bounds, center="c", 
+    def __init__(self, ds, normal, field, velocity_bounds, center="c",
                  width=(1.0,"unitary"), dims=100, thermal_broad=False,
                  atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
                  method="integrate", weight_field=None, no_shifting=False,
-                 north_vector=None, no_ghost=True):
+                 north_vector=None, no_ghost=True, data_source=None):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -69,7 +69,7 @@ class PPVCube(object):
             The field to project.
         velocity_bounds : tuple
             A 4-tuple of (vmin, vmax, nbins, units) for the velocity bounds to
-            integrate over. 
+            integrate over.
         center : A sequence of floats, a string, or a tuple.
             The coordinate of the center of the image. If set to 'c', 'center' or
             left blank, the plot is centered on the middle of the domain. If set to
@@ -83,10 +83,10 @@ class PPVCube(object):
         width : float, tuple, or YTQuantity.
             The width of the projection. A float will assume the width is in code units.
             A (value, unit) tuple or YTQuantity allows for the units of the width to be
-            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's 
+            specified. Implies width = height, e.g. the aspect ratio of the PPVCube's
             spatial dimensions is 1.
         dims : integer, optional
-            The spatial resolution of the cube. Implies nx = ny, e.g. the 
+            The spatial resolution of the cube. Implies nx = ny, e.g. the
             aspect ratio of the PPVCube's spatial dimensions is 1.
         thermal_broad : boolean, optional
             Whether or not to broaden the line using the gas temperature. Default: False.
@@ -98,7 +98,8 @@ class PPVCube(object):
             key of the unit: (width, 'unit').  If set to a float, code units
             are assumed. Only for off-axis cubes.
         depth_res : integer, optional
-            The resolution of integration along the line of sight for off-axis cubes. Default: 256
+            Deprecated, this is still in the function signature for API
+            compatibility
         method : string, optional
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
@@ -109,8 +110,8 @@ class PPVCube(object):
             If set, no shifting due to velocity will occur but only thermal broadening.
             Should not be set when *thermal_broad* is False, otherwise nothing happens!
         north_vector : a sequence of floats
-            A vector defining the 'up' direction. This option sets the orientation of 
-            the plane of projection. If not set, an arbitrary grid-aligned north_vector 
+            A vector defining the 'up' direction. This option sets the orientation of
+            the plane of projection. If not set, an arbitrary grid-aligned north_vector
             is chosen. Ignored in the case of on-axis cubes.
         no_ghost: bool, optional
             Optimization option for off-axis cases. If True, homogenized bricks will
@@ -120,6 +121,8 @@ class PPVCube(object):
             accuracy/smoothness in resulting image.  The effects are
             less notable when the transfer function is smooth and
             broad. Default: True
+        data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+            If specified, this will be the data source used for selecting regions to project.
 
         Examples
         --------
@@ -185,15 +188,19 @@ class PPVCube(object):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, string_types):
                 prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method,
-                              weight_field=weight_field)
+                              weight_field=weight_field, data_source=data_source)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
-                buf = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny, depth_res), "intensity",
+                if data_source is None:
+                    source = ds
+                else:
+                    source = data_source
+                buf = off_axis_projection(source, self.center, normal, width,
+                                          (self.nx, self.ny), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
-                                          method=method, weight=weight_field).swapaxes(0,1)
+                                          method=method, weight=weight_field)
             sto.result_id = i
-            sto.result = buf
+            sto.result = buf.swapaxes(0,1)
             pbar.update(i)
         pbar.finish()
 

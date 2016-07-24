@@ -33,6 +33,9 @@ from yt.visualization.profile_plotter import \
 
 class ParticleAxisAlignedDummyDataSource(object):
     _type_name = 'Particle'
+    _dimensionality = 2
+    _con_args = ('center', 'axis', 'width', 'fields', 'weight_field')
+    _tds_attrs = ()
     _key_fields = []
 
     def __init__(self, center, ds, axis, width, fields,
@@ -392,6 +395,10 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
 
     """
 
+    ad = ds.all_data()
+    x_field = ad._determine_fields(x_field)[0]
+    y_field = ad._determine_fields(y_field)[0]
+
     direction = 3
     # try potential axes for a ParticleProjectionPlot:
     for axis in [0, 1, 2]:
@@ -400,7 +407,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
         ax_field_template = 'particle_position_%s'
         xf = ax_field_template % ds.coordinates.axis_name[xax]
         yf = ax_field_template % ds.coordinates.axis_name[yax]
-        if (x_field, y_field) == (xf, yf):
+        if (x_field[1], y_field[1]) == (xf, yf):
             direction = axis
             break
 
@@ -412,5 +419,5 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
     # Does not correspond to any valid PlotWindow-style plot,
     # use ParticlePhasePlot instead
     else:
-        return ParticlePhasePlot(ds.all_data(), x_field, y_field,
+        return ParticlePhasePlot(ad, x_field, y_field,
                                  z_fields, color, *args, **kwargs)

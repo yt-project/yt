@@ -85,7 +85,7 @@ codes = dict(
 print("|| . ||", end=' ')
 for c in code_names:
     print("%s || " % (c), end=' ')
-print() 
+print()
 
 for vn in vals:
     print("|| !%s ||" % (vn), end=' ')

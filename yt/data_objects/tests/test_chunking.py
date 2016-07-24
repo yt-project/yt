@@ -1,4 +1,8 @@
-from yt.testing import *
+from yt.testing import \
+    fake_random_ds, \
+    assert_equal
+from yt.units.yt_array import \
+    uconcatenate
 
 def _get_dobjs(c):
     dobjs = [("sphere", ("center", (1.0, "unitary"))),
