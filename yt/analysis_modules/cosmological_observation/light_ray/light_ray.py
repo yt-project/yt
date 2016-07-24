@@ -184,7 +184,8 @@ class LightRay(CosmologySplice):
                                            redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
-                                      left_edge=None, right_edge=None, min_level=None, 
+                                      left_edge=None, right_edge=None,
+                                      min_level=None, periodic=True,
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
@@ -243,8 +244,13 @@ class LightRay(CosmologySplice):
                          self.minimum_coherent_box_fraction) or \
                         (box_fraction_used +
                          self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
-                    # Random start point
-                    if left_edge is not None and right_edge is not None:
+                    if periodic:
+                        self.light_ray_solution[q]['start'] = left_edge + \
+                          (right_edge - left_edge) * my_random.random_sample(3)
+                        theta = np.pi * my_random.random_sample()
+                        phi = 2 * np.pi * my_random.random_sample()
+                        box_fraction_used = 0.0
+                    else:
                         ds = load(self.light_ray_solution[q]["filename"])
                         self.light_ray_solution[q]['start'], \
                           self.light_ray_solution[q]['end'] = \
@@ -252,11 +258,6 @@ class LightRay(CosmologySplice):
                             self.light_ray_solution[q]['traversal_box_fraction'],
                                            my_random=my_random, min_level=min_level)
                         del ds
-                    else:
-                        self.light_ray_solution[q]['start'] = my_random.random_sample(3)
-                        theta = np.pi * my_random.random_sample()
-                        phi = 2 * np.pi * my_random.random_sample()
-                        box_fraction_used = 0.0
                 else:
                     # Use end point of previous segment and same theta and phi.
                     self.light_ray_solution[q]['start'] = \
@@ -266,6 +267,7 @@ class LightRay(CosmologySplice):
                     self.light_ray_solution[q]['end'] = \
                       self.light_ray_solution[q]['start'] + \
                         self.light_ray_solution[q]['traversal_box_fraction'] * \
+                        self.simulation.box_size * \
                         np.array([np.cos(phi) * np.sin(theta),
                                   np.sin(phi) * np.sin(theta),
                                   np.cos(theta)])
@@ -279,7 +281,7 @@ class LightRay(CosmologySplice):
                             'far_redshift':self.far_redshift,
                             'near_redshift':self.near_redshift})
 
-    def make_light_ray(self, seed=None,
+    def make_light_ray(self, seed=None, periodic=True,
                        left_edge=None, right_edge=None, min_level=None,
                        start_position=None, end_position=None,
                        trajectory=None,
@@ -383,6 +385,18 @@ class LightRay(CosmologySplice):
 
         """
 
+        if left_edge is None:
+            left_edge = self.simulation.domain_left_edge
+        elif not hasattr(left_edge, 'units'):
+            left_edge = self.simulation.arr(left_edge, 'code_length')
+        left_edge.convert_to_units('unitary')
+
+        if right_edge is None:
+            right_edge = self.simulation.domain_right_edge
+        elif not hasattr(right_edge, 'units'):
+            right_edge = self.simulation.arr(right_edge, 'code_length')
+        right_edge.convert_to_units('unitary')
+
         if start_position is not None and hasattr(start_position, 'units'):
             start_position = start_position.to('unitary')
         elif start_position is not None :
@@ -401,8 +415,9 @@ class LightRay(CosmologySplice):
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
-                                           left_edge=left_edge, right_edge=right_edge,
-                                           min_level=min_level,
+                                           left_edge=left_edge,
+                                           right_edge=right_edge,
+                                           min_level=min_level, periodic=periodic,
                                            start_position=start_position,
                                            end_position=end_position,
                                            trajectory=trajectory,
@@ -450,11 +465,6 @@ class LightRay(CosmologySplice):
             if start_position is not None:
                 my_segment["start"] = ds.arr(my_segment["start"], "unitary")
                 my_segment["end"] = ds.arr(my_segment["end"], "unitary")
-            else:
-                my_segment["start"] = ds.domain_width * my_segment["start"] + \
-                  ds.domain_left_edge
-                my_segment["end"] = ds.domain_width * my_segment["end"] + \
-                  ds.domain_left_edge
 
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
@@ -483,8 +493,8 @@ class LightRay(CosmologySplice):
 
             # Break periodic ray into non-periodic segments.
             sub_segments = periodic_ray(my_segment['start'], my_segment['end'],
-                                        left=ds.domain_left_edge,
-                                        right=ds.domain_right_edge)
+                                        left=left_edge,
+                                        right=right_edge)
 
             # Prepare data structure for subsegment.
             sub_data = {}
