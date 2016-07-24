@@ -97,7 +97,11 @@ class GadgetSimulation(SimulationTimeSeries):
                     dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
             self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"],
                                          "cmcm / h", registry=self.unit_registry)
-            self.box_size *= self.length_unit.in_units("Mpccm / h")
+            self.mass_unit = self.quan(self.unit_base["UnitMass_in_g"],
+                                         "g / h", registry=self.unit_registry)
+            self.box_size *= self.length_unit
+            self.domain_left_edge *= self.length_unit
+            self.domain_right_edge *= self.length_unit
         else:
             # Read time from file for non-cosmological sim
             self.time_unit = self.quan(
@@ -322,6 +326,9 @@ class GadgetSimulation(SimulationTimeSeries):
 
             self.parameters[param] = vals
 
+        # Domain dimensions for Gadget datasets are always 2x2x2 for octree
+        self.domain_dimensions = np.array([2,2,2])
+
         if self.parameters["ComovingIntegrationOn"]:
             cosmo_attr = {"box_size": "BoxSize",
                           "omega_lambda": "OmegaLambda",
@@ -334,6 +341,8 @@ class GadgetSimulation(SimulationTimeSeries):
                 if v not in self.parameters:
                     raise MissingParameter(self.parameter_filename, v)
                 setattr(self, a, self.parameters[v])
+            self.domain_left_edge = np.array([0., 0., 0.])
+            self.domain_right_edge = np.array([1., 1., 1.]) * self.parameters['BoxSize']
         else:
             self.cosmological_simulation = 0
             self.omega_lambda = self.omega_matter = \
