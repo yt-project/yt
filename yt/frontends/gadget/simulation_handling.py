@@ -348,17 +348,29 @@ class GadgetSimulation(SimulationTimeSeries):
             self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = 0.0
 
+    def _find_data_dir(self):
+        """
+        Find proper location for datasets.  First look where parameter file
+        points, but if this doesn't exist then default to the current 
+        directory.
+        """
+        if self.parameters["OutputDir"].startswith("/"):
+            data_dir = self.parameters["OutputDir"]
+        else:
+            data_dir = os.path.join(self.directory,
+                                    self.parameters["OutputDir"])
+        if not os.path.exists(data_dir):
+            mylog.info("OutputDir not found at %s, instead using %s." % 
+                       (data_dir, self.directory))
+            data_dir = self.directory
+        self.data_dir = data_dir
+
     def _snapshot_format(self, index=None):
         """
         The snapshot filename for a given index.  Modify this for different 
         naming conventions.
         """
 
-        if self.parameters["OutputDir"].startswith("/"):
-            data_dir = self.parameters["OutputDir"]
-        else:
-            data_dir = os.path.join(self.directory,
-                                    self.parameters["OutputDir"])
         if self.parameters["NumFilesPerSnapshot"] > 1:
             suffix = ".0"
         else:
@@ -371,12 +383,15 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "%03d" % index
         filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"],
                                 count, suffix)
-        return os.path.join(data_dir, filename)
+        return os.path.join(self.data_dir, filename)
                 
     def _get_all_outputs(self, find_outputs=False):
         """
         Get all potential datasets and combine into a time-sorted list.
         """
+
+        # Find the data directory where the outputs are
+        self._find_data_dir()
 
         # Create the set of outputs from which further selection will be done.
         if find_outputs:
@@ -446,7 +461,6 @@ class GadgetSimulation(SimulationTimeSeries):
         Search for directories matching the data dump keywords.
         If found, get dataset times py opening the ds.
         """
-
         potential_outputs = glob.glob(self._snapshot_format())
         self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["time"])
