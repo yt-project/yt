@@ -40,10 +40,10 @@ def migrate_config():
         print("Old config not found.")
         sys.exit()
     CONFIG.read(__OLD_CONFIG_FILE)
-    print("Writing new config file to: {}".format(CURRENT_CONFIG_FILE))
+    print("Writing a new config file to: {}".format(CURRENT_CONFIG_FILE))
     write_config()
-    print("Removing old config file: {}".format(__OLD_CONFIG_FILE))
-    os.remove(__OLD_CONFIG_FILE)
+    print("Backing up the old config file: {}".format(__OLD_CONFIG_FILE))
+    os.rename(__OLD_CONFIG_FILE, __OLD_CONFIG_FILE + '.bak')
 
 
 def rm_config(section, option):
