@@ -23,7 +23,8 @@ Major enhancements
 * Raw and processed data from selections, projections, profiles and so forth can
   now be saved in a ytdata format and loaded back in by yt. See 
   :ref:`saving_data`.
-* Totally re-worked volume rendering API. See :ref:`volume_rendering`.
+* Totally re-worked volume rendering API. The old API is still available for users
+  who prefer it, however. See :ref:`volume_rendering`.
 * Support for unstructured mesh visualization. See 
   :ref:`unstructured-mesh-slices` and :ref:`unstructured_mesh_rendering`.
 * Interactive Data Visualization for AMR and unstructured mesh datasets. See
