@@ -146,7 +146,7 @@ class AthenaPPGrid(AMRGridPatch):
     def __init__(self, id, index, level):
         AMRGridPatch.__init__(self, id, filename = index.index_filename,
                               index = index)
-        self.Parent = []
+        self.Parent = None
         self.Children = []
         self.Level = level
 
@@ -154,12 +154,9 @@ class AthenaPPGrid(AMRGridPatch):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz , at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
-        if len(self.Parent) > 0:
-            self.dds = self.Parent[0].dds / self.ds.refine_by
-        else:
-            LE, RE = self.index.grid_left_edge[id,:], \
-                     self.index.grid_right_edge[id,:]
-            self.dds = self.ds.arr((RE-LE)/self.ActiveDimensions, "code_length")
+        LE, RE = self.index.grid_left_edge[id,:], \
+            self.index.grid_right_edge[id,:]
+        self.dds = self.ds.arr((RE-LE)/self.ActiveDimensions, "code_length")
         if self.ds.dimensionality < 2: self.dds[1] = 1.0
         if self.ds.dimensionality < 3: self.dds[2] = 1.0
         self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
@@ -221,29 +218,7 @@ class AthenaPPHierarchy(GridIndex):
         for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
-        self._reconstruct_parent_child()
         self.max_level = self._handle.attrs["MaxLevel"]
-
-    def _reconstruct_parent_child(self):
-        mask = np.empty(len(self.grids), dtype='int32')
-        mylog.debug("First pass; identifying child grids")
-        for i, grid in enumerate(self.grids):
-            get_box_grids_level(self.grid_left_edge[i,:],
-                                self.grid_right_edge[i,:],
-                                self.grid_levels[i] + 1,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask)
-            grid.Children = [g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1]
-        mylog.debug("Second pass; identifying parents")
-        for i, grid in enumerate(self.grids): # Second pass
-            for child in grid.Children:
-                child.Parent.append(grid)
-
-    def _get_grid_children(self, grid):
-        mask = np.zeros(self.num_grids, dtype='bool')
-        grids, grid_ind = self.get_box_grids(grid.LeftEdge, grid.RightEdge)
-        mask[grid_ind] = True
-        return [g for g in self.grids[mask] if g.Level == grid.Level + 1]
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
