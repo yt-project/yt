@@ -1489,7 +1489,7 @@ else # INST_CONDA -eq 1
     if [ $INST_YT_SOURCE -eq 0 ]
     then
         echo "Installing yt"
-        log_cmd conda install --yes yt
+        log_cmd conda install -c conda-forge --yes yt
     else
         echo "Building yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
