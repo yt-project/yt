@@ -325,7 +325,7 @@ mentioned.
   of length 1.0 in "code length" which may produce strange results for volume
   quantities.
 
-.. _loading-fits-data:
+.. _loading-exodusii-data:
 
 Exodus II Data
 --------------
@@ -481,6 +481,7 @@ each vertex in the mesh by 1.0 unit in the z-direction:
     ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
                   displacements={'connect2': (5.0, [0.0, 0.0, 1.0])})
 
+.. _loading-fits-data:
 
 FITS Data
 ---------
@@ -1041,6 +1042,8 @@ argument of this form:
    unit_base = {'length': (1.0, 'cm'), 'mass': (1.0, 'g'), 'time': (1.0, 's')}
 
 yt will utilize length, mass and time to set up all other units.
+
+.. _loading-gamer-data:
 
 GAMER Data
 ----------
