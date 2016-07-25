@@ -119,6 +119,24 @@ then
         exit 1
     fi
     DEST_SUFFIX="yt-conda"
+    if [ -n "${PYTHONPATH}" ]
+    then
+        echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+        echo "*******************************************************"
+        echo
+        echo "The PYTHONPATH environment variable is set to:"
+        echo
+        echo "    $PYTHONPATH"
+        echo
+        echo "If dependencies of yt (numpy, scipy, matplotlib) are installed"
+        echo "to this path, this may cause issues. Exit the install script"
+        echo "with Ctrl-C and unset PYTHONPATH if you are unsure."
+        echo "Hit enter to continue."
+        echo
+        echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+        echo "*******************************************************"
+        read -p "[hit enter]"
+    fi
 else
     if [ $INST_YT_SOURCE -eq 0 ]
     then
@@ -524,11 +542,11 @@ echo "the script if you aren't such a fan."
 echo
 
 printf "%-18s = %s so I " "INST_CONDA" "${INST_CONDA}"
-get_willwont ${INST_PY3}
+get_willwont ${INST_CONDA}
 echo "be installing a conda-based python environment"
 
 printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
-get_willwont ${INST_PY3}
+get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
 
 printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
@@ -742,6 +760,12 @@ function get_ytdata
     [ -e $1 ] && return
     ${GETFILE} "http://yt-project.org/data/$1" || do_exit
     ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
+}
+
+function test_install
+{
+    echo "Testing that yt can be imported"
+    ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import yt" 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
 ORIG_PWD=`pwd`
@@ -1238,6 +1262,8 @@ then
     ( cp ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
     sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate.csh
 
+    test_install
+
     function print_afterword
     {
         echo
@@ -1463,7 +1489,7 @@ else # INST_CONDA -eq 1
     if [ $INST_YT_SOURCE -eq 0 ]
     then
         echo "Installing yt"
-        log_cmd conda install --yes yt
+        log_cmd conda install -c conda-forge --yes yt
     else
         echo "Building yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
@@ -1478,9 +1504,11 @@ else # INST_CONDA -eq 1
             ROCKSTAR_LIBRARY_PATH=${DEST_DIR}/lib
         fi
         pushd ${YT_DIR} &> /dev/null
-        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE}
+        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
         popd &> /dev/null
     fi
+
+    test_install
 
     echo
     echo

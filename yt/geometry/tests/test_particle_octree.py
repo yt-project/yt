@@ -144,6 +144,21 @@ def test_particle_overrefine():
             cv2 = dd2["cell_volume"].sum(dtype="float64")
             yield assert_equal, cv1, cv2
 
+index_ptype_snap = "snapshot_033/snap_033.0.hdf5"
+@requires_file(index_ptype_snap)
+def test_particle_index_ptype():
+    ds = yt.load(index_ptype_snap)
+    ds_all = yt.load(index_ptype_snap, index_ptype="all")
+    ds_pt0 = yt.load(index_ptype_snap, index_ptype="PartType0")
+    dd = ds.all_data()
+    dd_all = ds_all.all_data()
+    dd_pt0 = ds_pt0.all_data()
+    cv = dd["cell_volume"]
+    cv_all = dd_all["cell_volume"]
+    cv_pt0 = dd_pt0["cell_volume"]
+    yield assert_equal, cv.shape, cv_all.shape
+    yield assert_equal, cv.sum(dtype="float64"), cv_pt0.sum(dtype="float64")
+
 class FakeDS:
     domain_left_edge = None
     domain_right_edge = None

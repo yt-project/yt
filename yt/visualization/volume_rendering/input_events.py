@@ -239,7 +239,7 @@ def shader_lines(event_coll, event):
 @register_event("cmap_cycle")
 def cmap_cycle(event_coll, event):
     """Change colormap"""
-    cmap = ['algae', 'kamae', 'viridis', 'inferno', 'magma']
+    cmap = ['arbre', 'algae', 'kamae', 'viridis', 'inferno', 'magma']
     cmap = cm.get_cmap(random.choice(cmap))
     event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)),
         dtype=np.float32)

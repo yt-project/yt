@@ -299,7 +299,7 @@ class StreamDataset(Dataset):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
-        Dataset.__init__(self, name, self._dataset_type, 
+        Dataset.__init__(self, name, self._dataset_type,
                          unit_system=unit_system)
 
     def _parse_parameter_file(self):
@@ -400,13 +400,13 @@ def assign_particle_data(ds, pdata):
     Assign particle data to the grids using MatchPointsToGrids. This
     will overwrite any existing particle data, so be careful!
     """
-    
+
     # Note: what we need to do here is a bit tricky.  Because occasionally this
     # gets called before we property handle the field detection, we cannot use
     # any information about the index.  Fortunately for us, we can generate
     # most of the GridTree utilizing information we already have from the
     # stream handler.
-    
+
     if len(ds.stream_handler.fields) > 1:
 
         if ("io", "particle_position_x") in pdata:
@@ -425,7 +425,7 @@ def assign_particle_data(ds, pdata):
             np.equal(parent_ids, i, mask)
             num_children[i] = mask.sum()
         levels = ds.stream_handler.levels.astype("int64").ravel()
-        grid_tree = GridTree(num_grids, 
+        grid_tree = GridTree(num_grids,
                              ds.stream_handler.left_edges,
                              ds.stream_handler.right_edges,
                              ds.stream_handler.dimensions,
@@ -443,8 +443,8 @@ def assign_particle_data(ds, pdata):
                               out=particle_indices[1:])
         else :
             particle_indices[1] = particle_grid_count.squeeze()
-    
-        pdata.pop("number_of_particles", None) 
+
+        pdata.pop("number_of_particles", None)
         grid_pdata = []
         for i, pcount in enumerate(particle_grid_count):
             grid = {}
@@ -457,12 +457,12 @@ def assign_particle_data(ds, pdata):
 
     else :
         grid_pdata = [pdata]
-    
+
     for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
         ds.stream_handler.fields[gi].update(pd)
         npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)
         ds.stream_handler.particle_count[gi] = npart
-                                        
+
 def unitify_data(data):
     new_data, field_units = {}, {}
     for field, val in data.items():
@@ -507,7 +507,7 @@ def unitify_data(data):
     # At this point, we have arrays for all our fields
     new_data = {}
     for field in data:
-        if isinstance(field, tuple): 
+        if isinstance(field, tuple):
             new_field = field
         elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
@@ -580,7 +580,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
 
     Examples
@@ -782,7 +782,7 @@ def load_amr_grids(grid_data, domain_dimensions,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
     refine_by : integer
         Specifies the refinement ratio between levels.  Defaults to 2.
@@ -998,7 +998,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
 class StreamParticleIndex(ParticleIndex):
 
-    
+
     def __init__(self, ds, dataset_type = None):
         self.stream_handler = ds.stream_handler
         super(StreamParticleIndex, self).__init__(ds, dataset_type)
@@ -1041,7 +1041,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
-    
+
     Parameters
     ----------
     data : dict
@@ -1091,7 +1091,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
-    
+
     pdata = {}
     for key in data.keys() :
         if not isinstance(key, tuple):
@@ -1192,7 +1192,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     array([[-1.  , -1.  , -1.  ],
            [-1.  , -1.  , -0.25],
            [-1.  , -1.  ,  0.  ],
-           ..., 
+           ...,
            [ 1.  ,  1.  ,  0.  ],
            [ 1.  ,  1.  ,  0.25],
            [ 1.  ,  1.  ,  1.  ]])
@@ -1270,7 +1270,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
 
     Particle fields are detected as one-dimensional fields. The number of particles
     is set by the "number_of_particles" key in data.
-    
+
     Parameters
     ----------
     data : dict
@@ -1303,7 +1303,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
 
     """
@@ -1318,9 +1318,9 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
 
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
-    
+
     particle_types = set_particle_types(data)
-    
+
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates,
                 0: data})
@@ -1404,7 +1404,7 @@ class StreamOctreeSubset(OctreeSubset):
         dest.update((field, np.empty(cell_count, dtype="float64"))
                     for field in content)
         # Make references ...
-        count = oct_handler.fill_level(0, levels, cell_inds, file_inds, 
+        count = oct_handler.fill_level(0, levels, cell_inds, file_inds,
                                        dest, content, offset)
         return count
 
@@ -1493,7 +1493,7 @@ def load_octree(octree_mask, data,
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
-    
+
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
@@ -1826,7 +1826,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     sds._node_fields = node_data[0].keys()
     sds._elem_fields = elem_data[0].keys()
-    sds.default_field = [f for f in sds.field_list 
+    sds.default_field = [f for f in sds.field_list
                          if f[0] == 'connect1'][-1]
 
     return sds

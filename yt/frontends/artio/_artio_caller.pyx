@@ -1116,7 +1116,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
 
     if not artio_handle.has_particles:
         raise RuntimeError("Attempted to read non-existent particles in ARTIO")
-        return
 
     # Now we set up our field pointers
     params = artio_handle.parameters

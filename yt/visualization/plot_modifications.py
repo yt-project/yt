@@ -162,18 +162,32 @@ class PlotCallback(object):
         Given a set of x,y (and z) coordinates and a coordinate system,
         convert the coordinates (and transformation) ready for final plotting.
 
-        Coordinate systems
-        ------------------
+        Parameters
+        ----------
+        
+        plot: a PlotMPL subclass
+           The plot that we are converting coordinates for
 
-        data : 3D data coordinates relative to original dataset
+        coord: array-like
+           Coordinates in some coordinate system.
 
-        plot : 2D coordinates as defined by the final axis locations
+        coord_system: string
 
-        axis : 2D coordinates within the axis object from (0,0) in lower left
-               to (1,1) in upper right.  Same as matplotlib axis coords.
+            Possible values include:
 
-        figure : 2D coordinates within figure object from (0,0) in lower left
-                 to (1,1) in upper right.  Same as matplotlib figure coords.
+            * ``'data'``
+                3D data coordinates relative to original dataset
+
+            * ``'plot'``
+                2D coordinates as defined by the final axis locations
+
+            * ``'axis'``
+                2D coordinates within the axis object from (0,0) in lower left
+                to (1,1) in upper right.  Same as matplotlib axis coords.
+
+            * ``'figure'``
+                2D coordinates within figure object from (0,0) in lower left
+                to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # if in data coords, project them to plot coords
         if coord_system == "data":
@@ -600,11 +614,12 @@ class GridBoundaryCallback(PlotCallback):
             pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
         else:
             pxs, pys = np.mgrid[0:0:1j,0:0:1j]
-        GLE, GRE, levels = [], [], []
+        GLE, GRE, levels, block_ids = [], [], [], []
         for block, mask in plot.data.blocks:
             GLE.append(block.LeftEdge.in_units("code_length"))
             GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
+            block_ids.append(block.id)
         if len(GLE) == 0: return
         # Retain both units and registry
         GLE = YTArray(GLE, input_units = GLE[0].units)
@@ -613,11 +628,12 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
-        # sorts the three arrays in order of ascending level - this makes images look nicer
+        # sorts the four arrays in order of ascending level - this makes images look nicer
         new_indices = np.argsort(levels)
         levels = levels[new_indices]
         GLE = GLE[new_indices]
         GRE = GRE[new_indices]
+        block_ids = np.array(block_ids)[new_indices]
 
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
@@ -662,12 +678,11 @@ class GridBoundaryCallback(PlotCallback):
                     np.logical_and(xwidth > self.min_pix_ids,
                                    ywidth > self.min_pix_ids),
                     np.logical_and(levels >= min_level, levels <= max_level))
-                active_ids = np.unique(plot.data['grid_indices'])
                 for i in np.where(visible_ids)[0]:
                     plot._axes.text(
                         left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
                         left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
-                        "%d" % active_ids[i], clip_on=True)
+                        "%d" % block_ids[i], clip_on=True)
             plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
@@ -1839,22 +1854,19 @@ class TimestampCallback(PlotCallback):
 
             "plot" -- the 2D coordinates defined by the actual plot limits
 
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white',
-        'horizontalalignment':'center', 'verticalalignment':'top'}.
+        text object.  Defaults: ``{'color':'white',
+        'horizontalalignment':'center', 'verticalalignment':'top'}``.
 
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black',
-                  'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
@@ -2015,22 +2027,20 @@ class ScaleCallback(PlotCallback):
 
             "plot" -- the 2D coordinates defined by the actual plot limits
 
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties
         for the text in this callback.  For any property not set, it will
         use the defaults of the plot.  Thus one can modify the text size with:
-        text_args={'size':24}
+        ``text_args={'size':24}``
 
     size_bar_args : dictionary, optional
         A dictionary of parameters to be passed to the Matplotlib
         AnchoredSizeBar initializer.
-        Defaults: {'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}
+        Defaults: ``{'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}``
 
     draw_inset_box : boolean, optional
         Whether or not an inset box should be included around the scale bar.
@@ -2038,8 +2048,7 @@ class ScaleCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
-        Defaults: {'facecolor': 'black', 'linewidth': 3, 'edgecolor', 'white',
-                   'alpha': 0.5, 'boxstyle': 'square'}
+        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
 
     Example

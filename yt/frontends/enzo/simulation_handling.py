@@ -66,10 +66,10 @@ class EnzoSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> es = yt.simulation("my_simulation.par", "Enzo")
+    >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
     >>> es.get_time_series()
     >>> for ds in es:
-    ...     print ds.current_time
+    ...     print(ds.current_time)
 
     """
 
@@ -102,11 +102,12 @@ class EnzoSimulation(SimulationTimeSeries):
                                        dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
             self.length_unit = self.quan(self.box_size, "Mpccm / h",
                                          registry=self.unit_registry)
-            self.box_size = self.length_unit
-            self.domain_left_edge = self.domain_left_edge * self.length_unit
-            self.domain_right_edge = self.domain_right_edge * self.length_unit
         else:
             self.time_unit = self.quan(self.parameters["TimeUnits"], "s")
+            self.length_unit = self.quan(self.parameters["LengthUnits"], "cm")
+        self.box_size = self.length_unit
+        self.domain_left_edge = self.domain_left_edge * self.length_unit
+        self.domain_right_edge = self.domain_right_edge * self.length_unit
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_length", self.length_unit)
 
@@ -199,26 +200,14 @@ class EnzoSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> es = yt.simulation("my_simulation.par", "Enzo")
-
+        >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
         >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"),
                                redshift_data=False)
-
-        >>> es.get_time_series(redshifts=[3, 2, 1, 0])
-
-        >>> es.get_time_series(final_cycle=100000)
-
-        >>> # after calling get_time_series
-        >>> for ds in es.piter():
-        ...     p = ProjectionPlot(ds, 'x', "density")
-        ...     p.save()
-
-        >>> # An example using the setup_function keyword
-        >>> def print_time(ds):
-        ...     print ds.current_time
-        >>> es.get_time_series(setup_function=print_time)
         >>> for ds in es:
-        ...     SlicePlot(ds, "x", "Density").save()
+        ...     print(ds.current_time)
+        >>> es.get_time_series(redshifts=[3, 2, 1, 0])
+        >>> for ds in es:
+        ...     print(ds.current_time)
 
         """
 
@@ -552,6 +541,7 @@ class EnzoSimulation(SimulationTimeSeries):
         self.parameters['StopCycle'] = 100000
         self.parameters['dtDataDump'] = 0.
         self.parameters['CycleSkipDataDump'] = 0.
+        self.parameters['LengthUnits'] = 1.
         self.parameters['TimeUnits'] = 1.
 
     def _find_outputs(self):
@@ -646,6 +636,7 @@ class EnzoCosmology(Cosmology):
                            omega_curvature=omega_curvature,
                            unit_registry=unit_registry)
         self.initial_redshift = initial_redshift
+        self.initial_time = self.t_from_z(self.initial_redshift)
         # time units = 1 / sqrt(4 * pi * G rho_0 * (1 + z_i)**3),
         # rho_0 = (3 * Omega_m * h**2) / (8 * pi * G)
         self.time_unit = ((1.5 * self.omega_matter * self.hubble_constant**2 *
