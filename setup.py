@@ -50,7 +50,7 @@ SHADERS_DIR = os.path.join("yt", "visualization", "volume_rendering", "shaders")
 SHADERS_FILES = glob.glob(os.path.join(SHADERS_DIR, "*.vertexshader")) + \
     glob.glob(os.path.join(SHADERS_DIR, "*.fragmentshader"))
 
-VERSION = "3.3.dev0"
+VERSION = "3.4.dev0"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
