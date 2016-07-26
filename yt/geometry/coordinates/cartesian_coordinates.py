@@ -128,7 +128,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = np.zeros(size, dtype="f8")
+        buff = np.zeros((size[1], size[0]), dtype="f8")
         pixelize_cartesian(buff, data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
                              data_source[field],
