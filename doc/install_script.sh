@@ -1425,6 +1425,13 @@ else # INST_CONDA -eq 1
         log_cmd conda install --yes ${YT_DEP}
     done
 
+    if [ $INST_PY3 -eq 1 ]
+    then
+        echo "Installing mercurial"
+        log_cmd conda create -y -n py27 python=2.7 mercurial
+        log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
+    fi
+
     log_cmd pip install python-hglib
 
     log_cmd hg clone https://bitbucket.org/yt_analysis/yt_conda ${DEST_DIR}/src/yt_conda
@@ -1477,13 +1484,6 @@ else # INST_CONDA -eq 1
         else
             log_cmd pip install pyx==0.12.1
         fi
-    fi
-
-    if [ $INST_PY3 -eq 1 ]
-    then
-        echo "Installing mercurial"
-        log_cmd conda create -y -n py27 python=2.7 mercurial
-        log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
     fi
 
     if [ $INST_YT_SOURCE -eq 0 ]
