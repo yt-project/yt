@@ -25,11 +25,12 @@ Viewing Plots
 YT uses an environment neutral plotting mechanism that detects the appropriate
 matplotlib configuration for a given environment, however it defaults to a basic
 renderer. To utilize interactive plots in matplotlib supported
-environments, simply call the ``set_interactivity()`` function. Below is an
+environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` function. Below is an
 example in a jupyter notebook environment, but the same command should work
 in other environments as well:
 
 .. code-block:: python
+ 
    %matplotlib notebook
    import yt
    yt.toggle_interactivity()
