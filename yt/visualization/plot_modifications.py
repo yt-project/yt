@@ -2494,6 +2494,17 @@ class CellEdgesCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0]
         ny = plot.image._A.shape[1]
+        aspect = float((y1 - y0) / (x1 - x0))
+        pixel_aspect = float(ny)/nx
+        relative_aspect = pixel_aspect / aspect
+        if relative_aspect > 1:
+            nx = int(nx/relative_aspect)
+        else:
+            ny = int(ny*relative_aspect)
+        if aspect > 1:
+            long_axis = ny
+        else:
+            long_axis = nx
         im = pixelize_cartesian(plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
@@ -2507,10 +2518,9 @@ class CellEdgesCallback(PlotCallback):
         im_buffer[im > 0, 3] = 255
         im_buffer[im > 0, :3] = self.color
         plot._axes.imshow(im_buffer, origin='lower',
-                          interpolation='nearest',
+                          interpolation='bilinear',
                           extent=[xx0, xx1, yy0, yy1],
                           alpha=self.alpha)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
         plot._axes.hold(False)
-
