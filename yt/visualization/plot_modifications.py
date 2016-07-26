@@ -2451,7 +2451,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
 class CellEdgesCallback(PlotCallback):
     """
-    annotate_cell_edges(line_width=1.0, alpha = 1.0, color = (0.0, 0.0, 0.0))
+    annotate_cell_edges(line_width=0.005, alpha = 1.0, color = 'black')
 
     Annotate cell edges.  This is done through a second call to pixelize, where
     the distance from a pixel to a cell boundary in pixels is compared against
@@ -2461,12 +2461,13 @@ class CellEdgesCallback(PlotCallback):
     Parameters
     ----------
     line_width : float
-        Distance, in pixels, from a cell edge that will mark a pixel as being
-        annotated as a cell edge.  Default is 1.0.
+        The width of the cell edge lines in normalized units relative to the
+        size of the longest axis.  Default is 1% of the size of the smallest
+        axis.
     alpha : float
         When the second image is overlaid, it will have this level of alpha
         transparency.  Default is 1.0 (fully-opaque).
-    color : tuple of three floats
+    color : tuple of three floats or matplotlib color name
         This is the color of the cell edge values.  It defaults to black.
 
     Examples
@@ -2480,11 +2481,13 @@ class CellEdgesCallback(PlotCallback):
     """
     _type_name = "cell_edges"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, line_width=1.0, alpha = 1.0, color=(0.0, 0.0, 0.0)):
+    def __init__(self, line_width=0.005, alpha = 1.0, color='black'):
+        from matplotlib.colors import ColorConverter
+        conv = ColorConverter()
         PlotCallback.__init__(self)
         self.line_width = line_width
         self.alpha = alpha
-        self.color = (np.array(color) * 255).astype("uint8")
+        self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -2505,6 +2508,7 @@ class CellEdgesCallback(PlotCallback):
             long_axis = ny
         else:
             long_axis = nx
+        line_width = max(self.line_width*long_axis, 1.0)
         im = pixelize_cartesian(plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
@@ -2512,7 +2516,7 @@ class CellEdgesCallback(PlotCallback):
                                 plot.data['px'], # dummy field
                                 int(nx), int(ny),
                                 (x0, x1, y0, y1),
-                                line_width=self.line_width).transpose()
+                                line_width=line_width).transpose()
         # New image:
         im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
         im_buffer[im > 0, 3] = 255
