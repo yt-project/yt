@@ -828,7 +828,8 @@ class PWViewerMPL(PlotWindow):
                 h_power = expr.as_coeff_exponent(h_expr)[1]
                 # un is now the original unit, but with h factored out.
                 un = str(expr*h_expr**(-1*h_power))
-                if str(un).endswith('cm') and un != 'cm':
+                cm = Unit('cm').expr
+                if str(un).endswith('cm') and cm not in Unit(un).expr.atoms():
                     comoving = True
                     un = un[:-2]
                 # no length units besides code_length end in h so this is safe
@@ -846,6 +847,8 @@ class PWViewerMPL(PlotWindow):
                     if symbol_wo_prefix in prefixable_units:
                         un = un.replace(pp, "{"+latex_prefixes[pp]+"}", 1)
                 if un not in ['1', 'u', 'unitary']:
+                    un = Unit(un, registry=self.ds.unit_registry)
+                    un = un.latex_representation()
                     if hinv:
                         un = un + '\,h^{-1}'
                     if comoving:
