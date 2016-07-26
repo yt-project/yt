@@ -453,12 +453,12 @@ class YTCuttingPlane(YTSelectionContainer2D):
         self.fields = ensure_list(fields) + [k for k in self.field_data.keys()
                                              if k not in self._key_fields]
         from yt.visualization.plot_window import get_oblique_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.ds)
         pw = PWViewerMPL(
             self, bounds, fields=self.fields, origin='center-window', 
             periodic=False, oblique=True,
-            frb_generator=ObliqueFixedResolutionBuffer, 
+            frb_generator=FixedResolutionBuffer, 
             plot_type='OffAxisSlice')
         if axes_unit is not None:
             pw.set_axes_unit(axes_unit)
@@ -466,8 +466,8 @@ class YTCuttingPlane(YTSelectionContainer2D):
         return pw
 
     def to_frb(self, width, resolution, height=None, periodic=False):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
+        r"""This function returns a FixedResolutionBuffer generated from this
+        object.
 
         An ObliqueFixedResolutionBuffer is an object that accepts a
         variable-resolution 2D object and transforms it into an NxM bitmap that
@@ -516,9 +516,9 @@ class YTCuttingPlane(YTSelectionContainer2D):
             height = self.ds.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+        frb = FixedResolutionBuffer(self, bounds, resolution,
                                            periodic=periodic)
         return frb
 

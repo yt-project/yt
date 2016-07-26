@@ -148,8 +148,7 @@ TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
 from yt.visualization.api import \
-    FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    write_bitmap, write_image, \
+    FixedResolutionBuffer, write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \

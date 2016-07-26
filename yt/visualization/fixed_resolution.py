@@ -51,9 +51,8 @@ class FixedResolutionBuffer(object):
     Parameters
     ----------
     data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
-        This is the source to be pixelized, which can be a projection or a
-        slice.  (For cutting planes, see
-        `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
+        This is the source to be pixelized, which can be a projection, slice or
+        cutting plane.
     bounds : sequence of floats
         Bounds are the min and max in the image plane that we want our
         image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
@@ -66,12 +65,6 @@ class FixedResolutionBuffer(object):
     periodic : boolean
         This can be true or false, and governs whether the pixelization
         will span the domain boundaries.
-
-    See Also
-    --------
-    :class:`yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer` : A similar object,
-                                                     used for cutting
-                                                     planes.
 
     Examples
     --------
@@ -521,14 +514,6 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
                           self.data_source[item].astype("float64"), self.radius)
         self[item] = buff
         return buff
-
-class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
-    """
-    This object is a deprecated subclass of
-    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.  All
-    necessary behavior is now in the superclass.
-    """
-
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     """
