@@ -422,6 +422,13 @@ def test_on_off_compare():
 
     assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
 
+    sl_on.set_buff_size((800, 400))
+    sl_on._recreate_frb()
+    sl_off.set_buff_size((800, 400))
+    sl_off._recreate_frb()
+
+    assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+
 def test_plot_particle_field_error():
     ds = fake_random_ds(32, particles=100)
 

@@ -259,8 +259,8 @@ def pixelize_off_axis_cartesian(
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> buff.shape[0])
-    px_dy = height / (<np.float64_t> buff.shape[1])
+    px_dx = width / (<np.float64_t> buff.shape[1])
+    px_dy = height / (<np.float64_t> buff.shape[0])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
     if px.shape[0] != py.shape[0] or \
@@ -292,8 +292,8 @@ def pixelize_off_axis_cartesian(
                 continue
             lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
             lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
-            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[0])
-            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[1])
+            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[1])
+            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[0])
             for i in range(lr, rr):
                 cypx = px_dy * (i + 0.5) + y_min
                 for j in range(lc, rc):

@@ -524,30 +524,10 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
 
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     """
-    This object is a subclass of
-    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
-    that supports non-aligned input data objects, primarily cutting planes.
+    This object is a deprecated subclass of
+    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`.  All
+    necessary behavior is now in the superclass.
     """
-    def __getitem__(self, item):
-        if item in self.data: return self.data[item]
-        indices = np.argsort(self.data_source['dx'])[::-1]
-        bounds = []
-        for b in self.bounds:
-            if hasattr(b, "in_units"):
-                b = float(b.in_units("code_length"))
-            bounds.append(b)
-        buff = np.zeros(self.buff_size, dtype="f8")
-        pixelize_off_axis_cartesian(buff,
-                               self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
-                               self.data_source['px'],  self.data_source['py'],
-                               self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
-                               self.data_source.center, self.data_source._inv_mat, indices,
-                               self.data_source[item],
-                               bounds)
-        ia = ImageArray(buff, input_units=self.data_source[item].units,
-                        info=self._get_info(item))
-        self[item] = ia
-        return ia
 
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
