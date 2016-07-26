@@ -18,7 +18,8 @@ from yt.frontends.ytdata.utilities import \
 from yt.funcs import \
     get_output_filename, \
     mylog, \
-    ensure_list
+    ensure_list, \
+    deprecate
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
@@ -486,6 +487,11 @@ class FixedResolutionBuffer(object):
             filt.__doc__ = FilterMaker.__doc__
             self.__dict__['apply_' + filtername] = \
                 types.MethodType(filt, self)
+
+class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
+    @deprecate("FixedResolutionBuffer")
+    def __init__(self, *args, **kwargs):
+        super(ObliqueFixedResolutionBuffer, self).__init__(*args, **kwargs)
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     """
