@@ -1694,8 +1694,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size,
-                 fontsize, aspect, figure, axes, cax):
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim,
+                 figure_size, fontsize, aspect, figure, axes, cax):
+        from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1723,7 +1724,14 @@ class WindowPlotMPL(ImagePlotMPL):
 
         self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
-        self.image.axes.ticklabel_format(scilimits=(-2, 3))
+        # In matplotlib 2.1 and newer we'll be able to do this using
+        # self.image.axes.ticklabel_format
+        # See https://github.com/matplotlib/matplotlib/pull/6337
+        formatter = ScalarFormatter(useMathText=True)
+        formatter.set_scientific(True)
+        formatter.set_powerlimits((-2, 3))
+        self.image.axes.xaxis.set_major_formatter(formatter)
+        self.image.axes.yaxis.set_major_formatter(formatter)
         if cbname == 'linear':
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
