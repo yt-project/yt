@@ -86,8 +86,8 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> buff.shape[0])
-    px_dy = height / (<np.float64_t> buff.shape[1])
+    px_dx = width / (<np.float64_t> buff.shape[1])
+    px_dy = height / (<np.float64_t> buff.shape[0])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
     if px.shape[0] != py.shape[0] or \
@@ -115,6 +115,31 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
     # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
     # depositing into them the data value.  Overlap computes the relative
     # overlap of a data value with a pixel.
+    # 
+    # NOTE ON ROWS AND COLUMNS:
+    #
+    #   The way that images are plotting in matplotlib is somewhat different
+    #   from what most might expect.  The first axis of the array plotted is
+    #   what varies along the x axis.  So for instance, if you supply
+    #   origin='lower' and plot the results of an mgrid operation, at a fixed
+    #   'y' value you will see the results of that array held constant in the
+    #   first dimension.  Here is some example code:
+    #
+    #   import matplotlib.pyplot as plt
+    #   import numpy as np
+    #   x, y = np.mgrid[0:1:100j,0:1:100j]
+    #   plt.imshow(x, interpolation='nearest', origin='lower')
+    #   plt.imshow(y, interpolation='nearest', origin='lower')
+    #
+    #   The values in the image:
+    #       lower left:  arr[0,0]
+    #       lower right: arr[0,-1]
+    #       upper left:  arr[-1,0]
+    #       upper right: arr[-1,-1]
+    #
+    #   So what we want here is to fill an array such that we fill:
+    #       first axis : y_min .. y_max
+    #       second axis: x_min .. x_max
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
@@ -156,8 +181,10 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                     # truncated, but no similar truncation was done in the
                     # comparison of j to rc (double).  So give ourselves a
                     # bonus row and bonus column here.
-                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), buff.shape[0])
-                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), buff.shape[1])
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), buff.shape[1])
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), buff.shape[0])
+                    # Note that we're iterating here over *y* in the i
+                    # direction.  See the note above about this.
                     for i in range(lr, rr):
                         lypx = px_dy * i + y_min
                         rypx = px_dy * (i+1) + y_min
