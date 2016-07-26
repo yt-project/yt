@@ -10,7 +10,7 @@
 import os
 import sys
 import argparse
-from yt.config import CURRENT_CONFIG_FILE, __OLD_CONFIG_FILE
+from yt.config import CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE
 from yt.extern.six.moves import configparser
 
 CONFIG = configparser.SafeConfigParser()
@@ -36,14 +36,14 @@ def write_config(fd=None):
         CONFIG.write(fd)
 
 def migrate_config():
-    if not os.path.exists(__OLD_CONFIG_FILE):
+    if not os.path.exists(_OLD_CONFIG_FILE):
         print("Old config not found.")
         sys.exit()
-    CONFIG.read(__OLD_CONFIG_FILE)
+    CONFIG.read(_OLD_CONFIG_FILE)
     print("Writing a new config file to: {}".format(CURRENT_CONFIG_FILE))
     write_config()
-    print("Backing up the old config file: {}".format(__OLD_CONFIG_FILE))
-    os.rename(__OLD_CONFIG_FILE, __OLD_CONFIG_FILE + '.bak')
+    print("Backing up the old config file: {}".format(_OLD_CONFIG_FILE))
+    os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + '.bak')
 
 
 def rm_config(section, option):

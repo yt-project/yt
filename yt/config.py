@@ -75,21 +75,21 @@ if not os.path.exists(CONFIG_DIR):
     os.makedirs(CONFIG_DIR)
 
 CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, 'ytrc')
-__OLD_CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.yt', 'config')
+_OLD_CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.yt', 'config')
 
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten
 # without them.
 
-if os.path.exists(__OLD_CONFIG_FILE):
-    f = open(__OLD_CONFIG_FILE).read()
+if os.path.exists(_OLD_CONFIG_FILE):
+    f = open(_OLD_CONFIG_FILE).read()
     if any(header in f for header in ["[lagos]","[raven]","[fido]","[enki]"]):
         print("***********************************************************")
         print("* Upgrading configuration file to new format; saving old. *")
         print("***********************************************************")
         # This is of the old format
         cp = configparser.ConfigParser()
-        cp.read(__OLD_CONFIG_FILE)
+        cp.read(_OLD_CONFIG_FILE)
         # NOTE: To avoid having the 'DEFAULT' section here,
         # we are not passing in ytcfg_defaults to the constructor.
         new_cp = configparser.ConfigParser()
@@ -100,15 +100,15 @@ if os.path.exists(__OLD_CONFIG_FILE):
                 if option.lower() in ytcfg_defaults:
                     new_cp.set("yt", option, cp.get(section, option))
                     print("Setting %s to %s" % (option, cp.get(section, option)))
-        open(__OLD_CONFIG_FILE + ".old", "w").write(f)
-        new_cp.write(open(__OLD_CONFIG_FILE, "w"))
+        open(_OLD_CONFIG_FILE + ".old", "w").write(f)
+        new_cp.write(open(_OLD_CONFIG_FILE, "w"))
 
     msg = (
         "The configuration file {} is deprecated. "
         "Please migrate your config to {} by running: "
         "'yt-config migrate'"
     )
-    warnings.warn(msg.format(__OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
+    warnings.warn(msg.format(_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
 
 if not os.path.exists(CURRENT_CONFIG_FILE):
     cp = configparser.ConfigParser()
@@ -123,7 +123,7 @@ class YTConfigParser(configparser.ConfigParser):
         self.get(key[0], key[1])
 
 ytcfg = YTConfigParser(ytcfg_defaults)
-ytcfg.read([__OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])
+ytcfg.read([_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])
 if not ytcfg.has_section("yt"):
     ytcfg.add_section("yt")
 
