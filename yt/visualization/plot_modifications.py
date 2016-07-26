@@ -2504,13 +2504,13 @@ class CellEdgesCallback(PlotCallback):
                                 line_width=self.line_width).transpose()
         # New image:
         im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
-        im_buffer[im>0,3] = 255
-        im_buffer[im>0,:3] = self.color
+        im_buffer[im > 0, 3] = 255
+        im_buffer[im > 0, :3] = self.color
         plot._axes.imshow(im_buffer, origin='lower',
                           interpolation='nearest',
-                          extent = [xx0, xx1, yy0, yy1],
-                          alpha = self.alpha)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+                          extent=[xx0, xx1, yy0, yy1],
+                          alpha=self.alpha)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
         plot._axes.hold(False)
 
