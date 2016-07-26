@@ -491,7 +491,7 @@ if [ $INST_EMBREE -ne 0 ]
 then
     if [ $INST_YT_SOURCE -eq 0 ]
     then
-        echo "yt must be compiled from source to install EMBREE support."
+        echo "yt must be compiled from source to install Embree support."
         echo "Please set INST_YT_SOURCE to 1 and re-run the install script."
         exit 1
     fi
@@ -1449,7 +1449,7 @@ else # INST_CONDA -eq 1
     if [ $INST_EMBREE -eq 1 ]
     then
         
-        echo "Installing embree"
+        echo "Installing Embree"
         if [ ! -d ${DEST_DIR}/src ]
         then
             mkdir ${DEST_DIR}/src
