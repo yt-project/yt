@@ -278,7 +278,7 @@ Overplot Grids
 Overplot Cell Edges
 ~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_cell_edges(line_width=0.005, alpha=1.0, color='black')
+.. function:: annotate_cell_edges(line_width=0.002, alpha=1.0, color='black')
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CellEdgesCallback`.)

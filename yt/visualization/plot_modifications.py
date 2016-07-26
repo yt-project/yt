@@ -2451,7 +2451,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
 class CellEdgesCallback(PlotCallback):
     """
-    annotate_cell_edges(line_width=0.005, alpha = 1.0, color = 'black')
+    annotate_cell_edges(line_width=0.002, alpha = 1.0, color = 'black')
 
     Annotate cell edges.  This is done through a second call to pixelize, where
     the distance from a pixel to a cell boundary in pixels is compared against
@@ -2481,7 +2481,7 @@ class CellEdgesCallback(PlotCallback):
     """
     _type_name = "cell_edges"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, line_width=0.005, alpha = 1.0, color='black'):
+    def __init__(self, line_width=0.002, alpha = 1.0, color='black'):
         from matplotlib.colors import ColorConverter
         conv = ColorConverter()
         PlotCallback.__init__(self)
@@ -2505,8 +2505,14 @@ class CellEdgesCallback(PlotCallback):
         else:
             ny = int(ny*relative_aspect)
         if aspect > 1:
+            if nx < 1600:
+                nx = int(1600./nx*ny)
+                ny = 1600
             long_axis = ny
         else:
+            if ny < 1600:
+                nx = int(1600./ny*nx)
+                ny = 1600
             long_axis = nx
         line_width = max(self.line_width*long_axis, 1.0)
         im = pixelize_cartesian(plot.data['px'],
