@@ -819,7 +819,7 @@ class YTNotebookUploadCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
         """
-        Upload an IPython notebook to hub.yt.
+        Upload an IPython notebook to the yt Hub.
         """
 
     name = "upload_notebook"

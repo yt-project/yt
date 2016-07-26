@@ -57,12 +57,8 @@ This will print the list of available subcommands,
 .. code-block:: bash
 
     help                Print help message
-    bootstrap_dev       Bootstrap a yt development environment
     bugreport           Report a bug in yt
-    hub_register        Register a user on the Hub: http://hub.yt-project.org/
-    hub_submit          Submit a mercurial repository to the yt Hub
-                        (http://hub.yt-project.org/), creating a BitBucket
-                        repo in the process if necessary.
+    hub_register        Register a user on the Hub: https://hub.yt/
     instinfo            Get some information about the yt installation
     version             Get some information about the yt installation (this
                         is an alias for instinfo).
@@ -70,7 +66,7 @@ This will print the list of available subcommands,
     mapserver           Serve a plot in a GMaps-style interface
     pastebin            Post a script to an anonymous pastebin
     pastebin_grab       Print an online pastebin to STDOUT for local use.
-    upload_notebook     Upload an IPython notebook to hub.yt-project.org.
+    upload_notebook     Upload an IPython notebook to the yt Hub.
     plot                Create a set of images
     rpdb                Connect to a currently running (on localhost) rpd
                         session. Commands run with --rpdb will trigger an rpdb
@@ -272,3 +268,68 @@ delete_image
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
 request directly to the `imgur.com <http://imgur.com/>`_.
+
+Config helper
+~~~~~~~~~~~~~
+
+The :code:`yt-config` command-line tool allows you to modify and access the yt's
+configuration without manually locating and opening the config file in an editor.
+To get a quick list of available commands, just type:
+
+.. code-block:: bash
+
+   yt-config -h
+
+This will print the list of available subcommands:
+
+.. code-block:: bash
+
+	get                 get a config value
+	set                 set a config value
+	rm                  remove a config option
+	migrate             migrate old config file
+	list                show all config values
+
+Since the yt version 3.3.2, the previous location of the configuration file
+(``$HOME/.yt/config``) has been deprecated in favor of a location adhering to the
+`XDG Base Directory Specification
+<https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_.
+(``$XDG_HOME_CONFIG/yt/ytrc``). In order to perform an automatic migration of
+the old config, you are encouraged to run:
+
+.. code-block:: bash
+
+   yt-config migrate
+
+that will copy your current config file to the new location and store a backup
+copy as ``$HOME/.yt/config.bak``.
+
+Examples
+++++++++
+
+Listing current content of the config file:
+
+.. code-block:: bash
+
+   $ yt-config list
+   [yt]
+   loglevel = 50
+
+Obtaining a single config value by name:
+
+.. code-block:: bash
+
+   $ yt-config get yt loglevel
+   50
+
+Changing a single config value:
+
+.. code-block:: bash
+
+   $ yt-config set yt loglevel 10
+
+Removing a single config entry:
+
+.. code-block:: bash
+
+   $ yt-config rm yt loglevel
