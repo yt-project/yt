@@ -391,8 +391,10 @@ class QuiverCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0] / self.factor
-        ny = plot.image._A.shape[1] / self.factor
+        # See the note about rows/columns in the pixelizer for more information
+        # on why we choose the bounds we do
+        nx = plot.image._A.shape[1] / self.factor
+        ny = plot.image._A.shape[0] / self.factor
         # periodicity
         ax = plot.data.axis
         ds = plot.data.ds
@@ -409,8 +411,8 @@ class QuiverCallback(PlotCallback):
         if self.bv_y != 0.0:
             # Workaround for 0.0 without units
             fv_y -= self.bv_y
-        pixX = np.zeros((nx, ny), dtype="f8")
-        pixY = np.zeros((nx, ny), dtype="f8")
+        pixX = np.zeros((ny, nx), dtype="f8")
+        pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
                                   fv_x,
@@ -480,8 +482,10 @@ class ContourCallback(PlotCallback):
 
         plot._axes.hold(True)
 
-        numPoints_x = plot.image._A.shape[0]
-        numPoints_y = plot.image._A.shape[1]
+        # See the note about rows/columns in the pixelizer for more information
+        # on why we choose the bounds we do
+        numPoints_x = plot.image._A.shape[1]
+        numPoints_y = plot.image._A.shape[0]
 
         # Multiply by dx and dy to go from data->plot
         dx = (xx1 - xx0) / (x1-x0)
@@ -605,7 +609,7 @@ class GridBoundaryCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         (dx, dy) = self.pixel_scale(plot)
-        (xpix, ypix) = plot.image._A.shape
+        (ypix, xpix) = plot.image._A.shape
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
         py_index = plot.data.ds.coordinates.y_axis[ax]
@@ -715,10 +719,12 @@ class StreamlineCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0] / self.factor
-        ny = plot.image._A.shape[1] / self.factor
-        pixX = np.zeros((nx, ny), dtype="f8")
-        pixY = np.zeros((nx, ny), dtype="f8")
+        # See the note about rows/columns in the pixelizer for more information
+        # on why we choose the bounds we do
+        nx = plot.image._A.shape[1] / self.factor
+        ny = plot.image._A.shape[0] / self.factor
+        pixX = np.zeros((ny, nx), dtype="f8")
+        pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
                                   plot.data[self.field_x],
@@ -728,7 +734,7 @@ class StreamlineCallback(PlotCallback):
                                   plot.data[self.field_y],
                                   (x0, x1, y0, y1))
         if self.field_color:
-            field_colors = np.zeros((nx, ny), dtype="f8")
+            field_colors = np.zeros((ny, nx), dtype="f8")
             pixelize_cartesian(field_colors,
                         plot.data['px'], plot.data['py'],
                         plot.data['pdx'], plot.data['pdy'],
@@ -878,12 +884,12 @@ class CuttingQuiverCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0] / self.factor
-        ny = plot.image._A.shape[1] / self.factor
+        nx = plot.image._A.shape[1] / self.factor
+        ny = plot.image._A.shape[0] / self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
 
-        pixX = np.zeros((nx, ny), dtype="f8")
-        pixY = np.zeros((nx, ny), dtype="f8")
+        pixX = np.zeros((ny, nx), dtype="f8")
+        pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(pixX,
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
@@ -943,7 +949,7 @@ class ClumpContourCallback(PlotCallback):
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
-        nx, ny = plot.image._A.shape
+        ny, nx = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
@@ -951,7 +957,7 @@ class ClumpContourCallback(PlotCallback):
             xf_copy = clump[xf].copy().in_units("code_length")
             yf_copy = clump[yf].copy().in_units("code_length")
 
-            temp = np.zeros((nx, ny), dtype="f8")
+            temp = np.zeros((ny, nx), dtype="f8")
             pixelize_cartesian(temp, xf_copy, yf_copy,
                                  clump[dxf].in_units("code_length")/2.0,
                                  clump[dyf].in_units("code_length")/2.0,
@@ -2408,8 +2414,10 @@ class LineIntegralConvolutionCallback(PlotCallback):
         extent = [xx0,xx1,yy0,yy1]
 
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
+        # We are feeding this size into the pixelizer, where it will properly
+        # set it in reverse order
+        nx = plot.image._A.shape[1]
+        ny = plot.image._A.shape[0]
         pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
                                                  self.field_x,
@@ -2439,14 +2447,15 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
         if self.const_alpha:
             plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
-                              alpha=self.alpha)
+                              alpha=self.alpha, origin='lower')
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
                             to_rgba(lic_data_clip)
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
-            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap)
+            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap,
+                              origin='lower')
         plot._axes.hold(False)
 
         return plot
@@ -2494,9 +2503,9 @@ class CellEdgesCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         plot._axes.hold(True)
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
-        im = np.zeros((nx, ny), dtype="f8")
+        nx = plot.image._A.shape[1]
+        ny = plot.image._A.shape[0]
+        im = np.zeros((ny, nx), dtype="f8")
         pixelize_cartesian(im, plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
@@ -2505,7 +2514,7 @@ class CellEdgesCallback(PlotCallback):
                                 (x0, x1, y0, y1),
                                 line_width=self.line_width)
         # New image:
-        im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
+        im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
         im_buffer[im>0,3] = 255
         im_buffer[im>0,:3] = self.color
         plot._axes.imshow(im_buffer, origin='lower',
