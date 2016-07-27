@@ -778,8 +778,9 @@ class Scene(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
+            from IPython.display import display
             self._sigma_clip = sigma_clip
-            return self
+            display(self)
         else:
             raise YTNotInsideNotebook
 
