@@ -26,6 +26,7 @@ from .particle_plots import \
 
 from .fixed_resolution import \
     FixedResolutionBuffer, \
+    ObliqueFixedResolutionBuffer, \
     ParticleImageBuffer
 
 from .image_writer import \
