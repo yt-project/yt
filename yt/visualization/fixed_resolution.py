@@ -24,7 +24,7 @@ from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder, pixelize_off_axis_cartesian
+    pixelize_cylinder
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.frontends.stream.api import load_uniform_grid
 
