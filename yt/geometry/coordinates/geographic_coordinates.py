@@ -203,7 +203,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         else:
             # We should never get here!
             raise NotImplementedError
-        buff = np.zeros(size, dtype="f8")
+        buff = np.zeros((size[1], size[0]), dtype="f8")
         pixelize_cylinder(buff, r, data_source['pdy'],
                           px, pdx, data_source[field], bounds)
         if do_transpose:
