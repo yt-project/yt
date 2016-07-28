@@ -69,12 +69,12 @@ def _gravitationally_bound(clump, use_thermal_energy=True,
     if use_particles:
         m = np.concatenate([clump["gas", "cell_mass"].in_cgs(),
                             clump["all", "particle_mass"].in_cgs()])
-        px = np.concatenaate([clump["index", "x"].in_cgs(),
-                              clump["all", "particle_position_x"].in_cgs()])
-        py = np.concatenaate([clump["index", "y"].in_cgs(),
-                              clump["all", "particle_position_y"].in_cgs()])
-        pz = np.concatenaate([clump["index", "z"].in_cgs(),
-                              clump["all", "particle_position_z"].in_cgs()])
+        px = np.concatenate([clump["index", "x"].in_cgs(),
+                             clump["all", "particle_position_x"].in_cgs()])
+        py = np.concatenate([clump["index", "y"].in_cgs(),
+                             clump["all", "particle_position_y"].in_cgs()])
+        pz = np.concatenate([clump["index", "z"].in_cgs(),
+                             clump["all", "particle_position_z"].in_cgs()])
     else:
         m = clump["gas", "cell_mass"].in_cgs()
         px = clump["index", "x"].in_cgs()
