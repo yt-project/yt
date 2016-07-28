@@ -64,27 +64,29 @@ def _gravitationally_bound(clump, use_thermal_energy=True,
              (bulk_velocity[1] - clump["all", "particle_velocity_y"])**2 +
              (bulk_velocity[2] - clump["all", "particle_velocity_z"])**2)).sum()
 
+    if use_particles:
+        m = np.concatenate([clump["gas", "cell_mass"].in_cgs(),
+                            clump["all", "particle_mass"].in_cgs()])
+        px = np.concatenaate([clump["index", "x"].in_cgs(),
+                              clump["all", "particle_position_x"].in_cgs()])
+        py = np.concatenaate([clump["index", "y"].in_cgs(),
+                              clump["all", "particle_position_y"].in_cgs()])
+        pz = np.concatenaate([clump["index", "z"].in_cgs(),
+                              clump["all", "particle_position_z"].in_cgs()])
+    else:
+        m = clump["gas", "cell_mass"].in_cgs()
+        px = clump["index", "x"].in_cgs()
+        py = clump["index", "y"].in_cgs()
+        pz = clump["index", "z"].in_cgs()
+
     potential = clump.data.ds.quan(G *
         gravitational_binding_energy(
-            clump["gas", "cell_mass"].in_cgs(),
-            clump["index", "x"].in_cgs(),
-            clump["index", "y"].in_cgs(),
-            clump["index", "z"].in_cgs(),
+            m, px, py, pz,
             truncate, (kinetic / G).in_cgs()),
-        kinetic.in_cgs().units)
-    
+            kinetic.in_cgs().units)
+
     if truncate and potential >= kinetic:
         return True
-
-    if use_particles:
-        potential += clump.data.ds.quan(G *
-            gravitational_binding_energy(
-                clump["all", "particle_mass"].in_cgs(),
-                clump["all", "particle_position_x"].in_cgs(),
-                clump["all", "particle_position_y"].in_cgs(),
-                clump["all", "particle_position_z"].in_cgs(),
-                truncate, ((kinetic - potential) / G).in_cgs()),
-        kinetic.in_cgs().units)
 
     return potential >= kinetic
 add_validator("gravitationally_bound", _gravitationally_bound)
