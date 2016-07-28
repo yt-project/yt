@@ -828,8 +828,9 @@ class PWViewerMPL(PlotWindow):
                 h_power = expr.as_coeff_exponent(h_expr)[1]
                 # un is now the original unit, but with h factored out.
                 un = str(expr*h_expr**(-1*h_power))
+                un_unit = Unit(un, registry=self.ds.unit_registry)
                 cm = Unit('cm').expr
-                if str(un).endswith('cm') and cm not in Unit(un).expr.atoms():
+                if str(un).endswith('cm') and cm not in un_unit.expr.atoms():
                     comoving = True
                     un = un[:-2]
                 # no length units besides code_length end in h so this is safe
@@ -839,20 +840,22 @@ class PWViewerMPL(PlotWindow):
                     # It doesn't make sense to scale a position by anything
                     # other than h**-1
                     raise RuntimeError
-                if un in formatted_length_unit_names:
-                    un = formatted_length_unit_names[un]
-                pp = un[0]
-                if pp in latex_prefixes:
-                    symbol_wo_prefix = un[1:]
-                    if symbol_wo_prefix in prefixable_units:
-                        un = un.replace(pp, "{"+latex_prefixes[pp]+"}", 1)
                 if un not in ['1', 'u', 'unitary']:
-                    un = Unit(un, registry=self.ds.unit_registry)
-                    un = un.latex_representation()
-                    if hinv:
-                        un = un + '\,h^{-1}'
-                    if comoving:
-                        un = un + '\,(1+z)^{-1}'
+                    if un in formatted_length_unit_names:
+                        un = formatted_length_unit_names[un]
+                    else:
+                        un = Unit(un, registry=self.ds.unit_registry)
+                        un = un.latex_representation()
+                        if hinv:
+                            un = un + '\,h^{-1}'
+                        if comoving:
+                            un = un + '\,(1+z)^{-1}'
+                        pp = un[0]
+                        if pp in latex_prefixes:
+                            symbol_wo_prefix = un[1:]
+                            if symbol_wo_prefix in prefixable_units:
+                                un = un.replace(
+                                    pp, "{"+latex_prefixes[pp]+"}", 1)
                     axes_unit_labels[i] = '\ \ ('+un+')'
 
             if self.oblique:
