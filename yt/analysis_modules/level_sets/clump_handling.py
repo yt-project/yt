@@ -14,6 +14,7 @@ Clump finding helper classes
 #-----------------------------------------------------------------------------
 
 import copy
+import h5py
 import numpy as np
 import uuid
 
@@ -49,13 +50,25 @@ def add_contour_field(ds, contour_key):
 class Clump(object):
     children = None
     def __init__(self, data, field, parent=None,
-                 clump_info=None, validators=None):
+                 clump_info=None, validators=None,
+                 base=None):
         self.data = data
         self.field = field
         self.parent = parent
         self.quantities = data.quantities
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
+        self.info = {}
+
+        if base is None:
+            base = self
+            self.total_clumps = 0
+        self.base = base
+        self.clump_id = self.base.total_clumps
+        self.base.total_clumps += 1
+
+        if parent is not None:
+            self.data.parent = self.parent.data
 
         if parent is not None:
             self.data.parent = self.parent.data
@@ -160,7 +173,8 @@ class Clump(object):
                 continue
             self.children.append(Clump(new_clump, self.field, parent=self,
                                        clump_info=self.clump_info,
-                                       validators=self.validators))
+                                       validators=self.validators,
+                                       base=self.base))
 
     def pass_down(self,operation):
         """
@@ -302,3 +316,46 @@ def write_clumps(clump, level, fh):
             write_clumps(child, 0, fh)
     if top:
         fh.close()
+
+def write_clump_index_h5(clump, level, fh):
+    print level
+    top = False
+    if not isinstance(fh, h5py.File) and \
+      not isinstance(fh, h5py.Group):
+        fh = h5py.File(fh, "w")
+        top = True
+    for item in clump.clump_info:
+        item(clump)
+        my_info = clump.info[item.name][1]
+        fh.attrs[item.name] = my_info
+        if hasattr(my_info, "units") and \
+          "dimensionless" not in str(my_info.units):
+            units = str(my_info.units)
+        else:
+            units = ""
+        fh.attrs["%s_units" % item.name] = units
+    if ((clump.children is not None) and (len(clump.children) > 0)):
+        i = 0
+        for child in clump.children:
+            my_group = fh.create_group("child_%04d" % i)
+            write_clump_index_h5(child, (level+1), my_group)
+            i += 1
+    if top:
+        fh.close()
+        
+def write_clumps_h5(clump, filename):
+    clump_list = get_lowest_clumps(clump)
+    fh = h5py.File(filename, "w")
+    for item in clump.clump_info:
+        quantity = []
+        for my_clump in clump_list:
+            item(my_clump)
+            quantity.append(my_clump.info[item.name][1])
+        quantity = clump.data.ds.arr(quantity)
+        dataset = fh.create_dataset(item.name, data=quantity)
+        if "dimensionless" in str(quantity.units):
+            units = ""
+        else:
+            units = str(quantity.units)
+        dataset.attrs["units"] = units
+    fh.close()
