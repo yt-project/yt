@@ -302,8 +302,8 @@ This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
 a local directory of the same name as the repository in the current working
 directory. You should also run the following command, to make sure you are at
-the "yt" head of the repository, and not other ones like "stable" (this will
-be important later when you want to submit your pull requests):
+the "yt" branch, and not other ones like "stable" (this will be important
+later when you want to submit your pull requests):
 
 .. code-block:: bash
 
