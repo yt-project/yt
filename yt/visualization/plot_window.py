@@ -1492,7 +1492,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
@@ -1628,7 +1628,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
@@ -1824,7 +1824,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
         used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
         slicing plane.  If not set, an arbitrary grid-aligned north-vector is
