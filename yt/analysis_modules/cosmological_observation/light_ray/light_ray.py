@@ -86,14 +86,18 @@ class LightRay(CosmologySplice):
         datasets in the returned list.  Do not use for simple rays.
         Default: 0.0.
     minimum_coherent_box_fraction : optional, float
-        Used with use_minimum_datasets set to False, this parameter
-        specifies the fraction of the total box size to be traversed
-        before rerandomizing the projection axis and center.  This
-        was invented to allow light rays with thin slices to sample
-        coherent large scale structure, but in practice does not work
-        so well.  Try setting this parameter to 1 and see what happens.  
-        Do not use for simple rays.
-        Default: 0.0.
+        Use to specify the minimum length of a ray, in terms of the
+        size of the domain, before the trajectory is re-randomized.
+        Set to 0 to have ray trajectory randomized for every dataset.
+        Set to np.inf (infinity) to use a single trajectory for the
+        entire ray.
+        Default: 0.
+    high_res_box_size_fraction : optional, float
+        For use with zoom-in simulations, use to specify the size of the
+        high resolution region of the simulation.  If set, the light ray
+        solution will be calculated such that rays only make use of the
+        high resolution region.
+        Default: 1.0.
     time_data : optional, bool
         Whether or not to include time outputs when gathering
         datasets for time series.  Do not use for simple rays.
@@ -124,7 +128,8 @@ class LightRay(CosmologySplice):
                  redshift_data=True,
                  find_outputs=False, load_kwargs=None):
 
-        if near_redshift is not None and far_redshift is not None and near_redshift >= far_redshift:
+        if near_redshift is not None and far_redshift is not None and \
+          near_redshift >= far_redshift:
             raise RuntimeError(
                 "near_redshift must be less than far_redshift.")
 
@@ -289,7 +294,9 @@ class LightRay(CosmologySplice):
                        get_los_velocity=None, use_peculiar_velocity=True,
                        redshift=None, field_parameters=None, njobs=-1):
         """
-        make_light_ray(seed=None, start_position=None, end_position=None,
+        make_light_ray(seed=None, periodic=True,
+                       left_edge=None, right_edge=None, min_level=None,
+                       start_position=None, end_position=None,
                        trajectory=None, fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
                        use_peculiar_velocity=True, redshift=None,
@@ -304,6 +311,27 @@ class LightRay(CosmologySplice):
         ----------
         seed : optional, int
             Seed for the random number generator.
+            Default: None.
+        periodic : optional, bool
+            If True, ray trajectories will make use of periodic
+            boundaries.  If False, ray trajectories will not be
+            periodic.
+            Default : True.
+        left_edge : optional, iterable of floats of YTArray
+            The left corner of the region in which rays are to be
+            generated.  If None, the left edge will be that of the
+            domain.
+            Default: None.
+        right_edge : optional, iterable of floats of YTArray
+            The right corner of the region in which rays are to be
+            generated.  If None, the right edge will be that of the
+            domain.
+            Default: None.
+        min_left : optional, int
+            The minimum refinement level of the spatial region in which
+            the ray passes.  This can be used with zoom-in simulations
+            where the high resolution region does not keep a constant
+            geometry.
             Default: None.
         start_position : optional, iterable of floats or YTArray.
             Used only if creating a light ray from a single dataset.
@@ -410,7 +438,8 @@ class LightRay(CosmologySplice):
 
         if get_los_velocity is not None:
             use_peculiar_velocity = get_los_velocity
-            mylog.warn("'get_los_velocity' kwarg is deprecated. Use 'use_peculiar_velocity' instead.")
+            mylog.warn("'get_los_velocity' kwarg is deprecated. " + \
+                       "Use 'use_peculiar_velocity' instead.")
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
