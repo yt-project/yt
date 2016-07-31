@@ -110,6 +110,8 @@ class EnzoSimulation(SimulationTimeSeries):
         self.domain_right_edge = self.domain_right_edge * self.length_unit
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_length", self.length_unit)
+        self.unit_registry.add("unitary", float(self.box_size.in_base()),
+                               self.length_unit.units.dimensions)
 
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None,
