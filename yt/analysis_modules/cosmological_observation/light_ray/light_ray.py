@@ -175,13 +175,14 @@ class LightRay(CosmologySplice):
             CosmologySplice.__init__(self, self.parameter_filename, simulation_type,
                                      find_outputs=find_outputs)
             self.light_ray_solution = \
-              self.create_cosmology_splice(self.near_redshift, self.far_redshift,
-                                           minimal=self.use_minimum_datasets,
-                                           max_box_fraction=max_box_fraction,
-                                           high_res_box_size_fraction=self.high_res_box_size_fraction,
-                                           deltaz_min=self.deltaz_min,
-                                           time_data=time_data,
-                                           redshift_data=redshift_data)
+              self.create_cosmology_splice(
+                  self.near_redshift, self.far_redshift,
+                  minimal=self.use_minimum_datasets,
+                  max_box_fraction=max_box_fraction,
+                  high_res_box_size_fraction=self.high_res_box_size_fraction,
+                  deltaz_min=self.deltaz_min,
+                  time_data=time_data,
+                  redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
                                       left_edge=None, right_edge=None,
@@ -237,13 +238,9 @@ class LightRay(CosmologySplice):
 
                 # Get dataset axis and center.
                 # If using box coherence, only get start point and vector if
-                # enough of the box has been used,
-                # or if box_fraction_used will be greater than 1 after this slice.
-                if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-                        (box_fraction_used >
-                         self.minimum_coherent_box_fraction) or \
-                        (box_fraction_used +
-                         self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
+                # enough of the box has been used.
+                if (q == 0) or (box_fraction_used >=
+                                self.minimum_coherent_box_fraction):
                     if periodic:
                         self.light_ray_solution[q]['start'] = left_edge + \
                           (right_edge - left_edge) * my_random.random_sample(3)
@@ -259,9 +256,11 @@ class LightRay(CosmologySplice):
                                            my_random=my_random, min_level=min_level)
                         del ds
                 else:
-                    # Use end point of previous segment and same theta and phi.
+                    # Use end point of previous segment, adjusted for periodicity,
+                    # and the same trajectory.
                     self.light_ray_solution[q]['start'] = \
-                      self.light_ray_solution[q-1]['end'][:]
+                      periodic_adjust(self.light_ray_solution[q-1]['end'][:],
+                                      left=left_edge, right=right_edge)
 
                 if "end" not in self.light_ray_solution[q]:
                     self.light_ray_solution[q]['end'] = \
@@ -696,6 +695,22 @@ def vector_length(start, end):
     """
 
     return np.sqrt(np.power((end - start), 2).sum())
+
+def periodic_adjust(p, left=None, right=None):
+    """
+    Return the point p adjusted for periodic boundaries.
+
+    """
+    if isinstance(p, YTArray):
+        p.convert_to_units("unitary")
+    if left is None:
+        left = np.zeros_like(p)
+    if right is None:
+        right = np.ones_like(p)
+
+    w = right - left
+    p -= left
+    return np.mod(p, w)
 
 def periodic_distance(coord1, coord2):
     """
