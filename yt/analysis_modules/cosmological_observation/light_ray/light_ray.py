@@ -411,17 +411,21 @@ class LightRay(CosmologySplice):
         ...                       use_peculiar_velocity=True)
 
         """
+        if self.simulation_type is None:
+            domain = self.ds
+        else:
+            domain = self.simulation
 
         if left_edge is None:
-            left_edge = self.simulation.domain_left_edge
+            left_edge = domain.domain_left_edge
         elif not hasattr(left_edge, 'units'):
-            left_edge = self.simulation.arr(left_edge, 'code_length')
+            left_edge = domain.arr(left_edge, 'code_length')
         left_edge.convert_to_units('unitary')
 
         if right_edge is None:
-            right_edge = self.simulation.domain_right_edge
+            right_edge = domain.domain_right_edge
         elif not hasattr(right_edge, 'units'):
-            right_edge = self.simulation.arr(right_edge, 'code_length')
+            right_edge = domain.arr(right_edge, 'code_length')
         right_edge.convert_to_units('unitary')
 
         if start_position is not None and hasattr(start_position, 'units'):
