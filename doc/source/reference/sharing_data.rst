@@ -1,8 +1,11 @@
 
 .. _sharing-data:
 
+The yt Hub
+==========
+
 What is the yt Hub?
-===================
+-------------------
 
 The yt data Hub is a mechanism by which images, data objects and projects can be
 shared with other people. For instance, one can upload a dataset and allow other
