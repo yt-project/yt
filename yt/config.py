@@ -51,6 +51,7 @@ ytcfg_defaults = dict(
     enzo_db = '',
     hub_url = 'https://girder.hub.yt/api/v1',
     hub_api_key = '',
+    hub_sandbox = '/collection/yt_sandbox/data',
     notebook_password = '',
     answer_testing_tolerance = '3',
     answer_testing_bitwise = 'False',

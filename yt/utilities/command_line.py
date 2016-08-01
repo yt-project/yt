@@ -119,6 +119,22 @@ def _print_installation_information(path):
         print("Changeset = %s" % vstring.strip().decode("utf-8"))
     print("---")
     return vstring
+    
+
+def _get_girder_client():
+    try:
+        import girder_client
+    except ImportError:
+        print("this command requires girder_client to be installed")
+        print("Please install them using you python package manager, e.g.:")
+        print("   pip install girder_client --user")
+        exit()
+
+    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
+    gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
+    gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
+    return gc
+
 
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
@@ -562,7 +578,7 @@ class YTHubRegisterCmd(YTCommand):
     name = "hub_register"
     description = \
         """
-        Register a user on the Hub: http://hub.yt/
+        Register a user on the yt Hub: http://hub.yt/
         """
     def __call__(self, args):
         try:
@@ -815,38 +831,45 @@ class YTPastebinGrabCmd(YTCommand):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
+class YTHubStartNotebook(YTCommand):
+    args = ()
+    description = \
+        """
+        Start the Jupyter Notebook on the yt Hub.
+        """
+    name = "hubstart"
+    def __call__(self, args):
+        gc = _get_girder_client()
+
+        # TODO: should happen server-side
+        _id = gc._checkResourcePath(ytcfg.get("yt", "hub_sandbox"))
+
+        resp = gc.post("/notebook/{}".format(_id))
+        try:
+            print("Launched! Please visit this URL:")
+            print("    https://tmpnb.hub.yt" + resp['url'])
+            print()
+        except KeyError:
+            print("Something went wrong. The yt Hub responded with : ")
+            print(resp)
+
 class YTNotebookUploadCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
         """
-        Upload an IPython notebook to the yt Hub.
+        Upload an IPython Notebook to the yt Hub.
         """
 
     name = "upload_notebook"
     def __call__(self, args):
-        try:
-            import girder_client
-        except ImportError:
-            print("yt {} requires girder_client to be installed".format(self.name))
-            print("Please install them using you python package manager, e.g.:")
-            print("   pip install girder_client --user")
-            exit()
-
-        filename = args.file
-        if not os.path.isfile(filename):
-            raise IOError(filename)
-        if not filename.endswith(".ipynb"):
-            print("File must be an IPython notebook!")
-            return 1
-        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
-        gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
-        gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
+        gc = _get_girder_client()
         username = gc.get("/user/me")["login"]
-        gc.upload(filename, "/user/{}/Public".format(username))
+        gc.upload(args.file, "/user/{}/Public".format(username))
 
         _id = gc.resourceLookup(
-            "/user/{}/Public/{}".format(username, filename))["_id"]
+            "/user/{}/Public/{}".format(username, args.file))["_id"]
         _fid = next(gc.listFile(_id))["_id"]
+        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
         print("Upload successful!")
         print()
         print("To access your raw notebook go here:")
@@ -960,7 +983,7 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Run the IPython Notebook
+        Start the Jupyter Notebook locally. 
         """
     def __call__(self, args):
         kwargs = {}

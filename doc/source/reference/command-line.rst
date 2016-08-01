@@ -58,7 +58,7 @@ This will print the list of available subcommands,
 
     help                Print help message
     bugreport           Report a bug in yt
-    hub_register        Register a user on the Hub: https://hub.yt/
+    hub_register        Register a user on the yt Hub: https://hub.yt/
     instinfo            Get some information about the yt installation
     version             Get some information about the yt installation (this
                         is an alias for instinfo).
@@ -66,18 +66,21 @@ This will print the list of available subcommands,
     mapserver           Serve a plot in a GMaps-style interface
     pastebin            Post a script to an anonymous pastebin
     pastebin_grab       Print an online pastebin to STDOUT for local use.
-    upload_notebook     Upload an IPython notebook to the yt Hub.
+    hubstart            Start the Jupyter Notebook on the yt Hub. 
+    upload_notebook     Upload an IPython Notebook to the yt Hub.
     plot                Create a set of images
     rpdb                Connect to a currently running (on localhost) rpd
                         session. Commands run with --rpdb will trigger an rpdb
                         session with any uncaught exceptions.
-    notebook            Run the IPython Notebook
+    notebook            Start the Jupyter Notebook locally.
     stats               Print stats and max/min value of a given field (if
                         requested), for one or more datasets (default field is
                         Density)
     update              Update the yt installation to the most recent version
     delete_image        Delete image from imgur.com.
     upload_image        Upload an image to imgur.com. Must be PNG.
+    search              Attempt to find outputs that yt can recognize in
+                        directories.
 
 
 To execute any such function, simply run:
