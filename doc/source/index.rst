@@ -185,6 +185,7 @@ Table of Contents
    analyzing/analysis_modules/index
    examining/index
    developing/index
+   sharing_data
    reference/index
    faq/index
    Getting Help <help/index>
