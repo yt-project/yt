@@ -93,7 +93,8 @@ from yt.funcs import \
     parallel_profile, \
     enable_plugins, \
     memory_checker, \
-    deprecated_class
+    deprecated_class, \
+    toggle_interactivity
 from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
@@ -155,8 +156,7 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
-    toggle_interactivity
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \

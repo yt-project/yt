@@ -58,5 +58,4 @@ from .profile_plotter import \
     PhasePlot
 
 from .base_plot_types import \
-    toggle_interactivity, \
     get_multi_plot

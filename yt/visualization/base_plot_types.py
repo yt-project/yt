@@ -20,7 +20,8 @@ from yt.funcs import \
     mylog, \
     iterable, \
     get_brewer_cmap, \
-    matplotlib_style_context
+    matplotlib_style_context, \
+    get_interactivity
 import numpy as np
 
 backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
@@ -42,15 +43,6 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                'nbAgg': ['backend_nbagg', 'FigureCanvasNbAgg',
                          'FigureManagerNbAgg'],
                 'agg': ['backend_agg', 'FigureCanvasAgg']}
-
-
-"""condition that interactive backends can be used."""
-interactivity = False
-
-"""Sets the condition that interactive backends can be used."""
-def toggle_interactivity():
-    global interactivity
-    interactivity = not interactivity
 
 
 class CallbackWrapper(object):
@@ -109,8 +101,8 @@ class PlotMPL(object):
                 self.axes.tick_params(which=which, axis=axis, direction='in')
 
     def _set_canvas(self):
-        self.interactivity = interactivity
-        if interactivity:
+        self.interactivity = get_interactivity()
+        if self.interactivity:
             backend = str(matplotlib.get_backend())
         else:
             backend = 'agg'

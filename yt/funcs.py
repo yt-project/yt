@@ -16,7 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
-from yt.extern.six.moves import input
+from yt.extern.six.moves import input, builtins
 import time
 import inspect
 import traceback
@@ -987,3 +987,20 @@ def matplotlib_style_context(style_name=None, after_reset=True):
         pass
     return dummy_context_manager()
 
+interactivity = False
+
+"""Sets the condition that interactive backends can be used."""
+def toggle_interactivity():
+    global interactivity
+    interactivity = not interactivity
+    if interactivity is True:
+        if '__IPYTHON__' in dir(builtins):
+            import IPython
+            shell = IPython.get_ipython()
+            shell.magic('matplotlib')
+        else:
+            import matplotlib
+            matplotlib.interactive(True)
+
+def get_interactivity():
+    return interactivity
