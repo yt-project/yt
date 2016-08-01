@@ -126,7 +126,7 @@ def _get_girder_client():
         import girder_client
     except ImportError:
         print("this command requires girder_client to be installed")
-        print("Please install them using you python package manager, e.g.:")
+        print("Please install them using your python package manager, e.g.:")
         print("   pip install girder_client --user")
         exit()
 
@@ -585,7 +585,7 @@ class YTHubRegisterCmd(YTCommand):
             import requests
         except ImportError:
             print("yt {} requires requests to be installed".format(self.name))
-            print("Please install them using you python package manager, e.g.:")
+            print("Please install them using your python package manager, e.g.:")
             print("   pip install requests --user")
             exit()
         if ytcfg.get("yt", "hub_api_key") != "":
