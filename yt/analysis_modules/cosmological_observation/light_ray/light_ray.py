@@ -521,10 +521,6 @@ class LightRay(CosmologySplice):
                        (my_segment['redshift'], my_segment['start'],
                         my_segment['end']))
 
-            # Convert segment units from unitary to code length for sub_ray
-            my_segment['start'] = my_segment['start'].to('code_length')
-            my_segment['end'] = my_segment['end'].to('code_length')
-
             # Break periodic ray into non-periodic segments.
             sub_segments = periodic_ray(my_segment['start'], my_segment['end'],
                                         left=left_edge,
