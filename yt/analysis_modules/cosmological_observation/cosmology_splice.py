@@ -105,7 +105,11 @@ class CosmologySplice(object):
         else:
             mylog.error('Both time_data and redshift_data are False.')
             return
-        
+
+        if high_res_box_size_fraction > 1.:
+            raise RuntimeError(
+                "high_res_box_size_fraction must be <= 1.")
+
         # Link datasets in list with pointers.
         # This is used for connecting datasets together.
         for i, output in enumerate(self.splice_outputs):
