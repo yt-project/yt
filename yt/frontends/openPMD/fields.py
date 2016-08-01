@@ -89,18 +89,18 @@ def setup_poynting_vector(self):
                        units="T*V/m")
 
 
-def setup_relative_positions(self, ptype):
-    def _rel_pos(axis):
-        def rp(field, data):
-            pos = data[ptype, "particle_position_{}".format(axis)]
+def setup_absolute_positions(self, ptype):
+    def _abs_pos(axis):
+        def ap(field, data):
+            pos = data[ptype, "particle_positionCoarse_{}".format(axis)]
             off = data[ptype, "particle_positionOffset_{}".format(axis)]
             return pos + off
 
-        return rp
+        return ap
 
     for ax in 'xyz':
-        self.add_field((ptype, "particle_position_relative_%s" % ax),
-                       function=_rel_pos(ax),
+        self.add_field((ptype, "particle_position_%s" % ax),
+                       function=_abs_pos(ax),
                        units="m",
                        particle_type=True)
 
@@ -185,10 +185,13 @@ class openPMDFieldInfo(FieldInfoContainer):
                             np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype='int'))
                     unit = str(yt.YTQuantity(1, parsed).units)
                     name = ["particle", attrib]
+                    ytattrib = attrib
+                    if ytattrib in "position":
+                        ytattrib = "positionCoarse"
                     for axis in particles.get(species).get(attrib).keys():
                         aliases = []
                         if axis in "rxyz":
-                            name = ["particle", attrib, axis]
+                            name = ["particle", ytattrib, axis]
                         ytname = str("_".join(name))
                         if ds._nonstandard and "globalCellIdx" in ytname:
                             aliases.append(ytname.replace("globalCellIdx", "positionOffset"))
@@ -220,7 +223,7 @@ class openPMDFieldInfo(FieldInfoContainer):
 
         TODO You have to call the function of the parent class to load particles
         """
-        setup_relative_positions(self, ptype)
+        setup_absolute_positions(self, ptype)
         #setup_kinetic_energy(self, ptype)
         #setup_velocity(self, ptype)
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)

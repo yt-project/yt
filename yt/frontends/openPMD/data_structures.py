@@ -26,18 +26,14 @@ from yt.utilities.file_handler import \
 
 import yt.frontends.openPMD.misc as validator
 
-import h5py
 import numpy as np
 import os
 import re
 from math import ceil, floor
 from yt.utilities.logger import ytLogger as mylog
-from .misc import get_component, is_const_component
 
-
-class openPMDBasePathException(Exception):
-    pass
-
+def is_const_component(record_component):
+    return "value" in record_component.attrs.keys()
 
 class openPMDBasePath:
     def _setNonStandardBasePath(self, handle):
@@ -52,23 +48,10 @@ class openPMDBasePath:
             - getIterations(self)
             - getBasePath(self, iteration)
         """
-        # basePath is fixed in openPMD 1.X to `/data/%T/`
-        dataPath = u"/data"
-
-        # if the file messed up the base path we avoid throwing a cluttered
-        # exception below while looking for iterations:
-        if handle.attrs["basePath"].decode("utf-8") != u"/data/%T/":
-            raise openPMDBasePathException("openPMD: basePath is non-standard!")
-
-        # does `/data/` exist?
-        if not u"/data" in handle:
-            raise openPMDBasePathException("openPMD: group for basePath does not exist!")
-
-        # TODO Everything prior to this should (in theory) already be done by the validator
         # find iterations in basePath
         list_iterations = []
         if u"groupBased" in handle.attrs["iterationEncoding"]:
-            for i in list(handle[dataPath].keys()):
+            for i in list(handle["/data"].keys()):
                 list_iterations.append(i)
             mylog.info("openPMD: found {} iterations in file".format(len(list_iterations)))
         elif u"fileBased" in handle.attrs["iterationEncoding"]:
@@ -89,8 +72,8 @@ class openPMDBasePath:
 
         # just handle the first iteration found
         if u"groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
-            mylog.warning("openPMD: only choose to load one iteration ({})".format(handle[dataPath].keys()[0]))
-        self.basePath = "{}/{}/".format(dataPath, handle[dataPath].keys()[0])
+            mylog.warning("openPMD: only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
+        self.basePath = "{}/{}/".format("/data", handle["/data"].keys()[0])
 
 
 class openPMDGrid(AMRGridPatch):
@@ -185,6 +168,8 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                             # Create a field for every axis (x,y,z) of every property (position)
                             # of every species (electrons)
                             keys = f[bp + pp + particleName + "/" + record].keys()
+                            if record in "position":
+                                record = "positionCoarse"
                             for axis in keys:
                                 particle_fields.append(particleName + "_" + record + "_" + axis)
                         except:
@@ -232,9 +217,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
                 self.np[spec] = f[bp + pp + spec + "/position/" + pos].len()
             if self.np[spec] > maxnp:
                 maxnp = self.np[spec]
-        # For 3D: about 8 Mio. particles per grid
-        # For 2D: about 12,5 Mio. particles per grid
-        # For 1D: about 25 Mio. particles per grid
+        # Limit particles per grid by resulting memory footprint
         ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
         # Use an upper bound of equally sized grids, last one might be smaller
         self.num_grids = int(ceil(maxnp * ppg**-1))
@@ -392,11 +375,11 @@ class openPMDDataset(Dataset, openPMDBasePath):
         try:
             mesh = f[bp + mp].keys()[0]
             axis = f[bp + mp + "/" + mesh].keys()[0]
-            fshape = f[bp + mp + "/" + mesh + "/" + axis].shape
+            fshape = np.asarray(f[bp + mp + "/" + mesh + "/" + axis].shape, dtype=np.int64)
         except:
+            fshape = np.array([1, 1, 1], dtype=np.int64)
             mylog.warning("Could not detect shape of simulated field! "
                           "Assuming a single cell and thus setting fshape to [1, 1, 1]!")
-            fshape = np.array([1, 1, 1])
         if len(fshape) < 1:
             self.dimensionality = 0
             for species in f[bp + pp].keys():
@@ -406,34 +389,26 @@ class openPMDDataset(Dataset, openPMDBasePath):
         else:
             self.dimensionality = len(fshape)
 
-        # gridding of the meshes (assumed all mesh entries are on the same mesh)
-        self.domain_dimensions = np.ones(3, dtype=np.int64)
-        self.domain_dimensions[:self.dimensionality] = fshape
+        fshape = np.append(fshape, np.ones(3 - self.dimensionality))
+        self.domain_dimensions = fshape
 
         self.domain_left_edge = np.zeros(3, dtype=np.float64)
-        self.domain_right_edge = np.ones(3, dtype=np.float64)
         try:
             mesh = f[bp + mp].keys()[0]
             if self._nonstandard:
-                offset = np.zeros(3, dtype=np.float64)
                 width = f[bp].attrs['cell_width']
                 height = f[bp].attrs['cell_height']
                 depth = f[bp].attrs['cell_depth']
-                spacing = [width, height, depth]
+                spacing = np.asarray([width, height, depth])
                 unitSI = f[bp].attrs['unit_length']
             else:
-                offset = f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"]
-                spacing = f[bp + mp + "/" + mesh].attrs["gridSpacing"]
+                spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
+                np.append(spacing, np.ones(3 - len(spacing)))
                 unitSI = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
-            dim = len(spacing)
-            self.domain_left_edge[:dim] += offset * unitSI
-            self.domain_right_edge *= self.domain_dimensions * unitSI
-            self.domain_right_edge[:dim] *= spacing
-            self.domain_right_edge += self.domain_left_edge
+            self.domain_right_edge = self.domain_dimensions * unitSI * spacing
         except:
             mylog.warning("The domain extent could not be calculated! Setting the field extent to 1m**3! "
                           "This WILL break particle-overplotting!")
-            self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         if self._nonstandard:
@@ -464,6 +439,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
         # Go through all the iterations, checking both the particles
         # and the meshes
         result_array += validator.check_iterations(f, verbose, extension_pic)
+
+        # this might still be a compatible file not fully respecting openPMD standards
         if result_array[0] != 0:
             try:
                 if "/data" in f and f["/data"].keys()[0].isdigit():

@@ -16,17 +16,12 @@ openPMD-specific IO functions
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.extern.six import u, b, iteritems
 from yt.utilities.logger import ytLogger as mylog
-import h5py
 import numpy as np
 from .data_structures import openPMDBasePath
-from .misc import get_component
 
 
 class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
-    # TODO Change strategies when dealing with different iterationEncoding?
-
     _field_dtype = "float32"
     _dataset_type = "openPMD"
 
@@ -60,11 +55,11 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
             pos = {}
             off = {}
             for ax in axes:
-                pos[ax] = get_component(pds, "position/" + ax, index, offset, self.ds._nonstandard)
+                pos[ax] = self.get_component(pds, "position/" + ax, index, offset, self.ds._nonstandard)
                 if self.ds._nonstandard:
-                    off[ax] = get_component(pds, "globalCellIdx/" + ax, index, offset, self.ds._nonstandard)
+                    off[ax] = self.get_component(pds, "globalCellIdx/" + ax, index, offset, self.ds._nonstandard)
                 else:
-                    off[ax] = get_component(pds, "positionOffset/" + ax, index, offset, self.ds._nonstandard)
+                    off[ax] = self.get_component(pds, "positionOffset/" + ax, index, offset, self.ds._nonstandard)
                 self._cache[ax] = pos[ax] + off[ax]
             # Pad accordingly with zeros to make 1D/2D datasets compatible
             # These have to be the same shape as the existing axes dataset since that equals the number of particles
@@ -102,7 +97,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 if g.filename is None:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
                     if "io" in ptype:
                         spec = ds[self.particlesPath].keys()[0]
                     else:
@@ -113,6 +107,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     for gridptype, ofs in g.off_part:
                         if str(gridptype) == str(spec):
                             offset = ofs
+                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -154,7 +149,6 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 if g.filename is None:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     if "io" in ptype:
                         spec = ds[self.particlesPath].keys()[0]
@@ -168,14 +162,15 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                             offset = ofs
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
+                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
                         mylog.debug("Particle selection mask is None!")
                         continue
                     pds = ds[self.particlesPath + "/" + spec]
                     for field in field_list:
-                        nfield = "/".join(field.split("_")[1:])
-                        data = get_component(pds, nfield, index, offset, self.ds._nonstandard)
+                        nfield = "/".join(field.split("_")[1:]).replace("positionCoarse", "position")
+                        data = self.get_component(pds, nfield, index, offset, self.ds._nonstandard)
                         yield ((ptype, field), data[mask])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -242,14 +237,58 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     nfield = fname.replace("_", "/").replace("-","_")
                     index = g.mesh_ind
                     offset = g.off_mesh
-                    data = np.array(get_component(ds, nfield, index, offset, self.ds._nonstandard))
+                    data = np.array(self.get_component(ds, nfield, index, offset, self.ds._nonstandard))
                     # The following is a modified AMRGridPatch.select(...)
                     mask = g._get_selector_mask(selector)
-                    if data.shape is not mask.shape:
-                        data = data.reshape(mask.shape)  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                    data = data.reshape(mask.shape)  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
                     count = g.count(selector)
                     rv[field][ind[field]:ind[field] + count] = data[mask]
                     ind[field] += count
         for i in rv:
             rv[i].flatten()
         return rv
+
+    def get_component(self, group, component_name, index=0, offset=None, nonstandard=False):
+        """Grab a component from a group
+
+        Parameters
+        ----------
+        group: hdf5 group to get whole/masked component from
+        component_name: string of a component (relative path) inside the group
+        index: (optional) start index of data to return
+        offset: (optional) size of the data to return
+        nonstandard: (optional) bool to signal whether to assume (non)standard PMD
+
+        Returns
+        -------
+        n-dimensional numpy array filled with values of component
+        """
+
+        record_component = group[component_name]
+        if nonstandard:
+            try:
+                unitSI = record_component.attrs["sim_unit"]
+                if "globalCellIdx" in component_name:
+                    it = group["/data"].keys()[0]
+                    len = group["/data/" + it].attrs['unit_length']
+                    unitSI *= len
+            except:
+                unitSI = 1.0
+        else:
+            unitSI = record_component.attrs["unitSI"]
+        # check whether component is constant
+        if "value" in record_component.attrs.keys():
+            if offset is not None:
+                shape = offset
+            else:
+                shape = record_component.attrs["shape"] - index
+            # component is constant, craft an array by hand
+            mylog.debug("openPMD - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
+            return np.full(shape, record_component.attrs["value"] * unitSI)
+        else:
+            if offset is not None:
+                offset += index
+            # component is a dataset, return it (possibly masked)
+            mylog.debug(
+                "openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+            return record_component[index:offset] * unitSI

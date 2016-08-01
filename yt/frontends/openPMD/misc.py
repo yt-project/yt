@@ -769,55 +769,6 @@ def check_particles(f, iteration, v, pic) :
     return result_array
 
 
-def is_const_component(record_component):
-    return "value" in record_component.attrs.keys()
-
-
-def get_component(group, component_name, index=0, offset=None, nonstandard=False):
-    # TODO - Make slicing possible for higher dimensional data
-    """Grab a component from a group
-
-    Parameters
-    ----------
-    group: hdf5 group to get whole/masked component from
-    component_name: string of a component (relative path) inside the group
-    index: (optional) start index of data to return
-    offset: (optional) size of the data to return
-    nonstandard: (optional) bool to signal whether to assume (non)standard PMD
-
-    Returns
-    -------
-    n-dimensional numpy array filled with values of component
-    """
-
-    record_component = group[component_name]
-    if nonstandard:
-        try:
-            unitSI = record_component.attrs["sim_unit"]
-            if "globalCellIdx" in component_name:
-                it = group["/data"].keys()[0]
-                len = group["/data/" + it].attrs['unit_length']
-                unitSI *= len
-        except:
-            unitSI = 1.0
-    else:
-        unitSI = record_component.attrs["unitSI"]
-    if is_const_component(record_component):
-        if offset is not None:
-            shape = offset
-        else:
-            shape = record_component.attrs["shape"] - index
-        # component is constant, craft an array by hand
-        mylog.debug("openPMD - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
-        return np.full(shape, record_component.attrs["value"] * unitSI)
-    else:
-        if offset is not None:
-            offset += index
-        # component is a dataset, return it (possibly masked)
-        mylog.debug("openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
-        return record_component[index:offset] * unitSI
-
-
 def parse_unitDimension(unitDimension):
     if len(unitDimension) is not 7:
         mylog.error("SI must have 7 base dimensions! {} is off by {}".format(unitDimension, len(unitDimension) - 7))

@@ -8,11 +8,6 @@ Distributed under the terms of the Modified BSD License.
 The full license is in the file COPYING.txt, distributed with this software.
 """
 
-import setuptools
-import os
-import sys
-import os.path
-
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
