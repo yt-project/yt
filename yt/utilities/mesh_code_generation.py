@@ -6,48 +6,48 @@ import re
 import yaml
 
 
-fun_dec_template = '''cdef inline void %s(double* fx,
-                              double* x,
-                              double* vertices,
-                              double* phys_x) nogil \n'''
+fun_dec_template = '''cdef void %s(double* fx,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil \n'''
 
 fun_def_template = '''@cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void %s(double* fx,
-                              double* x,
-                              double* vertices,
-                              double* phys_x) nogil: \n'''
+cdef void %s(double* fx,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: \n'''
 
-jac_dec_template_3D = '''cdef inline void %s(double* rcol,
-                              double* scol,
-                              double* tcol,
-                              double* x,
-                              double* vertices,
-                              double* phys_x) nogil \n'''
+jac_dec_template_3D = '''cdef void %s(double* rcol,
+                       double* scol,
+                       double* tcol,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil \n'''
 
 jac_def_template_3D = '''@cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void %s(double* rcol,
-                              double* scol,
-                              double* tcol,
-                              double* x,
-                              double* vertices,
-                              double* phys_x) nogil: \n'''
+cdef void %s(double* rcol,
+                       double* scol,
+                       double* tcol,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: \n'''
 
-jac_dec_template_2D = '''cdef inline void %s(double* A,
-                              double* x,
-                              double* vertices,
-                              double* phys_x) nogil \n'''
+jac_dec_template_2D = '''cdef void %s(double* A,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil \n'''
 
 jac_def_template_2D = '''@cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void %s(double* A,
-                              double* x,
-                              double* vertices,
-                              double* phys_x) nogil: \n'''
+cdef void %s(double* A,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: \n'''
 
 file_header = "# This file contains auto-generated functions for sampling \n" + \
               "# inside finite element solutions for various mesh types."
