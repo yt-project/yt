@@ -19,14 +19,14 @@ cdef inline void %s(double* fx,
                               double* vertices,
                               double* phys_x) nogil: \n'''
 
-jac_dec_template = '''cdef inline void %s(double* rcol,
+jac_dec_template_3D = '''cdef inline void %s(double* rcol,
                               double* scol,
                               double* tcol,
                               double* x,
                               double* vertices,
                               double* phys_x) nogil \n'''
 
-jac_def_template = '''@cython.boundscheck(False)
+jac_def_template_3D = '''@cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef inline void %s(double* rcol,
@@ -36,16 +36,21 @@ cdef inline void %s(double* rcol,
                               double* vertices,
                               double* phys_x) nogil: \n'''
 
+jac_dec_template_2D = '''cdef inline void %s(double* A,
+                              double* x,
+                              double* vertices,
+                              double* phys_x) nogil \n'''
+
+jac_def_template_2D = '''@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef inline void %s(double* A,
+                              double* x,
+                              double* vertices,
+                              double* phys_x) nogil: \n'''
+
 file_header = "# This file contains auto-generated functions for sampling \n" + \
               "# inside finite element solutions for various mesh types."
-
-
-def replace_func(match):
-    s = match.group(0)
-    i = int(s[-3])
-    j = int(s[-1])
-    n = 3*j + i
-    return 'vertices[%d]' % n
 
 
 class MeshCodeGenerator:
@@ -76,28 +81,42 @@ class MeshCodeGenerator:
                 self.J[i][j] = diff(self.f[i], var)
 
         self.function_name = '%sFunction%dD' % (self.mesh_type, self.num_dim)
-        self.jacobian_name = '%sJacobian%dD' % (self.mesh_type, self.num_dim)
-
         self.function_header = fun_def_template % self.function_name
-        self.jacobian_header = jac_def_template % self.jacobian_name 
-
         self.function_declaration = fun_dec_template % self.function_name
-        self.jacobian_declaration = jac_dec_template % self.jacobian_name
+
+        self.jacobian_name = '%sJacobian%dD' % (self.mesh_type, self.num_dim)
+        if (self.num_dim == 3):
+            self.jacobian_header = jac_def_template_3D % self.jacobian_name 
+            self.jacobian_declaration = jac_dec_template_3D % self.jacobian_name
+        elif (self.num_dim == 2):
+            self.jacobian_header = jac_def_template_2D % self.jacobian_name
+            self.jacobian_declaration = jac_dec_template_2D % self.jacobian_name            
+
+    def replace_func(self, match):
+        s = match.group(0)
+        i = int(s[-3])
+        j = int(s[-1])
+        n = self.num_dim*j + i
+        return 'vertices[%d]' % n
 
     def get_function_line(self, i):
         line = str(self.f[i])
         for j in range(self.num_dim):
             line = re.sub(r'x_%d' % j, 'x[%d]' % j, line)
-        line = re.sub(r'(vertices_._.)', replace_func, line)
+        line = re.sub(r'(vertices_._.)', self.replace_func, line)
         return '''    fx[%d] =  %s \n''' % (i, line)
 
     def get_jacobian_line(self, i, j):
         line = str(self.J[i, j])
         for k in range(self.num_dim):
             line = re.sub(r'x_%d' % k, 'x[%d]' % k, line)
-        line = re.sub(r'(vertices_._.)', replace_func, line)
-        col = 'rst'[j]
-        return '''    %scol[%d] =  %s \n''' % (col, i, line)
+        line = re.sub(r'(vertices_._.)', self.replace_func, line)
+        if (self.num_dim == 2):
+            return '''    A[%d] =  %s \n''' % (2*i + j, line)
+        else:
+            assert(self.num_dim == 3)
+            col = 'rst'[j]
+            return '''    %scol[%d] =  %s \n''' % (col, i, line)
 
     def get_interpolator_definition(self):
         function_code = self.function_header
