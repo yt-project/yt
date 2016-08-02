@@ -8,6 +8,7 @@ openPMD-specific IO functions
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 # Copyright (c) 2015, Daniel Grassinger (HZDR)
+# Copyright (c) 2016, Fabian Koller (HZDR)
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -107,7 +108,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     for gridptype, ofs in g.off_part:
                         if str(gridptype) == str(spec):
                             offset = ofs
-                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {}".format(g, ptype, field_list))
+                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index,offset))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -162,10 +163,9 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                             offset = ofs
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
-                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {}".format(g, ptype, field_list))
+                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
-                        mylog.debug("Particle selection mask is None!")
                         continue
                     pds = ds[self.particlesPath + "/" + spec]
                     for field in field_list:
@@ -240,7 +240,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     data = np.array(self.get_component(ds, nfield, index, offset, self.ds._nonstandard))
                     # The following is a modified AMRGridPatch.select(...)
                     mask = g._get_selector_mask(selector)
-                    data = data.reshape(mask.shape)  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                    data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
                     count = g.count(selector)
                     rv[field][ind[field]:ind[field] + count] = data[mask]
                     ind[field] += count
@@ -270,8 +270,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 unitSI = record_component.attrs["sim_unit"]
                 if "globalCellIdx" in component_name:
                     it = group["/data"].keys()[0]
-                    len = group["/data/" + it].attrs['unit_length']
-                    unitSI *= len
+                    length = group["/data/" + it].attrs['unit_length']
+                    unitSI *= length
             except:
                 unitSI = 1.0
         else:

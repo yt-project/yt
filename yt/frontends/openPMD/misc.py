@@ -1,4 +1,6 @@
+#-----------------------------------------------------------------------------
 # Copyright (c) 2015, Axel Huebl, Remi Lehe
+# Copyright (c) 2016, Fabian Koller (HZDR)
 #
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -12,6 +14,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #
+#-----------------------------------------------------------------------------
 
 import h5py as h5
 import numpy as np
@@ -25,12 +28,14 @@ openPMD = "1.0.0"
 
 ext_list = [["ED-PIC", np.uint32(1)]]
 
+
 def open_file(file_name):
     try:
         f = h5.File(file_name, "r")
         return(f)
     except:
         raise
+
 
 def get_attr(f, name):
     """
@@ -41,6 +46,7 @@ def get_attr(f, name):
         return(True, f.attrs[name])
     else:
         return(False, None)
+
 
 def test_record(g, r):
     """
@@ -76,6 +82,7 @@ def test_record(g, r):
         result_array = np.array([1,0])
 
     return(result_array)
+
 
 def test_key(f, v, request, name):
     """
@@ -127,6 +134,7 @@ def test_key(f, v, request, name):
             raise ValueError("Unrecognized string for `request` : %s" %request)
 
     return(result_array)
+
 
 def test_attr(f, v, request, name, is_type=None, type_format=None):
     """
@@ -232,6 +240,7 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
 
     return(result_array)
 
+
 def is_scalar_record(r):
     """
     Checks if a record is a scalar record or not.
@@ -258,6 +267,7 @@ def is_scalar_record(r):
             return False
     else :
         return True
+
 
 def test_component(c, v) :
     """
@@ -421,6 +431,7 @@ def check_iterations(f, v, pic) :
 
     return(result_array)
 
+
 def check_base_path(f, iteration, v, pic):
     """
     Scan the base_path that corresponds to this iteration
@@ -460,6 +471,7 @@ def check_base_path(f, iteration, v, pic):
     result_array += test_attr(bp, v, "required", "timeUnitSI", np.float64)
 
     return(result_array)
+
 
 def check_meshes(f, iteration, v, pic):
     """
@@ -743,7 +755,7 @@ def check_particles(f, iteration, v, pic) :
                                 "particleSmoothingParameters", np.string_)
 
         # Check attributes of each record of the particle
-        for record in list(species.keys()) :
+        for record in list(species.keys()):
             # all records (but particlePatches) require units
             if record != "particlePatches":
                 result_array += test_attr(species[record], v,
@@ -751,25 +763,25 @@ def check_particles(f, iteration, v, pic) :
                 time_type = f[base_path].attrs["time"].dtype.type
                 result_array += test_attr(species[record], v, "required",
                                           "timeOffset", time_type)
-                if pic :
+                if pic:
                     result_array += test_attr(species[record], v, "required",
                                               "weightingPower", np.float64)
                     result_array += test_attr(species[record], v, "required",
                                               "macroWeighted", np.uint32)
                 # Attributes of the components
-                if is_scalar_record( species[record] ) : # Scalar record
+                if is_scalar_record(species[record]):  # Scalar record
                     dset = species[record]
                     result_array += test_component(dset, v)
-                else : # Vector record
+                else:  # Vector record
                     # Loop over the components
                     for component_name in list(species[record].keys()):
-                        dset = species[ os.path.join(record, component_name) ]
+                        dset = species[os.path.join(record, component_name)]
                         result_array += test_component(dset, v)
 
     return result_array
 
 
-def parse_unitDimension(unitDimension):
+def parse_unit_dimension(unitDimension):
     if len(unitDimension) is not 7:
         mylog.error("SI must have 7 base dimensions! {} is off by {}".format(unitDimension, len(unitDimension) - 7))
     dim = []

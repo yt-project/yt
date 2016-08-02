@@ -8,6 +8,7 @@ openPMD-specific fields
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 # Copyright (c) 2015, Daniel Grassinger (HZDR)
+# Copyright (c) 2016, Fabian Koller (HZDR)
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -19,7 +20,9 @@ from yt.funcs import mylog
 from yt.utilities.physical_constants import speed_of_light
 from yt.fields.field_info_container import \
     FieldInfoContainer
-from .misc import parse_unitDimension
+from yt.fields.magnetic_field import \
+    setup_magnetic_field_aliases
+from .misc import parse_unit_dimension
 import yt
 
 
@@ -55,7 +58,7 @@ def setup_velocity(self, ptype):
 
         return velocity
 
-    for ax in 'xyz':
+    for ax in "xyz":
         self.add_field((ptype, "particle_velocity_%s" % ax),
                        function=_get_vel(ax),
                        units="m/s",
@@ -65,25 +68,18 @@ def setup_velocity(self, ptype):
 def setup_poynting_vector(self):
     def _get_poyn(axis):
         def poynting(field, data):
-            Efieldx = data["E_x"]
-            Efieldy = data["E_y"]
-            Efieldz = data["E_z"]
-            Bfieldx = data["magnetic_field_x"]
-            Bfieldy = data["magnetic_field_y"]
-            Bfieldz = data["magnetic_field_z"]
-
             u = 79577.4715459  # = 1/magnetic permeability
 
-            if(axis == 'x'):
-                return u * (Efieldy * Bfieldz - Efieldz * Bfieldy)
-            elif(axis == 'y'):
-                return u * (Efieldz * Bfieldx - Efieldx * Bfieldz)
-            elif(axis == 'z'):
-                return u * (Efieldx * Bfieldy - Efieldy * Bfieldx)
+            if axis in "x":
+                return u * (data["E_y"] * data["magnetic_field_z"] - data["E_z"] * data["magnetic_field_y"])
+            elif axis in "y":
+                return u * (data["E_z"] * data["magnetic_field_x"] - data["E_x"] * data["magnetic_field_z"])
+            elif axis in "z":
+                return u * (data["E_x"] * data["magnetic_field_y"] - data["E_y"] * data["magnetic_field_x"])
 
         return poynting
 
-    for ax in 'xyz':
+    for ax in "xyz":
         self.add_field(("openPMD", "poynting_vector_%s" % ax),
                        function=_get_poyn(ax),
                        units="T*V/m")
@@ -98,7 +94,7 @@ def setup_absolute_positions(self, ptype):
 
         return ap
 
-    for ax in 'xyz':
+    for ax in "xyz":
         self.add_field((ptype, "particle_position_%s" % ax),
                        function=_abs_pos(ax),
                        units="m",
@@ -136,7 +132,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                 if ds._nonstandard:
                     parsed = ""
                 else:
-                    parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+                    parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype="int"))
                 unit = str(yt.YTQuantity(1, parsed).units)
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
@@ -147,7 +143,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                 self.known_other_fields += ((ytname, (unit, aliases, None)), )
             else:
                 if ds._nonstandard:
-                    axes = "xyz"  # I naively assume all fields in pre-oPMD files are 3D
+                    axes = "xyz"  # naively assume all fields in non-standard files are 3D
                 else:
                     axes = field.attrs["axisLabels"]
                 for axis in axes:
@@ -155,7 +151,7 @@ class openPMDFieldInfo(FieldInfoContainer):
                     if ds._nonstandard:
                         parsed = ""
                     else:
-                        parsed = parse_unitDimension(np.asarray(field.attrs["unitDimension"], dtype='int'))
+                        parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype="int"))
                     unit = str(yt.YTQuantity(1, parsed).units)
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
@@ -181,8 +177,8 @@ class openPMDFieldInfo(FieldInfoContainer):
                         else:
                             parsed = ""
                     else:
-                        parsed = parse_unitDimension(
-                            np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype='int'))
+                        parsed = parse_unit_dimension(
+                            np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype="int"))
                     unit = str(yt.YTQuantity(1, parsed).units)
                     name = ["particle", attrib]
                     ytattrib = attrib
@@ -203,27 +199,22 @@ class openPMDFieldInfo(FieldInfoContainer):
             mylog.debug("oPMD - fields - known_particle_fields - {}".format(i))
         super(openPMDFieldInfo, self).__init__(ds, field_list)
 
-
     def setup_fluid_fields(self):
         """
         Here you can create functions to calculate out of existing fields the
         values of new fields e.g. calculate out of E-field and B-field the
         Poynting vector
         """
-        if len(self._mag_fields) > 0:
-            from yt.fields.magnetic_field import \
-                setup_magnetic_field_aliases
-            setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
         # Set up aliases first so the setup for poynting can use them
-        setup_poynting_vector(self)
+        if len(self._mag_fields) > 0:
+            setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
+            setup_poynting_vector(self)
 
     def setup_particle_fields(self, ptype):
         """
         This will get called for every particle type.
-
-        TODO You have to call the function of the parent class to load particles
         """
         setup_absolute_positions(self, ptype)
-        #setup_kinetic_energy(self, ptype)
-        #setup_velocity(self, ptype)
+        setup_kinetic_energy(self, ptype)
+        setup_velocity(self, ptype)
         super(openPMDFieldInfo, self).setup_particle_fields(ptype)

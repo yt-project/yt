@@ -7,6 +7,7 @@ openPMD data structures
 #-----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 # Copyright (c) 2015, Daniel Grassinger (HZDR)
+# Copyright (c) 2016, Fabian Koller (HZDR)
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -136,7 +137,6 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             From yt doc:
             self.field_list must be populated as a list of strings corresponding to "native" fields in the data files.
         """
-        # TODO This only parses one file
         f = self.dataset._handle
         bp = self.basePath
         if self.dataset._nonstandard:
@@ -403,12 +403,12 @@ class openPMDDataset(Dataset, openPMDBasePath):
                 unitSI = f[bp].attrs['unit_length']
             else:
                 spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-                np.append(spacing, np.ones(3 - len(spacing)))
                 unitSI = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
-            self.domain_right_edge = self.domain_dimensions * unitSI * spacing
-        except:
-            mylog.warning("The domain extent could not be calculated! Setting the field extent to 1m**3! "
-                          "This WILL break particle-overplotting!")
+            self.domain_right_edge = self.domain_dimensions[:spacing.size] * unitSI * spacing
+            self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
+        except Exception as e:
+            mylog.warning("The domain extent could not be calculated! ({}) Setting the field extent to 1m**3! "
+                          "This WILL break particle-overplotting!".format(e))
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         if self._nonstandard:
