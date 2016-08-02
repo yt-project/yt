@@ -51,7 +51,7 @@ class Clump(object):
     children = None
     def __init__(self, data, field, parent=None,
                  clump_info=None, validators=None,
-                 base=None):
+                 base=None, contour_key=None):
         self.data = data
         self.field = field
         self.parent = parent
@@ -66,6 +66,7 @@ class Clump(object):
         self.base = base
         self.clump_id = self.base.total_clumps
         self.base.total_clumps += 1
+        self.contour_key = contour_key
 
         if parent is not None:
             self.data.parent = self.parent.data
@@ -174,7 +175,8 @@ class Clump(object):
             self.children.append(Clump(new_clump, self.field, parent=self,
                                        clump_info=self.clump_info,
                                        validators=self.validators,
-                                       base=self.base))
+                                       base=self.base,
+                                       contour_key=contour_key))
 
     def pass_down(self,operation):
         """
