@@ -216,7 +216,7 @@ upload_notebook
 
 This command will accept the filename of a ``.ipynb`` file (generated from an
 IPython notebook session) and upload it to the `yt hub
-<https://hub.yt/>`_ where others will be able to view it, and
+<https://hub.yt/>`__ where others will be able to view it, and
 download it.  This is an easy method for recording a sequence of commands,
 their output, narrative information, and then sharing that with others.  These
 notebooks will be viewable online, and the appropriate URLs will be returned on
@@ -227,14 +227,14 @@ hub_register
 ++++++++++++
 
 This commands starts an interactive process of creating an account on the `yt
-hub <https://hub.yt/>`_. Please note that the yt Hub also supports multiple OAuth
+hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
 providers such as Google, Bitbucket and GitHub for authentication. 
 See :ref:`sharing-data` for more information.
 
 hubstart
 ++++++++
 
-This command launches the Jupyter Notebook on the `yt hub <https://hub.yt>`_
+This command launches the Jupyter Notebook on the `yt hub <https://hub.yt>`__
 with a direct access to all the `example yt datasets
 <https://yt-project.org/data>`_. The appropriate URL allowing to access the
 Notebook will be return on the commandline.

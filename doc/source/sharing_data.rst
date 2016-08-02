@@ -1,8 +1,12 @@
-
 .. _sharing-data:
 
 The yt Hub
 ==========
+
+.. contents::
+   :depth: 2
+   :local:
+   :backlinks: none
 
 What is the yt Hub?
 -------------------
@@ -73,7 +77,7 @@ directly via the web interface. Please refer to ``girder-cli`` `documentation pa
 information.
 
 Uploading Notebooks
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 Notebooks can be uploaded from the bash command line:
 
