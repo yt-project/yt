@@ -51,7 +51,8 @@ class Clump(object):
     children = None
     def __init__(self, data, field, parent=None,
                  clump_info=None, validators=None,
-                 base=None, contour_key=None):
+                 base=None, contour_key=None,
+                 contour_id=None):
         self.data = data
         self.field = field
         self.parent = parent
@@ -67,6 +68,7 @@ class Clump(object):
         self.clump_id = self.base.total_clumps
         self.base.total_clumps += 1
         self.contour_key = contour_key
+        self.contour_id = contour_id
 
         if parent is not None:
             self.data.parent = self.parent.data
