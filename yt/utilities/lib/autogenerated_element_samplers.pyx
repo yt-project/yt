@@ -7,7 +7,7 @@ cimport cython
  
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
+@cython.cdivision(True) 
 cdef void Q1Function2D(double* fx,
                        double* x,
                        double* vertices,
@@ -18,7 +18,7 @@ cdef void Q1Function2D(double* fx,
  
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
+@cython.cdivision(True) 
 cdef void Q1Jacobian2D(double* A,
                        double* x,
                        double* vertices,
@@ -31,7 +31,7 @@ cdef void Q1Jacobian2D(double* A,
  
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
+@cython.cdivision(True) 
 cdef void W1Function3D(double* fx,
                        double* x,
                        double* vertices,
@@ -43,7 +43,7 @@ cdef void W1Function3D(double* fx,
  
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
+@cython.cdivision(True) 
 cdef void W1Jacobian3D(double* rcol,
                        double* scol,
                        double* tcol,
@@ -63,7 +63,7 @@ cdef void W1Jacobian3D(double* rcol,
  
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
+@cython.cdivision(True) 
 cdef void Q1Function3D(double* fx,
                        double* x,
                        double* vertices,
@@ -75,7 +75,7 @@ cdef void Q1Function3D(double* fx,
  
 @cython.boundscheck(False)
 @cython.wraparound(False)
-@cython.cdivision(True)
+@cython.cdivision(True) 
 cdef void Q1Jacobian3D(double* rcol,
                        double* scol,
                        double* tcol,
