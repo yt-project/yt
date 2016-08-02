@@ -189,7 +189,7 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
-        self._rh = right_handed
+        self._right_handed = right_handed
         self.buff_size = buff_size
         self.antialias = antialias
 
@@ -804,7 +804,6 @@ class PWViewerMPL(PlotWindow):
                 color_tuple = to_rgba(self._splat_color)
                 ia[locs] = color_tuple
                 ia = ImageArray(ia)
-                print("hello world")
             else:
                 ia = image
             if not self._rh:
