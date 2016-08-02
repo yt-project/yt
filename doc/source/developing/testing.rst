@@ -290,7 +290,7 @@ directory with the test data you want to test with, e.g.:
 
 .. code-block:: none
 
-   $ yt-config set yt test_data_dir /Users/tomservo/src/yt-data
+   $ yt config set yt test_data_dir /Users/tomservo/src/yt-data
 
 More data will be added over time.  To run the answer tests, you must first
 generate a set of test answers locally on a "known good" revision, then update

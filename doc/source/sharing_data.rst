@@ -39,7 +39,7 @@ corner. After you have gotten your API key, update your config file:
 
 .. code-block:: none
 
-   $ yt-config set yt hub_api_key 3fd8de56c2884c13a2de4dd51a80974b
+   $ yt config set yt hub_api_key 3fd8de56c2884c13a2de4dd51a80974b
 
 Replace ``3fd8de56c2884c13a2de4dd51a80974b`` with your API key.
 

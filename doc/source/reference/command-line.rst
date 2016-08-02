@@ -291,13 +291,13 @@ request directly to the `imgur.com <http://imgur.com/>`_.
 Config helper
 ~~~~~~~~~~~~~
 
-The :code:`yt-config` command-line tool allows you to modify and access the yt's
+The :code:`yt config` command-line tool allows you to modify and access the yt's
 configuration without manually locating and opening the config file in an editor.
 To get a quick list of available commands, just type:
 
 .. code-block:: bash
 
-   yt-config -h
+   yt config -h
 
 This will print the list of available subcommands:
 
@@ -318,7 +318,7 @@ the old config, you are encouraged to run:
 
 .. code-block:: bash
 
-   yt-config migrate
+   yt config migrate
 
 that will copy your current config file to the new location and store a backup
 copy as ``$HOME/.yt/config.bak``.
@@ -330,7 +330,7 @@ Listing current content of the config file:
 
 .. code-block:: bash
 
-   $ yt-config list
+   $ yt config list
    [yt]
    loglevel = 50
 
@@ -338,17 +338,17 @@ Obtaining a single config value by name:
 
 .. code-block:: bash
 
-   $ yt-config get yt loglevel
+   $ yt config get yt loglevel
    50
 
 Changing a single config value:
 
 .. code-block:: bash
 
-   $ yt-config set yt loglevel 10
+   $ yt config set yt loglevel 10
 
 Removing a single config entry:
 
 .. code-block:: bash
 
-   $ yt-config rm yt loglevel
+   $ yt config rm yt loglevel

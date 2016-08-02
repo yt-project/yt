@@ -32,15 +32,15 @@ like:
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
 datasets tracked between instantiations of yt. The configuration file can be
-managed using the ``yt-config`` helper. It can list, add, modify and remove
+managed using the ``yt config`` helper. It can list, add, modify and remove
 options from the configuration file, e.g.:
 
 .. code-block:: none
 
-   $ yt-config -h
-   $ yt-config list
-   $ yt-config set yt loglevel 1
-   $ yt-config rm yt maximumstoreddatasets
+   $ yt config -h
+   $ yt config list
+   $ yt config set yt loglevel 1
+   $ yt config rm yt maximumstoreddatasets
 
 
 Configuration Options At Runtime
