@@ -27,21 +27,48 @@ data objects, to be displayed as phase plots and profiles.
 .. note:: Working with the Hub requires additional dependencies to be installed.
           You can obtain them by running: ``pip install yt[hub]``. 
 
-Obtaining API key
------------------
+.. _hub-APIkey:
+
+Obtaining an API key
+--------------------
 
 In order to interact with the yt Hub, you need to obtain API key, which is
 available only for authenticated users. You can `log into
 <https://girder.hub.yt/#?dialog=login>`_ the Hub using your Google, GitHub or
-Bitbucket account. After you log in, API key can be generated in your account
-settings view, which can be accessed through dropdown menu in the upper right
-corner. After you have gotten your API key, update your config file:
+Bitbucket account. After you log in, an API key can be generated under the *My
+account* page, which can be accessed through dropdown menu in the upper right
+corner. 
+
+.. image:: _static/apiKey01.jpg
+   :width: 50 %
+
+Select the *API keys* tab and press *Create new key* button:
+
+.. image:: _static/apiKey02.jpg
+   :width: 50 %
+
+By convention, the *Name* field of API keys can be used to specify what
+application is making use of the key in a human-readable way e.g. ``yt
+command``, although you may name your key however you want.
+
+.. image:: _static/apiKey03.jpg
+   :width: 50 %
+
+After the API Key is created you can obtain it by clicking *show* link:
+
+.. image:: _static/apiKey04.jpg
+   :width: 50 %
+
+For more information about API keys please see `this document
+<http://girder.readthedocs.io/en/latest/user-guide.html?highlight=API%20keys#api-keys>`__.
+
+After you have gotten your API key, update your config file:
 
 .. code-block:: none
 
-   $ yt config set yt hub_api_key 3fd8de56c2884c13a2de4dd51a80974b
+   $ yt config set yt hub_api_key 3fd1de56c2114c13a2de4dd51g10974b
 
-Replace ``3fd8de56c2884c13a2de4dd51a80974b`` with your API key.
+Replace ``3fd1de56c2114c13a2de4dd51g10974b`` with your API key.
 
 Registering a User
 ^^^^^^^^^^^^^^^^^^

@@ -42,7 +42,7 @@ def migrate_config():
     CONFIG.read(_OLD_CONFIG_FILE)
     print("Writing a new config file to: {}".format(CURRENT_CONFIG_FILE))
     write_config()
-    print("Backing up the old config file: {}".format(_OLD_CONFIG_FILE))
+    print("Backing up the old config file: {}.bak".format(_OLD_CONFIG_FILE))
     os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + '.bak')
 
 

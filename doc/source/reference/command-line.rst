@@ -258,7 +258,7 @@ register
 This subcommand starts an interactive process of creating an account on the `yt
 hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
 providers such as Google, Bitbucket and GitHub for authentication. 
-See :ref:`sharing-data` for more information.
+See :ref:`hub-APIkey` for more information.
 
 start
 +++++
