@@ -136,15 +136,22 @@ def _get_girder_client():
     return gc
 
 
+_subparsers = {None: subparsers}
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if cls.name is not None:
             names = ensure_list(cls.name)
+            if cls.subparser not in _subparsers:
+                parent_parser = argparse.ArgumentParser(add_help=False)    
+                p = subparsers.add_parser(cls.subparser,
+                            help = cls.subparser, parents=[parent_parser])
+                _subparsers[cls.subparser] = p.add_subparsers(title=cls.subparser,
+                        dest=cls.subparser)
+            sp = _subparsers[cls.subparser]
             for name in names:
-                sc = subparsers.add_parser(name,
-                    description = cls.description,
-                    help = cls.description)
+                sc = sp.add_parser(name, description = cls.description, 
+                                   help = cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
                     _add_arg(sc, arg)
@@ -156,6 +163,7 @@ class YTCommand(object):
     description = ""
     aliases = ()
     ndatasets = 1
+    subparser = None
 
     @classmethod
     def run(cls, args):
