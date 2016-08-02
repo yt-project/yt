@@ -533,8 +533,11 @@ by the user at initialization:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    #slicing with non right-handed coordinates
    slc = yt.SlicePlot(ds, 'x', 'density', right_handed=False)
+   slc.annotate_title('Not Right Handed')
+   slc.save()
    #switching to right-handed coordinates
    slc.toggle_right_handed()
+   slc.annotate_title('Right Handed')
    slc.save()
 
 .. _hiding-colorbar-and-axes:
