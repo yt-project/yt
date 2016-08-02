@@ -626,7 +626,7 @@ class PlotWindow(ImagePlotContainer):
 
     @invalidate_plot
     def toggle_right_handed(self):
-        self._rh = not self._rh
+        self._right_handed = not self._right_handed
 
 
 class PWViewerMPL(PlotWindow):
