@@ -3,7 +3,7 @@ This file contains code for automatically generating the functions and jacobians
 used when sampling inside the supported finite element mesh types. The supported
 mesh types are defined in yt/utilities/mesh_types.yaml.
 
-Usage (from the yt/utilities directory:
+Usage (from the yt/utilities directory):
 
 python mesh_code_generation.py 
 
