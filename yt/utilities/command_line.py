@@ -137,21 +137,29 @@ def _get_girder_client():
 
 
 _subparsers = {None: subparsers}
+_subparsers_description = {
+    'config': 'Get and set configuration values for yt'
+}
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if cls.name is not None:
             names = ensure_list(cls.name)
             if cls.subparser not in _subparsers:
-                parent_parser = argparse.ArgumentParser(add_help=False)    
-                p = subparsers.add_parser(cls.subparser,
-                            help = cls.subparser, parents=[parent_parser])
-                _subparsers[cls.subparser] = p.add_subparsers(title=cls.subparser,
-                        dest=cls.subparser)
+                try:
+                    description = _subparsers_description[cls.subparser]
+                except KeyError:
+                    description = cls.subparser
+                parent_parser = argparse.ArgumentParser(add_help=False)
+                p = subparsers.add_parser(cls.subparser, help=description,
+                                          description=description,
+                                          parents=[parent_parser])
+                _subparsers[cls.subparser] = p.add_subparsers(
+                    title=cls.subparser, dest=cls.subparser)
             sp = _subparsers[cls.subparser]
             for name in names:
-                sc = sp.add_parser(name, description = cls.description, 
-                                   help = cls.description)
+                sc = sp.add_parser(name, description=cls.description, 
+                                   help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
                     _add_arg(sc, arg)
@@ -1184,6 +1192,61 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+
+
+class YTConfigGetCmd(YTCommand):
+    subparser = 'config'
+    name = 'get'
+    description = 'get a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to retrieve.'))
+    def __call__(self, args):
+        from yt.utilities.configure import get_config
+        print(get_config(args.section, args.option))
+
+
+class YTConfigSetCmd(YTCommand):
+    subparser = 'config'
+    name = 'set'
+    description = 'set a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to set.'),
+            dict(short='value', help='The value to set the option to.'))
+    def __call__(self, args):
+        from yt.utilities.configure import set_config
+        set_config(args.section, args.option, args.value)
+
+
+class YTConfigRemoveCmd(YTCommand):
+    subparser = 'config'
+    name = 'rm'
+    description = 'remove a config option'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to remove.'))
+    def __call__(self, args):
+        from yt.utilities.configure import rm_config
+        rm_config(args.section, args.option)
+
+
+class YTConfigListCmd(YTCommand):
+    subparser = 'config'
+    name = 'list'
+    description = 'show the config content'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import write_config
+        write_config(sys.stdout)
+
+
+class YTConfigMigrateCmd(YTCommand):
+    subparser = 'config'
+    name = 'migrate'
+    description = 'migrate old config file'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import migrate_config
+        migrate_config()
+
 
 class YTSearchCmd(YTCommand):
     args = (dict(short="-o", longname="--output",

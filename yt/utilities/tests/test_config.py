@@ -12,7 +12,7 @@ import mock
 import os
 import sys
 import unittest
-import yt.utilities.configure
+import yt.utilities.command_line
 import yt.config
 from yt.config import \
     CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE
@@ -59,14 +59,14 @@ def tearDownModule():
 
 class TestYTConfig(unittest.TestCase):
     def _runYTConfig(self, args):
-        args = ['yt-config'] + args
+        args = ['yt', 'config'] + args
         retcode = 0
 
         with mock.patch.object(sys, 'argv', args),\
                 mock.patch('sys.exit', side_effect=SysExitException) as exit,\
                 captureOutput() as output:
             try:
-                yt.utilities.configure.main()
+                yt.utilities.command_line.run_main()
             except SysExitException:
                 args = exit.mock_calls[0][1]
                 retcode = args[0] if len(args) else 0

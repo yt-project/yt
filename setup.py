@@ -369,7 +369,6 @@ setup(
     'amr adaptivemeshrefinement',
     entry_points={'console_scripts': [
         'yt = yt.utilities.command_line:run_main',
-        'yt-config = yt.utilities.configure:main',
     ],
         'nose.plugins.0.10': [
             'answer-testing = yt.utilities.answer_testing.framework:AnswerTesting'
