@@ -54,34 +54,7 @@ available, just type:
 
 This will print the list of available subcommands,
 
-.. code-block:: bash
-
-    help                Print help message
-    bugreport           Report a bug in yt
-    hub_register        Register a user on the yt Hub: https://hub.yt/
-    instinfo            Get some information about the yt installation
-    version             Get some information about the yt installation (this
-                        is an alias for instinfo).
-    load                Load a single dataset into an IPython instance
-    mapserver           Serve a plot in a GMaps-style interface
-    pastebin            Post a script to an anonymous pastebin
-    pastebin_grab       Print an online pastebin to STDOUT for local use.
-    hubstart            Start the Jupyter Notebook on the yt Hub. 
-    upload_notebook     Upload an IPython Notebook to the yt Hub.
-    plot                Create a set of images
-    rpdb                Connect to a currently running (on localhost) rpd
-                        session. Commands run with --rpdb will trigger an rpdb
-                        session with any uncaught exceptions.
-    notebook            Start the Jupyter Notebook locally.
-    stats               Print stats and max/min value of a given field (if
-                        requested), for one or more datasets (default field is
-                        Density)
-    update              Update the yt installation to the most recent version
-    delete_image        Delete image from imgur.com.
-    upload_image        Upload an image to imgur.com. Must be PNG.
-    search              Attempt to find outputs that yt can recognize in
-                        directories.
-
+.. config_help:: yt
 
 To execute any such function, simply run:
 
@@ -277,10 +250,12 @@ Hub helper
 The :code:`yt hub` command-line tool allows to interact with the `yt hub
 <https://hub.yt>`__. Following subcommands are currently available:
 
+.. config_help:: yt hub
+
 register
 ++++++++
 
-This subcommands starts an interactive process of creating an account on the `yt
+This subcommand starts an interactive process of creating an account on the `yt
 hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
 providers such as Google, Bitbucket and GitHub for authentication. 
 See :ref:`sharing-data` for more information.
@@ -315,13 +290,7 @@ To get a quick list of available commands, just type:
 
 This will print the list of available subcommands:
 
-.. code-block:: bash
-
-	get                 get a config value
-	set                 set a config value
-	rm                  remove a config option
-	migrate             migrate old config file
-	list                show all config values
+.. config_help:: yt config
 
 Since the yt version 3.3.2, the previous location of the configuration file
 (``$HOME/.yt/config``) has been deprecated in favor of a location adhering to the
