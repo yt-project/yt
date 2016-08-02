@@ -51,7 +51,7 @@ using ``yt`` command. To register a user:
 
 .. code-block:: bash
 
-   $ yt hub_register
+   $ yt hub register
 
 This will walk you through the process of registering. You will need to supply
 a name, a username, a password and an email address. Apart from creating a new

@@ -222,23 +222,6 @@ their output, narrative information, and then sharing that with others.  These
 notebooks will be viewable online, and the appropriate URLs will be returned on
 the command line.
 
-
-hub_register
-++++++++++++
-
-This commands starts an interactive process of creating an account on the `yt
-hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
-providers such as Google, Bitbucket and GitHub for authentication. 
-See :ref:`sharing-data` for more information.
-
-hubstart
-++++++++
-
-This command launches the Jupyter Notebook on the `yt hub <https://hub.yt>`__
-with a direct access to all the `example yt datasets
-<https://yt-project.org/data>`_. The appropriate URL allowing to access the
-Notebook will be return on the commandline.
-
 rpdb
 ++++
 
@@ -287,6 +270,37 @@ delete_image
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
 request directly to the `imgur.com <http://imgur.com/>`_.
+
+Hub helper
+~~~~~~~~~~
+
+The :code:`yt hub` command-line tool allows to interact with the `yt hub
+<https://hub.yt>`__. Following subcommands are currently available:
+
+register
+++++++++
+
+This subcommands starts an interactive process of creating an account on the `yt
+hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
+providers such as Google, Bitbucket and GitHub for authentication. 
+See :ref:`sharing-data` for more information.
+
+start
++++++
+
+This subcommand launches the Jupyter Notebook on the `yt Hub <https://hub.yt>`__
+with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
+If no path is given all the `example yt datasets
+<https://yt-project.org/data>`_ are mounted by default. The appropriate URL
+allowing to access the Notebook will be return on the commandline. 
+
+Example:
+
+.. code-block:: bash
+
+   $ yt hub start
+   $ yt hub start /user/xarthisius/Public
+
 
 Config helper
 ~~~~~~~~~~~~~

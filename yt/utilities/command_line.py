@@ -138,7 +138,8 @@ def _get_girder_client():
 
 _subparsers = {None: subparsers}
 _subparsers_description = {
-    'config': 'Get and set configuration values for yt'
+    'config': 'Get and set configuration values for yt',
+    'hub': 'Interact with the yt Hub'
 }
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
@@ -591,7 +592,8 @@ class YTBugreportCmd(YTCommand):
 
 
 class YTHubRegisterCmd(YTCommand):
-    name = "hub_register"
+    subparser = "hub"
+    name = "register"
     description = \
         """
         Register a user on the yt Hub: http://hub.yt/
@@ -848,24 +850,29 @@ class YTPastebinGrabCmd(YTCommand):
         lo.main( None, download=args.number )
 
 class YTHubStartNotebook(YTCommand):
-    args = ()
+    args = (
+        dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
+             nargs="?", 
+             help="(Optional) Hub folder to mount inside the Notebook"),
+    )
     description = \
         """
         Start the Jupyter Notebook on the yt Hub.
         """
-    name = "hubstart"
+    subparser = "hub"
+    name = "start"
     def __call__(self, args):
         gc = _get_girder_client()
 
         # TODO: should happen server-side
-        _id = gc._checkResourcePath(ytcfg.get("yt", "hub_sandbox"))
+        _id = gc._checkResourcePath(args.folderId)
 
         resp = gc.post("/notebook/{}".format(_id))
         try:
             print("Launched! Please visit this URL:")
             print("    https://tmpnb.hub.yt" + resp['url'])
             print()
-        except KeyError:
+        except (KeyError, TypeError):
             print("Something went wrong. The yt Hub responded with : ")
             print(resp)
 
