@@ -93,7 +93,8 @@ from yt.funcs import \
     parallel_profile, \
     enable_plugins, \
     memory_checker, \
-    deprecated_class
+    deprecated_class, \
+    toggle_interactivity
 from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
