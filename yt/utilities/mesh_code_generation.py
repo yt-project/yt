@@ -66,7 +66,9 @@ jac_def_template_2D = '''@cython.boundscheck(False)
 @cython.cdivision(True) \n''' + jac_signature_2D + ': \n'
 
 file_header = "# This file contains auto-generated functions for sampling \n" + \
-              "# inside finite element solutions for various mesh types."
+              "# inside finite element solutions for various mesh types. \n" + \
+              "# To see how the code generation works in detail, see \n" + \
+              "# yt/utilities/mesh_code_generation.py. \n"
 
 
 class MeshCodeGenerator:
@@ -125,7 +127,8 @@ class MeshCodeGenerator:
 
         elif (self.num_dim == 2):
             self.jacobian_header = jac_def_template_2D % self.jacobian_name
-            self.jacobian_declaration = jac_dec_template_2D % self.jacobian_name            
+            self.jacobian_declaration = jac_dec_template_2D % self.jacobian_name
+
     def get_interpolator_definition(self):
         '''
 
