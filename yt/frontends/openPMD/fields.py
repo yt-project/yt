@@ -28,15 +28,12 @@ import yt
 
 def setup_kinetic_energy(self, ptype):
     def _kin_en(field, data):
-        # Calculation seems to be wrong:
-        # YTFieldUnitError
-        # The field function associated with the field '('io', 'particle_kinetic_energy')'
-        # returned data with units 'cm*kg**2*m**2/s**3' but was defined with units 'kg*m**2/s**2'.
-        return (
-                   data[ptype, "particle_momentum_x"]**2 +
-                   data[ptype, "particle_momentum_y"]**2 +
-                   data[ptype, "particle_momentum_z"]**2
-               ) * speed_of_light
+        c = yt.YTQuantity(speed_of_light, "m/s")
+        p2 = (data[ptype, "particle_momentum_x"]**2 +
+              data[ptype, "particle_momentum_y"]**2 +
+              data[ptype, "particle_momentum_z"]**2)
+        mass = data[ptype, "particle_mass"] * data[ptype, "particle_weighting"]
+        return c * np.sqrt(p2 + mass**2 * c**2) - mass * c**2
 
     self.add_field((ptype, "particle_kinetic_energy"),
                    function=_kin_en,
@@ -69,7 +66,6 @@ def setup_poynting_vector(self):
     def _get_poyn(axis):
         def poynting(field, data):
             u = 79577.4715459  # = 1/magnetic permeability
-
             if axis in "x":
                 return u * (data["E_y"] * data["magnetic_field_z"] - data["E_z"] * data["magnetic_field_y"])
             elif axis in "y":
@@ -101,7 +97,7 @@ def setup_absolute_positions(self, ptype):
                        particle_type=True)
 
 
-class openPMDFieldInfo(FieldInfoContainer):
+class OpenPMDFieldInfo(FieldInfoContainer):
     """
     We need to specify which fields we might have in our dataset.  The field info
     container subclass here will define which fields it knows about.  There are
@@ -116,14 +112,11 @@ class openPMDFieldInfo(FieldInfoContainer):
 
     def __init__(self, ds, field_list):
         f = ds._handle
-        bp = ds.basePath
-        if ds._nonstandard:
-            mp = "fields/"
-            pp = "particles/"
-        else:
-            mp = f.attrs["meshesPath"]
-            pp = f.attrs["particlesPath"]
+        bp = ds.base_path
+        mp = ds.meshes_path
+        pp = ds.particles_path
         fields = f[bp + mp]
+
         for fname in fields.keys():
             field = fields.get(fname)
             if "dataset" in str(field).split(" ")[1]:
@@ -197,7 +190,7 @@ class openPMDFieldInfo(FieldInfoContainer):
         self.known_particle_fields = particle_fields
         for i in self.known_particle_fields:
             mylog.debug("oPMD - fields - known_particle_fields - {}".format(i))
-        super(openPMDFieldInfo, self).__init__(ds, field_list)
+        super(OpenPMDFieldInfo, self).__init__(ds, field_list)
 
     def setup_fluid_fields(self):
         """
@@ -217,4 +210,4 @@ class openPMDFieldInfo(FieldInfoContainer):
         setup_absolute_positions(self, ptype)
         setup_kinetic_energy(self, ptype)
         setup_velocity(self, ptype)
-        super(openPMDFieldInfo, self).setup_particle_fields(ptype)
+        super(OpenPMDFieldInfo, self).setup_particle_fields(ptype)

@@ -20,7 +20,7 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from .fields import openPMDFieldInfo
+from .fields import OpenPMDFieldInfo
 
 from yt.utilities.file_handler import \
     HDF5FileHandler
@@ -33,95 +33,52 @@ import re
 from math import ceil, floor
 from yt.utilities.logger import ytLogger as mylog
 
+
 def is_const_component(record_component):
     return "value" in record_component.attrs.keys()
 
-class openPMDBasePath:
-    def _setNonStandardBasePath(self, handle):
-        iteration = handle["/data"].keys()[0]
-        self.basePath = "/data/{}/".format(iteration)
 
-    def _setBasePath(self, handle, filepath):
-        """
-        Set the base path for the first iteration found in the file.
-        TODO implement into distinct methods:
-            - __init__(self, handle)
-            - getIterations(self)
-            - getBasePath(self, iteration)
-        """
-        # find iterations in basePath
-        list_iterations = []
-        if u"groupBased" in handle.attrs["iterationEncoding"]:
-            for i in list(handle["/data"].keys()):
-                list_iterations.append(i)
-            mylog.info("openPMD: found {} iterations in file".format(len(list_iterations)))
-        elif u"fileBased" in handle.attrs["iterationEncoding"]:
-            regex = u"^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + u"$"
-            if filepath is '':
-                mylog.warning("openPMD: For file based iterations, please use absolute file paths!")
-                pass
-            for filename in os.listdir(filepath):
-                if re.match(regex, filename):
-                    list_iterations.append(filename)
-            mylog.info("openPMD: found {} iterations in directory".format(len(list_iterations)))
-        else:
-            mylog.warning(
-                "openOMD: File does not have valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
-
-        if len(list_iterations) == 0:
-            mylog.warning("openOMD: No iterations found!")
-
-        # just handle the first iteration found
-        if u"groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
-            mylog.warning("openPMD: only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
-        self.basePath = "{}/{}/".format("/data", handle["/data"].keys()[0])
-
-
-class openPMDGrid(AMRGridPatch):
+class OpenPMDGrid(AMRGridPatch):
     """
         This class defines the characteristics of the grids
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
-    part_ind = {}
-    off_part = {}
+    particle_index = {}
+    particle_offset = {}
     # TODO (maybe) consider these for every ftype
-    mesh_ind = 0
-    off_mesh = 0
+    mesh_index = 0
+    mesh_offset = 0
 
-    def __init__(self, id, index, level=-1, pi=None, op=None, mi=0, om=0):
+    def __init__(self, id, index, level=-1, pi=None, po=None, mi=0, mo=0):
         AMRGridPatch.__init__(self, id, filename=index.index_filename,
                               index=index)
         if pi:
-            self.part_ind = pi
-        if op:
-            self.off_part = op
-        self.mesh_ind = mi
-        self.off_mesh = om
+            self.particle_index = pi
+        if po:
+            self.particle_offset = po
+        self.mesh_index = mi
+        self.mesh_offset = mo
         self.Parent = None
         self.Children = []
         self.Level = level
 
     def __repr__(self):
-        return "openPMDGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return "OpenPMDGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 
-class openPMDHierarchy(GridIndex, openPMDBasePath):
+class OpenPMDHierarchy(GridIndex):
     """
     Defines which fields and particles are created and read from the hard disk
     Furthermore it defines the characteristics of the grids
     """
-    grid = openPMDGrid
+    grid = OpenPMDGrid
 
     def __init__(self, ds, dataset_type='openPMD'):
         self.dataset_type = dataset_type
         self.dataset = ds
         self.index_filename = ds.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        if self.dataset._nonstandard:
-            self._setNonStandardBasePath(self.dataset._handle)
-        else:
-            self._setBasePath(self.dataset._handle, self.directory)
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
@@ -138,43 +95,39 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             self.field_list must be populated as a list of strings corresponding to "native" fields in the data files.
         """
         f = self.dataset._handle
-        bp = self.basePath
-        if self.dataset._nonstandard:
-            mp = "fields/"
-            pp = "particles/"
-        else:
-            mp = f.attrs["meshesPath"]
-            pp = f.attrs["particlesPath"]
+        bp = self.dataset.base_path
+        mp = self.dataset.meshes_path
+        pp = self.dataset.particles_path
         output_fields = []
 
-        for group in f[bp + mp].keys():
+        for field in f[bp + mp].keys():
             try:
-                for direction in f[bp + mp + group].keys():
-                    output_fields.append(group + "_" + direction)
+                for axis in f[bp + mp + field].keys():
+                    output_fields.append(field + "_" + axis)
             except:
                 # This is for dataSets, they do not have keys
-                output_fields.append(group.replace("_","-"))
+                output_fields.append(field.replace("_","-"))
         self.field_list = [("openPMD", str(c)) for c in output_fields]
 
         particle_fields = []
         if bp + pp in f:
-            for particleName in f[bp + pp].keys():
-                for record in f[bp + pp + particleName].keys():
-                    if is_const_component(f[bp + pp + particleName + "/" + record]):
+            for species in f[bp + pp].keys():
+                for record in f[bp + pp + species].keys():
+                    if is_const_component(f[bp + pp + species + "/" + record]):
                         # Record itself (e.g. particle_mass) is constant
-                        particle_fields.append(particleName + "_" + record)
+                        particle_fields.append(species + "_" + record)
                     elif 'particlePatches' not in record:
                         try:
                             # Create a field for every axis (x,y,z) of every property (position)
                             # of every species (electrons)
-                            keys = f[bp + pp + particleName + "/" + record].keys()
+                            keys = f[bp + pp + species + "/" + record].keys()
                             if record in "position":
                                 record = "positionCoarse"
                             for axis in keys:
-                                particle_fields.append(particleName + "_" + record + "_" + axis)
+                                particle_fields.append(species + "_" + record + "_" + axis)
                         except:
                             # Record is a dataset, does not have axes (e.g. weighting)
-                            particle_fields.append(particleName + "_" + record)
+                            particle_fields.append(species + "_" + record)
                             pass
                     else:
                         # We probably do not want particlePatches as accessible field lists
@@ -195,28 +148,24 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             From yt doc:
             this must set self.num_grids to be the total number of grids (equiv AMRGridPatch'es) in the simulation
         """
-        # TODO For the moment we only create grids if there are particles present
         # TODO Calculate the ppg not solely on particle count, also on meshsize
         f = self.dataset._handle
-        bp = self.basePath
-        if self.dataset._nonstandard:
-            mp = "fields/"
-            pp = "particles/"
-        else:
-            mp = f.attrs["meshesPath"]
-            pp = f.attrs["particlesPath"]
+        bp = self.dataset.base_path
+        mp = self.dataset.meshes_path
+        pp = self.dataset.particles_path
+
         gridsize = 100 * 10**6  # Bytes
-        species = f[bp + pp].keys()
+        maxnp = 1
         self.np = {}
-        maxnp = 0
-        for spec in species:
-            pos = f[bp + pp + spec + "/position"].keys()[0]
-            if is_const_component(f[bp + pp + spec + "/position/" + pos]):
-                self.np[spec] = f[bp + pp + spec + "/position/" + pos].attrs["shape"]
+
+        for species in f[bp + pp].keys():
+            axis = f[bp + pp + species + "/position"].keys()[0]
+            if is_const_component(f[bp + pp + species + "/position/" + axis]):
+                self.np[species] = f[bp + pp + species + "/position/" + axis].attrs["shape"]
             else:
-                self.np[spec] = f[bp + pp + spec + "/position/" + pos].len()
-            if self.np[spec] > maxnp:
-                maxnp = self.np[spec]
+                self.np[species] = f[bp + pp + species + "/position/" + axis].len()
+            if self.np[species] > maxnp:
+                maxnp = self.np[species]
         # Limit particles per grid by resulting memory footprint
         ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
         # Use an upper bound of equally sized grids, last one might be smaller
@@ -276,9 +225,9 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
             self.grids[i] = self.grid(
                 i, self, self.grid_levels[i, 0],
                 pi=particleindex,
-                op=particlecount,
+                po=particlecount,
                 mi=meshindex,
-                om=self.grid_dimensions[i][0])
+                mo=self.grid_dimensions[i][0])
             for spec, val in particlecount:
                 pci[spec] += val
             meshindex += self.grid_dimensions[i][0]
@@ -298,7 +247,7 @@ class openPMDHierarchy(GridIndex, openPMDBasePath):
         self.max_level = 0
 
 
-class openPMDDataset(Dataset, openPMDBasePath):
+class OpenPMDDataset(Dataset):
     """
     A dataset object contains all the information of the simulation and
     is intialized with yt.load()
@@ -308,8 +257,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
          multiple iteration-loading if done that way, e.g., from a prefix
          of files.
     """
-    _index_class = openPMDHierarchy
-    _field_info_class = openPMDFieldInfo
+    _index_class = OpenPMDHierarchy
+    _field_info_class = OpenPMDFieldInfo
     _nonstandard = False
 
     def __init__(self, filename, dataset_type='openPMD',
@@ -319,19 +268,15 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self._handle = HDF5FileHandler(filename)
         self._filepath = os.path.dirname(filename)
         if self._nonstandard:
-            self._setNonStandardBasePath(self._handle)
+            self._set_nonstandard_paths(self._handle)
         else:
-            self._setBasePath(self._handle, self._filepath)
+            self._set_paths(self._handle, self._filepath)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
         self.fluid_types += ('openPMD',)
-        if self._nonstandard:
-            pp = "particles"
-        else:
-            pp = self._handle.attrs["particlesPath"]
-        parts = tuple(str(c) for c in self._handle[self.basePath + pp].keys())
+        parts = tuple(str(c) for c in self._handle[self.base_path + self.particles_path].keys())
         if len(parts) > 1:
             # Only use infile particle names if there is more than one species
             self.particle_types = parts
@@ -340,6 +285,39 @@ class openPMDDataset(Dataset, openPMDBasePath):
         self.particle_types = tuple(self.particle_types)
         self.particle_types = tuple(self.particle_types)
 
+    def _set_nonstandard_paths(self, handle):
+        iteration = handle["/data"].keys()[0]
+        self.base_path = "/data/{}/".format(iteration)
+        self.meshes_path = "fields/"
+        self.particles_path = "particles/"
+
+    def _set_paths(self, handle, filepath):
+        list_iterations = []
+        if u"groupBased" in handle.attrs["iterationEncoding"]:
+            for i in list(handle["/data"].keys()):
+                list_iterations.append(i)
+            mylog.info("openPMD: found {} iterations in file".format(len(list_iterations)))
+        elif u"fileBased" in handle.attrs["iterationEncoding"]:
+            regex = u"^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + u"$"
+            if filepath is '':
+                mylog.warning("openPMD: For file based iterations, please use absolute file paths!")
+                pass
+            for filename in os.listdir(filepath):
+                if re.match(regex, filename):
+                    list_iterations.append(filename)
+            mylog.info("openPMD: found {} iterations in directory".format(len(list_iterations)))
+        else:
+            mylog.warning(
+                "openOMD: File does not have valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
+
+        if len(list_iterations) == 0:
+            mylog.warning("openOMD: No iterations found!")
+        if u"groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
+            mylog.warning("openPMD: only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
+
+        self.base_path = "{}/{}/".format("/data", handle["/data"].keys()[0])
+        self.meshes_path = self._handle["/"].attrs["meshesPath"]
+        self.particles_path = self._handle["/"].attrs["particlesPath"]
 
     def _set_code_unit_attributes(self):
         """
@@ -360,13 +338,8 @@ class openPMDDataset(Dataset, openPMDBasePath):
             read in metadata describing the overall data on disk
         """
         f = self._handle
-        bp = self.basePath
-        if self._nonstandard:
-            mp = "fields"
-            pp = "particles"
-        else:
-            mp = f.attrs["meshesPath"]
-            pp = f.attrs["particlesPath"]
+        bp = self.base_path
+        mp = self.meshes_path
 
         self.unique_identifier = 0
         self.parameters = 0
@@ -380,14 +353,7 @@ class openPMDDataset(Dataset, openPMDBasePath):
             fshape = np.array([1, 1, 1], dtype=np.int64)
             mylog.warning("Could not detect shape of simulated field! "
                           "Assuming a single cell and thus setting fshape to [1, 1, 1]!")
-        if len(fshape) < 1:
-            self.dimensionality = 0
-            for species in f[bp + pp].keys():
-                self.dimensionality = max(
-                    len(f[bp + pp + "/" + species].keys()),
-                    self.dimensionality)
-        else:
-            self.dimensionality = len(fshape)
+        self.dimensionality = len(fshape)
 
         fshape = np.append(fshape, np.ones(3 - self.dimensionality))
         self.domain_dimensions = fshape

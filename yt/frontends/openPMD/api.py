@@ -14,12 +14,12 @@ API for yt.frontends._skeleton
 #-----------------------------------------------------------------------------
 
 from .data_structures import \
-    openPMDDataset, \
-    openPMDGrid, \
-    openPMDHierarchy
+    OpenPMDDataset, \
+    OpenPMDGrid, \
+    OpenPMDHierarchy
 
 from .fields import \
-    openPMDFieldInfo
+    OpenPMDFieldInfo
 
 from .io import \
     IOHandlerOpenPMD

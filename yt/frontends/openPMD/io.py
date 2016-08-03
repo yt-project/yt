@@ -19,38 +19,30 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 import numpy as np
-from .data_structures import openPMDBasePath
 
 
-class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
+class IOHandlerOpenPMD(BaseIOHandler):
     _field_dtype = "float32"
     _dataset_type = "openPMD"
 
     def __init__(self, ds, *args, **kwargs):
-
         self.ds = ds
         self._handle = ds._handle
-        if self.ds._nonstandard:
-            self._setNonStandardBasePath(self._handle)
-            self.meshesPath = "fields/"
-            self.particlesPath = "particles/"
-        else:
-            self._setBasePath(self._handle, self.ds._filepath)
-            self.meshesPath = self._handle["/"].attrs["meshesPath"]
-            self.particlesPath = self._handle["/"].attrs["particlesPath"]
+        self.base_path = ds.base_path
+        self.meshes_path = ds.meshes_path
+        self.particles_path = ds.particles_path
         self._array_fields = {}
         self._cached_ptype = ""
         self._cache = {}
-        self._cachecntr = {}
 
     def _fill_cache(self, ptype, index=0, offset=None):
         if str((ptype, index, offset)) not in self._cached_ptype:
             # Get a particle species (e.g. /data/3500/particles/e/)
             if "io" in ptype:
-                spec = self._handle[self.basePath + self.particlesPath].keys()[0]
+                spec = self._handle[self.base_path + self.particles_path].keys()[0]
             else:
                 spec = ptype
-            pds = self._handle[self.basePath + self.particlesPath + "/" + spec]
+            pds = self._handle[self.base_path + self.particles_path + "/" + spec]
             # Get 1D-Arrays for individual particle positions along axes
             axes = [str(ax) for ax in pds["position"].keys()]
             pos = {}
@@ -92,23 +84,23 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         """
         chunks = list(chunks)
         f = self._handle
-        ds = f[self.basePath]
+        ds = f[self.base_path]
         for chunk in chunks:
             for g in chunk.objs:
                 if g.filename is None:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
                     if "io" in ptype:
-                        spec = ds[self.particlesPath].keys()[0]
+                        spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    for gridptype, idx in g.part_ind:
+                    for gridptype, idx in g.particle_index:
                         if str(gridptype) == str(spec):
                             index = idx
-                    for gridptype, ofs in g.off_part:
+                    for gridptype, ofs in g.particle_offset:
                         if str(gridptype) == str(spec):
                             offset = ofs
-                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index,offset))
+                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
@@ -144,7 +136,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         """
         chunks = list(chunks)
         f = self._handle
-        ds = f[self.basePath]
+        ds = f[self.base_path]
         for chunk in chunks:
             for g in chunk.objs:
                 if g.filename is None:
@@ -152,13 +144,13 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for ptype, field_list in sorted(ptf.items()):
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     if "io" in ptype:
-                        spec = ds[self.particlesPath].keys()[0]
+                        spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    for gridptype, idx in g.part_ind:
+                    for gridptype, idx in g.particle_index:
                         if str(gridptype) == str(spec):
                             index = idx
-                    for gridptype, ofs in g.off_part:
+                    for gridptype, ofs in g.particle_offset:
                         if str(gridptype) == str(spec):
                             offset = ofs
                     if str((ptype, index, offset)) not in self._cached_ptype:
@@ -167,7 +159,7 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                     mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
                     if mask is None:
                         continue
-                    pds = ds[self.particlesPath + "/" + spec]
+                    pds = ds[self.particles_path + "/" + spec]
                     for field in field_list:
                         nfield = "/".join(field.split("_")[1:]).replace("positionCoarse", "position")
                         data = self.get_component(pds, nfield, index, offset, self.ds._nonstandard)
@@ -209,11 +201,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
         """
         mylog.info("_read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
         f = self._handle
-        bp = self.basePath
-        if self.ds._nonstandard:
-            mp = "fields/"
-        else:
-            mp = f.attrs["meshesPath"]
+        bp = self.base_path
+        mp = self.meshes_path
         rv = {}
         chunks = list(chunks)
 
@@ -235,8 +224,8 @@ class IOHandlerOpenPMD(BaseIOHandler, openPMDBasePath):
                 for g in chunk.objs:
                     ds = f[bp + mp]
                     nfield = fname.replace("_", "/").replace("-","_")
-                    index = g.mesh_ind
-                    offset = g.off_mesh
+                    index = g.mesh_index
+                    offset = g.mesh_offset
                     data = np.array(self.get_component(ds, nfield, index, offset, self.ds._nonstandard))
                     # The following is a modified AMRGridPatch.select(...)
                     mask = g._get_selector_mask(selector)
