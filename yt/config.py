@@ -107,7 +107,7 @@ if os.path.exists(_OLD_CONFIG_FILE):
     msg = (
         "The configuration file {} is deprecated. "
         "Please migrate your config to {} by running: "
-        "'yt-config migrate'"
+        "'yt config migrate'"
     )
     warnings.warn(msg.format(_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
 

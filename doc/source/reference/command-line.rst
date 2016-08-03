@@ -248,7 +248,7 @@ Hub helper
 ~~~~~~~~~~
 
 The :code:`yt hub` command-line tool allows to interact with the `yt hub
-<https://hub.yt>`__. Following subcommands are currently available:
+<https://hub.yt>`__. The following subcommands are currently available:
 
 .. config_help:: yt hub
 
@@ -267,7 +267,7 @@ This subcommand launches the Jupyter Notebook on the `yt Hub <https://hub.yt>`__
 with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
 If no path is given all the `example yt datasets
 <https://yt-project.org/data>`_ are mounted by default. The appropriate URL
-allowing to access the Notebook will be return on the commandline. 
+allowing to access the Notebook will be returned on the commandline. 
 
 Example:
 
@@ -280,7 +280,7 @@ Example:
 Config helper
 ~~~~~~~~~~~~~
 
-The :code:`yt config` command-line tool allows you to modify and access the yt's
+The :code:`yt config` command-line tool allows you to modify and access yt's
 configuration without manually locating and opening the config file in an editor.
 To get a quick list of available commands, just type:
 

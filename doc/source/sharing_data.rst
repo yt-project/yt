@@ -36,8 +36,8 @@ In order to interact with the yt Hub, you need to obtain API key, which is
 available only for authenticated users. You can `log into
 <https://girder.hub.yt/#?dialog=login>`_ the Hub using your Google, GitHub or
 Bitbucket account. After you log in, an API key can be generated under the *My
-account* page, which can be accessed through dropdown menu in the upper right
-corner. 
+account* page, which can be accessed through the dropdown menu in the upper
+right corner. 
 
 .. image:: _static/apiKey01.jpg
    :width: 50 %
