@@ -174,7 +174,7 @@ if __name__ == "__main__":
     pyx_file.write("cimport cython \n \n")
     pyx_file.write("\n \n")
     
-    for mesh_data in mesh_types.values():
+    for _, mesh_data in sorted(mesh_types.items()):
         codegen = MeshCodeGenerator(mesh_data)
 
         function_code, jacobian_code = codegen.get_interpolator_definition()
