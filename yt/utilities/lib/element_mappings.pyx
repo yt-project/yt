@@ -731,11 +731,11 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
    
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
-            self.jac(A, x, vertices, physical_x)
+            self.jac(&A[0], &A[2], x, vertices, physical_x)
             d = (A[0]*A[3] - A[1]*A[2])
             
-            x[0] -= ( A[3]*f[0] - A[1]*f[1]) / d
-            x[1] -= (-A[2]*f[0] + A[0]*f[1]) / d
+            x[0] -= ( A[3]*f[0] - A[2]*f[1]) / d
+            x[1] -= (-A[1]*f[0] + A[0]*f[1]) / d
 
             self.func(f, x, vertices, physical_x)        
             err = maxnorm(f, 2)
