@@ -28,12 +28,11 @@ import yt
 
 def setup_kinetic_energy(self, ptype):
     def _kin_en(field, data):
-        c = yt.YTQuantity(speed_of_light, "m/s")
         p2 = (data[ptype, "particle_momentum_x"]**2 +
               data[ptype, "particle_momentum_y"]**2 +
               data[ptype, "particle_momentum_z"]**2)
         mass = data[ptype, "particle_mass"] * data[ptype, "particle_weighting"]
-        return c * np.sqrt(p2 + mass**2 * c**2) - mass * c**2
+        return speed_of_light * np.sqrt(p2 + mass**2 * speed_of_light**2) - mass * speed_of_light**2
 
     self.add_field((ptype, "particle_kinetic_energy"),
                    function=_kin_en,
@@ -84,9 +83,8 @@ def setup_poynting_vector(self):
 def setup_absolute_positions(self, ptype):
     def _abs_pos(axis):
         def ap(field, data):
-            pos = data[ptype, "particle_positionCoarse_{}".format(axis)]
-            off = data[ptype, "particle_positionOffset_{}".format(axis)]
-            return pos + off
+            return np.add(data[ptype, "particle_positionCoarse_{}".format(axis)],
+                          data[ptype, "particle_positionOffset_{}".format(axis)])
 
         return ap
 
@@ -130,7 +128,6 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
                 # We can not reasonably infer field type by name in openPMD
-                mylog.info(fname, field, unit)
                 if "T" in unit or "kg/(A*s**2)" in unit:
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)), )
@@ -149,7 +146,6 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
                     # We can not reasonably infer field type by name in openPMD
-                    mylog.info(fname, field, unit, axis)
                     if "T" in unit or "kg/(A*s**2)" in unit:
                         self._mag_fields.append(ytname)
                     self.known_other_fields += ((ytname, (unit, aliases, None)), )
@@ -175,6 +171,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     unit = str(yt.YTQuantity(1, parsed).units)
                     name = ["particle", attrib]
                     ytattrib = attrib
+                    # Symbolically rename position to preserve yt's interpretation of the pfield
+                    # particle_position is later derived in setup_absolute_positions
                     if ytattrib in "position":
                         ytattrib = "positionCoarse"
                     for axis in particles.get(species).get(attrib).keys():

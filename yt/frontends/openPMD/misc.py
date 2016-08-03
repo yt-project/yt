@@ -781,29 +781,19 @@ def check_particles(f, iteration, v, pic) :
     return result_array
 
 
-def parse_unit_dimension(unitDimension):
-    if len(unitDimension) is not 7:
-        mylog.error("SI must have 7 base dimensions! {} is off by {}".format(unitDimension, len(unitDimension) - 7))
+def parse_unit_dimension(unit_dimension):
+    if len(unit_dimension) is not 7:
+        mylog.error("SI must have 7 base dimensions!")
+    unit_dimension = np.asarray(unit_dimension, dtype='int')
     dim = []
-    if unitDimension[0] < 0.0 or unitDimension[0] > 0.0:
-        # length L,
-        dim.append("m**{}".format(unitDimension[0]))
-    if unitDimension[1] < 0.0 or unitDimension[1] > 0.0:
-        # mass M,
-        dim.append("kg**{}".format(unitDimension[1]))
-    if unitDimension[2] < 0.0 or unitDimension[2] > 0.0:
-        # time T,
-        dim.append("s**{}".format(unitDimension[2]))
-    if unitDimension[3] < 0.0 or unitDimension[3] > 0.0:
-        # electric current I,
-        dim.append("A**{}".format(unitDimension[3]))
-    if unitDimension[4] < 0.0 or unitDimension[4] > 0.0:
-        # thermodynamic temperature theta,
-        dim.append("C**{}".format(unitDimension[4]))
-    if unitDimension[5] < 0.0 or unitDimension[5] > 0.0:
-        # amount of substance N,
-        dim.append("mol**{}".format(unitDimension[5]))
-    if unitDimension[6] < 0.0 or unitDimension[6] > 0.0:
-        # luminous intensity J
-        dim.append("cd**{}".format(unitDimension[6]))
+    si = ["m",
+          "kg",
+          "s",
+          "A",
+          "C",
+          "mol",
+          "cd"]
+    for i in range(7):
+        if unit_dimension[i] != 0:
+            dim.append("{}**{}".format(si[i], unit_dimension[i]))
     return "*".join(dim)

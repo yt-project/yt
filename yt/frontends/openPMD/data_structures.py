@@ -154,7 +154,7 @@ class OpenPMDHierarchy(GridIndex):
         mp = self.dataset.meshes_path
         pp = self.dataset.particles_path
 
-        gridsize = 100 * 10**6  # Bytes
+        gridsize = 40 * 10**6  # Bytes
         maxnp = 1
         self.np = {}
 
@@ -198,13 +198,13 @@ class OpenPMDHierarchy(GridIndex):
         meshindex = 0
         meshedge = self.dataset.domain_left_edge.copy()[0]
         for i in range(self.num_grids):
-            self.grid_dimensions[i] = self.dataset.domain_dimensions  # (N, 3) <= int
+            self.grid_dimensions[i] = self.dataset.domain_dimensions
             prev = remaining
             remaining -= self.grid_dimensions[i][0] * self.num_grids**-1
             self.grid_dimensions[i][0] = int(round(prev, 0) - round(remaining, 0))
-            self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()  # (N, 3) <= float64
+            self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()
             self.grid_left_edge[i][0] = meshedge
-            self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()  # (N, 3) <= float64
+            self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()
             self.grid_right_edge[i][0] = self.grid_left_edge[i][0] \
                                          + self.grid_dimensions[i][0]\
                                           * self.dataset.domain_dimensions[0]**-1\
@@ -282,7 +282,6 @@ class OpenPMDDataset(Dataset):
             self.particle_types = parts
         mylog.debug("openPMD - self.particle_types: {}".format(self.particle_types))
         self.particle_types_raw = self.particle_types
-        self.particle_types = tuple(self.particle_types)
         self.particle_types = tuple(self.particle_types)
 
     def _set_nonstandard_paths(self, handle):

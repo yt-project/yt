@@ -33,32 +33,32 @@ class IOHandlerOpenPMD(BaseIOHandler):
         self.particles_path = ds.particles_path
         self._array_fields = {}
         self._cached_ptype = ""
-        self._cache = {}
 
     def _fill_cache(self, ptype, index=0, offset=None):
         if str((ptype, index, offset)) not in self._cached_ptype:
             # Get a particle species (e.g. /data/3500/particles/e/)
-            if "io" in ptype:
+            if ptype in "io":
                 spec = self._handle[self.base_path + self.particles_path].keys()[0]
             else:
                 spec = ptype
             pds = self._handle[self.base_path + self.particles_path + "/" + spec]
             # Get 1D-Arrays for individual particle positions along axes
             axes = [str(ax) for ax in pds["position"].keys()]
-            pos = {}
-            off = {}
-            for ax in axes:
-                pos[ax] = self.get_component(pds, "position/" + ax, index, offset, self.ds._nonstandard)
-                if self.ds._nonstandard:
-                    off[ax] = self.get_component(pds, "globalCellIdx/" + ax, index, offset, self.ds._nonstandard)
+            if self.ds._nonstandard:
+                position_offset = "globalCellIdx/"
+            else:
+                position_offset = "positionOffset/"
+            self.cache = np.empty((3, offset), dtype="float64")
+            for i in range(3):
+                ax = "xyz"[i]
+                if ax in axes:
+                    np.add(self.get_component(pds, "position/" + ax, index, offset, self.ds._nonstandard),
+                           self.get_component(pds, position_offset + ax, index, offset, self.ds._nonstandard),
+                           self.cache[i])
                 else:
-                    off[ax] = self.get_component(pds, "positionOffset/" + ax, index, offset, self.ds._nonstandard)
-                self._cache[ax] = pos[ax] + off[ax]
-            # Pad accordingly with zeros to make 1D/2D datasets compatible
-            # These have to be the same shape as the existing axes dataset since that equals the number of particles
-            for req in "xyz":
-                if req not in axes:
-                    self._cache[req] = np.zeros(self._cache[self._cache.keys()[0]].shape)
+                    # Pad accordingly with zeros to make 1D/2D datasets compatible
+                    # These have to be the same shape as the existing axes since that equals the number of particles
+                    self.cache[i] = np.zeros(offset)
         self._cached_ptype = str((ptype, index, offset))
 
     def _read_particle_coords(self, chunks, ptf):
@@ -90,7 +90,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                 if g.filename is None:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    if "io" in ptype:
+                    if ptype in "io":
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
@@ -103,7 +103,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
-                    yield (ptype, (self._cache['x'], self._cache['y'], self._cache['z']))
+                    yield (ptype, (self.cache[0], self.cache[1], self.cache[2]))
 
     def _read_particle_fields(self, chunks, ptf, selector):
         """
@@ -143,20 +143,16 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     continue
                 for ptype, field_list in sorted(ptf.items()):
                     # Get a particle species (e.g. /data/3500/particles/e/)
-                    if "io" in ptype:
+                    if ptype in "io":
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    for gridptype, idx in g.particle_index:
-                        if str(gridptype) == str(spec):
-                            index = idx
-                    for gridptype, ofs in g.particle_offset:
-                        if str(gridptype) == str(spec):
-                            offset = ofs
+                    index = dict(g.particle_index).get(spec)
+                    offset = dict(g.particle_offset).get(spec)
+                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
-                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
-                    mask = selector.select_points(self._cache['x'], self._cache['y'], self._cache['z'], 0.0)
+                    mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
                     if mask is None:
                         continue
                     pds = ds[self.particles_path + "/" + spec]
@@ -280,4 +276,4 @@ class IOHandlerOpenPMD(BaseIOHandler):
             # component is a dataset, return it (possibly masked)
             mylog.debug(
                 "openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
-            return record_component[index:offset] * unitSI
+            return np.multiply(record_component[index:offset], unitSI)
