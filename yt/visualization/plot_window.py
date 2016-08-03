@@ -806,7 +806,7 @@ class PWViewerMPL(PlotWindow):
                 ia = ImageArray(ia)
             else:
                 ia = image
-            if not self._r:
+            if not self._right_handed:
                 ia = np.fliplr(ia)
             self.plots[f] = WindowPlotMPL(
                 ia, self._field_transform[f].name,
