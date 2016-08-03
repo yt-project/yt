@@ -115,7 +115,6 @@ class MeshCodeGenerator:
         elif (self.num_dim == 2):
             self.jacobian_header = jac_def_template_2D % self.jacobian_name
             self.jacobian_declaration = jac_dec_template_2D % self.jacobian_name            
-
     def _replace_func(self, match):
         s = match.group(0)
         i = int(s[-3])
