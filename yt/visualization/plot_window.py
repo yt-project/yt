@@ -824,7 +824,9 @@ class PWViewerMPL(PlotWindow):
                 h_power = expr.as_coeff_exponent(h_expr)[1]
                 # un is now the original unit, but with h factored out.
                 un = str(expr*h_expr**(-1*h_power))
-                if str(un).endswith('cm') and un != 'cm':
+                un_unit = Unit(un, registry=self.ds.unit_registry)
+                cm = Unit('cm').expr
+                if str(un).endswith('cm') and cm not in un_unit.expr.atoms():
                     comoving = True
                     un = un[:-2]
                 # no length units besides code_length end in h so this is safe
@@ -834,18 +836,22 @@ class PWViewerMPL(PlotWindow):
                     # It doesn't make sense to scale a position by anything
                     # other than h**-1
                     raise RuntimeError
-                if un in formatted_length_unit_names:
-                    un = formatted_length_unit_names[un]
-                pp = un[0]
-                if pp in latex_prefixes:
-                    symbol_wo_prefix = un[1:]
-                    if symbol_wo_prefix in prefixable_units:
-                        un = un.replace(pp, "{"+latex_prefixes[pp]+"}", 1)
                 if un not in ['1', 'u', 'unitary']:
-                    if hinv:
-                        un = un + '\,h^{-1}'
-                    if comoving:
-                        un = un + '\,(1+z)^{-1}'
+                    if un in formatted_length_unit_names:
+                        un = formatted_length_unit_names[un]
+                    else:
+                        un = Unit(un, registry=self.ds.unit_registry)
+                        un = un.latex_representation()
+                        if hinv:
+                            un = un + '\,h^{-1}'
+                        if comoving:
+                            un = un + '\,(1+z)^{-1}'
+                        pp = un[0]
+                        if pp in latex_prefixes:
+                            symbol_wo_prefix = un[1:]
+                            if symbol_wo_prefix in prefixable_units:
+                                un = un.replace(
+                                    pp, "{"+latex_prefixes[pp]+"}", 1)
                     axes_unit_labels[i] = '\ \ ('+un+')'
 
             if self.oblique:
@@ -1488,7 +1494,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
@@ -1624,7 +1630,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
@@ -1687,8 +1693,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size,
-                 fontsize, aspect, figure, axes, cax):
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim,
+                 figure_size, fontsize, aspect, figure, axes, cax):
+        from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1716,7 +1723,14 @@ class WindowPlotMPL(ImagePlotMPL):
 
         self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
-        self.image.axes.ticklabel_format(scilimits=(-2, 3))
+        # In matplotlib 2.1 and newer we'll be able to do this using
+        # self.image.axes.ticklabel_format
+        # See https://github.com/matplotlib/matplotlib/pull/6337
+        formatter = ScalarFormatter(useMathText=True)
+        formatter.set_scientific(True)
+        formatter.set_powerlimits((-2, 3))
+        self.image.axes.xaxis.set_major_formatter(formatter)
+        self.image.axes.yaxis.set_major_formatter(formatter)
         if cbname == 'linear':
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
@@ -1820,7 +1834,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
         used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
         slicing plane.  If not set, an arbitrary grid-aligned north-vector is
