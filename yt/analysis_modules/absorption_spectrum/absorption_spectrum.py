@@ -292,16 +292,16 @@ class AbsorptionSpectrum(object):
             else:
                 delta_lambda = continuum['wavelength'] * redshift
             this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda)
+            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda).astype('int')
             left_index = np.digitize((this_wavelength *
                                      np.power((min_tau * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
-                                    self.lambda_field).clip(0, self.n_lambda)
+                                    self.lambda_field).clip(0, self.n_lambda).astype('int')
 
             valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
-            pbar = get_pbar("Adding continuum feature - %s [%f A]: " % \
+            pbar = get_pbar("Adding continuum - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
             for i, lixel in enumerate(valid_continuua):
