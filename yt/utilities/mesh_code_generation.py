@@ -25,7 +25,9 @@ from sympy import \
     symarray, \
     symbols, \
     diff, \
-    ccode
+    ccode, \
+    Matrix, \
+    MatrixSymbol
 import re
 import yaml
 
@@ -53,7 +55,8 @@ jac_def_template_3D = '''@cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True) \n''' + jac_signature_3D + ': \n'
 
-jac_signature_2D = '''cdef void %s(double* A,
+jac_signature_2D = '''cdef void %s(double* rcol,
+                       double* scol,
                        double* x,
                        double* vertices,
                        double* phys_x) nogil'''
@@ -85,9 +88,9 @@ class MeshCodeGenerator:
         self.num_vertices = mesh_data['num_vertices']
         self.num_mapped_coords = mesh_data['num_mapped_coords']
 
-        x = symarray('x', self.num_mapped_coords)
+        x = MatrixSymbol('x', self.num_mapped_coords, 1)
         self.x = x
-        self.N = eval(mesh_data['shape_functions'])
+        self.N = Matrix(eval(mesh_data['shape_functions']))
         self._compute_jacobian()
 
     def _compute_jacobian(self):
@@ -95,67 +98,52 @@ class MeshCodeGenerator:
         assert(self.num_vertices == len(self.N))
         assert(self.num_dim == self.num_mapped_coords)
 
-        X = symarray('vertices', (self.num_dim, self.num_vertices))
-        physical_position = symbols(['phys_x[%s] ' % d for d in '012'[:self.num_dim]])
+        X = MatrixSymbol("vertices", self.num_vertices, self.num_dim)
+        self.fx = MatrixSymbol("fx", self.num_dim, 1)
+        physical_position = MatrixSymbol('phys_x', self.num_dim, 1)
 
-        self.f = X.dot(self.N) - physical_position
+        self.f = (self.N.T * Matrix(X)).T - physical_position
 
         self.J = symarray('J', (self.num_dim, self.num_dim))
         for i in range(self.num_dim):
             for j, var in enumerate(self.x):
-                self.J[i][j] = diff(self.f[i], var)
+                self.J[i][j] = diff(self.f[i, 0], var)
+
+        self.rcol = MatrixSymbol("rcol", self.num_dim, 1)
+        self.scol = MatrixSymbol("scol", self.num_dim, 1)
+        self.tcol = MatrixSymbol("tcol", self.num_dim, 1)
 
         self.function_name = '%sFunction%dD' % (self.mesh_type, self.num_dim)
         self.function_header = fun_def_template % self.function_name
         self.function_declaration = fun_dec_template % self.function_name
 
         self.jacobian_name = '%sJacobian%dD' % (self.mesh_type, self.num_dim)
+
         if (self.num_dim == 3):
             self.jacobian_header = jac_def_template_3D % self.jacobian_name 
             self.jacobian_declaration = jac_dec_template_3D % self.jacobian_name
+
         elif (self.num_dim == 2):
             self.jacobian_header = jac_def_template_2D % self.jacobian_name
             self.jacobian_declaration = jac_dec_template_2D % self.jacobian_name            
-    def _replace_func(self, match):
-        s = match.group(0)
-        i = int(s[-3])
-        j = int(s[-1])
-        n = self.num_dim*j + i
-        return 'vertices[%d]' % n
-
-    def _get_function_line(self, i):
-        line = ccode(self.f[i])
-        for j in range(self.num_dim):
-            line = re.sub(r'x_%d' % j, 'x[%d]' % j, line)
-        line = re.sub(r'(vertices_._.)', self._replace_func, line)
-        return '''    fx[%d] =  %s \n''' % (i, line)
-
-    def _get_jacobian_line(self, i, j):
-        line = ccode(self.J[i, j])
-        for k in range(self.num_dim):
-            line = re.sub(r'x_%d' % k, 'x[%d]' % k, line)
-        line = re.sub(r'(vertices_._.)', self._replace_func, line)
-        if (self.num_dim == 2):
-            return '''    A[%d] =  %s \n''' % (2*i + j, line)
-        else:
-            assert(self.num_dim == 3)
-            col = 'rst'[j]
-            return '''    %scol[%d] =  %s \n''' % (col, i, line)
-
     def get_interpolator_definition(self):
         '''
 
         This returns the function definitions for the given mesh type.
 
         '''
+
         function_code = self.function_header
-        for i in range(self.num_mapped_coords):
-            function_code += self._get_function_line(i)  
-        
+        for i in range(self.num_dim):
+            function_code += '\t' + ccode(self.f[i, 0], self.fx[i, 0]) + '\n'
+    
         jacobian_code = self.jacobian_header
         for i in range(self.num_dim):
-            for j in range(self.num_dim):
-                jacobian_code += self._get_jacobian_line(i, j)   
+            jacobian_code += '\t' + ccode(self.J[i,0], self.rcol[i, 0]) + '\n'
+            jacobian_code += '\t' + ccode(self.J[i,1], self.scol[i, 0]) + '\n'
+            if self.num_dim == 2: 
+                continue
+            jacobian_code += '\t' + ccode(self.J[i,2], self.tcol[i, 0]) + '\n'
             
         return function_code, jacobian_code
 
