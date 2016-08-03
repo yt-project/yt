@@ -2442,7 +2442,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         kernel = kernel.astype(np.double)
 
         lic_data = line_integral_convolution_2d(vectors,self.texture,kernel)
-        lic_data = np.flipud(lic_data / lic_data.max())
+        lic_data = lic_data / lic_data.max()
         lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
 
         if self.const_alpha:
