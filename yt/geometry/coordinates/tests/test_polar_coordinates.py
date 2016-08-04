@@ -7,6 +7,8 @@ from yt.testing import \
     fake_amr_ds, \
     assert_equal, \
     assert_almost_equal
+from yt.utilities.answer_testing.framework import \
+    AxialPixelizationTest
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -31,3 +33,4 @@ def test_cylindrical_coordinates():
     yield assert_equal, dd["index", "path_element_z"], dd["index", "dz"]
     yield assert_equal, dd["index", "path_element_theta"], \
                         dd["index", "r"] * dd["index", "dtheta"]
+    yield AxialPixelizationTest(ds)

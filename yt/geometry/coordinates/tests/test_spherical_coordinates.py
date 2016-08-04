@@ -6,6 +6,8 @@ from yt.testing import \
     fake_amr_ds, \
     assert_equal, \
     assert_almost_equal
+from yt.utilities.answer_testing.framework import \
+    AxialPixelizationTest
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -37,3 +39,4 @@ def test_spherical_coordinates():
     yield assert_equal, dd["index", "path_element_phi"], \
                         dd["index", "r"] * dd["index", "dphi"] * \
                           np.sin(dd["index","theta"])
+    yield AxialPixelizationTest(ds)

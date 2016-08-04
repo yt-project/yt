@@ -5,6 +5,8 @@ import numpy as np
 from yt.testing import \
     fake_amr_ds, \
     assert_equal
+from yt.utilities.answer_testing.framework import \
+    AxialPixelizationTest
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -29,3 +31,4 @@ def test_cartesian_coordinates():
         yield assert_equal, dd[fd], dd[fp]
     yield assert_equal, dd["cell_volume"].sum(dtype="float64"), \
                         ds.domain_width.prod()
+    yield AxialPixelizationTest(ds)
