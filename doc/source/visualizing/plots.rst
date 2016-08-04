@@ -534,14 +534,12 @@ by the user at initialization:
    #slicing with non right-handed coordinates
    slc = yt.SlicePlot(ds, 'x', 'velocity_x', right_handed=False)
    slc.annotate_title('Not Right Handed')
-   slc.save()
-
-.. python-script::
+   slc.save("NotRightHanded.png")
 
    #switching to right-handed coordinates
    slc.toggle_right_handed()
    slc.annotate_title('Right Handed')
-   slc.save()
+   slc.save("Standard.png")
 
 .. _hiding-colorbar-and-axes:
 
