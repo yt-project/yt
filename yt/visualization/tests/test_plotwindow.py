@@ -92,7 +92,7 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
                           (('density', 1e-25, None), {'dynamic_range': 4})],
              "zoom": [((10, ), {})],
-             "toggle_right_handed": []}
+             "toggle_right_handed": [((),{})]}
 
 
 CENTER_SPECS = (
