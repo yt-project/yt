@@ -39,7 +39,7 @@ answer_tests:
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
   
-  local_pw_004:
+  local_pw_005:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
