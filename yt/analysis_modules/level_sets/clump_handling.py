@@ -180,7 +180,8 @@ class Clump(object):
             self.children.append(Clump(new_clump, self.field, parent=self,
                                        validators=self.validators,
                                        base=self.base,
-                                       contour_key=contour_key))
+                                       contour_key=contour_key,
+                                       contour_id=cid))
 
     def twalk(self):
         yield self
@@ -221,6 +222,7 @@ class Clump(object):
         keyword = "%s_clump_%d" % (str(ds), self.clump_id)
         filename = get_output_filename(filename, keyword, ".h5")
 
+        # collect clump info fields
         clump_info = dict([(ci.name, []) for ci in self.base.clump_info])
         clump_info.update(
             dict([(field, []) for field in ["clump_id", "parent_id",
@@ -249,11 +251,61 @@ class Clump(object):
             else:
                 clump_info[ci] = np.array(clump_info[ci])
 
-        field_types = dict([(ci, "clump") for ci in clump_info])
+        ftypes = dict([(ci, "clump") for ci in clump_info])
+
+        # collect data fields
+        if fields is not None:
+            contour_fields = [("index", "contours_%s" % ckey)
+                              for ckey in np.unique(clump_info["contour_key"]) \
+                              if ckey != "-1"]
+
+            ptypes = []
+            field_data = {}
+            need_grid_positions = False
+            for f in self.base.data._determine_fields(fields) + contour_fields:
+                field_data[f] = self.base[f]
+                if ds.field_info[f].particle_type:
+                    if f[0] not in ptypes:
+                        ptypes.append(f[0])
+                    need_particle_positions = True
+                    ftypes[f] = f[0]
+                else:
+                    need_grid_positions = True
+                    ftypes[f] = "grid"
+
+            if len(ptypes) > 0:
+                for ax in "xyz":
+                    for ptype in ptypes:
+                        p_field = (ptype, "particle_position_%s" % ax)
+                        if p_field in ds.field_info and \
+                          p_field not in field_data:
+                            ftypes[p_field] = p_field[0]
+                            field_data[p_field] = self.base[p_field]
+            if need_grid_positions:
+                for ax in "xyz":
+                    g_field = ("index", ax)
+                    if g_field in ds.field_info and \
+                      g_field not in field_data:
+                        field_data[g_field] = self.base[g_field]
+                        ftypes[g_field] = "grid"
+                    g_field = ("index", "d" + ax)
+                    if g_field in ds.field_info and \
+                      g_field not in field_data:
+                        ftypes[g_field] = "grid"
+                        field_data[g_field] = self.base[g_field]
+
+            if self.contour_key is not None:
+                cfield = ("index", "contours_%s" % self.contour_key)
+                my_filter = self.base[cfield] == self.contour_id
+                for field in field_data:
+                    if ftypes[field] == "grid":
+                        field_data[field] = field_data[field][my_filter]
+
+        clump_info.update(field_data)
         extra_attrs = {"data_type": "yt_clump_tree",
                        "container_type": "yt_clump_tree"}
         save_as_dataset(ds, filename, clump_info,
-                        field_types=field_types,
+                        field_types=ftypes,
                         extra_attrs=extra_attrs)
 
         return filename
