@@ -54,7 +54,6 @@ def test_geographic_coordinates():
     # We also want to check that our radius is correct
     yield assert_equal, dd["index","r"], \
                         dd["index","altitude"] + ds.surface_height
-    yield AxialPixelizationTest(ds)
 
 def test_internal_geographic_coordinates():
     # We're going to load up a simple AMR grid and check its volume
