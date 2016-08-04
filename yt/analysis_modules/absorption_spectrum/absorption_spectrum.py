@@ -45,12 +45,12 @@ class AbsorptionSpectrum(object):
        lower wavelength bound in angstroms.
     lambda_max : float
        upper wavelength bound in angstroms.
-    n_lambda : float
+    n_lambda : int
        number of wavelength bins.
     """
 
     def __init__(self, lambda_min, lambda_max, n_lambda):
-        self.n_lambda = n_lambda
+        self.n_lambda = int(n_lambda)
         # lambda, flux, and tau are wavelength, flux, and optical depth
         self.lambda_min = lambda_min
         self.lambda_max = lambda_max
@@ -292,11 +292,11 @@ class AbsorptionSpectrum(object):
             else:
                 delta_lambda = continuum['wavelength'] * redshift
             this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda).astype('int')
+            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda)
             left_index = np.digitize((this_wavelength *
                                      np.power((min_tau * continuum['normalization'] /
                                                column_density), (1. / continuum['index']))),
-                                    self.lambda_field).clip(0, self.n_lambda).astype('int')
+                                    self.lambda_field).clip(0, self.n_lambda)
 
             valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > min_tau) &
