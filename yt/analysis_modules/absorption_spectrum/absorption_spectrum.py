@@ -550,8 +550,9 @@ class AbsorptionSpectrum(object):
         """
         mylog.info("Writing spectrum to fits file: %s.", filename)
         col1 = pyfits.Column(name='wavelength', format='E', array=self.lambda_field)
-        col2 = pyfits.Column(name='flux', format='E', array=self.flux_field)
-        cols = pyfits.ColDefs([col1, col2])
+        col2 = pyfits.Column(name='tau', format='E', array=self.tau_field)
+        col3 = pyfits.Column(name='flux', format='E', array=self.flux_field)
+        cols = pyfits.ColDefs([col1, col2, col3])
         tbhdu = pyfits.BinTableHDU.from_columns(cols)
         tbhdu.writeto(filename, clobber=True)
 
