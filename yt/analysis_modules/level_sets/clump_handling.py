@@ -20,8 +20,12 @@ import uuid
 
 from yt.fields.derived_field import \
     ValidateSpatial
-from yt.funcs import mylog, iterable
-from yt.extern.six import string_types
+from yt.funcs import \
+    get_output_filename, \
+    iterable, \
+    mylog
+from yt.extern.six import \
+    string_types
 
 from .clump_info_items import \
     clump_info_registry
@@ -61,9 +65,15 @@ class Clump(object):
         self.max_val = self.data[field].max()
         self.info = {}
 
+        # is this the parent clump?
         if base is None:
             base = self
             self.total_clumps = 0
+            if clump_info is None:
+                self.set_default_clump_info()
+            else:
+                self.clump_info = clump_info
+
         self.base = base
         self.clump_id = self.base.total_clumps
         self.base.total_clumps += 1
@@ -75,15 +85,6 @@ class Clump(object):
 
         if parent is not None:
             self.data.parent = self.parent.data
-
-        # List containing characteristics about clumps that are to be written 
-        # out by the write routines.
-        if clump_info is None:
-            self.set_default_clump_info()
-        else:
-            # Clump info will act the same if add_info_item is called 
-            # before or after clump finding.
-            self.clump_info = copy.deepcopy(clump_info)
 
         if validators is None:
             validators = []
@@ -144,7 +145,7 @@ class Clump(object):
     def write_info(self, level, f_ptr):
         "Writes information for clump using the list of items in clump_info."
 
-        for item in self.clump_info:
+        for item in self.base.clump_info:
             value = item(self)
             f_ptr.write("%s%s\n" % ('\t'*level, value))
 
@@ -175,10 +176,51 @@ class Clump(object):
                 # Using "ones" here will speed things up.
                 continue
             self.children.append(Clump(new_clump, self.field, parent=self,
-                                       clump_info=self.clump_info,
                                        validators=self.validators,
                                        base=self.base,
                                        contour_key=contour_key))
+
+    def twalk(self):
+        yield self
+        if self.children is None:
+            return
+        for child in self.children:
+            for a_node in child.twalk():
+                yield a_node
+
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export clump tree to a reloadable yt dataset.
+
+        This function will take a clump object and output a dataset
+        containing the fields given in the ``fields`` list and all info
+        items.  The resulting dataset can be reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset and the clump
+            index.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        """
+
+        keyword = "%s_clump_%d" % (str(self.ds), self.clump_id)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+
+
+        return filename
 
     def pass_down(self,operation):
         """
