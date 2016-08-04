@@ -74,12 +74,7 @@ answer_tests:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
 
   local_axialpix_001:
-    - yt/geometry/coordinates/tests/test_cartesian_coordinates.py:test_cartesian_coordinates
-    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_cylindrical_coordinates
-    - yt/geometry/coordinates/tests/test_geographic_coordinates.py:test_geographic_coordinates
-    - yt/geometry/coordinates/tests/test_geographic_coordinates.py:test_internal_geographic_coordinates
-    - yt/geometry/coordinates/tests/test_polar_coordinates.py:test_cylindrical_coordinates
-    - yt/geometry/coordinates/tests/test_spherical_coordinates.py:test_spherical_coordinates
+    - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
 other_tests:
   unittests:

@@ -6,8 +6,6 @@ from yt.testing import \
     fake_amr_ds, \
     assert_equal, \
     assert_rel_equal
-from yt.utilities.answer_testing.framework import \
-    AxialPixelizationTest
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -102,4 +100,3 @@ def test_internal_geographic_coordinates():
     # We also want to check that our radius is correct
     yield assert_equal, dd["index","r"], \
                         -1.0*dd["index","depth"] + ds.outer_radius
-    yield AxialPixelizationTest(ds)
