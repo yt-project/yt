@@ -20,6 +20,8 @@ import uuid
 
 from yt.fields.derived_field import \
     ValidateSpatial
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
 from yt.funcs import \
     get_output_filename, \
     iterable, \
@@ -215,10 +217,44 @@ class Clump(object):
 
         """
 
-        keyword = "%s_clump_%d" % (str(self.ds), self.clump_id)
+        ds = self.data.ds
+        keyword = "%s_clump_%d" % (str(ds), self.clump_id)
         filename = get_output_filename(filename, keyword, ".h5")
 
+        clump_info = dict([(ci.name, []) for ci in self.base.clump_info])
+        clump_info.update(
+            dict([(field, []) for field in ["clump_id", "parent_id",
+                                            "contour_key", "contour_id"]]))
+        for clump in self.twalk():
+            clump_info["clump_id"].append(clump.clump_id)
+            if clump.parent is None:
+                parent_id = -1
+            else:
+                parent_id = clump.parent.clump_id
+            clump_info["parent_id"].append(parent_id)
 
+            contour_key = clump.contour_key
+            if contour_key is None: contour_key = -1
+            clump_info["contour_key"].append(contour_key)
+            contour_id = clump.contour_id
+            if contour_id is None: contour_id = -1
+            clump_info["contour_id"].append(contour_id)
+
+            for ci in self.base.clump_info:
+                ci(clump)
+                clump_info[ci.name].append(clump.info[ci.name][1])
+        for ci in clump_info:
+            if hasattr(clump_info[ci][0], "units"):
+                clump_info[ci] = ds.arr(clump_info[ci])
+            else:
+                clump_info[ci] = np.array(clump_info[ci])
+
+        field_types = dict([(ci, "clump") for ci in clump_info])
+        extra_attrs = {"data_type": "yt_clump_tree",
+                       "container_type": "yt_clump_tree"}
+        save_as_dataset(ds, filename, clump_info,
+                        field_types=field_types,
+                        extra_attrs=extra_attrs)
 
         return filename
 
