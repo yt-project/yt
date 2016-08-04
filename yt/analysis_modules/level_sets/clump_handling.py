@@ -255,9 +255,10 @@ class Clump(object):
 
         # collect data fields
         if fields is not None:
-            contour_fields = [("index", "contours_%s" % ckey)
-                              for ckey in np.unique(clump_info["contour_key"]) \
-                              if ckey != "-1"]
+            contour_fields = \
+              [("index", "contours_%s" % ckey)
+               for ckey in np.unique(clump_info["contour_key"]) \
+               if ckey != "-1"]
 
             ptypes = []
             field_data = {}
@@ -281,6 +282,19 @@ class Clump(object):
                           p_field not in field_data:
                             ftypes[p_field] = p_field[0]
                             field_data[p_field] = self.base[p_field]
+
+                for clump in self.twalk():
+                    if clump.contour_key is None:
+                        continue
+                    for ptype in ptypes:
+                        cfield = (ptype, "contours_%s" % clump.contour_key)
+                        if cfield not in field_data:
+                            field_data[cfield] = \
+                              -1 * clump.base.data[(ptype, "particle_ones")]
+                            ftypes[cfield] = ptype
+                        field_data[cfield][clump.data._part_ind(ptype)] = \
+                          clump.contour_id
+
             if need_grid_positions:
                 for ax in "xyz":
                     g_field = ("index", ax)
@@ -295,11 +309,16 @@ class Clump(object):
                         field_data[g_field] = self.base[g_field]
 
             if self.contour_key is not None:
-                cfield = ("index", "contours_%s" % self.contour_key)
-                my_filter = self.base[cfield] == self.contour_id
+                cfilters = {}
                 for field in field_data:
                     if ftypes[field] == "grid":
-                        field_data[field] = field_data[field][my_filter]
+                        ftype = "index"
+                    else:
+                        ftype = field[0]
+                    cfield = (ftype, "contours_%s" % self.contour_key)
+                    if cfield not in cfilters:
+                        cfilters[cfield] = field_data[cfield] == self.contour_id
+                    field_data[field] = field_data[field][cfilters[cfield]]
 
         clump_info.update(field_data)
         extra_attrs = {"data_type": "yt_clump_tree",
