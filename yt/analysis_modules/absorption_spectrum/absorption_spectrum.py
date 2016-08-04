@@ -280,35 +280,55 @@ class AbsorptionSpectrum(object):
         redshift, redshift_eff = self._apply_observing_redshift(field_data,
                                  use_peculiar_velocity, observing_redshift)
 
-        # Only add continuum features down to tau of 1.e-4.
+        # Only add continuum features down to tau of 1.e-3
         min_tau = 1.e-3
 
         for continuum in self.continuum_list:
-            column_density = field_data[continuum['field_name']] * field_data['dl']
+            # Normalization is in cm**-2, so column density must be as well
+            column_density = (field_data[continuum['field_name']] * 
+                              field_data['dl']).in_units('cm**-2')
 
             # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
                 delta_lambda = continuum['wavelength'] * redshift_eff
             else:
                 delta_lambda = continuum['wavelength'] * redshift
+            # Right index of continuum affected area is wavelength itself
             this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda)
+            right_index = np.digitize(this_wavelength, 
+                                      self.lambda_field).clip(0, self.n_lambda)
+            # left index of continuum affected area is to low enough wavelength
+            # to assure the tau value drops to below min_tau
             left_index = np.digitize((this_wavelength *
-                                     np.power((min_tau * continuum['normalization'] /
-                                               column_density), (1. / continuum['index']))),
-                                    self.lambda_field).clip(0, self.n_lambda)
+                              np.power((min_tau * continuum['normalization'] /
+                                        column_density),
+                                       (1. / continuum['index']))),
+                              self.lambda_field).clip(0, self.n_lambda)
 
+            # Only calculate the effects of continuua where column_density 
+            # greater than min_tau times the normalization (i.e. N > norm/1000)
+            # because lower column will not have significant effect
             valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
+            if valid_continuua.size == 0:
+                mylog.info("Not adding continuum %s because no col_dens > %g" % 
+                    (continuum['label'], continuum['normalization']*min_tau))
+                return
+
             pbar = get_pbar("Adding continuum - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
+            # Tau value is (wavelength / continuum_wavelength)**index / norm
+            # i.e. a power law decreasing as wavelength decreases
             for i, lixel in enumerate(valid_continuua):
-                line_tau = np.power((self.lambda_field[left_index[lixel]:right_index[lixel]] /
-                                     this_wavelength[lixel]), continuum['index']) * \
-                                     column_density[lixel] / continuum['normalization']
-                self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
+                cont_tau = \
+                    np.power((self.lambda_field[left_index[lixel] :
+                                                right_index[lixel]] /
+                                   this_wavelength[lixel]), \
+                              continuum['index']) * \
+                    (column_density[lixel] / continuum['normalization'])
+                self.tau_field[left_index[lixel]:right_index[lixel]] += cont_tau
                 pbar.update(i)
             pbar.finish()
 
