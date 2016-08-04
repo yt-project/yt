@@ -73,11 +73,11 @@ def test_record(g, r):
         if not is_scalar_record(g[r]) :
             for component_name in g[r]:
                 if not regEx.match(component_name):
-                    mylog.warning("openPMD: Component %s of record %s is NOT" \
+                    mylog.warning("open_pmd: Component %s of record %s is NOT" \
                     " named properly (a-Z0-9_)!" %(component_name, g[r].name) )
                     result_array += np.array([1,0])
     else:
-        mylog.warning("openPMD: Record %s is NOT named properly (a-Z0-9_)!" \
+        mylog.warning("open_pmd: Record %s is NOT named properly (a-Z0-9_)!" \
               %(r.name) )
         result_array = np.array([1,0])
 
@@ -118,16 +118,16 @@ def test_key(f, v, request, name):
         result_array = np.array([0,0])
     else:
         if request == "required":
-            mylog.warning("openPMD: Key %s (%s) does NOT exist in `%s`!" \
+            mylog.warning("open_pmd: Key %s (%s) does NOT exist in `%s`!" \
             %(name, request, str(f.name)) )
             result_array = np.array([1, 0])
         elif request == "recommended":
-            mylog.info("openPMD: Key %s (%s) does NOT exist in `%s`!" \
+            mylog.info("open_pmd: Key %s (%s) does NOT exist in `%s`!" \
             %(name, request, str(f.name)) )
             result_array = np.array([0, 1])
         elif request == "optional":
             if v:
-                mylog.info("openPMD: Key %s (%s) does NOT exist in `%s`!"  \
+                mylog.info("open_pmd: Key %s (%s) does NOT exist in `%s`!"  \
             %(name, request, str(f.name)) )
             result_array = np.array([0, 0])
         else :
@@ -175,7 +175,7 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
     valid, value = get_attr(f, name)
     if valid:
         if v:
-            mylog.info("openPMD: Attribute %s (%s) exists in `%s`! Type = %s, Value = %s" \
+            mylog.info("open_pmd: Attribute %s (%s) exists in `%s`! Type = %s, Value = %s" \
             %(name, request, str(f.name), type(value), str(value)) )
 
         # test type
@@ -195,7 +195,7 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
                     if regEx.match(value.decode()) :
                         result_array = np.array([0,0])
                     else:
-                        mylog.warning("openPMD: Attribute %s in `%s` does not satisfy " \
+                        mylog.warning("open_pmd: Attribute %s in `%s` does not satisfy " \
                               "format ('%s' should be in format '%s')!" \
                               %(name, str(f.name), value.decode(), type_format ) )
                         result_array = np.array([1,0])
@@ -206,7 +206,7 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
                     elif type_format is None:
                         result_array = np.array([0,0])
                     else:
-                        mylog.warning("openPMD: Attribute %s in `%s` is not of type " \
+                        mylog.warning("open_pmd: Attribute %s in `%s` is not of type " \
                               "ndarray of '%s' (is ndarray of '%s')!" \
                               %(name, str(f.name), type_format_names, \
                               value.dtype.type.__name__) )
@@ -223,16 +223,16 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
             result_array = np.array([0,0])
     else:
         if request == "required":
-            mylog.warning("openPMD: Attribute %s (%s) does NOT exist in `%s`!" \
+            mylog.warning("open_pmd: Attribute %s (%s) does NOT exist in `%s`!" \
             %(name, request, str(f.name)) )
             result_array = np.array([1, 0])
         elif request == "recommended":
-            mylog.info("openPMD: Attribute %s (%s) does NOT exist in `%s`!" \
+            mylog.info("open_pmd: Attribute %s (%s) does NOT exist in `%s`!" \
             %(name, request, str(f.name)) )
             result_array = np.array([0, 1])
         elif request == "optional":
             if v:
-                mylog.info("openPMD: Attribute %s (%s) does NOT exist in `%s`!"  \
+                mylog.info("open_pmd: Attribute %s (%s) does NOT exist in `%s`!"  \
             %(name, request, str(f.name)) )
             result_array = np.array([0, 0])
         else :
@@ -344,7 +344,7 @@ def check_root_attr(f, v, pic):
     if result_array[0] == 0 :
         if f.attrs["iterationEncoding"].decode() == "groupBased" :
             if f.attrs["iterationFormat"].decode() != f.attrs["basePath"].decode() :
-                mylog.warning("openPMD: for groupBased iterationEncoding the basePath "
+                mylog.warning("open_pmd: for groupBased iterationEncoding the basePath "
                       "and iterationFormat must match!")
                 result_array += np.array([1,0])
 
@@ -364,7 +364,7 @@ def check_root_attr(f, v, pic):
         valid, extensionIDs = get_attr(f, "openPMDextension")
         if valid:
             if (ext_list[0][1] & extensionIDs) != extensionIDs:
-                mylog.warning("openPMD: ID=%s for extension `%s` not found in " \
+                mylog.warning("open_pmd: ID=%s for extension `%s` not found in " \
                       "`openPMDextension` (is %s)!" \
                      %(ext_list[0][1], ext_list[0][0], extensionIDs) )
                 result_array += np.array([1,0])
@@ -409,12 +409,12 @@ def check_iterations(f, v, pic) :
                     format_error = True
     # Detect any error and interrupt execution if one is found
     if format_error == True :
-        mylog.warning("openPMD: it seems that the path of the data within the HDF5 file "
+        mylog.warning("open_pmd: it seems that the path of the data within the HDF5 file "
               "is not of the form '/data/%T/', where %T corresponds to an "
               "actual integer.")
         return(np.array([1, 0]))
     else :
-        mylog.info("openPMD: Found %d iteration(s)" % len(list_iterations) )
+        mylog.info("open_pmd: Found %d iteration(s)" % len(list_iterations) )
 
     # Initialize the result array
     # First element : number of errors
@@ -506,12 +506,12 @@ def check_meshes(f, iteration, v, pic):
     base_path = "/data/%s/" % iteration
     valid, meshes_path = get_attr(f, "meshesPath")
     if not valid :
-        mylog.warning("openPMD: `meshesPath` is missing or malformed in '/'")
+        mylog.warning("open_pmd: `meshesPath` is missing or malformed in '/'")
         return( np.array([1, 0]) )
     meshes_path = meshes_path.decode()
 
     if os.path.join( base_path, meshes_path) != ( base_path + meshes_path ):
-        mylog.warning("openPMD: `basePath`+`meshesPath` seems to be malformed "
+        mylog.warning("open_pmd: `basePath`+`meshesPath` seems to be malformed "
             "(is `basePath` absolute and ends on a `/` ?)")
         return( np.array([1, 0]) )
     else:
@@ -660,7 +660,7 @@ def check_particles(f, iteration, v, pic) :
     valid, particles_path = get_attr(f, "particlesPath")
     if os.path.join( base_path, particles_path) !=  \
         ( base_path + particles_path ) :
-        mylog.warning("openPMD: `basePath`+`meshesPath` seems to be malformed "
+        mylog.warning("open_pmd: `basePath`+`meshesPath` seems to be malformed "
             "(is `basePath` absolute and ends on a `/` ?)")
         return( np.array([1, 0]) )
     else:
@@ -690,7 +690,7 @@ def check_particles(f, iteration, v, pic) :
             position_dimensions = len(species["position"].keys())
             positionOffset_dimensions = len(species["positionOffset"].keys())
             if position_dimensions != positionOffset_dimensions :
-                mylog.warning("openPMD: `position` (ndim=%s) and `positionOffset` " \
+                mylog.warning("open_pmd: `position` (ndim=%s) and `positionOffset` " \
                       "(ndim=%s) do not have the same dimensions in " \
                       "species `%s`!" \
                       %(str(position_dimensions), \

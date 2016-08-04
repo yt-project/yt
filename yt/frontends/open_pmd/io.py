@@ -100,7 +100,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     for gridptype, ofs in g.particle_offset:
                         if str(gridptype) == str(spec):
                             offset = ofs
-                    mylog.debug("openPMD - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
+                    mylog.debug("open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     yield (ptype, (self.cache[0], self.cache[1], self.cache[2]))
@@ -149,7 +149,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                         spec = ptype
                     index = dict(g.particle_index).get(spec)
                     offset = dict(g.particle_offset).get(spec)
-                    mylog.debug("openPMD - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
+                    mylog.debug("open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index, offset))
                     if str((ptype, index, offset)) not in self._cached_ptype:
                         self._fill_cache(ptype, index, offset)
                     mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
@@ -268,12 +268,12 @@ class IOHandlerOpenPMD(BaseIOHandler):
             else:
                 shape = record_component.attrs["shape"] - index
             # component is constant, craft an array by hand
-            mylog.debug("openPMD - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
+            mylog.debug("open_pmd - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
             return np.full(shape, record_component.attrs["value"] * unitSI)
         else:
             if offset is not None:
                 offset += index
             # component is a dataset, return it (possibly masked)
             mylog.debug(
-                "openPMD - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+                "open_pmd - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
             return np.multiply(record_component[index:offset], unitSI)
