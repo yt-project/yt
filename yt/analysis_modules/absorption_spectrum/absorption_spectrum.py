@@ -45,12 +45,12 @@ class AbsorptionSpectrum(object):
        lower wavelength bound in angstroms.
     lambda_max : float
        upper wavelength bound in angstroms.
-    n_lambda : float
+    n_lambda : int
        number of wavelength bins.
     """
 
     def __init__(self, lambda_min, lambda_max, n_lambda):
-        self.n_lambda = n_lambda
+        self.n_lambda = int(n_lambda)
         # lambda, flux, and tau are wavelength, flux, and optical depth
         self.lambda_min = lambda_min
         self.lambda_max = lambda_max
@@ -301,7 +301,7 @@ class AbsorptionSpectrum(object):
             valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
-            pbar = get_pbar("Adding continuum feature - %s [%f A]: " % \
+            pbar = get_pbar("Adding continuum - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
             for i, lixel in enumerate(valid_continuua):
