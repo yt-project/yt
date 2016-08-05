@@ -41,7 +41,12 @@ class ClumpInfoCallback(object):
             clump.info[self.name] = self.function(clump, *self.args, **self.kwargs)
         rv = clump.info[self.name]
         return rv[0] % rv[1]
-    
+
+def _center_of_mass(clump, units="code_length", **kwargs):
+    p = clump.quantities.center_of_mass(**kwargs)
+    return "Center of mass: %s.", p.to(units)
+add_clump_info("center_of_mass", _center_of_mass)
+
 def _total_cells(clump):
     n_cells = clump.data["index", "ones"].size
     return "Cells: %d.", n_cells
