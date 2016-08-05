@@ -374,7 +374,7 @@ def test_absorption_spectrum_with_continuum():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    ds = yt.load(ISO_GALAXY)
+    ds = load(ISO_GALAXY)
     lr = LightRay(ds)
 
     ray_start = ds.domain_left_edge
