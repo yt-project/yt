@@ -55,7 +55,7 @@ def is_const_component(record_component):
 
 
 class OpenPMDGrid(AMRGridPatch):
-    """Represents a disjoined chunk of data on-disk.
+    """Represents disjoint chunk of data on-disk and their relation.
 
     The chunks are sliced off the original field along the x-axis.
     This defines the index and offset for every mesh and particle type.
@@ -63,9 +63,10 @@ class OpenPMDGrid(AMRGridPatch):
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
-    particle_index = []   # Every particle species might have distinct hdf5-indices
-    particle_offset = []  # and offsets. Contain tuples (ptype, index) and (ptype, offset)
-    # TODO (maybe) consider these for every ftype
+    # Every particle species might have different hdf5-indices and offsets
+    # These contain tuples (ptype, index) and (ptype, offset)
+    particle_index = []
+    particle_offset = []
     mesh_index = 0
     mesh_offset = 0
 
@@ -87,9 +88,9 @@ class OpenPMDGrid(AMRGridPatch):
 
 
 class OpenPMDHierarchy(GridIndex):
-    """
-    Defines which fields and particles are created and read from the hard disk
-    Furthermore it defines the characteristics of the grids
+    """Defines which fields and particles are created and read from the hard disk.
+
+    Furthermore it defines the characteristics of the grids.
     """
     grid = OpenPMDGrid
 
@@ -190,21 +191,18 @@ class OpenPMDHierarchy(GridIndex):
         self.num_grids = int(ceil(np.max(self.numparts.values()) * ppg**-1))
 
     def _parse_index(self):
-        """
-            Parses dimensions from self._handle into self.
+        """Fills each grid with appropriate properties (extent, dimensions, ...)
 
-            From yt doc:
-            this must fill in
-                grid_left_edge,
-                grid_right_edge,
-                grid_particle_count,
-                grid_dimensions and
-                grid_levels
-            with the appropriate information.
-            Each of these variables is an array with an entry for each of the self.num_grids grids.
-            Additionally, grids must be an array of AMRGridPatch objects that already know their IDs.
+        This calculates the properties of every OpenPMDGrid based on the total number of grids in the simulation.
+         The domain is divided into ``self.num_grids`` equally sized chunks along the x-axis.
+        ``grid_levels`` is always equal to 0 since we only have one level of refinement in openPMD.
+
+        Notes
+        -----
+        ``self.grid_dimensions`` is rounded to the nearest integer.
+        Furthermore the last grid might be smaller and have fewer particles than the others.
+        In general, NOT all particles in a grid will be inside the grid edges.
         """
-        # There is only one refinement level in openPMD
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
 
@@ -236,7 +234,7 @@ class OpenPMDHierarchy(GridIndex):
                     # The last grid need not be the same size as the previous ones
                     num = nrp[spec]
                 else:
-                    num = int(floor(self.numparts[spec] * self.num_grids ** -1))
+                    num = int(floor(self.numparts[spec] * self.num_grids**-1))
                 particlecount += [(spec, num)]
                 nrp[spec] -= num
                 self.grid_particle_count[i] += num
@@ -252,12 +250,10 @@ class OpenPMDHierarchy(GridIndex):
             remaining -= self.grid_dimensions[i][0]
 
     def _populate_grid_objects(self):
-        """
-            This function initializes the grids
+        """This initializes all grids.
 
-            From yt doc:
-            this initializes the grids by calling _prepare_grid() and _setup_dx() on all of them.
-            Additionally, it should set up Children and Parent lists on each grid object.
+        Additionally, it should set up Children and Parent lists on each grid object.
+        openPMD is not adaptive and thus there are no Children and Parents for any grid.
         """
         for i in range(self.num_grids):
             self.grids[i]._prepare_grid()
@@ -266,14 +262,7 @@ class OpenPMDHierarchy(GridIndex):
 
 
 class OpenPMDDataset(Dataset):
-    """
-    A dataset object contains all the information of the simulation and
-    is intialized with yt.load()
-    
-    TODO Ideally, a data set object should only contain a single data set.
-         afaik, yt.load() can load multiple data sets and also supports
-         multiple iteration-loading if done that way, e.g., from a prefix
-         of files.
+    """Contains all the required information of a single iteration of the simulation.
     """
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
@@ -284,65 +273,66 @@ class OpenPMDDataset(Dataset):
                  units_override=None,
                  unit_system="mks"):
         self._handle = HDF5FileHandler(filename)
-        self._filepath = os.path.dirname(filename)
-        if self._nonstandard:
-            self._set_nonstandard_paths(self._handle)
-        else:
-            self._set_paths(self._handle, self._filepath)
+        self._set_paths(self._handle, os.path.dirname(filename), self._nonstandard)
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
         self.fluid_types += ('openPMD',)
-        parts = tuple(str(c) for c in self._handle[self.base_path + self.particles_path].keys())
-        if len(parts) > 1:
-            # Only use infile particle names if there is more than one species
-            self.particle_types = parts
-        mylog.debug("open_pmd - self.particle_types: {}".format(self.particle_types))
+        particles = tuple(str(c) for c in self._handle[self.base_path + self.particles_path].keys())
+        if len(particles) > 1:
+            # Only use on-disk particle names if there is more than one species
+            self.particle_types = particles
+        mylog.debug("open_pmd: self.particle_types: {}".format(self.particle_types))
         self.particle_types_raw = self.particle_types
         self.particle_types = tuple(self.particle_types)
 
-    def _set_nonstandard_paths(self, handle):
-        iteration = handle["/data"].keys()[0]
-        self.base_path = "/data/{}/".format(iteration)
-        self.meshes_path = "fields/"
-        self.particles_path = "particles/"
+    def _set_paths(self, handle, path, nonstandard):
+        """Parses relevant hdf5-paths out of ``handle``.
 
-    def _set_paths(self, handle, filepath):
-        list_iterations = []
-        if u"groupBased" in handle.attrs["iterationEncoding"]:
-            for i in list(handle["/data"].keys()):
-                list_iterations.append(i)
-            mylog.info("open_pmd: found {} iterations in file".format(len(list_iterations)))
-        elif u"fileBased" in handle.attrs["iterationEncoding"]:
-            regex = u"^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + u"$"
-            if filepath is '':
-                mylog.warning("open_pmd: For file based iterations, please use absolute file paths!")
-                pass
-            for filename in os.listdir(filepath):
-                if re.match(regex, filename):
-                    list_iterations.append(filename)
-            mylog.info("open_pmd: found {} iterations in directory".format(len(list_iterations)))
+        Parameters
+        ----------
+        handle : h5py._hl.files.File
+        path : str
+        nonstandard : bool
+        """
+        self.base_path = "/data/{}/".format(handle["/data"].keys()[0])
+        if nonstandard:
+            self.meshes_path = "fields/"
+            self.particles_path = "particles/"
         else:
-            mylog.warning(
-                "openOMD: File does not have valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
+            list_iterations = []
+            if "groupBased" in handle.attrs["iterationEncoding"]:
+                for i in list(handle["/data"].keys()):
+                    list_iterations.append(i)
+                mylog.info("open_pmd: found {} iterations in file".format(len(list_iterations)))
+            elif "fileBased" in handle.attrs["iterationEncoding"]:
+                regex = "^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + "$"
+                if path is '':
+                    mylog.warning("open_pmd: For file based iterations, please use absolute file paths!")
+                    pass
+                for filename in os.listdir(path):
+                    if re.match(regex, filename):
+                        list_iterations.append(filename)
+                mylog.info("open_pmd: found {} iterations in directory".format(len(list_iterations)))
+            else:
+                mylog.warning(
+                    "open_pmd: No valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
 
-        if len(list_iterations) == 0:
-            mylog.warning("openOMD: No iterations found!")
-        if u"groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
-            mylog.warning("open_pmd: only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
+            if len(list_iterations) == 0:
+                mylog.warning("open_pmd: No iterations found!")
+            if "groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
+                mylog.warning("open_pmd: only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
 
-        self.base_path = "{}/{}/".format("/data", handle["/data"].keys()[0])
-        self.meshes_path = self._handle["/"].attrs["meshesPath"]
-        self.particles_path = self._handle["/"].attrs["particlesPath"]
+            self.meshes_path = self._handle["/"].attrs["meshesPath"]
+            self.particles_path = self._handle["/"].attrs["particlesPath"]
 
     def _set_code_unit_attributes(self):
+        """Handle conversion between different physical units and the code units.
+
+        These are hardcoded as 1.0. Every dataset in openPMD can have different code <-> physical scaling.
+        The individual factor is obtained by multiplying with "unitSI" reading getting data from disk.
         """
-            From yt doc:
-            handle conversion between the different physical units and the code units
-        """
-        # We hardcode these to 1.0 since every dataset can have different code <-> physical scaling
-        # We get the actual unit by multiplying with "unitSI" when getting our data from disk
         self.length_unit = self.quan(1.0, "m")
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
@@ -350,9 +340,11 @@ class OpenPMDDataset(Dataset):
         self.magnetic_unit = self.quan(1.0, "T")
 
     def _parse_parameter_file(self):
-        """
-            From yt doc:
-            read in metadata describing the overall data on disk
+        """Read in metadata describing the overall data on-disk.
+
+        Notes
+        -----
+        All meshes are assumed to have the same dimensions and size.
         """
         f = self._handle
         bp = self.base_path
@@ -360,8 +352,10 @@ class OpenPMDDataset(Dataset):
 
         self.unique_identifier = 0
         self.parameters = 0
+        self.periodicity = np.zeros(3, dtype=np.bool)
+        self.refine_by = 1
+        self.cosmological_simulation = 0
 
-        # We assume all fields to have the same shape
         try:
             mesh = f[bp + mp].keys()[0]
             axis = f[bp + mp + "/" + mesh].keys()[0]
@@ -390,8 +384,8 @@ class OpenPMDDataset(Dataset):
             self.domain_right_edge = self.domain_dimensions[:spacing.size] * unitSI * spacing
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except Exception as e:
-            mylog.warning("The domain extent could not be calculated! ({}) Setting the field extent to 1m**3! "
-                          "This WILL break particle-overplotting!".format(e))
+            mylog.warning(
+                "The domain extent could not be calculated! ({}) Setting the field extent to 1m**3!".format(e))
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         if self._nonstandard:
@@ -399,15 +393,9 @@ class OpenPMDDataset(Dataset):
         else:
             self.current_time = f[bp].attrs["time"]
 
-        self.periodicity = np.zeros(3, dtype=np.bool)
-        self.refine_by = 1
-        self.cosmological_simulation = 0
-
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        """
-            Checks whether the supplied file adheres to the required openPMD standards
-            and thus can be read by this frontend
+        """Checks whether the supplied file can be read by this frontend.
         """
         try:
             f = validator.open_file(args[0])
@@ -426,10 +414,13 @@ class OpenPMDDataset(Dataset):
         # this might still be a compatible file not fully respecting openPMD standards
         if result_array[0] != 0:
             try:
-                if "/data" in f and f["/data"].keys()[0].isdigit():
+                iteration = f["/data"].keys()[0]
+                if iteration.isdigit() \
+                        and "fields" in f["/data/" + iteration].keys()\
+                        and "particles" in f["/data/" + iteration].keys():
                     self._nonstandard = True
-                    mylog.info("Reading a file with the open_pmd frontend that does not respect standards? "
-                                "Just understand that you're on your own for this!")
+                    mylog.info(
+                        "open_pmd - Reading a file not compliant with the standard. No support will be guaranteed!")
                     return True
             except:
                 return False
