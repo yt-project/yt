@@ -366,7 +366,7 @@ def test_absorption_spectrum_non_cosmo_sph():
 def test_absorption_spectrum_with_continuum():
     """
     This test generates an absorption spectrum from a simple light ray on a
-    grid dataset and adds a Lyman continuum to it
+    grid dataset and adds Lyman alpha and Lyman continuum to it
     """
 
     # Set up in a temp dir
@@ -421,4 +421,3 @@ def test_absorption_spectrum_with_continuum():
     # clean up
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
-
