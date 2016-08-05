@@ -96,9 +96,10 @@ class LightRay(CosmologySplice):
         Default: 0.
     high_res_box_size_fraction : optional, float
         For use with zoom-in simulations, use to specify the size of the
-        high resolution region of the simulation.  If set, the light ray
-        solution will be calculated such that rays only make use of the
-        high resolution region.
+        high resolution region of the simulation in terms of the fraction
+        of the total domain size.  If set, the light ray solution will be
+        calculated such that rays only make use of the high resolution
+        region.
         Default: 1.0.
     time_data : optional, bool
         Whether or not to include time outputs when gathering
@@ -329,7 +330,7 @@ class LightRay(CosmologySplice):
             generated.  If None, the right edge will be that of the
             domain.
             Default: None.
-        min_left : optional, int
+        min_level : optional, int
             The minimum refinement level of the spatial region in which
             the ray passes.  This can be used with zoom-in simulations
             where the high resolution region does not keep a constant

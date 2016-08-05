@@ -70,9 +70,10 @@ class CosmologySplice(object):
             one dataset to another.
             Default: 1.0 (the size of the box)
         high_res_box_size_fraction : float
-            In terms of the size of the domain, the size of the region that
-            will be used to calculate the redshift interval from one dataset
-            to another.  Must be <= 1.0.
+            The fraction of the total domain size that will be used to
+            calculate the redshift interval from one dataset
+            to another.  Use this when working with zoom-in simulations.
+            Must be <= 1.0.
             Default:  1.0 (the size of the box)
         deltaz_min : float
             Specifies the minimum delta z between consecutive datasets
