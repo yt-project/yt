@@ -5,7 +5,7 @@ openPMD-specific fields
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 # Copyright (c) 2015, Daniel Grassinger (HZDR)
 # Copyright (c) 2016, Fabian Koller (HZDR)
@@ -13,26 +13,25 @@ openPMD-specific fields
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-import numpy as np
 from yt.funcs import mylog
 from yt.utilities.physical_constants import speed_of_light
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.magnetic_field import \
-    setup_magnetic_field_aliases
-from .misc import parse_unit_dimension
-import yt
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.units.yt_array import YTQuantity
+from yt.fields.magnetic_field import setup_magnetic_field_aliases
+from yt.frontends.open_pmd.misc import parse_unit_dimension
+
+import numpy as np
 
 
 def setup_kinetic_energy(self, ptype):
     def _kin_en(field, data):
-        p2 = (data[ptype, "particle_momentum_x"]**2 +
-              data[ptype, "particle_momentum_y"]**2 +
-              data[ptype, "particle_momentum_z"]**2)
+        p2 = (data[ptype, "particle_momentum_x"] ** 2 +
+              data[ptype, "particle_momentum_y"] ** 2 +
+              data[ptype, "particle_momentum_z"] ** 2)
         mass = data[ptype, "particle_mass"] * data[ptype, "particle_weighting"]
-        return speed_of_light * np.sqrt(p2 + mass**2 * speed_of_light**2) - mass * speed_of_light**2
+        return speed_of_light * np.sqrt(p2 + mass ** 2 * speed_of_light ** 2) - mass * speed_of_light ** 2
 
     self.add_field((ptype, "particle_kinetic_energy"),
                    function=_kin_en,
@@ -48,8 +47,8 @@ def setup_velocity(self, ptype):
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
             return momentum / (
-                                  (mass * weighting)**2 +
-                                  (momentum**2) / (c**2)
+                                  (mass * weighting) ** 2 +
+                                  (momentum ** 2) / (c ** 2)
                               ) ** 0.5
 
         return velocity
@@ -124,13 +123,13 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     parsed = ""
                 else:
                     parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype="int"))
-                unit = str(yt.YTQuantity(1, parsed).units)
+                unit = str(YTQuantity(1, parsed).units)
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
                 # We can not reasonably infer field type by name in openPMD
                 if "T" in unit or "kg/(A*s**2)" in unit:
                     self._mag_fields.append(ytname)
-                self.known_other_fields += ((ytname, (unit, aliases, None)), )
+                self.known_other_fields += ((ytname, (unit, aliases, None)),)
             else:
                 if ds._nonstandard:
                     axes = "xyz"  # naively assume all fields in non-standard files are 3D
@@ -142,13 +141,13 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         parsed = ""
                     else:
                         parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype="int"))
-                    unit = str(yt.YTQuantity(1, parsed).units)
+                    unit = str(YTQuantity(1, parsed).units)
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
                     # We can not reasonably infer field type by name in openPMD
                     if "T" in unit or "kg/(A*s**2)" in unit:
                         self._mag_fields.append(ytname)
-                    self.known_other_fields += ((ytname, (unit, aliases, None)), )
+                    self.known_other_fields += ((ytname, (unit, aliases, None)),)
         for i in self.known_other_fields:
             mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
 
@@ -168,7 +167,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     else:
                         parsed = parse_unit_dimension(
                             np.asarray(particles.get(species).get(attrib).attrs["unitDimension"], dtype="int"))
-                    unit = str(yt.YTQuantity(1, parsed).units)
+                    unit = str(YTQuantity(1, parsed).units)
                     name = ["particle", attrib]
                     ytattrib = attrib
                     # Symbolically rename position to preserve yt's interpretation of the pfield
@@ -182,7 +181,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         ytname = str("_".join(name))
                         if ds._nonstandard and "globalCellIdx" in ytname:
                             aliases.append(ytname.replace("globalCellIdx", "positionOffset"))
-                        particle_fields += ((ytname, (unit, aliases, None)), )
+                        particle_fields += ((ytname, (unit, aliases, None)),)
                 except:
                     mylog.info("{}_{} does not seem to have unitDimension".format(species, attrib))
         self.known_particle_fields = particle_fields

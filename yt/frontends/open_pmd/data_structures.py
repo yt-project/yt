@@ -4,7 +4,7 @@ openPMD data structures
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 # Copyright (c) 2015, Daniel Grassinger (HZDR)
 # Copyright (c) 2016, Fabian Koller (HZDR)
@@ -12,47 +12,20 @@ openPMD data structures
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
-from .fields import OpenPMDFieldInfo
-
-from yt.utilities.file_handler import \
-    HDF5FileHandler
-
-import yt.frontends.open_pmd.misc as validator
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.data_objects.static_output import Dataset
+from yt.utilities.file_handler import HDF5FileHandler
+from yt.utilities.logger import ytLogger as mylog
+from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
+from yt.frontends.open_pmd.misc import is_const_component, check_root_attr, check_iterations
 
 import numpy as np
 import os
 import re
 from math import ceil, floor
-from yt.utilities.logger import ytLogger as mylog
-
-
-def is_const_component(record_component):
-    """Determines whether a group or dataset in the HDF5 file is constant.
-
-    Parameters
-    ----------
-    record_component : HDF5 group or dataset
-
-    Returns
-    -------
-    bool
-        True if constant, False otherwise
-
-    References
-    ----------
-    .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md,
-       section 'Constant Record Components'
-    """
-    return "value" in record_component.attrs.keys()
-
 
 class OpenPMDGrid(AMRGridPatch):
     """Represents disjoint chunk of data on-disk and their relation.
@@ -70,8 +43,8 @@ class OpenPMDGrid(AMRGridPatch):
     mesh_index = 0
     mesh_offset = 0
 
-    def __init__(self, id, index, level=-1, pi=None, po=None, mi=0, mo=0):
-        AMRGridPatch.__init__(self, id, filename=index.index_filename,
+    def __init__(self, gid, index, level=-1, pi=None, po=None, mi=0, mo=0):
+        AMRGridPatch.__init__(self, gid, filename=index.index_filename,
                               index=index)
         if pi:
             self.particle_index = pi
@@ -114,7 +87,7 @@ class OpenPMDHierarchy(GridIndex):
         bp = self.dataset.base_path
         mp = self.dataset.meshes_path
         pp = self.dataset.particles_path
-        
+
         mesh_fields = []
         try:
             for field in f[bp + mp].keys():
@@ -123,7 +96,7 @@ class OpenPMDHierarchy(GridIndex):
                         mesh_fields.append(field + "_" + ax)
                 except AttributeError:
                     # This is for dataSets, they do not have keys
-                    mesh_fields.append(field.replace("_","-"))
+                    mesh_fields.append(field.replace("_", "-"))
         except KeyError:
             # There are no mesh fields
             pass
@@ -176,7 +149,7 @@ class OpenPMDHierarchy(GridIndex):
         mp = self.dataset.meshes_path
         pp = self.dataset.particles_path
 
-        gridsize = 10 * 10**6  # Byte
+        gridsize = 10 * 10 ** 6  # Byte
         self.numparts = {}
 
         for species in f[bp + pp].keys():
@@ -186,9 +159,9 @@ class OpenPMDHierarchy(GridIndex):
             else:
                 self.numparts[species] = f[bp + pp + species + "/position/" + axis].len()
         # Limit particles per grid by resulting memory footprint
-        ppg = int(gridsize/(self.dataset.dimensionality*4))  # 4 Byte per value per dimension (f32)
+        ppg = int(gridsize / (self.dataset.dimensionality * 4))  # 4 Byte per value per dimension (f32)
         # Use an upper bound of equally sized grids, last one might be smaller
-        self.num_grids = int(ceil(np.max(self.numparts.values()) * ppg**-1))
+        self.num_grids = int(ceil(np.max(self.numparts.values()) * ppg ** -1))
 
     def _parse_index(self):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
@@ -216,15 +189,14 @@ class OpenPMDHierarchy(GridIndex):
         for i in range(self.num_grids):
             self.grid_dimensions[i] = self.dataset.domain_dimensions
             prev = remaining
-            remaining -= self.grid_dimensions[i][0] * self.num_grids**-1
+            remaining -= self.grid_dimensions[i][0] * self.num_grids ** -1
             self.grid_dimensions[i][0] = int(round(prev, 0) - round(remaining, 0))
             self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()
             self.grid_left_edge[i][0] = meshedge
             self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()
-            self.grid_right_edge[i][0] = self.grid_left_edge[i][0] \
-                                         + self.grid_dimensions[i][0]\
-                                          * self.dataset.domain_dimensions[0]**-1\
-                                          * self.dataset.domain_right_edge[0]
+            self.grid_right_edge[i][0] = self.grid_left_edge[i][0] + self.grid_dimensions[i][0] * \
+                                                                     self.dataset.domain_dimensions[0] ** -1 * \
+                                                                     self.dataset.domain_right_edge[0]
             meshedge = self.grid_right_edge[i][0]
             particlecount = []
             particleindex = []
@@ -234,7 +206,7 @@ class OpenPMDHierarchy(GridIndex):
                     # The last grid need not be the same size as the previous ones
                     num = nrp[spec]
                 else:
-                    num = int(floor(self.numparts[spec] * self.num_grids**-1))
+                    num = int(floor(self.numparts[spec] * self.num_grids ** -1))
                 particlecount += [(spec, num)]
                 nrp[spec] -= num
                 self.grid_particle_count[i] += num
@@ -292,7 +264,7 @@ class OpenPMDDataset(Dataset):
 
         Parameters
         ----------
-        handle : h5py._hl.files.File
+        handle : h5py.File
         path : str
         nonstandard : bool
         """
@@ -377,11 +349,11 @@ class OpenPMDDataset(Dataset):
                 height = f[bp].attrs['cell_height']
                 depth = f[bp].attrs['cell_depth']
                 spacing = np.asarray([width, height, depth])
-                unitSI = f[bp].attrs['unit_length']
+                unit_si = f[bp].attrs['unit_length']
             else:
                 spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-                unitSI = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
-            self.domain_right_edge = self.domain_dimensions[:spacing.size] * unitSI * spacing
+                unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
+            self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except Exception as e:
             mylog.warning(
@@ -398,25 +370,25 @@ class OpenPMDDataset(Dataset):
         """Checks whether the supplied file can be read by this frontend.
         """
         try:
-            f = validator.open_file(args[0])
+            f = HDF5FileHandler(args[0])
         except:
             return False
         verbose = False
         extension_pic = False
         # root attributes at "/"
         result_array = np.array([0, 0])
-        result_array += validator.check_root_attr(f, verbose, extension_pic)
+        result_array += check_root_attr(f, verbose, extension_pic)
 
         # Go through all the iterations, checking both the particles
         # and the meshes
-        result_array += validator.check_iterations(f, verbose, extension_pic)
+        result_array += check_iterations(f, verbose, extension_pic)
 
         # this might still be a compatible file not fully respecting openPMD standards
         if result_array[0] != 0:
             try:
                 iteration = f["/data"].keys()[0]
                 if iteration.isdigit() \
-                        and "fields" in f["/data/" + iteration].keys()\
+                        and "fields" in f["/data/" + iteration].keys() \
                         and "particles" in f["/data/" + iteration].keys():
                     self._nonstandard = True
                     mylog.info(
