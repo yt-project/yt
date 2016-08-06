@@ -23,6 +23,7 @@ from yt.fields.derived_field import \
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
+    deprecate, \
     get_output_filename, \
     iterable, \
     mylog
@@ -474,6 +475,7 @@ def get_lowest_clumps(clump, clump_list=None):
 
     return clump_list
 
+@deprecate("Clump.save_as_dataset")
 def write_clump_index(clump, level, fh):
     top = False
     if isinstance(fh, string_types):
@@ -491,6 +493,7 @@ def write_clump_index(clump, level, fh):
     if top:
         fh.close()
 
+@deprecate("Clump.save_as_dataset")
 def write_clumps(clump, level, fh):
     top = False
     if isinstance(fh, string_types):
