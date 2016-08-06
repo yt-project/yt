@@ -482,6 +482,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
+
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
@@ -491,7 +492,7 @@ class YTNonspatialGrid(AMRGridPatch):
             self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
-        read_particles, gen_particles = self.index._read_particle_fields(
+        read_particles, gen_particles = self.index._read_fluid_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
             self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
