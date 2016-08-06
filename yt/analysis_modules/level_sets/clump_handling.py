@@ -28,6 +28,8 @@ from yt.funcs import \
     mylog
 from yt.extern.six import \
     string_types
+from yt.utilities.tree_container import \
+    TreeContainer
 
 from .clump_info_items import \
     clump_info_registry
@@ -53,7 +55,7 @@ def add_contour_field(ds, contour_key):
                  display_field=False,
                  units='')
 
-class Clump(object):
+class Clump(TreeContainer):
     children = None
     def __init__(self, data, field, parent=None,
                  clump_info=None, validators=None,
@@ -183,12 +185,12 @@ class Clump(object):
                                        contour_key=contour_key,
                                        contour_id=cid))
 
-    def twalk(self):
+    def __iter__(self):
         yield self
         if self.children is None:
             return
         for child in self.children:
-            for a_node in child.twalk():
+            for a_node in child:
                 yield a_node
 
     def save_as_dataset(self, filename=None, fields=None):
@@ -227,7 +229,7 @@ class Clump(object):
         clump_info.update(
             dict([(field, []) for field in ["clump_id", "parent_id",
                                             "contour_key", "contour_id"]]))
-        for clump in self.twalk():
+        for clump in self:
             clump_info["clump_id"].append(clump.clump_id)
             if clump.parent is None:
                 parent_id = -1
@@ -283,7 +285,7 @@ class Clump(object):
                             ftypes[p_field] = p_field[0]
                             field_data[p_field] = self.base[p_field]
 
-                for clump in self.twalk():
+                for clump in self:
                     if clump.contour_key is None:
                         continue
                     for ptype in ptypes:
