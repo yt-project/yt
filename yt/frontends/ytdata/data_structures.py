@@ -752,6 +752,16 @@ class YTClumpTreeDataset(YTNonspatialDataset):
                 parent = my_tree[clump.parent_id]
                 parent.add_child(clump)
 
+    _leaves = None
+    @property
+    def leaves(self):
+        if self._leaves is None:
+            self._leaves = []
+            for clump in self.tree:
+                if clump.children is None:
+                    self._leaves.append(clump)
+        return self._leaves
+
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
