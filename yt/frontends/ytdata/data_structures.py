@@ -58,6 +58,8 @@ from yt.utilities.on_demand_imports import \
     _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.utilities.tree_container import \
+    TreeContainer
 from yt.fields.field_exceptions import \
     NeedsGridType
 from yt.data_objects.data_containers import \
@@ -491,14 +493,30 @@ class YTNonspatialGrid(AMRGridPatch):
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            convert = True
+            if v.dtype != np.float64:
+                if finfos[f].units == "":
+                    self.field_data[f] = v
+                    convert = False
+                else:
+                    v = v.astype(np.float64)
+            if convert:
+                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_fluid_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            convert = True
+            if v.dtype != np.float64:
+                if finfos[f].units == "":
+                    self.field_data[f] = v
+                    convert = False
+                else:
+                    v = v.astype(np.float64)
+            if convert:
+                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -681,5 +699,66 @@ class YTProfileDataset(YTNonspatialDataset):
         with h5py.File(args[0], "r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
+                return True
+        return False
+
+class YTClumpContainer(TreeContainer):
+    def __init__(self, clump_id, global_id, parent_id,
+                 contour_key, contour_id, ds=None):
+        self.clump_id = clump_id
+        self.global_id = global_id
+        self.parent_id = parent_id
+        self.contour_key = contour_key
+        self.contour_id = contour_id
+        self.ds = ds
+        TreeContainer.__init__(self)
+
+    def add_child(self, child):
+        if self.children is None:
+            self.children = []
+        self.children.append(child)
+
+    def __repr__(self):
+        return "Clump[%d]" % self.clump_id
+
+    def __getitem__(self, field):
+        g = self.ds.data
+        f = g._determine_fields(field)[0]
+        if f[0] == "clump":
+            return g[f][self.global_id]
+        if self.contour_id == -1:
+            return g[f]
+        cfield = (f[0], "contours_%s" % self.contour_key)
+        return g[f][g[cfield] == self.contour_id]
+
+class YTClumpTreeDataset(YTNonspatialDataset):
+    """Dataset for saved clump-finder data."""
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTClumpTreeDataset, self).__init__(filename,
+                                                 unit_system=unit_system)
+        self._load_tree()
+
+    def _load_tree(self):
+        my_tree = {}
+        for i, clump_id in enumerate(self.data[("clump", "clump_id")]):
+            my_tree[clump_id] = YTClumpContainer(
+                clump_id, i, self.data["clump", "parent_id"][i],
+                self.data["clump", "contour_key"][i],
+                self.data["clump", "contour_id"][i], self)
+        for clump in my_tree.values():
+            if clump.parent_id == -1:
+                self.tree = clump
+            else:
+                parent = my_tree[clump.parent_id]
+                parent.add_child(clump)
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = parse_h5_attr(f, "data_type")
+            if data_type is None:
+                return False
+            if data_type == "yt_clump_tree":
                 return True
         return False
