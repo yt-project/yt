@@ -110,6 +110,7 @@ class CosmologySplice(object):
         if high_res_box_size_fraction > 1.:
             raise RuntimeError(
                 "high_res_box_size_fraction must be <= 1.")
+        self.high_res_box_size_fraction = high_res_box_size_fraction
 
         # Link datasets in list with pointers.
         # This is used for connecting datasets together.
@@ -130,8 +131,6 @@ class CosmologySplice(object):
         # Calculate minimum delta z for each data dump.
         self._calculate_deltaz_min(deltaz_min=deltaz_min)
 
-        self.high_res_box_size_fraction = high_res_box_size_fraction
-        
         cosmology_splice = []
  
         if near_redshift == far_redshift:
@@ -276,7 +275,8 @@ class CosmologySplice(object):
                 rounded += np.power(10.0, (-1.0*decimals))
             z = rounded
 
-            deltaz_max = self._deltaz_forward(z, self.simulation.box_size*self.high_res_box_size_fraction)
+            deltaz_max = self._deltaz_forward(z, self.simulation.box_size *
+                                              self.high_res_box_size_fraction)
             outputs.append({'redshift': z, 'dz_max': deltaz_max})
             z -= deltaz_max
 
@@ -297,7 +297,8 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        target_distance = self.simulation.box_size #* self.high_res_box_size_fraction
+        target_distance = self.simulation.box_size * \
+          self.high_res_box_size_fraction
 
         for output in self.splice_outputs:
             z = output['redshift']
