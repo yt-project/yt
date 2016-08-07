@@ -773,6 +773,7 @@ class YTCutRegion(YTSelectionContainer3D):
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
+        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -826,7 +827,6 @@ class YTCutRegion(YTSelectionContainer3D):
                 np.logical_and(res, ind, ind)
         return ind
 
-    _particle_mask = {}
     def _part_ind(self, ptype):
         if self._particle_mask.get(ptype) is None:
             parent = getattr(self, "parent", self.base_object)
