@@ -708,6 +708,7 @@ class YTClumpContainer(TreeContainer):
         self.parent_id = parent_id
         self.contour_key = contour_key
         self.contour_id = contour_id
+        self.parent = None
         self.ds = ds
         TreeContainer.__init__(self)
 
@@ -715,6 +716,7 @@ class YTClumpContainer(TreeContainer):
         if self.children is None:
             self.children = []
         self.children.append(child)
+        child.parent = self
 
     def __repr__(self):
         return "Clump[%d]" % self.clump_id
@@ -727,7 +729,9 @@ class YTClumpContainer(TreeContainer):
         if self.contour_id == -1:
             return g[f]
         cfield = (f[0], "contours_%s" % self.contour_key.decode('utf-8'))
-        return g[f][g[cfield] == self.contour_id]
+        if f[0] == "grid":
+            return g[f][g[cfield] == self.contour_id]
+        return self.parent[f][g[cfield] == self.contour_id]
 
 class YTClumpTreeDataset(YTNonspatialDataset):
     """Dataset for saved clump-finder data."""

@@ -325,7 +325,7 @@ class Clump(TreeContainer):
                         cfield = (ptype, "contours_%s" % clump.contour_key)
                         if cfield not in field_data:
                             field_data[cfield] = \
-                              -1 * clump.base.data[(ptype, "particle_ones")]
+                              clump.data._part_ind(ptype).astype(np.int64)
                             ftypes[cfield] = ptype
                         field_data[cfield][clump.data._part_ind(ptype)] = \
                           clump.contour_id
