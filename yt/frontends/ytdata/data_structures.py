@@ -27,8 +27,6 @@ from .fields import \
     YTDataContainerFieldInfo, \
     YTGridFieldInfo
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.particle_unions import \

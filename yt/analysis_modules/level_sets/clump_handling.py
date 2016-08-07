@@ -304,7 +304,6 @@ class Clump(TreeContainer):
                 if ds.field_info[f].particle_type:
                     if f[0] not in ptypes:
                         ptypes.append(f[0])
-                    need_particle_positions = True
                     ftypes[f] = f[0]
                 else:
                     need_grid_positions = True
