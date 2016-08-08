@@ -110,6 +110,13 @@ cdef int walk_volume(VolumeContainer *vc,
             # We are somewhere in the middle of the face
             temp_x = intersect_t * v_dir[i] + v_pos[i] # current position
             temp_y = ((temp_x - vc.left_edge[i])*vc.idds[i])
+            # There are some really tough cases where we just within a couple
+            # least significant places of the edge, and this helps prevent
+            # killing the calculation through a segfault in those cases.
+            if -1 < temp_y < 0 and step[i] > 0:
+                temp_y = 0.0
+            elif vc.dims[i] - 1 < temp_y < vc.dims[i] and step[i] < 0:
+                temp_y = vc.dims[i] - 1
             cur_ind[i] =  <int> (floor(temp_y))
         if step[i] > 0:
             temp_y = (cur_ind[i] + 1) * vc.dds[i] + vc.left_edge[i]
