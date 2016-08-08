@@ -2526,8 +2526,8 @@ class CellEdgesCallback(PlotCallback):
                 ny = 1600
             long_axis = nx
         line_width = max(self.line_width*long_axis, 1.0)
-        im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
-        im = pixelize_cartesian(im_buffer,
+        im = np.zeros((ny, nx), dtype="f8")
+        pixelize_cartesian(im,
                                 plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
@@ -2536,6 +2536,7 @@ class CellEdgesCallback(PlotCallback):
                                 (x0, x1, y0, y1),
                                 line_width=line_width)
         # New image:
+        im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
         im_buffer[im > 0, 3] = 255
         im_buffer[im > 0, :3] = self.color
         plot._axes.imshow(im_buffer, origin='lower',
