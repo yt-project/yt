@@ -132,7 +132,8 @@ class SphericalCoordinateHandler(CoordinateHandler):
                               data_source['pdy'],
                               data_source[field], bounds)
         elif name == 'phi':
-            pixelize_cylinder(buff,
+            # Note that we feed in buff.T here
+            pixelize_cylinder(buff.T,
                              data_source['px'],
                              data_source['pdx'],
                              data_source['py'],
