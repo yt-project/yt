@@ -116,7 +116,10 @@ then
         echo
         echo "    $ source deactivate"
         echo
-        echo "or install yt into your current environment"
+        echo "or install yt into your current environment with:"
+        echo
+        echo "    $ conda install -c conda-forge yt"
+        echo
         exit 1
     fi
     DEST_SUFFIX="yt-conda"

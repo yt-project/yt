@@ -73,6 +73,9 @@ answer_tests:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_sph
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
 
+  local_axialpix_001:
+    - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
+
 other_tests:
   unittests:
      - '-v'
