@@ -17,6 +17,24 @@ taking a quick look at simulation outputs.  Simple mechanisms exist for making
 plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
 which are described below.
 
+.. _viewing-plots:
+
+Viewing Plots
+-------------
+
+YT uses an environment neutral plotting mechanism that detects the appropriate
+matplotlib configuration for a given environment, however it defaults to a basic
+renderer. To utilize interactive plots in matplotlib supported
+environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` function. Below is an
+example in a jupyter notebook environment, but the same command should work
+in other environments as well:
+
+.. code-block:: python
+ 
+   %matplotlib notebook
+   import yt
+   yt.toggle_interactivity()
+
 .. _simple-inspection:
 
 Slices & Projections
@@ -301,7 +319,7 @@ following:
 Off Axis Projection Plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Internally, off axis projections are created using :ref:`the-camera-interface`
+Internally, off axis projections are created using :ref:`camera`
 by applying the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`.
 In this use case, the volume renderer casts a set of plane parallel rays, one

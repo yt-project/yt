@@ -49,8 +49,8 @@ INST_PY3=0          # Install Python 3 along with Python 2. If this is turned
                     # in Python 3 (except Mercurial, which requires Python 2).
 INST_HG=1           # Install Mercurial or not?  If hg is not already
                     # installed, yt cannot be installed from source.
-INST_UNSTRUCTURED=0 # Install dependencies needed for unstructured mesh 
-                    # rendering?
+INST_EMBREE=0       # Install dependencies needed for Embree-accelerated 
+                    # ray tracing
 
 # These options control whether low-level system libraries are installed
 # they are necessary for building yt's dependencies from source and are 
@@ -75,6 +75,7 @@ INST_SCIPY=0    # Install scipy?
 INST_H5PY=1     # Install h5py?
 INST_ASTROPY=0  # Install astropy?
 INST_NOSE=1     # Install nose?
+INST_NETCDF4=0  # Install netcdf4 and its python bindings?
 
 # These options allow you to customize the builds of yt dependencies.
 # They are only used if INST_CONDA=0.
@@ -115,10 +116,31 @@ then
         echo
         echo "    $ source deactivate"
         echo
-        echo "or install yt into your current environment"
+        echo "or install yt into your current environment with:"
+        echo
+        echo "    $ conda install -c conda-forge yt"
+        echo
         exit 1
     fi
     DEST_SUFFIX="yt-conda"
+    if [ -n "${PYTHONPATH}" ]
+    then
+        echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+        echo "*******************************************************"
+        echo
+        echo "The PYTHONPATH environment variable is set to:"
+        echo
+        echo "    $PYTHONPATH"
+        echo
+        echo "If dependencies of yt (numpy, scipy, matplotlib) are installed"
+        echo "to this path, this may cause issues. Exit the install script"
+        echo "with Ctrl-C and unset PYTHONPATH if you are unsure."
+        echo "Hit enter to continue."
+        echo
+        echo "WARNING WARNING WARNING WARNING WARNING WARNING WARNING"
+        echo "*******************************************************"
+        read -p "[hit enter]"
+    fi
 else
     if [ $INST_YT_SOURCE -eq 0 ]
     then
@@ -466,21 +488,19 @@ function log_cmd
     ( $* 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
-# set paths needed for unstructured mesh rendering support
+# set paths needed for Embree
 
-if [ $INST_UNSTRUCTURED -ne 0 ]
+if [ $INST_EMBREE -ne 0 ]
 then
     if [ $INST_YT_SOURCE -eq 0 ]
     then
-        echo "yt must be compiled from source to install support for"
-        echo "unstructured mesh rendering. Please set INST_YT_SOURCE to 1"
-        echo "and re-run the install script."
+        echo "yt must be compiled from source to install Embree support."
+        echo "Please set INST_YT_SOURCE to 1 and re-run the install script."
         exit 1
     fi
     if [ $INST_CONDA -eq 0 ]
     then
-        echo "unstructured mesh rendering support has not yet been implemented"
-        echo "for INST_CONDA=0."
+        echo "Embree support has not yet been implemented for INST_CONDA=0."
         exit 1
     fi
     if [ `uname` = "Darwin" ]
@@ -492,8 +512,8 @@ then
         EMBREE="embree-2.8.0.x86_64.linux"
         EMBREE_URL="https://github.com/embree/embree/releases/download/v2.8.0/$EMBREE.tar.gz"
     else
-        echo "Unstructured mesh rendering is not supported on this platform."
-        echo "Set INST_UNSTRUCTURED=0 and re-run the install script."
+        echo "Embree is not supported on this platform."
+        echo "Set INST_EMBREE=0 and re-run the install script."
         exit 1
     fi
     PYEMBREE_URL="https://github.com/scopatz/pyembree/archive/master.zip"
@@ -505,6 +525,17 @@ then
     then
         echo "yt must be compiled from source to install support for"
         echo "the rockstar halo finder. Please set INST_YT_SOURCE to 1"
+        echo "and re-run the install script"
+        exit 1
+    fi
+fi
+
+if [ $INST_NETCDF4 -ne 0 ]
+then
+    if [ $INST_CONDA -eq 0 ]
+    then
+        echo "This script can only install netcdf4 through conda."
+        echo "Please set INST_CONDA to 1"
         echo "and re-run the install script"
         exit 1
     fi
@@ -524,11 +555,11 @@ echo "the script if you aren't such a fan."
 echo
 
 printf "%-18s = %s so I " "INST_CONDA" "${INST_CONDA}"
-get_willwont ${INST_PY3}
+get_willwont ${INST_CONDA}
 echo "be installing a conda-based python environment"
 
 printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
-get_willwont ${INST_PY3}
+get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
 
 printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
@@ -539,9 +570,9 @@ printf "%-18s = %s so I " "INST_HG" "${INST_HG}"
 get_willwont ${INST_HG}
 echo "be installing Mercurial"
 
-printf "%-18s = %s so I " "INST_UNSTRUCTURED" "${INST_UNSTRUCTURED}"
-get_willwont ${INST_UNSTRUCTURED}
-echo "be installing unstructured mesh rendering"
+printf "%-18s = %s so I " "INST_EMBREE" "${INST_EMBREE}"
+get_willwont ${INST_EMBREE}
+echo "be installing Embree"
 
 if [ $INST_CONDA -eq 0 ]
 then
@@ -742,6 +773,12 @@ function get_ytdata
     [ -e $1 ] && return
     ${GETFILE} "http://yt-project.org/data/$1" || do_exit
     ( ${SHASUM} -c $1.sha512 2>&1 ) 1>> ${LOG_FILE} || do_exit
+}
+
+function test_install
+{
+    echo "Testing that yt can be imported"
+    ( ${DEST_DIR}/bin/${PYTHON_EXEC} -c "import yt" 2>&1 ) 1>> ${LOG_FILE} || do_exit
 }
 
 ORIG_PWD=`pwd`
@@ -1238,6 +1275,8 @@ then
     ( cp ${YT_DIR}/doc/activate.csh ${DEST_DIR}/bin/activate.csh 2>&1 ) 1>> ${LOG_FILE}
     sed -i.bak -e "s,__YT_DIR__,${DEST_DIR}," ${DEST_DIR}/bin/activate.csh
 
+    test_install
+
     function print_afterword
     {
         echo
@@ -1385,7 +1424,7 @@ else # INST_CONDA -eq 1
     fi
     YT_DEPS+=('sympy')
 
-    if [ $INST_UNSTRUCTURED -eq 1 ]
+    if [ $INST_NETCDF4 -eq 1 ]
     then
         YT_DEPS+=('netcdf4')   
     fi
@@ -1399,14 +1438,21 @@ else # INST_CONDA -eq 1
         log_cmd conda install --yes ${YT_DEP}
     done
 
+    if [ $INST_PY3 -eq 1 ]
+    then
+        echo "Installing mercurial"
+        log_cmd conda create -y -n py27 python=2.7 mercurial
+        log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
+    fi
+
     log_cmd pip install python-hglib
 
     log_cmd hg clone https://bitbucket.org/yt_analysis/yt_conda ${DEST_DIR}/src/yt_conda
     
-    if [ $INST_UNSTRUCTURED -eq 1 ]
+    if [ $INST_EMBREE -eq 1 ]
     then
         
-        echo "Installing embree"
+        echo "Installing Embree"
         if [ ! -d ${DEST_DIR}/src ]
         then
             mkdir ${DEST_DIR}/src
@@ -1453,22 +1499,15 @@ else # INST_CONDA -eq 1
         fi
     fi
 
-    if [ $INST_PY3 -eq 1 ]
-    then
-        echo "Installing mercurial"
-        log_cmd conda create -y -n py27 python=2.7 mercurial
-        log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
-    fi
-
     if [ $INST_YT_SOURCE -eq 0 ]
     then
         echo "Installing yt"
-        log_cmd conda install --yes yt
+        log_cmd conda install -c conda-forge --yes yt
     else
         echo "Building yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
         log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
-        if [ $INST_UNSTRUCTURED -eq 1 ]
+        if [ $INST_EMBREE -eq 1 ]
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg
         fi
@@ -1478,9 +1517,11 @@ else # INST_CONDA -eq 1
             ROCKSTAR_LIBRARY_PATH=${DEST_DIR}/lib
         fi
         pushd ${YT_DIR} &> /dev/null
-        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE}
+        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
         popd &> /dev/null
     fi
+
+    test_install
 
     echo
     echo

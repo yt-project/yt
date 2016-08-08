@@ -324,6 +324,8 @@ class AnswerTestingTest(object):
             self.ds = data_dir_load(ds_fn)
 
     def __call__(self):
+        if AnswerTestingTest.result_storage is None:
+            return
         nv = self.run()
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
@@ -859,6 +861,47 @@ class GenericImageTest(AnswerTestingTest):
         return comp_imgs
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
+
+class AxialPixelizationTest(AnswerTestingTest):
+    # This test is typically used once per geometry or coordinates type.
+    # Feed it a dataset, and it checks that the results of basic pixelization
+    # don't change.
+    _type_name = "AxialPixelization"
+    _attrs = ('geometry',)
+    def __init__(self, ds_fn, decimals=None):
+        super(AxialPixelizationTest, self).__init__(ds_fn)
+        self.decimals = decimals
+        self.geometry = self.ds.coordinates.name
+
+    def run(self):
+        rv = {}
+        ds = self.ds
+        for i, axis in enumerate(ds.coordinates.axis_order):
+            (bounds, center, display_center) = \
+                    pw.get_window_parameters(axis, ds.domain_center, None, ds)
+            slc = ds.slice(axis, center[i])
+            xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
+            yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
+            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            # Wipe out all NaNs
+            pix_x[np.isnan(pix_x)] = 0.0
+            pix_y[np.isnan(pix_y)] = 0.0
+            rv['%s_x' % axis] = pix_x
+            rv['%s_y' % axis] = pix_y
+        return rv
+
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result),
+                                          err_msg="Number of outputs not equal.",
+                                          verbose=True)
+        for k in new_result:
+            if self.decimals is None:
+                assert_almost_equal(new_result[k], old_result[k])
+            else:
+                assert_allclose_units(new_result[k], old_result[k],
+                                      10**(-self.decimals))
+
 
 def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
     def ffalse(func):

@@ -3,40 +3,46 @@
 Unstructured Mesh Rendering
 ===========================
 
-Installation
-^^^^^^^^^^^^
-
 Beginning with version 3.3, yt has the ability to volume render unstructured
-mesh data like that created by finite element calculations. In order to use
-this capability, a few additional dependencies are required. The easiest way
-to install yt with unstructured mesh support is to use conda to install the
+mesh data like that created by finite element calculations. No additional 
+dependencies are required in order to use this feature. However, it is 
+possible to speed up the rendering operation by installing with 
+`Embree <https://embree.github.io>`_ support. Embree is a fast ray-tracing
+library from Intel that can substantially speed up the mesh rendering operation
+on large datasets. You can read about how to install yt with Embree support 
+below, or you can skip to the examples.
+
+Optional Embree Installation
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+The easiest way to install yt with Embree support is to use conda to install the
 most recent development version of yt from our channel:
 
 .. code-block:: bash
 
     conda install -c http://use.yt/with_conda/ yt
 
-If you want to install from source, you can use the ``get_yt.sh`` script.
-Be sure to set the INST_YT_SOURCE and INST_UNSTRUCTURED flags to 1 at the
-top of the script. The ``get_yt.sh`` script can be downloaded by doing:
+Alternatively, you can install yt from source using the ``install_script.sh`` 
+script. Be sure to set the INST_CONDA, INST_YT_SOURCE, INST_EMBREE, 
+and INST_NETCDF4 flags to 1 at the top of the script. The ``install_script.sh`` 
+script can be downloaded by doing:
 
 .. code-block:: bash
 
-  wget http://bitbucket.org/yt_analysis/yt/raw/yt/doc/get_yt.sh
+  wget http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
 
 and then run like so:
 
 .. code-block:: bash
 
-  bash get_yt.sh
+  bash install_script.sh
 
-Alternatively, you can install the additional dependencies by hand.
-First, `embree <https://embree.github.io>`_
-(a fast software ray-tracing library from Intel) must be installed, either
-by compiling from source or by using one of the pre-built binaries available
-at Embree's `downloads <https://embree.github.io/downloads.html>`_ page.
+Finally, you can install the additional dependencies by hand.
+First, you will need to install Embree, either by compiling from source 
+or by using one of the pre-built binaries available at Embree's 
+`downloads <https://embree.github.io/downloads.html>`_ page.
 
-Second, the python bindings for embree (called
+Second, the python bindings for Embree (called
 `pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
 do so, first obtain a copy, by .e.g. cloning the repo:
 
@@ -54,7 +60,7 @@ usr/local. To account for this, you would do:
 
     CFLAGS='-I/opt/local/include' LDFLAGS='-L/opt/local/lib' python setup.py install
 
-Once embree and pyembree are installed, you must rebuild yt from source in order to use
+Once Embree and pyembree are installed, you must rebuild yt from source in order to use
 the unstructured mesh rendering capability. Once again, if embree is installed in a
 location that is not part of your default search path, you must tell yt where to find it.
 There are a number of ways to do this. One way is to again manually pass in the flags
@@ -83,20 +89,6 @@ We recommend one of the later two methods, especially
 if you plan on re-compiling the cython extensions regularly. Note that none of this is
 neccessary if you installed embree into a location that is in your default path, such
 as /usr/local.
-
-Once the pre-requisites are installed, unstructured mesh data can be rendered
-much like any other dataset. In particular, a new type of
-:class:`~yt.visualization.volume_rendering.render_source.RenderSource` object
-has been defined, called the
-:class:`~yt.visualization.volume_rendering.render_source.MeshSource`, that
-represents the unstructured mesh data that will be rendered. The user creates
-this object, and also defines a
-:class:`~yt.visualization.volume_rendering.camera.Camera`
-that specifies your viewpoint into the scene. When
-:class:`~yt.visualization.volume_rendering.render_source.RenderSource` is called,
-a set of rays are cast at the source. Each time a ray strikes the source mesh,
-the data is sampled at the intersection point at the resulting value gets
-saved into an image. See below for examples.
 
 Examples
 ^^^^^^^^

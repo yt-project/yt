@@ -45,7 +45,7 @@ from yt.visualization.plot_window import \
     ProjectionPlot
 from yt.utilities.metadata import get_metadata
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified
+    YTOutputNotIdentified, YTFieldNotParseable
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -142,6 +142,16 @@ class YTCommand(object):
     @classmethod
     def run(cls, args):
         self = cls()
+        # Check for some things we know; for instance, comma separated
+        # field names should be parsed as tuples.
+        if getattr(args, 'field', None) is not None and ',' in args.field:
+            if args.field.count(",") > 1:
+                raise YTFieldNotParseable(args.field)
+            args.field = tuple(_.strip() for _ in args.field.split(","))
+        if getattr(args, 'weight', None) is not None and ',' in args.weight:
+            if args.weight.count(",") > 1:
+                raise YTFieldNotParseable(args.weight)
+            args.weight = tuple(_.strip() for _ in args.weight.split(","))
         # Some commands need to be run repeatedly on datasets
         # In fact, this is the rule and the opposite is the exception
         # BUT, we only want to parse the arguments once.
@@ -199,11 +209,13 @@ _common_options = dict(
     field   = dict(short="-f", longname="--field",
                    action="store", type=str,
                    dest="field", default="density",
-                   help="Field to color by"),
+                   help=("Field to color by, "
+                         "use a comma to separate field tuple values")),
     weight  = dict(short="-g", longname="--weight",
                    action="store", type=str,
                    dest="weight", default=None,
-                   help="Field to weight projections with"),
+                   help=("Field to weight projections with, "
+                         "use a comma to separate field tuple values")),
     cmap    = dict(longname="--colormap",
                    action="store", type=str,
                    dest="cmap", default=_default_colormap,

@@ -27,6 +27,7 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp
 
 from cython.view cimport memoryview
+from cython.view cimport array as cvarray
 from cpython cimport buffer
 
 
@@ -327,11 +328,12 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4]
-    cdef int i, j
+    cdef np.float64_t[:] alpha
+    cdef int i, j, c
     cdef int dx, dy, sx, sy, e2, err
     cdef np.int64_t x0, x1, y0, y1, yi0
     cdef np.float64_t z0, z1, dzx, dzy
+    alpha = np.zeros(4)
     for j in range(0, nl, 2):
         # From wikipedia http://en.wikipedia.org/wiki/Bresenham's_line_algorithm
         x0 = xs[j]
@@ -348,8 +350,11 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
         if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
             continue
 
-        for i in range(4):
-            alpha[i] = colors[j/points_per_color, i]
+        c = j/points_per_color/2
+
+        for i in range(3):
+            alpha[i] = colors[c, i] * colors[c, 3]
+        alpha[3] = colors[c, 3]
 
         if x0 < x1:
             sx = 1
@@ -417,19 +422,22 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
     cdef int nx = image.shape[0]
     cdef int ny = image.shape[1]
     cdef int nl = xs.shape[0]
-    cdef np.float64_t alpha[4]
+    cdef np.float64_t[:] alpha
     cdef np.float64_t talpha
-    cdef int i, j
+    cdef int i, j, c
     cdef np.int64_t x0, y0, yi0
     cdef np.float64_t z0
+    alpha = np.zeros(4)
     for j in range(0, nl):
         x0 = xs[j]
         y0 = ys[j]
         z0 = zs[j]
         if (x0 < 0 or x0 >= nx): continue
         if (y0 < 0 or y0 >= ny): continue
-        for i in range(4):
-            alpha[i] = colors[j/points_per_color, i]
+        c = j/points_per_color
+        for i in range(3):
+            alpha[i] = colors[c, i] * colors[c, 3]
+        alpha[3] = colors[c, 3]
         if flip:
             yi0 = ny - y0
         else:

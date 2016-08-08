@@ -207,16 +207,17 @@ def show_colormaps(subset="all", filename=None):
         If filename is set, then it will save the colormaps to an output
         file.  If it is not set, it will "show" the result interactively.
     """
-    import pylab as pl
+    import matplotlib.pyplot as plt
+    import matplotlib.cm as cm
 
     a=np.outer(np.arange(0,1,0.01), np.ones(10))
     if subset == "all":
-        maps = [ m for m in pl.cm.datad if (not m.startswith("idl")) & (not m.endswith("_r"))]
+        maps = [ m for m in cm.cmap_d if (not m.startswith("idl")) & (not m.endswith("_r"))]
     elif subset == "yt_native":
         maps = [ m for m in _cm.color_map_luts if (not m.startswith("idl")) & (not m.endswith("_r"))]
     else:
         try:
-            maps = [ m for m in pl.cm.datad if m in subset]
+            maps = [ m for m in cm.cmap_d if m in subset]
             if len(maps) == 0:
                 raise AttributeError
         except AttributeError:
@@ -226,18 +227,18 @@ def show_colormaps(subset="all", filename=None):
     maps = list(set(maps))
     maps.sort()
     # scale the image size by the number of cmaps
-    pl.figure(figsize=(2.*len(maps)/10.,6))
-    pl.subplots_adjust(top=0.7,bottom=0.05,left=0.01,right=0.99)
+    plt.figure(figsize=(2.*len(maps)/10.,6))
+    plt.subplots_adjust(top=0.7,bottom=0.05,left=0.01,right=0.99)
     l = len(maps)+1
     for i,m in enumerate(maps):
-        pl.subplot(1,l,i+1)
-        pl.axis("off")
-        pl.imshow(a, aspect='auto',cmap=pl.get_cmap(m),origin="lower")      
-        pl.title(m,rotation=90, fontsize=10, verticalalignment='bottom')
+        plt.subplot(1,l,i+1)
+        plt.axis("off")
+        plt.imshow(a, aspect='auto',cmap=plt.get_cmap(m),origin="lower")      
+        plt.title(m,rotation=90, fontsize=10, verticalalignment='bottom')
     if filename is not None:
-        pl.savefig(filename, dpi=100, facecolor='gray') 
+        plt.savefig(filename, dpi=100, facecolor='gray') 
     else:  
-        pl.show()
+        plt.show()
 
 def make_colormap(ctuple_list, name=None, interpolate=True):
     """

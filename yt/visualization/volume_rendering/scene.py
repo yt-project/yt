@@ -34,7 +34,9 @@ from .render_source import \
     GridSource, \
     RenderSource, \
     MeshSource, \
-    VolumeSource
+    VolumeSource, \
+    PointSource, \
+    LineSource
 from .zbuffer_array import ZBuffer
 from yt.extern.six.moves import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -157,6 +159,11 @@ class Scene(object):
                 raise NotImplementedError(
                     "Line annotation sources are not supported for %s."
                     % (type(self.camera.lens).__name__), )
+
+        if isinstance(render_source, (LineSource, PointSource)):
+            if isinstance(render_source.positions, YTArray):
+                render_source.positions = \
+                    self.arr(render_source.positions).in_units('code_length').d
 
         self.sources[keyname] = render_source
 
@@ -292,8 +299,7 @@ class Scene(object):
             suffix = '.png'
             fname = '%s%s' % (fname, suffix)
 
-        if self._last_render is None:
-            self.render()
+        self.render()
 
         mylog.info("Saving render %s", fname)
         self._last_render.write_png(fname, sigma_clip=sigma_clip)
@@ -331,10 +337,11 @@ class Scene(object):
            A format specifier (e.g., label_fmt="%.2g") to use in formatting 
            the data values that label the transfer function colorbar. 
         text_annotate : list of iterables
-           Any text that you wish to display on the image.  This should be an 
-           list of a tuple of coordinates (in normalized figure coordinates),
-           the text to display, and, optionally, a dictionary of keyword/value
-           pairs to pass through to the matplotlib text() function. 
+           Any text that you wish to display on the image.  This should be an
+           list containing a tuple of coordinates (in normalized figure 
+           coordinates), the text to display, and, optionally, a dictionary of 
+           keyword/value pairs to pass through to the matplotlib text() 
+           function.
 
            Each item in the main list is a separate string to write.
 
@@ -380,19 +387,18 @@ class Scene(object):
             suffix = '.png'
             fname = '%s%s' % (fname, suffix)
 
-        if self._last_render is None:
-            self.render()
+        self.render()
 
         # which transfer function?
         rs = rensources[0]
         tf = rs.transfer_function
         label = rs.data_source.ds._get_field_info(rs.field).get_label()
-        if rs.data_source.ds._get_field_info(rs.field).take_log:
+        if rs.log_field:
             label = r'$\rm{log}\ $' + label
 
         ax = self._show_mpl(self._last_render.swapaxes(0, 1),
                             sigma_clip=sigma_clip, dpi=dpi)
-        self._annotate(ax.axes, tf, label=label, label_fmt=label_fmt)
+        self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
         plt.tight_layout()
 
         # any text?
@@ -424,7 +430,6 @@ class Scene(object):
         ax.set_position([0, 0, 1, 1])
 
         if sigma_clip is not None:
-            print("here: sigma_clip = {}".format(sigma_clip))
             nz = im[im > 0.0]
             nim = im / (nz.mean() + sigma_clip * np.std(nz))
             nim[nim > 1.0] = 1.0
@@ -433,11 +438,11 @@ class Scene(object):
         else:
             nim = im
         axim = plt.imshow(nim[:,:,:3]/nim[:,:,:3].max(),
-                          interpolation="nearest")
+                          interpolation="bilinear")
 
         return axim
 
-    def _annotate(self, ax, tf, label="", label_fmt=None):
+    def _annotate(self, ax, tf, source, label="", label_fmt=None):
         import matplotlib.pyplot as plt
         ax.get_xaxis().set_visible(False)
         ax.get_xaxis().set_ticks([])
@@ -445,7 +450,9 @@ class Scene(object):
         ax.get_yaxis().set_ticks([])
         cb = plt.colorbar(ax.images[0], pad=0.0, fraction=0.05,
                           drawedges=True, shrink=0.75)
-        tf.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
+        tf.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt,
+                     resolution=self.camera.resolution[0],
+                     log_scale=source.log_field)
 
     def _validate(self):
         r"""Validate the current state of the scene."""
@@ -652,7 +659,7 @@ class Scene(object):
         """
         box_source = BoxSource(ds.domain_left_edge,
                                ds.domain_right_edge,
-                               color=None)
+                               color=color)
         self.add_source(box_source)
         return self
 
@@ -771,8 +778,9 @@ class Scene(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
+            from IPython.display import display
             self._sigma_clip = sigma_clip
-            return self
+            display(self)
         else:
             raise YTNotInsideNotebook
 

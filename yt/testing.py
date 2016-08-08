@@ -324,21 +324,32 @@ def fake_hexahedral_ds():
     return ds
 
 
-def fake_vr_orientation_test_ds(N = 96):
+def fake_vr_orientation_test_ds(N = 96, scale=1):
     """
     create a toy dataset that puts a sphere at (0,0,0), a single cube
     on +x, two cubes on +y, and three cubes on +z in a domain from
-    [-1,1]**3.  The lower planes (x = -1, y = -1, z = -1) are also
-    given non-zero values.
+    [-1*scale,1*scale]**3.  The lower planes
+    (x = -1*scale, y = -1*scale, z = -1*scale) are also given non-zero
+    values.
 
     This dataset allows you to easily explore orientations and
     handiness in VR and other renderings
 
+    Parameters:
+    -----------
+
+    N: integer
+       The number of cells along each direction
+
+    scale: float
+       A spatial scale, the domain boundaries will be multiplied by scale to
+       test datasets that have spatial different scales (e.g. data in CGS units)
+
     """
     from yt.frontends.stream.api import load_uniform_grid
 
-    xmin = ymin = zmin = -1.0
-    xmax = ymax = zmax = 1.0
+    xmin = ymin = zmin = -1.0 * scale
+    xmax = ymax = zmax = 1.0 * scale
 
     dcoord = (xmax - xmin)/N
 
@@ -364,24 +375,24 @@ def fake_vr_orientation_test_ds(N = 96):
     arr[abs(z3d - zmin) < 2*dcoord] = 0.3
 
     # single cube on +x
-    xc = 0.75
-    dx = 0.05
+    xc = 0.75 * scale
+    dx = 0.05 * scale
     idx = np.logical_and(np.logical_and(x3d > xc-dx, x3d < xc+dx),
                          np.logical_and(np.logical_and(y3d > -dx, y3d < dx),
                                         np.logical_and(z3d > -dx, z3d < dx)) )
     arr[idx] = 1.0
 
     # two cubes on +y
-    dy = 0.05
-    for yc in [0.65, 0.85]:
+    dy = 0.05 * scale
+    for yc in [0.65 * scale, 0.85 * scale]:
         idx = np.logical_and(np.logical_and(y3d > yc-dy, y3d < yc+dy),
                              np.logical_and(np.logical_and(x3d > -dy, x3d < dy),
                                             np.logical_and(z3d > -dy, z3d < dy)) )
         arr[idx] = 0.8
 
     # three cubes on +z
-    dz = 0.05
-    for zc in [0.5, 0.7, 0.9]:
+    dz = 0.05 * scale
+    for zc in [0.5 * scale, 0.7 * scale, 0.9 * scale]:
         idx = np.logical_and(np.logical_and(z3d > zc-dz, z3d < zc+dz),
                              np.logical_and(np.logical_and(x3d > -dz, x3d < dz),
                                             np.logical_and(y3d > -dz, y3d < dz)) )
@@ -392,7 +403,6 @@ def fake_vr_orientation_test_ds(N = 96):
     return ds
 
 def expand_keywords(keywords, full=False):
-
     """
     expand_keywords is a means for testing all possible keyword
     arguments in the nosetests.  Simply pass it a dictionary of all the
@@ -408,42 +418,47 @@ def expand_keywords(keywords, full=False):
     list.  Be careful, by using full=True, you may be in for an exponentially
     larger number of tests!
 
+    Parameters
+    ----------
+
     keywords : dict
         a dictionary where the keys are the keywords for the function,
         and the values of each key are the possible values that this key
         can take in the function
 
-   full : bool
+    full : bool
         if set to True, every possible combination of given keywords is
         returned
 
     Returns
     -------
+
     array of dicts
         An array of dictionaries to be individually passed to the appropriate
         function matching these kwargs.
 
     Examples
     --------
+
     >>> keywords = {}
     >>> keywords['dpi'] = (50, 100, 200)
-    >>> keywords['cmap'] = ('algae', 'jet')
+    >>> keywords['cmap'] = ('arbre', 'kelp')
     >>> list_of_kwargs = expand_keywords(keywords)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50},
-           {'cmap': 'jet', 'dpi': 100},
-           {'cmap': 'algae', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'arbre', 'dpi': 50},
+           {'cmap': 'kelp', 'dpi': 100},
+           {'cmap': 'arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
     >>> print list_of_kwargs
 
-    array([{'cmap': 'algae', 'dpi': 50},
-           {'cmap': 'algae', 'dpi': 100},
-           {'cmap': 'algae', 'dpi': 200},
-           {'cmap': 'jet', 'dpi': 50},
-           {'cmap': 'jet', 'dpi': 100},
-           {'cmap': 'jet', 'dpi': 200}], dtype=object)
+    array([{'cmap': 'arbre', 'dpi': 50},
+           {'cmap': 'arbre', 'dpi': 100},
+           {'cmap': 'arbre', 'dpi': 200},
+           {'cmap': 'kelp', 'dpi': 50},
+           {'cmap': 'kelp', 'dpi': 100},
+           {'cmap': 'kelp', 'dpi': 200}], dtype=object)
 
     >>> for kwargs in list_of_kwargs:
     ...     write_projection(*args, **kwargs)

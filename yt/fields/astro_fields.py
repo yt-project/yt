@@ -131,7 +131,9 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         if vel_axis > 2:
             raise NeedsParameter(["axis"])
         vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
-        return scale * vel * data[ftype, "density"]
+        # minus sign is because radial velocity is WRT viewer
+        # See issue #1225
+        return -scale * vel * data[ftype, "density"]
 
     registry.add_field((ftype, "sz_kinetic"),
                        function=_sz_kinetic,
