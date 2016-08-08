@@ -24,7 +24,7 @@ from yt.utilities.lib.fp_utils cimport *
 from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
 from .particle_deposit cimport kernel_func, get_kernel_func, gind
 from yt.utilities.lib.distance_queue cimport NeighborList, Neighbor_compare, \
-    r2dist
+    r2dist, DistanceQueue
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
@@ -36,10 +36,8 @@ cdef class ParticleSmoothOperation:
     cdef np.float64_t DW[3]
     cdef int nfields
     cdef int maxn
-    cdef int curn
     cdef bint periodicity[3]
     # Note that we are preallocating here, so this is *not* threadsafe.
-    cdef NeighborList *neighbors
     cdef void (*pos_setup)(np.float64_t ipos[3], np.float64_t opos[3])
     cdef void neighbor_process(self, int dim[3], np.float64_t left_edge[3],
                                np.float64_t dds[3], np.float64_t[:,:] ppos,
@@ -49,7 +47,7 @@ cdef class ParticleSmoothOperation:
                                np.int64_t offset, np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
                                int *nsize, np.float64_t[:,:] oct_left_edges,
-                               np.float64_t[:,:] oct_dds)
+                               np.float64_t[:,:] oct_dds, DistanceQueue dq)
     cdef int neighbor_search(self, np.float64_t pos[3], OctreeContainer octree,
                              np.int64_t **nind, int *nsize, 
                              np.int64_t nneighbors, np.int64_t domain_id, 
@@ -62,10 +60,7 @@ cdef class ParticleSmoothOperation:
                                np.int64_t offset,
                                np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
-                               int *nsize)
-    cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
-                            np.float64_t cpos[3])
-    cdef void neighbor_reset(self)
+                               int *nsize, DistanceQueue dq)
     cdef void neighbor_find(self,
                             np.int64_t nneighbors,
                             np.int64_t *nind,
@@ -75,7 +70,7 @@ cdef class ParticleSmoothOperation:
                             np.float64_t[:,:] ppos,
                             np.float64_t cpos[3],
                             np.float64_t[:,:] oct_left_edges,
-                            np.float64_t[:,:] oct_dds)
+                            np.float64_t[:,:] oct_dds, DistanceQueue dq)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields)
+                      np.float64_t **index_fields, DistanceQueue dq)
