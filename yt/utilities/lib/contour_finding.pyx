@@ -399,6 +399,7 @@ cdef inline int spos_contained(VolumeContainer *vc, np.float64_t *spos):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.initializedcheck(False)
 cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 np.int64_t nid, np.ndarray[np.uint8_t, ndim=1] examined,
                 VolumeContainer **vcs,
@@ -415,8 +416,8 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                 + vc0.dims[1]*vc0.dims[2]) * 18
     # We allocate an array of fixed (maximum) size
     cdef np.int64_t[:,:,:] data0, data1
-    data0 = np.asarray(vc0.data[0,:,:,:]).view("int64")
-    data1 = np.asarray(vc1.data[0,:,:,:]).view("int64")
+    data0 = <np.int64_t[:vc0.dims[0],:vc0.dims[1],:vc0.dims[2]]> \
+                (<np.int64_t*>&vc0.data[0,0,0,0])
     cdef np.ndarray[np.int64_t, ndim=2] joins = np.zeros((s, 2), dtype="int64")
     cdef int ti = 0, side, m1, m2, index
     cdef int pos[3]
@@ -453,6 +454,10 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                             get_spos(vc0, pos[0], pos[1], pos[2], ax, spos)
                             adj_node = trunk._find_node(spos)
                             vc1 = vcs[adj_node.node_ind]
+                            data1 = <np.int64_t[:vc1.dims[0],
+                                                :vc1.dims[1],
+                                                :vc1.dims[2]]> \
+                                        (<np.int64_t*>&vc1.data[0,0,0,0])
                             if spos_contained(vc1, spos):
                                 m1 = vc0.mask[my_pos[0], my_pos[1], my_pos[2]]
                                 c1 = data0[my_pos[0], my_pos[1], my_pos[2]]
