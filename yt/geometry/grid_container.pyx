@@ -153,11 +153,14 @@ cdef class GridTreeSelector:
         if grid_mask is None:
             grid_mask = np.ones(self.tree.num_grids, dtype="uint8")
         self.grid_mask = grid_mask
+        cdef np.uint64_t ngrids = 0
         for i in range(self.tree.num_grids):
             if grid_mask[i] == 0: continue
+            ngrids += 1
             size += (self.tree.grids[i].dims[0] *
                      self.tree.grids[i].dims[1] *
                      self.tree.grids[i].dims[2])
+        self.grid_order = np.empty(ngrids, dtype="int64")
         self.size = size
         self.mask = np.zeros(size, "uint8")
         self.initialized = 0
@@ -175,6 +178,8 @@ cdef class GridTreeSelector:
         # visits each one and its children.
         cdef int i
         cdef GridTreeNode *grid
+        if self.initialized == 0:
+            self._counter = 0
         # Can be None
         for i in range(self.tree.num_root_grids):
             grid = &self.tree.root_grids[i]
@@ -196,6 +201,9 @@ cdef class GridTreeSelector:
             return
         # Note: grid.index is 0-indexed
         if self.grid_mask[grid.index] == 1:
+            if self.initialized == 0:
+                self.grid_order[self._counter] = grid.index
+                self._counter += 1
             visitor.setup_tuples(grid)
             selector.visit_grid_cells(visitor, grid, self.initialized, self.mask)
         for i in range(grid.num_children):
