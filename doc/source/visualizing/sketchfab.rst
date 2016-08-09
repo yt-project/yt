@@ -105,7 +105,7 @@ The ``YTSurface`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your
-``~/.yt/config`` file under the heading ``[yt]`` as the variable
+``~/.config/yt/ytrc`` file under the heading ``[yt]`` as the variable
 ``sketchfab_api_key``.  If you don't want to do this, you can also supply it as
 an argument to the function ``export_sketchfab``.
 
