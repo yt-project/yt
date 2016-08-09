@@ -14,35 +14,36 @@ Fixed interpolator includes
 #-----------------------------------------------------------------------------
 
 from libc.math cimport sqrt, fabs
-cimport numpy as np
 cimport cython
+cimport numpy as np
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-@cython.initializedcheck(False)
 cdef inline np.float64_t offset_interpolate(np.float64_t dp[3],
                 np.float64_t[:,:,:] data, int i, int j, int k) nogil:
     cdef np.float64_t dv, vz[4]
-    dv = 1.0 - dp[2]
-    vz[0] = dv*data[i+0,j+0,k+0] + dp[2]*data[i+0,j+0,k+1]
-    vz[1] = dv*data[i+0,j+1,k+0] + dp[2]*data[i+0,j+1,k+1]
-    vz[2] = dv*data[i+1,j+0,k+0] + dp[2]*data[i+1,j+0,k+1]
-    vz[3] = dv*data[i+1,j+1,k+0] + dp[2]*data[i+1,j+1,k+1]
+    with cython.boundscheck(False):
+        dv = 1.0 - dp[2]
+        vz[0] = dv*data[i+0,j+0,k+0] + dp[2]*data[i+0,j+0,k+1]
+        vz[1] = dv*data[i+0,j+1,k+0] + dp[2]*data[i+0,j+1,k+1]
+        vz[2] = dv*data[i+1,j+0,k+0] + dp[2]*data[i+1,j+0,k+1]
+        vz[3] = dv*data[i+1,j+1,k+0] + dp[2]*data[i+1,j+1,k+1]
 
-    dv = 1.0 - dp[1]
-    vz[0] = dv*vz[0] + dp[1]*vz[1]
-    vz[1] = dv*vz[2] + dp[1]*vz[3]
+        dv = 1.0 - dp[1]
+        vz[0] = dv*vz[0] + dp[1]*vz[1]
+        vz[1] = dv*vz[2] + dp[1]*vz[3]
 
-    dv = 1.0 - dp[0]
-    vz[0] = dv*vz[0] + dp[0]*vz[1]
+        dv = 1.0 - dp[0]
+        vz[0] = dv*vz[0] + dp[0]*vz[1]
 
     return vz[0]
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-@cython.initializedcheck(False)
 cdef inline void eval_gradient(np.float64_t dp[3],
                 np.float64_t[:,:,:] data, np.float64_t grad[3],
                 int i, int j, int k) nogil:
@@ -79,34 +80,35 @@ cdef inline void eval_gradient(np.float64_t dp[3],
     else:
       grad[0] = grad[1] = grad[2] = 0.0
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-@cython.initializedcheck(False)
 cdef inline void offset_fill(np.float64_t[:,:,:] inval,
                              np.float64_t[:] outval,
                              int i, int j, int k) nogil:
-    outval[0] = inval[i+0,j+0,k+0]
-    outval[1] = inval[i+1,j+0,k+0]
-    outval[2] = inval[i+1,j+1,k+0]
-    outval[3] = inval[i+0,j+1,k+0]
-    outval[4] = inval[i+0,j+0,k+1]
-    outval[5] = inval[i+1,j+0,k+1]
-    outval[6] = inval[i+1,j+1,k+1]
-    outval[7] = inval[i+0,j+1,k+1]
+    with cython.boundscheck(False):
+        outval[0] = inval[i+0,j+0,k+0]
+        outval[1] = inval[i+1,j+0,k+0]
+        outval[2] = inval[i+1,j+1,k+0]
+        outval[3] = inval[i+0,j+1,k+0]
+        outval[4] = inval[i+0,j+0,k+1]
+        outval[5] = inval[i+1,j+0,k+1]
+        outval[6] = inval[i+1,j+1,k+1]
+        outval[7] = inval[i+0,j+1,k+1]
 
+@cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-@cython.initializedcheck(False)
 cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2,
             np.float64_t isovalue, np.float64_t vl[3], np.float64_t dds[3],
             np.float64_t x, np.float64_t y, np.float64_t z,
             int vind1, int vind2):
     cdef int i
-    cdef np.float64_t** cverts = \
-        [[0,0,0], [1,0,0], [1,1,0], [0,1,0],
-         [0,0,1], [1,0,1], [1,1,1], [0,1,1]]
+    cdef np.float64_t* cverts = \
+        [0,0,0, 1,0,0, 1,1,0, 0,1,0,
+         0,0,1, 1,0,1, 1,1,1, 0,1,1]
 
     cdef np.float64_t mu = ((isovalue - v1) / (v2 - v1))
 
@@ -121,5 +123,5 @@ cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2,
     vl[1] = y
     vl[2] = z
     for i in range(3):
-        vl[i] += dds[i] * cverts[vind1][i] \
-               + dds[i] * mu*(cverts[vind2][i] - cverts[vind1][i])
+        vl[i] += dds[i] * cverts[vind1*3+i] \
+               + dds[i] * mu*(cverts[vind2*3+i] - cverts[vind1*3+i])
