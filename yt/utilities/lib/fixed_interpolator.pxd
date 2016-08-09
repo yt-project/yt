@@ -15,7 +15,12 @@ Fixed interpolator includes
 
 from libc.math cimport sqrt, fabs
 cimport numpy as np
+cimport cython
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.initializedcheck(False)
 cdef inline np.float64_t offset_interpolate(np.float64_t dp[3],
                 np.float64_t[:,:,:] data, int i, int j, int k) nogil:
     cdef np.float64_t dv, vz[4]
@@ -34,6 +39,10 @@ cdef inline np.float64_t offset_interpolate(np.float64_t dp[3],
 
     return vz[0]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.initializedcheck(False)
 cdef inline void eval_gradient(np.float64_t dp[3],
                 np.float64_t[:,:,:] data, np.float64_t grad[3],
                 int i, int j, int k) nogil:
@@ -70,6 +79,10 @@ cdef inline void eval_gradient(np.float64_t dp[3],
     else:
       grad[0] = grad[1] = grad[2] = 0.0
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.initializedcheck(False)
 cdef inline void offset_fill(np.float64_t[:,:,:] inval,
                              np.float64_t[:] outval,
                              int i, int j, int k) nogil:
@@ -82,6 +95,10 @@ cdef inline void offset_fill(np.float64_t[:,:,:] inval,
     outval[6] = inval[i+1,j+1,k+1]
     outval[7] = inval[i+0,j+1,k+1]
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+@cython.initializedcheck(False)
 cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2,
             np.float64_t isovalue, np.float64_t vl[3], np.float64_t dds[3],
             np.float64_t x, np.float64_t y, np.float64_t z,

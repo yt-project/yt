@@ -216,6 +216,10 @@ cdef class ImageSampler:
 
 cdef class ProjectionSampler(ImageSampler):
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     @staticmethod
     cdef void sample(
                  VolumeContainer *vc,
