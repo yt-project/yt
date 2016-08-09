@@ -19,7 +19,7 @@ from yt.utilities.physical_constants import \
     kboltz, mh
 
 b_units = "code_magnetic"
-pres_units = "code_mass/(code_length*code_time**2)"
+pres_units = "code_pressure"
 erg_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 

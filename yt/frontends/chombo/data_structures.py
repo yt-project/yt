@@ -486,11 +486,11 @@ class PlutoDataset(ChomboDataset):
 
         if pluto_ini_file_exists:
             lines=[line.strip() for line in open(pluto_ini_filename)]
-            self.domain_left_edge = np.zeros(self.dimensionality)
-            self.domain_right_edge = np.zeros(self.dimensionality)
+            domain_left_edge = np.zeros(self.dimensionality)
+            domain_right_edge = np.zeros(self.dimensionality)
             for il,ll in enumerate(lines[lines.index('[Grid]')+2:lines.index('[Grid]')+2+self.dimensionality]):
-                self.domain_left_edge[il] = float(ll.split()[2])
-                self.domain_right_edge[il] = float(ll.split()[-1])
+                domain_left_edge[il] = float(ll.split()[2])
+                domain_right_edge[il] = float(ll.split()[-1])
             self.periodicity = [0]*3
             for il,ll in enumerate(lines[lines.index('[Boundary]')+2:lines.index('[Boundary]')+2+6:2]):
                 self.periodicity[il] = (ll.split()[1] == 'periodic')
@@ -498,6 +498,8 @@ class PlutoDataset(ChomboDataset):
             for il,ll in enumerate(lines[lines.index('[Parameters]')+2:]):
                 if (ll.split()[0] == 'GAMMA'):
                     self.gamma = float(ll.split()[1])
+            self.domain_left_edge = domain_left_edge
+            self.domain_right_edge = domain_right_edge
         else:
             self.domain_left_edge = self._calc_left_edge()
             self.domain_right_edge = self._calc_right_edge()

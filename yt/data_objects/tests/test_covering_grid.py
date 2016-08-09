@@ -56,7 +56,7 @@ def test_covering_grid():
             # Now we test other attributes
             yield assert_equal, cg["ones"].max(), 1.0
             yield assert_equal, cg["ones"].min(), 1.0
-            yield assert_equal, cg["grid_level"], 0
+            yield assert_equal, cg["grid_level"], level
             yield assert_equal, cg["cell_volume"].sum(), ds.domain_width.prod()
             for g in ds.index.grids:
                 di = g.get_global_startindex()

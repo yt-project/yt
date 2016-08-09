@@ -26,17 +26,21 @@ import os
 import shutil
 from yt.utilities.on_demand_imports import \
     _h5py as h5
+from yt.convenience import load
 
 
 COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
 COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
+GIZMO_PLUS = "gizmo_cosmology_plus/N128L16.param"
+GIZMO_PLUS_SINGLE = "gizmo_cosmology_plus/snap_N128L16_151.hdf5"
 
 
 @requires_file(COSMO_PLUS)
 @requires_answer_testing()
 def test_absorption_spectrum_cosmo():
     """
-    This test generates an absorption spectrum from a cosmological light ray
+    This test generates an absorption spectrum from a compound light ray on a
+    grid dataset
     """
     # Set up in a temp dir
     tmpdir = tempfile.mkdtemp()
@@ -92,7 +96,8 @@ def test_absorption_spectrum_cosmo():
 @requires_answer_testing()
 def test_absorption_spectrum_non_cosmo():
     """
-    This test generates an absorption spectrum from a non-cosmological light ray
+    This test generates an absorption spectrum from a simple light ray on a
+    grid dataset
     """
 
     # Set up in a temp dir
@@ -244,3 +249,114 @@ def test_voigt_profiles():
     a = 1.7e-4
     x = np.linspace(5.0, -3.6, 60)
     yield assert_allclose_units, voigt_old(a, x), voigt_scipy(a, x), 1e-8
+
+@requires_file(GIZMO_PLUS)
+@requires_answer_testing()
+def test_absorption_spectrum_cosmo_sph():
+    """
+    This test generates an absorption spectrum from a compound light ray on a
+    particle dataset
+    """
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    lr = LightRay(GIZMO_PLUS, 'Gadget', 0.0, 0.01)
+
+    lr.make_light_ray(seed=1234567,
+                      fields=[('gas', 'temperature'), 
+                              ('gas', 'H_number_density')],
+                      data_filename='lightray.h5')
+
+    sp = AbsorptionSpectrum(900.0, 1800.0, 10000)
+
+    my_label = 'HI Lya'
+    field = ('gas', 'H_number_density')
+    wavelength = 1215.6700  # Angstromss
+    f_value = 4.164E-01
+    gamma = 6.265e+08
+    mass = 1.00794
+
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
+
+    my_label = 'HI Lya'
+    field = ('gas', 'H_number_density')
+    wavelength = 912.323660  # Angstroms
+    normalization = 1.6e17
+    index = 3.0
+
+    sp.add_continuum(my_label, field, wavelength, normalization, index)
+
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.h5',
+                                        line_list_file='lines.txt',
+                                        use_peculiar_velocity=True)
+
+    # load just-generated hdf5 file of spectral data (for consistency)
+    data = h5.File('spectrum.h5', 'r')
+
+    for key in data.keys():
+        func = lambda x=key: data[x][:]
+        func.__name__ = "{}_cosmo_sph".format(key)
+        test = GenericArrayTest(None, func)
+        test_absorption_spectrum_cosmo_sph.__name__ = test.description
+        yield test
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_file(GIZMO_PLUS_SINGLE)
+@requires_answer_testing()
+def test_absorption_spectrum_non_cosmo_sph():
+    """
+    This test generates an absorption spectrum from a simple light ray on a
+    particle dataset
+    """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    ds = load(GIZMO_PLUS_SINGLE)
+    lr = LightRay(ds)
+    ray_start = ds.domain_left_edge
+    ray_end = ds.domain_right_edge
+    lr.make_light_ray(start_position=ray_start, end_position=ray_end,
+                      fields=[('gas', 'temperature'), 
+                              ('gas', 'H_number_density')],
+                      data_filename='lightray.h5')
+
+    sp = AbsorptionSpectrum(1200.0, 1300.0, 10001)
+
+    my_label = 'HI Lya'
+    field = ('gas', 'H_number_density')
+    wavelength = 1215.6700  # Angstromss
+    f_value = 4.164E-01
+    gamma = 6.265e+08
+    mass = 1.00794
+
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
+
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.h5',
+                                        line_list_file='lines.txt',
+                                        use_peculiar_velocity=True)
+
+    # load just-generated hdf5 file of spectral data (for consistency)
+    data = h5.File('spectrum.h5', 'r')
+    
+    for key in data.keys():
+        func = lambda x=key: data[x][:]
+        func.__name__ = "{}_non_cosmo_sph".format(key)
+        test = GenericArrayTest(None, func)
+        test_absorption_spectrum_non_cosmo_sph.__name__ = test.description
+        yield test
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)

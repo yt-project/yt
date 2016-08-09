@@ -317,7 +317,8 @@ class AthenaHierarchy(GridIndex):
         # know the extent of all the grids.
         glis = np.round((glis - self.dataset.domain_left_edge.ndarray_view())/gdds).astype('int')
         new_dre = np.max(gres,axis=0)
-        self.dataset.domain_right_edge[:] = np.round(new_dre, decimals=12)[:]
+        dre_units = self.dataset.domain_right_edge.uq
+        self.dataset.domain_right_edge = np.round(new_dre, decimals=12)*dre_units
         self.dataset.domain_width = \
                 (self.dataset.domain_right_edge -
                  self.dataset.domain_left_edge)
@@ -326,11 +327,6 @@ class AthenaHierarchy(GridIndex):
                      self.dataset.domain_right_edge)
         self.dataset.domain_dimensions = \
                 np.round(self.dataset.domain_width/gdds[0]).astype('int')
-
-        # Need to reset the units in the dataset based on the correct
-        # domain left/right/dimensions.
-        # DEV: Is this really necessary?
-        #self.dataset._set_code_unit_attributes()
 
         if self.dataset.dimensionality <= 2 :
             self.dataset.domain_dimensions[2] = np.int(1)
@@ -483,19 +479,10 @@ class AthenaDataset(Dataset):
             # We set these to cgs for now, but they may be overridden later.
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
-
-    def set_code_units(self):
-        super(AthenaDataset, self).set_code_units()
-        mag_unit = getattr(self, "magnetic_unit", None)
-        vel_unit = getattr(self, "velocity_unit", None)
-        if mag_unit is None:
-            self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                         (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                     (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        if vel_unit is None:
-            self.velocity_unit = self.length_unit/self.time_unit
-        self.unit_registry.modify("code_velocity", self.velocity_unit)
+        self.velocity_unit = self.length_unit / self.time_unit
 
     def _parse_parameter_file(self):
         self._handle = open(self.parameter_filename, "rb")

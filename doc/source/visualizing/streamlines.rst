@@ -118,7 +118,7 @@ Example Script
     from yt.visualization.api import Streamlines
 
     ds = yt.load('DD1701') # Load ds
-    streamlines = Streamlines(ds, [0.5]*3)
+    streamlines = Streamlines(ds, ds.domain_center)
     streamlines.integrate_through_volume()
     stream = streamlines.path(0)
     matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')

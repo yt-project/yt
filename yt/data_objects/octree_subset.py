@@ -374,13 +374,15 @@ class OctreeSubset(YTSelectionContainer):
 
     @cell_count_cache
     def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(dobj.selector, domain_id = self.domain_id,
-                                        num_cells = self._cell_count)
+        fcoords = self.oct_handler.fcoords(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
+        return self.ds.arr(fcoords, 'code_length')
 
     @cell_count_cache
     def select_fwidth(self, dobj):
-        return self.oct_handler.fwidth(dobj.selector, domain_id = self.domain_id,
-                                       num_cells = self._cell_count)
+        fwidth = self.oct_handler.fwidth(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
+        return self.ds.arr(fwidth, 'code_length')
 
     @cell_count_cache
     def select_ires(self, dobj):

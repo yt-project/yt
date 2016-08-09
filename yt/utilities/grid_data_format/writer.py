@@ -176,34 +176,36 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
     g = fhandle["data"]
     data_source = ds.all_data()
     citer = data_source.chunks([], "io", local_only=True)
-    for chunk in parallel_objects(citer):
+    for region in parallel_objects(citer):
         # is there a better way to the get the grids on each chunk?
-        for grid in list(ds.index._chunk_io(chunk))[0].objs:
-            for field_name in fields:
+        for chunk in ds.index._chunk_io(region):
+            for grid in chunk.objs:
+                for field_name in fields:
 
-                # sanitize and get the field info object
-                if isinstance(field_name, tuple):
-                    field_name = field_name[1]
-                fi = ds._get_field_info(field_name)
+                    # sanitize and get the field info object
+                    if isinstance(field_name, tuple):
+                        field_name = field_name[1]
+                    fi = ds._get_field_info(field_name)
 
-                # set field parameters, if specified
-                if field_parameters is not None:
-                    for k, v in field_parameters.items():
-                        grid.set_field_parameter(k, v)
+                    # set field parameters, if specified
+                    if field_parameters is not None:
+                        for k, v in field_parameters.items():
+                            grid.set_field_parameter(k, v)
 
-                grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-                particles_group = grid_group["particles"]
-                pt_group = particles_group[particle_type_name]
-                # add the field data to the grid group
-                # Check if this is a real field or particle data.
-                grid.get_data(field_name)
-                units = fhandle["field_types"][field_name].attrs["field_units"]
-                if fi.particle_type:  # particle data
-                    dset = pt_group[field_name]
-                    dset[:] = grid[field_name].in_units(units)
-                else:  # a field
-                    dset = grid_group[field_name]
-                    dset[:] = grid[field_name].in_units(units)
+                    grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+                    particles_group = grid_group["particles"]
+                    pt_group = particles_group[particle_type_name]
+                    # add the field data to the grid group
+                    # Check if this is a real field or particle data.
+                    grid.get_data(field_name)
+                    units = fhandle[
+                        "field_types"][field_name].attrs["field_units"]
+                    if fi.particle_type:  # particle data
+                        dset = pt_group[field_name]
+                        dset[:] = grid[field_name].in_units(units)
+                    else:  # a field
+                        dset = grid_group[field_name]
+                        dset[:] = grid[field_name].in_units(units)
 
 @contextmanager
 def _get_backup_file(ds):
