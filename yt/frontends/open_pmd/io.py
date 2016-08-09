@@ -15,11 +15,11 @@ openPMD-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
+import numpy as np
+
+from yt.frontends.open_pmd.misc import is_const_component
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.frontends.open_pmd.misc import is_const_component
-
-import numpy as np
 
 
 class IOHandlerOpenPMD(BaseIOHandler):
@@ -165,8 +165,9 @@ class IOHandlerOpenPMD(BaseIOHandler):
                         continue
                     pds = ds[self.particles_path + "/" + spec]
                     for field in field_list:
-                        nfield = "/".join(field.split("_")[1:]).replace("positionCoarse", "position")
-                        data = self.get_component(pds, nfield, index, offset, self.ds._nonstandard)
+                        component = "/".join(field.split("_")[1:]).replace("positionCoarse",
+                                                                           "position").replace("-", "_")
+                        data = self.get_component(pds, component, index, offset, self.ds._nonstandard)
                         yield ((ptype, field), data[mask])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -215,10 +216,10 @@ class IOHandlerOpenPMD(BaseIOHandler):
             for chunk in chunks:
                 for g in chunk.objs:
                     ds = f[bp + mp]
-                    nfield = fname.replace("_", "/").replace("-", "_")
+                    component = fname.replace("_", "/").replace("-", "_")
                     index = g.mesh_index
                     offset = g.mesh_offset
-                    data = np.array(self.get_component(ds, nfield, index, offset, self.ds._nonstandard))
+                    data = np.array(self.get_component(ds, component, index, offset, self.ds._nonstandard))
                     # The following is a modified AMRGridPatch.select(...)
                     mask = g._get_selector_mask(selector)
                     data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)

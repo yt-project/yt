@@ -16,12 +16,14 @@
 #
 # -----------------------------------------------------------------------------
 
-import h5py as h5
-import numpy as np
+import collections  # for isinstance
+import os.path
 import re
 import string
-import collections  # for isinstance
-import sys, getopt, os.path
+
+import numpy as np
+
+from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
 
 openPMD = "1.0.0"
@@ -31,7 +33,7 @@ ext_list = [["ED-PIC", np.uint32(1)]]
 
 def open_file(file_name):
     try:
-        f = h5.File(file_name, "r")
+        f = HDF5FileHandler.File(file_name, "r")
         return (f)
     except:
         raise

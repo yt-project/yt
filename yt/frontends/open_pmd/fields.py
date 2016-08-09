@@ -15,14 +15,33 @@ openPMD-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
-from yt.funcs import mylog
-from yt.utilities.physical_constants import speed_of_light
+import numpy as np
+
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.units.yt_array import YTQuantity
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import parse_unit_dimension
+from yt.units.yt_array import YTQuantity
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.physical_constants import speed_of_light
 
-import numpy as np
+
+def setup_poynting_vector(self):
+    def _get_poyn(axis):
+        def poynting(field, data):
+            u = 79577.4715459  # = 1/magnetic permeability
+            if axis in "x":
+                return u * (data["E_y"] * data["magnetic_field_z"] - data["E_z"] * data["magnetic_field_y"])
+            elif axis in "y":
+                return u * (data["E_z"] * data["magnetic_field_x"] - data["E_x"] * data["magnetic_field_z"])
+            elif axis in "z":
+                return u * (data["E_x"] * data["magnetic_field_y"] - data["E_y"] * data["magnetic_field_x"])
+
+        return poynting
+
+    for ax in "xyz":
+        self.add_field(("openPMD", "poynting_vector_%s" % ax),
+                       function=_get_poyn(ax),
+                       units="T*V/m")
 
 
 def setup_kinetic_energy(self, ptype):
@@ -46,10 +65,10 @@ def setup_velocity(self, ptype):
             momentum = data[ptype, "particle_momentum_{}".format(axis)]
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
-            return momentum / (
-                                  (mass * weighting) ** 2 +
-                                  (momentum ** 2) / (c ** 2)
-                              ) ** 0.5
+            return momentum / np.sqrt(
+                (mass * weighting) ** 2 +
+                (momentum ** 2) / (c ** 2)
+            )
 
         return velocity
 
@@ -58,25 +77,6 @@ def setup_velocity(self, ptype):
                        function=_get_vel(ax),
                        units="m/s",
                        particle_type=True)
-
-
-def setup_poynting_vector(self):
-    def _get_poyn(axis):
-        def poynting(field, data):
-            u = 79577.4715459  # = 1/magnetic permeability
-            if axis in "x":
-                return u * (data["E_y"] * data["magnetic_field_z"] - data["E_z"] * data["magnetic_field_y"])
-            elif axis in "y":
-                return u * (data["E_z"] * data["magnetic_field_x"] - data["E_x"] * data["magnetic_field_z"])
-            elif axis in "z":
-                return u * (data["E_x"] * data["magnetic_field_y"] - data["E_y"] * data["magnetic_field_x"])
-
-        return poynting
-
-    for ax in "xyz":
-        self.add_field(("openPMD", "poynting_vector_%s" % ax),
-                       function=_get_poyn(ax),
-                       units="T*V/m")
 
 
 def setup_absolute_positions(self, ptype):
@@ -95,16 +95,42 @@ def setup_absolute_positions(self, ptype):
 
 
 class OpenPMDFieldInfo(FieldInfoContainer):
-    """
-    We need to specify which fields we might have in our dataset.  The field info
-    container subclass here will define which fields it knows about.  There are
-    optionally methods on it that get called which can be subclassed.
+    """Specifies which fields from the dataset yt should know about.
 
-    This class defines, which fields and particle fields could be in the HDF5-file
-    The field names have to match the names in "openPMDHierarchy" in data_structures.py
-    This also defines the units of the fields
-    """
+    ``self.known_other_fields`` and ``self.known_particle_fields`` must be populated.
+    Entries for both of these lists must be tuples of the form
+        ("name", ("units", ["fields", "to", "alias"], "display_name"))
+    These fields will be represented and handled in yt in the way you define them here.
+    The fields defined in both ``self.known_other_fields`` and ``self.known_particle_fields`` will only be added
+    to a dataset (with units, aliases, etc), if they match any entry in the ``OpenPMDHierarchy``'s ``self.field_list``.
 
+    Notes
+    -----
+
+    Contrary to many other frontends, we dynamically obtain the known fields from the simulation output.
+    The openPMD markup is extremely flexible - names, dimensions and the number of individual datasets
+    can (and very likely will) vary.
+
+    openPMD states that names of records and their components are only allowed to contain the
+        characters a-Z,
+        the numbers 0-9
+        and the underscore _
+        (equivalently, the regex \w).
+    Since yt widely uses the underscore in field names, openPMD's underscores (_) are replaced by hyphen (-).
+
+    The constructor of the super-class is called after the fields have been dynamically parsed, so they are known when
+    needed during the call of ``setup_fluid_aliases`` .
+
+    Derived fields will automatically be set up, if names and units of your known on-disk (or manually derived)
+    fields match the ones in [1].
+
+    References
+    ----------
+    .. http://yt-project.org/docs/dev/analyzing/fields.html
+    .. http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
+    .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
+    .. [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
+    """
     _mag_fields = []
 
     def __init__(self, ds, field_list):
@@ -126,8 +152,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                 unit = str(YTQuantity(1, parsed).units)
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
-                # We can not reasonably infer field type by name in openPMD
-                if "T" in unit or "kg/(A*s**2)" in unit:
+                # We can not reasonably infer field type/unit by name in openPMD
+                if unit in "T" or "kg/(A*s**2)" in unit:
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)),)
             else:
@@ -145,7 +171,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
                     # We can not reasonably infer field type by name in openPMD
-                    if "T" in unit or "kg/(A*s**2)" in unit:
+                    if unit in "T" or "kg/(A*s**2)" in unit:
                         self._mag_fields.append(ytname)
                     self.known_other_fields += ((ytname, (unit, aliases, None)),)
         for i in self.known_other_fields:
@@ -170,15 +196,15 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     unit = str(YTQuantity(1, parsed).units)
                     name = ["particle", attrib]
                     ytattrib = attrib
-                    # Symbolically rename position to preserve yt's interpretation of the pfield
-                    # particle_position is later derived in setup_absolute_positions
                     if ytattrib in "position":
+                        # Symbolically rename position to preserve yt's interpretation of the pfield
+                        # particle_position is later derived in setup_absolute_positions in the way yt expects it
                         ytattrib = "positionCoarse"
                     for axis in particles.get(species).get(attrib).keys():
                         aliases = []
                         if axis in "rxyz":
                             name = ["particle", ytattrib, axis]
-                        ytname = str("_".join(name))
+                        ytname = str("_".join([name.replace("_", "-")]))
                         if ds._nonstandard and "globalCellIdx" in ytname:
                             aliases.append(ytname.replace("globalCellIdx", "positionOffset"))
                         particle_fields += ((ytname, (unit, aliases, None)),)
@@ -190,10 +216,9 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         super(OpenPMDFieldInfo, self).__init__(ds, field_list)
 
     def setup_fluid_fields(self):
-        """
-        Here you can create functions to calculate out of existing fields the
-        values of new fields e.g. calculate out of E-field and B-field the
-        Poynting vector
+        """Defines which derived mesh fields to create.
+
+        If a field can not be calculated, it will simply be skipped.
         """
         # Set up aliases first so the setup for poynting can use them
         if len(self._mag_fields) > 0:
@@ -201,8 +226,10 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             setup_poynting_vector(self)
 
     def setup_particle_fields(self, ptype):
-        """
-        This will get called for every particle type.
+        """Defines which derived particle fields to create.
+
+        This will be called for every entry in `OpenPMDDataset``'s ``self.particle_types``.
+        If a field can not be calculated, it will simply be skipped.
         """
         setup_absolute_positions(self, ptype)
         setup_kinetic_energy(self, ptype)

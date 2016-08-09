@@ -14,18 +14,20 @@ openPMD data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
-from yt.data_objects.grid_patch import AMRGridPatch
-from yt.geometry.grid_geometry_handler import GridIndex
-from yt.data_objects.static_output import Dataset
-from yt.utilities.file_handler import HDF5FileHandler
-from yt.utilities.logger import ytLogger as mylog
-from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
-from yt.frontends.open_pmd.misc import is_const_component, check_root_attr, check_iterations
-
-import numpy as np
 import os
 import re
 from math import ceil, floor
+
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
+from yt.frontends.open_pmd.misc import is_const_component, check_root_attr, check_iterations
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.file_handler import HDF5FileHandler
+from yt.utilities.logger import ytLogger as mylog
+
 
 class OpenPMDGrid(AMRGridPatch):
     """Represents disjoint chunk of data on-disk and their relation.
@@ -266,6 +268,7 @@ class OpenPMDDataset(Dataset):
         ----------
         handle : h5py.File
         path : str
+            (absolute) filepath for current hdf5 container
         nonstandard : bool
         """
         self.base_path = "/data/{}/".format(handle["/data"].keys()[0])
