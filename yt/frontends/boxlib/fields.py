@@ -181,6 +181,15 @@ class CastroFieldInfo(FieldInfoContainer):
         ("magmom", ("g*cm/s", ["momentum_magnitude"], r"\rho |\mathbf{U}|")),
         ("maggrav", ("cm/s**2", [], r"|\mathbf{g}|")),
         ("phiGrav", ("erg/g", [], r"\Phi")),
+        ("enuc", ("erg/(g*s)", [], r"\dot{e}_{\rm{nuc}}")),
+        ("rho_enuc", ("erg/(cm**3*s)", [], r"\rho \dot{e}_{\rm{nuc}}")),
+        ("angular_momentum_x", ("g/(cm*s)", [], r"\ell_x")),
+        ("angular_momentum_y", ("g/(cm*s)", [], r"\ell_y")),
+        ("angular_momentum_z", ("g/(cm*s)", [], r"\ell_z")),
+        ("phiRot", ("erg/g", [], r"\Phi_{\rm{rot}}")),
+        ("rot_x", ("cm/s**2", [], r"\mathbf{f}_{\rm{rot}} \cdot \mathbf{e}_x")),
+        ("rot_y", ("cm/s**2", [], r"\mathbf{f}_{\rm{rot}} \cdot \mathbf{e}_y")),
+        ("rot_z", ("cm/s**2", [], r"\mathbf{f}_{\rm{rot}} \cdot \mathbf{e}_z")),
     )
 
     def setup_fluid_fields(self):
