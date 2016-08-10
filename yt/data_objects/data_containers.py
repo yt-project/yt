@@ -877,11 +877,9 @@ class YTDataContainer(object):
         >>> print (profile["gas", "temperature"])
         >>> plot = profile.plot()
         """
-        p = create_profile(self, bin_fields, fields, n_bins=64,
-                   extrema=None, logs=None, units=None,
-                   weight_field="cell_mass",
-                   accumulation=False, fractional=False,
-                   deposition='ngp')
+        p = create_profile(self, bin_fields, fields, n_bins,
+                   extrema, logs, units, weight_field, accumulation,
+                   fractional, deposition)
         return p
 
     def mean(self, field, axis=None, weight='ones'):
