@@ -554,7 +554,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, ax=None, label=None, label_fmt=None):
+    def vert_cbar(self, resolution, log_scale, ax=None, label=None, 
+                  label_fmt=None):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -603,6 +604,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
+            if log_scale is True:
+                val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:
                     if not val == 0.0:
@@ -626,7 +629,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0], visible[-1])
         ax.tick_params(axis='y', colors='white', size=10)
-        ax.set_ylabel(label, color='white')
+        ax.set_ylabel(label, color='white', size=10*resolution/512.0)
         
 
         
@@ -708,7 +711,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> def linramp(vals, minval, maxval):
-        ...     return (vals - vals.min())/(vals.(max) - vals.min())
+        ...     return (vals - vals.min())/(vals.max() - vals.min())
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
         >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='arbre')
         >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='arbre',

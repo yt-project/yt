@@ -106,23 +106,19 @@ def test_sloshing():
     convert_old_file(old_photon_file, "converted_photons.h5")
     convert_old_file(old_event_file, "converted_events.h5")
 
-    photons3 = PhotonList.from_file("converted_photons.h5")
-    events3 = EventList.from_h5_file("converted_events.h5")
+    PhotonList.from_file("converted_photons.h5")
+    EventList.from_h5_file("converted_events.h5")
 
     for k in photons1.keys():
         if k == "Energy":
             arr1 = uconcatenate(photons1[k])
             arr2 = uconcatenate(photons2[k])
-            arr3 = uconcatenate(photons3[k])
         else:
             arr1 = photons1[k]
             arr2 = photons2[k]
-            arr3 = photons3[k]
         assert_almost_equal(arr1, arr2)
-        assert_almost_equal(arr1, arr3)
     for k in events1.keys():
         assert_almost_equal(events1[k], events2[k])
-        assert_almost_equal(events1[k], events3[k])
 
     nevents = 0
 

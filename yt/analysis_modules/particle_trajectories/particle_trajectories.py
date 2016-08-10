@@ -206,7 +206,7 @@ class ParticleTrajectories(object):
             dd_first = ds_first.all_data()
             fd = dd_first._determine_fields(field)[0]
             if field not in self.particle_fields:
-                if self.data_series[0].field_info[fd].particle_type:
+                if self.data_series[0]._get_field_info(*fd).particle_type:
                     self.particle_fields.append(field)
             particles = np.empty((self.num_indices,self.num_steps))
             particles[:] = np.nan
@@ -339,7 +339,7 @@ class ParticleTrajectories(object):
         """
         fid = h5py.File(filename, "w")
         fields = [field for field in sorted(self.field_data.keys())]
-        fid.create_dataset("particle_indices", dtype=np.int32,
+        fid.create_dataset("particle_indices", dtype=np.int64,
                            data=self.indices)
         fid.create_dataset("particle_time", data=self.times)
         for field in fields:

@@ -131,6 +131,16 @@ can easily select, for instance, one hemisphere with a region selection:::
 
    ds.r[:,-180:0,:]
 
+If you specify a single slice, it will be repeated along all three dimensions.
+For instance, this will give all data:::
+
+   ds.r[:]
+
+And this will select a box running from 0.4 to 0.6 along all three
+dimensions:::
+
+   ds.r[0.4:0.6]
+
 Selecting Fixed Resolution Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

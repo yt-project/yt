@@ -713,7 +713,7 @@ class YTArray(np.ndarray):
         >>> c = yt.YTArray.from_pint(b)
         """
         p_units = []
-        for base, exponent in arr.units.items():
+        for base, exponent in arr._units.items():
             bs = convert_pint_units(base)
             p_units.append("%s**(%s)" % (bs, Rational(exponent)))
         p_units = "*".join(p_units)

@@ -103,7 +103,7 @@ To create new unit tests:
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
    assert statements or functions.  
-# Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
+#. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
    ``argument_two``, etc.  For example ``yield assert_equal, 1.0, 1.0`` would be
    captured by nose as a test that asserts that 1.0 is equal to 1.0.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
@@ -285,15 +285,12 @@ OWLS
 
 These datasets are available at http://yt-project.org/data/.
 
-Next, modify the file ``~/.yt/config`` to include a section ``[yt]``
-with the parameter ``test_data_dir``.  Set this to point to the
-directory with the test data you want to test with.  Here is an example
-config file:
+Next, add the config parameter ``test_data_dir`` pointing to 
+directory with the test data you want to test with, e.g.:
 
 .. code-block:: none
 
-   [yt]
-   test_data_dir = /Users/tomservo/src/yt-data
+   $ yt config set yt test_data_dir /Users/tomservo/src/yt-data
 
 More data will be added over time.  To run the answer tests, you must first
 generate a set of test answers locally on a "known good" revision, then update
@@ -313,7 +310,7 @@ project's contiguous integration server.
 This command will create a set of local answers from the tipsy frontend tests
 and store them in ``$HOME/Documents/test`` (this can but does not have to be the
 same directory as the ``test_data_dir`` configuration variable defined in your
-``.yt/config`` file) in a file named ``local-tipsy``. To run the tipsy
+``~/.config/yt/ytrc`` file) in a file named ``local-tipsy``. To run the tipsy
 frontend's answer tests using a different yt changeset, update to that
 changeset, recompile if necessary, and run the tests using the following
 command:
@@ -487,7 +484,7 @@ Enabling Answer Tests on Jenkins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
-integration server <http://tests.yt-project.org>`_. While unit tests are
+integration server <https://tests.yt-project.org>`_. While unit tests are
 autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in

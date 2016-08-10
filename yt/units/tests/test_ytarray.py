@@ -926,12 +926,12 @@ def test_pint():
     yt_quan2 = YTQuantity.from_pint(p_quan)
 
     yield assert_array_equal, p_arr, yt_arr.to_pint()
-    assert p_quan.units == yt_quan.to_pint().units
+    assert_equal(p_quan, yt_quan.to_pint())
     yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
     yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
-    assert p_quan.units == yt_quan.to_pint().units
+    assert_equal(p_quan, yt_quan.to_pint())
     yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
     yield assert_equal, yt_quan, yt_quan2
 
