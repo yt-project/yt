@@ -986,3 +986,12 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     except ImportError:
         pass
     return dummy_context_manager()
+
+def setdefaultattr(obj, name, value):
+    """Set attribute with *name* on *obj* with *value* if it doesn't exist yet
+
+    Analogous to dict.setdefault
+    """
+    if not hasattr(obj, name):
+        setattr(obj, name, value)
+    return getattr(obj, name)

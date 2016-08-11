@@ -30,7 +30,8 @@ from yt.frontends.artio.fields import \
     ARTIOFieldInfo
 
 from yt.funcs import \
-    mylog
+    mylog, \
+    setdefaultattr
 from yt.geometry.geometry_handler import \
     Index, \
     YTDataChunk
@@ -354,10 +355,13 @@ class ARTIODataset(Dataset):
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
-        self.mass_unit = self.quan(self.parameters["unit_m"], "g")
-        self.length_unit = self.quan(self.parameters["unit_l"], "cm")
-        self.time_unit = self.quan(self.parameters["unit_t"], "s")
-        self.velocity_unit = self.length_unit / self.time_unit
+        setdefaultattr(
+            self, 'mass_unit', self.quan(self.parameters["unit_m"], "g"))
+        setdefaultattr(
+            self, 'length_unit', self.quan(self.parameters["unit_l"], "cm"))
+        setdefaultattr(
+            self, 'time_unit', self.quan(self.parameters["unit_t"], "s"))
+        setdefaultattr(self, 'velocity_unit', self.length_unit / self.time_unit)
 
     def _parse_parameter_file(self):
         # hard-coded -- not provided by headers
