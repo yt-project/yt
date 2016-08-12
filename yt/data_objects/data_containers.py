@@ -22,7 +22,6 @@ import shelve
 
 from collections import defaultdict
 from contextlib import contextmanager
-from functools import wraps
 
 from yt.data_objects.particle_io import particle_handler_registry
 from yt.fields.derived_field import \
