@@ -66,9 +66,9 @@ class Cosmology(object):
                  omega_curvature = 0.0,
                  unit_registry = None,
                  unit_system = "cgs"):
-        self.omega_matter = omega_matter
-        self.omega_lambda = omega_lambda
-        self.omega_curvature = omega_curvature
+        self.omega_matter = float(omega_matter)
+        self.omega_lambda = float(omega_lambda)
+        self.omega_curvature = float(omega_curvature)
         if unit_registry is None:
             unit_registry = UnitRegistry()
             unit_registry.modify("h", hubble_constant)
