@@ -156,8 +156,7 @@ class LightRay(CosmologySplice):
                 self.cosmology = Cosmology(
                     hubble_constant=self.ds.hubble_constant,
                     omega_matter=self.ds.omega_matter,
-                    omega_lambda=self.ds.omega_lambda,
-                    unit_registry=self.ds.unit_registry)
+                    omega_lambda=self.ds.omega_lambda)
             else:
                 redshift = 0.
             self.light_ray_solution.append({"filename": self.parameter_filename,
