@@ -21,6 +21,8 @@ from yt.convenience import \
 from yt.funcs import mylog
 from yt.utilities.cosmology import \
     Cosmology
+from yt.utilities.physical_constants import \
+    c
 
 class CosmologySplice(object):
     """
@@ -307,13 +309,14 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        # Calculate delta z that corresponds to the length of the
-        # box at a given redshift.
         z1 = z
-        z2 = z1 - 0.1 # just an initial guess
+        # Use Hubble's law for initial guess
+        target_distance = self.cosmology.quan(target_distance.to("Mpccm / h"))
+        v = self.cosmology.hubble_parameter(z) * target_distance
+        dz = np.sqrt((1. + v/c) / (1. - v/c)) - 1.
+        z2 = z1 - dz
         distance1 = self.cosmology.quan(0.0, "Mpccm / h")
         distance2 = self.cosmology.comoving_radial_distance(z2, z)
-        target_distance = self.cosmology.quan(target_distance.to("Mpccm / h"))
         iteration = 1
 
         while ((np.abs(distance2 - target_distance)/distance2) > d_Tolerance):
