@@ -91,7 +91,8 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_window_size": [((7.0, ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
                           (('density', 1e-25, None), {'dynamic_range': 4})],
-             "zoom": [((10, ), {})]}
+             "zoom": [((10, ), {})],
+             "toggle_right_handed": [((),{})]}
 
 
 CENTER_SPECS = (
@@ -449,3 +450,4 @@ def test_plot_particle_field_error():
         for field_name_list in field_names:
             assert_raises(
                 YTInvalidFieldType, object, ds, normal, field_name_list)
+

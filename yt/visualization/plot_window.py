@@ -13,7 +13,6 @@ from __future__ import print_function
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
 import numpy as np
 import matplotlib
 import types
@@ -171,11 +170,15 @@ class PlotWindow(ImagePlotContainer):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
+    right_handed : boolean
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
 
     """
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, 
-                 window_size=8.0, fields=None, fontsize=18, aspect=None, 
+                 periodic=True, origin='center-window', oblique=False, right_handed=True,
+                 window_size=8.0, fields=None, fontsize=18, aspect=None,
                  setup=False):
         if not hasattr(self, "ds"):
             self.ds = data_source.ds
@@ -185,8 +188,10 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
+        self._right_handed = right_handed
         self.buff_size = buff_size
         self.antialias = antialias
+
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
         if fields is None:
@@ -616,6 +621,11 @@ class PlotWindow(ImagePlotContainer):
         self._axes_unit_names = unit_name
         return self
 
+    @invalidate_plot
+    def toggle_right_handed(self):
+        self._right_handed = not self._right_handed
+
+
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
@@ -793,13 +803,16 @@ class PWViewerMPL(PlotWindow):
                 ia = ImageArray(ia)
             else:
                 ia = image
-
             self.plots[f] = WindowPlotMPL(
                 ia, self._field_transform[f].name,
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
                 self.aspect, fig, axes, cax)
+
+            if not self._right_handed:
+                ax = self.plots[f].axes
+                ax.invert_xaxis()
 
             axes_unit_labels = ['', '']
             comoving = False
@@ -1210,6 +1223,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with a normal vector, the direction of the
+         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1234,7 +1251,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None,
+                 origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
@@ -1259,7 +1276,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         validate_mesh_fields(slc, fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
-                             window_size=window_size, aspect=aspect)
+                             window_size=window_size, aspect=aspect, right_handed=right_handed)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1346,7 +1363,10 @@ class ProjectionPlot(PWViewerMPL):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
-
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with the direction of the
+         'window' into the data.
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
@@ -1399,8 +1419,8 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
-                 fontsize=18, field_parameters=None, data_source=None,
-                 method = "integrate", proj_style = None, window_size=8.0, 
+                 right_handed=True, fontsize=18, field_parameters=None, data_source=None,
+                 method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
         ts = self._initialize_dataset(ds)
         self.ts = ts
@@ -1435,7 +1455,7 @@ class ProjectionPlot(PWViewerMPL):
                            field_parameters=field_parameters, method=method,
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             fontsize=fontsize, window_size=window_size, 
+                             right_handed=right_handed, fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1499,6 +1519,10 @@ class OffAxisSlicePlot(PWViewerMPL):
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with the north vector and the normal, the direction of the
+         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1513,7 +1537,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, normal, fields, center='c', width=None,
-                 axes_unit=None, north_vector=None, fontsize=18,
+                 axes_unit=None, north_vector=None, right_handed=True, fontsize=18,
                  field_parameters=None, data_source=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
@@ -1533,7 +1557,7 @@ class OffAxisSlicePlot(PWViewerMPL):
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
-                             oblique=True, fontsize=fontsize)
+                             right_handed=right_handed, oblique=True, fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1635,6 +1659,10 @@ class OffAxisProjectionPlot(PWViewerMPL):
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with the north vector and the normal, the direction of the
+         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
@@ -1657,8 +1685,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  depth=(1, '1'), axes_unit=None, weight_field=None,
-                 max_level=None, north_vector=None, volume=None, no_ghost=False,
-                 le=None, re=None, interpolated=False, fontsize=18, method="integrate"):
+                 max_level=None, north_vector=None, right_handed=True,
+                 volume=None, no_ghost=False, le=None, re=None,
+                 interpolated=False, fontsize=18, method="integrate"):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1684,7 +1713,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
-            periodic=False, oblique=True, fontsize=fontsize)
+            periodic=False, oblique=True, right_handed=right_handed,
+            fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
