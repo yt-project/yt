@@ -237,16 +237,18 @@ class PlotWindow(ImagePlotContainer):
     def frb():
         doc = "The frb property."
         def fget(self):
-            if self._frb is None:
+            if self._frb is None or self._data_valid is False:
                 self._recreate_frb()
             return self._frb
 
         def fset(self, value):
             self._frb = value
+            self._data_valid = True
 
         def fdel(self):
             del self._frb
             self._frb = None
+            self._data_valid = False
 
         return locals()
     frb = property(**frb())
@@ -255,8 +257,8 @@ class PlotWindow(ImagePlotContainer):
         old_fields = None
         # If we are regenerating an frb, we want to know what fields we had before
         if self._frb is not None:
-            old_fields = list(self.frb.keys())
-            old_units = [str(self.frb[of].units) for of in old_fields]
+            old_fields = list(self._frb.keys())
+            old_units = [str(self._frb[of].units) for of in old_fields]
 
         # Set the bounds
         if hasattr(self,'zlim'):
@@ -267,12 +269,11 @@ class PlotWindow(ImagePlotContainer):
             bounds = np.array([b.in_units('code_length') for b in bounds])
 
         # Generate the FRB
-        self._frb = self._frb_generator(self.data_source, bounds,
-                                        self.buff_size, self.antialias,
-                                        periodic=self._periodic)
+        self.frb = self._frb_generator(self.data_source, bounds,
+                                       self.buff_size, self.antialias,
+                                       periodic=self._periodic)
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
-        self._data_valid = True
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:

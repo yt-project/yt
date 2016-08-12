@@ -442,3 +442,10 @@ def test_plot_particle_field_error():
         for field_name_list in field_names:
             assert_raises(
                 YTInvalidFieldType, object, ds, normal, field_name_list)
+
+
+def test_frb_regen():
+    ds = fake_random_ds(32)
+    slc = SlicePlot(ds, 2, 'density')
+    slc.set_buff_size(1200)
+    assert_equal(slc.frb['density'].shape, (1200, 1200))
