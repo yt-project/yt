@@ -8,7 +8,7 @@ answer_tests:
   local_chombo_000:
     - yt/frontends/chombo/tests/test_outputs.py
 
-  local_enzo_000:
+  local_enzo_001:
     - yt/frontends/enzo
 
   local_fits_000:
@@ -39,7 +39,7 @@ answer_tests:
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
   
-  local_pw_001:
+  local_pw_006:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -50,7 +50,7 @@ answer_tests:
   local_tipsy_001:
     - yt/frontends/tipsy/tests/test_outputs.py
   
-  local_varia_001:
+  local_varia_003:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
@@ -67,9 +67,14 @@ answer_tests:
   local_ytdata_000:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_000:
+  local_absorption_spectrum_001:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
+    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_sph
+    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
+
+  local_axialpix_001:
+    - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
 other_tests:
   unittests:

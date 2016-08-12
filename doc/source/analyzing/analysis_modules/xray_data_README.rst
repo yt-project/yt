@@ -1,3 +1,5 @@
+.. _xray_data_README:
+
 Auxiliary Data Files for use with yt's Photon Simulator
 =======================================================
 

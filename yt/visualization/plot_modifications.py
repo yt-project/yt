@@ -162,18 +162,32 @@ class PlotCallback(object):
         Given a set of x,y (and z) coordinates and a coordinate system,
         convert the coordinates (and transformation) ready for final plotting.
 
-        Coordinate systems
-        ------------------
+        Parameters
+        ----------
+        
+        plot: a PlotMPL subclass
+           The plot that we are converting coordinates for
 
-        data : 3D data coordinates relative to original dataset
+        coord: array-like
+           Coordinates in some coordinate system.
 
-        plot : 2D coordinates as defined by the final axis locations
+        coord_system: string
 
-        axis : 2D coordinates within the axis object from (0,0) in lower left
-               to (1,1) in upper right.  Same as matplotlib axis coords.
+            Possible values include:
 
-        figure : 2D coordinates within figure object from (0,0) in lower left
-                 to (1,1) in upper right.  Same as matplotlib figure coords.
+            * ``'data'``
+                3D data coordinates relative to original dataset
+
+            * ``'plot'``
+                2D coordinates as defined by the final axis locations
+
+            * ``'axis'``
+                2D coordinates within the axis object from (0,0) in lower left
+                to (1,1) in upper right.  Same as matplotlib axis coords.
+
+            * ``'figure'``
+                2D coordinates within figure object from (0,0) in lower left
+                to (1,1) in upper right.  Same as matplotlib figure coords.
         """
         # if in data coords, project them to plot coords
         if coord_system == "data":
@@ -1838,22 +1852,19 @@ class TimestampCallback(PlotCallback):
 
             "plot" -- the 2D coordinates defined by the actual plot limits
 
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
-        text object.  Defaults: {'color':'white',
-        'horizontalalignment':'center', 'verticalalignment':'top'}.
+        text object.  Defaults: ``{'color':'white',
+        'horizontalalignment':'center', 'verticalalignment':'top'}``.
 
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: {'boxstyle':'square,pad=0.3', 'facecolor':'black',
-                  'linewidth':3, 'edgecolor':'white', 'alpha':0.5}
+        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
@@ -2014,22 +2025,20 @@ class ScaleCallback(PlotCallback):
 
             "plot" -- the 2D coordinates defined by the actual plot limits
 
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is
-                      upper right
+            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
 
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1)
-                        is upper right
+            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties
         for the text in this callback.  For any property not set, it will
         use the defaults of the plot.  Thus one can modify the text size with:
-        text_args={'size':24}
+        ``text_args={'size':24}``
 
     size_bar_args : dictionary, optional
         A dictionary of parameters to be passed to the Matplotlib
         AnchoredSizeBar initializer.
-        Defaults: {'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}
+        Defaults: ``{'pad': 0.25, 'sep': 5, 'borderpad': 1, 'color': 'w'}``
 
     draw_inset_box : boolean, optional
         Whether or not an inset box should be included around the scale bar.
@@ -2037,8 +2046,7 @@ class ScaleCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
-        Defaults: {'facecolor': 'black', 'linewidth': 3, 'edgecolor', 'white',
-                   'alpha': 0.5, 'boxstyle': 'square'}
+        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
 
     Example
@@ -2443,7 +2451,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
 class CellEdgesCallback(PlotCallback):
     """
-    annotate_cell_edges(line_width=1.0, alpha = 1.0, color = (0.0, 0.0, 0.0))
+    annotate_cell_edges(line_width=0.002, alpha = 1.0, color = 'black')
 
     Annotate cell edges.  This is done through a second call to pixelize, where
     the distance from a pixel to a cell boundary in pixels is compared against
@@ -2453,12 +2461,13 @@ class CellEdgesCallback(PlotCallback):
     Parameters
     ----------
     line_width : float
-        Distance, in pixels, from a cell edge that will mark a pixel as being
-        annotated as a cell edge.  Default is 1.0.
+        The width of the cell edge lines in normalized units relative to the
+        size of the longest axis.  Default is 1% of the size of the smallest
+        axis.
     alpha : float
         When the second image is overlaid, it will have this level of alpha
         transparency.  Default is 1.0 (fully-opaque).
-    color : tuple of three floats
+    color : tuple of three floats or matplotlib color name
         This is the color of the cell edge values.  It defaults to black.
 
     Examples
@@ -2472,11 +2481,13 @@ class CellEdgesCallback(PlotCallback):
     """
     _type_name = "cell_edges"
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, line_width=1.0, alpha = 1.0, color=(0.0, 0.0, 0.0)):
+    def __init__(self, line_width=0.002, alpha = 1.0, color='black'):
+        from matplotlib.colors import ColorConverter
+        conv = ColorConverter()
         PlotCallback.__init__(self)
         self.line_width = line_width
         self.alpha = alpha
-        self.color = (np.array(color) * 255).astype("uint8")
+        self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
 
     def __call__(self, plot):
         x0, x1 = plot.xlim
@@ -2486,6 +2497,24 @@ class CellEdgesCallback(PlotCallback):
         plot._axes.hold(True)
         nx = plot.image._A.shape[0]
         ny = plot.image._A.shape[1]
+        aspect = float((y1 - y0) / (x1 - x0))
+        pixel_aspect = float(ny)/nx
+        relative_aspect = pixel_aspect / aspect
+        if relative_aspect > 1:
+            nx = int(nx/relative_aspect)
+        else:
+            ny = int(ny*relative_aspect)
+        if aspect > 1:
+            if nx < 1600:
+                nx = int(1600./nx*ny)
+                ny = 1600
+            long_axis = ny
+        else:
+            if ny < 1600:
+                nx = int(1600./ny*nx)
+                ny = 1600
+            long_axis = nx
+        line_width = max(self.line_width*long_axis, 1.0)
         im = pixelize_cartesian(plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
@@ -2493,16 +2522,15 @@ class CellEdgesCallback(PlotCallback):
                                 plot.data['px'], # dummy field
                                 int(nx), int(ny),
                                 (x0, x1, y0, y1),
-                                line_width=self.line_width).transpose()
+                                line_width=line_width).transpose()
         # New image:
         im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
-        im_buffer[im>0,3] = 255
-        im_buffer[im>0,:3] = self.color
+        im_buffer[im > 0, 3] = 255
+        im_buffer[im > 0, :3] = self.color
         plot._axes.imshow(im_buffer, origin='lower',
-                          interpolation='nearest',
-                          extent = [xx0, xx1, yy0, yy1],
-                          alpha = self.alpha)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+                          interpolation='bilinear',
+                          extent=[xx0, xx1, yy0, yy1],
+                          alpha=self.alpha)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
         plot._axes.hold(False)
-

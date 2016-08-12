@@ -92,7 +92,7 @@ default_unit_symbol_lut = {
     "Lsun": (luminosity_sun_ergs_per_sec, dimensions.power, 0.0, r"L_\odot"),
     "Tsun": (temp_sun_kelvin, dimensions.temperature, 0.0, r"T_\odot"),
     "Zsun": (metallicity_sun, dimensions.dimensionless, 0.0, r"Z_\odot"),
-    "Mjup": (mass_jupiter_grams, dimensions.mass, 0.0, r"M_{\rm{Jup}"),
+    "Mjup": (mass_jupiter_grams, dimensions.mass, 0.0, r"M_{\rm{Jup}}"),
     "Mearth": (mass_earth_grams, dimensions.mass, 0.0, r"M_\oplus"),
 
     # astro distances

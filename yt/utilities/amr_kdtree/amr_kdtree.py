@@ -17,7 +17,9 @@ from __future__ import absolute_import
 import operator
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import \
+    iterable, \
+    mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.amr_kdtree.amr_kdtools import \
     receive_and_reduce, \
@@ -26,8 +28,9 @@ from yt.utilities.amr_kdtree.amr_kdtools import \
 from yt.utilities.lib.amr_kdtools import Node
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.lib.grid_traversal import PartitionedGrid
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
+from yt.geometry.grid_geometry_handler import GridIndex
 
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],
@@ -137,6 +140,11 @@ class Tree(object):
 
 
 class AMRKDTree(ParallelAnalysisInterface):
+    r"""A KDTree for AMR data. 
+
+    Not applicable to particle or octree-based datasets.
+
+    """
 
     fields = None
     log_fields = None
@@ -144,6 +152,9 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def __init__(self, ds, min_level=None, max_level=None,
                  data_source=None):
+
+        if not issubclass(ds.index.__class__, GridIndex):
+            raise RuntimeError("AMRKDTree does not support particle or octree-based data.")
 
         ParallelAnalysisInterface.__init__(self)
 
@@ -174,14 +185,17 @@ class AMRKDTree(ParallelAnalysisInterface):
         regenerate_data = self.fields is None or \
                           len(self.fields) != len(new_fields) or \
                           self.fields != new_fields or force
+        if not iterable(log_fields):
+            log_fields = [log_fields]
+        new_log_fields = list(log_fields)
         self.tree.trunk.set_dirty(regenerate_data)
         self.fields = new_fields
 
         if self.log_fields is not None and not regenerate_data:
-            flip_log = list(map(operator.ne, self.log_fields, log_fields))
+            flip_log = list(map(operator.ne, self.log_fields, new_log_fields))
         else:
-            flip_log = [False] * len(log_fields)
-        self.log_fields = log_fields
+            flip_log = [False] * len(new_log_fields)
+        self.log_fields = new_log_fields
 
         self.no_ghost = no_ghost
         del self.bricks, self.brick_dimensions
@@ -189,7 +203,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         bricks = []
 
         for b in self.traverse():
-            list(map(_apply_log, b.my_data, flip_log, log_fields))
+            list(map(_apply_log, b.my_data, flip_log, self.log_fields))
             bricks.append(b)
         self.bricks = np.array(bricks)
         self.brick_dimensions = np.array(self.brick_dimensions)

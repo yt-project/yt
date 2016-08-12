@@ -19,6 +19,7 @@ and contributing code!
    developing
    building_the_docs
    testing
+   extensions
    debugdrive
    releasing
    creating_datatypes

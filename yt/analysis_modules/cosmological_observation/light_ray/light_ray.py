@@ -21,6 +21,8 @@ from yt.convenience import \
     load
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
+from yt.units.unit_object import \
+    Unit
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
@@ -76,6 +78,11 @@ class LightRay(CosmologySplice):
         will contain as many entries as possible within the redshift
         interval.  Do not use for simple rays.
         Default: True.
+    max_box_fraction : optional, float
+        In terms of the size of the domain, the maximum length a light
+        ray segment can be in order to span the redshift interval from
+        one dataset to another.
+        Default: 1.0 (the size of the box)
     deltaz_min : optional, float
         Specifies the minimum :math:`\Delta z` between consecutive
         datasets in the returned list.  Do not use for simple rays.
@@ -113,8 +120,8 @@ class LightRay(CosmologySplice):
     """
     def __init__(self, parameter_filename, simulation_type=None,
                  near_redshift=None, far_redshift=None,
-                 use_minimum_datasets=True, deltaz_min=0.0,
-                 minimum_coherent_box_fraction=0.0,
+                 use_minimum_datasets=True, max_box_fraction=1.0,
+                 deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
                  find_outputs=False, load_kwargs=None):
 
@@ -166,6 +173,7 @@ class LightRay(CosmologySplice):
             self.light_ray_solution = \
               self.create_cosmology_splice(self.near_redshift, self.far_redshift,
                                            minimal=self.use_minimum_datasets,
+                                           max_box_fraction=max_box_fraction,
                                            deltaz_min=self.deltaz_min,
                                            time_data=time_data,
                                            redshift_data=redshift_data)
@@ -219,16 +227,6 @@ class LightRay(CosmologySplice):
                     self.cosmology.comoving_radial_distance(z_next, \
                         self.light_ray_solution[q]['redshift']).in_units("Mpccm / h") / \
                         self.simulation.box_size
-
-                # Simple error check to make sure more than 100% of box depth
-                # is never required.
-                if (self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
-                    mylog.error("Warning: box fraction required to go from z = %f to %f is %f" %
-                                (self.light_ray_solution[q]['redshift'], z_next,
-                                 self.light_ray_solution[q]['traversal_box_fraction']))
-                    mylog.error("Full box delta z is %f, but it is %f to the next data dump." %
-                                (self.light_ray_solution[q]['dz_max'],
-                                 self.light_ray_solution[q]['redshift']-z_next))
 
                 # Get dataset axis and center.
                 # If using box coherence, only get start point and vector if
@@ -607,10 +605,18 @@ class LightRay(CosmologySplice):
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
         # Only return LightRay elements with non-zero density
-        if 'density' in data:
-            mask = data['density'] > 0
-            for key in data.keys():
-                data[key] = data[key][mask]
+        mask_field_units = ['K', 'cm**-3', 'g/cm**3']
+        mask_field_units = [Unit(u) for u in mask_field_units]
+        for f in data:
+            for u in mask_field_units:
+                if data[f].units.same_dimensions_as(u):
+                    mask = data[f] > 0
+                    if not np.any(mask):
+                        raise RuntimeError(
+                            "No zones along light ray with nonzero %s. "
+                            "Please modify your light ray trajectory." % (f,))
+                    for key in data.keys():
+                        data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 

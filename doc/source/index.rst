@@ -133,6 +133,16 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
+           <a href="sharing_data.html">Sharing Data</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">The yt Hub</p>
+       </td>
+     </tr>
+     <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="reference/index.html">Reference Materials</a>
          </p>
        </td>
@@ -185,6 +195,7 @@ Table of Contents
    analyzing/analysis_modules/index
    examining/index
    developing/index
+   sharing_data
    reference/index
    faq/index
    Getting Help <help/index>

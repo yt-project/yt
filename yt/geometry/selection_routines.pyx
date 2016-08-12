@@ -22,8 +22,10 @@ from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
+from yt.utilities.lib.volume_container cimport \
+    VolumeContainer
 from yt.utilities.lib.grid_traversal cimport \
-    VolumeContainer, sample_function, walk_volume
+    sampler_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 
 cdef extern from "math.h":
