@@ -811,10 +811,10 @@ class YTDataContainer(object):
         return ex[1] - ex[0]
 
     def profile(self, bin_fields, fields, n_bins=64,
-                   extrema=None, logs=None, units=None,
-                   weight_field="cell_mass",
-                   accumulation=False, fractional=False,
-                   deposition='ngp'):
+                extrema=None, logs=None, units=None,
+                weight_field="cell_mass",
+                accumulation=False, fractional=False,
+                deposition='ngp'):
         r"""
         Create a 1, 2, or 3D profile object from this data_source.
 
