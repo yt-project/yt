@@ -363,6 +363,7 @@ class CosmologySplice(object):
         z2 = z1 - 0.1 # just an initial guess
         distance1 = self.cosmology.quan(0.0, "Mpccm / h")
         distance2 = self.cosmology.comoving_radial_distance(z2, z)
+        target_distance = self.cosmology.quan(target_distance.to("Mpccm / h"))
         iteration = 1
 
         while ((np.abs(distance2 - target_distance)/distance2) > d_Tolerance):
