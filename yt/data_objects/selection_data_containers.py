@@ -857,7 +857,7 @@ class YTCutRegion(YTSelectionContainer3D):
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
 
-class YTDataObjectIntersection(YTSelectionContainer3D):
+class YTIntersectionContainer3D(YTSelectionContainer3D):
     """
     This is a more efficient method of selecting the intersection of multiple
     data selection objects.

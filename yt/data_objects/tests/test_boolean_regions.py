@@ -3,23 +3,9 @@ from yt.testing import \
     assert_array_equal
 import numpy as np
 
-def get_ds():
-    from yt.utilities.lib.geometry_utils import compute_morton
-    def _morton_index(field, data):
-        eps = np.finfo("f8").eps
-        uq = data.ds.domain_left_edge.uq
-        LE = data.ds.domain_left_edge - eps * uq
-        RE = data.ds.domain_right_edge + eps * uq
-        # .ravel() only copies if it needs to
-        morton = compute_morton(data["index", "x"].ravel(),
-                                data["index", "y"].ravel(),
-                                data["index", "z"].ravel(), LE, RE)
-        morton.shape = data["index", "x"].shape
-        return morton.view("f8")
-    ds = fake_amr_ds()
-    ds.add_field(("index", "morton_index"), function=_morton_index,
-                       units = "")
-    return ds
+# We use morton indices in this test because they are single floating point
+# values that uniquely identify each cell.  That's a convenient way to compare
+# inclusion in set operations, since there are no duplicates.
 
 def test_boolean_spheres_no_overlap():
     r"""Test to make sure that boolean objects (spheres, no overlap)
@@ -28,7 +14,7 @@ def test_boolean_spheres_no_overlap():
     Test non-overlapping spheres. This also checks that the original spheres
     don't change as part of constructing the booleans.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     sp1 = ds.sphere([0.25, 0.25, 0.25], 0.15)
     sp2 = ds.sphere([0.75, 0.75, 0.75], 0.15)
     # Store the original indices
@@ -75,7 +61,7 @@ def test_boolean_spheres_overlap():
 
     Test overlapping spheres.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     sp1 = ds.sphere([0.45, 0.45, 0.45], 0.15)
     sp2 = ds.sphere([0.55, 0.55, 0.55], 0.15)
     # Get indices of both.
@@ -118,7 +104,7 @@ def test_boolean_regions_no_overlap():
     Test non-overlapping regions. This also checks that the original regions
     don't change as part of constructing the booleans.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     re1 = ds.region([0.25]*3, [0.2]*3, [0.3]*3)
     re2 = ds.region([0.65]*3, [0.6]*3, [0.7]*3)
     # Store the original indices
@@ -167,7 +153,7 @@ def test_boolean_regions_overlap():
 
     Test overlapping regions.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     re1 = ds.region([0.55]*3, [0.5]*3, [0.6]*3)
     re2 = ds.region([0.6]*3, [0.55]*3, [0.65]*3)
     # Get indices of both.
@@ -210,7 +196,7 @@ def test_boolean_cylinders_no_overlap():
     Test non-overlapping cylinders. This also checks that the original cylinders
     don't change as part of constructing the booleans.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     cyl1 = ds.disk([0.25]*3, [1, 0, 0], 0.1, 0.1)
     cyl2 = ds.disk([0.75]*3, [1, 0, 0], 0.1, 0.1)
     # Store the original indices
@@ -259,7 +245,7 @@ def test_boolean_cylinders_overlap():
 
     Test overlapping cylinders.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     cyl1 = ds.disk([0.45]*3, [1, 0, 0], 0.2, 0.2)
     cyl2 = ds.disk([0.55]*3, [1, 0, 0], 0.2, 0.2)
     # Get indices of both.
@@ -302,7 +288,7 @@ def test_boolean_ellipsoids_no_overlap():
     Test non-overlapping ellipsoids. This also checks that the original
     ellipsoids don't change as part of constructing the booleans.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     ell1 = ds.ellipsoid([0.25]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
     ell2 = ds.ellipsoid([0.75]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
     # Store the original indices
@@ -351,7 +337,7 @@ def test_boolean_ellipsoids_overlap():
 
     Test overlapping ellipsoids.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     ell1 = ds.ellipsoid([0.45]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
     ell2 = ds.ellipsoid([0.55]*3, 0.05, 0.05, 0.05, np.array([0.1]*3), 0.1)
     # Get indices of both.
@@ -392,7 +378,7 @@ def test_boolean_mix_periodicity():
 
     This also tests nested logic and that periodicity works.
     """
-    ds = get_ds()
+    ds = fake_amr_ds()
     re = ds.region([0.5]*3, [0.0]*3, [1]*3) # whole thing
     sp = ds.sphere([0.95]*3, 0.3) # wraps around
     cyl = ds.disk([0.05]*3, [1,1,1], 0.1, 0.4) # wraps around

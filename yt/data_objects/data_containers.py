@@ -49,7 +49,9 @@ from yt.utilities.exceptions import \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
-    YTDimensionalityError
+    YTDimensionalityError, \
+    YTBooleanObjectError, \
+    YTBooleanObjectsWrongDataset
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -1760,35 +1762,43 @@ class YTSelectionContainer3D(YTSelectionContainer):
         return self.quantities.total_quantity(("index", "cell_volume"))
 
     def __or__(self, other):
-        assert(isinstance(other, YTSelectionContainer3D))
-        assert(self.ds is other.ds)
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if not self.ds is other.ds:
+            raise YTBooleanObjectsWrongDataset()
         # Should maybe do something with field parameters here
-        return YTBooleanOperator("OR", self, other, ds = self.ds)
+        return YTBooleanContainer("OR", self, other, ds = self.ds)
 
     def __invert__(self):
         # ~obj
         asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
-        return YTBooleanOperator("NOT", self, asel, ds = self.ds)
+        return YTBooleanContainer("NOT", self, asel, ds = self.ds)
 
     def __xor__(self, other):
-        assert(isinstance(other, YTSelectionContainer3D))
-        assert(self.ds is other.ds)
-        return YTBooleanOperator("XOR", self, other, ds = self.ds)
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if not self.ds is other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("XOR", self, other, ds = self.ds)
 
     def __and__(self, other):
-        assert(isinstance(other, YTSelectionContainer3D))
-        assert(self.ds is other.ds)
-        return YTBooleanOperator("AND", self, other, ds = self.ds)
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if not self.ds is other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("AND", self, other, ds = self.ds)
 
     def __add__(self, other):
         return self.__or__(other)
 
     def __sub__(self, other):
-        assert(isinstance(other, YTSelectionContainer3D))
-        assert(self.ds is other.ds)
-        return YTBooleanOperator("NEG", self, other, ds = self.ds)
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if not self.ds is other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("NEG", self, other, ds = self.ds)
 
-class YTBooleanOperator(YTSelectionContainer3D):
+class YTBooleanContainer(YTSelectionContainer3D):
     """
     This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
     multiple data objects.
@@ -1801,7 +1811,7 @@ class YTBooleanOperator(YTSelectionContainer3D):
     Parameters
     ----------
     op : string
-        Can be AND, OR, XOR or NOT.
+        Can be AND, OR, XOR, NOT or NEG.
     dobj1 : YTSelectionContainer3D
         The first selection object
     dobj2 : YTSelectionContainer3D
