@@ -57,6 +57,9 @@ cdef np.float64_t r2dist(np.float64_t ppos[3],
     return r2
 
 cdef class DistanceQueue:
+    """This is a distance queue object, designed to incrementally evaluate N
+    positions against a reference point.  It is initialized with the maximum
+    number that are to be retained (i.e., maxn-nearest neighbors)."""
     def __cinit__(self, int maxn):
         cdef int i
         self.maxn = maxn
@@ -128,6 +131,9 @@ cdef class DistanceQueue:
         self.curn = 0
 
     def find_nearest(self, np.float64_t[:] center, np.float64_t[:,:] points):
+        """This function accepts a center and a set of [N,3] points, and it
+        will return the indices into the points array of the maxn closest
+        neighbors."""
         cdef int i, j
         cdef np.float64_t ppos[3], cpos[3]
         self.neighbor_reset()
