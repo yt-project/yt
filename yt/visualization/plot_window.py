@@ -825,12 +825,12 @@ class PWViewerMPL(PlotWindow):
                 ia = ImageArray(ia)
             else:
                 ia = image
-                self.plots[f] = WindowPlotMPL(
-                    ia, self._field_transform[f].name,
-                    self._field_transform[f].func,
-                    self._colormaps[f], extent, zlim,
-                    self.figure_size, font_size,
-                    self.aspect, fig, axes, cax)
+            self.plots[f] = WindowPlotMPL(
+                ia, self._field_transform[f].name,
+                self._field_transform[f].func,
+                self._colormaps[f], extent, zlim,
+                self.figure_size, font_size,
+                self.aspect, fig, axes, cax)
 
             if not self._right_handed:
                 ax = self.plots[f].axes
