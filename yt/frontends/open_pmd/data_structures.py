@@ -18,7 +18,6 @@ import os
 import re
 from math import ceil, floor
 
-import h5py as h5
 import numpy as np
 
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -28,6 +27,7 @@ from yt.frontends.open_pmd.misc import is_const_component, check_root_attr, chec
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5
 
 
 class OpenPMDGrid(AMRGridPatch):

@@ -21,10 +21,10 @@ import os.path
 import re
 import string
 
-import h5py as h5
 import numpy as np
 
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5
 
 openPMD = "1.0.0"
 
