@@ -18,6 +18,7 @@ import os
 import re
 from math import ceil, floor
 
+import h5py as h5
 import numpy as np
 
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -30,11 +31,12 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 class OpenPMDGrid(AMRGridPatch):
-    """Represents disjoint chunk of data on-disk and their relation.
+    """Represents disjoint chunk of data on-disk.
 
     The chunks are sliced off the original field along the x-axis.
     This defines the index and offset for every mesh and particle type.
-    It also defines further required characteristics for every grid.
+    It also defines parents and children grids. Since openPMD does not have multiple levels of refinement,
+    there are no parents or children for any grid.
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
@@ -94,15 +96,15 @@ class OpenPMDHierarchy(GridIndex):
         try:
             for field in f[bp + mp].keys():
                 try:
-                    for ax in f[bp + mp + field].keys():
-                        mesh_fields.append(field + "_" + ax)
+                    for axis in f[bp + mp + field].keys():
+                        mesh_fields.append(field + "_" + axis)
                 except AttributeError:
-                    # This is for dataSets, they do not have keys
+                    # This is a h5.Dataset (i.e. no axes)
                     mesh_fields.append(field.replace("_", "-"))
         except KeyError:
             # There are no mesh fields
             pass
-        self.field_list = [("openPMD", str(c)) for c in mesh_fields]
+        self.field_list = [("openPMD", str(field)) for field in mesh_fields]
 
         particle_fields = []
         try:
@@ -118,23 +120,24 @@ class OpenPMDHierarchy(GridIndex):
                             axes = f[bp + pp + species + "/" + record].keys()
                             if record in "position":
                                 record = "positionCoarse"
-                            for ax in axes:
-                                particle_fields.append(species + "_" + record + "_" + ax)
+                            for axis in axes:
+                                particle_fields.append(species + "_" + record + "_" + axis)
                         except AttributeError:
                             # Record is a dataset, does not have axes (e.g. weighting)
                             particle_fields.append(species + "_" + record)
                             pass
                     else:
-                        # We probably do not want particlePatches as accessible field lists
                         pass
             if len(f[bp + pp].keys()) > 1:
                 # There is more than one particle species, use the specific names as field types
                 self.field_list.extend(
-                    [(str(c).split("_")[0], ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
+                    [(str(field).split("_")[0],
+                      ("particle_" + "_".join(str(field).split("_")[1:]))) for field in particle_fields])
             else:
                 # Only one particle species, fall back to "io"
                 self.field_list.extend(
-                    [("io", ("particle_" + "_".join(str(c).split("_")[1:]))) for c in particle_fields])
+                    [("io",
+                      ("particle_" + "_".join(str(field).split("_")[1:]))) for field in particle_fields])
         except KeyError:
             # There are no particle fields
             pass
@@ -145,15 +148,24 @@ class OpenPMDHierarchy(GridIndex):
         The number of grids is determined by their respective memory footprint.
         You may change ``gridsize`` accordingly. Increase if you have few cores or run single-threaded.
         """
-        # TODO Calculate the ppg not solely on particle count, also on meshsize
         f = self.dataset._handle
         bp = self.dataset.base_path
         mp = self.dataset.meshes_path
         pp = self.dataset.particles_path
 
-        gridsize = 10 * 10 ** 6  # Byte
+        gridsize = 12 * 10 ** 6  # Byte
         self.numparts = {}
+        meshsizes = {}
 
+        for mesh in f[bp + mp].keys():
+            if type(f[bp + mp + mesh]) is h5.Group:
+                for axis in f[bp + mp + mesh]:
+                    meshsizes[mesh + axis] = f[bp + mp + mesh + "/" + axis].size
+            else:
+                meshsizes[mesh] = f[bp + mp + mesh].size
+        if not meshsizes.values()[1:] == meshsizes.values()[:-1]:
+            mylog.warning("open_pmd - This frontend assumes all meshes are equally shaped,"
+                          " but meshes have different sizes!")
         for species in f[bp + pp].keys():
             axis = f[bp + pp + species + "/position"].keys()[0]
             if is_const_component(f[bp + pp + species + "/position/" + axis]):
@@ -163,7 +175,8 @@ class OpenPMDHierarchy(GridIndex):
         # Limit particles per grid by resulting memory footprint
         ppg = int(gridsize / (self.dataset.dimensionality * 4))  # 4 Byte per value per dimension (f32)
         # Use an upper bound of equally sized grids, last one might be smaller
-        self.num_grids = int(ceil(np.max(self.numparts.values()) * ppg ** -1))
+        values = np.max((np.max(self.numparts.values()), np.max(meshsizes.values())))
+        self.num_grids = int(ceil(values * ppg ** -1))
 
     def _parse_index(self):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
@@ -200,7 +213,7 @@ class OpenPMDHierarchy(GridIndex):
                                                                      self.dataset.domain_dimensions[0] ** -1 * \
                                                                      self.dataset.domain_right_edge[0]
             meshedge = self.grid_right_edge[i][0]
-            particlecount = []
+            particleoffset = []
             particleindex = []
             for spec in self.numparts:
                 particleindex += [(spec, pci[spec])]
@@ -209,16 +222,16 @@ class OpenPMDHierarchy(GridIndex):
                     num = nrp[spec]
                 else:
                     num = int(floor(self.numparts[spec] * self.num_grids ** -1))
-                particlecount += [(spec, num)]
+                particleoffset += [(spec, num)]
                 nrp[spec] -= num
                 self.grid_particle_count[i] += num
             self.grids[i] = self.grid(
                 i, self, self.grid_levels[i, 0],
                 pi=particleindex,
-                po=particlecount,
+                po=particleoffset,
                 mi=meshindex,
                 mo=self.grid_dimensions[i][0])
-            for spec, val in particlecount:
+            for spec, val in particleoffset:
                 pci[spec] += val
             meshindex += self.grid_dimensions[i][0]
             remaining -= self.grid_dimensions[i][0]
@@ -257,7 +270,7 @@ class OpenPMDDataset(Dataset):
         if len(particles) > 1:
             # Only use on-disk particle names if there is more than one species
             self.particle_types = particles
-        mylog.debug("open_pmd: self.particle_types: {}".format(self.particle_types))
+        mylog.debug("open_pmd - self.particle_types: {}".format(self.particle_types))
         self.particle_types_raw = self.particle_types
         self.particle_types = tuple(self.particle_types)
 
@@ -280,24 +293,24 @@ class OpenPMDDataset(Dataset):
             if "groupBased" in handle.attrs["iterationEncoding"]:
                 for i in list(handle["/data"].keys()):
                     list_iterations.append(i)
-                mylog.info("open_pmd: found {} iterations in file".format(len(list_iterations)))
+                mylog.info("open_pmd - found {} iterations in file".format(len(list_iterations)))
             elif "fileBased" in handle.attrs["iterationEncoding"]:
                 regex = "^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + "$"
                 if path is '':
-                    mylog.warning("open_pmd: For file based iterations, please use absolute file paths!")
+                    mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
                     pass
                 for filename in os.listdir(path):
                     if re.match(regex, filename):
                         list_iterations.append(filename)
-                mylog.info("open_pmd: found {} iterations in directory".format(len(list_iterations)))
+                mylog.info("open_pmd - found {} iterations in directory".format(len(list_iterations)))
             else:
                 mylog.warning(
-                    "open_pmd: No valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
+                    "open_pmd - No valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
 
             if len(list_iterations) == 0:
-                mylog.warning("open_pmd: No iterations found!")
+                mylog.warning("open_pmd - no iterations found!")
             if "groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
-                mylog.warning("open_pmd: only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
+                mylog.warning("open_pmd - only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
 
             self.meshes_path = self._handle["/"].attrs["meshesPath"]
             self.particles_path = self._handle["/"].attrs["particlesPath"]
@@ -337,7 +350,7 @@ class OpenPMDDataset(Dataset):
             fshape = np.asarray(f[bp + mp + "/" + mesh + "/" + axis].shape, dtype=np.int64)
         except:
             fshape = np.array([1, 1, 1], dtype=np.int64)
-            mylog.warning("Could not detect shape of simulated field! "
+            mylog.warning("open_pmd - Could not detect shape of simulated field! "
                           "Assuming a single cell and thus setting fshape to [1, 1, 1]!")
         self.dimensionality = len(fshape)
 
@@ -360,7 +373,7 @@ class OpenPMDDataset(Dataset):
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except Exception as e:
             mylog.warning(
-                "The domain extent could not be calculated! ({}) Setting the field extent to 1m**3!".format(e))
+                "open_pmd - The domain extent could not be calculated! ({}) Setting the field extent to 1m**3!".format(e))
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         if self._nonstandard:
@@ -373,7 +386,7 @@ class OpenPMDDataset(Dataset):
         """Checks whether the supplied file can be read by this frontend.
         """
         try:
-            f = HDF5FileHandler(args[0])
+            f = h5.File(args[0])
         except:
             return False
         verbose = False
@@ -399,4 +412,5 @@ class OpenPMDDataset(Dataset):
                     return True
             except:
                 return False
+        f.close()
         return True

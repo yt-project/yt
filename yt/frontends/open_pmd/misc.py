@@ -21,22 +21,14 @@ import os.path
 import re
 import string
 
+import h5py as h5
 import numpy as np
 
-from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
 
 openPMD = "1.0.0"
 
 ext_list = [["ED-PIC", np.uint32(1)]]
-
-
-def open_file(file_name):
-    try:
-        f = HDF5FileHandler.File(file_name, "r")
-        return (f)
-    except:
-        raise
 
 
 def get_attr(f, name):
@@ -45,9 +37,9 @@ def get_attr(f, name):
     Return the corresponding attribute if it is present
     """
     if name in list(f.attrs.keys()):
-        return (True, f.attrs[name])
+        return(True, f.attrs[name])
     else:
-        return (False, None)
+        return(False, None)
 
 
 def test_record(g, r):
@@ -68,22 +60,22 @@ def test_record(g, r):
     - The first element is 1 if an error occured, and 0 otherwise
     - The second element is 0 if a warning arised, and 0 otherwise
     """
-    regEx = re.compile("^\w+$")  # Python3 only: re.ASCII
+    regEx = re.compile("^\w+$") # Python3 only: re.ASCII
     if regEx.match(r):
         # test component names
-        result_array = np.array([0, 0])
-        if not is_scalar_record(g[r]):
+        result_array = np.array([0,0])
+        if not is_scalar_record(g[r]) :
             for component_name in g[r]:
                 if not regEx.match(component_name):
-                    mylog.warning("open_pmd: Component %s of record %s is NOT" \
-                                  " named properly (a-Z0-9_)!" % (component_name, g[r].name))
-                    result_array += np.array([1, 0])
+                    mylog.warning("open_pmd - Component %s of record %s is NOT" \
+                    " named properly (a-Z0-9_)!" %(component_name, g[r].name) )
+                    result_array += np.array([1,0])
     else:
-        mylog.warning("open_pmd: Record %s is NOT named properly (a-Z0-9_)!" \
-                      % (r.name))
-        result_array = np.array([1, 0])
+        mylog.warning("open_pmd - Record %s is NOT named properly (a-Z0-9_)!" \
+              %(r.name) )
+        result_array = np.array([1,0])
 
-    return (result_array)
+    return(result_array)
 
 
 def test_key(f, v, request, name):
@@ -116,26 +108,26 @@ def test_key(f, v, request, name):
     valid = (name in list(f.keys()))
     if valid:
         if v:
-            mylog.info("Key %s (%s) exists in `%s`!" % (name, request, str(f.name)))
-        result_array = np.array([0, 0])
+            mylog.info("open_pmd - Key %s (%s) exists in `%s`!" %(name, request, str(f.name) ) )
+        result_array = np.array([0,0])
     else:
         if request == "required":
-            mylog.warning("open_pmd: Key %s (%s) does NOT exist in `%s`!" \
-                          % (name, request, str(f.name)))
+            mylog.warning("open_pmd - Key %s (%s) does NOT exist in `%s`!" \
+            %(name, request, str(f.name)) )
             result_array = np.array([1, 0])
         elif request == "recommended":
-            mylog.info("open_pmd: Key %s (%s) does NOT exist in `%s`!" \
-                       % (name, request, str(f.name)))
+            mylog.info("open_pmd - Key %s (%s) does NOT exist in `%s`!" \
+            %(name, request, str(f.name)) )
             result_array = np.array([0, 1])
         elif request == "optional":
             if v:
-                mylog.info("open_pmd: Key %s (%s) does NOT exist in `%s`!" \
-                           % (name, request, str(f.name)))
+                mylog.info("open_pmd - Key %s (%s) does NOT exist in `%s`!"  \
+            %(name, request, str(f.name)) )
             result_array = np.array([0, 0])
         else:
-            raise ValueError("Unrecognized string for `request` : %s" % request)
+            raise ValueError("Unrecognized string for `request` : %s" %request)
 
-    return (result_array)
+    return(result_array)
 
 
 def test_attr(f, v, request, name, is_type=None, type_format=None):
@@ -177,13 +169,13 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
     valid, value = get_attr(f, name)
     if valid:
         if v:
-            mylog.info("open_pmd: Attribute %s (%s) exists in `%s`! Type = %s, Value = %s" \
-                       % (name, request, str(f.name), type(value), str(value)))
+            mylog.info("open_pmd - Attribute %s (%s) exists in `%s`! Type = %s, Value = %s" \
+            %(name, request, str(f.name), type(value), str(value)) )
 
         # test type
         if is_type is not None:
             if not type_format is None and not is_type is np.string_ and \
-                    not isinstance(type_format, collections.Iterable):
+               not isinstance(type_format, collections.Iterable):
                 type_format = [type_format]
                 type_format_names = map(lambda x: x.__name__, type_format)
             if not is_type is None and not isinstance(is_type, collections.Iterable):
@@ -193,54 +185,54 @@ def test_attr(f, v, request, name, is_type=None, type_format=None):
             if type(value) in is_type:
                 # np.string_ format or general ndarray dtype text
                 if type(value) is np.string_ and type_format is not None:
-                    regEx = re.compile(type_format)  # Python3 only: re.ASCII
-                    if regEx.match(value.decode()):
-                        result_array = np.array([0, 0])
+                    regEx = re.compile(type_format) # Python3 only: re.ASCII
+                    if regEx.match(value.decode()) :
+                        result_array = np.array([0,0])
                     else:
-                        mylog.warning("open_pmd: Attribute %s in `%s` does not satisfy " \
-                                      "format ('%s' should be in format '%s')!" \
-                                      % (name, str(f.name), value.decode(), type_format))
-                        result_array = np.array([1, 0])
+                        mylog.warning("open_pmd - Attribute %s in `%s` does not satisfy " \
+                              "format ('%s' should be in format '%s')!" \
+                              %(name, str(f.name), value.decode(), type_format ) )
+                        result_array = np.array([1,0])
                 # ndarray dtypes
                 elif type(value) is np.ndarray:
                     if value.dtype.type in type_format:
-                        result_array = np.array([0, 0])
+                        result_array = np.array([0,0])
                     elif type_format is None:
-                        result_array = np.array([0, 0])
+                        result_array = np.array([0,0])
                     else:
-                        mylog.warning("open_pmd: Attribute %s in `%s` is not of type " \
-                                      "ndarray of '%s' (is ndarray of '%s')!" \
-                                      % (name, str(f.name), type_format_names, \
-                                         value.dtype.type.__name__))
-                        result_array = np.array([1, 0])
+                        mylog.warning("open_pmd - Attribute %s in `%s` is not of type " \
+                              "ndarray of '%s' (is ndarray of '%s')!" \
+                              %(name, str(f.name), type_format_names, \
+                              value.dtype.type.__name__) )
+                        result_array = np.array([1,0])
                 else:
-                    result_array = np.array([0, 0])
+                    result_array = np.array([0,0])
             else:
                 mylog.error(
-                    "Error: Attribute %s in `%s` is not of type '%s' (is '%s')!" \
-                    % (name, str(f.name), str(is_type_names), \
-                       type(value).__name__))
-                result_array = np.array([1, 0])
-        else:  # is_type is None (== arbitrary)
-            result_array = np.array([0, 0])
+                 "open_pmd - Attribute %s in `%s` is not of type '%s' (is '%s')!" \
+                 %(name, str(f.name), str(is_type_names), \
+                  type(value).__name__) )
+                result_array = np.array([1,0])
+        else: # is_type is None (== arbitrary)
+            result_array = np.array([0,0])
     else:
         if request == "required":
-            mylog.warning("open_pmd: Attribute %s (%s) does NOT exist in `%s`!" \
-                          % (name, request, str(f.name)))
+            mylog.warning("open_pmd - Attribute %s (%s) does NOT exist in `%s`!" \
+            %(name, request, str(f.name)) )
             result_array = np.array([1, 0])
         elif request == "recommended":
-            mylog.info("open_pmd: Attribute %s (%s) does NOT exist in `%s`!" \
-                       % (name, request, str(f.name)))
+            mylog.info("open_pmd - Attribute %s (%s) does NOT exist in `%s`!" \
+            %(name, request, str(f.name)) )
             result_array = np.array([0, 1])
         elif request == "optional":
             if v:
-                mylog.info("open_pmd: Attribute %s (%s) does NOT exist in `%s`!" \
-                           % (name, request, str(f.name)))
+                mylog.info("open_pmd - Attribute %s (%s) does NOT exist in `%s`!"  \
+            %(name, request, str(f.name)) )
             result_array = np.array([0, 0])
-        else:
-            raise ValueError("Unrecognized string for `request` : %s" % request)
+        else :
+            raise ValueError("Unrecognized string for `request` : %s" %request)
 
-    return (result_array)
+    return(result_array)
 
 
 def is_scalar_record(r):
@@ -257,21 +249,21 @@ def is_scalar_record(r):
     bool : true if the record is a scalar record, false if the record
            is either a vector or an other type of tensor record
     """
-    if type(r) is h5.Group:
+    if type(r) is h5.Group :
         # now it could be either a vector/tensor record
         # or a scalar record with a constant component
 
         valid, value = get_attr(r, "value")
         # constant components require a "value" and a "shape" attribute
-        if valid:
+        if valid :
             return True
         else:
             return False
-    else:
+    else :
         return True
 
 
-def test_component(c, v):
+def test_component(c, v) :
     """
     Checks if a record component defines all required attributes.
 
@@ -292,18 +284,18 @@ def test_component(c, v):
     # Initialize the result array
     # First element : number of errors
     # Second element : number of warnings
-    result_array = np.array([0, 0])
+    result_array = np.array([0,0])
 
-    if type(c) is h5.Group:
+    if type(c) is h5.Group :
         # since this check tests components, this must be a constant
         # component: requires "value" and "shape" attributes
-        result_array += test_attr(c, v, "required", "value")  # type can be arbitrary
+        result_array += test_attr(c, v, "required", "value") # type can be arbitrary
         result_array += test_attr(c, v, "required", "shape", np.ndarray, np.uint64)
 
     # default attributes for all components
     result_array += test_attr(c, v, "required", "unitSI", np.float64)
 
-    return (result_array)
+    return(result_array)
 
 
 def check_root_attr(f, v, pic):
@@ -330,7 +322,7 @@ def check_root_attr(f, v, pic):
     # Initialize the result array
     # First element : number of errors
     # Second element : number of warnings
-    result_array = np.array([0, 0])
+    result_array = np.array([0,0])
 
     # STANDARD.md
     #   required
@@ -343,20 +335,20 @@ def check_root_attr(f, v, pic):
     result_array += test_attr(f, v, "required", "iterationFormat", np.string_)
 
     # groupBased iteration encoding needs to match basePath
-    if result_array[0] == 0:
-        if f.attrs["iterationEncoding"].decode() == "groupBased":
-            if f.attrs["iterationFormat"].decode() != f.attrs["basePath"].decode():
-                mylog.warning("open_pmd: for groupBased iterationEncoding the basePath "
-                              "and iterationFormat must match!")
-                result_array += np.array([1, 0])
+    if result_array[0] == 0 :
+        if f.attrs["iterationEncoding"].decode() == "groupBased" :
+            if f.attrs["iterationFormat"].decode() != f.attrs["basePath"].decode() :
+                mylog.warning("open_pmd - for groupBased iterationEncoding the basePath "
+                      "and iterationFormat must match!")
+                result_array += np.array([1,0])
 
-    # recommended
+    #   recommended
     result_array += test_attr(f, v, "recommended", "author", np.string_)
     result_array += test_attr(f, v, "recommended", "software", np.string_)
     result_array += test_attr(f, v, "recommended",
                               "softwareVersion", np.string_)
     result_array += test_attr(f, v, "recommended", "date", np.string_,
-                              "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} [\+|-][0-9]{4}$")
+      "^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}:[0-9]{2} [\+|-][0-9]{4}$")
 
     #   optional
     result_array += test_attr(f, v, "optional", "comment", np.string_)
@@ -366,15 +358,15 @@ def check_root_attr(f, v, pic):
         valid, extensionIDs = get_attr(f, "openPMDextension")
         if valid:
             if (ext_list[0][1] & extensionIDs) != extensionIDs:
-                mylog.warning("open_pmd: ID=%s for extension `%s` not found in " \
-                              "`openPMDextension` (is %s)!" \
-                              % (ext_list[0][1], ext_list[0][0], extensionIDs))
-                result_array += np.array([1, 0])
+                mylog.warning("open_pmd - ID=%s for extension `%s` not found in " \
+                      "`openPMDextension` (is %s)!" \
+                     %(ext_list[0][1], ext_list[0][0], extensionIDs) )
+                result_array += np.array([1,0])
 
-    return (result_array)
+    return(result_array)
 
 
-def check_iterations(f, v, pic):
+def check_iterations(f, v, pic) :
     """
     Scan all the iterations present in the file, checking both
     the meshes and the particles
@@ -399,39 +391,39 @@ def check_iterations(f, v, pic):
 
     # Find all the iterations
     format_error = False
-    try:
+    try :
         list_iterations = list(f['/data/'].keys())
-    except KeyError:
+    except KeyError :
         format_error = True
-    else:
+    else :
         # Check that these iterations are indeed encoded as integers
-        for iteration in list_iterations:
-            for character in iteration:  # go through the string
-                if not (character in string.digits):
+        for iteration in list_iterations :
+            for character in iteration : # go through the string
+                if not (character in string.digits) :
                     format_error = True
     # Detect any error and interrupt execution if one is found
-    if format_error == True:
-        mylog.warning("open_pmd: it seems that the path of the data within the HDF5 file "
-                      "is not of the form '/data/%T/', where %T corresponds to an "
-                      "actual integer.")
-        return (np.array([1, 0]))
-    else:
-        mylog.info("open_pmd: Found %d iteration(s)" % len(list_iterations))
+    if format_error == True :
+        mylog.warning("open_pmd - it seems that the path of the data within the HDF5 file "
+              "is not of the form '/data/%T/', where %T corresponds to an "
+              "actual integer.")
+        return(np.array([1, 0]))
+    else :
+        mylog.info("open_pmd - Found %d iteration(s)" % len(list_iterations) )
 
     # Initialize the result array
     # First element : number of errors
     # Second element : number of warnings
-    result_array = np.array([0, 0])
+    result_array = np.array([ 0, 0])
 
     # Loop over the iterations and check the meshes and the particles
-    for iteration in list_iterations:
+    for iteration in list_iterations :
         result_array += check_base_path(f, iteration, v, pic)
         # Go deeper only if there is no error at this point
-        if result_array[0] == 0:
+        if result_array[0] == 0 :
             result_array += check_meshes(f, iteration, v, pic)
             result_array += check_particles(f, iteration, v, pic)
 
-    return (result_array)
+    return(result_array)
 
 
 def check_base_path(f, iteration, v, pic):
@@ -461,7 +453,7 @@ def check_base_path(f, iteration, v, pic):
     # Initialize the result array
     # First element : number of errors
     # Second element : number of warnings
-    result_array = np.array([0, 0])
+    result_array = np.array([ 0, 0])
 
     # Find the path to the data
     base_path = ("/data/%s/" % iteration).encode('ascii')
@@ -472,7 +464,7 @@ def check_base_path(f, iteration, v, pic):
     result_array += test_attr(bp, v, "required", "dt", [np.float32, np.float64])
     result_array += test_attr(bp, v, "required", "timeUnitSI", np.float64)
 
-    return (result_array)
+    return(result_array)
 
 
 def check_meshes(f, iteration, v, pic):
@@ -502,20 +494,20 @@ def check_meshes(f, iteration, v, pic):
     # Initialize the result array
     # First element : number of errors
     # Second element : number of warnings
-    result_array = np.array([0, 0])
+    result_array = np.array([ 0, 0])
 
     # Find the path to the data
     base_path = "/data/%s/" % iteration
     valid, meshes_path = get_attr(f, "meshesPath")
-    if not valid:
-        mylog.warning("open_pmd: `meshesPath` is missing or malformed in '/'")
-        return (np.array([1, 0]))
+    if not valid :
+        mylog.warning("open_pmd - `meshesPath` is missing or malformed in '/'")
+        return( np.array([1, 0]) )
     meshes_path = meshes_path.decode()
 
-    if os.path.join(base_path, meshes_path) != (base_path + meshes_path):
-        mylog.warning("open_pmd: `basePath`+`meshesPath` seems to be malformed "
-                      "(is `basePath` absolute and ends on a `/` ?)")
-        return (np.array([1, 0]))
+    if os.path.join( base_path, meshes_path) != ( base_path + meshes_path ):
+        mylog.warning("open_pmd - `basePath`+`meshesPath` seems to be malformed "
+            "(is `basePath` absolute and ends on a `/` ?)")
+        return( np.array([1, 0]) )
     else:
         full_meshes_path = (base_path + meshes_path).encode('ascii')
         # Find all the meshes
@@ -523,11 +515,11 @@ def check_meshes(f, iteration, v, pic):
             list_meshes = list(f[full_meshes_path].keys())
         except KeyError:
             list_meshes = []
-    mylog.debug("Iteration %s : found %d meshes"
-                % (iteration, len(list_meshes)))
+    mylog.debug( "open_pmd - Iteration %s : found %d meshes"
+        %( iteration, len(list_meshes) ) )
 
     # Check for the attributes of the STANDARD.md
-    for field_name in list_meshes:
+    for field_name in list_meshes :
         field = f[full_meshes_path + field_name.encode('ascii')]
 
         result_array += test_record(f[full_meshes_path], field_name)
@@ -551,26 +543,26 @@ def check_meshes(f, iteration, v, pic):
         geometry_test = test_attr(field, v, "required", "geometry", np.string_)
         result_array += geometry_test
         # geometryParameters is required when using thetaMode
-        if geometry_test[0] == 0 and field.attrs["geometry"] == b"thetaMode":
+        if geometry_test[0] == 0 and field.attrs["geometry"] == b"thetaMode" :
             result_array += test_attr(field, v, "required",
-                                      "geometryParameters", np.string_)
+                                            "geometryParameters", np.string_)
         # otherwise it is optional
-        else:
+        else :
             result_array += test_attr(field, v, "optional",
-                                      "geometryParameters", np.string_)
+                                            "geometryParameters", np.string_)
 
         # Attributes of the record's components
-        if is_scalar_record(field):  # If the record is a scalar field
+        if is_scalar_record(field) :   # If the record is a scalar field
             result_array += test_component(field, v)
             result_array += test_attr(field, v,
-                                      "required", "position", np.ndarray, [np.float32, np.float64])
-        else:  # If the record is a vector field
+                                "required", "position", np.ndarray, [np.float32, np.float64])
+        else:                          # If the record is a vector field
             # Loop over the components
-            for component_name in list(field.keys()):
+            for component_name in list(field.keys()) :
                 component = field[component_name]
                 result_array += test_component(component, v)
                 result_array += test_attr(component, v,
-                                          "required", "position", np.ndarray, [np.float32, np.float64])
+                                "required", "position", np.ndarray, [np.float32, np.float64])
 
     # Check for the attributes of the PIC extension,
     # if asked to do so by the user
@@ -580,33 +572,33 @@ def check_meshes(f, iteration, v, pic):
         result_array += test_attr(f[full_meshes_path], v, "required",
                                   "fieldSolver", np.string_)
         valid, field_solver = get_attr(f[full_meshes_path], "fieldSolver")
-        if (valid == True) and (field_solver in ["other", "GPSTD"]):
+        if (valid == True) and (field_solver in ["other", "GPSTD"]) :
             result_array += test_attr(f[full_meshes_path], v, "required",
                                       "fieldSolverParameters", np.string_)
 
         # Check for the attributes associated with the field boundaries
         result_array += test_attr(f[full_meshes_path], v, "required",
-                                  "fieldBoundary", np.ndarray, np.string_)
+                                "fieldBoundary", np.ndarray, np.string_)
         valid, field_boundary = get_attr(f[full_meshes_path], "fieldBoundary")
-        if (valid == True) and (np.any(field_boundary == b"other")):
+        if (valid == True) and (np.any(field_boundary == b"other")) :
             result_array += test_attr(f[full_meshes_path], v, "required",
-                                      "fieldBoundaryParameters", np.ndarray, np.string_)
+                        "fieldBoundaryParameters", np.ndarray, np.string_)
 
         # Check for the attributes associated with the field boundaries
         result_array += test_attr(f[full_meshes_path], v, "required",
-                                  "particleBoundary", np.ndarray, np.string_)
+                                "particleBoundary", np.ndarray, np.string_)
         valid, particle_boundary = get_attr(f[full_meshes_path], "particleBoundary")
-        if (valid == True) and (np.any(particle_boundary == b"other")):
+        if (valid == True) and (np.any(particle_boundary == b"other")) :
             result_array += test_attr(f[full_meshes_path], v, "required",
-                                      "particleBoundaryParameters", np.ndarray, np.string_)
+                    "particleBoundaryParameters", np.ndarray, np.string_)
 
         # Check the attributes associated with the current smoothing
         result_array += test_attr(f[full_meshes_path], v, "required",
                                   "currentSmoothing", np.string_)
         valid, current_smoothing = get_attr(f[full_meshes_path], "currentSmoothing")
-        if (valid == True) and (current_smoothing != b"none"):
+        if (valid == True) and (current_smoothing != b"none") :
             result_array += test_attr(f[full_meshes_path], v, "required",
-                                      "currentSmoothingParameters", np.string_)
+                        "currentSmoothingParameters", np.string_)
 
         # Check the attributes associated with the charge conservation
         result_array += test_attr(f[full_meshes_path], v, "required",
@@ -614,21 +606,21 @@ def check_meshes(f, iteration, v, pic):
         valid, charge_correction = get_attr(f[full_meshes_path], "chargeCorrection")
         if valid == True and charge_correction != b"none":
             result_array += test_attr(f[full_meshes_path], v, "required",
-                                      "chargeCorrectionParameters", np.string_)
+                        "chargeCorrectionParameters", np.string_)
 
         # Check for the attributes of each record
-        for field_name in list_meshes:
+        for field_name in list_meshes :
             field = f[full_meshes_path + field_name.encode('ascii')]
             result_array + test_attr(field, v, "required",
                                      "fieldSmoothing", np.string_)
             valid, field_smoothing = get_attr(field, "fieldSmoothing")
-            if (valid == True) and (field_smoothing != b"none"):
-                result_array += test_attr(field, v, "required",
-                                          "fieldSmoothingParameters", np.string_)
-    return (result_array)
+            if (valid == True) and (field_smoothing != b"none") :
+                result_array += test_attr(field,v, "required",
+                                    "fieldSmoothingParameters", np.string_)
+    return(result_array)
 
 
-def check_particles(f, iteration, v, pic):
+def check_particles(f, iteration, v, pic) :
     """
     Scan all the particle data corresponding to one iteration
 
@@ -655,16 +647,16 @@ def check_particles(f, iteration, v, pic):
     # Initialize the result array
     # First element : number of errors
     # Second element : number of warnings
-    result_array = np.array([0, 0])
+    result_array = np.array([ 0, 0])
 
     # Find the path to the data
     base_path = ("/data/%s/" % iteration).encode('ascii')
     valid, particles_path = get_attr(f, "particlesPath")
-    if os.path.join(base_path, particles_path) != \
-            (base_path + particles_path):
-        mylog.warning("open_pmd: `basePath`+`meshesPath` seems to be malformed "
-                      "(is `basePath` absolute and ends on a `/` ?)")
-        return (np.array([1, 0]))
+    if os.path.join( base_path, particles_path) !=  \
+        ( base_path + particles_path ) :
+        mylog.warning("open_pmd - `basePath`+`meshesPath` seems to be malformed "
+            "(is `basePath` absolute and ends on a `/` ?)")
+        return( np.array([1, 0]) )
     else:
         full_particle_path = base_path + particles_path
         # Find all the particle species
@@ -672,15 +664,15 @@ def check_particles(f, iteration, v, pic):
             list_species = list(f[full_particle_path].keys())
         except KeyError:
             list_species = []
-    mylog.debug("Iteration %s : found %d particle species"
-                % (iteration, len(list_species)))
+    mylog.debug( "open_pmd - Iteration %s : found %d particle species"
+        %( iteration, len(list_species) ) )
 
     # Go through all the particle species
-    for species_name in list_species:
+    for species_name in list_species :
         species = f[full_particle_path + species_name.encode('ascii')]
 
         # Check all records for this species
-        for species_record_name in species:
+        for species_record_name in species :
             result_array += test_record(species, species_record_name)
 
         # Check the position record of the particles
@@ -688,22 +680,22 @@ def check_particles(f, iteration, v, pic):
 
         # Check the position offset record of the particles
         result_array += test_key(species, v, "required", "positionOffset")
-        if result_array[0] == 0:
+        if result_array[0] == 0 :
             position_dimensions = len(species["position"].keys())
             positionOffset_dimensions = len(species["positionOffset"].keys())
-            if position_dimensions != positionOffset_dimensions:
-                mylog.warning("open_pmd: `position` (ndim=%s) and `positionOffset` " \
-                              "(ndim=%s) do not have the same dimensions in " \
-                              "species `%s`!" \
-                              % (str(position_dimensions), \
-                                 str(positionOffset_dimensions),
-                                 species.name))
-                result_array += np.array([1, 0])
+            if position_dimensions != positionOffset_dimensions :
+                mylog.warning("open_pmd - `position` (ndim=%s) and `positionOffset` " \
+                      "(ndim=%s) do not have the same dimensions in " \
+                      "species `%s`!" \
+                      %(str(position_dimensions), \
+                        str(positionOffset_dimensions),
+                        species.name) )
+                result_array += np.array([ 1, 0])
 
         # Check the particlePatches record of the particles
         patch_test = test_key(species, v, "recommended", "particlePatches")
         result_array += patch_test
-        if result_array[0] == 0 and patch_test[1] == 0:
+        if result_array[0] == 0 and patch_test[1] == 0 :
             result_array += test_key(species["particlePatches"], v, "required",
                                      "numParticles")
             result_array += test_key(species["particlePatches"], v, "required",
@@ -712,23 +704,23 @@ def check_particles(f, iteration, v, pic):
                                      "offset")
             result_array += test_key(species["particlePatches"], v, "required",
                                      "extent")
-            if result_array[0] == 0:
+            if result_array[0] == 0 :
                 offset = species["particlePatches"]["offset"]
                 extent = species["particlePatches"]["extent"]
                 # Attributes of the components
-                for component_name in list(species["position"].keys()):
-                    result_array += test_key(offset, v, "required",
-                                             component_name)
-                    result_array += test_key(extent, v, "required",
-                                             component_name)
-                    if result_array[0] == 0:
+                for component_name in list(species["position"].keys()) :
+                    result_array += test_key( offset, v, "required",
+                                              component_name)
+                    result_array += test_key( extent, v, "required",
+                                              component_name)
+                    if result_array[0] == 0 :
                         dset_offset = offset[component_name]
                         result_array += test_component(dset_offset, v)
                         dset_extent = extent[component_name]
                         result_array += test_component(dset_extent, v)
 
         # Check the records required by the PIC extension
-        if pic:
+        if pic :
             result_array += test_key(species, v, "required", "momentum")
             result_array += test_key(species, v, "required", "charge")
             result_array += test_key(species, v, "required", "mass")
@@ -738,7 +730,7 @@ def check_particles(f, iteration, v, pic):
             result_array += test_key(species, v, "optional", "neutronNumber")
 
         # Check the attributes associated with the PIC extension
-        if pic:
+        if pic :
             result_array += test_attr(species, v, "required",
                                       "particleShape", [np.float32, np.float64])
             result_array += test_attr(species, v, "required",
@@ -754,14 +746,14 @@ def check_particles(f, iteration, v, pic):
             valid, particle_smoothing = get_attr(species, "particleSmoothing")
             if valid == True and particle_smoothing != b"none":
                 result_array += test_attr(species, v, "required",
-                                          "particleSmoothingParameters", np.string_)
+                                "particleSmoothingParameters", np.string_)
 
         # Check attributes of each record of the particle
         for record in list(species.keys()):
             # all records (but particlePatches) require units
             if record != "particlePatches":
                 result_array += test_attr(species[record], v,
-                                          "required", "unitDimension", np.ndarray, np.float64)
+                        "required", "unitDimension", np.ndarray, np.float64)
                 time_type = f[base_path].attrs["time"].dtype.type
                 result_array += test_attr(species[record], v, "required",
                                           "timeOffset", time_type)
@@ -784,8 +776,41 @@ def check_particles(f, iteration, v, pic):
 
 
 def parse_unit_dimension(unit_dimension):
+    """Transforms an openPMD unitDimension into a string.
+
+    Parameters
+    ----------
+    unit_dimension : array_like
+        integer array of length 7 with one entry for the dimensional component of every SI unit
+
+        [0] length L,
+        [1] mass M,
+        [2] time T,
+        [3] electric current I,
+        [4] thermodynamic temperature theta,
+        [5] amount of substance N,
+        [6] luminous intensity J
+
+    References
+    ----------
+    .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality
+
+    Returns
+    -------
+    str
+
+    Examples
+    --------
+    >>> velocity = [1., 0., -1., 0., 0., 0., 0.]
+    >>> print parse_unit_dimension(velocity)
+    'm**1*s**-1'
+
+    >>> magnetic_field = [0., 1., -2., -1., 0., 0., 0.]
+    >>> print parse_unit_dimension(magnetic_field)
+    'kg**1*s**-2*A**-1'
+    """
     if len(unit_dimension) is not 7:
-        mylog.error("SI must have 7 base dimensions!")
+        mylog.error("open_pmd - SI must have 7 base dimensions!")
     unit_dimension = np.asarray(unit_dimension, dtype='int')
     dim = []
     si = ["m",

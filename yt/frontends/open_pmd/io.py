@@ -192,7 +192,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             keys are tuples (ftype, fname) representing a field
             values are flat (``size``,) ndarrays with data from that field
         """
-        mylog.info("_read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
+        mylog.info("open_pmd - _read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
@@ -267,18 +267,18 @@ class IOHandlerOpenPMD(BaseIOHandler):
         else:
             unitSI = record_component.attrs["unitSI"]
         # check whether component is constant
-        if "value" in record_component.attrs.keys():
+        if is_const_component(record_component):
             if offset is not None:
                 shape = offset
             else:
                 shape = record_component.attrs["shape"] - index
             # component is constant, craft an array by hand
-            mylog.debug("open_pmd - misc - get_component (const): {}/{}({})".format(group.name, component_name, shape))
+            mylog.debug("open_pmd - get_component (const): {}/{}({})".format(group.name, component_name, shape))
             return np.full(shape, record_component.attrs["value"] * unitSI)
         else:
             if offset is not None:
                 offset += index
             # component is a dataset, return it (possibly masked)
             mylog.debug(
-                "open_pmd - misc - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+                "open_pmd - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
             return np.multiply(record_component[index:offset], unitSI)

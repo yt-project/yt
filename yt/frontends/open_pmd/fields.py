@@ -15,6 +15,7 @@ openPMD-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
+import h5py as h5
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
@@ -141,9 +142,9 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         fields = f[bp + mp]
 
         for fname in fields.keys():
-            field = fields.get(fname)
-            if "dataset" in str(field).split(" ")[1]:
-                # We have a dataset, don't consider axes. This appears to be a vector field of single dimensionality
+            field = fields[fname]
+            if type(field) is h5.Dataset:
+                # Don't consider axes. This appears to be a vector field of single dimensionality
                 ytname = str("_".join([fname.replace("_", "-")]))
                 if ds._nonstandard:
                     parsed = ""
@@ -175,15 +176,11 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         self._mag_fields.append(ytname)
                     self.known_other_fields += ((ytname, (unit, aliases, None)),)
         for i in self.known_other_fields:
-            mylog.debug("oPMD - fields - known_other_fields - {}".format(i))
-
+            mylog.debug("open_pmd - known_other_fields - {}".format(i))
         particle_fields = ()
         particles = f[bp + pp]
         for species in particles.keys():
-            for attrib in particles.get(species).keys():
-                if "weighting" in attrib:
-                    particle_fields += (("particle_weighting", ("", [], None)),)
-                    continue
+            for attrib in particles[species].keys():
                 try:
                     if ds._nonstandard:
                         if "globalCellIdx" in attrib or "position" in attrib:
@@ -200,19 +197,23 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         # Symbolically rename position to preserve yt's interpretation of the pfield
                         # particle_position is later derived in setup_absolute_positions in the way yt expects it
                         ytattrib = "positionCoarse"
-                    for axis in particles.get(species).get(attrib).keys():
-                        aliases = []
-                        if axis in "rxyz":
-                            name = ["particle", ytattrib, axis]
-                        ytname = str("_".join([name.replace("_", "-")]))
-                        if ds._nonstandard and "globalCellIdx" in ytname:
-                            aliases.append(ytname.replace("globalCellIdx", "positionOffset"))
-                        particle_fields += ((ytname, (unit, aliases, None)),)
-                except:
-                    mylog.info("{}_{} does not seem to have unitDimension".format(species, attrib))
+                    pds = particles[species + "/" + attrib]
+                    if type(pds) is h5.Dataset:
+                        particle_fields += ((str("_".join(name)), (unit, [], None)),)
+                    else:
+                        for axis in pds.keys():
+                            aliases = []
+                            if axis in "rxyz":
+                                name = ["particle", ytattrib.replace("_", "-"), axis]
+                            ytname = str("_".join(name))
+                            if ds._nonstandard and "globalCellIdx" in ytname:
+                                aliases.append(ytname.replace("globalCellIdx", "positionOffset"))
+                            particle_fields += ((ytname, (unit, aliases, None)),)
+                except KeyError:
+                    mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(species, attrib))
         self.known_particle_fields = particle_fields
         for i in self.known_particle_fields:
-            mylog.debug("oPMD - fields - known_particle_fields - {}".format(i))
+            mylog.debug("open_pmd - known_particle_fields - {}".format(i))
         super(OpenPMDFieldInfo, self).__init__(ds, field_list)
 
     def setup_fluid_fields(self):
@@ -220,6 +221,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
 
         If a field can not be calculated, it will simply be skipped.
         """
+
         # Set up aliases first so the setup for poynting can use them
         if len(self._mag_fields) > 0:
             setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
