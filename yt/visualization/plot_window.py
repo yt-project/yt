@@ -665,7 +665,7 @@ class PWViewerMPL(PlotWindow):
             origin = (o0map[origin[0]],) + origin
         elif 2 == len(origin) and origin[0] in set(['lower','upper','center']):
             origin = (origin[0], 'center', origin[-1])
-        elif 2 == len(origin) and type(origin[0]) in set([int, float]):
+        elif 3 == len(origin) and isinstance(origin[0], (int, float)):
             xc = origin[0]
             yc = origin[1]
         assert origin[-1] in ['window', 'domain', 'native']
