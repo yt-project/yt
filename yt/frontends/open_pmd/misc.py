@@ -408,7 +408,7 @@ def check_iterations(f, v, pic) :
               "actual integer.")
         return(np.array([1, 0]))
     else :
-        mylog.info("open_pmd - Found %d iteration(s)" % len(list_iterations) )
+        mylog.debug("open_pmd - Found %d iteration(s) in file" % len(list_iterations) )
 
     # Initialize the result array
     # First element : number of errors

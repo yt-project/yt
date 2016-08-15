@@ -192,7 +192,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             keys are tuples (ftype, fname) representing a field
             values are flat (``size``,) ndarrays with data from that field
         """
-        mylog.info("open_pmd - _read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
+        mylog.debug("open_pmd - _read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
