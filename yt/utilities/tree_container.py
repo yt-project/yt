@@ -14,7 +14,7 @@ TreeContainer class and member functions
 #-----------------------------------------------------------------------------
 
 class TreeContainer(object):
-    r"""A recursive data container for like merger trees and
+    r"""A recursive data container for things like merger trees and
     clump-finder trees.
 
     """
