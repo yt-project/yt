@@ -206,6 +206,12 @@ periodic simply by setting the ``periodic`` keyword to True.  This
 option should be used with caution as it will lead to the creation
 of disconnected ray segments within a single dataset.
 
+I want a continous trajectory over the entire ray.
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Set the ``minimum_coherent_box_fraction`` keyword argument to a very
+large number, like infinity (`numpy.inf`).
+
 .. note::
 
    As of :code:`yt-3.0`, the functionality for recording properties of
