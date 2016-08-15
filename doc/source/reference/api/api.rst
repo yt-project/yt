@@ -399,6 +399,8 @@ ytdata
    ~yt.frontends.ytdata.data_structures.YTNonspatialHierarchy
    ~yt.frontends.ytdata.data_structures.YTNonspatialGrid
    ~yt.frontends.ytdata.data_structures.YTProfileDataset
+   ~yt.frontends.ytdata.data_structures.YTClumpTreeDataset
+   ~yt.frontends.ytdata.data_structures.YTClumpContainer
    ~yt.frontends.ytdata.fields.YTDataContainerFieldInfo
    ~yt.frontends.ytdata.fields.YTGridFieldInfo
    ~yt.frontends.ytdata.io.IOHandlerYTDataContainerHDF5
