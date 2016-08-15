@@ -34,6 +34,7 @@ class StreamFieldInfo(FieldInfoContainer):
         ("radiation_acceleration_x", ("code_length/code_time**2", ["radiation_acceleration_x"], None)),
         ("radiation_acceleration_y", ("code_length/code_time**2", ["radiation_acceleration_y"], None)),
         ("radiation_acceleration_z", ("code_length/code_time**2", ["radiation_acceleration_z"], None)),
+        ("metallicity", ("Zsun", ["metallicity"], None)),
 
         # We need to have a bunch of species fields here, too
         ("metal_density",   ("code_mass/code_length**3", ["metal_density"], None)),

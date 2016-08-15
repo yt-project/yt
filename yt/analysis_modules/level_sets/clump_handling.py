@@ -105,7 +105,7 @@ class Clump(TreeContainer):
         if self.children is None: return
         for child in self.children:
             child.add_validator(validator)
-        
+
     def add_info_item(self, info_item, *args, **kwargs):
         "Adds an entry to clump_info list and tells children to do the same."
 

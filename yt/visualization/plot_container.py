@@ -620,15 +620,18 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
-            api_version = get_ipython_api_version()
-            if api_version in ('0.10', '0.11'):
-                self._send_zmq()
-            else:
-                from IPython.display import display
-                display(self)
+        interactivity = self.plots[list(self.plots.keys())[0]].interactivity
+        if interactivity:
+            for k,v in sorted(iteritems(self.plots)):
+                v.show()
         else:
-            raise YTNotInsideNotebook
+            if "__IPYTHON__" in dir(builtins):
+                api_version = get_ipython_api_version()
+                if api_version in ('0.10', '0.11'):
+                    self._send_zmq()
+                else:
+                    from IPython.display import display
+                    display(self)
 
     @validate_plot
     def display(self, name=None, mpl_kwargs=None):

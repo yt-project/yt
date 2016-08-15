@@ -301,7 +301,15 @@ forked repository, namely run at a local command line:
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
 a local directory of the same name as the repository in the current working
-directory.  You can see any past state of the code by using the hg log command.
+directory. You should also run the following command, to make sure you are at
+the "yt" branch, and not other ones like "stable" (this will be important
+later when you want to submit your pull requests):
+
+.. code-block:: bash
+
+   $ hg update yt
+
+You can see any past state of the code by using the hg log command.
 For example, the following command would show you the last 5 changesets
 (modifications to the code) that were submitted to that repository.
 
