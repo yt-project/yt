@@ -49,13 +49,17 @@ Additional keyword arguments are:
 * ``deltaz_min`` (*float*):  Specifies the minimum Delta-z between
   consecutive datasets in the returned list.  Default: 0.0.
 
-* ``minimum_coherent_box_fraction`` (*float*): Used with
-  ``use_minimum_datasets`` set to False, this parameter specifies the
-  fraction of the total box size to be traversed before rerandomizing the
-  projection axis and center.  This was invented to allow light rays with
-  thin slices to sample coherent large scale structure, but in practice
-  does not work so well.  Try setting this parameter to 1 and see what
-  happens.  Default: 0.0.
+* ``minimum_coherent_box_fraction`` (*float*): Use to specify the minimum
+  length of a ray, in terms of the size of the domain, before the trajectory
+  is re-randomized.  Set to 0 to have ray trajectory randomized for every
+  dataset.  Set to np.inf (infinity) to use a single trajectory for the
+  entire ray.  Default: 0.0.
+
+* ``high_res_box_size_fraction`` (*float*): For use with zoom-in simulations,
+  use to specify the size of the high resolution region of the simulation in
+  terms of the fraction of the total domain size.  If set, the light ray
+  solution will be calculated such that rays only make use of the high
+  resolution region.  Default: 1.0.
 
 * ``time_data`` (*bool*): Whether or not to include time outputs when
   gathering datasets for time series.  Default: True.
@@ -84,6 +88,21 @@ randomizations, simply by changing the value of the random seed with the
 The keyword arguments are:
 
 * ``seed`` (*int*): Seed for the random number generator.  Default: None.
+
+* ``periodic`` (*bool*): If True, ray trajectories will make use of periodic
+  boundaries.  If False, ray trajectories will not be periodic.  Default : True.
+
+* ``left_edge`` (iterable of *floats* or *YTArray*): The left corner of the
+  region in which rays are to be generated.  If None, the left edge will be
+  that of the domain.  Default: None.
+
+* ``right_edge`` (iterable of *floats* or *YTArray*): The right corner of
+  the region in which rays are to be generated.  If None, the right edge
+  will be that of the domain.  Default: None.
+
+* ``min_level`` (*int*): The minimum refinement level of the spatial region in
+  which the ray passes.  This can be used with zoom-in simulations where the
+  high resolution region does not keep a constant geometry.  Default: None.
 
 * ``start_position`` (*list* of floats): Used only if creating a light ray
   from a single dataset.  The coordinates of the starting position of the

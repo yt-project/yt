@@ -320,12 +320,12 @@ class LightRay(CosmologySplice):
             boundaries.  If False, ray trajectories will not be
             periodic.
             Default : True.
-        left_edge : optional, iterable of floats of YTArray
+        left_edge : optional, iterable of floats or YTArray
             The left corner of the region in which rays are to be
             generated.  If None, the left edge will be that of the
             domain.
             Default: None.
-        right_edge : optional, iterable of floats of YTArray
+        right_edge : optional, iterable of floats or YTArray
             The right corner of the region in which rays are to be
             generated.  If None, the right edge will be that of the
             domain.
