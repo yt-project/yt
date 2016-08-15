@@ -251,33 +251,39 @@ class AMRGridPatch(YTSelectionContainer):
         cube._base_grid = self
         return cube
 
-    def get_vertex_centered_data(self, field, smoothed=True, no_ghost=False):
-        new_field = np.zeros(self.ActiveDimensions + 1, dtype='float64')
+    def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
+        # Make sure the field list has only unique entries
+        fields = list(set(fields))
+        new_fields = {}
+        for field in fields:
+            new_fields[field] = np.zeros(self.ActiveDimensions + 1, dtype='float64')
 
         if no_ghost:
-            # Ensure we have the native endianness in this array.  Avoid making
-            # a copy if possible.
-            old_field = np.asarray(self[field], dtype="=f8")
-            # We'll use the ghost zone routine, which will naturally
-            # extrapolate here.
-            input_left = np.array([0.5, 0.5, 0.5], dtype="float64")
-            output_left = np.array([0.0, 0.0, 0.0], dtype="float64")
-            # rf = 1 here
-            ghost_zone_interpolate(1, old_field, input_left,
-                                   new_field, output_left)
+            for field in fields:
+                # Ensure we have the native endianness in this array.  Avoid making
+                # a copy if possible.
+                old_field = np.asarray(self[field], dtype="=f8")
+                # We'll use the ghost zone routine, which will naturally
+                # extrapolate here.
+                input_left = np.array([0.5, 0.5, 0.5], dtype="float64")
+                output_left = np.array([0.0, 0.0, 0.0], dtype="float64")
+                # rf = 1 here
+                ghost_zone_interpolate(1, old_field, input_left,
+                                       new_fields[field], output_left)
         else:
-            cg = self.retrieve_ghost_zones(1, field, smoothed=smoothed)
-            np.add(new_field, cg[field][1: ,1: ,1: ], new_field)
-            np.add(new_field, cg[field][:-1,1: ,1: ], new_field)
-            np.add(new_field, cg[field][1: ,:-1,1: ], new_field)
-            np.add(new_field, cg[field][1: ,1: ,:-1], new_field)
-            np.add(new_field, cg[field][:-1,1: ,:-1], new_field)
-            np.add(new_field, cg[field][1: ,:-1,:-1], new_field)
-            np.add(new_field, cg[field][:-1,:-1,1: ], new_field)
-            np.add(new_field, cg[field][:-1,:-1,:-1], new_field)
-            np.multiply(new_field, 0.125, new_field)
+            cg = self.retrieve_ghost_zones(1, fields, smoothed=smoothed)
+            for field in fields:
+                np.add(new_fields[field], cg[field][1: ,1: ,1: ], new_fields[field])
+                np.add(new_fields[field], cg[field][:-1,1: ,1: ], new_fields[field])
+                np.add(new_fields[field], cg[field][1: ,:-1,1: ], new_fields[field])
+                np.add(new_fields[field], cg[field][1: ,1: ,:-1], new_fields[field])
+                np.add(new_fields[field], cg[field][:-1,1: ,:-1], new_fields[field])
+                np.add(new_fields[field], cg[field][1: ,:-1,:-1], new_fields[field])
+                np.add(new_fields[field], cg[field][:-1,:-1,1: ], new_fields[field])
+                np.add(new_fields[field], cg[field][:-1,:-1,:-1], new_fields[field])
+                np.multiply(new_fields[field], 0.125, new_fields[field])
 
-        return new_field
+        return new_fields
 
     def select_icoords(self, dobj):
         mask = self._get_selector_mask(dobj.selector)

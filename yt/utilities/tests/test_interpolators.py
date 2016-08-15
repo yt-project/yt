@@ -74,10 +74,10 @@ def test_ghost_zone_extrapolation():
     ds = fake_random_ds(16)
 
     g = ds.index.grids[0]
+    vec = g.get_vertex_centered_data(['x', 'y', 'z'], no_ghost=True)
     for i, ax in enumerate('xyz'):
         xc = g[ax]
 
-        xv = g.get_vertex_centered_data(ax, no_ghost=True)
         tf = lin.TrilinearFieldInterpolator(xc,
                 (g.LeftEdge[0] + g.dds[0]/2.0,
                     g.RightEdge[0] - g.dds[0]/2.0,
@@ -97,6 +97,6 @@ def test_ghost_zone_extrapolation():
                                   xz, np.array([0.0, 0.0, 0.0], dtype="f8"))
 
         ii = (lx, ly, lz)[i]
-        yield assert_array_equal, ii, xv
+        yield assert_array_equal, ii, vec[ax]
         yield assert_array_equal, ii, xi
         yield assert_array_equal, ii, xz
