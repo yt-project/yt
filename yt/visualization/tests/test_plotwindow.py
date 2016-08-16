@@ -115,7 +115,7 @@ WIDTH_SPECS = {
         ((0, 'code_length'), (1, 'code_length')),
         ((0, 'code_length'), (1, 'code_length')),
         ((1, 'code_length'), (1, 'code_length')),
-        None
+        None,
     ),
     0.2 : (
         ((0.4, 'code_length'), (0.6, 'code_length')),
