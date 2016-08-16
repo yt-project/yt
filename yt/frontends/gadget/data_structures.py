@@ -281,10 +281,10 @@ class GadgetDataset(ParticleDataset):
     @staticmethod
     def _validate_header(filename):
         '''
-        This method automatically detects whether the Gadget file is big/little endian 
-        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a 
-        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file 
-        is a Gadget binary file, and endianswap is the endianness character '>' or '<'. 
+        This method automatically detects whether the Gadget file is big/little endian
+        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a
+        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file
+        is a Gadget binary file, and endianswap is the endianness character '>' or '<'.
         '''
         try:
             f = open(filename,'rb')
@@ -293,9 +293,9 @@ class GadgetDataset(ParticleDataset):
                 f = open(filename+".0")
             except IOError:
                 return False, 1
-        
+
         # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
-        # 8 for a Gadget2 binary file with SnapFormat=2 file, 
+        # 8 for a Gadget2 binary file with SnapFormat=2 file,
         # or the byte swapped equivalents (65536 and 134217728).
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
@@ -311,16 +311,17 @@ class GadgetDataset(ParticleDataset):
             endianswap = '>'
         # Disabled for now (does any one still use SnapFormat=2?)
         # If so, alternate read would be needed based on header.
-        # elif rhead == 8:
-        #     return True, '<'
-        # elif rhead == 134217728:
-        #     return True, '>'
+        # Eabled Format2 here
+        elif rhead == 8:
+            return True, '<'
+        elif rhead == 134217728:
+            return True, '>'
         else:
             f.close()
             return False, 1
         # Read in particle number from header
         np0 = sum(struct.unpack(endianswap+'IIIIII',f.read(6*4)))
-        # Read in size of position block. It should be 4 bytes per float, 
+        # Read in size of position block. It should be 4 bytes per float,
         # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
         f.seek(4+256+4,0)
         np1 = struct.unpack(endianswap+'I',f.read(4))[0]/(4*3)
