@@ -425,7 +425,7 @@ class PlotWindow(ImagePlotContainer):
          ('{xloc}', '{space}')                  ('right', 'domain')
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         (xloc, yloc, coord_sys)                (0.23, 0.5, 'domain')
+         (xloc, yloc, '{space}')                (0.23, 0.5, 'domain')
          ==================================     ============================
 
         """
@@ -1215,11 +1215,11 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
     origin : string or length 1, 2, or 3 sequence of strings.
-         The location of the origin of the plot coordinate system. This 
-         is typically represented by a '-' separated string or a tuple of 
-         strings. In the first index the y-location is given by 'lower', 
-         'upper', or 'center'. The second index is the x-location, given as 
-         'left', 'right', or 'center'. Finally, the whether the origin is 
+         The location of the origin of the plot coordinate system. This
+         is typically represented by a '-' separated string or a tuple of
+         strings. In the first index the y-location is given by 'lower',
+         'upper', or 'center'. The second index is the x-location, given as
+         'left', 'right', or 'center'. Finally, the whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the origin
@@ -1229,7 +1229,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          corresponds to the center of the simulation domain, or 'center-window'
          for the center of the plot window. In the event that none of these
          options place the origin in a desired location, a sequence of two
-         numeric types and a string specifying the coordinate space can be 
+         numeric types and a string specifying the coordinate space can be
          given.Further examples:
 
          ==================================     ============================
@@ -1243,7 +1243,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          ('{xloc}', '{space}')                  ('right', 'domain')
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         (xloc, yloc, coord_sys)                (0.23, 0.5, 'domain')
+         (xloc, yloc, '{space}')                (0.23, 0.5, 'domain')
          ==================================     ============================
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
@@ -1364,11 +1364,11 @@ class ProjectionPlot(PWViewerMPL):
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
     origin : string or length 1, 2, or 3 sequence of strings.
-         The location of the origin of the plot coordinate system. This 
-         is typically represented by a '-' separated string or a tuple of 
-         strings. In the first index the y-location is given by 'lower', 
-         'upper', or 'center'. The second index is the x-location, given as 
-         'left', 'right', or 'center'. Finally, the whether the origin is 
+         The location of the origin of the plot coordinate system. This
+         is typically represented by a '-' separated string or a tuple of
+         strings. In the first index the y-location is given by 'lower',
+         'upper', or 'center'. The second index is the x-location, given as
+         'left', 'right', or 'center'. Finally, the whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the origin
@@ -1378,7 +1378,7 @@ class ProjectionPlot(PWViewerMPL):
          corresponds to the center of the simulation domain, or 'center-window'
          for the center of the plot window. In the event that none of these
          options place the origin in a desired location, a sequence of two
-         numeric types and a string specifying the coordinate space can be 
+         numeric types and a string specifying the coordinate space can be
          given.Further examples:
 
          ==================================     ============================
@@ -1392,7 +1392,7 @@ class ProjectionPlot(PWViewerMPL):
          ('{xloc}', '{space}')                  ('right', 'domain')
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         (xloc, yloc, coord_sys)                (0.23, 0.5, 'domain')
+         (xloc, yloc, '{space}')                (0.23, 0.5, 'domain')
          ==================================     ============================
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
@@ -1418,13 +1418,13 @@ class ProjectionPlot(PWViewerMPL):
 
          "mip" : pick out the maximum value of the field in the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not 
-         multiply by a path length when performing the integration, and is 
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
          just a straight summation of the field along the given axis. WARNING:
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
     proj_style : string
-         The method of projection--same as method keyword.  Deprecated as of 
+         The method of projection--same as method keyword.  Deprecated as of
          version 3.0.2.  Please use method instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
@@ -1897,7 +1897,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          ('{xloc}', '{space}')                  ('right', 'domain')
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         (xloc, yloc, coord_sys)                (0.23, 0.5, 'domain')
+         (xloc, yloc, '{space}')                (0.23, 0.5, 'domain')
          ==================================     ============================
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
