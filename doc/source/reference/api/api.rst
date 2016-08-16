@@ -444,6 +444,26 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.ParticleProfile
    ~yt.data_objects.profiles.create_profile
 
+.. _clump_finding:
+
+Clump Finding
+^^^^^^^^^^^^^
+
+The ``Clump`` object and associated functions can be used for identification
+of topologically disconnected structures, i.e., clump finding.
+
+.. autosummary::
+   :toctree: generated/
+
+   ~yt.analysis_modules.level_sets.clump_handling.Clump
+   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item
+   ~yt.analysis_modules.level_sets.clump_handling.Clump.add_validator
+   ~yt.analysis_modules.level_sets.clump_handling.Clump.save_as_dataset
+   ~yt.analysis_modules.level_sets.clump_handling.find_clumps
+   ~yt.analysis_modules.level_sets.clump_handling.get_lowest_clumps
+   ~yt.analysis_modules.level_sets.clump_info_items.add_clump_info
+   ~yt.analysis_modules.level_sets.clump_validators.add_validator
+
 .. _halo_analysis_ref:
 
 Halo Analysis
