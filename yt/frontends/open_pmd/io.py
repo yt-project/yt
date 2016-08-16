@@ -196,6 +196,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
+        ds = f[bp + mp]
         rv = {}
         chunks = list(chunks)
 
@@ -215,17 +216,17 @@ class IOHandlerOpenPMD(BaseIOHandler):
             field = (ftype, fname)
             for chunk in chunks:
                 for g in chunk.objs:
-                    ds = f[bp + mp]
-                    component = fname.replace("_", "/").replace("-", "_")
-                    index = g.mesh_index
-                    offset = g.mesh_offset
-                    data = np.array(self.get_component(ds, component, index, offset, self.ds._nonstandard))
-                    # The following is a modified AMRGridPatch.select(...)
                     mask = g._get_selector_mask(selector)
-                    data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
-                    count = g.count(selector)
-                    rv[field][ind[field]:ind[field] + count] = data[mask]
-                    ind[field] += count
+                    if mask is not None:
+                        component = fname.replace("_", "/").replace("-", "_")
+                        index = g.mesh_index
+                        offset = g.mesh_offset
+                        data = np.array(self.get_component(ds, component, index, offset, self.ds._nonstandard))
+                        # The following is a modified AMRGridPatch.select(...)
+                        data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                        count = g.count(selector)
+                        rv[field][ind[field]:ind[field] + count] = data[mask]
+                        ind[field] += count
         for i in rv:
             rv[i].flatten()
         return rv
