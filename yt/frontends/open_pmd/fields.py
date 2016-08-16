@@ -16,13 +16,13 @@ openPMD-specific fields
 # -----------------------------------------------------------------------------
 
 import numpy as np
+import h5py as h5
 
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import parse_unit_dimension
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5
 from yt.utilities.physical_constants import speed_of_light
 
 
@@ -143,7 +143,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
 
         for fname in fields.keys():
             field = fields[fname]
-            if type(field) is not h5.Group:  # yt.utilities.on_demand_imports._h5py only has Group
+            if type(field) is h5.Dataset:
                 # Don't consider axes. This appears to be a vector field of single dimensionality
                 ytname = str("_".join([fname.replace("_", "-")]))
                 if ds._nonstandard:
@@ -198,7 +198,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         # particle_position is later derived in setup_absolute_positions in the way yt expects it
                         ytattrib = "positionCoarse"
                     pds = particles[species + "/" + attrib]
-                    if type(field) is not h5.Group:  # yt.utilities.on_demand_imports._h5py only has Group
+                    if type(pds) is h5.Dataset:
                         particle_fields += ((str("_".join(name)), (unit, [], None)),)
                     else:
                         for axis in pds.keys():
