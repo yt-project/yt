@@ -143,7 +143,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
 
         for fname in fields.keys():
             field = fields[fname]
-            if type(field) is h5.Dataset:
+            if type(field) is not h5.Group:  # yt.utilities.on_demand_imports._h5py only has Group
                 # Don't consider axes. This appears to be a vector field of single dimensionality
                 ytname = str("_".join([fname.replace("_", "-")]))
                 if ds._nonstandard:
@@ -198,7 +198,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         # particle_position is later derived in setup_absolute_positions in the way yt expects it
                         ytattrib = "positionCoarse"
                     pds = particles[species + "/" + attrib]
-                    if type(pds) is h5.Dataset:
+                    if type(field) is not h5.Group:  # yt.utilities.on_demand_imports._h5py only has Group
                         particle_fields += ((str("_".join(name)), (unit, [], None)),)
                     else:
                         for axis in pds.keys():
