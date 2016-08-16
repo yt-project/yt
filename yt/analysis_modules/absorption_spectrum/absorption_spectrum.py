@@ -268,6 +268,9 @@ class AbsorptionSpectrum(object):
                 redshift_eff = ((1 + redshift) * \
                                 (1 + field_data['redshift_dopp'])) - 1.
 
+        if not use_peculiar_velocity:
+            redshift_eff = redshift
+
         return redshift, redshift_eff
 
     def _add_continua_to_spectrum(self, field_data, use_peculiar_velocity,
