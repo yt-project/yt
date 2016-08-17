@@ -92,9 +92,9 @@ Calculating Clump Quantities
 ----------------------------
 
 By default, a number of quantities will be calculated for each clump when the
-clump finding process has finished.  The default quantities are: **total_cells**,
-**cell_mass**, **mass_weighted_jeans_mass**, **volume_weighted_jeans_mass**,
-**max_grid_level**, **min_number_density**, and **max_number_density**.
+clump finding process has finished.  The default quantities are: ``total_cells``,
+``cell_mass``, ``mass_weighted_jeans_mass``, ``volume_weighted_jeans_mass``,
+``max_grid_level``, ``min_number_density``, and ``max_number_density``.
 Additional items can be added with the
 :func:`~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item`
 function.
@@ -125,7 +125,7 @@ Then, add it to the list:
    master_clump.add_info_item("mass_weighted_jeans_mass")
 
 Beside the quantities calculated by default, the following are available:
-**center_of_mass** and **distance_to_main_clump**.
+``center_of_mass`` and ``distance_to_main_clump``.
 
 Working with Clumps
 -------------------
