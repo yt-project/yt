@@ -674,7 +674,7 @@ class PWViewerMPL(PlotWindow):
             yc = self.ds.quan(origin[1], 'code_length')
         elif 3 == len(origin) and isinstance(origin[0], tuple):
             xc = YTQuantity(origin[0][0], origin[0][1])
-            xc = YTQuantity(origin[1][0], origin[0][1])
+            yc = YTQuantity(origin[1][0], origin[0][1])
 
         assert origin[-1] in ['window', 'domain', 'native']
 
@@ -761,7 +761,6 @@ class PWViewerMPL(PlotWindow):
             if self.aspect is None:
                 self.aspect = float((self.ds.quan(1.0, unit_y) /
                                      self.ds.quan(1.0, unit_x)).in_cgs())
-
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
 
