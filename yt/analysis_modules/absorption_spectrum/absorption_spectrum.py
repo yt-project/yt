@@ -296,7 +296,7 @@ class AbsorptionSpectrum(object):
         # significantly to a continuum (see below).  because lots of 
         # low column density absorbers can add up to a significant
         # continuum effect, we normalize min_tau by the n_absorbers.
-        n_absorbers = len(field_data['dl'])
+        n_absorbers = field_data['dl'].size
         min_tau = 1.e-3/n_absorbers
 
         for continuum in self.continuum_list:
