@@ -145,6 +145,58 @@ def test_absorption_spectrum_non_cosmo():
     shutil.rmtree(tmpdir)
 
 @requires_file(COSMO_PLUS_SINGLE)
+@requires_answer_testing()
+def test_absorption_spectrum_non_cosmo_novpec():
+    """
+    This test generates an absorption spectrum from a simple light ray on a
+    grid dataset
+    """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    lr = LightRay(COSMO_PLUS_SINGLE)
+
+    ray_start = [0,0,0]
+    ray_end = [1,1,1]
+    lr.make_light_ray(start_position=ray_start, end_position=ray_end,
+                      fields=['temperature', 'density', 'H_number_density'],
+                      data_filename='lightray.h5', use_peculiar_velocity=False)
+
+    sp = AbsorptionSpectrum(1200.0, 1300.0, 10001)
+
+    my_label = 'HI Lya'
+    field = 'H_number_density'
+    wavelength = 1215.6700  # Angstromss
+    f_value = 4.164E-01
+    gamma = 6.265e+08
+    mass = 1.00794
+
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
+
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.h5',
+                                        line_list_file='lines.txt',
+                                        use_peculiar_velocity=False)
+
+    # load just-generated hdf5 file of spectral data (for consistency)
+    data = h5.File('spectrum.h5', 'r')
+
+    for key in data.keys():
+        func = lambda x=key: data[x][:]
+        func.__name__ = "{}_non_cosmo_novpec".format(key)
+        test = GenericArrayTest(None, func)
+        test_absorption_spectrum_non_cosmo.__name__ = test.description
+        yield test
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_file(COSMO_PLUS_SINGLE)
 def test_equivalent_width_conserved():
     """
     This tests that the equivalent width of the optical depth is conserved 
