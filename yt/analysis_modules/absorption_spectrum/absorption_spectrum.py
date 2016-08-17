@@ -379,7 +379,10 @@ class AbsorptionSpectrum(object):
             cdens = column_density.in_units("cm**-2").d # cm**-2
             thermb = thermal_b.in_cgs().d  # thermal b coefficient; cm / s
             dlambda = delta_lambda.d  # lambda offset; angstroms
-            vlos = field_data['velocity_los'].in_units("km/s").d # km/s
+            if use_peculiar_velocity:
+                vlos = field_data['velocity_los'].in_units("km/s").d # km/s
+            else:
+                vlos = np.zeros(field_data['temperature'].size)
 
             # When we actually deposit the voigt profile, sometimes we will
             # have underresolved lines (ie lines with smaller widths than
