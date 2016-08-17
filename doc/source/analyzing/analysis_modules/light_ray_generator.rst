@@ -183,7 +183,7 @@ that you will want the ray segments to stay within the high resolution
 region.  To do this, you must first specify the size of the high
 resolution region when creating the `LightRay` using the
 ``high_res_box_size_fraction`` keyword.  This will make sure that
-the calculation of the spacing of the segment datasets only takes into
+the calculation of the spacing of the segment datasets only takes into account
 the high resolution region and not the full box size.  Then, in the call to
 :func:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`,
 use the ``left_edge`` and ``right_edge`` keyword arguments to specify the
