@@ -160,7 +160,8 @@ For example, if I created a plugin file containing:
 
    def _myfunc(field, data):
        return np.random.random(data["density"].shape)
-   add_field("random", function=_myfunc, units='auto')
+   add_field('random', function=_myfunc,
+             dimensions='dimensionless', units='auto')
 
 then all of my data objects would have access to the field ``random``.
 
