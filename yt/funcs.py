@@ -1004,3 +1004,12 @@ def toggle_interactivity():
 
 def get_interactivity():
     return interactivity
+
+def setdefaultattr(obj, name, value):
+    """Set attribute with *name* on *obj* with *value* if it doesn't exist yet
+
+    Analogous to dict.setdefault
+    """
+    if not hasattr(obj, name):
+        setattr(obj, name, value)
+    return getattr(obj, name)

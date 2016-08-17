@@ -23,6 +23,8 @@ import os
 from .fields import \
     HaloCatalogFieldInfo
 
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -76,10 +78,10 @@ class HaloCatalogDataset(Dataset):
         self.parameters.update(hvals)
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.velocity_unit = self.quan(1.0, "cm / s")
-        self.time_unit = self.quan(1.0, "s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm / s"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
