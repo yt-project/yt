@@ -33,7 +33,7 @@ COSMO_PLUS = "enzo_cosmology_plus/AMRCosmology.enzo"
 COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
 GIZMO_PLUS = "gizmo_cosmology_plus/N128L16.param"
 GIZMO_PLUS_SINGLE = "gizmo_cosmology_plus/snap_N128L16_151.hdf5"
-
+ISO_GALAXY = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 @requires_file(COSMO_PLUS)
 @requires_answer_testing()
@@ -355,6 +355,67 @@ def test_absorption_spectrum_non_cosmo_sph():
         func.__name__ = "{}_non_cosmo_sph".format(key)
         test = GenericArrayTest(None, func)
         test_absorption_spectrum_non_cosmo_sph.__name__ = test.description
+        yield test
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_file(ISO_GALAXY)
+@requires_answer_testing()
+def test_absorption_spectrum_with_continuum():
+    """
+    This test generates an absorption spectrum from a simple light ray on a
+    grid dataset and adds Lyman alpha and Lyman continuum to it
+    """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    ds = load(ISO_GALAXY)
+    lr = LightRay(ds)
+
+    ray_start = ds.domain_left_edge
+    ray_end = ds.domain_right_edge
+    lr.make_light_ray(start_position=ray_start, end_position=ray_end,
+                      fields=['temperature', 'density', 'H_number_density'],
+                      data_filename='lightray.h5')
+
+    sp = AbsorptionSpectrum(800.0, 1300.0, 5001)
+
+    my_label = 'HI Lya'
+    field = 'H_number_density'
+    wavelength = 1215.6700  # Angstromss
+    f_value = 4.164E-01
+    gamma = 6.265e+08
+    mass = 1.00794
+
+    sp.add_line(my_label, field, wavelength, f_value,
+                gamma, mass, label_threshold=1.e10)
+
+    my_label = 'Ly C'
+    field = 'H_number_density'
+    wavelength = 912.323660  # Angstroms
+    normalization = 1.6e17
+    index = 3.0
+
+    sp.add_continuum(my_label, field, wavelength, normalization, index)
+
+    wavelength, flux = sp.make_spectrum('lightray.h5',
+                                        output_file='spectrum.h5',
+                                        line_list_file='lines.txt',
+                                        use_peculiar_velocity=True)
+
+    # load just-generated hdf5 file of spectral data (for consistency)
+    data = h5.File('spectrum.h5', 'r')
+    
+    for key in data.keys():
+        func = lambda x=key: data[x][:]
+        func.__name__ = "{}_continuum".format(key)
+        test = GenericArrayTest(None, func)
+        test_absorption_spectrum_with_continuum.__name__ = test.description
         yield test
 
     # clean up
