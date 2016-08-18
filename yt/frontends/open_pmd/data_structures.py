@@ -22,8 +22,9 @@ import numpy as np
 
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.funcs import setdefaultattr
 from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
-from yt.frontends.open_pmd.misc import is_const_component, check_root_attr, check_iterations
+from yt.frontends.open_pmd.misc import is_const_component
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
@@ -321,11 +322,11 @@ class OpenPMDDataset(Dataset):
         These are hardcoded as 1.0. Every dataset in openPMD can have different code <-> physical scaling.
         The individual factor is obtained by multiplying with "unitSI" reading getting data from disk.
         """
-        self.length_unit = self.quan(1.0, "m")
-        self.mass_unit = self.quan(1.0, "kg")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "m/s")
-        self.magnetic_unit = self.quan(1.0, "T")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "m/s"))
+        setdefaultattr(self, 'magnetic_unit', self.quan(1.0, "T"))
 
     def _parse_parameter_file(self):
         """Read in metadata describing the overall data on-disk.
@@ -379,7 +380,7 @@ class OpenPMDDataset(Dataset):
         if self._nonstandard:
             self.current_time = 0
         else:
-            self.current_time = f[bp].attrs["time"]
+            self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -389,28 +390,16 @@ class OpenPMDDataset(Dataset):
             f = h5.File(args[0])
         except:
             return False
-        verbose = False
-        extension_pic = False
-        # root attributes at "/"
-        result_array = np.array([0, 0])
-        result_array += check_root_attr(f, verbose, extension_pic)
 
-        # Go through all the iterations, checking both the particles
-        # and the meshes
-        result_array += check_iterations(f, verbose, extension_pic)
-
-        # this might still be a compatible file not fully respecting openPMD standards
-        if result_array[0] != 0:
-            try:
-                iteration = f["/data"].keys()[0]
-                if iteration.isdigit() \
-                        and "fields" in f["/data/" + iteration].keys() \
-                        and "particles" in f["/data/" + iteration].keys():
-                    self._nonstandard = True
-                    mylog.info(
-                        "open_pmd - Reading a file not compliant with the standard. No support will be guaranteed!")
-                    return True
-            except:
+        requirements = ["openPMD", "basePath", "meshesPath", "particlesPath"]
+        for i in requirements:
+            if i not in f.attrs.keys():
+                f.close()
                 return False
+
+        if "1.0.0" != f.attrs["openPMD"]:
+            f.close()
+            return False
+
         f.close()
         return True
