@@ -67,12 +67,13 @@ answer_tests:
   local_ytdata_000:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_002:
+  local_absorption_spectrum_004:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_novpec
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_sph
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
+    - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_with_continuum
 
   local_axialpix_001:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
