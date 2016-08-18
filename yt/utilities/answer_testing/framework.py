@@ -819,6 +819,10 @@ class GenericArrayTest(AnswerTestingTest):
             kwargs = self.kwargs
         return self.array_func(*args, **kwargs)
     def compare(self, new_result, old_result):
+        if not isinstance(new_result, dict):
+            new_result = {'answer': new_result}
+            old_result = {'answer': old_result}
+
         assert_equal(len(new_result), len(old_result),
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
