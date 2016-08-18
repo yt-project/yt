@@ -41,39 +41,30 @@ class IOHandlerOpenPMD(BaseIOHandler):
         Parameters
         ----------
         ptype : str
+            The on-disk name of the particle species
         index : int, optional
         offset : int, optional
         """
         if str((ptype, index, offset)) not in self._cached_ptype:
-            if ptype in "io":
-                spec = self._handle[self.base_path + self.particles_path].keys()[0]
-            else:
-                spec = ptype
-            pds = self._handle[self.base_path + self.particles_path + "/" + spec]
+            self._cached_ptype = str((ptype, index, offset))
+            pds = self._handle[self.base_path + self.particles_path + "/" + ptype]
             axes = [str(ax) for ax in pds["position"].keys()]
-            if self.ds._nonstandard:
-                position_offset = "globalCellIdx/"
-            else:
-                position_offset = "positionOffset/"
             if offset is None:
                 if is_const_component(pds["position/" + axes[0]]):
-                    size = pds["position/" + axes[0]].attrs["shape"]
+                    offset = pds["position/" + axes[0]].attrs["shape"]
                 else:
-                    size = pds["position/" + axes[0]].len()
-            else:
-                size = offset
-            self.cache = np.empty((3, size), dtype="float64")
+                    offset = pds["position/" + axes[0]].len()
+            self.cache = np.empty((3, offset), dtype=np.float64)
             for i in range(3):
                 ax = "xyz"[i]
                 if ax in axes:
-                    np.add(self.get_component(pds, "position/" + ax, index, offset, self.ds._nonstandard),
-                           self.get_component(pds, position_offset + ax, index, offset, self.ds._nonstandard),
+                    np.add(self.get_component(pds, "position/" + ax, index, offset),
+                           self.get_component(pds, "positionOffset/" + ax, index, offset),
                            self.cache[i])
                 else:
                     # Pad accordingly with zeros to make 1D/2D datasets compatible
                     # These have to be the same shape as the existing axes since that equals the number of particles
-                    self.cache[i] = np.zeros(size)
-        self._cached_ptype = str((ptype, index, offset))
+                    self.cache[i] = np.zeros(offset)
 
     def _read_particle_coords(self, chunks, ptf):
         """Reads coordinates for given particle-types in given chunks from file.
@@ -109,10 +100,10 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     index = dict(g.particle_index).get(spec)
                     offset = dict(g.particle_offset).get(spec)
                     mylog.debug(
-                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index,
+                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, spec, field_list, index,
                                                                                             offset))
-                    if str((ptype, index, offset)) not in self._cached_ptype:
-                        self._fill_cache(ptype, index, offset)
+                    if str((spec, index, offset)) not in self._cached_ptype:
+                        self._fill_cache(spec, index, offset)
                     yield (ptype, (self.cache[0], self.cache[1], self.cache[2]))
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -156,10 +147,10 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     index = dict(g.particle_index).get(spec)
                     offset = dict(g.particle_offset).get(spec)
                     mylog.debug(
-                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, ptype, field_list, index,
+                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, spec, field_list, index,
                                                                                             offset))
-                    if str((ptype, index, offset)) not in self._cached_ptype:
-                        self._fill_cache(ptype, index, offset)
+                    if str((spec, index, offset)) not in self._cached_ptype:
+                        self._fill_cache(spec, index, offset)
                     mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
                     if mask is None:
                         continue
@@ -167,7 +158,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     for field in field_list:
                         component = "/".join(field.split("_")[1:]).replace("positionCoarse",
                                                                            "position").replace("-", "_")
-                        data = self.get_component(pds, component, index, offset, self.ds._nonstandard)
+                        data = self.get_component(pds, component, index, offset)
                         yield ((ptype, field), data[mask])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -182,7 +173,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             A region (inside your domain) specifying which parts of the field you want to read
             See [1] and [2]
         fields : array_like
-            tuples (fname, ftype) representing a field
+            Tuples (fname, ftype) representing a field
         size : int
             Size of the data to read
 
@@ -209,7 +200,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                         for g in chunk.objs))
         ind = {}
         for field in fields:
-            rv[field] = np.empty(size, dtype="float64")
+            rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0
 
         for ftype, fname in fields:
@@ -217,21 +208,22 @@ class IOHandlerOpenPMD(BaseIOHandler):
             for chunk in chunks:
                 for g in chunk.objs:
                     mask = g._get_selector_mask(selector)
-                    if mask is not None:
-                        component = fname.replace("_", "/").replace("-", "_")
-                        index = g.mesh_index
-                        offset = g.mesh_offset
-                        data = np.array(self.get_component(ds, component, index, offset, self.ds._nonstandard))
-                        # The following is a modified AMRGridPatch.select(...)
-                        data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
-                        count = g.count(selector)
-                        rv[field][ind[field]:ind[field] + count] = data[mask]
-                        ind[field] += count
+                    if mask is None:
+                        continue
+                    component = fname.replace("_", "/").replace("-", "_")
+                    index = g.mesh_index
+                    offset = g.mesh_offset
+                    data = np.array(self.get_component(ds, component, index, offset))
+                    # The following is a modified AMRGridPatch.select(...)
+                    data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                    count = g.count(selector)
+                    rv[field][ind[field]:ind[field] + count] = data[mask]
+                    ind[field] += count
         for i in rv:
             rv[i].flatten()
         return rv
 
-    def get_component(self, group, component_name, index=0, offset=None, nonstandard=False):
+    def get_component(self, group, component_name, index=0, offset=None):
         """Grab a dataset component from a group as a whole or sliced.
 
         Parameters
@@ -244,7 +236,6 @@ class IOHandlerOpenPMD(BaseIOHandler):
         offset : int, optional
             number of entries to read
             if not supplied, every entry after index is returned
-        nonstandard : bool, optional
 
         Notes
         -----
@@ -256,30 +247,17 @@ class IOHandlerOpenPMD(BaseIOHandler):
 
         """
         record_component = group[component_name]
-        if nonstandard:
-            try:
-                unitSI = record_component.attrs["sim_unit"]
-                if "globalCellIdx" in component_name:
-                    it = group["/data"].keys()[0]
-                    length = group["/data/" + it].attrs['unit_length']
-                    unitSI *= length
-            except:
-                unitSI = 1.0
-        else:
-            unitSI = record_component.attrs["unitSI"]
-        # check whether component is constant
+        unit_si = record_component.attrs["unitSI"]
         if is_const_component(record_component):
-            if offset is not None:
-                shape = offset
-            else:
-                shape = record_component.attrs["shape"] - index
+            if offset is None:
+                offset = record_component.attrs["shape"] - index
             # component is constant, craft an array by hand
-            mylog.debug("open_pmd - get_component (const): {}/{}({})".format(group.name, component_name, shape))
-            return np.full(shape, record_component.attrs["value"] * unitSI)
+            mylog.debug("open_pmd - get_component (const): {}/{}({})".format(group.name, component_name, offset))
+            return np.full(offset, record_component.attrs["value"] * unit_si)
         else:
             if offset is not None:
                 offset += index
             # component is a dataset, return it (possibly masked)
             mylog.debug(
                 "open_pmd - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
-            return np.multiply(record_component[index:offset], unitSI)
+            return np.multiply(record_component[index:offset], unit_si)

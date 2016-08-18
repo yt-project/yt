@@ -72,7 +72,7 @@ class OpenPMDHierarchy(GridIndex):
     """
     grid = OpenPMDGrid
 
-    def __init__(self, ds, dataset_type='openPMD'):
+    def __init__(self, ds, dataset_type="openPMD"):
         self.dataset_type = dataset_type
         self.dataset = ds
         self.index_filename = ds.parameter_filename
@@ -193,7 +193,7 @@ class OpenPMDHierarchy(GridIndex):
         In general, NOT all particles in a grid will be inside the grid edges.
         """
         self.grid_levels.flat[:] = 0
-        self.grids = np.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype="object")
 
         nrp = self.numparts.copy()  # Number of remaining particles from the dataset
         pci = {}  # Index for particle chunk
@@ -254,19 +254,18 @@ class OpenPMDDataset(Dataset):
     """
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
-    _nonstandard = False
 
-    def __init__(self, filename, dataset_type='openPMD',
+    def __init__(self, filename, dataset_type="openPMD",
                  storage_filename=None,
                  units_override=None,
                  unit_system="mks"):
         self._handle = HDF5FileHandler(filename)
-        self._set_paths(self._handle, os.path.dirname(filename), self._nonstandard)
+        self._set_paths(self._handle, os.path.dirname(filename))
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
-        self.fluid_types += ('openPMD',)
+        self.fluid_types += ("openPMD",)
         particles = tuple(str(c) for c in self._handle[self.base_path + self.particles_path].keys())
         if len(particles) > 1:
             # Only use on-disk particle names if there is more than one species
@@ -275,7 +274,7 @@ class OpenPMDDataset(Dataset):
         self.particle_types_raw = self.particle_types
         self.particle_types = tuple(self.particle_types)
 
-    def _set_paths(self, handle, path, nonstandard):
+    def _set_paths(self, handle, path):
         """Parses relevant hdf5-paths out of ``handle``.
 
         Parameters
@@ -283,38 +282,33 @@ class OpenPMDDataset(Dataset):
         handle : h5py.File
         path : str
             (absolute) filepath for current hdf5 container
-        nonstandard : bool
         """
-        self.base_path = "/data/{}/".format(handle["/data"].keys()[0])
-        if nonstandard:
-            self.meshes_path = "fields/"
-            self.particles_path = "particles/"
+        list_iterations = []
+        if "groupBased" in handle.attrs["iterationEncoding"]:
+            for i in list(handle["/data"].keys()):
+                list_iterations.append(i)
+            mylog.info("open_pmd - found {} iterations in file".format(len(list_iterations)))
+        elif "fileBased" in handle.attrs["iterationEncoding"]:
+            regex = "^" + handle.attrs["iterationFormat"].replace("%T", "[0-9]+") + "$"
+            if path is "":
+                mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
+                pass
+            for filename in os.listdir(path):
+                if re.match(regex, filename):
+                    list_iterations.append(filename)
+            mylog.info("open_pmd - found {} iterations in directory".format(len(list_iterations)))
         else:
-            list_iterations = []
-            if "groupBased" in handle.attrs["iterationEncoding"]:
-                for i in list(handle["/data"].keys()):
-                    list_iterations.append(i)
-                mylog.info("open_pmd - found {} iterations in file".format(len(list_iterations)))
-            elif "fileBased" in handle.attrs["iterationEncoding"]:
-                regex = "^" + handle.attrs["iterationFormat"].replace('%T', '[0-9]+') + "$"
-                if path is '':
-                    mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
-                    pass
-                for filename in os.listdir(path):
-                    if re.match(regex, filename):
-                        list_iterations.append(filename)
-                mylog.info("open_pmd - found {} iterations in directory".format(len(list_iterations)))
-            else:
-                mylog.warning(
-                    "open_pmd - No valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
+            mylog.warning(
+                "open_pmd - No valid iteration encoding: {}".format(handle.attrs["iterationEncoding"]))
 
-            if len(list_iterations) == 0:
-                mylog.warning("open_pmd - no iterations found!")
-            if "groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
-                mylog.warning("open_pmd - only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
+        if len(list_iterations) == 0:
+            mylog.warning("open_pmd - no iterations found!")
+        if "groupBased" in handle.attrs["iterationEncoding"] and len(list_iterations) > 1:
+            mylog.warning("open_pmd - only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
 
-            self.meshes_path = self._handle["/"].attrs["meshesPath"]
-            self.particles_path = self._handle["/"].attrs["particlesPath"]
+        self.base_path = "/data/{}/".format(handle["/data"].keys()[0])
+        self.meshes_path = self._handle["/"].attrs["meshesPath"]
+        self.particles_path = self._handle["/"].attrs["particlesPath"]
 
     def _set_code_unit_attributes(self):
         """Handle conversion between different physical units and the code units.
@@ -322,11 +316,11 @@ class OpenPMDDataset(Dataset):
         These are hardcoded as 1.0. Every dataset in openPMD can have different code <-> physical scaling.
         The individual factor is obtained by multiplying with "unitSI" reading getting data from disk.
         """
-        setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
-        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "m/s"))
-        setdefaultattr(self, 'magnetic_unit', self.quan(1.0, "T"))
+        setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
+        setdefaultattr(self, "mass_unit", self.quan(1.0, "kg"))
+        setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
+        setdefaultattr(self, "velocity_unit", self.quan(1.0, "m/s"))
+        setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
 
     def _parse_parameter_file(self):
         """Read in metadata describing the overall data on-disk.
@@ -361,15 +355,8 @@ class OpenPMDDataset(Dataset):
         self.domain_left_edge = np.zeros(3, dtype=np.float64)
         try:
             mesh = f[bp + mp].keys()[0]
-            if self._nonstandard:
-                width = f[bp].attrs['cell_width']
-                height = f[bp].attrs['cell_height']
-                depth = f[bp].attrs['cell_depth']
-                spacing = np.asarray([width, height, depth])
-                unit_si = f[bp].attrs['unit_length']
-            else:
-                spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-                unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
+            spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
+            unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
             self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except Exception as e:
@@ -377,10 +364,7 @@ class OpenPMDDataset(Dataset):
                 "open_pmd - The domain extent could not be calculated! ({}) Setting the field extent to 1m**3!".format(e))
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
-        if self._nonstandard:
-            self.current_time = 0
-        else:
-            self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
+        self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
