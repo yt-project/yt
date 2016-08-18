@@ -8,6 +8,7 @@
 #-----------------------------------------------------------------------------
 
 import os
+import sys
 import unittest
 import yt
 from yt.config import ytcfg, CONFIG_DIR
@@ -55,9 +56,12 @@ class TestPluginFile(unittest.TestCase):
             CONFIG_DIR, ytcfg.get('yt', 'pluginfilename'))
         msg = 'INFO:yt:Loading plugins from %s' % plugin_file
 
-        with self.assertLogs('yt', level='INFO') as cm:
+        if sys.version_info >= (3, 4, 0):
+            with self.assertLogs('yt', level='INFO') as cm:
+                yt.enable_plugins()
+                self.assertEqual(cm.output, [msg])
+        else:
             yt.enable_plugins()
-            self.assertEqual(cm.output, [msg])
 
         ds = fake_random_ds(16)
         dd = ds.all_data()
