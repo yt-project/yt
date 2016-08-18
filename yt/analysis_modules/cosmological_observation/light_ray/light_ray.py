@@ -604,19 +604,18 @@ class LightRay(CosmologySplice):
               self.cosmology.t_from_z(ds["current_redshift"])
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
+
         # Only return LightRay elements with non-zero density
-        mask_field_units = ['K', 'cm**-3', 'g/cm**3']
-        mask_field_units = [Unit(u) for u in mask_field_units]
-        for f in data:
-            for u in mask_field_units:
-                if data[f].units.same_dimensions_as(u):
-                    mask = data[f] > 0
-                    if not np.any(mask):
-                        raise RuntimeError(
-                            "No zones along light ray with nonzero %s. "
-                            "Please modify your light ray trajectory." % (f,))
-                    for key in data.keys():
-                        data[key] = data[key][mask]
+        if 'density' in data: f = 'density'
+        if ('gas', 'density') in data: f = ('gas', 'density')
+        if 'density' in data or ('gas', 'density') in data:
+            mask = data[f] > 0
+            if not np.any(mask):
+                raise RuntimeError(
+                    "No zones along light ray with nonzero %s. "
+                    "Please modify your light ray trajectory." % (f,))
+            for key in data.keys():
+                data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 
