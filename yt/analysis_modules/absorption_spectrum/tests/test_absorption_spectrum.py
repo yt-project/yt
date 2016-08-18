@@ -189,7 +189,7 @@ def test_absorption_spectrum_non_cosmo_novpec():
         func = lambda x=key: data[x][:]
         func.__name__ = "{}_non_cosmo_novpec".format(key)
         test = GenericArrayTest(None, func)
-        test_absorption_spectrum_non_cosmo.__name__ = test.description
+        test_absorption_spectrum_non_cosmo_novpec.__name__ = test.description
         yield test
 
     # clean up
