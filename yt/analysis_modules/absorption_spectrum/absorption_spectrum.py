@@ -210,6 +210,7 @@ class AbsorptionSpectrum(object):
             comm = _get_comm(())
             njobs = min(comm.size, len(self.line_list))
 
+        mylog.info("Creating spectrum")
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
                                     output_absorbers_file,
                                     subgrid_resolution=subgrid_resolution,
@@ -307,6 +308,9 @@ class AbsorptionSpectrum(object):
             # Normalization is in cm**-2, so column density must be as well
             column_density = (field_data[continuum['field_name']] * 
                               field_data['dl']).in_units('cm**-2')
+            if column_density.all() == 0:
+                mylog.info("Not adding continuum %s: insufficient column density" % continuum['label'])
+                continue
 
             # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
@@ -335,7 +339,7 @@ class AbsorptionSpectrum(object):
             if valid_continuua.size == 0:
                 mylog.info("Not adding continuum %s: insufficient column density" %
                     continuum['label'])
-                return
+                continue
 
             pbar = get_pbar("Adding continuum - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
@@ -379,6 +383,9 @@ class AbsorptionSpectrum(object):
         # and deposit the lines into the spectrum
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
+            if column_density.all() == 0:
+                mylog.info("Not adding line %s: insufficient column density" % line['label'])
+                continue
 
             # redshift_eff field combines cosmological and velocity redshifts
             # so delta_lambda gives the offset in angstroms from the rest frame
