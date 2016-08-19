@@ -81,7 +81,11 @@ class LightRay(CosmologySplice):
     max_box_fraction : optional, float
         In terms of the size of the domain, the maximum length a light
         ray segment can be in order to span the redshift interval from
-        one dataset to another.
+        one dataset to another.  If using a zoom-in simulation, this
+        parameter can be set to the length of the high resolution
+        region so as to limit ray segments to that size.  If the
+        high resolution region is not cubical, the smallest side
+        should be used.
         Default: 1.0 (the size of the box)
     deltaz_min : optional, float
         Specifies the minimum :math:`\Delta z` between consecutive
@@ -94,13 +98,6 @@ class LightRay(CosmologySplice):
         Set to np.inf (infinity) to use a single trajectory for the
         entire ray.
         Default: 0.
-    high_res_box_size_fraction : optional, float
-        For use with zoom-in simulations, use to specify the size of the
-        high resolution region of the simulation in terms of the fraction
-        of the total domain size.  If set, the light ray solution will be
-        calculated such that rays only make use of the high resolution
-        region.
-        Default: 1.0.
     time_data : optional, bool
         Whether or not to include time outputs when gathering
         datasets for time series.  Do not use for simple rays.
@@ -127,8 +124,7 @@ class LightRay(CosmologySplice):
                  near_redshift=None, far_redshift=None,
                  use_minimum_datasets=True, max_box_fraction=1.0,
                  deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
-                 high_res_box_size_fraction=1.0, time_data=True, 
-                 redshift_data=True,
+                 time_data=True, redshift_data=True,
                  find_outputs=False, load_kwargs=None):
 
         if near_redshift is not None and far_redshift is not None and \
@@ -141,7 +137,6 @@ class LightRay(CosmologySplice):
         self.use_minimum_datasets = use_minimum_datasets
         self.deltaz_min = deltaz_min
         self.minimum_coherent_box_fraction = minimum_coherent_box_fraction
-        self.high_res_box_size_fraction = high_res_box_size_fraction
         self.parameter_filename = parameter_filename
         if load_kwargs is None:
             self.load_kwargs = {}
@@ -186,7 +181,6 @@ class LightRay(CosmologySplice):
                   self.near_redshift, self.far_redshift,
                   minimal=self.use_minimum_datasets,
                   max_box_fraction=max_box_fraction,
-                  high_res_box_size_fraction=self.high_res_box_size_fraction,
                   deltaz_min=self.deltaz_min,
                   time_data=time_data,
                   redshift_data=redshift_data)
