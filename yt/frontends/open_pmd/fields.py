@@ -25,13 +25,16 @@ from yt.frontends.open_pmd.misc import \
     is_const_component
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.physical_constants import speed_of_light
+from yt.utilities.physical_constants import \
+    speed_of_light, \
+    mu_0
 
 
 def setup_poynting_vector(self):
     def _get_poyn(axis):
         def poynting(field, data):
-            u = 79577.4715459  # = 1/magnetic permeability
+            u = mu_0**-1
+            #u = 79577.4715459  # = 1/magnetic permeability
             if axis in "x":
                 return u * (data["E_y"] * data["magnetic_field_z"] - data["E_z"] * data["magnetic_field_y"])
             elif axis in "y":
@@ -44,7 +47,7 @@ def setup_poynting_vector(self):
     for ax in "xyz":
         self.add_field(("openPMD", "poynting_vector_%s" % ax),
                        function=_get_poyn(ax),
-                       units="T*V/m")
+                       units="W/m**2")
 
 
 def setup_kinetic_energy(self, ptype):
@@ -157,7 +160,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)),)
             else:
-                axes = field.attrs["axisLabels"]
+                axes = field.keys()
                 for axis in axes:
                     ytname = str("_".join([fname.replace("_", "-"), axis]))
                     parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
