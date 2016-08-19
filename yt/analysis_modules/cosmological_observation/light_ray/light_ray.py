@@ -606,9 +606,9 @@ class LightRay(CosmologySplice):
         field_types = dict([(field, "grid") for field in data.keys()])
 
         # Only return LightRay elements with non-zero density
-        if 'density' in data: f = 'density'
-        if ('gas', 'density') in data: f = ('gas', 'density')
-        if 'density' in data or ('gas', 'density') in data:
+        if 'temperature' in data: f = 'temperature'
+        if ('gas', 'temperature') in data: f = ('gas', 'temperature')
+        if 'temperature' in data or ('gas', 'temperature') in data:
             mask = data[f] > 0
             if not np.any(mask):
                 raise RuntimeError(
