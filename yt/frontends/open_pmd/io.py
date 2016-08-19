@@ -89,21 +89,18 @@ class IOHandlerOpenPMD(BaseIOHandler):
         f = self._handle
         ds = f[self.base_path]
         for chunk in chunks:
-            for g in chunk.objs:
-                if g.filename is None:
-                    continue
+            for grid in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype in "io":
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    index = dict(g.particle_index).get(spec)
-                    offset = dict(g.particle_offset).get(spec)
+                    index = dict(grid.particle_index).get(spec)
+                    offset = dict(grid.particle_offset).get(spec)
                     mylog.debug(
-                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(g, spec, field_list, index,
+                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list, index,
                                                                                             offset))
-                    if str((spec, index, offset)) not in self._cached_ptype:
-                        self._fill_cache(spec, index, offset)
+                    self._fill_cache(spec, index, offset)
                     yield (ptype, (self.cache[0], self.cache[1], self.cache[2]))
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -135,22 +132,19 @@ class IOHandlerOpenPMD(BaseIOHandler):
         f = self._handle
         ds = f[self.base_path]
         for chunk in chunks:
-            for g in chunk.objs:
-                if g.filename is None:
-                    continue
+            for grid in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
                     # Get a particle species (e.g. /data/3500/particles/e/)
                     if ptype in "io":
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    index = dict(g.particle_index).get(spec)
-                    offset = dict(g.particle_offset).get(spec)
+                    index = dict(grid.particle_index).get(spec)
+                    offset = dict(grid.particle_offset).get(spec)
                     mylog.debug(
-                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(g, spec, field_list, index,
+                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list, index,
                                                                                             offset))
-                    if str((spec, index, offset)) not in self._cached_ptype:
-                        self._fill_cache(spec, index, offset)
+                    self._fill_cache(spec, index, offset)
                     mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
                     if mask is None:
                         continue

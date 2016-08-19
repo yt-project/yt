@@ -34,7 +34,6 @@ def setup_poynting_vector(self):
     def _get_poyn(axis):
         def poynting(field, data):
             u = mu_0**-1
-            #u = 79577.4715459  # = 1/magnetic permeability
             if axis in "x":
                 return u * (data["E_y"] * data["magnetic_field_z"] - data["E_z"] * data["magnetic_field_y"])
             elif axis in "y":
