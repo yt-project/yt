@@ -17,6 +17,8 @@ openPMD data structures
 import os
 import re
 from math import ceil, floor
+import functools
+from operator import mul
 
 import numpy as np
 
@@ -43,20 +45,22 @@ class OpenPMDGrid(AMRGridPatch):
     __slots__ = ["_level_id"]
     # Every particle species might have different hdf5-indices and offsets
     # These contain tuples (ptype, index) and (ptype, offset)
-    particle_index = []
-    particle_offset = []
-    mesh_index = 0
-    mesh_offset = 0
+    ftypes=[]
+    ptypes=[]
+    findex = 0
+    foffset = 0
+    pindex = 0
+    poffset = 0
 
-    def __init__(self, gid, index, level=-1, pi=None, po=None, mi=0, mo=0):
+    def __init__(self, gid, index, level=-1, fi=0, fo=0, pi=0, po=0, ft=[], pt=[]):
         AMRGridPatch.__init__(self, gid, filename=index.index_filename,
                               index=index)
-        if pi:
-            self.particle_index = pi
-        if po:
-            self.particle_offset = po
-        self.mesh_index = mi
-        self.mesh_offset = mo
+        self.findex = fi
+        self.foffset = fo
+        self.pindex = pi
+        self.poffset = po
+        self.ftypes = ft
+        self.ptypes = pt
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -155,29 +159,37 @@ class OpenPMDHierarchy(GridIndex):
         pp = self.dataset.particles_path
 
         gridsize = 12 * 10 ** 6  # Byte
+        self.meshshapes = {}
         self.numparts = {}
-        meshsizes = {}
+
+        self.num_grids = 0
 
         for mesh in f[bp + mp].keys():
             if type(f[bp + mp + mesh]) is h5.Group:
-                for axis in f[bp + mp + mesh]:
-                    meshsizes[mesh + axis] = f[bp + mp + mesh + "/" + axis].size
+                self.meshshapes[mesh] = f[bp + mp + mesh + "/" + f[bp + mp + mesh].keys()[0]].shape
             else:
-                meshsizes[mesh] = f[bp + mp + mesh].size
-        if not meshsizes.values()[1:] == meshsizes.values()[:-1]:
-            mylog.warning("open_pmd - This frontend assumes all meshes are equally shaped,"
-                          " but meshes have different sizes!")
+                self.meshshapes[mesh] = f[bp + mp + mesh].shape
         for species in f[bp + pp].keys():
-            axis = f[bp + pp + species + "/position"].keys()[0]
-            if is_const_component(f[bp + pp + species + "/position/" + axis]):
-                self.numparts[species] = f[bp + pp + species + "/position/" + axis].attrs["shape"]
+            if "particlePatches" in f[bp + pp + "/" + species].keys():
+                for patch, size in enumerate(f[bp + pp + "/" + species + "/particlePatches/numParticles"]):
+                    self.numparts[species + str(patch)] = size
             else:
-                self.numparts[species] = f[bp + pp + species + "/position/" + axis].len()
-        # Limit particles per grid by resulting memory footprint
-        ppg = int(gridsize / (self.dataset.dimensionality * 4))  # 4 Byte per value per dimension (f32)
-        # Use an upper bound of equally sized grids, last one might be smaller
-        values = np.max((np.max(self.numparts.values()), np.max(meshsizes.values())))
-        self.num_grids = int(ceil(values * ppg ** -1))
+                axis = f[bp + pp + species + "/position"].keys()[0]
+                if is_const_component(f[bp + pp + species + "/position/" + axis]):
+                    self.numparts[species] = f[bp + pp + species + "/position/" + axis].attrs["shape"]
+                else:
+                    self.numparts[species] = f[bp + pp + species + "/position/" + axis].len()
+
+        # Limit values per grid by resulting memory footprint
+        self.vpg = int(gridsize / (self.dataset.dimensionality * 4))  # 4 Byte per value per dimension (f32)
+
+        # Meshes of the same size do not need separate chunks
+        for shape in set(self.meshshapes.values()):
+            self.num_grids += min(shape[0], int(np.ceil(functools.reduce(mul, shape) * self.vpg**-1)))
+
+        # Same goes for particle chunks
+        for size in set(self.numparts.values()):
+            self.num_grids += int(np.ceil(size * self.vpg**-1))
 
     def _parse_index(self):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
@@ -194,6 +206,48 @@ class OpenPMDHierarchy(GridIndex):
         """
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype="object")
+
+        grid_index_total = 0
+
+        # Mesh grids
+        for shape in set(self.meshshapes.values()):
+            # Total dimension of this grid
+            domain_dimension = np.asarray(shape, dtype=np.int32)
+            domain_dimension = np.pad(domain_dimension,
+                                      (0, 3 - len(domain_dimension)),
+                                      'constant', constant_values=(0, 1))
+            # Number of grids of this shape
+            num_grids = min(shape[0], int(np.ceil(functools.reduce(mul, shape) * self.vpg ** -1)))
+            gle = self.dataset.domain_left_edge  # TODO Calculate based on mesh
+            gre = self.dataset.domain_right_edge  # TODO Calculate based on mesh
+            grid_dim_offset = np.linspace(0, domain_dimension[0], num_grids + 1, dtype=np.int32)
+            grid_edge_offset = grid_dim_offset * np.float(domain_dimension[0]) ** -1 * (gre[0] - gle[0]) + gle[0]
+            # TODO add information about which meshes are contained, index, offset...
+            mesh_names = []
+            for (mname, mshape) in self.meshshapes.items():
+                if shape == mshape:
+                    mesh_names.append(str(mname))
+            for grid in range(num_grids):
+                self.grid_dimensions[grid_index_total] = domain_dimension
+                self.grid_dimensions[grid_index_total][0] = grid_dim_offset[grid + 1] - grid_dim_offset[grid]
+                self.grid_left_edge[grid_index_total] = gle  # TODO Calculate based on mesh
+                self.grid_left_edge[grid_index_total][0] = grid_edge_offset[grid]
+                self.grid_right_edge[grid_index_total] = gre  # TODO Calculate based on mesh
+                self.grid_right_edge[grid_index_total][0] = grid_edge_offset[grid + 1]
+                self.grids[grid_index_total] = self.grid(grid_index_total, self, 0,
+                                                         fi=0,
+                                                         fo=self.grid_dimensions[grid_index_total][0],
+                                                         ft=mesh_names)
+                grid_index_total += 1
+
+        # Particle grids
+        for species, count in self.numparts.items():
+            if "#" in species:
+                # This is part of a particle patch
+                pass
+            else:
+                for size in set(self.numparts.values()):
+                    grid_count = int(np.ceil(size * self.vpg**-1))
 
         nrp = self.numparts.copy()  # Number of remaining particles from the dataset
         pci = {}  # Index for particle chunk
@@ -381,7 +435,7 @@ class OpenPMDDataset(Dataset):
                 f.close()
                 return False
 
-        if "1.0.0" != f.attrs["openPMD"]:
+        if "1.0." in f.attrs["openPMD"]:
             f.close()
             return False
 
