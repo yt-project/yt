@@ -21,8 +21,6 @@ from yt.convenience import \
     load
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
-from yt.units.unit_object import \
-    Unit
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
