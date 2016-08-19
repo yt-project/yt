@@ -308,7 +308,7 @@ class AbsorptionSpectrum(object):
             # Normalization is in cm**-2, so column density must be as well
             column_density = (field_data[continuum['field_name']] * 
                               field_data['dl']).in_units('cm**-2')
-            if column_density.all() == 0:
+            if (column_density == 0).all():
                 mylog.info("Not adding continuum %s: insufficient column density" % continuum['label'])
                 continue
 
@@ -383,7 +383,7 @@ class AbsorptionSpectrum(object):
         # and deposit the lines into the spectrum
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
-            if column_density.all() == 0:
+            if (column_density == 0).all():
                 mylog.info("Not adding line %s: insufficient column density" % line['label'])
                 continue
 
@@ -468,6 +468,12 @@ class AbsorptionSpectrum(object):
             # for a given transition, step through each location in the
             # observed spectrum where it occurs and deposit a voigt profile
             for i in parallel_objects(np.arange(n_absorbers), njobs=-1):
+
+                # if there is a ray element with temperature = 0 or column
+                # density = 0, skip it
+                if (thermal_b[i] == 0.) or (cdens[i] == 0.):
+                    pbar.update(i)
+                    continue
 
                 # the virtual window into which the line is deposited initially
                 # spans a region of 2 coarse spectral bins
