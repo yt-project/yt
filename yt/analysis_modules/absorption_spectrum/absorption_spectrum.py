@@ -344,7 +344,7 @@ class AbsorptionSpectrum(object):
                                          continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
             if valid_continuua.size == 0:
-                mylog.info("Not adding continuum %s: insufficient column density" %
+                mylog.info("Not adding continuum %s: insufficient column density or out of range" %
                     continuum['label'])
                 continue
 
