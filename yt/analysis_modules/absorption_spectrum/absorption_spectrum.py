@@ -203,6 +203,13 @@ class AbsorptionSpectrum(object):
             input_ds = input_file
         field_data = input_ds.all_data()
 
+        # temperature field required to calculate voigt profile widths
+        if ('temperature' not in input_ds.derived_field_list) and \
+           (('gas', 'temperature') not in input_ds.derived_field_list):
+            raise RuntimeError(
+                "('gas', 'temperature') field required to be present in %s "
+                "for AbsorptionSpectrum to function." % input_file)
+
         self.tau_field = np.zeros(self.lambda_field.size)
         self.absorbers_list = []
 
@@ -210,6 +217,7 @@ class AbsorptionSpectrum(object):
             comm = _get_comm(())
             njobs = min(comm.size, len(self.line_list))
 
+        mylog.info("Creating spectrum")
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
                                     output_absorbers_file,
                                     subgrid_resolution=subgrid_resolution,
@@ -307,6 +315,9 @@ class AbsorptionSpectrum(object):
             # Normalization is in cm**-2, so column density must be as well
             column_density = (field_data[continuum['field_name']] * 
                               field_data['dl']).in_units('cm**-2')
+            if (column_density == 0).all():
+                mylog.info("Not adding continuum %s: insufficient column density" % continuum['label'])
+                continue
 
             # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
@@ -333,9 +344,9 @@ class AbsorptionSpectrum(object):
                                          continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
             if valid_continuua.size == 0:
-                mylog.info("Not adding continuum %s: insufficient column density" %
+                mylog.info("Not adding continuum %s: insufficient column density or out of range" %
                     continuum['label'])
-                return
+                continue
 
             pbar = get_pbar("Adding continuum - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
@@ -379,6 +390,9 @@ class AbsorptionSpectrum(object):
         # and deposit the lines into the spectrum
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
+            if (column_density == 0).all():
+                mylog.info("Not adding line %s: insufficient column density" % line['label'])
+                continue
 
             # redshift_eff field combines cosmological and velocity redshifts
             # so delta_lambda gives the offset in angstroms from the rest frame
@@ -461,6 +475,12 @@ class AbsorptionSpectrum(object):
             # for a given transition, step through each location in the
             # observed spectrum where it occurs and deposit a voigt profile
             for i in parallel_objects(np.arange(n_absorbers), njobs=-1):
+
+                # if there is a ray element with temperature = 0 or column
+                # density = 0, skip it
+                if (thermal_b[i] == 0.) or (cdens[i] == 0.):
+                    pbar.update(i)
+                    continue
 
                 # the virtual window into which the line is deposited initially
                 # spans a region of 2 coarse spectral bins

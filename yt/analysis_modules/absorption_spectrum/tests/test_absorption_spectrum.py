@@ -34,6 +34,7 @@ COSMO_PLUS_SINGLE = "enzo_cosmology_plus/RD0009/RD0009"
 GIZMO_PLUS = "gizmo_cosmology_plus/N128L16.param"
 GIZMO_PLUS_SINGLE = "gizmo_cosmology_plus/snap_N128L16_151.hdf5"
 ISO_GALAXY = "IsolatedGalaxy/galaxy0030/galaxy0030"
+FIRE = "FIRE_M12i_ref11/snapshot_600.hdf5"
 
 @requires_file(COSMO_PLUS)
 @requires_answer_testing()
@@ -469,6 +470,88 @@ def test_absorption_spectrum_with_continuum():
         test = GenericArrayTest(None, func)
         test_absorption_spectrum_with_continuum.__name__ = test.description
         yield test
+
+    # clean up
+    os.chdir(curdir)
+    shutil.rmtree(tmpdir)
+
+@requires_file(FIRE)
+def test_absorption_spectrum_with_zero_field():
+    """
+    This test generates an absorption spectrum with some 
+    particle dataset
+    """
+
+    # Set up in a temp dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    ds = load(FIRE)
+    lr = LightRay(ds)
+
+    # Define species and associated parameters to add to continuum
+    # Parameters used for both adding the transition to the spectrum
+    # and for fitting
+    # Note that for single species that produce multiple lines
+    # (as in the OVI doublet), 'numLines' will be equal to the number
+    # of lines, and f,gamma, and wavelength will have multiple values.
+
+    HI_parameters = {
+        'name': 'HI',
+        'field': 'H_number_density',
+        'f': [.4164],
+        'Gamma': [6.265E8],
+        'wavelength': [1215.67],
+        'mass': 1.00794,
+        'numLines': 1,
+        'maxN': 1E22, 'minN': 1E11,
+        'maxb': 300, 'minb': 1,
+        'maxz': 6, 'minz': 0,
+        'init_b': 30,
+        'init_N': 1E14
+    }
+
+    species_dicts = {'HI': HI_parameters}
+
+
+    # Get all fields that need to be added to the light ray
+    fields = [('gas','temperature')]
+    for s, params in species_dicts.items():
+        fields.append(params['field'])
+
+    # With a single dataset, a start_position and
+    # end_position or trajectory must be given.
+    # Trajectory should be given as (r, theta, phi)
+    lr.make_light_ray(
+        start_position=ds.arr([0., 0., 0.], 'unitary'),
+        end_position=ds.arr([1., 1., 1.], 'unitary'),
+        solution_filename='test_lightraysolution.txt',
+        data_filename='test_lightray.h5',
+        fields=fields)
+    
+    # Create an AbsorptionSpectrum object extending from
+    # lambda = 900 to lambda = 1800, with 10000 pixels
+    sp = AbsorptionSpectrum(900.0, 1400.0, 50000)
+    
+    # Iterate over species
+    for s, params in species_dicts.items():
+        # Iterate over transitions for a single species
+        for i in range(params['numLines']):
+            # Add the lines to the spectrum
+            sp.add_line(
+                s, params['field'],
+                params['wavelength'][i], params['f'][i],
+                params['Gamma'][i], params['mass'],
+                label_threshold=1.e10)
+    
+    
+    # Make and save spectrum
+    wavelength, flux = sp.make_spectrum(
+        'test_lightray.h5',
+        output_file='test_spectrum.h5',
+        line_list_file='test_lines.txt',
+        use_peculiar_velocity=True)
 
     # clean up
     os.chdir(curdir)
