@@ -203,6 +203,13 @@ class AbsorptionSpectrum(object):
             input_ds = input_file
         field_data = input_ds.all_data()
 
+        # temperature field required to calculate voigt profile widths
+        if ('temperature' not in input_ds.derived_field_list) and \
+           (('gas', 'temperature') not in input_ds.derived_field_list):
+            raise RuntimeError(
+                "('gas', 'temperature') field required to be present in %s "
+                "for AbsorptionSpectrum to function." % input_file)
+
         self.tau_field = np.zeros(self.lambda_field.size)
         self.absorbers_list = []
 
