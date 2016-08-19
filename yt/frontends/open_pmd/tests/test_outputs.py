@@ -24,8 +24,11 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load
 
-twoD = "/example-2d/hdf5/data00000100.h5"
-threeD = "/example-3d/hdf5/data00000100.h5"
+from yt.frontends.open_pmd.data_structures import \
+    OpenPMDDataset
+
+twoD = "example-2d/hdf5/data00000100.h5"
+threeD = "example-3d/hdf5/data00000100.h5"
 
 @requires_file(threeD)
 def test_3d_out():
@@ -60,9 +63,13 @@ def test_3d_out():
                   ('openPMD', 'rho')]
     domain_domensions = [26, 26, 201]
     domain_width = [2.08e-05, 2.08e-05, 2.01e-05]
+
+    assert isinstance(ds, OpenPMDDataset)
     yield assert_equal, str(ds), "data00000100.h5"
     yield assert_equal, ds.dimensionality, 3
     yield assert_equal, ds.current_time, 3.28471214521e-14
+    yield assert_equal, ds.particle_types_raw, ('io',)
+    assert "all" in ds.particle_unions
     yield assert_array_equal, ds.field_list, field_list
     yield assert_array_equal, ds.domain_domensions, domain_domensions
     yield assert_almost_equal, ds.domain_right_edge - ds.domain_left_edge, domain_width
