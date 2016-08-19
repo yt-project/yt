@@ -39,7 +39,7 @@ answer_tests:
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
   
-  local_pw_001:
+  local_pw_006:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -72,6 +72,9 @@ answer_tests:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_sph
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
+
+  local_axialpix_001:
+    - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
 other_tests:
   unittests:

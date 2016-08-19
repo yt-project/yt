@@ -21,6 +21,8 @@ from yt.convenience import \
 from yt.funcs import mylog
 from yt.utilities.cosmology import \
     Cosmology
+from yt.utilities.physical_constants import \
+    c
 
 class CosmologySplice(object):
     """
@@ -294,73 +296,23 @@ class CosmologySplice(object):
         from z to (z - delta z).
         """
 
-        d_Tolerance = 1e-4
-        max_Iterations = 100
-
         target_distance = self.simulation.box_size * \
           self.high_res_box_size_fraction
-
         for output in self.splice_outputs:
-            z = output['redshift']
-
-            # Calculate delta z that corresponds to the length of the box
-            # at a given redshift using Newton's method.
-            z1 = z
-            z2 = z1 - 0.1 # just an initial guess
-            distance1 = self.simulation.quan(0.0, "Mpccm / h")
-            distance2 = self.cosmology.comoving_radial_distance(z2, z)
-            iteration = 1
-
-            while ((np.abs(distance2-target_distance)/distance2) > d_Tolerance):
-                m = (distance2 - distance1) / (z2 - z1)
-                z1 = z2
-                distance1 = distance2
-                z2 = ((target_distance - distance2) / m.in_units("Mpccm / h")) + z2
-                distance2 = self.cosmology.comoving_radial_distance(z2, z)
-                iteration += 1
-                if (iteration > max_Iterations):
-                    mylog.error("calculate_deltaz_max: Warning - max iterations " +
-                                "exceeded for z = %f (delta z = %f)." %
-                                (z, np.abs(z2 - z)))
-                    break
-            output['dz_max'] = np.abs(z2 - z)
+            output['dz_max'] = self._deltaz_forward(output['redshift'],
+                                                    target_distance)
             
     def _calculate_deltaz_min(self, deltaz_min=0.0):
         r"""Calculate delta z that corresponds to a single top grid pixel
         going from z to (z - delta z).
         """
 
-        d_Tolerance = 1e-4
-        max_Iterations = 100
-
         target_distance = self.simulation.box_size / \
           self.simulation.domain_dimensions[0]
-
         for output in self.splice_outputs:
-            z = output['redshift']
-
-            # Calculate delta z that corresponds to the length of a
-            # top grid pixel at a given redshift using Newton's method.
-            z1 = z
-            z2 = z1 - 0.01 # just an initial guess
-            distance1 = self.simulation.quan(0.0, "Mpccm / h")
-            distance2 = self.cosmology.comoving_radial_distance(z2, z)
-            iteration = 1
-
-            while ((np.abs(distance2 - target_distance) / distance2) > d_Tolerance):
-                m = (distance2 - distance1) / (z2 - z1)
-                z1 = z2
-                distance1 = distance2
-                z2 = ((target_distance - distance2) / m.in_units("Mpccm / h")) + z2
-                distance2 = self.cosmology.comoving_radial_distance(z2, z)
-                iteration += 1
-                if (iteration > max_Iterations):
-                    mylog.error("calculate_deltaz_max: Warning - max iterations " +
-                                "exceeded for z = %f (delta z = %f)." %
-                                (z, np.abs(z2 - z)))
-                    break
-            # Use this calculation or the absolute minimum specified by the user.
-            output['dz_min'] = max(np.abs(z2 - z), deltaz_min)
+            zf = self._deltaz_forward(output['redshift'],
+                                      target_distance)
+            output['dz_min'] = max(zf, deltaz_min)
 
     def _deltaz_forward(self, z, target_distance):
         r"""Calculate deltaz corresponding to moving a comoving distance
@@ -370,10 +322,12 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        # Calculate delta z that corresponds to the length of the
-        # box at a given redshift.
         z1 = z
-        z2 = z1 - 0.1 # just an initial guess
+        # Use Hubble's law for initial guess
+        target_distance = self.cosmology.quan(target_distance.to("Mpccm / h"))
+        v = self.cosmology.hubble_parameter(z) * target_distance
+        dz = np.sqrt((1. + v/c) / (1. - v/c)) - 1.
+        z2 = z1 - dz
         distance1 = self.cosmology.quan(0.0, "Mpccm / h")
         distance2 = self.cosmology.comoving_radial_distance(z2, z)
         iteration = 1

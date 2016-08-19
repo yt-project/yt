@@ -18,9 +18,9 @@ custom default values to be used in future sessions.
 Configuration File Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.yt/config`` as a configuration
+yt will look for and recognize the file ``$HOME/.config/yt/ytrc`` as a configuration
 file, containing several options that can be modified and adjusted to control
-runtime behavior.  For example, a sample ``$HOME/.yt/config`` file could look
+runtime behavior.  For example, a sample ``$HOME/.config/yt/ytrc`` file could look
 like:
 
 .. code-block:: none
@@ -31,7 +31,17 @@ like:
 
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
-datasets tracked between instantiations of yt.
+datasets tracked between instantiations of yt. The configuration file can be
+managed using the ``yt config`` helper. It can list, add, modify and remove
+options from the configuration file, e.g.:
+
+.. code-block:: none
+
+   $ yt config -h
+   $ yt config list
+   $ yt config set yt loglevel 1
+   $ yt config rm yt maximumstoreddatasets
+
 
 Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
