@@ -98,10 +98,7 @@ The keyword arguments are:
   Use either ``end_position`` or ``trajectory``, not both.
   Default: None.
 
-* ``fields`` (*list*): A list of fields for which to get data.  If you
-  intend to use this ray with the :ref:`absorption_spectrum` infrastructure,
-  make sure to include the 'temperature' field, as it is required to 
-  calculate the width of the spectral features.
+* ``fields`` (*list*): A list of fields for which to get data.
   Default: None.
 
 * ``solution_filename`` (*string*): Path to a text file where the
