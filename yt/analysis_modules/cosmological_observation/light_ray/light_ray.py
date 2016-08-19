@@ -250,6 +250,9 @@ class LightRay(CosmologySplice):
                         box_fraction_used = 0.0
                     else:
                         ds = load(self.light_ray_solution[q]["filename"])
+                        ray_length = \
+                          ds.quan(self.light_ray_solution[q]['traversal_box_fraction'],
+                                  "unitary")
                         self.light_ray_solution[q]['start'], \
                           self.light_ray_solution[q]['end'] = \
                           non_periodic_ray(ds, left_edge, right_edge,
@@ -853,13 +856,13 @@ def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=5000,
                     np.sin(phi) * np.sin(theta),
                     np.cos(theta)])
         i += 1
-        test_ray = ds.ray(start, end.d)
+        test_ray = ds.ray(start, end)
         if (end >= left_edge).all() and (end <= right_edge).all() and \
           (min_level is None or min_level <= 0 or
            (test_ray["grid_level"] >= min_level).all()):
             mylog.info("Found ray after %d attempts." % i)
             del test_ray
-            return start, end.d
+            return start, end
         del test_ray
         if i > max_iter:
             raise RuntimeError(
