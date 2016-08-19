@@ -51,19 +51,16 @@ Additional keyword arguments are:
 
 * ``max_box_fraction`` (*float*):  In terms of the size of the domain, the
   maximum length a light ray segment can be in order to span the redshift interval
-  from one dataset to another.  Default: 1.0 (the size of the box)
+  from one dataset to another.  If using a zoom-in simulation, this parameter can
+  be set to the length of the high resolution region so as to limit ray segments
+  to that size.  If the high resolution region is not cubical, the smallest side
+  should be used.  Default: 1.0 (the size of the box)
 
 * ``minimum_coherent_box_fraction`` (*float*): Use to specify the minimum
   length of a ray, in terms of the size of the domain, before the trajectory
   is re-randomized.  Set to 0 to have ray trajectory randomized for every
   dataset.  Set to np.inf (infinity) to use a single trajectory for the
   entire ray.  Default: 0.0.
-
-* ``high_res_box_size_fraction`` (*float*): For use with zoom-in simulations,
-  use to specify the size of the high resolution region of the simulation in
-  terms of the fraction of the total domain size.  If set, the light ray
-  solution will be calculated such that rays only make use of the high
-  resolution region.  Default: 1.0.
 
 * ``time_data`` (*bool*): Whether or not to include time outputs when
   gathering datasets for time series.  Default: True.
@@ -182,9 +179,11 @@ larger, low resolution volume.  In this type of simulation, it is likely
 that you will want the ray segments to stay within the high resolution
 region.  To do this, you must first specify the size of the high
 resolution region when creating the `LightRay` using the
-``high_res_box_size_fraction`` keyword.  This will make sure that
-the calculation of the spacing of the segment datasets only takes into account
-the high resolution region and not the full box size.  Then, in the call to
+``max_box_fraction`` keyword.  This will make sure that
+the calculation of the spacing of the segment datasets only takes into
+account the high resolution region and not the full box size.  If your
+high resolution region is not a perfect cube, specify the smallest side.
+Then, in the call to
 :func:`~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay.make_light_ray`,
 use the ``left_edge`` and ``right_edge`` keyword arguments to specify the
 precise location of the high resolution region.
