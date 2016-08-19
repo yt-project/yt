@@ -389,7 +389,11 @@ class LightRay(CosmologySplice):
 
         # Initialize data structures.
         self._data = {}
+        # temperature field is automatically added to fields
         if fields is None: fields = []
+        if (('gas', 'temperature') not in fields) and \
+           ('temperature' not in fields):
+           fields.append(('gas', 'temperature'))
         data_fields = fields[:]
         all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
