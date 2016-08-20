@@ -204,10 +204,20 @@ class OpenPMDHierarchy(GridIndex):
         Furthermore the last grid might be smaller and have fewer particles than the others.
         In general, NOT all particles in a grid will be inside the grid edges.
         """
+        f = self.dataset._handle
+        bp = self.dataset.base_path
+        mp = self.dataset.meshes_path
+        pp = self.dataset.particles_path
+
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype="object")
 
         grid_index_total = 0
+
+        def get_component(group, component_name, index, offset):
+            record_component = group[component_name]
+            unit_si = record_component.attrs["unitSI"]
+            return np.multiply(record_component[index:offset], unit_si)
 
         # Mesh grids
         for shape in set(self.meshshapes.values()):
@@ -218,36 +228,83 @@ class OpenPMDHierarchy(GridIndex):
                                       'constant', constant_values=(0, 1))
             # Number of grids of this shape
             num_grids = min(shape[0], int(np.ceil(functools.reduce(mul, shape) * self.vpg ** -1)))
-            gle = self.dataset.domain_left_edge  # TODO Calculate based on mesh
-            gre = self.dataset.domain_right_edge  # TODO Calculate based on mesh
+            gle = [-1, -1, -1]  # TODO Calculate based on mesh
+            gre = [1, 1, 1]  # TODO Calculate based on mesh
             grid_dim_offset = np.linspace(0, domain_dimension[0], num_grids + 1, dtype=np.int32)
             grid_edge_offset = grid_dim_offset * np.float(domain_dimension[0]) ** -1 * (gre[0] - gle[0]) + gle[0]
-            # TODO add information about which meshes are contained, index, offset...
             mesh_names = []
             for (mname, mshape) in self.meshshapes.items():
                 if shape == mshape:
                     mesh_names.append(str(mname))
+            prev = 0
             for grid in range(num_grids):
                 self.grid_dimensions[grid_index_total] = domain_dimension
                 self.grid_dimensions[grid_index_total][0] = grid_dim_offset[grid + 1] - grid_dim_offset[grid]
-                self.grid_left_edge[grid_index_total] = gle  # TODO Calculate based on mesh
+                self.grid_left_edge[grid_index_total] = gle
                 self.grid_left_edge[grid_index_total][0] = grid_edge_offset[grid]
-                self.grid_right_edge[grid_index_total] = gre  # TODO Calculate based on mesh
+                self.grid_right_edge[grid_index_total] = gre
                 self.grid_right_edge[grid_index_total][0] = grid_edge_offset[grid + 1]
+                self.grid_particle_count[grid_index_total] = 0
                 self.grids[grid_index_total] = self.grid(grid_index_total, self, 0,
-                                                         fi=0,
+                                                         fi=prev,
                                                          fo=self.grid_dimensions[grid_index_total][0],
                                                          ft=mesh_names)
+                prev = self.grid_dimensions[grid_index_total][0]
                 grid_index_total += 1
 
         # Particle grids
         for species, count in self.numparts.items():
             if "#" in species:
-                # This is part of a particle patch
-                pass
+                spec = species.split("#")
+                patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
+                domain_dimension = []
+                for axis in patch["extent"].keys():
+                    domain_dimension.append(patch["extent/" + axis].value.item(int(spec[1])))
+                domain_dimension = np.asarray(domain_dimension, dtype=np.int32)
+                domain_dimension = np.pad(domain_dimension,
+                                          (0, 3 - len(domain_dimension)),
+                                          'constant', constant_values=(0, 1))
+                num_grids = int(np.ceil(count * self.vpg ** -1))
+                gle = []
+                for axis in patch["offset"].keys():
+                    gle.append(get_component(patch, "offset/" + axis, int(spec[1]), 1)[0])
+                gle = np.asarray(gle)
+                gle = np.pad(gle,
+                             (0, 3 - len(gle)),
+                             'constant', constant_values=(0, 0))
+                gre = []
+                for axis in patch["extent"].keys():
+                    gre.append(get_component(patch, "extent/" + axis, int(spec[1]), 1)[0])
+                gre = np.asarray(gre)
+                gre = np.pad(gre,
+                             (0, 3 - len(gre)),
+                             'constant', constant_values=(0, 1))
+                np.add(gle, gre, gre)
+                npo = patch["numParticlesOffset"].value.item(int(spec[1]))
+                particle_count = np.linspace(npo, npo + count, num_grids + 1,
+                                             dtype=np.int32)
+                particle_names = [str(pname.split("#")[0])]
             else:
-                for size in set(self.numparts.values()):
-                    grid_count = int(np.ceil(size * self.vpg**-1))
+                domain_dimension = self.dataset.domain_dimensions
+                num_grids = int(np.ceil(count * self.vpg ** -1))
+                gle = [-1, -1, -1]  # TODO Calculate based on mesh
+                gre = [1, 1, 1]  # TODO Calculate based on mesh
+                particle_count = np.linspace(0, count, num_grids + 1, dtype=np.int32)
+                particle_names = []
+                for (pname, size) in self.numparts.items():
+                    if size == count:
+                        particle_names.append(str(pname))
+            for grid in range(num_grids):
+                self.grid_dimensions[grid_index_total] = domain_dimension
+                self.grid_left_edge[grid_index_total] = gle
+                self.grid_right_edge[grid_index_total] = gre
+                self.grid_particle_count[grid_index_total] = (particle_count[grid + 1] - particle_count[grid]) * len(
+                    particle_names)
+                self.grids[grid_index_total] = self.grid(grid_index_total, self, 0,
+                                                         pi=particle_count[grid],
+                                                         po=particle_count[grid + 1] - particle_count[grid],
+                                                         pt=particle_names)
+                grid_index_total += 1
 
         nrp = self.numparts.copy()  # Number of remaining particles from the dataset
         pci = {}  # Index for particle chunk
