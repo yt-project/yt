@@ -172,7 +172,7 @@ class OpenPMDHierarchy(GridIndex):
         for species in f[bp + pp].keys():
             if "particlePatches" in f[bp + pp + "/" + species].keys():
                 for patch, size in enumerate(f[bp + pp + "/" + species + "/particlePatches/numParticles"]):
-                    self.numparts[species + str(patch)] = size
+                    self.numparts[species + "#" + str(patch)] = size
             else:
                 axis = f[bp + pp + species + "/position"].keys()[0]
                 if is_const_component(f[bp + pp + species + "/position/" + axis]):
@@ -187,9 +187,18 @@ class OpenPMDHierarchy(GridIndex):
         for shape in set(self.meshshapes.values()):
             self.num_grids += min(shape[0], int(np.ceil(functools.reduce(mul, shape) * self.vpg**-1)))
 
-        # Same goes for particle chunks
-        for size in set(self.numparts.values()):
-            self.num_grids += int(np.ceil(size * self.vpg**-1))
+        # Same goes for particle chunks if they are not inside particlePatches
+        patches = {}
+        no_patches = {}
+        for k, v in self.numparts.items():
+            if "#" in k:
+                patches[k] = v
+            else:
+                no_patches[k] = v
+        for size in set(no_patches.values()):
+            self.num_grids += int(np.ceil(size * self.vpg ** -1))
+        for size in patches.values():
+            self.num_grids += int(np.ceil(size * self.vpg ** -1))
 
     def _parse_index(self):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
@@ -217,7 +226,7 @@ class OpenPMDHierarchy(GridIndex):
         def get_component(group, component_name, index, offset):
             record_component = group[component_name]
             unit_si = record_component.attrs["unitSI"]
-            return np.multiply(record_component[index:offset], unit_si)
+            return np.multiply(record_component[index:index+offset], unit_si)
 
         # Mesh grids
         for shape in set(self.meshshapes.values()):
@@ -283,12 +292,12 @@ class OpenPMDHierarchy(GridIndex):
                 npo = patch["numParticlesOffset"].value.item(int(spec[1]))
                 particle_count = np.linspace(npo, npo + count, num_grids + 1,
                                              dtype=np.int32)
-                particle_names = [str(pname.split("#")[0])]
+                particle_names = [str(spec[0])]
             else:
                 domain_dimension = self.dataset.domain_dimensions
                 num_grids = int(np.ceil(count * self.vpg ** -1))
-                gle = [-1, -1, -1]  # TODO Calculate based on mesh
-                gre = [1, 1, 1]  # TODO Calculate based on mesh
+                gle = self.dataset.domain_left_edge
+                gre = self.dataset.domain_right_edge
                 particle_count = np.linspace(0, count, num_grids + 1, dtype=np.int32)
                 particle_names = []
                 for (pname, size) in self.numparts.items():
@@ -305,7 +314,7 @@ class OpenPMDHierarchy(GridIndex):
                                                          po=particle_count[grid + 1] - particle_count[grid],
                                                          pt=particle_names)
                 grid_index_total += 1
-
+        """
         nrp = self.numparts.copy()  # Number of remaining particles from the dataset
         pci = {}  # Index for particle chunk
         for spec in nrp:
@@ -347,6 +356,7 @@ class OpenPMDHierarchy(GridIndex):
                 pci[spec] += val
             meshindex += self.grid_dimensions[i][0]
             remaining -= self.grid_dimensions[i][0]
+            """
 
     def _populate_grid_objects(self):
         """This initializes all grids.
@@ -487,14 +497,12 @@ class OpenPMDDataset(Dataset):
             return False
 
         requirements = ["openPMD", "basePath", "meshesPath", "particlesPath"]
+        attrs = f["/"].attrs.keys()
         for i in requirements:
-            if i not in f.attrs.keys():
-                f.close()
+            if i not in attrs:
                 return False
 
-        if "1.0." in f.attrs["openPMD"]:
-            f.close()
+        if "1.0." not in f.attrs["openPMD"]:
             return False
 
-        f.close()
         return True

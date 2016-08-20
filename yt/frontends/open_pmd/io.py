@@ -95,12 +95,12 @@ class IOHandlerOpenPMD(BaseIOHandler):
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    index = dict(grid.particle_index).get(spec)
-                    offset = dict(grid.particle_offset).get(spec)
+                    if spec not in grid.ptypes:
+                        continue
                     mylog.debug(
-                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list, index,
-                                                                                            offset))
-                    self._fill_cache(spec, index, offset)
+                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list,
+                                                                                            grid.pindex, grid.poffset))
+                    self._fill_cache(spec, grid.pindex, grid.poffset)
                     yield (ptype, (self.cache[0], self.cache[1], self.cache[2]))
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -139,12 +139,12 @@ class IOHandlerOpenPMD(BaseIOHandler):
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    index = dict(grid.particle_index).get(spec)
-                    offset = dict(grid.particle_offset).get(spec)
+                    if spec not in grid.ptypes:
+                        continue
                     mylog.debug(
-                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list, index,
-                                                                                            offset))
-                    self._fill_cache(spec, index, offset)
+                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list,
+                                                                                            grid.pindex, grid.poffset))
+                    self._fill_cache(spec, grid.pindex, grid.poffset)
                     mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
                     if mask is None:
                         continue
@@ -152,7 +152,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     for field in field_list:
                         component = "/".join(field.split("_")[1:]).replace("positionCoarse",
                                                                            "position").replace("-", "_")
-                        data = self.get_component(pds, component, index, offset)
+                        data = self.get_component(pds, component, grid.pindex, grid.poffset)
                         yield ((ptype, field), data[mask])
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -200,17 +200,17 @@ class IOHandlerOpenPMD(BaseIOHandler):
         for ftype, fname in fields:
             field = (ftype, fname)
             for chunk in chunks:
-                for g in chunk.objs:
-                    mask = g._get_selector_mask(selector)
+                for grid in chunk.objs:
+                    if fname.split("_")[0] not in grid.ftypes:
+                        continue
+                    mask = grid._get_selector_mask(selector)
                     if mask is None:
                         continue
                     component = fname.replace("_", "/").replace("-", "_")
-                    index = g.mesh_index
-                    offset = g.mesh_offset
-                    data = np.array(self.get_component(ds, component, index, offset))
+                    data = np.array(self.get_component(ds, component, grid.findex, grid.foffset))
                     # The following is a modified AMRGridPatch.select(...)
                     data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
-                    count = g.count(selector)
+                    count = grid.count(selector)
                     rv[field][ind[field]:ind[field] + count] = data[mask]
                     ind[field] += count
         for i in rv:
