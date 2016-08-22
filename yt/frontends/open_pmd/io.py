@@ -21,6 +21,8 @@ from yt.frontends.open_pmd.misc import is_const_component
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 
+from collections import defaultdict
+
 
 class IOHandlerOpenPMD(BaseIOHandler):
     _field_dtype = "float32"
@@ -66,94 +68,73 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     # These have to be the same shape as the existing axes since that equals the number of particles
                     self.cache[i] = np.zeros(offset)
 
-    def _read_particle_coords(self, chunks, ptf):
-        """Reads coordinates for given particle-types in given chunks from file.
-
-        Parameters
-        ----------
-        chunks
-            A list of chunks
-            A chunk is a list of grids
-        ptf : dict
-            keys are ptypes
-            values are lists of particle fields
-
-        Yields
-        ------
-        tuple : (str, ((N,) ndarray, (N,) ndarray, (N,) ndarray))
-            Tuple of ptype and tuple of coordinates (x, y, z) corresponding to coordinates of particles of that ptype
-            All coordinate arrays have the same length
+    def _read_particle_selection(self, chunks, selector, fields):
         """
 
-        chunks = list(chunks)
-        f = self._handle
-        ds = f[self.base_path]
-        for chunk in chunks:
-            for grid in chunk.objs:
-                for ptype, field_list in sorted(ptf.items()):
-                    if ptype in "io":
-                        spec = ds[self.particles_path].keys()[0]
-                    else:
-                        spec = ptype
-                    if spec not in grid.ptypes:
-                        continue
-                    mylog.debug(
-                        "open_pmd - _read_particle_coords: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list,
-                                                                                            grid.pindex, grid.poffset))
-                    self._fill_cache(spec, grid.pindex, grid.poffset)
-                    yield (ptype, (self.cache[0], self.cache[1], self.cache[2]))
-
-    def _read_particle_fields(self, chunks, ptf, selector):
-        """Reads given fields for given particle types masked by a given selection.
-
         Parameters
         ----------
         chunks
-            A list of chunks
-            A chunk is a list of grids
-        ptf : dict
-            keys are ptype
-            values are lists of particle fields
         selector
-            A region (inside your domain) specifying which parts of the field you want to read
-            See [1] and [2]
+        fields
 
-        References
-        ----------
-        .. [1] yt-project.org/docs/dev/quickstart/data_inspection.html?highlight=selector#Examining-Data-in-Regions
-        .. [2] yt-project.org/doc/developing/creating_datatypes.html
+        Returns
+        -------
 
-        Yields
-        ------
-        tuple : ((str, str), (N,) ndarray)
-            Tuple of tuple (ptype, fieldname) and masked field-data
         """
-        chunks = list(chunks)
+        rv = {}
+        ind = {}
+        particle_count = {}
+        on_disk_ptypes_and_fields = defaultdict(list)
+        mapping_from_on_disk_to_request = defaultdict(list)
         f = self._handle
         ds = f[self.base_path]
-        for chunk in chunks:
-            for grid in chunk.objs:
-                for ptype, field_list in sorted(ptf.items()):
-                    # Get a particle species (e.g. /data/3500/particles/e/)
+        unions = self.ds.particle_unions
+
+        for ptype, pname in fields:
+            pfield = ptype, pname
+            # Overestimate the size of all pfields so they include all particles, shrink it later
+            particle_count[pfield] = 0
+            if ptype in unions:
+                for pt in unions[ptype]:
+                    particle_count[pfield] += self.ds.particle_type_counts[pt]
+                    on_disk_ptypes_and_fields[pt].append(pname)
+                    mapping_from_on_disk_to_request[pt, pname].append(pfield)
+            else:
+                particle_count[pfield] = self.ds.particle_type_counts[ptype]
+                on_disk_ptypes_and_fields[ptype].append(pname)
+                mapping_from_on_disk_to_request[pfield].append(pfield)
+            rv[pfield] = np.empty((particle_count[pfield],), dtype="float64")
+            ind[pfield] = 0
+
+        for ptype in on_disk_ptypes_and_fields:
+            for chunk in chunks:
+                for grid in chunk.objs:
                     if ptype in "io":
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
+                    mylog.debug("spec {} grid.ptypes {}".format(spec, grid.ptypes))
                     if spec not in grid.ptypes:
                         continue
-                    mylog.debug(
-                        "open_pmd - _read_particle_fields: (grid {}) {}, {} [{}:{}]".format(grid, spec, field_list,
-                                                                                            grid.pindex, grid.poffset))
+                    # read particle coords into cache
                     self._fill_cache(spec, grid.pindex, grid.poffset)
                     mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
                     if mask is None:
                         continue
                     pds = ds[self.particles_path + "/" + spec]
-                    for field in field_list:
-                        component = "/".join(field.split("_")[1:]).replace("positionCoarse",
-                                                                           "position").replace("-", "_")
-                        data = self.get_component(pds, component, grid.pindex, grid.poffset)
-                        yield ((ptype, field), data[mask])
+                    for field in on_disk_ptypes_and_fields[ptype]:
+                        component = "/".join(field.split("_")[1:]).replace("positionCoarse", "position").replace("-",
+                                                                                                                 "_")
+                        data = self.get_component(pds, component, grid.pindex, grid.poffset)[mask]
+                        for request_field in mapping_from_on_disk_to_request[(ptype, field)]:
+                            my_ind = ind[request_field]
+                            rv[request_field][my_ind:my_ind + data.shape[0], ...] = data
+                            ind[request_field] += data.shape[0]
+
+        for field in fields:
+            rv[field] = rv[field][:ind[field]]
+
+        return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         """Reads given fields for given meshes masked by a given selection.
@@ -177,7 +158,6 @@ class IOHandlerOpenPMD(BaseIOHandler):
             keys are tuples (ftype, fname) representing a field
             values are flat (``size``,) ndarrays with data from that field
         """
-        mylog.debug("open_pmd - _read_fluid_selection {} {} {} {}".format(chunks, selector, fields, size))
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
@@ -201,6 +181,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             field = (ftype, fname)
             for chunk in chunks:
                 for grid in chunk.objs:
+                    mylog.debug("open_pmd - _read_fluid_selection {} {} {}".format(grid, field, size))
                     if fname.split("_")[0] not in grid.ftypes:
                         continue
                     mask = grid._get_selector_mask(selector)

@@ -16,7 +16,6 @@ openPMD data structures
 
 import os
 import re
-from math import ceil, floor
 import functools
 from operator import mul
 
@@ -82,6 +81,24 @@ class OpenPMDHierarchy(GridIndex):
         self.index_filename = ds.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         GridIndex.__init__(self, ds, dataset_type)
+
+    def _get_particle_type_counts(self):
+        result = {}
+        f = self.dataset._handle
+        bp = self.dataset.base_path
+        pp = self.dataset.particles_path
+        for ptype in self.ds.particle_types_raw:
+            if ptype in "io":
+                spec = f[bp + pp].keys()[0]
+            else:
+                spec = ptype
+            axis = f[bp + pp + "/" + spec + "/position"].keys()[0]
+            pos = f[bp + pp + "/" + spec + "/position/" + axis]
+            if is_const_component(pos):
+                result[ptype] = pos.attrs["shape"]
+            else:
+                result[ptype] = pos.len()
+        return result
 
     def _detect_output_fields(self):
         """Populates ``self.field_list`` with native fields (mesh and particle) on disk.
@@ -237,8 +254,8 @@ class OpenPMDHierarchy(GridIndex):
                                       'constant', constant_values=(0, 1))
             # Number of grids of this shape
             num_grids = min(shape[0], int(np.ceil(functools.reduce(mul, shape) * self.vpg ** -1)))
-            gle = [-1, -1, -1]  # TODO Calculate based on mesh
-            gre = [1, 1, 1]  # TODO Calculate based on mesh
+            gle = self.dataset.domain_left_edge  # TODO Calculate based on mesh
+            gre = self.dataset.domain_right_edge  # TODO Calculate based on mesh
             grid_dim_offset = np.linspace(0, domain_dimension[0], num_grids + 1, dtype=np.int32)
             grid_edge_offset = grid_dim_offset * np.float(domain_dimension[0]) ** -1 * (gre[0] - gle[0]) + gle[0]
             mesh_names = []
@@ -261,9 +278,12 @@ class OpenPMDHierarchy(GridIndex):
                 prev = self.grid_dimensions[grid_index_total][0]
                 grid_index_total += 1
 
+        handeled_ptypes = []
+
         # Particle grids
         for species, count in self.numparts.items():
             if "#" in species:
+                # This is a particlePatch
                 spec = species.split("#")
                 patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
                 domain_dimension = []
@@ -293,7 +313,7 @@ class OpenPMDHierarchy(GridIndex):
                 particle_count = np.linspace(npo, npo + count, num_grids + 1,
                                              dtype=np.int32)
                 particle_names = [str(spec[0])]
-            else:
+            elif str(species) not in handeled_ptypes:
                 domain_dimension = self.dataset.domain_dimensions
                 num_grids = int(np.ceil(count * self.vpg ** -1))
                 gle = self.dataset.domain_left_edge
@@ -303,6 +323,10 @@ class OpenPMDHierarchy(GridIndex):
                 for (pname, size) in self.numparts.items():
                     if size == count:
                         particle_names.append(str(pname))
+                        handeled_ptypes.append(str(pname))
+            else:
+                # A grid with this exact particle count has already been created
+                continue
             for grid in range(num_grids):
                 self.grid_dimensions[grid_index_total] = domain_dimension
                 self.grid_left_edge[grid_index_total] = gle
@@ -314,49 +338,6 @@ class OpenPMDHierarchy(GridIndex):
                                                          po=particle_count[grid + 1] - particle_count[grid],
                                                          pt=particle_names)
                 grid_index_total += 1
-        """
-        nrp = self.numparts.copy()  # Number of remaining particles from the dataset
-        pci = {}  # Index for particle chunk
-        for spec in nrp:
-            pci[spec] = 0
-        remaining = self.dataset.domain_dimensions[0]
-        meshindex = 0
-        meshedge = self.dataset.domain_left_edge.copy()[0]
-        for i in range(self.num_grids):
-            self.grid_dimensions[i] = self.dataset.domain_dimensions
-            prev = remaining
-            remaining -= self.grid_dimensions[i][0] * self.num_grids ** -1
-            self.grid_dimensions[i][0] = int(round(prev, 0) - round(remaining, 0))
-            self.grid_left_edge[i] = self.dataset.domain_left_edge.copy()
-            self.grid_left_edge[i][0] = meshedge
-            self.grid_right_edge[i] = self.dataset.domain_right_edge.copy()
-            self.grid_right_edge[i][0] = self.grid_left_edge[i][0] + self.grid_dimensions[i][0] * \
-                                                                     self.dataset.domain_dimensions[0] ** -1 * \
-                                                                     self.dataset.domain_right_edge[0]
-            meshedge = self.grid_right_edge[i][0]
-            particleoffset = []
-            particleindex = []
-            for spec in self.numparts:
-                particleindex += [(spec, pci[spec])]
-                if i is (self.num_grids - 1):
-                    # The last grid need not be the same size as the previous ones
-                    num = nrp[spec]
-                else:
-                    num = int(floor(self.numparts[spec] * self.num_grids ** -1))
-                particleoffset += [(spec, num)]
-                nrp[spec] -= num
-                self.grid_particle_count[i] += num
-            self.grids[i] = self.grid(
-                i, self, self.grid_levels[i, 0],
-                pi=particleindex,
-                po=particleoffset,
-                mi=meshindex,
-                mo=self.grid_dimensions[i][0])
-            for spec, val in particleoffset:
-                pci[spec] += val
-            meshindex += self.grid_dimensions[i][0]
-            remaining -= self.grid_dimensions[i][0]
-            """
 
     def _populate_grid_objects(self):
         """This initializes all grids.
@@ -502,7 +483,9 @@ class OpenPMDDataset(Dataset):
             if i not in attrs:
                 return False
 
-        if "1.0." not in f.attrs["openPMD"]:
-            return False
+        versions = ["1.0.0", "1.0.1"]
+        for i in versions:
+            if i in f.attrs["openPMD"]:
+                return True
 
-        return True
+        return False
