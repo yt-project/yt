@@ -10,6 +10,8 @@ Unit test for the light_ray analysis module
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+
 from yt.testing import \
     requires_file
 from yt.analysis_modules.cosmological_observation.api import LightRay
