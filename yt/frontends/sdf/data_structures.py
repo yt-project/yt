@@ -28,7 +28,8 @@ from yt.geometry.particle_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
 from yt.funcs import \
-    get_requests
+    get_requests, \
+    setdefaultattr
 from .fields import \
     SDFFieldInfo
 from yt.utilities.sdf import \
@@ -177,16 +178,22 @@ class SDFDataset(Dataset):
         return self._midx
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, self.parameters.get("length_unit", 'kpc'))
-        self.velocity_unit = self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr'))
-        self.time_unit = self.quan(1.0, self.parameters.get("time_unit", 'Gyr'))
+        setdefaultattr(
+            self, 'length_unit',
+            self.quan(1.0, self.parameters.get("length_unit", 'kpc')))
+        setdefaultattr(
+            self, 'velocity_unit',
+            self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr')))
+        setdefaultattr(
+            self, 'time_unit',
+            self.quan(1.0, self.parameters.get("time_unit", 'Gyr')))
         mass_unit = self.parameters.get("mass_unit", '1e10 Msun')
         if ' ' in mass_unit:
             factor, unit = mass_unit.split(' ')
         else:
             factor = 1.0
             unit = mass_unit
-        self.mass_unit = self.quan(float(factor), unit)
+        setdefaultattr(self, 'mass_unit', self.quan(float(factor), unit))
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

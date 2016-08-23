@@ -34,6 +34,7 @@ class AthenaFieldInfo(FieldInfoContainer):
         ("cell_centered_B_x", (b_units, [], None)),
         ("cell_centered_B_y", (b_units, [], None)),
         ("cell_centered_B_z", (b_units, [], None)),
+        ("gravitational_potential", ("code_velocity**2", ["gravitational_potential"], None)),
     )
 
 # In Athena, conservative or primitive variables may be written out.

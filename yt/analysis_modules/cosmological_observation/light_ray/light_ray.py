@@ -21,8 +21,6 @@ from yt.convenience import \
     load
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
-from yt.units.unit_object import \
-    Unit
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
@@ -459,7 +457,11 @@ class LightRay(CosmologySplice):
 
         # Initialize data structures.
         self._data = {}
+        # temperature field is automatically added to fields
         if fields is None: fields = []
+        if (('gas', 'temperature') not in fields) and \
+           ('temperature' not in fields):
+           fields.append(('gas', 'temperature'))
         data_fields = fields[:]
         all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
@@ -665,19 +667,18 @@ class LightRay(CosmologySplice):
               self.cosmology.t_from_z(ds["current_redshift"])
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
+
         # Only return LightRay elements with non-zero density
-        mask_field_units = ['K', 'cm**-3', 'g/cm**3']
-        mask_field_units = [Unit(u) for u in mask_field_units]
-        for f in data:
-            for u in mask_field_units:
-                if data[f].units.same_dimensions_as(u):
-                    mask = data[f] > 0
-                    if not np.any(mask):
-                        raise RuntimeError(
-                            "No zones along light ray with nonzero %s. "
-                            "Please modify your light ray trajectory." % (f,))
-                    for key in data.keys():
-                        data[key] = data[key][mask]
+        if 'temperature' in data: f = 'temperature'
+        if ('gas', 'temperature') in data: f = ('gas', 'temperature')
+        if 'temperature' in data or ('gas', 'temperature') in data:
+            mask = data[f] > 0
+            if not np.any(mask):
+                raise RuntimeError(
+                    "No zones along light ray with nonzero %s. "
+                    "Please modify your light ray trajectory." % (f,))
+            for key in data.keys():
+                data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 
