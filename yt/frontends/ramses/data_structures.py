@@ -648,6 +648,19 @@ class RAMSESDataset(Dataset):
         def dadt(aexp_t,O_mat_0,O_vac_0,O_k_0):
            return np.sqrt( (1./aexp_t)*(O_mat_0 + O_vac_0*aexp_t**3 + O_k_0*aexp_t) )
 
+        def step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0):
+            dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
+            aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
+            aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
+            tau = tau - dtau
+
+            dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
+            aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
+            aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
+            t = t - dt
+
+            return tau,aexp_tau,t,aexp_t
+
         def friedman(O_mat_0, O_vac_0, O_k_0):
             alpha = 1.e-5
             aexp_min = 1.e-3
@@ -659,15 +672,7 @@ class RAMSESDataset(Dataset):
 
             while aexp_tau >= aexp_min or aexp_t >= aexp_min:
                 nstep = nstep + 1
-                dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)   
-                aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
-                aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
-                tau = tau - dtau
-
-                dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
-                aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
-                aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
-                t = t - dt
+                tau,aexp_tau,t,aexp_t = step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0)
 
             age_tot=-t
             ntable = 1000
@@ -684,7 +689,6 @@ class RAMSESDataset(Dataset):
             aexp_t = 1.
             tau = 0.
             t = 0.
-            nstep = 0
 
             n_out = 0
             t_out[n_out] = t
@@ -693,16 +697,7 @@ class RAMSESDataset(Dataset):
             next_tau = tau + delta_tau/10.
 
             while n_out < ntable/2 : 
-                nstep = nstep + 1
-                dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
-                aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
-                aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
-                tau = tau - dtau
-
-                dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
-                aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
-                aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
-                t = t - dt
+                tau,aexp_tau,t,aexp_t = step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0)
 
                 if tau < next_tau:
                     n_out = n_out + 1
@@ -711,16 +706,7 @@ class RAMSESDataset(Dataset):
                     next_tau = next_tau + delta_tau/10.
 
             while aexp_tau >= aexp_min or aexp_t >= aexp_min:
-                nstep = nstep + 1
-                dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
-                aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
-                aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
-                tau = tau - dtau
-
-                dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
-                aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
-                aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
-                t = t - dt
+                tau,aexp_tau,t,aexp_t = step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0)
 
                 if tau < next_tau:
                     n_out = n_out + 1
