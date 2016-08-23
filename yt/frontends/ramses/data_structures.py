@@ -734,18 +734,21 @@ class RAMSESDataset(Dataset):
 
             return tau_out, t_out, delta_tau, ntable, age_tot
 
-        self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = \
-          friedman( self.omega_matter, self.omega_lambda, 1. - self.omega_matter - self.omega_lambda )
+        if self.cosmological_simulation == 0:
+            self.current_time = self.parameters['time'] * self.parameters['unit_t']
+        else :
+            self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = \
+              friedman( self.omega_matter, self.omega_lambda, 1. - self.omega_matter - self.omega_lambda )
 
-        age = self.parameters['time']
-        iage = 1 + int(10.*age/self.dtau)
-        if iage > self.n_frw/2:
-          iage = self.n_frw/2 + (iage - self.n_frw/2 )/10
+            age = self.parameters['time']
+            iage = 1 + int(10.*age/self.dtau)
+            if iage > self.n_frw/2:
+              iage = self.n_frw/2 + (iage - self.n_frw/2 )/10
 
-        self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
-                         self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
+            self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
+                             self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
  
-        self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
+            self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
 
     @classmethod

@@ -101,7 +101,7 @@ class IOHandlerRAMSES(BaseIOHandler):
             tr[field] = fpu.read_vector(f, dt)
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-            if field[1] == "particle_age":
+            if subset.domain.ds.cosmological_simulation == 1 and field[1] == "particle_age":
               t_frw = subset.domain.ds.t_frw
               tau_frw = subset.domain.ds.tau_frw
               tsim = subset.domain.ds.time_simu
