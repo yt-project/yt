@@ -83,6 +83,14 @@ class OpenPMDHierarchy(GridIndex):
         GridIndex.__init__(self, ds, dataset_type)
 
     def _get_particle_type_counts(self):
+        """Sets the active number of particles for every species.
+
+        Returns
+        -------
+        dict
+            keys are ptypes
+            values are integer counts of the ptype
+        """
         result = {}
         f = self.dataset._handle
         bp = self.dataset.base_path
@@ -221,29 +229,28 @@ class OpenPMDHierarchy(GridIndex):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
 
         This calculates the properties of every OpenPMDGrid based on the total number of grids in the simulation.
-         The domain is divided into ``self.num_grids`` equally sized chunks along the x-axis.
+        The domain is divided into ``self.num_grids`` (roughly) equally sized chunks along the x-axis.
         ``grid_levels`` is always equal to 0 since we only have one level of refinement in openPMD.
 
         Notes
         -----
-        ``self.grid_dimensions`` is rounded to the nearest integer.
+        ``self.grid_dimensions`` is rounded to the nearest integer. Grid edges are calculated from this dimension.
         Furthermore the last grid might be smaller and have fewer particles than the others.
         In general, NOT all particles in a grid will be inside the grid edges.
         """
         f = self.dataset._handle
         bp = self.dataset.base_path
-        mp = self.dataset.meshes_path
         pp = self.dataset.particles_path
 
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype="object")
 
-        grid_index_total = 0
-
         def get_component(group, component_name, index, offset):
             record_component = group[component_name]
             unit_si = record_component.attrs["unitSI"]
             return np.multiply(record_component[index:index+offset], unit_si)
+
+        grid_index_total = 0
 
         # Mesh grids
         for shape in set(self.meshshapes.values()):
@@ -254,8 +261,8 @@ class OpenPMDHierarchy(GridIndex):
                                       'constant', constant_values=(0, 1))
             # Number of grids of this shape
             num_grids = min(shape[0], int(np.ceil(functools.reduce(mul, shape) * self.vpg ** -1)))
-            gle = self.dataset.domain_left_edge  # TODO Calculate based on mesh
-            gre = self.dataset.domain_right_edge  # TODO Calculate based on mesh
+            gle = self.dataset.domain_left_edge
+            gre = self.dataset.domain_right_edge
             grid_dim_offset = np.linspace(0, domain_dimension[0], num_grids + 1, dtype=np.int32)
             grid_edge_offset = grid_dim_offset * np.float(domain_dimension[0]) ** -1 * (gre[0] - gle[0]) + gle[0]
             mesh_names = []
@@ -275,10 +282,10 @@ class OpenPMDHierarchy(GridIndex):
                                                          fi=prev,
                                                          fo=self.grid_dimensions[grid_index_total][0],
                                                          ft=mesh_names)
-                prev = self.grid_dimensions[grid_index_total][0]
+                prev += self.grid_dimensions[grid_index_total][0]
                 grid_index_total += 1
 
-        handeled_ptypes = []
+        handled_ptypes = []
 
         # Particle grids
         for species, count in self.numparts.items():
@@ -286,13 +293,6 @@ class OpenPMDHierarchy(GridIndex):
                 # This is a particlePatch
                 spec = species.split("#")
                 patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
-                domain_dimension = []
-                for axis in patch["extent"].keys():
-                    domain_dimension.append(patch["extent/" + axis].value.item(int(spec[1])))
-                domain_dimension = np.asarray(domain_dimension, dtype=np.int32)
-                domain_dimension = np.pad(domain_dimension,
-                                          (0, 3 - len(domain_dimension)),
-                                          'constant', constant_values=(0, 1))
                 num_grids = int(np.ceil(count * self.vpg ** -1))
                 gle = []
                 for axis in patch["offset"].keys():
@@ -313,8 +313,7 @@ class OpenPMDHierarchy(GridIndex):
                 particle_count = np.linspace(npo, npo + count, num_grids + 1,
                                              dtype=np.int32)
                 particle_names = [str(spec[0])]
-            elif str(species) not in handeled_ptypes:
-                domain_dimension = self.dataset.domain_dimensions
+            elif str(species) not in handled_ptypes:
                 num_grids = int(np.ceil(count * self.vpg ** -1))
                 gle = self.dataset.domain_left_edge
                 gre = self.dataset.domain_right_edge
@@ -322,13 +321,14 @@ class OpenPMDHierarchy(GridIndex):
                 particle_names = []
                 for (pname, size) in self.numparts.items():
                     if size == count:
+                        # Since this is not part of a particlePatch, we can include multiple same-sized ptypes
                         particle_names.append(str(pname))
-                        handeled_ptypes.append(str(pname))
+                        handled_ptypes.append(str(pname))
             else:
                 # A grid with this exact particle count has already been created
                 continue
             for grid in range(num_grids):
-                self.grid_dimensions[grid_index_total] = domain_dimension
+                self.grid_dimensions[grid_index_total] = [0, 0, 0]  # Counted as mesh-size, thus no dimensional extent
                 self.grid_left_edge[grid_index_total] = gle
                 self.grid_right_edge[grid_index_total] = gre
                 self.grid_particle_count[grid_index_total] = (particle_count[grid + 1] - particle_count[grid]) * len(
@@ -454,16 +454,22 @@ class OpenPMDDataset(Dataset):
         fshape = np.append(fshape, np.ones(3 - self.dimensionality))
         self.domain_dimensions = fshape
 
+
         self.domain_left_edge = np.zeros(3, dtype=np.float64)
         try:
             mesh = f[bp + mp].keys()[0]
             spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-            unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
+            #offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
+            unit_si = np.asarray(f[bp + mp + "/" + mesh].attrs["gridUnitSI"])
+            #self.domain_left_edge = self.domain_dimensions[:spacing.size] * unit_si * offset
             self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing
+            #self.domain_right_edge += self.domain_left_edge
+            #self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except Exception as e:
             mylog.warning(
                 "open_pmd - The domain extent could not be calculated! ({}) Setting the field extent to 1m**3!".format(e))
+            self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]

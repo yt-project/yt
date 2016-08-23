@@ -84,6 +84,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
         rv = {}
         ind = {}
         particle_count = {}
+        chunks = list(chunks)  # chunks is a generator and thus depleted when you iterate over it once
         on_disk_ptypes_and_fields = defaultdict(list)
         mapping_from_on_disk_to_request = defaultdict(list)
         f = self._handle
@@ -103,7 +104,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                 particle_count[pfield] = self.ds.particle_type_counts[ptype]
                 on_disk_ptypes_and_fields[ptype].append(pname)
                 mapping_from_on_disk_to_request[pfield].append(pfield)
-            rv[pfield] = np.empty((particle_count[pfield],), dtype="float64")
+            rv[pfield] = np.empty((particle_count[pfield],), dtype=np.float64)
             ind[pfield] = 0
 
         for ptype in on_disk_ptypes_and_fields:
@@ -113,7 +114,6 @@ class IOHandlerOpenPMD(BaseIOHandler):
                         spec = ds[self.particles_path].keys()[0]
                     else:
                         spec = ptype
-                    mylog.debug("spec {} grid.ptypes {}".format(spec, grid.ptypes))
                     if spec not in grid.ptypes:
                         continue
                     # read particle coords into cache
@@ -194,8 +194,11 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     count = grid.count(selector)
                     rv[field][ind[field]:ind[field] + count] = data[mask]
                     ind[field] += count
-        for i in rv:
-            rv[i].flatten()
+
+        for field in fields:
+            rv[field] = rv[field][:ind[field]]
+            rv[field].flatten()
+
         return rv
 
     def get_component(self, group, component_name, index=0, offset=None):
@@ -227,7 +230,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             if offset is None:
                 offset = record_component.attrs["shape"] - index
             # component is constant, craft an array by hand
-            mylog.debug("open_pmd - get_component (const): {}/{}({})".format(group.name, component_name, offset))
+            mylog.debug("open_pmd - get_component (const): {}/{} ({})".format(group.name, component_name, offset))
             return np.full(offset, record_component.attrs["value"] * unit_si)
         else:
             if offset is not None:
