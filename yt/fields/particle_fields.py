@@ -184,7 +184,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                 function=function, units=unit_system["time"], take_log=False,
                   validators=[ValidateSpatial(0)])
     except :
-        print " No particle age available. "
+        None
 
     # Now some translation functions.
 
