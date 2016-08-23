@@ -14,18 +14,20 @@ openPMD data structures
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
-import os
-import re
 from functools import reduce
 from operator import mul
+from os import \
+    path, \
+    listdir
+from re import match
 
 import numpy as np
 
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import setdefaultattr
 from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
 from yt.frontends.open_pmd.misc import is_const_component
+from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
@@ -79,7 +81,7 @@ class OpenPMDHierarchy(GridIndex):
         self.dataset_type = dataset_type
         self.dataset = ds
         self.index_filename = ds.parameter_filename
-        self.directory = os.path.dirname(self.index_filename)
+        self.directory = path.dirname(self.index_filename)
         GridIndex.__init__(self, ds, dataset_type)
 
     def _get_particle_type_counts(self):
@@ -255,9 +257,7 @@ class OpenPMDHierarchy(GridIndex):
         for shape in set(self.meshshapes.values()):
             # Total dimension of this grid
             domain_dimension = np.asarray(shape, dtype=np.int32)
-            domain_dimension = np.pad(domain_dimension,
-                                      (0, 3 - len(domain_dimension)),
-                                      'constant', constant_values=(0, 1))
+            domain_dimension = np.append(domain_dimension, np.ones(3 - len(domain_dimension)))
             # Number of grids of this shape
             num_grids = min(shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1)))
             gle = self.dataset.domain_left_edge
@@ -297,16 +297,12 @@ class OpenPMDHierarchy(GridIndex):
                 for axis in list(patch["offset"].keys()):
                     gle.append(get_component(patch, "offset/" + axis, int(spec[1]), 1)[0])
                 gle = np.asarray(gle)
-                gle = np.pad(gle,
-                             (0, 3 - len(gle)),
-                             'constant', constant_values=(0, 0))
+                gle = np.append(gle, np.zeros(3 - len(gle)))
                 gre = []
                 for axis in list(patch["extent"].keys()):
                     gre.append(get_component(patch, "extent/" + axis, int(spec[1]), 1)[0])
                 gre = np.asarray(gre)
-                gre = np.pad(gre,
-                             (0, 3 - len(gre)),
-                             'constant', constant_values=(0, 1))
+                gre = np.append(gre, np.ones(3 - len(gre)))
                 np.add(gle, gre, gre)
                 npo = patch["numParticlesOffset"].value.item(int(spec[1]))
                 particle_count = np.linspace(npo, npo + count, num_grids + 1,
@@ -361,7 +357,7 @@ class OpenPMDDataset(Dataset):
                  units_override=None,
                  unit_system="mks", **kwargs):
         self._handle = HDF5FileHandler(filename)
-        self._set_paths(self._handle, os.path.dirname(filename))
+        self._set_paths(self._handle, path.dirname(filename))
         Dataset.__init__(self, filename, dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
@@ -395,8 +391,8 @@ class OpenPMDDataset(Dataset):
             if path is "":
                 mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
                 pass
-            for filename in os.listdir(path):
-                if re.match(regex, filename):
+            for filename in listdir(path):
+                if match(regex, filename):
                     iterations.append(filename)
             mylog.info("open_pmd - found {} iterations in directory".format(len(iterations)))
 
@@ -451,7 +447,6 @@ class OpenPMDDataset(Dataset):
         fshape = np.append(fshape, np.ones(3 - self.dimensionality))
         self.domain_dimensions = fshape
 
-
         self.domain_left_edge = np.zeros(3, dtype=np.float64)
         try:
             mesh = list(f[bp + mp].keys())[0]
@@ -463,9 +458,9 @@ class OpenPMDDataset(Dataset):
             #self.domain_right_edge += self.domain_left_edge
             #self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
-        except Exception as e:
+        except:
             mylog.warning(
-                "open_pmd - The domain extent could not be calculated! ({}) Setting the field extent to 1m**3!".format(e))
+                "open_pmd - The domain extent could not be calculated! Setting the field extent to 1m**3!")
             self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 

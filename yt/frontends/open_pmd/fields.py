@@ -15,8 +15,8 @@ openPMD-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
-import numpy as np
 import h5py as h5
+import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
