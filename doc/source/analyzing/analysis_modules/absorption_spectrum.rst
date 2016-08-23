@@ -116,7 +116,12 @@ no lines of this type will be added to the text list.
 Continuum features with optical depths that follow a power law can also be
 added.  Like adding lines, you must specify details like the wavelength
 and the field in the dataset and LightRay that is tied to this feature.
-Below, we will add H Lyman continuum.
+The wavelength refers to the location at which the continuum begins to be 
+applied to the dataset, and as it moves to lower wavelength values, the 
+optical depth value decreases according to the defined power law.  The 
+normalization value is the column density of the linked field which results
+in an optical depth of 1 at the defined wavelength.  Below, we add the hydrogen 
+Lyman continuum.
 
 .. code-block:: python
 
@@ -131,7 +136,7 @@ Below, we will add H Lyman continuum.
 Making the Spectrum
 ^^^^^^^^^^^^^^^^^^^
 
-Once all the lines and continuum are added, it is time to make a spectrum out
+Once all the lines and continuua are added, it is time to make a spectrum out
 of some light ray data.
 
 .. code-block:: python

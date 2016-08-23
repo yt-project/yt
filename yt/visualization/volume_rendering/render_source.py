@@ -471,10 +471,10 @@ class VolumeSource(RenderSource):
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if call_from_VR is True: 
+        if call_from_VR is True:
             image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
+            image[:, :, 3] = 1
         return image
 
     def __repr__(self):
@@ -811,8 +811,8 @@ class PointSource(OpaqueSource):
     Parameters
     ----------
     positions: array, shape (N, 3)
-        These positions, in data-space coordinates, are the points to be
-        added to the scene.
+        The positions of points to be added to the scene. If specified with no
+        units, the positions will be assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.
@@ -829,18 +829,19 @@ class PointSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
+    >>> from yt.units import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    
+
     >>> im, sc = yt.volume_render(ds)
-    
+
     >>> npoints = 1000
-    >>> vertices = np.random.random([npoints, 3])
+    >>> vertices = np.random.random([npoints, 3]) * 1000 * kpc
     >>> colors = np.random.random([npoints, 4])
     >>> colors[:,3] = 1.0
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
-    
+
     >>> im = sc.render()
 
     """
@@ -858,7 +859,6 @@ class PointSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
-            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -912,19 +912,25 @@ class LineSource(OpaqueSource):
     This class provides a mechanism for adding lines to a scene; these
     points will be opaque, and can also be colored.
 
+    .. note::
+
+        If adding a LineSource to your rendering causes the image to appear
+        blank or fades a VolumeSource, try lowering the values specified in
+        the alpha channel of the ``colors`` array.
+
     Parameters
     ----------
     positions: array, shape (N, 2, 3)
-        These positions, in data-space coordinates, are the starting and
-        stopping points for each pair of lines. For example,
-        positions[0][0] and positions[0][1] would give the (x, y, z)
+        The positions of the starting and stopping points for each line.
+        For example,positions[0][0] and positions[0][1] would give the (x, y, z)
         coordinates of the beginning and end points of the first line,
-        respectively.
+        respectively. If specified with no units, assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
-        point running from 0..1.  Note that they correspond to the line
-        segment succeeding each point; this means that strictly speaking
-        they need only be (N-1) in length.
+        point running from 0..1.  The four channels correspond to r, g, b, and
+        alpha values. Note that they correspond to the line segment succeeding
+        each point; this means that strictly speaking they need only be (N-1)
+        in length.
     color_stride : int, optional
         The stride with which to access the colors when putting them on the
         scene.
@@ -938,20 +944,21 @@ class LineSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
+    >>> from yt.units import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    
+
     >>> im, sc = yt.volume_render(ds)
-    
-    >>> npoints = 100
-    >>> vertices = np.random.random([npoints, 2, 3])
-    >>> colors = np.random.random([npoints, 4])
+
+    >>> nlines = 4
+    >>> vertices = np.random.random([nlines, 2, 3]) * 600 * kpc
+    >>> colors = np.random.random([nlines, 4])
     >>> colors[:,3] = 1.0
-    
+
     >>> lines = LineSource(vertices, colors)
     >>> sc.add_source(lines)
 
     >>> im = sc.render()
-    
+
     """
 
     _image = None
@@ -974,7 +981,6 @@ class LineSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
-            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -1016,14 +1022,15 @@ class LineSource(OpaqueSource):
         py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
+                   self.color_stride)
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors, 
-                   self.color_stride)
-            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors, 
-                   self.color_stride)
+            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
+                   self.colors.astype('float64'), self.color_stride)
+            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
+                   self.colors.astype('float64'), self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -1180,7 +1187,7 @@ class GridSource(LineSource):
         colors = apply_colormap(
             levels*1.0,
             color_bounds=[0, self.data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]*alpha/255.
+            cmap_name=cmap)[0, :, :]/255.
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
@@ -1230,9 +1237,9 @@ class CoordinateVectorSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.zeros((3, 4))
-            colors[0, 0] = alpha  # x is red
-            colors[1, 1] = alpha  # y is green
-            colors[2, 2] = alpha  # z is blue
+            colors[0, 0] = 1.0  # x is red
+            colors[1, 1] = 1.0  # y is green
+            colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
         self.color_stride = 2
@@ -1316,14 +1323,15 @@ class CoordinateVectorSource(OpaqueSource):
         py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
+                   self.color_stride)
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0,:], py[0,:], dz[0,:], self.colors,
-                   self.color_stride)
-            zlines(empty, z, px[1,:], py[1,:], dz[1,:], self.colors,
-                   self.color_stride)
+            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
+                   self.colors.astype('float64'), self.color_stride)
+            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
+                   self.colors.astype('float64'), self.color_stride)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

@@ -18,7 +18,9 @@ import stat
 import numpy as np
 import weakref
 
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -205,7 +207,7 @@ class GAMERDataset(Dataset):
                           "Use units_override to specify the units")
 
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            setattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
+            setdefaultattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
 
             if len(self.units_override) == 0:
                 mylog.warning("Assuming 1.0 = 1.0 %s", cgs)

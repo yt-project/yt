@@ -19,6 +19,8 @@ import numpy as np
 import weakref
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
 from yt.data_objects.static_output import \
@@ -78,9 +80,9 @@ class MoabHex8Dataset(Dataset):
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
         # not be used very much or at all.
-        self.length_unit = self.quan(1.0, "cm")
-        self.time_unit = self.quan(1.0, "s")
-        self.mass_unit = self.quan(1.0, "g")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
 
     def _parse_parameter_file(self):
         self._handle = h5py.File(self.parameter_filename, "r")
@@ -161,9 +163,9 @@ class PyneMoabHex8Dataset(Dataset):
     def _set_code_unit_attributes(self):
         # Almost everything is regarded as dimensionless in MOAB, so these will
         # not be used very much or at all.
-        self.length_unit = self.quan(1.0, "cm")
-        self.time_unit = self.quan(1.0, "s")
-        self.mass_unit = self.quan(1.0, "g")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
 
     def _parse_parameter_file(self):
         #  not sure if this import has side-effects so I'm not deleting it

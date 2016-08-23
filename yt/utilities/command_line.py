@@ -26,7 +26,7 @@ import tempfile
 import json
 import pprint
 
-from yt.config import ytcfg
+from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
@@ -39,11 +39,13 @@ from yt.funcs import \
     enable_plugins
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
+from yt.extern.six.moves.urllib.parse import urlparse
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
 from yt.utilities.metadata import get_metadata
+from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
     YTOutputNotIdentified, YTFieldNotParseable
 
@@ -117,16 +119,48 @@ def _print_installation_information(path):
         print("Changeset = %s" % vstring.strip().decode("utf-8"))
     print("---")
     return vstring
+    
 
+def _get_girder_client():
+    try:
+        import girder_client
+    except ImportError:
+        print("this command requires girder_client to be installed")
+        print("Please install them using your python package manager, e.g.:")
+        print("   pip install girder_client --user")
+        exit()
+
+    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
+    gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
+    gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
+    return gc
+
+
+_subparsers = {None: subparsers}
+_subparsers_description = {
+    'config': 'Get and set configuration values for yt',
+    'hub': 'Interact with the yt Hub'
+}
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if cls.name is not None:
             names = ensure_list(cls.name)
+            if cls.subparser not in _subparsers:
+                try:
+                    description = _subparsers_description[cls.subparser]
+                except KeyError:
+                    description = cls.subparser
+                parent_parser = argparse.ArgumentParser(add_help=False)
+                p = subparsers.add_parser(cls.subparser, help=description,
+                                          description=description,
+                                          parents=[parent_parser])
+                _subparsers[cls.subparser] = p.add_subparsers(
+                    title=cls.subparser, dest=cls.subparser)
+            sp = _subparsers[cls.subparser]
             for name in names:
-                sc = subparsers.add_parser(name,
-                    description = cls.description,
-                    help = cls.description)
+                sc = sp.add_parser(name, description=cls.description, 
+                                   help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
                     _add_arg(sc, arg)
@@ -138,17 +172,18 @@ class YTCommand(object):
     description = ""
     aliases = ()
     ndatasets = 1
+    subparser = None
 
     @classmethod
     def run(cls, args):
         self = cls()
         # Check for some things we know; for instance, comma separated
         # field names should be parsed as tuples.
-        if hasattr(args, 'field') and ',' in args.field:
+        if getattr(args, 'field', None) is not None and ',' in args.field:
             if args.field.count(",") > 1:
                 raise YTFieldNotParseable(args.field)
             args.field = tuple(_.strip() for _ in args.field.split(","))
-        if hasattr(args, 'weight') and ',' in args.weight:
+        if getattr(args, 'weight', None) is not None and ',' in args.weight:
             if args.weight.count(",") > 1:
                 raise YTFieldNotParseable(args.weight)
             args.weight = tuple(_.strip() for _ in args.weight.split(","))
@@ -557,25 +592,27 @@ class YTBugreportCmd(YTCommand):
 
 
 class YTHubRegisterCmd(YTCommand):
-    name = "hub_register"
+    subparser = "hub"
+    name = "register"
     description = \
         """
-        Register a user on the Hub: http://hub.yt-project.org/
+        Register a user on the yt Hub: http://hub.yt/
         """
     def __call__(self, args):
-        # We need these pieces of information:
-        #   1. Name
-        #   2. Email
-        #   3. Username
-        #   4. Password (and password2)
-        #   5. (optional) URL
-        #   6. "Secret" key to make it epsilon harder for spammers
-        if ytcfg.get("yt","hub_api_key") != "":
+        try:
+            import requests
+        except ImportError:
+            print("yt {} requires requests to be installed".format(self.name))
+            print("Please install them using your python package manager, e.g.:")
+            print("   pip install requests --user")
+            exit()
+        if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
-            print("~/.yt/config .  Delete this if you want to force a")
+            print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
             print("new user registration.")
+            exit()
         print("Awesome!  Let's start by registering a new user for you.")
-        print("Here's the URL, for reference: http://hub.yt-project.org/ ")
+        print("Here's the URL, for reference: http://hub.yt/ ")
         print()
         print("As always, bail out with Ctrl-C at any time.")
         print()
@@ -586,8 +623,11 @@ class YTHubRegisterCmd(YTCommand):
         print()
         print("To start out, what's your name?")
         print()
-        name = input("Name? ")
-        if len(name) == 0: sys.exit(1)
+        first_name = input("First Name? ")
+        if len(first_name) == 0: sys.exit(1)
+        print()
+        last_name = input("Last Name? ")
+        if len(last_name) == 0: sys.exit(1)
         print()
         print("And your email address?")
         print()
@@ -604,33 +644,32 @@ class YTHubRegisterCmd(YTCommand):
             print("Sorry, they didn't match!  Let's try again.")
             print()
         print()
-        print("Would you like a URL displayed for your user?")
-        print("Leave blank if no.")
-        print()
-        url = input("URL? ")
-        print()
         print("Okay, press enter to register.  You should receive a welcome")
         print("message at %s when this is complete." % email)
         print()
         input()
-        data = dict(name = name, email = email, username = username,
-                    password = password1, password2 = password2,
-                    url = url, zap = "rowsdower")
-        data = urllib.parse.urlencode(data)
-        hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib.request.Request(hub_url, data)
-        try:
-            urllib.request.urlopen(req).read()
-        except urllib.error.HTTPError as exc:
-            if exc.code == 400:
-                print("Sorry, the Hub couldn't create your user.")
-                print("You can't register duplicate users, which is the most")
-                print("common cause of this error.  All values for username,")
-                print("name, and email must be unique in our system.")
-                sys.exit(1)
-        except urllib.URLError as exc:
-            print("Something has gone wrong.  Here's the error message.")
-            raise exc
+
+        data = dict(firstName=first_name, email=email, login=username,
+                    password=password1, lastName=last_name, admin=False)
+        hub_url = ytcfg.get("yt", "hub_url")
+        req = requests.post(hub_url + "/user", data=data)
+      
+        if req.ok:
+            headers = {'Girder-Token': req.json()['authToken']['token']}
+        else:
+            if req.status_code == 400:
+                print("Registration failed with 'Bad request':")
+                print(req.json()["message"])
+            exit(1)
+        print("User registration successful")
+        print("Obtaining API key...")
+        req = requests.post(hub_url + "/api_key", headers=headers,
+                            data={'name': 'ytcmd', 'active': True})
+        apiKey = req.json()["key"]
+
+        print("Storing API key in configuration file")
+        set_config("yt", "hub_api_key", apiKey)
+        
         print()
         print("SUCCESS!")
         print()
@@ -810,40 +849,60 @@ class YTPastebinGrabCmd(YTCommand):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
+class YTHubStartNotebook(YTCommand):
+    args = (
+        dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
+             nargs="?", 
+             help="(Optional) Hub folder to mount inside the Notebook"),
+    )
+    description = \
+        """
+        Start the Jupyter Notebook on the yt Hub.
+        """
+    subparser = "hub"
+    name = "start"
+    def __call__(self, args):
+        gc = _get_girder_client()
+
+        # TODO: should happen server-side
+        _id = gc._checkResourcePath(args.folderId)
+
+        resp = gc.post("/notebook/{}".format(_id))
+        try:
+            print("Launched! Please visit this URL:")
+            print("    https://tmpnb.hub.yt" + resp['url'])
+            print()
+        except (KeyError, TypeError):
+            print("Something went wrong. The yt Hub responded with : ")
+            print(resp)
+
 class YTNotebookUploadCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
         """
-        Upload an IPython notebook to hub.yt-project.org.
+        Upload an IPython Notebook to the yt Hub.
         """
 
     name = "upload_notebook"
     def __call__(self, args):
-        filename = args.file
-        if not os.path.isfile(filename):
-            raise IOError(filename)
-        if not filename.endswith(".ipynb"):
-            print("File must be an IPython notebook!")
-            return 1
-        import json
-        try:
-            t = json.loads(open(filename).read())['metadata']['name']
-        except (ValueError, KeyError):
-            print("File does not appear to be an IPython notebook.")
-        if len(t) == 0:
-            t = filename.strip(".ipynb")
-        from yt.utilities.minimal_representation import MinimalNotebook
-        mn = MinimalNotebook(filename, t)
-        rv = mn.upload()
+        gc = _get_girder_client()
+        username = gc.get("/user/me")["login"]
+        gc.upload(args.file, "/user/{}/Public".format(username))
+
+        _id = gc.resourceLookup(
+            "/user/{}/Public/{}".format(username, args.file))["_id"]
+        _fid = next(gc.listFile(_id))["_id"]
+        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
         print("Upload successful!")
         print()
         print("To access your raw notebook go here:")
         print()
-        print("  %s" % (rv['url']))
+        print("  {}://{}/#item/{}".format(hub_url.scheme, hub_url.netloc, _id))
         print()
         print("To view your notebook go here:")
         print()
-        print("  %s" % (rv['url'].replace("/go/", "/nb/")))
+        print("  http://nbviewer.jupyter.org/urls/{}/file/{}/download".format(
+            hub_url.netloc + hub_url.path, _fid))
         print()
 
 class YTPlotCmd(YTCommand):
@@ -947,7 +1006,7 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Run the IPython Notebook
+        Start the Jupyter Notebook locally. 
         """
     def __call__(self, args):
         kwargs = {}
@@ -1140,6 +1199,61 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+
+
+class YTConfigGetCmd(YTCommand):
+    subparser = 'config'
+    name = 'get'
+    description = 'get a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to retrieve.'))
+    def __call__(self, args):
+        from yt.utilities.configure import get_config
+        print(get_config(args.section, args.option))
+
+
+class YTConfigSetCmd(YTCommand):
+    subparser = 'config'
+    name = 'set'
+    description = 'set a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to set.'),
+            dict(short='value', help='The value to set the option to.'))
+    def __call__(self, args):
+        from yt.utilities.configure import set_config
+        set_config(args.section, args.option, args.value)
+
+
+class YTConfigRemoveCmd(YTCommand):
+    subparser = 'config'
+    name = 'rm'
+    description = 'remove a config option'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to remove.'))
+    def __call__(self, args):
+        from yt.utilities.configure import rm_config
+        rm_config(args.section, args.option)
+
+
+class YTConfigListCmd(YTCommand):
+    subparser = 'config'
+    name = 'list'
+    description = 'show the config content'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import write_config
+        write_config(sys.stdout)
+
+
+class YTConfigMigrateCmd(YTCommand):
+    subparser = 'config'
+    name = 'migrate'
+    description = 'migrate old config file'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import migrate_config
+        migrate_config()
+
 
 class YTSearchCmd(YTCommand):
     args = (dict(short="-o", longname="--output",

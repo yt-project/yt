@@ -129,6 +129,9 @@ or if you want to draw lines connecting different regions or
 vertices.  For instance, lines can be used to draw outlines of regions or
 continents.
 
+Worked examples of using the ``LineSource`` and ``PointSource`` are available at
+:ref:`cookbook-vol-points` and :ref:`cookbook-vol-lines`.
+
 .. _volume_rendering_annotations:
 
 Annotations
@@ -519,7 +522,12 @@ adjusts for an opening view angle, so that the scene will have an
 element of perspective to it.
 :class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`
 is identical to PerspectiveLens, but it produces two images from nearby
-camera positions for use in 3D viewing.
+camera positions for use in 3D viewing. How 3D the image appears at viewing 
+will depend upon the value of 
+:attr:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens.disparity`, 
+which is half the maximum distance between two corresponding points in the left 
+and right images. By default, it is set to 3 pixels.
+
 
 Fisheye or Dome
 +++++++++++++++
@@ -548,7 +556,12 @@ see `the YouTube help: Upload virtual reality videos
 <https://support.google.com/youtube/answer/6316263?hl=en>`_).
 `This virtual reality video
 <https://youtu.be/ZYWY53X7UQE>`_ on YouTube is an example produced with
-:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`.
+:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`. As in 
+the case of  
+:class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`, the 
+difference between the two images can be controlled by changing the value of 
+:attr:`~yt.visualization.volume_rendering.lens.StereoSphericalLens.disparity` 
+(See above).
 
 .. _annotated-vr-example:
 

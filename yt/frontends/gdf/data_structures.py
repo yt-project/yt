@@ -19,7 +19,9 @@ import weakref
 import os
 from yt.extern.six import string_types
 from yt.funcs import \
-    just_one, ensure_tuple
+    ensure_tuple, \
+    just_one, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -89,7 +91,6 @@ class GDFHierarchy(GridIndex):
         h5f = h5py.File(self.index_filename, 'r')
         self.dataset_type = dataset_type
         GridIndex.__init__(self, ds, dataset_type)
-        self.max_level = 10  # FIXME
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
@@ -224,17 +225,17 @@ class GDFDataset(Dataset):
                     un = unit_name[:-5]
                     un = un.replace('magnetic', 'magnetic_field', 1)
                     unit = self.unit_system[un]
-                    setattr(self, unit_name, self.quan(value, unit))
-                setattr(self, unit_name, self.quan(value, unit))
+                    setdefaultattr(self, unit_name, self.quan(value, unit))
+                setdefaultattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
                     self.field_units[unit_name] = str(unit)
         else:
-            self.length_unit = self.quan(1.0, "cm")
-            self.mass_unit = self.quan(1.0, "g")
-            self.time_unit = self.quan(1.0, "s")
+            setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+            setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+            setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
 
         h5f.close()
 

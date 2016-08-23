@@ -22,8 +22,9 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.funcs import \
+    ensure_tuple, \
     mylog, \
-    ensure_tuple
+    setdefaultattr
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.extern.six.moves import zip as izip
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -608,10 +609,10 @@ class BoxlibDataset(Dataset):
             self._setup2d()
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
 
     def _setup1d(self):
         # self._index_class = BoxlibHierarchy1D
@@ -818,6 +819,10 @@ class CastroDataset(BoxlibDataset):
                 if any(b in line for b in bcs):
                     p, v = line.strip().split(":")
                     self.parameters[p] = v.strip()
+                if "git hash" in line:
+                    # line format: codename git hash:  the-hash
+                    fields = line.split(":")
+                    self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)
             
             # runtime parameters that we overrode follow "Inputs File
@@ -1012,10 +1017,11 @@ class NyxDataset(BoxlibDataset):
             self.particle_types_raw = self.particle_types
 
     def _set_code_unit_attributes(self):
-        self.mass_unit = self.quan(1.0, "Msun")
-        self.time_unit = self.quan(1.0 / 3.08568025e19, "s")
-        self.length_unit = self.quan(1.0 / (1 + self.current_redshift), "Mpc")
-        self.velocity_unit = self.length_unit / self.time_unit
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "Msun"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0 / 3.08568025e19, "s"))
+        setdefaultattr(self, 'length_unit',
+                       self.quan(1.0 / (1 + self.current_redshift), "Mpc"))
+        setdefaultattr(self, 'velocity_unit', self.length_unit / self.time_unit)
 
 def _guess_pcast(vals):
     # Now we guess some things about the parameter and its type

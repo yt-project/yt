@@ -28,7 +28,8 @@ from yt.extern.six.moves import zip as izip
 from yt.funcs import \
     ensure_list, \
     ensure_tuple, \
-    get_pbar
+    get_pbar, \
+    setdefaultattr
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -917,11 +918,12 @@ class EnzoDataset(Dataset):
             if box_size is None:
                 box_size = self.parameters["Physics"]["Cosmology"]\
                     ["CosmologyComovingBoxSize"]
-            self.length_unit = self.quan(box_size, "Mpccm/h")
-            self.mass_unit = \
-                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
-            self.time_unit = self.quan(k['utim'], 's')
-            self.velocity_unit = self.quan(k['uvel'], 'cm/s')
+            setdefaultattr(self, 'length_unit', self.quan(box_size, "Mpccm/h"))
+            setdefaultattr(
+                self, 'mass_unit',
+                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3)
+            setdefaultattr(self, 'time_unit', self.quan(k['utim'], 's'))
+            setdefaultattr(self, 'velocity_unit', self.quan(k['uvel'], 'cm/s'))
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
@@ -937,15 +939,16 @@ class EnzoDataset(Dataset):
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
                 length_unit = mass_unit = time_unit = 1.0
 
-            self.length_unit = self.quan(length_unit, "cm")
-            self.mass_unit = self.quan(mass_unit, "g")
-            self.time_unit = self.quan(time_unit, "s")
-            self.velocity_unit = self.length_unit / self.time_unit
+            setdefaultattr(self, 'length_unit', self.quan(length_unit, "cm"))
+            setdefaultattr(self, 'mass_unit', self.quan(mass_unit, "g"))
+            setdefaultattr(self, 'time_unit', self.quan(time_unit, "s"))
+            setdefaultattr(
+                self, 'velocity_unit', self.length_unit / self.time_unit)
 
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
-        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
 
     def cosmology_get_units(self):
         """

@@ -22,7 +22,9 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -246,13 +248,14 @@ class FLASHDataset(Dataset):
         else:
             length_factor = 1.0
             temperature_factor = 1.0
-        self.magnetic_unit = self.quan(b_factor, "gauss")
 
-        self.length_unit = self.quan(length_factor, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")
-        self.temperature_unit = self.quan(temperature_factor, "K")
+        setdefaultattr(self, 'magnetic_unit', self.quan(b_factor, "gauss"))
+        setdefaultattr(self, 'length_unit', self.quan(length_factor, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
+        setdefaultattr(
+            self, 'temperature_unit', self.quan(temperature_factor, "K"))
 
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
@@ -384,6 +387,9 @@ class FLASHDataset(Dataset):
         elif self.dimensionality < 3 and self.geometry == "spherical":
             mylog.warning("Extending phi dimension to 2PI + left edge.")
             self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+        if self.dimensionality == 1 and self.geometry == "spherical":
+            mylog.warning("Extending theta dimension to PI + left edge.")
+            self.domain_right_edge[1] = self.domain_left_edge[1] + np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 

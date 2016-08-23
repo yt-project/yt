@@ -32,14 +32,6 @@ try:
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
-setuptools_ver = \
-    LooseVersion(pkg_resources.get_distribution("setuptools").version)
-if setuptools_ver < LooseVersion("18.0"):
-    print("Your setuptools version is too old to properly handle cython extensions.")
-    print("Please update setuptools before proceeding:")
-    print("    pip install -U setuptools")
-    sys.exit(1)
-
 MAPSERVER_FILES = []
 MAPSERVER_DIRS = [
     "",
@@ -58,7 +50,7 @@ SHADERS_DIR = os.path.join("yt", "visualization", "volume_rendering", "shaders")
 SHADERS_FILES = glob.glob(os.path.join(SHADERS_DIR, "*.vertexshader")) + \
     glob.glob(os.path.join(SHADERS_DIR, "*.fragmentshader"))
 
-VERSION = "3.3.dev0"
+VERSION = "3.4.dev0"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
@@ -378,16 +370,19 @@ setup(
     package_data = {'':['*.pxd']},
     setup_requires=[
         'numpy',
-        'cython>=0.22',
+        'cython>=0.24',
     ],
     install_requires=[
         'matplotlib',
-        'setuptools>=18.0',
+        'setuptools>=19.6',
         'sympy',
         'numpy',
         'IPython',
         'cython',
     ],
+    extras_require = {
+        'hub':  ["girder_client"]
+    },
     cmdclass={'sdist': sdist, 'build_ext': build_ext, 'build_py': build_py},
     author="The yt project",
     author_email="yt-dev@lists.spacepope.org",

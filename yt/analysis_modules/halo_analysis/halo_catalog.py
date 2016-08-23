@@ -267,8 +267,11 @@ class HaloCatalog(ParallelAnalysisInterface):
         and/or filters called in succession.  Recipes can be used to store a more
         complex series of analysis tasks as a single entity.
 
+        Currently, the available recipe is ``calculate_virial_quantities``.
+
         Parameters
         ----------
+
         halo_recipe : string
             The name of the recipe.
 
@@ -289,10 +292,6 @@ class HaloCatalog(ParallelAnalysisInterface):
         >>> hc.add_recipe("calculate_virial_quantities", ["radius", "matter_mass"])
         >>>
         >>> hc.create()
-
-        Available Recipes
-        -----------------
-        calculate_virial_quantities
 
         """
 

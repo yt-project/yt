@@ -22,9 +22,11 @@ from nose.tools import assert_true
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal
+    assert_array_almost_equal, assert_raises
 from yt.utilities.answer_testing.framework import \
     requires_ds, data_dir_load, PlotWindowAttributeTest
+from yt.utilities.exceptions import \
+    YTInvalidFieldType
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
@@ -89,7 +91,8 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_window_size": [((7.0, ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
                           (('density', 1e-25, None), {'dynamic_range': 4})],
-             "zoom": [((10, ), {})]}
+             "zoom": [((10, ), {})],
+             "toggle_right_handed": [((),{})]}
 
 
 CENTER_SPECS = (
@@ -419,3 +422,31 @@ def test_on_off_compare():
     sl_off = OffAxisSlicePlot(ds, L, 'density', center=[0,0,0], north_vector=north_vector)
 
     assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+
+def test_plot_particle_field_error():
+    ds = fake_random_ds(32, particles=100)
+
+    field_names = [
+        'particle_mass',
+        ['particle_mass', 'density'],
+        ['density', 'particle_mass'],
+    ]
+
+    objects_normals = [
+        (SlicePlot, 2),
+        (SlicePlot, [1, 1, 1]),
+        (ProjectionPlot, 2),
+        (OffAxisProjectionPlot, [1, 1, 1]),
+    ]
+
+    for object, normal in objects_normals:
+        for field_name_list in field_names:
+            assert_raises(
+                YTInvalidFieldType, object, ds, normal, field_name_list)
+
+
+def test_frb_regen():
+    ds = fake_random_ds(32)
+    slc = SlicePlot(ds, 2, 'density')
+    slc.set_buff_size(1200)
+    assert_equal(slc.frb['density'].shape, (1200, 1200))
