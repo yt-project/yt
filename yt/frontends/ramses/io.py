@@ -102,18 +102,18 @@ class IOHandlerRAMSES(BaseIOHandler):
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
             if subset.domain.ds.cosmological_simulation == 1 and field[1] == "particle_age":
-              t_frw = subset.domain.ds.t_frw
-              tau_frw = subset.domain.ds.tau_frw
-              tsim = subset.domain.ds.time_simu
-              h100 = subset.domain.ds.hubble_constant
-              nOver2 = subset.domain.ds.n_frw/2
-              for ipart, age in enumerate(tr[field]):
-                 if age < 0.:
-                   iage = 1 + int(10.*age/subset.domain.ds.dtau)
-                   if iage > nOver2:
-                     iage = nOver2 + (iage - nOver2)/10
-                   t = t_frw[iage  ]*(age-tau_frw[iage-1])/(tau_frw[iage]-tau_frw[iage-1])+ \
-                       t_frw[iage-1]*(age-tau_frw[iage  ])/(tau_frw[iage-1]-tau_frw[iage])
-                   newage = (tsim-t)/(h100*1e7/3.08e24)/subset.domain.ds['unit_t']
-                   tr[field][ipart] = np.max([0.,newage])
+                t_frw = subset.domain.ds.t_frw
+                tau_frw = subset.domain.ds.tau_frw
+                tsim = subset.domain.ds.time_simu
+                h100 = subset.domain.ds.hubble_constant
+                nOver2 = subset.domain.ds.n_frw/2
+                for ipart, age in enumerate(tr[field]):
+                    if age < 0.:
+                        iage = 1 + int(10.*age/subset.domain.ds.dtau)
+                        if iage > nOver2:
+                            iage = nOver2 + (iage - nOver2)/10
+                        t = t_frw[iage  ]*(age-tau_frw[iage-1])/(tau_frw[iage]-tau_frw[iage-1])+ \
+                            t_frw[iage-1]*(age-tau_frw[iage  ])/(tau_frw[iage-1]-tau_frw[iage])
+                        newage = (tsim-t)/(h100*1e7/3.08e24)/subset.domain.ds['unit_t']
+                        tr[field][ipart] = np.max([0.,newage])
         return tr
