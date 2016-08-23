@@ -106,14 +106,14 @@ class IOHandlerRAMSES(BaseIOHandler):
               tau_frw = subset.domain.ds.tau_frw
               tsim = subset.domain.ds.time_simu
               h100 = subset.domain.ds.hubble_constant
+              nOver2 = subset.domain.ds.n_frw/2
               for ipart, age in enumerate(tr[field]):
                  if age < 0.:
-                   i = 1
-                   while tau_frw[i] > age and i < subset.domain.ds.n_frw:
-                     i = i + 1 
-
-                   t = t_frw[i  ]*(age-tau_frw[i-1])/(tau_frw[i]-tau_frw[i-1])+ \
-                       t_frw[i-1]*(age-tau_frw[i  ])/(tau_frw[i-1]-tau_frw[i])
+                   iage = 1 + int(10.*age/subset.domain.ds.dtau)
+                   if iage > nOver2:
+                     iage = nOver2 + (iage - nOver2)/10
+                   t = t_frw[iage  ]*(age-tau_frw[iage-1])/(tau_frw[iage]-tau_frw[iage-1])+ \
+                       t_frw[iage-1]*(age-tau_frw[iage  ])/(tau_frw[iage-1]-tau_frw[iage])
                    newage = (tsim-t)/(h100*1e7/3.08e24)/subset.domain.ds['unit_t']
-                   tr[field][ipart] = newage
+                   tr[field][ipart] = np.max([0.,newage])
         return tr

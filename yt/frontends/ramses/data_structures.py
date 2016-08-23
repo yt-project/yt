@@ -651,11 +651,6 @@ class RAMSESDataset(Dataset):
             tau = 0.
             t = 0.
             nstep = 0
-            ntable = 100
-            aexp_out = np.zeros([ntable+1])
-            hexp_out = np.zeros([ntable+1])
-            tau_out = np.zeros([ntable+1])
-            t_out = np.zeros([ntable+1])
 
             while aexp_tau >= aexp_min or aexp_t >= aexp_min:
               nstep = nstep + 1
@@ -670,7 +665,15 @@ class RAMSESDataset(Dataset):
               t = t - dt
 
             age_tot=-t
-            nskip=nstep/ntable
+            ntable = 1000
+            if nstep < ntable :
+              ntable = nstep
+              alpha = alpha / 2.
+
+            tau_out = np.zeros([ntable+1])
+            t_out = np.zeros([ntable+1])
+            # (sampling the first half of the table more finely than second half):
+            delta_tau = 20.*tau/ntable/11.
 
             aexp_tau = 1.
             aexp_t = 1.
@@ -681,9 +684,27 @@ class RAMSESDataset(Dataset):
             n_out = 0
             t_out[n_out] = t
             tau_out[n_out] = tau
-            aexp_out[n_out] = aexp_tau
-            hexp_out[n_out] = dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)/aexp_tau
- 
+
+            next_tau = tau + delta_tau/10.
+
+            while n_out < ntable/2 : 
+              nstep = nstep + 1
+              dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
+              aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
+              aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
+              tau = tau - dtau
+
+              dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
+              aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
+              aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
+              t = t - dt
+
+              if tau < next_tau:
+                n_out = n_out + 1
+                t_out[n_out] = t
+                tau_out[n_out] = tau
+                next_tau = next_tau + delta_tau/10.
+
             while aexp_tau >= aexp_min or aexp_t >= aexp_min:
               nstep = nstep + 1
               dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
@@ -696,30 +717,28 @@ class RAMSESDataset(Dataset):
               aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
               t = t - dt
 
-              if nstep % nskip == 0:
+              if tau < next_tau:
                 n_out = n_out + 1
                 t_out[n_out] = t
                 tau_out[n_out] = tau
-                aexp_out[n_out] = aexp_tau
-                hexp_out[n_out] = dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)/aexp_tau
-           
+                next_tau = next_tau + delta_tau
+
             n_out = ntable
             t_out[n_out] = t
             tau_out[n_out] = tau
-            aexp_out[n_out] = aexp_tau
-            hexp_out[n_out] = dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)/aexp_tau
 
-            return aexp_out, hexp_out, tau_out, t_out, ntable, age_tot
+            return tau_out, t_out, delta_tau, ntable, age_tot
 
-        self.aexp_frw, self.hexp_frw, self.tau_frw, self.t_frw, self.n_frw, self.time_tot = \
+        self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = \
           friedman( self.omega_matter, self.omega_lambda, 1. - self.omega_matter - self.omega_lambda )
-        i = 1
-        self.aexp = 1./(1. + self.current_redshift)
-        while self.aexp_frw[i] > self.aexp and i < self.n_frw:
-          i = i + 1
 
-        self.time_simu = self.t_frw[i  ]*(self.aexp-self.aexp_frw[i-1])/(self.aexp_frw[i]-self.aexp_frw[i-1])+ \
-                         self.t_frw[i-1]*(self.aexp-self.aexp_frw[i  ])/(self.aexp_frw[i-1]-self.aexp_frw[i])
+        age = self.parameters['time']
+        iage = 1 + int(10.*age/self.dtau)
+        if iage > self.n_frw/2:
+          iage = self.n_frw/2 + (iage - self.n_frw/2 )/10
+
+        self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
+                         self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
  
         self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
