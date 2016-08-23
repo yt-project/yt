@@ -101,4 +101,19 @@ class IOHandlerRAMSES(BaseIOHandler):
             tr[field] = fpu.read_vector(f, dt)
             if field[1].startswith("particle_position"):
                 np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
+            if field[1] == "particle_age":
+              t_frw = subset.domain.ds.t_frw
+              tau_frw = subset.domain.ds.tau_frw
+              tsim = subset.domain.ds.time_simu
+              h100 = subset.domain.ds.hubble_constant
+              for ipart, age in enumerate(tr[field]):
+                 if age < 0.:
+                   i = 1
+                   while tau_frw[i] > age and i < subset.domain.ds.n_frw:
+                     i = i + 1 
+
+                   t = t_frw[i  ]*(age-tau_frw[i-1])/(tau_frw[i]-tau_frw[i-1])+ \
+                       t_frw[i-1]*(age-tau_frw[i  ])/(tau_frw[i-1]-tau_frw[i])
+                   newage = (tsim-t)/(h100*1e7/3.08e24)/subset.domain.ds['unit_t']
+                   tr[field][ipart] = newage
         return tr

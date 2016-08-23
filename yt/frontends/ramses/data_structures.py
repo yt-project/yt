@@ -615,7 +615,6 @@ class RAMSESDataset(Dataset):
                 dom, mi, ma = f.readline().split()
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
         self.parameters.update(rheader)
-        self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
@@ -637,6 +636,93 @@ class RAMSESDataset(Dataset):
             self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
+
+        def dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0):
+           return np.sqrt( aexp_tau**3 * (O_mat_0 + O_vac_0*aexp_tau**3 + O_k_0*aexp_tau) )
+
+        def dadt(aexp_t,O_mat_0,O_vac_0,O_k_0):
+           return np.sqrt( (1./aexp_t)*(O_mat_0 + O_vac_0*aexp_t**3 + O_k_0*aexp_t) )
+
+        def friedman(O_mat_0, O_vac_0, O_k_0):
+            alpha = 1.e-5
+            aexp_min = 1.e-3
+            aexp_tau = 1.
+            aexp_t = 1.
+            tau = 0.
+            t = 0.
+            nstep = 0
+            ntable = 100
+            aexp_out = np.zeros([ntable+1])
+            hexp_out = np.zeros([ntable+1])
+            tau_out = np.zeros([ntable+1])
+            t_out = np.zeros([ntable+1])
+
+            while aexp_tau >= aexp_min or aexp_t >= aexp_min:
+              nstep = nstep + 1
+              dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)   
+              aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
+              aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
+              tau = tau - dtau
+
+              dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
+              aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
+              aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
+              t = t - dt
+
+            age_tot=-t
+            nskip=nstep/ntable
+
+            aexp_tau = 1.
+            aexp_t = 1.
+            tau = 0.
+            t = 0.
+            nstep = 0
+
+            n_out = 0
+            t_out[n_out] = t
+            tau_out[n_out] = tau
+            aexp_out[n_out] = aexp_tau
+            hexp_out[n_out] = dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)/aexp_tau
+ 
+            while aexp_tau >= aexp_min or aexp_t >= aexp_min:
+              nstep = nstep + 1
+              dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
+              aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
+              aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
+              tau = tau - dtau
+
+              dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
+              aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
+              aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
+              t = t - dt
+
+              if nstep % nskip == 0:
+                n_out = n_out + 1
+                t_out[n_out] = t
+                tau_out[n_out] = tau
+                aexp_out[n_out] = aexp_tau
+                hexp_out[n_out] = dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)/aexp_tau
+           
+            n_out = ntable
+            t_out[n_out] = t
+            tau_out[n_out] = tau
+            aexp_out[n_out] = aexp_tau
+            hexp_out[n_out] = dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)/aexp_tau
+
+            return aexp_out, hexp_out, tau_out, t_out, ntable, age_tot
+
+        self.aexp_frw, self.hexp_frw, self.tau_frw, self.t_frw, self.n_frw, self.time_tot = \
+          friedman( self.omega_matter, self.omega_lambda, 1. - self.omega_matter - self.omega_lambda )
+        i = 1
+        self.aexp = 1./(1. + self.current_redshift)
+        while self.aexp_frw[i] > self.aexp and i < self.n_frw:
+          i = i + 1
+
+        self.time_simu = self.t_frw[i  ]*(self.aexp-self.aexp_frw[i-1])/(self.aexp_frw[i]-self.aexp_frw[i-1])+ \
+                         self.t_frw[i-1]*(self.aexp-self.aexp_frw[i  ])/(self.aexp_frw[i-1]-self.aexp_frw[i])
+ 
+        self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
