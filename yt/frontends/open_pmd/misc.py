@@ -79,4 +79,4 @@ def is_const_component(record_component):
     .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md,
        section 'Constant Record Components'
     """
-    return "value" in record_component.attrs.keys()
+    return "value" in list(record_component.attrs.keys())

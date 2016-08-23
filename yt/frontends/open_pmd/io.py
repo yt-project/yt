@@ -50,7 +50,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
         if str((ptype, index, offset)) not in self._cached_ptype:
             self._cached_ptype = str((ptype, index, offset))
             pds = self._handle[self.base_path + self.particles_path + "/" + ptype]
-            axes = [str(ax) for ax in pds["position"].keys()]
+            axes = [str(ax) for ax in list(pds["position"].keys())]
             if offset is None:
                 if is_const_component(pds["position/" + axes[0]]):
                     offset = pds["position/" + axes[0]].attrs["shape"]
@@ -111,7 +111,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             for chunk in chunks:
                 for grid in chunk.objs:
                     if ptype in "io":
-                        spec = ds[self.particles_path].keys()[0]
+                        spec = list(ds[self.particles_path].keys())[0]
                     else:
                         spec = ptype
                     if spec not in grid.ptypes:
@@ -230,7 +230,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
             if offset is None:
                 offset = record_component.attrs["shape"] - index
             # component is constant, craft an array by hand
-            mylog.debug("open_pmd - get_component (const): {}/{} ({})".format(group.name, component_name, offset))
+            mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, offset))
             return np.full(offset, record_component.attrs["value"] * unit_si)
         else:
             if offset is not None:

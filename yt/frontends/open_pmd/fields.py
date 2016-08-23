@@ -145,7 +145,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         pp = ds.particles_path
         fields = f[bp + mp]
 
-        for fname in fields.keys():
+        for fname in list(fields.keys()):
             field = fields[fname]
             if type(field) is h5.Dataset:
                 # Don't consider axes. This appears to be a vector field of single dimensionality
@@ -159,7 +159,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)),)
             else:
-                axes = field.keys()
+                axes = list(field.keys())
                 for axis in axes:
                     ytname = str("_".join([fname.replace("_", "-"), axis]))
                     parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
@@ -174,8 +174,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             mylog.debug("open_pmd - known_other_fields - {}".format(i))
         particle_fields = ()
         particles = f[bp + pp]
-        for species in particles.keys():
-            for attrib in particles[species].keys():
+        for species in list(particles.keys()):
+            for attrib in list(particles[species].keys()):
                 try:
                     parsed = parse_unit_dimension(
                         np.asarray(particles.get(species).get(attrib).attrs["unitDimension"],
@@ -191,7 +191,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     if type(pds) is h5.Dataset or is_const_component(pds):
                         particle_fields += ((str("_".join(name)), (unit, [], None)),)
                     else:
-                        for axis in pds.keys():
+                        for axis in list(pds.keys()):
                             aliases = []
                             if axis in "rxyz":
                                 name = ["particle", ytattrib.replace("_", "-"), axis]
