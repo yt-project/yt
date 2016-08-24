@@ -233,7 +233,7 @@ class LightRay(CosmologySplice):
                 self.light_ray_solution[q]['traversal_box_fraction'] = \
                     self.cosmology.comoving_radial_distance(z_next, \
                         self.light_ray_solution[q]['redshift']).in_units("Mpccm / h") / \
-                        self.simulation.box_size  
+                        self.simulation.box_size
 
                 # Get dataset axis and center.
                 # If using box coherence, only get start point and vector if
@@ -249,12 +249,11 @@ class LightRay(CosmologySplice):
                     else:
                         ds = load(self.light_ray_solution[q]["filename"])
                         ray_length = \
-                          ds.quan(self.light_ray_solution[q]['traversal_box_fraction'],
+                          ds.quan(self.light_ray_solution[q]['traversal_box_fraction'].d,
                                   "unitary")
                         self.light_ray_solution[q]['start'], \
                           self.light_ray_solution[q]['end'] = \
-                          non_periodic_ray(ds, left_edge, right_edge,
-                            self.light_ray_solution[q]['traversal_box_fraction'],
+                          non_periodic_ray(ds, left_edge, right_edge, ray_length,
                                            my_random=my_random, min_level=min_level)
                         del ds
                 else:
