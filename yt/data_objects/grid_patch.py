@@ -254,11 +254,11 @@ class AMRGridPatch(YTSelectionContainer):
         return cube
 
     def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
-        _old_api = isinstance(fields, string_types)
+        _old_api = isinstance(fields, (string_types, tuple))
         if _old_api:
             message = (
                 'get_vertex_centered_data() requires list of fields, rather than '
-                'a single string as an argument.'
+                'a single field as an argument.'
             )
             warnings.warn(message, DeprecationWarning, stacklevel=2)
             fields = [fields]
