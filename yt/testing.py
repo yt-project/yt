@@ -229,7 +229,7 @@ _geom_transforms = {
                    ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlondep
 }
 
-def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
+def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
     from yt.frontends.stream.api import load_amr_grids
     LE, RE = _geom_transforms[geometry]
     LE = np.array(LE)
@@ -245,6 +245,16 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
                      dimensions = dims)
         for f in fields:
             gdata[f] = np.random.random(dims)
+        if particles:
+            for i, f in enumerate('particle_position_%s' % ax for ax in 'xyz'):
+                pdata = np.random.random(particles)
+                pdata /= (right_edge[i] - left_edge[i])
+                pdata += left_edge[i]
+                gdata['io', f] = (pdata, 'code_length')
+            for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+                gdata['io', f] = (np.random.random(particles) - 0.5, 'cm/s')
+            gdata['io', 'particle_mass'] = (np.random.random(particles), 'g')
+            gdata['number_of_particles'] = particles
         data.append(gdata)
     bbox = np.array([LE, RE]).T
     return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
