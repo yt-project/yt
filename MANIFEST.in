@@ -3,6 +3,7 @@ include yt/visualization/mapserver/html/map_index.html
 include yt/visualization/mapserver/html/leaflet/*.css
 include yt/visualization/mapserver/html/leaflet/*.js
 include yt/visualization/mapserver/html/leaflet/images/*.png
+include yt/utilities/mesh_types.yaml
 exclude scripts/pr_backport.py
 recursive-include yt *.py *.pyx *.pxd *.h README* *.txt LICENSE* *.cu
 recursive-include doc *.rst *.txt *.py *.ipynb *.png *.jpg *.css *.html
