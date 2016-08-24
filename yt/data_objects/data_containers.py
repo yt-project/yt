@@ -1595,13 +1595,18 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _extract_isocontours_from_grid(self, grid, mask, field, value,
                                        sample_values=None):
-        vals = grid.get_vertex_centered_data(field, no_ghost=False)
+        vc_fields = [field]
         if sample_values is not None:
-            svals = grid.get_vertex_centered_data(sample_values)
-        else:
+            vc_fields.append(sample_values)
+
+        vc_data = grid.get_vertex_centered_data(vc_fields, no_ghost=False)
+        try:
+            svals = vc_data[sample_values]
+        except KeyError:
             svals = None
-        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
-                                    grid.dds, svals)
+
+        my_verts = march_cubes_grid(value, vc_data[field], mask,
+            grid.LeftEdge, grid.dds, svals)
         return my_verts
 
     def calculate_isocontour_flux(self, field, value,
@@ -1673,15 +1678,21 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-        vals = grid.get_vertex_centered_data(field)
+        
+        vc_fields = [field, field_x, field_y, field_z]
+        if fluxing_field is not None:
+            vc_fields.append(fluxing_field)
+
+        vc_data = grid.get_vertex_centered_data(vc_fields)
+
         if fluxing_field is None:
-            ff = np.ones(vals.shape, dtype="float64")
+            ff = np.ones_like(vc_data[field], dtype="float64")
         else:
-            ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
-                     [field_x, field_y, field_z]]
-        return march_cubes_grid_flux(value, vals, xv, yv, zv,
-                    ff, mask, grid.LeftEdge, grid.dds)
+            ff = vc_data[fluxing_field]
+
+        return march_cubes_grid_flux(value, vc_data[field], vc_data[field_x],
+            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
+            grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                log_space=True, cumulative=True):
