@@ -156,21 +156,26 @@ def off_axis_projection(data_source, center, normal_vector,
     camera.resolution = resolution
     if not iterable(width):
         width = data_source.ds.arr([width]*3)
-    camera.position = center - width[2]*normal_vector
+    normal = np.array(normal_vector)
+    normal = normal / np.linalg.norm(normal)
+
+    camera.position = center - width[2]*normal
     camera.focus = center
-    
+
     # If north_vector is None, we set the default here.
-    # This is chosen so that if normal_vector is one of the 
+    # This is chosen so that if normal_vector is one of the
     # cartesian coordinate axes, the projection will match
     # the corresponding on-axis projection.
     if north_vector is None:
         vecs = np.identity(3)
-        t = np.cross(vecs, normal_vector).sum(axis=1)
+        t = np.cross(vecs, normal).sum(axis=1)
         ax = t.argmax()
-        east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
-        north_vector = np.cross(normal_vector, east_vector).ravel()
-    camera.switch_orientation(normal_vector,
-                              north_vector)
+        east_vector = np.cross(vecs[ax, :], normal).ravel()
+        north = np.cross(normal, east_vector).ravel()
+    else:
+        north = np.array(north_vector)
+        north = north / np.linalg.norm(north)
+    camera.switch_orientation(normal, north)
 
     sc.add_source(vol)
 

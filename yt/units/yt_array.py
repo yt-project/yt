@@ -389,17 +389,18 @@ class YTArray(np.ndarray):
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
         if isinstance(input_array, YTArray):
+            ret = input_array.view(cls)
             if input_units is None:
                 if registry is None:
                     pass
                 else:
                     units = Unit(str(input_array.units), registry=registry)
-                    input_array.units = units
+                    ret.units = units
             elif isinstance(input_units, Unit):
-                input_array.units = input_units
+                ret.units = input_units
             else:
-                input_array.units = Unit(input_units, registry=registry)
-            return input_array.view(cls)
+                ret.units = Unit(input_units, registry=registry)
+            return ret
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array) and input_array:
