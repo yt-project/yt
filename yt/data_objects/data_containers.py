@@ -913,10 +913,7 @@ class YTDataContainer(object):
         if axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
         elif axis is None:
-            if weight is None:
-                r = self.quantities.total_quantity(field)
-            else:
-                r = self.quantities.weighted_average_quantity(field, weight)
+            r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
