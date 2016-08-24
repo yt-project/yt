@@ -13,8 +13,10 @@ Python-based grid handler, not to be confused with the SWIG-handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import warnings
 import weakref
 import numpy as np
+from six import string_types
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
@@ -252,6 +254,15 @@ class AMRGridPatch(YTSelectionContainer):
         return cube
 
     def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
+        _old_api = isinstance(fields, string_types)
+        if _old_api:
+            message = (
+                'get_vertex_centered_data() requires list of fields, rather than '
+                'a single string as an argument.'
+            )
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            fields = [fields]
+
         # Make sure the field list has only unique entries
         fields = list(set(fields))
         new_fields = {}
@@ -283,6 +294,8 @@ class AMRGridPatch(YTSelectionContainer):
                 np.add(new_fields[field], cg[field][:-1,:-1,:-1], new_fields[field])
                 np.multiply(new_fields[field], 0.125, new_fields[field])
 
+        if _old_api:
+            return new_fields[fields[0]]
         return new_fields
 
     def select_icoords(self, dobj):
