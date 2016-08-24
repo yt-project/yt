@@ -8,6 +8,7 @@
 #-----------------------------------------------------------------------------
 
 import os
+import shutil
 import sys
 import argparse
 from yt.config import CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE
@@ -37,13 +38,25 @@ def write_config(fd=None):
 
 def migrate_config():
     if not os.path.exists(_OLD_CONFIG_FILE):
-        print("Old config not found.")
+        print('Old config not found.')
         sys.exit()
     CONFIG.read(_OLD_CONFIG_FILE)
-    print("Writing a new config file to: {}".format(CURRENT_CONFIG_FILE))
+    print('Writing a new config file to: {}'.format(CURRENT_CONFIG_FILE))
     write_config()
-    print("Backing up the old config file: {}.bak".format(_OLD_CONFIG_FILE))
+    print('Backing up the old config file: {}.bak'.format(_OLD_CONFIG_FILE))
     os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + '.bak')
+
+    old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
+    plugin_file = CONFIG.get('yt', 'pluginfilename')
+    if plugin_file and \
+            os.path.exists(os.path.join(old_config_dir, plugin_file)):
+        print('Migrating plugin file {} to new location'.format(plugin_file))
+        shutil.copyfile(
+            os.path.join(old_config_dir, plugin_file),
+            os.path.join(os.path.dirname(CURRENT_CONFIG_FILE), plugin_file))
+        print('Backing up the old plugin file: {}.bak'.format(_OLD_CONFIG_FILE))
+        plugin_file = os.path.join(old_config_dir, plugin_file)
+        os.rename(plugin_file, plugin_file + '.bak')
 
 
 def rm_config(section, option):
