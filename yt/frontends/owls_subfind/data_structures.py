@@ -24,7 +24,9 @@ import os
 from .fields import \
     OWLSSubfindFieldInfo
 
-from yt.funcs import only_on_root
+from yt.funcs import \
+    only_on_root, \
+    setdefaultattr
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
@@ -176,7 +178,8 @@ class OWLSSubfindDataset(Dataset):
         else:
             raise RuntimeError
         length_unit = _fix_unit_ordering(length_unit)
-        self.length_unit = self.quan(length_unit[0], length_unit[1])
+        setdefaultattr(self, 'length_unit',
+                       self.quan(length_unit[0], length_unit[1]))
 
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
@@ -185,7 +188,8 @@ class OWLSSubfindDataset(Dataset):
         else:
             velocity_unit = (1e5, "cm/s")
         velocity_unit = _fix_unit_ordering(velocity_unit)
-        self.velocity_unit = self.quan(velocity_unit[0], velocity_unit[1])
+        setdefaultattr(self, 'velocity_unit',
+                       self.quan(velocity_unit[0], velocity_unit[1]))
 
         # We set hubble_constant = 1.0 for non-cosmology, so this is safe.
         # Default to 1e10 Msun/h if mass is not specified.
@@ -200,7 +204,7 @@ class OWLSSubfindDataset(Dataset):
             # Sane default
             mass_unit = (1.0, "1e10*Msun/h")
         mass_unit = _fix_unit_ordering(mass_unit)
-        self.mass_unit = self.quan(mass_unit[0], mass_unit[1])
+        setdefaultattr(self, 'mass_unit', self.quan(mass_unit[0], mass_unit[1]))
 
         if "time" in unit_base:
             time_unit = unit_base["time"]
@@ -208,7 +212,7 @@ class OWLSSubfindDataset(Dataset):
             time_unit = (unit_base["UnitTime_in_s"], "s")
         else:
             time_unit = (1., "s")        
-        self.time_unit = self.quan(time_unit[0], time_unit[1])
+        setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

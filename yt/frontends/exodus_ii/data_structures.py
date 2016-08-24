@@ -14,6 +14,8 @@ Exodus II data structures
 #-----------------------------------------------------------------------------
 import numpy as np
 
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
 from yt.data_objects.unstructured_mesh import \
@@ -163,9 +165,9 @@ class ExodusIIDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")

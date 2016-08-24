@@ -27,6 +27,8 @@ from yt.units.yt_array import \
     YTQuantity
 from yt.units.unit_object import Unit
 from yt.data_objects.field_data import YTFieldData
+from yt.utilities.exceptions import \
+    YTIllDefinedProfile
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -956,10 +958,18 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     fields = ensure_list(fields)
     is_pfield = [data_source.ds._get_field_info(f).particle_type
                  for f in bin_fields + fields]
+    wf = None
+    if weight_field is not None:
+        wf = data_source.ds._get_field_info(weight_field)
+        is_pfield.append(wf.particle_type)
+        wf = wf.name
 
-    if len(bin_fields) == 1:
+    if any(is_pfield) and not all(is_pfield):
+        raise YTIllDefinedProfile(
+            bin_fields, data_source._determine_fields(fields), wf, is_pfield)
+    elif len(bin_fields) == 1:
         cls = Profile1D
-    elif len(bin_fields) == 2 and np.all(is_pfield):
+    elif len(bin_fields) == 2 and all(is_pfield):
         # log bin_fields set to False for Particle Profiles.
         # doesn't make much sense for CIC deposition.
         # accumulation and fractional set to False as well.
