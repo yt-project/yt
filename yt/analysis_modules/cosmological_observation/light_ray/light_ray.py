@@ -521,10 +521,10 @@ class LightRay(CosmologySplice):
                         my_segment['end']))
 
             # Break periodic ray into non-periodic segments.
-            sub_segments = periodic_ray(my_segment['start'].to("code_length"),
-                                        my_segment['end'].to("code_length"),
-                                        left=left_edge.to("code_length"),
-                                        right=right_edge.to("code_length"))
+            sub_segments = periodic_ray(my_segment['start'],
+                                        my_segment['end'],
+                                        left=left_edge,
+                                        right=right_edge)
 
             # Prepare data structure for subsegment.
             sub_data = {}
@@ -577,7 +577,7 @@ class LightRay(CosmologySplice):
                     # sight) and the velocity vectors: a dot b = ab cos(theta)
 
                     sub_vel_mag = sub_ray['velocity_magnitude']
-                    cos_theta = np.dot(line_of_sight, sub_vel) / sub_vel_mag
+                    cos_theta = line_of_sight.dot(sub_vel) / sub_vel_mag
                     # Protect against stituations where velocity mag is exactly
                     # zero, in which case zero / zero = NaN.
                     cos_theta = np.nan_to_num(cos_theta)
@@ -791,7 +791,7 @@ def periodic_ray(start, end, left=None, right=None):
     dim = right - left
 
     vector = end - start
-    wall = np.zeros(start.shape)
+    wall = np.zeros_like(start)
     close = np.zeros(start.shape, dtype=object)
 
     left_bound = vector < 0
@@ -811,7 +811,6 @@ def periodic_ray(start, end, left=None, right=None):
     this_end = end.copy()
     t = 0.0
     tolerance = 1e-6
-
     while t < 1.0 - tolerance:
         hit_left = (this_start <= left) & (vector < 0)
         if (hit_left).any():
@@ -829,7 +828,7 @@ def periodic_ray(start, end, left=None, right=None):
         now = this_start + vector * dt
         close_enough = np.abs(now - nearest) / np.abs(vector.max()) < 1e-10
         now[close_enough] = nearest[close_enough]
-        segments.append([np.copy(this_start), np.copy(now)])
+        segments.append([this_start.copy(), now.copy()])
         this_start = now.copy()
         t += dt
 
