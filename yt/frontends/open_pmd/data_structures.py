@@ -368,7 +368,7 @@ class OpenPMDDataset(Dataset):
             # Only use on-disk particle names if there is more than one species
             self.particle_types = particles
         mylog.debug("open_pmd - self.particle_types: {}".format(self.particle_types))
-        self.gridsize = kwargs.pop("open_pmd_virtual_gridsize", 12*10**6)
+        self.gridsize = kwargs.pop("open_pmd_virtual_gridsize", 10**9)
         self.particle_types_raw = self.particle_types
         self.particle_types = tuple(self.particle_types)
 
