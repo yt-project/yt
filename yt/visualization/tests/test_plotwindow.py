@@ -481,7 +481,7 @@ def test_setup_origin():
         lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
         for l in lims:
             generated_limits.append(l)
-    yield assert_array_almost_equal, correct_limits, generated_limits
+    assert_array_almost_equal(correct_limits, generated_limits)
 
 def test_frb_regen():
     ds = fake_random_ds(32)
