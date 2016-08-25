@@ -34,11 +34,16 @@ from yt.units.unit_object import \
     UnitTuple, \
     UnitParseError
 from yt.units.unit_registry import UnitRegistry
-from yt.units.dimensions import dimensionless
+from yt.units.dimensions import \
+    angle, \
+    current_mks, \
+    dimensionless, \
+    em_dimensions
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUnitConversionError, \
     YTUfuncUnitError, YTIterableUnitCoercionError, \
-    YTInvalidUnitEquivalence
+    YTInvalidUnitEquivalence, YTEquivalentDimsError
+from yt.utilities.lru_cache import lru_cache
 from numbers import Number as numeric_type
 from yt.utilities.on_demand_imports import _astropy
 from sympy import Rational
@@ -78,24 +83,30 @@ def return_arr(func):
             return type(args[0])(ret, units)
     return wrapped
 
+@lru_cache(maxsize=128, typed=False)
 def sqrt_unit(unit):
     return unit**0.5
 
+@lru_cache(maxsize=128, typed=False)
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
 def preserve_units(unit1, unit2):
     return unit1
 
+@lru_cache(maxsize=128, typed=False)
 def power_unit(unit, power):
     return unit**power
 
+@lru_cache(maxsize=128, typed=False)
 def square_unit(unit):
     return unit*unit
 
+@lru_cache(maxsize=128, typed=False)
 def divide_units(unit1, unit2):
     return unit1/unit2
 
+@lru_cache(maxsize=128, typed=False)
 def reciprocal_unit(unit):
     return unit**-1
 
@@ -169,15 +180,23 @@ def sanitize_units_add(this_object, other_object, op_string):
     # attribute.
     if isinstance(ret, YTArray):
         if not i_units.same_dimensions_as(r_units):
+            # handle special case of adding or subtracting with zero or
+            # array filled with zero
+            if not np.any(other_object):
+                return ret.view(np.ndarray)
+            elif not np.any(this_object):
+                return ret
             raise YTUnitOperationError(op_string, inp.units, ret.units)
         if li_units <= lr_units:
             ret = ret.in_units(inp.units)
         else:
+            # If the other object is not a YTArray, the only valid case is adding
+            # dimensionless things.
             ret = ret.in_units(inp.units[0])
-    # If the other object is not a YTArray, the only valid case is adding
-    # dimensionless things.
     else:
-        if not i_units.is_dimensionless:
+        # If the other object is not a YTArray, then one of the arrays must be
+        # dimensionless or filled with zeros
+        if not i_units.is_dimensionless and np.any(ret):
             raise YTUnitOperationError(op_string, inp.units, dimensionless)
     return ret
 
@@ -187,7 +206,9 @@ def validate_comparison_units(this, other, op_string):
         (lt_units, t_units), (lo_units, o_units) = sanitize_unit_tuples(
             this.units, other.units)
         if all([u1.expr is u2.expr for u1, u2 in zip(t_units, o_units)]):
-            return other
+            # What to do with this?
+            if this.units.base_value == other.units.base_value:
+                return other
         if not t_units.same_dimensions_as(o_units):
             raise YTUnitOperationError(op_string, this.units, other.units)
         if lt_units <= lo_units:
@@ -195,6 +216,31 @@ def validate_comparison_units(this, other, op_string):
         else:
             return other.in_units(this.units[0])
     return other
+
+@lru_cache(maxsize=128, typed=False)
+def _unit_repr_check_same(my_units, other_units):
+    """
+    Takes a Unit object, or string of known unit symbol, and check that it
+    is compatible with this quantity. Returns Unit object.
+
+    """
+    # let Unit() handle units arg if it's not already a Unit obj.
+    if not isinstance(other_units, Unit):
+        other_units = Unit(other_units, registry=my_units.registry)
+
+    equiv_dims = em_dimensions.get(my_units.dimensions, None)
+    if equiv_dims == other_units.dimensions:
+        if current_mks in equiv_dims.free_symbols:
+            base = "SI"
+        else:
+            base = "CGS"
+        raise YTEquivalentDimsError(my_units, other_units, base)
+
+    if not my_units.same_dimensions_as(other_units):
+        raise YTUnitConversionError(
+            my_units, my_units.dimensions, other_units, other_units.dimensions)
+
+    return other_units
 
 unary_operators = (
     negative, absolute, rint, ones_like, sign, conj, exp, exp2, log, log2,
@@ -294,6 +340,9 @@ UFUNC_REGISTRY = {
     trunc: passthrough_unit,
 }
 
+trigonometric_operators = (
+    sin, cos, tan,
+)
 
 class YTArray(np.ndarray):
     """
@@ -373,7 +422,7 @@ class YTArray(np.ndarray):
                 obj.units.registry = registry
             return obj
         if input_array is NotImplemented:
-            return input_array
+            return input_array.view(cls)
         if registry is None and isinstance(input_units, (str, bytes)):
             if input_units.startswith('code_'):
                 raise UnitParseError(
@@ -391,21 +440,19 @@ class YTArray(np.ndarray):
                 if registry is None:
                     pass
                 else:
-                    input_array.units.registry = registry
+                    units = Unit(str(input_array.units), registry=registry)
+                    input_array.units = units
             elif isinstance(input_units, Unit):
                 input_array.units = input_units
             else:
                 input_array.units = Unit(input_units, registry=registry)
-            if preserve_subclass is False:
-                return input_array.view(YTArray)
-            else:
-                return input_array
+            return input_array.view(cls)
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array) and input_array:
             if isinstance(input_array[0], YTArray):
                 return YTArray(np.asarray(input_array, dtype=dtype),
-                               input_array[0].units)
+                               input_array[0].units, registry=registry)
 
         # Input array is an already formed ndarray instance
         # We first cast to be our class type
@@ -417,7 +464,10 @@ class YTArray(np.ndarray):
             # Nothing provided. Make dimensionless...
             units = Unit()
         elif isinstance(input_units, Unit):
-            units = input_units
+            if registry and registry is not input_units.registry:
+                units = Unit(str(input_units), registry=registry)
+            else:
+                units = input_units
         else:
             # units kwarg set, but it's not a Unit object.
             # don't handle all the cases here, let the Unit class handle if
@@ -475,12 +525,23 @@ class YTArray(np.ndarray):
 
         return self
 
-    def convert_to_base(self):
+    def convert_to_base(self, unit_system="cgs"):
         """
-        Convert the array and units to the equivalent base units.
+        Convert the array and units to the equivalent base units in
+        the specified unit system.
 
+        Parameters
+        ----------
+        unit_system : string, optional
+            The unit system to be used in the conversion. If not specified,
+            the default base units of cgs are used.
+
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> E.convert_to_base(unit_system="galactic")
         """
-        return self.convert_to_units(self.units.get_base_equivalent())
+        return self.convert_to_units(self.units.get_base_equivalent(unit_system))
 
     def convert_to_cgs(self):
         """
@@ -513,8 +574,7 @@ class YTArray(np.ndarray):
         new_units = self.units._unit_repr_check_same(units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
-        new_array = self * conversion_factor
-        new_array.units = new_units
+        new_array = type(self)(self.ndview * conversion_factor, new_units)
 
         if offset:
             np.subtract(new_array, offset*new_array.uq, new_array)
@@ -529,17 +589,23 @@ class YTArray(np.ndarray):
         """
         return self.in_units(units)
 
-    def in_base(self):
+    def in_base(self, unit_system="cgs"):
         """
-        Creates a copy of this array with the data in the equivalent base units,
-        and returns it.
+        Creates a copy of this array with the data in the specified unit system,
+        and returns it in that system's base units.
 
-        Returns
-        -------
-        Quantity object with data converted to cgs units.
+        Parameters
+        ----------
+        unit_system : string, optional
+            The unit system to be used in the conversion. If not specified,
+            the default base units of cgs are used.
 
+        Examples
+        --------
+        >>> E = YTQuantity(2.5, "erg/s")
+        >>> E_new = E.in_base(unit_system="galactic")
         """
-        return self.in_units(self.units.get_base_equivalent())
+        return self.in_units(self.units.get_base_equivalent(unit_system))
 
     def in_cgs(self):
         """
@@ -576,18 +642,21 @@ class YTArray(np.ndarray):
             The unit that you wish to convert to.
         equiv : string
             The equivalence you wish to use. To see which equivalencies are
-            supported for this unitful quantity, try the :meth:`list_equivalencies`
-            method.
+            supported for this unitful quantity, try the
+            :meth:`list_equivalencies` method.
 
         Examples
         --------
         >>> a = yt.YTArray(1.0e7,"K")
         >>> a.to_equivalent("keV", "thermal")
         """
-        unit_quan = YTQuantity(1.0, unit, registry=self.units.registry)
+        conv_unit = Unit(unit, registry=self.units.registry)
         this_equiv = equivalence_registry[equiv]()
-        if self.has_equivalent(equiv) and (unit_quan.has_equivalent(equiv) or this_equiv._one_way):
-            new_arr = this_equiv.convert(self, unit_quan.units.dimensions, **kwargs)
+        oneway_or_equivalent = (
+            conv_unit.has_equivalent(equiv) or this_equiv._one_way)
+        if self.has_equivalent(equiv) and oneway_or_equivalent:
+            new_arr = this_equiv.convert(
+                self, conv_unit.dimensions, **kwargs)
             if isinstance(new_arr, tuple):
                 try:
                     return YTArray(new_arr[0], new_arr[1]).in_units(unit)
@@ -603,21 +672,14 @@ class YTArray(np.ndarray):
         Lists the possible equivalencies associated with this YTArray or
         YTQuantity.
         """
-        for k,v in equivalence_registry.items():
-            if self.has_equivalent(k):
-                print(v())
+        self.units.list_equivalencies()
 
     def has_equivalent(self, equiv):
         """
         Check to see if this YTArray or YTQuantity has an equivalent unit in
         *equiv*.
         """
-        try:
-            this_equiv = equivalence_registry[equiv]()
-        except KeyError:
-            raise KeyError("No such equivalence \"%s\"." % equiv)
-        old_dims = self.units.dimensions
-        return old_dims in this_equiv.dims
+        return self.units.has_equivalent(equiv)
 
     def ndarray_view(self):
         """
@@ -697,7 +759,7 @@ class YTArray(np.ndarray):
         >>> c = yt.YTArray.from_pint(b)
         """
         p_units = []
-        for base, exponent in arr.units.items():
+        for base, exponent in arr._units.items():
             bs = convert_pint_units(base)
             p_units.append("%s**(%s)" % (bs, Rational(exponent)))
         p_units = "*".join(p_units)
@@ -718,7 +780,7 @@ class YTArray(np.ndarray):
             The Pint UnitRegistry to use in the conversion. If one is not
             supplied, the default one will be used. NOTE: This is not
             the same as a yt UnitRegistry object.
-            
+
         Examples
         --------
         >>> a = YTQuantity(4.0, "cm**2/s")
@@ -731,7 +793,7 @@ class YTArray(np.ndarray):
         units = []
         for unit, pow in powers_dict.items():
             # we have to do this because Pint doesn't recognize
-            # "yr" as "year" 
+            # "yr" as "year"
             if str(unit).endswith("yr") and len(str(unit)) in [2,3]:
                 unit = str(unit).replace("yr","year")
             units.append("%s**(%s)" % (unit, Rational(pow)))
@@ -742,8 +804,8 @@ class YTArray(np.ndarray):
     # End unit conversion methods
     #
 
-    def write_hdf5(self, filename, dataset_name=None, info=None):
-        r"""Writes ImageArray to hdf5 file.
+    def write_hdf5(self, filename, dataset_name=None, info=None, group_name=None):
+        r"""Writes a YTArray to hdf5 file.
 
         Parameters
         ----------
@@ -756,16 +818,17 @@ class YTArray(np.ndarray):
         info: dictionary
             A dictionary of supplementary info to write to append as attributes
             to the dataset.
+            
+        group_name: string
+            An optional group to write the arrays to. If not specified, the arrays
+            are datasets at the top level by default.
 
         Examples
         --------
         >>> a = YTArray([1,2,3], 'cm')
-
         >>> myinfo = {'field':'dinosaurs', 'type':'field_data'}
-
         >>> a.write_hdf5('test_array_data.h5', dataset_name='dinosaurs',
         ...              info=myinfo)
-
         """
         import h5py
         from yt.extern.six.moves import cPickle as pickle
@@ -779,8 +842,15 @@ class YTArray(np.ndarray):
             dataset_name = 'array_data'
 
         f = h5py.File(filename)
-        if dataset_name in f.keys():
-            d = f[dataset_name]
+        if group_name is not None:
+            if group_name in f:
+                g = f[group_name]
+            else:
+                g = f.create_group(group_name)
+        else:
+            g = f
+        if dataset_name in g.keys():
+            d = g[dataset_name]
             # Overwrite without deleting if we can get away with it.
             if d.shape == self.shape and d.dtype == self.dtype:
                 d[:] = self
@@ -788,16 +858,16 @@ class YTArray(np.ndarray):
                     del d.attrs[k]
             else:
                 del f[dataset_name]
-                d = f.create_dataset(dataset_name, data=self)
+                d = g.create_dataset(dataset_name, data=self)
         else:
-            d = f.create_dataset(dataset_name, data=self)
+            d = g.create_dataset(dataset_name, data=self)
 
         for k, v in info.items():
             d.attrs[k] = v
         f.close()
 
     @classmethod
-    def from_hdf5(cls, filename, dataset_name=None):
+    def from_hdf5(cls, filename, dataset_name=None, group_name=None):
         r"""Attempts read in and convert a dataset in an hdf5 file into a YTArray.
 
         Parameters
@@ -809,6 +879,10 @@ class YTArray(np.ndarray):
             The name of the dataset to read from.  If the dataset has a units
             attribute, attempt to infer units as well.
 
+        group_name: string
+            An optional group to read the arrays from. If not specified, the arrays
+            are datasets at the top level by default.
+
         """
         import h5py
         from yt.extern.six.moves import cPickle as pickle
@@ -817,7 +891,11 @@ class YTArray(np.ndarray):
             dataset_name = 'array_data'
 
         f = h5py.File(filename)
-        dataset = f[dataset_name]
+        if group_name is not None:
+            g = f[group_name]
+        else:
+            g = f
+        dataset = g[dataset_name]
         data = dataset[:]
         units = dataset.attrs.get('units', '')
         if 'unit_registry' in dataset.attrs.keys():
@@ -871,13 +949,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "addition")
-        return YTArray(super(YTArray, self).__add__(ro), preserve_subclass=True)
+        return type(self)(super(YTArray, self).__add__(ro), self.units)
 
     def __radd__(self, left_object):
         """ See __add__. """
         lo = sanitize_units_add(self, left_object, "addition")
-        return YTArray(super(YTArray, self).__radd__(lo),
-                       preserve_subclass=True)
+        return type(self)(super(YTArray, self).__radd__(lo), self.units)
 
     def __iadd__(self, other):
         """ See __add__. """
@@ -892,12 +969,12 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "subtraction")
-        return YTArray(super(YTArray, self).__sub__(ro), preserve_subclass=True)
+        return type(self)(super(YTArray, self).__sub__(ro), self.units)
 
     def __rsub__(self, left_object):
         """ See __sub__. """
         lo = sanitize_units_add(self, left_object, "subtraction")
-        return YTArray(super(YTArray, self).__rsub__(lo), preserve_subclass=True)
+        return type(self)(super(YTArray, self).__rsub__(lo), self.units)
 
     def __isub__(self, other):
         """ See __sub__. """
@@ -907,39 +984,106 @@ class YTArray(np.ndarray):
 
     def __neg__(self):
         """ Negate the data. """
-        return YTArray(super(YTArray, self).__neg__(), preserve_subclass=True)
+        return type(self)(super(YTArray, self).__neg__(), self.units)
 
     def __pos__(self):
         """ Posify the data. """
-        return YTArray(super(YTArray, self).__pos__(), self.units,
-                       preserve_subclass=True)
+        return type(self)(super(YTArray, self).__pos__(), self.units)
 
-    #Should these raise errors?  I need to come back and check this.
+    def __mul__(self, right_object):
+        """
+        Multiply this YTArray by the object on the right of the `*` operator.
+        The unit objects handle being multiplied.
+
+        """
+        ro = sanitize_units_mul(self, right_object)
+        return super(YTArray, self).__mul__(ro)
+
+    def __rmul__(self, left_object):
+        """ See __mul__. """
+        lo = sanitize_units_mul(self, left_object)
+        return super(YTArray, self).__rmul__(lo)
+
+    def __imul__(self, other):
+        """ See __mul__. """
+        oth = sanitize_units_mul(self, other)
+        np.multiply(self, oth, out=self)
+        return self
+
+    def __div__(self, right_object):
+        """
+        Divide this YTArray by the object on the right of the `/` operator.
+
+        """
+        ro = sanitize_units_mul(self, right_object)
+        return super(YTArray, self).__div__(ro)
+
+    def __rdiv__(self, left_object):
+        """ See __div__. """
+        lo = sanitize_units_mul(self, left_object)
+        return super(YTArray, self).__rdiv__(lo)
+
+    def __idiv__(self, other):
+        """ See __div__. """
+        oth = sanitize_units_mul(self, other)
+        np.divide(self, oth, out=self)
+        return self
+
+    def __truediv__(self, right_object):
+        ro = sanitize_units_mul(self, right_object)
+        return super(YTArray, self).__truediv__(ro)
+
+    def __rtruediv__(self, left_object):
+        """ See __div__. """
+        lo = sanitize_units_mul(self, left_object)
+        return super(YTArray, self).__rtruediv__(lo)
+
+    def __itruediv__(self, other):
+        """ See __div__. """
+        oth = sanitize_units_mul(self, other)
+        np.true_divide(self, oth, out=self)
+        return self
+
+    def __floordiv__(self, right_object):
+        ro = sanitize_units_mul(self, right_object)
+        return super(YTArray, self).__floordiv__(ro)
+
+    def __rfloordiv__(self, left_object):
+        """ See __div__. """
+        lo = sanitize_units_mul(self, left_object)
+        return super(YTArray, self).__rfloordiv__(lo)
+
+    def __ifloordiv__(self, other):
+        """ See __div__. """
+        oth = sanitize_units_mul(self, other)
+        np.floor_divide(self, oth, out=self)
+        return self
+
     def __or__(self, right_object):
-        return YTArray(super(YTArray, self).__or__(right_object))
+        return super(YTArray, self).__or__(right_object)
 
     def __ror__(self, left_object):
-        return YTArray(super(YTArray, self).__ror__(left_object))
+        return super(YTArray, self).__ror__(left_object)
 
     def __ior__(self, other):
         np.bitwise_or(self, other, out=self)
         return self
 
     def __xor__(self, right_object):
-        return YTArray(super(YTArray, self).__xor__(right_object))
+        return super(YTArray, self).__xor__(right_object)
 
     def __rxor__(self, left_object):
-        return YTArray(super(YTArray, self).__rxor__(left_object))
+        return super(YTArray, self).__rxor__(left_object)
 
     def __ixor__(self, other):
         np.bitwise_xor(self, other, out=self)
         return self
 
     def __and__(self, right_object):
-        return YTArray(super(YTArray, self).__and__(right_object))
+        return super(YTArray, self).__and__(right_object)
 
     def __rand__(self, left_object):
-        return YTArray(super(YTArray, self).__rand__(left_object))
+        return super(YTArray, self).__rand__(left_object)
 
     def __iand__(self, other):
         np.bitwise_and(self, other, out=self)
@@ -966,14 +1110,13 @@ class YTArray(np.ndarray):
         # dimensionless Unit object.
         if self.units.is_dimensionless and power == -1:
             ret = super(YTArray, self).__pow__(power)
-            return YTArray(ret, input_units='', preserve_subclass=True)
+            return type(self)(ret, input_units='')
 
-        return YTArray(super(YTArray, self).__pow__(power),
-                       preserve_subclass=True)
+        return type(self)(super(YTArray, self).__pow__(power), self.units)
 
     def __abs__(self):
         """ Return a YTArray with the abs of the data. """
-        return YTArray(super(YTArray, self).__abs__(), preserve_subclass=True)
+        return type(self)(super(YTArray, self).__abs__(), self.units)
 
     def sqrt(self):
         """
@@ -981,22 +1124,23 @@ class YTArray(np.ndarray):
         take the 1/2 power of the units.
 
         """
-        return np.sqrt(self)
+        return type(self)(super(YTArray, self).sqrt(),
+                          input_units=self.units**0.5)
 
     #
     # Start comparison operators.
     #
 
-    # @todo: outsource to a single method with an op argument.
     def __lt__(self, other):
         """ Test if this is less than the object on the right. """
+        # converts if possible
         oth = validate_comparison_units(self, other, 'less_than')
-        return np.asarray(self).__lt__(np.asarray(oth))
+        return super(YTArray, self).__lt__(oth)
 
     def __le__(self, other):
         """ Test if this is less than or equal to the object on the right. """
         oth = validate_comparison_units(self, other, 'less_than or equal')
-        return np.asarray(self).__le__(np.asarray(oth))
+        return super(YTArray, self).__le__(oth)
 
     def __eq__(self, other):
         """ Test if this is equal to the object on the right. """
@@ -1005,7 +1149,7 @@ class YTArray(np.ndarray):
             # self is a YTArray, so it can't be None.
             return False
         oth = validate_comparison_units(self, other, 'equal')
-        return np.asarray(self).__eq__(np.asarray(oth))
+        return super(YTArray, self).__eq__(oth)
 
     def __ne__(self, other):
         """ Test if this is not equal to the object on the right. """
@@ -1013,19 +1157,19 @@ class YTArray(np.ndarray):
         if other is None:
             return True
         oth = validate_comparison_units(self, other, 'not equal')
-        return np.asarray(self).__ne__(np.asarray(oth))
+        return super(YTArray, self).__ne__(oth)
 
     def __ge__(self, other):
         """ Test if this is greater than or equal to other. """
         # Check that the other is a YTArray.
         oth = validate_comparison_units(self, other, 'greater than or equal')
-        return np.asarray(self).__ge__(np.asarray(oth))
+        return super(YTArray, self).__ge__(oth)
 
     def __gt__(self, other):
         """ Test if this is greater than the object on the right. """
         # Check that the other is a YTArray.
         oth = validate_comparison_units(self, other, 'greater than')
-        return np.asarray(self).__gt__(np.asarray(oth))
+        return super(YTArray, self).__gt__(oth)
 
     #
     # End comparison operators
@@ -1076,8 +1220,18 @@ class YTArray(np.ndarray):
             else:
                 return ret
         elif context[0] in unary_operators:
+<<<<<<< local
             u = getattr(context[1][0], 'units', NULL_UNIT)
             unit = UFUNC_REGISTRY[context[0]](u)
+=======
+            u = getattr(context[1][0], 'units', None)
+            if u is None:
+                u = NULL_UNIT
+            if u.dimensions is angle and context[0] in trigonometric_operators:
+                out_arr = context[0](
+                    context[1][0].in_units('radian').view(np.ndarray))
+            unit = self._ufunc_registry[context[0]](u)
+>>>>>>> other
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = coerce_iterable_units(context[1][0])
@@ -1100,15 +1254,39 @@ class YTArray(np.ndarray):
                         else:
                             raise YTUnitOperationError(context[0], unit1, unit2)
                     unit2 = 1.0
+<<<<<<< local
             unit_operator = UFUNC_REGISTRY[context[0]]
             if unit_operator in same_unit_operators:
+=======
+            unit_operator = self._ufunc_registry[context[0]]
+            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
+                # Allow comparisons, addition, and subtraction with
+                # dimensionless quantities or arrays filled with zeros.
+                u1d = unit1.is_dimensionless
+                u2d = unit2.is_dimensionless
+>>>>>>> other
                 if unit1 != unit2:
+<<<<<<< local
                     if not unit1.same_dimensions_as(unit2):
                         raise YTUnitOperationError(context[0], unit1, unit2)
                     else:
                         raise YTUfuncUnitError(context[0], unit1, unit2)
             unit = unit_operator(unit1, unit2)
             if unit_operator in commutative_operators:
+=======
+                    any_nonzero = [np.any(oper1), np.any(oper2)]
+                    if any_nonzero[0] is np.bool_(False):
+                        unit1 = unit2
+                    elif any_nonzero[1] is np.bool_(False):
+                        unit2 = unit1
+                    elif not any([u1d, u2d]):
+                        if not unit1.same_dimensions_as(unit2):
+                            raise YTUnitOperationError(context[0], unit1, unit2)
+                        else:
+                            raise YTUfuncUnitError(context[0], unit1, unit2)
+            unit = unit_operator(unit1, unit2)
+            if unit_operator in (multiply_units, divide_units):
+>>>>>>> other
                 if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
                         if unit1.dimensions == unit2.dimensions:
@@ -1328,6 +1506,31 @@ def uunion1d(arr1, arr2):
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
+def unorm(data):
+    """Matrix or vector norm that preserves units
+
+    This is a wrapper around np.linalg.norm that preserves units.
+    """
+    return YTArray(np.linalg.norm(data), data.units)
+
+def uvstack(arrs):
+    """Stack arrays in sequence vertically (row wise) while preserving units
+
+    This is a wrapper around np.vstack that preserves units.
+    """
+    v = np.vstack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
+def uhstack(arrs):
+    """Stack arrays in sequence horizontally (column wise) while preserving units
+
+    This is a wrapper around np.hstack that preserves units.
+    """
+    v = np.hstack(arrs)
+    v = validate_numpy_wrapper_units(v, arrs)
+    return v
+
 def array_like_field(data, x, field):
     field = data._determine_fields(field)[0]
     if isinstance(field, tuple):
@@ -1452,9 +1655,9 @@ def savetxt(fname, arrays, fmt='%.18e', delimiter='\t', header='',
     Examples
     --------
     >>> sp = ds.sphere("c", (100,"kpc"))
-    >>> a = sphere["density"]
-    >>> b = sphere["temperature"]
-    >>> c = sphere["velocity_x"]
+    >>> a = sp["density"]
+    >>> b = sp["temperature"]
+    >>> c = sp["velocity_x"]
     >>> yt.savetxt("sphere.dat", [a,b,c], header='My sphere stuff', delimiter="\t")
     """
     if not isinstance(arrays, list):

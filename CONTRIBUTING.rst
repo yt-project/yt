@@ -301,7 +301,15 @@ forked repository, namely run at a local command line:
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
 a local directory of the same name as the repository in the current working
-directory.  You can see any past state of the code by using the hg log command.
+directory. You should also run the following command, to make sure you are at
+the "yt" branch, and not other ones like "stable" (this will be important
+later when you want to submit your pull requests):
+
+.. code-block:: bash
+
+   $ hg update yt
+
+You can see any past state of the code by using the hg log command.
 For example, the following command would show you the last 5 changesets
 (modifications to the code) that were submitted to that repository.
 
@@ -651,7 +659,7 @@ straightforward.
 .. _multiple-PRs:
 
 Working with Multiple BitBucket Pull Requests
-+++++++++++++++++++++++++++++++++++++++++++++
+---------------------------------------------
 
 Once you become active developing for yt, you may be working on
 various aspects of the code or bugfixes at the same time.  Currently,
@@ -795,8 +803,8 @@ Source code style guide
    rather than explicitly. Ex: ``super(SpecialGridSubclass, self).__init__()``
    rather than ``SpecialGrid.__init__()``.
  * Docstrings should describe input, output, behavior, and any state changes
-   that occur on an object.  See the file ``doc/docstring_example.txt`` for a
-   fiducial example of a docstring.
+   that occur on an object.  See :ref:`docstrings` below for a fiducial example
+   of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
    imports should happen at the top of the file, after the copyright blurb.
  * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
@@ -843,7 +851,7 @@ API Style Guide
    be avoided, they must be explained, even if they are only to be passed on to
    a nested function.
 
-.. _docstrings
+.. _docstrings:
 
 Docstrings
 ----------

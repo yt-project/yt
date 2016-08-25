@@ -47,7 +47,7 @@ def test_output_00080():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
-
+    assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
 def test_RAMSESDataset():

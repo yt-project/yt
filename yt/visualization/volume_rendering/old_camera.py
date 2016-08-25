@@ -16,6 +16,8 @@ Import the components of the volume rendering extension
 from yt.extern.six.moves import builtins
 import numpy as np
 
+from yt.config import \
+    ytcfg
 from yt.funcs import \
     iterable, mylog, get_pbar, \
     get_num_threads, ensure_numpy_array
@@ -26,9 +28,11 @@ from copy import deepcopy
 from .transfer_functions import ProjectionTransferFunction
 
 from yt.utilities.lib.grid_traversal import \
-    pixelize_healpix, \
-    arr_fisheye_vectors, arr_pix2vec_nest, \
-    PartitionedGrid, ProjectionSampler, VolumeRenderSampler, \
+    pixelize_healpix, arr_fisheye_vectors, arr_pix2vec_nest
+from yt.utilities.lib.partitioned_grid import \
+    PartitionedGrid
+from yt.utilities.lib.image_samplers import \
+    ProjectionSampler, VolumeRenderSampler, \
     LightSourceRenderSampler, InterpolatedProjectionSampler
 from yt.utilities.lib.misc_utilities import \
     lines
@@ -236,7 +240,7 @@ class Camera(ParallelAnalysisInterface):
         px = (res[1]*(dy/self.width[1])).astype('int')
         return px, py, dz
 
-    def draw_grids(self, im, alpha=0.3, cmap='algae', min_level=None, 
+    def draw_grids(self, im, alpha=0.3, cmap=None, min_level=None, 
                    max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
@@ -269,6 +273,8 @@ class Camera(ParallelAnalysisInterface):
         >>> write_bitmap(im, 'render_with_grids.png')
 
         """
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
         region = self.data_source
         corners = []
         levels = []
@@ -1879,7 +1885,7 @@ class ProjectionCamera(Camera):
         dl = 1.0
         if self.method == "integrate":
             if self.weight is None:
-                dl = self.width[2].in_units("cm")
+                dl = self.width[2].in_units(ds.unit_system["length"])
             else:
                 image[:, : ,0] /= image[:, :, 1]
 

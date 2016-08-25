@@ -54,7 +54,7 @@ def test_oap(tmpdir=True):
     oap_kwargs_list = expand_keywords(oap_kwargs)
 
     # args or write_projection
-    fn = "test_%s.png"
+    fn = "test_%d.png"
 
     # kwargs for write_projection
     wp_kwargs = {}
@@ -65,17 +65,17 @@ def test_oap(tmpdir=True):
     wp_kwargs['take_log'] = (True, False)
     wp_kwargs['figsize'] = ((8,6), [1,1])
     wp_kwargs['dpi'] = (100, 50)
-    wp_kwargs['cmap_name'] = ('algae', 'jet')
+    wp_kwargs['cmap_name'] = ('arbre', 'kelp')
     wp_kwargs_list = expand_keywords(wp_kwargs)
 
     # test all off_axis_projection kwargs and write_projection kwargs
     # make sure they are able to be projected, then remove and try next
     # iteration
-    for oap_kwargs in oap_kwargs_list:
-        image, sc = off_axis_projection(*oap_args, **oap_kwargs)
+    for i, oap_kwargs in enumerate(oap_kwargs_list):
+        image = off_axis_projection(*oap_args, **oap_kwargs)
         for wp_kwargs in wp_kwargs_list:
-            write_projection(image, fn % oap_kwargs, **wp_kwargs)
-            yield assert_equal, os.path.exists(fn % oap_kwargs), True
+            write_projection(image, fn % i, **wp_kwargs)
+            yield assert_equal, os.path.exists(fn % i), True
 
     if tmpdir:
         os.chdir(curdir)

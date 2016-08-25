@@ -20,6 +20,7 @@ from .coordinate_handler import \
     _get_coord_fields
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
+    name = "spectral_cube"
 
     def __init__(self, ds, ordering = ('x', 'y', 'z')):
         ordering = tuple("xyz"[axis] for axis in

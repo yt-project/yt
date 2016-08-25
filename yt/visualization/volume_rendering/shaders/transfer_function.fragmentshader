@@ -1,0 +1,76 @@
+#version 330
+in vec4 v_model;
+in vec3 v_camera_pos;
+in vec3 dx;
+in vec3 left_edge;
+in vec3 right_edge;
+flat in mat4 inverse_proj;
+flat in mat4 inverse_view;
+out vec4 output_color;
+
+uniform sampler3D ds_tex;
+uniform sampler1D cmap;
+//layout (binding = 1) uniform sampler2D depth_tex;
+uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
+
+bool within_bb(vec3 pos)
+{
+    bvec3 left =  greaterThanEqual(pos, left_edge);
+    bvec3 right = lessThanEqual(pos, right_edge);
+    return all(left) && all(right);
+}
+
+void main()
+{
+    // Obtain screen coordinates
+    // https://www.opengl.org/wiki/Compute_eye_space_from_window_space#From_gl_FragCoord
+    vec4 ndcPos;
+    ndcPos.xy = ((2.0 * gl_FragCoord.xy) - (2.0 * viewport.xy)) / (viewport.zw) - 1;
+    ndcPos.z = (2.0 * gl_FragCoord.z - 1.0);
+    ndcPos.w = 1.0;
+
+    vec4 clipPos = ndcPos / gl_FragCoord.w;
+    vec4 eyePos = inverse_proj * clipPos;
+    eyePos /= eyePos.w;
+
+    vec4 world_location = inverse_view * clipPos;
+
+    // Five samples
+    vec3 step_size = dx / 5.0;
+    vec3 dir = normalize(world_location.xyz - v_camera_pos.xyz);
+    vec4 curr_color = vec4(0.0);
+    float v;
+    float dist = length(step_size);
+
+    vec3 ray_position = world_location.xyz + dir*step_size*1e-6;
+
+    vec3 tex_curr_pos = vec3(0.0);
+    vec3 range = right_edge - left_edge;
+    vec4 new_color;
+    bool ray_in_bb = true;
+    // Take into account that texture is clamped
+    vec3 nds = range / dx;
+    vec3 tle = 1.0 / (2.0 * nds);
+    vec3 tre = 1.0 - tle;
+    vec3 tdd = tre - tle;
+    while (ray_in_bb) {
+        tex_curr_pos = tle + tdd * (ray_position - left_edge) / range;
+        vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
+        //new_color = texture(cmap, tex_sample.r);
+        new_color = vec4(0.0);
+	if (abs(tex_sample.r - 0.2) < 0.05) {
+	     v = (tex_sample.r - 0.2);
+	     v = exp(-v*v/0.0005);
+	     new_color = v * vec4(0.0, 0.0, 1.0, 0.5);
+	} else if (abs(tex_sample.r - 0.3) < 0.1) {
+	     v = (tex_sample.r - 0.3);
+	     v = exp(-v*v/0.0001);
+	     new_color = v * vec4(1.0, 0.0, 0.0, 0.5);
+	}
+        curr_color = dist*new_color + clamp(1.0 - dist*new_color.a, 0.0, 1.0) * curr_color;
+        ray_position += dir * step_size;
+        ray_in_bb = within_bb(ray_position);
+    }
+
+    output_color = clamp(curr_color, 0.0, 1.0);
+}

@@ -40,6 +40,8 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.extern.six import \
     string_types
+from yt.funcs import \
+    is_root
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -112,7 +114,7 @@ class YTDataset(Dataset):
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
         self.field_info.setup_extra_union_fields()
-        mylog.info("Loading field plugins.")
+        mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -158,11 +160,12 @@ class YTDataContainerDataset(YTDataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None):
+                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(YTDataContainerDataset, self).__init__(filename, dataset_type,
-            units_override=units_override)
+            units_override=units_override, unit_system=unit_system)
 
     def _parse_parameter_file(self):
         super(YTDataContainerDataset, self)._parse_parameter_file()
@@ -193,8 +196,10 @@ class YTDataContainerDataset(YTDataset):
 
         # Some data containers can't be recontructed in the same way
         # since this is now particle-like data.
-        if self.parameters["container_type"] in \
-          ["cutting", "proj", "ray", "slice"]:
+        data_type = self.parameters["data_type"]
+        container_type = self.parameters["container_type"]
+        ex_container_type = ["cutting", "proj", "ray", "slice"]
+        if data_type == "yt_light_ray" or container_type in ex_container_type:
             mylog.info("Returning an all_data data container.")
             return self.all_data()
 
@@ -343,8 +348,9 @@ class YTGridDataset(YTDataset):
     default_fluid_type = "grid"
     fluid_types = ("grid", "gas", "deposit", "index")
 
-    def __init__(self, filename):
-        super(YTGridDataset, self).__init__(filename, self._dataset_type)
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTGridDataset, self).__init__(filename, self._dataset_type,
+                                            unit_system=unit_system)
         self.data = self.index.grids[0]
 
     def _parse_parameter_file(self):
@@ -585,8 +591,9 @@ class YTNonspatialDataset(YTGridDataset):
 
 class YTProfileDataset(YTNonspatialDataset):
     """Dataset for saved profile objects."""
-    def __init__(self, filename):
-        super(YTProfileDataset, self).__init__(filename)
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTProfileDataset, self).__init__(filename,
+                                               unit_system=unit_system)
 
     @property
     def profile(self):
@@ -654,15 +661,15 @@ class YTProfileDataset(YTNonspatialDataset):
         self.domain_width = self.domain_right_edge - \
           self.domain_left_edge
 
-    @parallel_root_only
     def print_key_parameters(self):
-        mylog.info("YTProfileDataset")
-        for a in ["dimensionality", "profile_dimensions"] + \
-          ["%s_%s" % (ax, attr)
-           for ax in "xyz"[:self.dimensionality]
-           for attr in ["field", "range", "log"]]:
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+        if is_root():
+            mylog.info("YTProfileDataset")
+            for a in ["dimensionality", "profile_dimensions"] + \
+              ["%s_%s" % (ax, attr)
+               for ax in "xyz"[:self.dimensionality]
+               for attr in ["field", "range", "log"]]:
+                v = getattr(self, a)
+                mylog.info("Parameters: %-25s = %s", a, v)
         super(YTProfileDataset, self).print_key_parameters()
 
     @classmethod

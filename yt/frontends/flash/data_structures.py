@@ -18,13 +18,17 @@ import stat
 import numpy as np
 import weakref
 
-from yt.funcs import mylog
 from yt.data_objects.grid_patch import \
     AMRGridPatch
+from yt.data_objects.static_output import \
+    Dataset, ParticleFile
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
-from yt.data_objects.static_output import \
-    Dataset
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
 from yt.utilities.file_handler import \
     HDF5FileHandler
 from yt.utilities.physical_ratios import cm_per_mpc
@@ -182,7 +186,8 @@ class FLASHDataset(Dataset):
     def __init__(self, filename, dataset_type='flash_hdf5',
                  storage_filename = None,
                  particle_filename = None, 
-                 units_override = None):
+                 units_override = None,
+                 unit_system = "cgs"):
 
         self.fluid_types += ("flash",)
         if self._handle is not None: return
@@ -191,18 +196,33 @@ class FLASHDataset(Dataset):
         self.particle_filename = particle_filename
 
         if self.particle_filename is None:
-            self._particle_handle = self._handle
+            # try to guess the particle filename
+            try:
+                self._particle_handle = HDF5FileHandler(filename.replace('plt_cnt', 'part'))
+                self.particle_filename = filename.replace('plt_cnt', 'part')
+                mylog.info('Particle file found: %s' % self.particle_filename.split('/')[-1])
+            except IOError:
+                self._particle_handle = self._handle
         else:
+            # particle_filename is specified by user
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
             except:
                 raise IOError(self.particle_filename)
+        # Check if the particle file has the same time
+        if self._particle_handle != self._handle:
+            part_time = self._particle_handle.handle.get('real scalars')[0][1]
+            plot_time = self._handle.handle.get('real scalars')[0][1]
+            if not np.isclose(part_time, plot_time):
+                raise IOError('%s and  %s are not at the same time.' % (self.particle_filename, filename))
+
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
         # generalization.
         self.refine_by = 2
 
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
         self.parameters["HydroMethod"] = 'flash' # always PPM DE
@@ -228,21 +248,17 @@ class FLASHDataset(Dataset):
         else:
             length_factor = 1.0
             temperature_factor = 1.0
-        self.magnetic_unit = self.quan(b_factor, "gauss")
 
-        self.length_unit = self.quan(length_factor, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")
-        self.temperature_unit = self.quan(temperature_factor, "K")
-        # Still need to deal with:
-        #self.conversion_factors['temp'] = (1.0 + self.current_redshift)**-2.0
-        self.unit_registry.modify("code_magnetic", self.magnetic_unit)
-        
+        setdefaultattr(self, 'magnetic_unit', self.quan(b_factor, "gauss"))
+        setdefaultattr(self, 'length_unit', self.quan(length_factor, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
+        setdefaultattr(
+            self, 'temperature_unit', self.quan(temperature_factor, "K"))
+
     def set_code_units(self):
         super(FLASHDataset, self).set_code_units()
-        self.unit_registry.modify("code_temperature",
-                                  self.temperature_unit.value)
 
     def _find_parameter(self, ptype, pname, scalar = False):
         nn = "/%s %s" % (ptype,
@@ -371,6 +387,9 @@ class FLASHDataset(Dataset):
         elif self.dimensionality < 3 and self.geometry == "spherical":
             mylog.warning("Extending phi dimension to 2PI + left edge.")
             self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+        if self.dimensionality == 1 and self.geometry == "spherical":
+            mylog.warning("Extending theta dimension to PI + left edge.")
+            self.domain_right_edge[1] = self.domain_left_edge[1] + np.pi
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
@@ -411,4 +430,63 @@ class FLASHDataset(Dataset):
             pass
         return False
 
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = [_ for _ in files if
+                      ("_hdf5_plt_cnt_" in _) or
+                      ("_hdf5_chk_" in _)]
+        # Typically, Flash won't have nested outputs.
+        return candidates, (len(candidates) == 0)
 
+    def close(self):
+        self._handle.close()
+
+class FLASHParticleFile(ParticleFile):
+    pass
+
+class FLASHParticleDataset(FLASHDataset):
+    _index_class = ParticleIndex
+    over_refine_factor = 1
+    filter_bbox = False
+    _file_class = FLASHParticleFile
+
+    def __init__(self, filename, dataset_type='flash_particle_hdf5',
+                 storage_filename = None,
+                 units_override = None,
+                 n_ref = 64, unit_system = "cgs"):
+
+        if self._handle is not None: return
+        self._handle = HDF5FileHandler(filename)
+        self.n_ref = n_ref
+        self.refine_by = 2
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
+        self.storage_filename = storage_filename
+
+    def _parse_parameter_file(self):
+        # Let the superclass do all the work but then
+        # fix the domain dimensions
+        super(FLASHParticleDataset, self)._parse_parameter_file()
+        nz = 1 << self.over_refine_factor
+        domain_dimensions = np.zeros(3, "int32")
+        domain_dimensions[:self.dimensionality] = nz
+        self.domain_dimensions = domain_dimensions
+        self.filename_template = self.parameter_filename
+        self.file_count = 1
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        try:
+            fileh = HDF5FileHandler(args[0])
+            if "bounding box" not in fileh["/"].keys() \
+                and "localnp" in fileh["/"].keys():
+                return True
+        except IOError:
+            pass
+        return False
+
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = [_ for _ in files if "_hdf5_part_" in _]
+        # Typically, Flash won't have nested outputs.
+        return candidates, (len(candidates) == 0)

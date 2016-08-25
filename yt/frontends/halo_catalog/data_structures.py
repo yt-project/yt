@@ -23,6 +23,8 @@ import os
 from .fields import \
     HaloCatalogFieldInfo
 
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -44,11 +46,13 @@ class HaloCatalogDataset(Dataset):
     _suffix = ".h5"
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None):
+                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
-                                                 units_override=units_override)
+                                                 units_override=units_override,
+                                                 unit_system=unit_system)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, "r") as f:
@@ -74,10 +78,10 @@ class HaloCatalogDataset(Dataset):
         self.parameters.update(hvals)
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.velocity_unit = self.quan(1.0, "cm / s")
-        self.time_unit = self.quan(1.0, "s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm / s"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

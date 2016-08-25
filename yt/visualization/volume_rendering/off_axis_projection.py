@@ -13,13 +13,13 @@ Volume rendering
 
 
 from .scene import Scene
-from .camera import Camera
 from .render_source import VolumeSource
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
 from yt.funcs import mylog, iterable
-from yt.utilities.lib.grid_traversal import \
-        PartitionedGrid
+from yt.utilities.lib.partitioned_grid import \
+    PartitionedGrid
+from yt.data_objects.api import ImageArray
 import numpy as np
 
 
@@ -38,8 +38,8 @@ def off_axis_projection(data_source, center, normal_vector,
 
     Parameters
     ----------
-    data_source : `~yt.data_objects.api.Dataset`
-        This is the dataset to volume render.
+    data_source : `~yt.data_objects.static_output.Dataset` or `~yt.data_objects.data_containers.YTSelectionDataContainer`
+        This is the dataset or data object to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
         camera.
@@ -95,14 +95,12 @@ def off_axis_projection(data_source, center, normal_vector,
     -------
     image : array
         An (N,N) array of the final integrated values, in float64 form.
-    sc : Scene instance
-        A Scene instance that was created and can be modified for further use.
 
     Examples
     --------
 
-    >>> image, sc = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
-                      0.2, N, "temperature", "density")
+    >>> image = off_axis_projection(ds, [0.5, 0.5, 0.5], [0.2,0.3,0.4],
+    ...                             0.2, N, "temperature", "density")
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
@@ -123,14 +121,14 @@ def off_axis_projection(data_source, center, normal_vector,
     sc = Scene()
     data_source.ds.index
     if item is None:
-        field = data_source.pf.field_list[0]
+        field = data_source.ds.field_list[0]
         mylog.info('Setting default field to %s' % field.__repr__())
 
+    funits = data_source.ds._get_field_info(item).units
+
     vol = VolumeSource(data_source, item)
-    ptf = ProjectionTransferFunction()
-    vol.set_transfer_function(ptf)
     if weight is None:
-        vol.set_fields([item])
+        vol.set_field(item)
     else:
         # This is a temporary field, which we will remove at the end.
         weightfield = ("index", "temp_weightfield")
@@ -147,46 +145,43 @@ def off_axis_projection(data_source, center, normal_vector,
         deps, _ = data_source.ds.field_info.check_derived_fields([weightfield])
         data_source.ds.field_dependencies.update(deps)
         fields = [weightfield, weight]
-        vol.set_fields(fields)
-    camera = Camera(data_source)
+        vol.set_field(weightfield)
+        vol.set_weight_field(weight)
+    ptf = ProjectionTransferFunction()
+    vol.set_transfer_function(ptf)
+    camera = sc.add_camera(data_source)
     camera.set_width(width)
-    camera.switch_orientation(normal_vector=normal_vector,
-                              north_vector=north_vector)
+    if not iterable(resolution):
+        resolution = [resolution]*2
+    camera.resolution = resolution
     if not iterable(width):
         width = data_source.ds.arr([width]*3)
-    camera.position = center - width[2]*camera.normal_vector
+    camera.position = center - width[2]*normal_vector
     camera.focus = center
-    sc.camera = camera
+    
+    # If north_vector is None, we set the default here.
+    # This is chosen so that if normal_vector is one of the 
+    # cartesian coordinate axes, the projection will match
+    # the corresponding on-axis projection.
+    if north_vector is None:
+        vecs = np.identity(3)
+        t = np.cross(vecs, normal_vector).sum(axis=1)
+        ax = t.argmax()
+        east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
+        north_vector = np.cross(normal_vector, east_vector).ravel()
+    camera.switch_orientation(normal_vector,
+                              north_vector)
+
     sc.add_source(vol)
 
-    vol.set_sampler(camera)
+    vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
-    mylog.debug("Casting rays")
-    double_check = False
-    if double_check:
-        for brick in vol.volume.bricks:
-            for data in brick.my_data:
-                if np.any(np.isnan(data)):
-                    raise RuntimeError
+    fields = [vol.field]
+    if vol.weight_field is not None:
+        fields.append(vol.weight_field)
 
-    ds = data_source.ds
-    north_vector = camera.unit_vectors[0]
-    east_vector = camera.unit_vectors[1]
-    normal_vector = camera.unit_vectors[2]
-    fields = vol.field
-    mi = ds.domain_right_edge.copy()
-    ma = ds.domain_left_edge.copy()
-    for off1 in [-1, 1]:
-        for off2 in [-1, 1]:
-            for off3 in [-1, 1]:
-                this_point = (center + width[0]/2. * off1 * north_vector
-                                     + width[1]/2. * off2 * east_vector
-                                     + width[2]/2. * off3 * normal_vector)
-                np.minimum(mi, this_point, mi)
-                np.maximum(ma, this_point, ma)
-    # Now we have a bounding box.
-    data_source = ds.region(center, mi, ma)
+    mylog.debug("Casting rays")
 
     for i, (grid, mask) in enumerate(data_source.blocks):
         data = [(grid[f] * mask).astype("float64") for f in fields]
@@ -198,12 +193,15 @@ def off_axis_projection(data_source, center, normal_vector,
         vol.sampler(pg, num_threads = num_threads)
 
     image = vol.finalize_image(camera, vol.sampler.aimage)
+    image = ImageArray(image, funits, registry=data_source.ds.unit_registry, info=image.info)
 
     if method == "integrate":
         if weight is None:
-            dl = width[2].in_units("cm")
+            dl = width[2].in_units(data_source.ds.unit_system["length"])
             image *= dl
         else:
+            mask = image[:,:,1] == 0
             image[:,:,0] /= image[:,:,1]
+            image[mask] = 0
 
-    return image[:,:,0], sc
+    return image[:,:,0]

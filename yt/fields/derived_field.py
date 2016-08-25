@@ -14,7 +14,7 @@ Derived field base class.
 import contextlib
 import inspect
 
-from yt.extern.six import string_types
+from yt.extern.six import string_types, PY2
 from yt.funcs import \
     ensure_list
 from .field_exceptions import \
@@ -23,11 +23,13 @@ from .field_exceptions import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter, \
+    NeedsParameterValue, \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
 from yt.units.unit_object import \
     Unit
+import yt.units.dimensions as ytdims
 from yt.utilities.exceptions import \
     YTFieldNotFound
 
@@ -55,9 +57,11 @@ class DerivedField(object):
        A function handle that defines the field.  Should accept
        arguments (field, data)
     units : str
-       A plain text string encoding the unit.  Powers must be in
-       python syntax (** instead of ^). If set to "auto" the units will be
-       inferred from the units of the return value of the field function.
+       A plain text string encoding the unit, or a query to a unit system of
+       a dataset. Powers must be in python syntax (** instead of ^). If set
+       to "auto" the units will be inferred from the units of the return
+       value of the field function, and the dimensions keyword must also be
+       set (see below).
     take_log : bool
        Describes whether the field should be logged
     validators : list
@@ -76,11 +80,15 @@ class DerivedField(object):
        For fields that exist on disk, which we may want to convert to other
        fields or that get aliased to themselves, we can specify a different
        desired output unit than the unit found on disk.
+    dimensions : str or object from yt.units.dimensions
+       The dimensions of the field, only needed if units="auto" and only used
+       for error checking.
     """
     def __init__(self, name, function, units=None,
                  take_log=True, validators=None,
                  particle_type=False, vector_field=False, display_field=True,
-                 not_in_all=False, display_name=None, output_units = None):
+                 not_in_all=False, display_name=None, output_units=None,
+                 dimensions=None, ds=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -88,6 +96,7 @@ class DerivedField(object):
         self.display_field = display_field
         self.particle_type = particle_type
         self.vector_field = vector_field
+        self.ds = ds
 
         self._function = function
 
@@ -101,6 +110,9 @@ class DerivedField(object):
             self.units = ''
         elif isinstance(units, string_types):
             if units.lower() == 'auto':
+                if dimensions is None:
+                    raise RuntimeError("To set units='auto', please specify the dimensions "
+                                       "of the field with dimensions=<dimensions of field>!")
                 self.units = None
             else:
                 self.units = units
@@ -113,6 +125,10 @@ class DerivedField(object):
         if output_units is None:
             output_units = self.units
         self.output_units = output_units
+
+        if isinstance(dimensions, string_types):
+            dimensions = getattr(ytdims, dimensions)
+        self.dimensions = dimensions
 
     def _copy_def(self):
         dd = {}
@@ -128,11 +144,11 @@ class DerivedField(object):
         return dd
 
     def get_units(self):
-        u = Unit(self.units)
+        u = Unit(self.units, registry=self.ds.unit_registry)
         return u.latex_representation()
 
     def get_projected_units(self):
-        u = Unit(self.units)*Unit('cm')
+        u = Unit(self.units, registry=self.ds.unit_registry)*Unit('cm')
         return u.latex_representation()
 
     def check_available(self, data):
@@ -206,7 +222,7 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = Unit(self.units)
+            units = Unit(self.units, registry=self.ds.unit_registry)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\ \ (%s)" % (units.latex_representation())
@@ -215,9 +231,13 @@ class DerivedField(object):
         return data_label
 
     def __repr__(self):
+        if PY2:
+            func_name = self._function.func_name
+        else:
+            func_name = self._function.__name__
         if self._function == NullFunc:
             s = "On-Disk Field "
-        elif self._function.func_name == "_TranslationFunc":
+        elif func_name == "_TranslationFunc":
             s = "Alias Field for \"%s\" " % (self._function.alias_name,)
         else:
             s = "Derived Field "
@@ -237,14 +257,21 @@ class FieldValidator(object):
     pass
 
 class ValidateParameter(FieldValidator):
-    def __init__(self, parameters):
+    def __init__(self, parameters, parameter_values=None):
         """
         This validator ensures that the dataset has a given parameter.
+
+        If *parameter_values* is supplied, this will also ensure that the field
+        is available for all permutations of the field parameter.
         """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
+        self.parameter_values = parameter_values
     def __call__(self, data):
         doesnt_have = []
+        if self.parameter_values is not None:
+            if isinstance(data, FieldDetector):
+                raise NeedsParameterValue(self.parameter_values)
         for p in self.parameters:
             if not data.has_field_parameter(p):
                 doesnt_have.append(p)

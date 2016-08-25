@@ -24,12 +24,13 @@ from yt.funcs import \
     iterable, \
     validate_width_tuple, \
     fix_length
+from yt.geometry.selection_routines import \
+    points_in_cells
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
-    YTMixedCutRegion, \
     YTEllipsoidOrdering
 from yt.utilities.minimal_representation import \
     MinimalSliceData
@@ -69,7 +70,11 @@ class YTPoint(YTSelectionContainer0D):
     _con_args = ('p',)
     def __init__(self, p, ds=None, field_parameters=None, data_source=None):
         super(YTPoint, self).__init__(ds, field_parameters, data_source)
-        self.p = p
+        if isinstance(p, YTArray):
+            # we pass p through ds.arr to ensure code units are attached
+            self.p = self.ds.arr(p)
+        else:
+            self.p = self.ds.arr(p, 'code_length')
 
 class YTOrthoRay(YTSelectionContainer1D):
     """
@@ -88,8 +93,8 @@ class YTOrthoRay(YTSelectionContainer1D):
     coords : tuple of floats
         The (plane_x, plane_y) coordinates at which to cast the ray.  Note
         that this is in the plane coordinates: so if you are casting along
-        x, this will be (y,z).  If you are casting along y, this will be
-        (x,z).  If you are casting along z, this will be (x,y).
+        x, this will be (y, z).  If you are casting along y, this will be
+        (z, x).  If you are casting along z, this will be (x, y).
     ds: Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
@@ -789,8 +794,10 @@ class YTCutRegion(YTSelectionContainer3D):
         for field in fields:
             f = self.base_object[field]
             if f.shape != ind.shape:
-                raise YTMixedCutRegion(self.conditionals, field)
-            self.field_data[field] = self.base_object[field][ind]
+                parent = getattr(self, "parent", self.base_object)
+                self.field_data[field] = parent[field][self._part_ind]
+            else:
+                self.field_data[field] = self.base_object[field][ind]
 
     @property
     def blocks(self):
@@ -817,6 +824,22 @@ class YTCutRegion(YTSelectionContainer3D):
                     raise YTIllDefinedCutRegion(self.conditionals)
                 np.logical_and(res, ind, ind)
         return ind
+
+    _particle_mask = None
+    @property
+    def _part_ind(self):
+        if self._particle_mask is None:
+            parent = getattr(self, "parent", self.base_object)
+            units = "code_length"
+            mask = points_in_cells(
+                self["x"].to(units), self["y"].to(units),
+                self["z"].to(units), self["dx"].to(units),
+                self["dy"].to(units), self["dz"].to(units),
+                parent["particle_position_x"].to(units),
+                parent["particle_position_y"].to(units),
+                parent["particle_position_z"].to(units))
+            self._particle_mask = mask
+        return self._particle_mask
 
     @property
     def icoords(self):

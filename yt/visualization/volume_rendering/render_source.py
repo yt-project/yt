@@ -12,6 +12,9 @@ RenderSource Class
 # -----------------------------------------------------------------------------
 
 import numpy as np
+from functools import wraps
+from yt.config import \
+    ytcfg
 from yt.funcs import mylog, ensure_numpy_array
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
@@ -20,8 +23,11 @@ from .transfer_function_helper import TransferFunctionHelper
 from .transfer_functions import TransferFunction, \
     ProjectionTransferFunction, ColorTransferFunction
 from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler
+    get_corners, new_projection_sampler, new_mesh_sampler, \
+    new_interpolated_projection_sampler
+from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.visualization.image_writer import apply_colormap
+from yt.data_objects.image_array import ImageArray
 from .zbuffer_array import ZBuffer
 from yt.utilities.lib.misc_utilities import \
     zlines, zpoints
@@ -31,10 +37,43 @@ try:
     from yt.utilities.lib import mesh_traversal
 except ImportError:
     mesh_traversal = NotAModule("pyembree")
+    ytcfg["yt", "ray_tracing_engine"] = "yt"
 try:
     from yt.utilities.lib import mesh_construction
 except ImportError:
     mesh_construction = NotAModule("pyembree")
+    ytcfg["yt", "ray_tracing_engine"] = "yt"
+
+
+def invalidate_volume(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        ret = f(*args, **kwargs)
+        obj = args[0]
+        if isinstance(obj._transfer_function, ProjectionTransferFunction):
+            obj.sampler_type = 'projection'
+            obj._log_field = False
+            obj._use_ghost_zones = False
+        del obj.volume
+        obj._volume_valid = False
+        return ret
+    return wrapper
+
+def validate_volume(f):
+    @wraps(f)
+    def wrapper(*args, **kwargs):
+        obj = args[0]
+        fields = [obj.field]
+        log_fields = [obj.log_field]
+        if obj.weight_field is not None:
+            fields.append(obj.weight_field)
+            log_fields.append(obj.log_field)
+        if obj._volume_valid is False:
+            obj.volume.set_fields(fields, log_fields,
+                                  no_ghost=(not obj.use_ghost_zones))
+        obj._volume_valid = True
+        return f(*args, **kwargs)
+    return wrapper
 
 
 class RenderSource(ParallelAnalysisInterface):
@@ -70,6 +109,7 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
+
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
 
@@ -86,9 +126,6 @@ class VolumeSource(RenderSource):
         data object or dataset.
     fields : string
         The name of the field(s) to be rendered.
-    auto: bool, optional
-        If True, will build a default AMRKDTree and transfer function based
-        on the data.
 
     Examples
     --------
@@ -112,8 +149,7 @@ class VolumeSource(RenderSource):
     >>> sc = Scene()
     >>> source = VolumeSource(ds.all_data(), 'density')
     >>> sc.add_source(source)
-    >>> cam = Camera(ds)
-    >>> sc.camera = cam
+    >>> sc.add_camera()
     >>> im = sc.render()
 
     """
@@ -121,45 +157,157 @@ class VolumeSource(RenderSource):
     _image = None
     data_source = None
 
-    def __init__(self, data_source, field, auto=True):
+    def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
         super(VolumeSource, self).__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
-        self.field = field
-        self.volume = None
         self.current_image = None
-        self.double_check = False
+        self.check_nans = False
         self.num_threads = 0
         self.num_samples = 10
         self.sampler_type = 'volume-render'
 
-        # Error checking
-        assert(self.field is not None)
-        assert(self.data_source is not None)
+        self._volume_valid = False
 
-        # In the future these will merge
+        # these are caches for properties, defined below
+        self._volume = None
+        self._transfer_function = None
+        self._field = field
+        self._log_field = self.data_source.ds.field_info[field].take_log
+        self._use_ghost_zones = False
+        self._weight_field = None
+
+        self.tfh = TransferFunctionHelper(self.data_source.pf)
+        self.tfh.set_field(self.field)
+
+    @property
+    def transfer_function(self):
+        """The transfer function associated with this VolumeSource"""
+        if self._transfer_function is not None:
+            return self._transfer_function
+
+        if self.tfh.tf is not None:
+            self._transfer_function = self.tfh.tf
+            return self._transfer_function
+
+        mylog.info("Creating transfer function")
+        self.tfh.set_field(self.field)
+        self.tfh.set_log(self.log_field)
+        self.tfh.build_transfer_function()
+        self.tfh.setup_default()
+        self._transfer_function = self.tfh.tf
+
+        return self._transfer_function
+
+    @transfer_function.setter
+    def transfer_function(self, value):
+        self.tfh.tf = None
+        valid_types = (TransferFunction, ColorTransferFunction,
+                       ProjectionTransferFunction, type(None))
+        if not isinstance(value, valid_types):
+            raise RuntimeError("transfer_function not a valid type, "
+                               "received object of type %s" % type(value))
+        if isinstance(value, ProjectionTransferFunction):
+            self.sampler_type = 'projection'
+            if self._volume is not None:
+                fields = [self.field]
+                if self.weight_field is not None:
+                    fields.append(self.weight_field)
+                self._volume_valid = False
+        self._transfer_function = value
+
+    @property
+    def volume(self):
+        """The abstract volume associated with this VolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using a KDTree
+        """
+        if self._volume is None:
+            mylog.info("Creating volume")
+            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
+            self._volume = volume
+
+        return self._volume
+
+    @volume.setter
+    def volume(self, value):
+        assert(isinstance(value, AMRKDTree))
+        del self._volume
+        self._field = value.fields
+        self._log_field = value.log_fields
+        self._volume = value
+        self._volume_valid is True
+
+    @volume.deleter
+    def volume(self):
+        del self._volume
+        self._volume = None
+
+    @property
+    def field(self):
+        """The field to be rendered"""
+        return self._field
+
+    @field.setter
+    @invalidate_volume
+    def field(self, value):
+        field = self.data_source._determine_fields(value)
+        if len(field) > 1:
+            raise RuntimeError(
+                "VolumeSource.field can only be a single field but received "
+                "multiple fields: %s") % field
+        field = field[0]
+        if self._field != field:
+            log_field = self.data_source.ds.field_info[field].take_log
+            self.tfh.bounds = None
+        else:
+            log_field = self._log_field
+        self._log_field = log_field
+        self._field = value
         self.transfer_function = None
-        self.tfh = None
-        if auto:
-            self.build_defaults()
+        self.tfh.set_field(value)
+        self.tfh.set_log(log_field)
 
-    def build_defaults(self):
-        """Sets a default volume and transfer function"""
-        mylog.info("Creating default volume")
-        self.build_default_volume()
-        mylog.info("Creating default transfer function")
-        self.build_default_transfer_function()
+    @property
+    def log_field(self):
+        """Whether or not the field rendering is computed in log space"""
+        return self._log_field
+
+    @log_field.setter
+    @invalidate_volume
+    def log_field(self, value):
+        self.transfer_function = None
+        self.tfh.set_log(value)
+        self._log_field = value
+
+    @property
+    def use_ghost_zones(self):
+        """Whether or not ghost zones are used to estimate vertex-centered data
+        values at grid boundaries"""
+        return self._use_ghost_zones
+
+    @use_ghost_zones.setter
+    @invalidate_volume
+    def use_ghost_zones(self, value):
+        self._use_ghost_zones = value
+
+    @property
+    def weight_field(self):
+        """The weight field for the rendering
+
+        Currently this is only used for off-axis projections.
+        """
+        return self._weight_field
+
+    @weight_field.setter
+    @invalidate_volume
+    def weight_field(self, value):
+        self._weight_field = value
 
     def set_transfer_function(self, transfer_function):
         """Set transfer function for this source"""
-        if not isinstance(transfer_function,
-                          (TransferFunction, ColorTransferFunction,
-                           ProjectionTransferFunction)):
-            raise RuntimeError("transfer_function not of correct type")
-        if isinstance(transfer_function, ProjectionTransferFunction):
-            self.sampler_type = 'projection'
-
         self.transfer_function = transfer_function
         return self
 
@@ -168,62 +316,90 @@ class VolumeSource(RenderSource):
         if self.data_source is None:
             raise RuntimeError("Data source not initialized")
 
-        if self.volume is None:
-            raise RuntimeError("Volume not initialized")
-
-        if self.transfer_function is None:
-            raise RuntimeError("Transfer Function not Supplied")
-
-    def build_default_transfer_function(self):
-        """Sets up a transfer function"""
-        self.tfh = \
-            TransferFunctionHelper(self.data_source.pf)
-        self.tfh.set_field(self.field)
-        self.tfh.build_transfer_function()
-        self.tfh.setup_default()
-        self.transfer_function = self.tfh.tf
-
-    def build_default_volume(self):
-        """Sets up an AMRKDTree based on the VolumeSource's field"""
-        self.volume = AMRKDTree(self.data_source.pf,
-                                data_source=self.data_source)
-        log_fields = [self.data_source.pf.field_info[self.field].take_log]
-        mylog.debug('Log Fields:' + str(log_fields))
-        self.volume.set_fields([self.field], log_fields, True)
-
     def set_volume(self, volume):
         """Associates an AMRKDTree with the VolumeSource"""
-        assert(isinstance(volume, AMRKDTree))
-        del self.volume
         self.volume = volume
+        return self
 
-    def set_fields(self, fields, no_ghost=True):
-        """Set the source's fields to render
+    def set_field(self, field):
+        """Set the source's field to render
 
         Parameters
-        ---------
-        fields: field name or list of field names
-            The field or fields to render
-        no_ghost: boolean
-            If False, the AMRKDTree estimates vertex centered data using ghost
-            zones, which can eliminate seams in the resulting volume rendering.
-            Defaults to True for performance reasons.
-        """
-        fields = self.data_source._determine_fields(fields)
-        log_fields = [self.data_source.ds.field_info[f].take_log
-                      for f in fields]
-        self.volume.set_fields(fields, log_fields, no_ghost)
-        self.field = fields
+        ----------
 
-    def set_sampler(self, camera):
+        field: field name
+            The field to render
+        """
+        self.field = field
+        return self
+
+    def set_log(self, log_field):
+        """Set whether the rendering of the source's field is done in log space
+
+        Generally volume renderings of data whose values span a large dynamic
+        range should be done on log space and volume renderings of data with
+        small dynamic range should be done in linear space.
+
+        Parameters
+        ----------
+
+        log_field: boolean
+            If True, the volume rendering will be done in log space, and if False
+            will be done in linear space.
+        """
+        self.log_field = log_field
+        return self
+
+    def set_weight_field(self, weight_field):
+        """Set the source's weight field
+
+        .. note::
+
+          This is currently only used for renderings using the
+          ProjectionTransferFunction
+
+        Parameters
+        ----------
+
+        weight_field: field name
+            The weight field to use in the rendering
+        """
+        self.weight_field = weight_field
+        return self
+
+    def set_use_ghost_zones(self, use_ghost_zones):
+        """Set whether or not interpolation at grid edges uses ghost zones
+
+        Parameters
+        ----------
+
+        use_ghost_zones: boolean
+            If True, the AMRKDTree estimates vertex centered data using ghost
+            zones, which can eliminate seams in the resulting volume rendering.
+            Defaults to False for performance reasons.
+
+        """
+        self.use_ghost_zones = use_ghost_zones
+        return self
+
+    def set_sampler(self, camera, interpolated=True):
         """Sets a volume render sampler
 
         The type of sampler is determined based on the ``sampler_type`` attribute
         of the VolumeSource. Currently the ``volume_render`` and ``projection``
         sampler types are supported.
+
+        The 'interpolated' argument is only meaningful for projections. If True,
+        the data is first interpolated to the cell vertices, and then
+        tri-linearly interpolated to the ray sampling positions. If False, then
+        the cell-centered data is simply accumulated along the
+        ray. Interpolation is always performed for volume renderings.
+
         """
         if self.sampler_type == 'volume-render':
             sampler = new_volume_render_sampler(camera, self)
+        elif self.sampler_type == 'projection' and interpolated:
+            sampler = new_interpolated_projection_sampler(camera, self)
         elif self.sampler_type == 'projection':
             sampler = new_projection_sampler(camera, self)
         else:
@@ -231,6 +407,7 @@ class VolumeSource(RenderSource):
         self.sampler = sampler
         assert(self.sampler is not None)
 
+    @validate_volume
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
 
@@ -256,7 +433,7 @@ class VolumeSource(RenderSource):
 
         mylog.debug("Casting rays")
         total_cells = 0
-        if self.double_check:
+        if self.check_nans:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
                     if np.any(np.isnan(data)):
@@ -273,7 +450,7 @@ class VolumeSource(RenderSource):
                                                  call_from_VR=True)
         if zbuffer is None:
             self.zbuffer = ZBuffer(self.current_image,
-                                   np.inf*np.ones(self.current_image.shape[:2]))
+                                   np.full(self.current_image.shape[:2], np.inf))
         return self.current_image
 
     def finalize_image(self, camera, image, call_from_VR=False):
@@ -289,24 +466,25 @@ class VolumeSource(RenderSource):
             Whether or not this is being called from a higher level in the VR
             interface. Used to set the correct orientation.
         """
-        image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
+        if self._volume is not None:
+            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if call_from_VR is True: 
+        if call_from_VR is True:
             image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1.0
+            image[:, :, 3] = 1
         return image
 
     def __repr__(self):
         disp = "<Volume Source>:%s " % str(self.data_source)
-        disp += "transfer_function:%s" % str(self.transfer_function)
+        disp += "transfer_function:%s" % str(self._transfer_function)
         return disp
 
 
-class MeshSource(RenderSource):
-    """A source for unstructured mesh data
+class MeshSource(OpaqueSource):
+    """A source for unstructured mesh data.
 
     This functionality requires the embree ray-tracing engine and the
     associated pyembree python bindings to be installed in order to
@@ -325,7 +503,7 @@ class MeshSource(RenderSource):
 
     Examples
     --------
-    >>> source = MeshSource(ds, ('all', 'convected'))
+    >>> source = MeshSource(ds, ('connect1', 'convected'))
     """
 
     _image = None
@@ -337,41 +515,158 @@ class MeshSource(RenderSource):
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.field = field
-        self.mesh = None
+        self.volume = None
         self.current_image = None
+        self.engine = ytcfg.get("yt", "ray_tracing_engine")
+
+        # default color map
+        self._cmap = ytcfg.get("yt", "default_colormap")
+        self._color_bounds = None
+
+        # default mesh annotation options
+        self._annotate_mesh = False
+        self._mesh_line_color = None
+        self._mesh_line_alpha = 1.0
 
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
 
-        self.scene = mesh_traversal.YTEmbreeScene()
+        if self.engine == 'embree':
+            self.volume = mesh_traversal.YTEmbreeScene()
+            self.build_volume_embree()
+        elif self.engine == 'yt':
+            self.build_volume_bvh()
+        else:
+            raise NotImplementedError("Invalid ray-tracing engine selected. "
+                                      "Choices are 'embree' and 'yt'.")
 
-        self.build_mesh()
+    def cmap():
+        '''
+        This is the name of the colormap that will be used when rendering
+        this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
+        
+        '''
+
+        def fget(self):
+            return self._cmap
+
+        def fset(self, cmap_name):
+            self._cmap = cmap_name
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    cmap = property(**cmap())
+
+    def color_bounds():
+        '''
+        These are the bounds that will be used with the colormap to the display
+        the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
+        None, the bounds will be automatically inferred from the max and min of 
+        the rendered data.
+
+        '''
+        def fget(self):
+            return self._color_bounds
+
+        def fset(self, bounds):
+            self._color_bounds = bounds
+            if hasattr(self, "data"):
+                self.current_image = self.apply_colormap()
+        return locals()
+    color_bounds = property(**color_bounds())
 
     def _validate(self):
         """Make sure that all dependencies have been met"""
         if self.data_source is None:
-            raise RuntimeError("Data source not initialized")
+            raise RuntimeError("Data source not initialized.")
 
-        if self.mesh is None:
-            raise RuntimeError("Mesh not initialized")
+        if self.volume is None:
+            raise RuntimeError("Volume not initialized.")
 
-    def build_mesh(self):
+    def build_volume_embree(self):
+        """
+
+        This constructs the mesh that will be ray-traced by pyembree.
+
+        """
+        ftype, fname = self.field
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.meshes[mesh_id]._index_offset
+        field_data = self.data_source[self.field].d  # strip units
+
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
+
+        # if this is an element field, promote to 2D here
+        if len(field_data.shape) == 1:
+            field_data = np.expand_dims(field_data, 1)
+
+        # Here, we decide whether to render based on high-order or 
+        # low-order geometry. Right now, high-order geometry is only
+        # implemented for 20-point hexes.
+        if indices.shape[1] == 20:
+            self.mesh = mesh_construction.QuadraticElementMesh(self.volume,
+                                                               vertices,
+                                                               indices,
+                                                               field_data)
+        else:
+            # if this is another type of higher-order element, we demote
+            # to 1st order here, for now.
+            if indices.shape[1] == 27:
+                # hexahedral
+                mylog.warning("27-node hexes not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:8]
+                indices = indices[:, 0:8]
+            elif indices.shape[1] == 10:
+                # tetrahedral
+                mylog.warning("10-node tetrahedral elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:4]
+                indices = indices[:, 0:4]
+
+            self.mesh = mesh_construction.LinearElementMesh(self.volume,
+                                                            vertices,
+                                                            indices,
+                                                            field_data)
+
+    def build_volume_bvh(self):
         """
 
         This constructs the mesh that will be ray-traced.
 
         """
-        field_data = self.data_source[self.field]
-        vertices = self.data_source.ds.index.meshes[0].connectivity_coords
+        ftype, fname = self.field
+        mesh_id = int(ftype[-1]) - 1
+        index = self.data_source.ds.index
+        offset = index.meshes[mesh_id]._index_offset
+        field_data = self.data_source[self.field].d  # strip units
 
-        # convert the indices to zero-based indexing
-        indices = self.data_source.ds.index.meshes[0].connectivity_indices - 1
+        vertices = index.meshes[mesh_id].connectivity_coords
+        indices = index.meshes[mesh_id].connectivity_indices - offset
 
-        self.mesh = mesh_construction.ElementMesh(self.scene,
-                                                  vertices,
-                                                  indices,
-                                                  field_data.d)
+        # if this is an element field, promote to 2D here
+        if len(field_data.shape) == 1:
+            field_data = np.expand_dims(field_data, 1)
+
+        # Here, we decide whether to render based on high-order or 
+        # low-order geometry.
+        if indices.shape[1] == 27:
+            # hexahedral
+            mylog.warning("27-node hexes not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:8]
+            indices = indices[:, 0:8]
+        elif indices.shape[1] == 10:
+            # tetrahedral
+            mylog.warning("10-node tetrahedral elements not yet supported, " +
+                          "dropping to 1st order.")
+            field_data = field_data[:, 0:4]
+            indices = indices[:, 0:4]
+
+        self.volume = BVH(vertices, indices, field_data)
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -392,16 +687,115 @@ class MeshSource(RenderSource):
         the rendered image.
 
         """
- 
-        self.sampler = new_mesh_sampler(camera, self)
+
+        shape = (camera.resolution[0], camera.resolution[1], 4)
+        if zbuffer is None:
+            empty = np.empty(shape, dtype='float64')
+            z = np.empty(empty.shape[:2], dtype='float64')
+            empty[:] = 0.0
+            z[:] = np.inf
+            zbuffer = ZBuffer(empty, z)
+        elif zbuffer.rgba.shape != shape:
+            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
+                              zbuffer.z.reshape(shape[:2]))
+        self.zbuffer = zbuffer
+
+        self.sampler = new_mesh_sampler(camera, self, engine=self.engine)
 
         mylog.debug("Casting rays")
-        self.sampler(self.scene)
+        self.sampler(self.volume)
         mylog.debug("Done casting rays")
 
-        self.current_image = self.sampler.aimage
+        self.finalize_image(camera)
+        self.current_image = self.apply_colormap()
+
+        zbuffer += ZBuffer(self.current_image.astype('float64'),
+                           self.sampler.azbuffer)
+        zbuffer.rgba = ImageArray(zbuffer.rgba)
+        self.zbuffer = zbuffer
+        self.current_image = self.zbuffer.rgba
+
+        if self._annotate_mesh:
+            self.current_image = self.annotate_mesh_lines(self._mesh_line_color,
+                                                          self._mesh_line_alpha)
 
         return self.current_image
+
+    def finalize_image(self, camera):
+        sam = self.sampler
+
+        # reshape data
+        Nx = camera.resolution[0]
+        Ny = camera.resolution[1]
+        self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
+
+        # rotate
+        self.data = np.rot90(self.data, k=2)
+        sam.aimage_used = np.rot90(sam.aimage_used, k=2)
+        sam.amesh_lines = np.rot90(sam.amesh_lines, k=2)
+        sam.azbuffer = np.rot90(sam.azbuffer, k=2)
+
+    def annotate_mesh_lines(self, color=None, alpha=1.0):
+        r"""
+
+        Modifies this MeshSource by drawing the mesh lines.
+        This modifies the current image by drawing the element
+        boundaries and returns the modified image.
+
+        Parameters
+        ----------
+        color: array of ints, shape (4), optional
+            The RGBA value to use to draw the mesh lines.
+            Default is black.
+        alpha : float, optional
+            The opacity of the mesh lines. Default is 255 (solid).
+
+        """
+
+        self.annotate_mesh = True
+        self._mesh_line_color = color
+        self._mesh_line_alpha = alpha
+
+        if color is None:
+            color = np.array([0, 0, 0, alpha])
+
+        locs = [self.sampler.amesh_lines == 1]
+
+        self.current_image[:, :, 0][locs] = color[0]
+        self.current_image[:, :, 1][locs] = color[1]
+        self.current_image[:, :, 2][locs] = color[2]
+        self.current_image[:, :, 3][locs] = color[3]
+
+        return self.current_image
+
+    def apply_colormap(self):
+        '''
+
+        Applies a colormap to the current image without re-rendering.
+
+        Parameters
+        ----------
+        cmap_name : string, optional
+            An acceptable colormap.  See either yt.visualization.color_maps or
+            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        color_bounds : tuple of floats, optional
+            The min and max to scale between.  Outlying values will be clipped.
+
+        Returns
+        -------
+        current_image : A new image with the specified color scale applied to
+            the underlying data.
+
+
+        '''
+
+        image = apply_colormap(self.data,
+                               color_bounds=self._color_bounds,
+                               cmap_name=self._cmap)/255.
+        alpha = image[:, :, 3]
+        alpha[self.sampler.aimage_used == -1] = 0.0
+        image[:, :, 3] = alpha        
+        return image
 
     def __repr__(self):
         disp = "<Mesh Source>:%s " % str(self.data_source)
@@ -417,8 +811,8 @@ class PointSource(OpaqueSource):
     Parameters
     ----------
     positions: array, shape (N, 3)
-        These positions, in data-space coordinates, are the points to be
-        added to the scene.
+        The positions of points to be added to the scene. If specified with no
+        units, the positions will be assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.
@@ -435,18 +829,19 @@ class PointSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import PointSource
+    >>> from yt.units import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    
+
     >>> im, sc = yt.volume_render(ds)
-    
+
     >>> npoints = 1000
-    >>> vertices = np.random.random([npoints, 3])
+    >>> vertices = np.random.random([npoints, 3]) * 1000 * kpc
     >>> colors = np.random.random([npoints, 4])
     >>> colors[:,3] = 1.0
 
     >>> points = PointSource(vertices, colors=colors)
     >>> sc.add_source(points)
-    
+
     >>> im = sc.render()
 
     """
@@ -464,7 +859,6 @@ class PointSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
-            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -502,17 +896,7 @@ class PointSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get points plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
-
-        zpoints(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+        zpoints(empty, z, px, py, dz, self.colors, self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -528,19 +912,25 @@ class LineSource(OpaqueSource):
     This class provides a mechanism for adding lines to a scene; these
     points will be opaque, and can also be colored.
 
+    .. note::
+
+        If adding a LineSource to your rendering causes the image to appear
+        blank or fades a VolumeSource, try lowering the values specified in
+        the alpha channel of the ``colors`` array.
+
     Parameters
     ----------
     positions: array, shape (N, 2, 3)
-        These positions, in data-space coordinates, are the starting and
-        stopping points for each pair of lines. For example,
-        positions[0][0] and positions[0][1] would give the (x, y, z)
+        The positions of the starting and stopping points for each line.
+        For example,positions[0][0] and positions[0][1] would give the (x, y, z)
         coordinates of the beginning and end points of the first line,
-        respectively.
+        respectively. If specified with no units, assumed to be in code units.
     colors : array, shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
-        point running from 0..1.  Note that they correspond to the line
-        segment succeeding each point; this means that strictly speaking
-        they need only be (N-1) in length.
+        point running from 0..1.  The four channels correspond to r, g, b, and
+        alpha values. Note that they correspond to the line segment succeeding
+        each point; this means that strictly speaking they need only be (N-1)
+        in length.
     color_stride : int, optional
         The stride with which to access the colors when putting them on the
         scene.
@@ -554,20 +944,21 @@ class LineSource(OpaqueSource):
     >>> import yt
     >>> import numpy as np
     >>> from yt.visualization.volume_rendering.api import LineSource
+    >>> from yt.units import kpc
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    
+
     >>> im, sc = yt.volume_render(ds)
-    
-    >>> npoints = 100
-    >>> vertices = np.random.random([npoints, 2, 3])
-    >>> colors = np.random.random([npoints, 4])
+
+    >>> nlines = 4
+    >>> vertices = np.random.random([nlines, 2, 3]) * 600 * kpc
+    >>> colors = np.random.random([nlines, 4])
     >>> colors[:,3] = 1.0
-    
+
     >>> lines = LineSource(vertices, colors)
     >>> sc.add_source(lines)
 
     >>> im = sc.render()
-    
+
     """
 
     _image = None
@@ -590,7 +981,6 @@ class LineSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
-            colors[:, 3] = 1.
         self.colors = colors
         self.color_stride = color_stride
 
@@ -628,22 +1018,19 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
+        px = px.astype('int64')
+        py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
+                   self.color_stride)
         else:
-            # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
-            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+            # For stereo-lens, two sets of pos for each eye are contained
+            # in px...pz
+            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
+                   self.colors.astype('float64'), self.color_stride)
+            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
+                   self.colors.astype('float64'), self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -764,12 +1151,13 @@ class GridSource(LineSource):
     >>> im = sc.render()
 
     """
-    def __init__(self, data_source, alpha=0.3, cmap='algae',
+
+    def __init__(self, data_source, alpha=0.3, cmap=None,
                  min_level=None, max_level=None):
-        data_source = data_source_or_all(data_source)
+        self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in data_source.blocks:
+        for block, mask in self.data_source.blocks:
             block_corners = np.array([
                 [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
                 [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -784,6 +1172,8 @@ class GridSource(LineSource):
             levels.append(block.Level)
         corners = np.dstack(corners)
         levels = np.array(levels)
+        if cmap is None:
+            cmap = ytcfg.get("yt", "default_colormap")
 
         if max_level is not None:
             subset = levels <= max_level
@@ -796,8 +1186,8 @@ class GridSource(LineSource):
 
         colors = apply_colormap(
             levels*1.0,
-            color_bounds=[0, data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]*alpha/255.
+            color_bounds=[0, self.data_source.ds.index.max_level],
+            cmap_name=cmap)[0, :, :]/255.
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
@@ -847,9 +1237,9 @@ class CoordinateVectorSource(OpaqueSource):
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.zeros((3, 4))
-            colors[0, 0] = alpha  # x is red
-            colors[1, 1] = alpha  # y is green
-            colors[2, 2] = alpha  # z is blue
+            colors[0, 0] = 1.0  # x is red
+            colors[1, 1] = 1.0  # y is green
+            colors[2, 2] = 1.0  # z is blue
             colors[:, 3] = alpha
         self.colors = colors
         self.color_stride = 2
@@ -881,7 +1271,7 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Create vectors in the x,y,z directions
         for i in range(3):
-            positions[2*i+1, i] += camera.width.d[i] / 16.0
+            positions[2*i+1, i] += camera.width.in_units('code_length').d[i] / 16.0
 
         # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
@@ -929,22 +1319,19 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        # Non-plane-parallel lenses only support 1D array
-        # 1D array needs to be transformed to 2D to get lines plotted
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0], camera.resolution[1], 4)
-            z.shape = (camera.resolution[0], camera.resolution[1])
+        px = px.astype('int64')
+        py = py.astype('int64')
 
         if len(px.shape) == 1:
-            zlines(empty, z, px.d, py.d, dz.d, self.colors, self.color_stride)
+            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
+                   self.color_stride)
         else:
-            # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            zlines(empty, z, px.d[0,:], py.d[0,:], dz.d[0,:], self.colors, self.color_stride)
-            zlines(empty, z, px.d[1,:], py.d[1,:], dz.d[1,:], self.colors, self.color_stride)
-
-        if 'plane-parallel' not in str(camera.lens):
-            empty.shape = (camera.resolution[0] * camera.resolution[1], 1, 4)
-            z.shape = (camera.resolution[0] * camera.resolution[1], 1)
+            # For stereo-lens, two sets of pos for each eye are contained
+            # in px...pz
+            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
+                   self.colors.astype('float64'), self.color_stride)
+            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
+                   self.colors.astype('float64'), self.color_stride)
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

@@ -16,6 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
+from yt.extern.six.moves import input, builtins
 import time
 import inspect
 import traceback
@@ -37,10 +38,10 @@ from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import builtins, urllib
+from yt.extern.six.moves import urllib
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.exceptions import YTInvalidWidthError
-import yt.extern.progressbar as pb
+from yt.extern.tqdm import tqdm
 from yt.units.yt_array import YTArray, YTQuantity
 from functools import wraps
 
@@ -317,7 +318,10 @@ def insert_ipython(num_up=1):
         ipshell(header = __header % dd,
                 local_ns = loc, global_ns = glo)
     else:
-        from IPython.config.loader import Config
+        try:
+            from traitlets.config.loader import Config
+        except ImportError:
+            from IPython.config.loader import Config
         cfg = Config()
         cfg.InteractiveShellEmbed.local_ns = loc
         cfg.InteractiveShellEmbed.global_ns = glo
@@ -334,6 +338,21 @@ def insert_ipython(num_up=1):
 #
 # Our progress bar types and how to get one
 #
+
+class TqdmProgressBar(object):
+    # This is a drop in replacement for pbar
+    # called tqdm
+    def __init__(self,title, maxval):
+        self._pbar = tqdm(leave=True, total=maxval, desc=title)
+        self.i = 0
+    def update(self, i=None):
+        if i is None:
+            i = self.i + 1
+        n = i - self.i
+        self.i = i
+        self._pbar.update(n)
+    def finish(self):
+        self._pbar.close()
 
 class DummyProgressBar(object):
     # This progressbar gets handed if we don't
@@ -373,7 +392,7 @@ class GUIProgressBar(object):
     def finish(self):
         self._pbar.Destroy()
 
-def get_pbar(title, maxval):
+def get_pbar(title, maxval, parallel=False):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -381,17 +400,18 @@ def get_pbar(title, maxval):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       "__IPYTHON__" in dir(builtins) or \
        ytcfg.getboolean("yt", "__withintesting"):
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
-        return ParallelProgressBar(title, maxval)
-    widgets = [ title,
-            pb.Percentage(), ' ',
-            pb.Bar(marker=pb.RotatingMarker()),
-            ' ', pb.ETA(), ' ']
-    pbar = pb.ProgressBar(widgets=widgets,
-                          maxval=maxval).start()
+        # If parallel is True, update progress on root only.
+        if parallel:
+            if is_root():
+                return TqdmProgressBar(title, maxval)
+            else:
+                return DummyProgressBar()
+        else:
+            return ParallelProgressBar(title, maxval)
+    pbar = TqdmProgressBar(title,maxval)
     return pbar
 
 def only_on_root(func, *args, **kwargs):
@@ -534,9 +554,13 @@ def get_hg_version(path):
         print("Updating and precise version information requires ")
         print("python-hglib to be installed.")
         print("Try: pip install python-hglib")
-        return -1
-    repo = hglib.open(path)
-    return repo.identify()
+        return None
+    try:
+        repo = hglib.open(path)
+        return repo.identify()
+    except hglib.error.ServerError:
+        # path is not an hg repository
+        return None
 
 def get_yt_version():
     try:
@@ -547,8 +571,11 @@ def get_yt_version():
     import pkg_resources
     yt_provider = pkg_resources.get_provider("yt")
     path = os.path.dirname(yt_provider.module_path)
-    version = get_hg_version(path)[:12]
-    return version
+    version = get_hg_version(path)
+    if version is None:
+        return version
+    else:
+        return version[:12].strip().decode('utf-8')
 
 def get_version_stack():
     version_info = {}
@@ -586,7 +613,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
@@ -604,7 +631,7 @@ def get_yt_supp():
         print("*** is a delicate act, I require you to respond   ***")
         print("*** to the prompt with the word 'yes'.            ***")
         print()
-        response = raw_input("Do you want me to try to check it out? ")
+        response = input("Do you want me to try to check it out? ")
         if response != "yes":
             print()
             print("Okay, I understand.  You can check it out yourself.")
@@ -821,6 +848,17 @@ def deprecated_class(cls):
     return _func
 
 def enable_plugins():
+    """Forces the plugins file to be parsed.
+
+    This plugin file is a means of creating custom fields, quantities,
+    data objects, colormaps, and other code classes and objects to be used
+    in yt scripts without modifying the yt source directly.
+
+    The file must be located at ``$HOME/.yt/my_plugins.py``.
+
+    Warning: when you use this function, your script will only be reproducible
+    if you also provide the ``my_plugins.py`` file.
+    """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg
@@ -843,3 +881,135 @@ def fix_unitary(u):
         return 'unitary'
     else:
         return u
+
+def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
+    """Generate file hash without reading in the entire file at once.
+
+    Original code licensed under MIT.  Source:
+    http://pythoncentral.io/hashing-files-with-python/
+
+    Parameters
+    ----------
+    infile : str
+        File of interest (including the path).
+    algorithm : str (optional)
+        Hash algorithm of choice. Defaults to 'md5'.
+    BLOCKSIZE : int (optional)
+        How much data in bytes to read in at once.
+
+    Returns
+    -------
+    hash : str
+        The hash of the file.
+
+    Examples
+    --------
+    >>> import yt.funcs as funcs
+    >>> funcs.get_hash('/path/to/test.png')
+    'd38da04859093d430fa4084fd605de60'
+
+    """
+    import hashlib
+
+    try:
+        hasher = getattr(hashlib, algorithm)()
+    except:
+        raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
+                                  (algorithm, hashlib.algorithms))
+
+    filesize   = os.path.getsize(infile)
+    iterations = int(float(filesize)/float(BLOCKSIZE))
+
+    pbar = get_pbar('Generating %s hash' % algorithm, iterations)
+
+    iter = 0
+    with open(infile,'rb') as f:
+        buf = f.read(BLOCKSIZE)
+        while len(buf) > 0:
+            hasher.update(buf)
+            buf = f.read(BLOCKSIZE)
+            iter += 1
+            pbar.update(iter)
+        pbar.finish()
+
+    return hasher.hexdigest()
+
+def get_brewer_cmap(cmap):
+    """Returns a colorbrewer colormap from palettable"""
+    try:
+        import brewer2mpl
+    except ImportError:
+        brewer2mpl = None
+    try:
+        import palettable
+    except ImportError:
+        palettable = None
+    if palettable is not None:
+        bmap = palettable.colorbrewer.get_map(*cmap)
+    elif brewer2mpl is not None:
+        warnings.warn("Using brewer2mpl colormaps is deprecated. "
+                      "Please install the successor to brewer2mpl, "
+                      "palettable, with `pip install palettable`. "
+                      "Colormap tuple names remain unchanged.")
+        bmap = brewer2mpl.get_map(*cmap)
+    else:
+        raise RuntimeError(
+            "Please install palettable to use colorbrewer colormaps")
+    return bmap.get_mpl_colormap(N=cmap[2])
+
+def get_requests():
+    try:
+        import requests
+    except ImportError:
+        requests = None
+    return requests
+
+@contextlib.contextmanager
+def dummy_context_manager(*args, **kwargs):
+    yield
+
+def matplotlib_style_context(style_name=None, after_reset=True):
+    """Returns a context manager for controlling matplotlib style.
+
+    Arguments are passed to matplotlib.style.context() if specified. Defaults
+    to setting "classic" style, after resetting to the default config parameters.
+
+    On older matplotlib versions (<=1.5.0) where matplotlib.style isn't
+    available, returns a dummy context manager.
+    """
+    if style_name is None:
+        style_name = 'classic'
+    try:
+        import matplotlib.style
+        if style_name in matplotlib.style.available:
+            return matplotlib.style.context(style_name, after_reset=after_reset)
+    except ImportError:
+        pass
+    return dummy_context_manager()
+
+interactivity = False
+
+"""Sets the condition that interactive backends can be used."""
+def toggle_interactivity():
+    global interactivity
+    interactivity = not interactivity
+    if interactivity is True:
+        if '__IPYTHON__' in dir(builtins):
+            import IPython
+            shell = IPython.get_ipython()
+            shell.magic('matplotlib')
+        else:
+            import matplotlib
+            matplotlib.interactive(True)
+
+def get_interactivity():
+    return interactivity
+
+def setdefaultattr(obj, name, value):
+    """Set attribute with *name* on *obj* with *value* if it doesn't exist yet
+
+    Analogous to dict.setdefault
+    """
+    if not hasattr(obj, name):
+        setattr(obj, name, value)
+    return getattr(obj, name)

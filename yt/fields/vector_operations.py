@@ -68,6 +68,7 @@ def create_squared_field(registry, basename, field_units,
 
 def create_vector_fields(registry, basename, field_units,
                          ftype="gas", slice_info=None):
+    from yt.units.unit_object import Unit
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -182,13 +183,15 @@ def create_vector_fields(registry, basename, field_units,
     def _cp_vectors(ax):
         def _cp_val(field, data):
             vec = data.get_field_parameter("cp_%s_vec" % (ax))
-            bv = data.get_field_parameter("bulk_%s" % basename)
-            if bv is None: bv = np.zeros(3)
-            tr  = (data[xn] - bv[0]) * vec[0]
-            tr += (data[yn] - bv[1]) * vec[1]
-            tr += (data[zn] - bv[2]) * vec[2]
+            bv = data.get_field_parameter("bulk_%s" % basename, None)
+            if bv is None:
+                bv = data.ds.arr(np.zeros(3), data[xn].units)
+            tr  = (data[xn] - bv[0]) * vec.d[0]
+            tr += (data[yn] - bv[1]) * vec.d[1]
+            tr += (data[zn] - bv[2]) * vec.d[2]
             return tr
         return _cp_val
+
     registry.add_field((ftype, "cutting_plane_%s_x" % basename),
                        function=_cp_vectors('x'),
                        units=field_units)
@@ -217,14 +220,17 @@ def create_vector_fields(registry, basename, field_units,
     def _divergence_abs(field, data):
         return np.abs(data[ftype, "%s_divergence" % basename])
 
+    field_units = Unit(field_units, registry=registry.ds.unit_registry)
+    div_units = field_units / registry.ds.unit_system["length"]
+
     registry.add_field((ftype, "%s_divergence" % basename),
                        function=_divergence,
-                       units="1/s",
+                       units=div_units,
                        validators=[ValidateSpatial(1)])
     
     registry.add_field((ftype, "%s_divergence_absolute" % basename),
                        function=_divergence_abs,
-                       units="1/s")
+                       units=div_units)
 
     def _tangential_over_magnitude(field, data):
         tr = data[ftype, "tangential_%s" % basename] / \

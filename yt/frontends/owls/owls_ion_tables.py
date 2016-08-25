@@ -1,8 +1,8 @@
-""" 
+"""
 OWLS ion tables
 
 A module to handle the HM01 UV background spectra and ionization data from the
-OWLS photoionization equilibrium lookup tables. 
+OWLS photoionization equilibrium lookup tables.
 
 
 
@@ -17,25 +17,26 @@ OWLS photoionization equilibrium lookup tables.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
+import yt.extern.six as six
 import numpy as np
 
 
 
 
-def h5rd( fname, path, dtype=None ):
+def h5rd(fname, path, dtype=None):
     """ Read Data. Return a dataset located at <path> in file <fname> as
-    a numpy array. 
+    a numpy array.
     e.g. rd( fname, '/PartType0/Coordinates' ). """
 
     data = None
-    with h5py.File( fname, 'r' ) as h5f:
-        ds = h5f[path]
-        if dtype is None:
-            dtype = ds.dtype
-        data = np.zeros( ds.shape, dtype=dtype )
-        data = ds.value
+    fid = h5py.h5f.open(six.b(fname), h5py.h5f.ACC_RDONLY)
+    dg = h5py.h5d.open(fid, path.encode('ascii'))
+    if dtype is None:
+       dtype = dg.dtype
+    data = np.zeros(dg.shape, dtype=dtype)
+    dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+    fid.close()
     return data
-
 
 
 class IonTableSpectrum:
@@ -45,17 +46,16 @@ class IonTableSpectrum:
     def __init__(self, ion_file):
 
         where = '/header/spectrum/gammahi'
-        self.GH1 = h5rd( ion_file, where ) # GH1[1/s]
+        self.GH1 = h5rd(ion_file, where) # GH1[1/s]
 
         where = '/header/spectrum/logenergy_ryd'
-        self.logryd = h5rd( ion_file, where ) # E[ryd]  
+        self.logryd = h5rd(ion_file, where) # E[ryd]
 
         where = '/header/spectrum/logflux'
-        self.logflux = h5rd( ion_file, where ) # J[ergs/s/Hz/Sr/cm^2] 
+        self.logflux = h5rd(ion_file, where) # J[ergs/s/Hz/Sr/cm^2]
 
         where = '/header/spectrum/redshift'
-        self.z = h5rd( ion_file, where ) # z
-
+        self.z = h5rd(ion_file, where) # z
 
 
     def return_table_GH1_at_z(self,z):
@@ -68,9 +68,9 @@ class IonTableSpectrum:
         else:
             i_zhi = i_zlo
             i_zlo = i_zlo - 1
-    
+
         z_frac = (z - self.z[i_zlo]) / (self.z[i_zhi] - self.z[i_zlo])
-   
+
         # find GH1 from table
         #-----------------------------------------------------------------
         logGH1_all = np.log10( self.GH1 )
@@ -80,8 +80,6 @@ class IonTableSpectrum:
         GH1_table = 10.0**logGH1_table
 
         return GH1_table
-    
-
 
 
 class IonTableOWLS:
@@ -90,7 +88,7 @@ class IonTableOWLS:
 
     DELTA_nH = 0.25
     DELTA_T = 0.1
-    
+
     def __init__(self, ion_file):
 
         self.ion_file = ion_file
@@ -104,13 +102,13 @@ class IonTableOWLS:
 
         # read the ionization fractions
         # linear values stored in file so take log here
-        # ionbal is the ionization balance (i.e. fraction) 
+        # ionbal is the ionization balance (i.e. fraction)
         #---------------------------------------------------------------
-        self.ionbal = h5rd( ion_file, '/ionbal' ).astype(np.float64)    
+        self.ionbal = h5rd( ion_file, '/ionbal' ).astype(np.float64)
         self.ionbal_orig = self.ionbal.copy()
 
-        ipositive = np.where( self.ionbal > 0.0 )
-        izero = np.where( self.ionbal <= 0.0 )
+        ipositive = self.ionbal > 0.0
+        izero = np.logical_not(ipositive)
         self.ionbal[izero] = self.ionbal[ipositive].min()
 
         self.ionbal = np.log10( self.ionbal )
@@ -118,7 +116,7 @@ class IonTableOWLS:
 
         # load in background spectrum
         #---------------------------------------------------------------
-        self.spectrum = IonTableSpectrum( ion_file ) 
+        self.spectrum = IonTableSpectrum( ion_file )
 
         # calculate the spacing along each dimension
         #---------------------------------------------------------------
@@ -129,9 +127,6 @@ class IonTableOWLS:
         self.order_str = '[log nH, log T, z]'
 
 
-            
-        
-                                                
     # sets iz and fz
     #-----------------------------------------------------
     def set_iz( self, z ):
@@ -149,11 +144,11 @@ class IonTableOWLS:
                     self.fz = ( z - self.z[iz] ) / self.dz[iz]
                     break
 
-        
+
 
     # interpolate the table at a fixed redshift for the input
-    # values of nH and T ( input should be log ).  A simple    
-    # tri-linear interpolation is used.  
+    # values of nH and T ( input should be log ).  A simple
+    # tri-linear interpolation is used.
     #-----------------------------------------------------
     def interp( self, nH, T ):
 
@@ -162,7 +157,7 @@ class IonTableOWLS:
 
         if nH.size != T.size:
             raise ValueError(' owls_ion_tables: array size mismatch !!! ')
-        
+
         # field discovery will have nH.size == 1 and T.size == 1
         # in that case we simply return 1.0
 
@@ -185,14 +180,14 @@ class IonTableOWLS:
         x_T_clip = np.clip( x_T, 0.0, self.T.size-1.001 )
         fT,iT = np.modf( x_T_clip )
         iT = iT.astype( np.int32 )
-        
+
 
         # short names for previously calculated iz and fz
         #-----------------------------------------------------
         iz = self.iz
         fz = self.fz
 
-                   
+
         # calculate interpolated value
         # use tri-linear interpolation on the log values
         #-----------------------------------------------------

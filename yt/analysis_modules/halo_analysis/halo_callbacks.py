@@ -76,7 +76,7 @@ def halo_sphere(halo, radius_field="virial_radius", factor=1.0,
     factor : float
         Factor to be multiplied by the base radius for defining 
         the radius of the sphere.
-        Defautl: 1.0.
+        Default: 1.0.
     field_parameters : dict
         Dictionary of field parameters to be set with the sphere 
         created.
@@ -123,7 +123,7 @@ def sphere_field_max_recenter(halo, field):
     s_ds = halo.data_object.ds
     old_sphere = halo.data_object
     max_vals = old_sphere.quantities.max_location(field)
-    new_center = s_ds.arr(max_vals[2:])
+    new_center = s_ds.arr(max_vals[1:])
     new_sphere = s_ds.sphere(new_center.in_units("code_length"),
                                old_sphere.radius.in_units("code_length"))
     mylog.info("Moving sphere center from %s to %s." % (old_sphere.center,
@@ -166,8 +166,7 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
     bin_fields : list of strings
         The binning fields for the profile.
     profile_fields : string or list of strings
-        The fields to be propython
-        filed.
+        The fields to be profiled.
     n_bins : int or list of ints
         The number of bins in each dimension.  If None, 32 bins for
         each bin are used for each bin field.

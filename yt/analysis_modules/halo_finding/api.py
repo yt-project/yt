@@ -28,7 +28,4 @@ from .halo_objects import \
     HaloFinder, \
     LoadHaloes, \
     LoadTextHalos, \
-    LoadTextHaloes, \
-    RockstarHalo, \
-    RockstarHaloList, \
-    LoadRockstarHalos
+    LoadTextHaloes

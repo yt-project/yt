@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.3-dev"
+__version__ = "3.4-dev"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -93,7 +93,8 @@ from yt.funcs import \
     parallel_profile, \
     enable_plugins, \
     memory_checker, \
-    deprecated_class
+    deprecated_class, \
+    toggle_interactivity
 from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
@@ -161,7 +162,7 @@ from yt.visualization.api import \
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \
-    off_axis_projection
+    off_axis_projection, interactive_render
 import yt.visualization.volume_rendering.api as volume_rendering
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
@@ -172,9 +173,14 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.convenience import \
     load, simulation
 
-from yt.testing import \
-    run_nose
+from yt.testing import run_nose
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
+
+from yt.units.unit_systems import UnitSystem
+from yt.units.unit_object import unit_system_registry
+
+from yt.analysis_modules.list_modules import \
+    amods

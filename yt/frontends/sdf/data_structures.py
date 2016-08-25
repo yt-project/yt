@@ -27,17 +27,15 @@ from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, ParticleFile
+from yt.funcs import \
+    get_requests, \
+    setdefaultattr
 from .fields import \
     SDFFieldInfo
 from yt.utilities.sdf import \
     SDFRead,\
     SDFIndex,\
     HTTPSDFRead
-
-try:
-    import requests
-except ImportError:
-    requests = None
 
 @contextlib.contextmanager
 def safeopen(*args, **kwargs):
@@ -75,7 +73,8 @@ class SDFDataset(Dataset):
                  midx_header = None,
                  midx_level = None,
                  field_map = None,
-                 units_override=None):
+                 units_override=None,
+                 unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         if bounding_box is not None:
@@ -101,7 +100,8 @@ class SDFDataset(Dataset):
             prefix += 'http_'
         dataset_type = prefix + 'sdf_particles'
         super(SDFDataset, self).__init__(filename, dataset_type,
-                                         units_override=units_override)
+                                         units_override=units_override,
+                                         unit_system=unit_system)
 
     def _parse_parameter_file(self):
         if self.parameter_filename.startswith("http"):
@@ -178,22 +178,30 @@ class SDFDataset(Dataset):
         return self._midx
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, self.parameters.get("length_unit", 'kpc'))
-        self.velocity_unit = self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr'))
-        self.time_unit = self.quan(1.0, self.parameters.get("time_unit", 'Gyr'))
+        setdefaultattr(
+            self, 'length_unit',
+            self.quan(1.0, self.parameters.get("length_unit", 'kpc')))
+        setdefaultattr(
+            self, 'velocity_unit',
+            self.quan(1.0, self.parameters.get("velocity_unit", 'kpc/Gyr')))
+        setdefaultattr(
+            self, 'time_unit',
+            self.quan(1.0, self.parameters.get("time_unit", 'Gyr')))
         mass_unit = self.parameters.get("mass_unit", '1e10 Msun')
         if ' ' in mass_unit:
             factor, unit = mass_unit.split(' ')
         else:
             factor = 1.0
             unit = mass_unit
-        self.mass_unit = self.quan(float(factor), unit)
+        setdefaultattr(self, 'mass_unit', self.quan(float(factor), unit))
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         sdf_header = kwargs.get('sdf_header', args[0])
         if sdf_header.startswith("http"):
-            if requests is None: return False
+            requests = get_requests()
+            if requests is None: 
+                return False
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200: return False
             # Grab a whole 4k page.

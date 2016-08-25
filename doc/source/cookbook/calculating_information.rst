@@ -9,7 +9,7 @@ Average Field Value
 ~~~~~~~~~~~~~~~~~~~
 
 This recipe is a very simple method of calculating the global average of a
-given field, as weighted by another field.  
+given field, as weighted by another field.
 See :ref:`derived-quantities` for more information.
 
 .. yt_cookbook:: average_value.py
@@ -39,11 +39,11 @@ Radial Velocity Profile
 
 This recipe demonstrates how to subtract off a bulk velocity on a sphere before
 calculating the radial velocity within that sphere.
-See :ref:`how-to-make-1d-profiles` for more information on creating profiles and 
-:ref:`field_parameters` for an explanation of how the bulk velocity is provided 
+See :ref:`how-to-make-1d-profiles` for more information on creating profiles and
+:ref:`field_parameters` for an explanation of how the bulk velocity is provided
 to the radial velocity field function.
 
-.. yt_cookbook:: rad_velocity.py 
+.. yt_cookbook:: rad_velocity.py
 
 Simulation Analysis
 ~~~~~~~~~~~~~~~~~~~
@@ -51,47 +51,10 @@ Simulation Analysis
 This uses :class:`~yt.data_objects.time_series.DatasetSeries` to
 calculate the extrema of a series of outputs, whose names it guesses in
 advance.  This will run in parallel and take advantage of multiple MPI tasks.
-See :ref:`parallel-computation` and :ref:`time-series-analysis` for more 
+See :ref:`parallel-computation` and :ref:`time-series-analysis` for more
 information.
 
 .. yt_cookbook:: simulation_analysis.py
-
-
-.. _cookbook-time-series-analysis:
-
-Time Series Analysis
-~~~~~~~~~~~~~~~~~~~~
-
-This recipe shows how to calculate a number of quantities on a set of parameter
-files.  Note that it is parallel aware, and that if you only wanted to run in
-serial the operation ``for pf in ts:`` would also have worked identically.
-See :ref:`parallel-computation` and :ref:`time-series-analysis` for more 
-information.
-
-.. yt_cookbook:: time_series.py
-
-.. _cookbook-simple-derived-fields:
-
-Simple Derived Fields
-~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to create a simple derived field, 
-``thermal_energy_density``, and then generate a projection from it.
-See :ref:`creating-derived-fields` and :ref:`projection-plots` for more 
-information.
-
-.. yt_cookbook:: derived_field.py
-
-.. _cookbook-complicated-derived-fields:
-
-Complicated Derived Fields
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-This recipe demonstrates how to use the 
-:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields` method
-to generate gradient fields and use them in a more complex derived field. 
-
-.. yt_cookbook:: hse_field.py
 
 Smoothed Fields
 ~~~~~~~~~~~~~~~
@@ -102,6 +65,43 @@ corresponding to a user-created derived field, using the
 See :ref:`gadget-notebook` for how to work with Gadget data.
 
 .. yt_cookbook:: smoothed_field.py
+
+
+.. _cookbook-time-series-analysis:
+
+Time Series Analysis
+~~~~~~~~~~~~~~~~~~~~
+
+This recipe shows how to calculate a number of quantities on a set of parameter
+files.  Note that it is parallel aware, and that if you only wanted to run in
+serial the operation ``for pf in ts:`` would also have worked identically.
+See :ref:`parallel-computation` and :ref:`time-series-analysis` for more
+information.
+
+.. yt_cookbook:: time_series.py
+
+.. _cookbook-simple-derived-fields:
+
+Simple Derived Fields
+~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to create a simple derived field,
+``thermal_energy_density``, and then generate a projection from it.
+See :ref:`creating-derived-fields` and :ref:`projection-plots` for more
+information.
+
+.. yt_cookbook:: derived_field.py
+
+.. _cookbook-complicated-derived-fields:
+
+Complicated Derived Fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This recipe demonstrates how to use the
+:meth:`~yt.frontends.flash.data_structures.FLASHDataset.add_gradient_fields` method
+to generate gradient fields and use them in a more complex derived field.
+
+.. yt_cookbook:: hse_field.py
 
 Using Particle Filters to Calculate Star Formation Rates
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

@@ -29,7 +29,7 @@ class TransferFunction(object):
 
     Transfer functions are defined by boundaries, bins, and the value that
     governs transmission through that bin.  This is scaled between 0 and 1.
-    When integrating through a volume. the value through a given cell is
+    When integrating through a volume the value through a given cell is
     defined by the value calculated in the transfer function.
 
     Parameters
@@ -38,7 +38,7 @@ class TransferFunction(object):
         The min and max for the transfer function.  Values below or above
         these values are discarded.
     nbins : int
-        How many bins to calculate; in betwee, linear interpolation is
+        How many bins to calculate; in between, linear interpolation is
         used, so low values are typically fine.
 
     Notes
@@ -63,7 +63,7 @@ class TransferFunction(object):
     def add_gaussian(self, location, width, height):
         r"""Add a Gaussian distribution to the transfer function.
 
-        Typically, when rendering isocontours, a Guassian distribution is the
+        Typically, when rendering isocontours, a Gaussian distribution is the
         easiest way to draw out features.  The spread provides a softness.
         The values are calculated as :math:`f(x) = h \exp{-(x-x_0)^2 / w}`.
 
@@ -230,6 +230,7 @@ class TransferFunction(object):
         
     def clear(self):
         self.y[:]=0.0
+        self.features = []
 
     def __repr__(self):
         disp = "<Transfer Function Object>: x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s" % \
@@ -238,7 +239,7 @@ class TransferFunction(object):
 
 class MultiVariateTransferFunction(object):
     r"""This object constructs a set of field tables that allow for
-    multiple field variables to control the integration through a volme.
+    multiple field variables to control the integration through a volume.
 
     The integration through a volume typically only utilizes a single field
     variable (for instance, Density) to set up and control the values
@@ -553,7 +554,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.set_ylabel("Opacity")
         ax.set_xlabel("Value")
 
-    def vert_cbar(self, ax=None, label=None, label_fmt=None):
+    def vert_cbar(self, resolution, log_scale, ax=None, label=None, 
+                  label_fmt=None):
         r"""Display an image of the transfer function
 
         This function loads up matplotlib and displays the current transfer function.
@@ -602,10 +604,15 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
+            if log_scale is True:
+                val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:
-                    e = np.floor(np.log10(abs(val)))
-                    return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+                    if not val == 0.0:
+                        e = np.floor(np.log10(abs(val)))
+                        return r"${:.2f}\times 10^{:d}$".format(val/10.0**e, int(e))
+                    else:
+                        return r"$0$"
                 else:
                     return "%.1g" % (val)
             else:
@@ -622,7 +629,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.get_xaxis().set_ticks([])
         ax.set_ylim(visible[0], visible[-1])
         ax.tick_params(axis='y', colors='white', size=10)
-        ax.set_ylabel(label, color='white')
+        ax.set_ylabel(label, color='white', size=10*resolution/512.0)
         
 
         
@@ -660,7 +667,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.sample_colormap(-7.0, 0.01, colormap='algae')
+        >>> tf.sample_colormap(-7.0, 0.01, colormap='arbre')
         """
         v = np.float64(v)
         if col_bounds is None:
@@ -704,10 +711,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         --------
 
         >>> def linramp(vals, minval, maxval):
-        ...     return (vals - vals.min())/(vals.(max) - vals.min())
+        ...     return (vals - vals.min())/(vals.max() - vals.min())
         >>> tf = ColorTransferFunction( (-10.0, -5.0) )
-        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='algae')
-        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='algae',
+        >>> tf.map_to_colormap(-8.0, -6.0, scale=10.0, colormap='arbre')
+        >>> tf.map_to_colormap(-6.0, -5.0, scale=10.0, colormap='arbre',
         ...                    scale_func = linramp)
         """
         mi = np.float64(mi)
@@ -807,6 +814,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
     def clear(self):
         for f in self.funcs:
             f.clear()
+        self.features = []
 
     def __repr__(self):
         disp = "<Color Transfer Function Object>:\n" + \
@@ -823,7 +831,7 @@ class ProjectionTransferFunction(MultiVariateTransferFunction):
     this transfer function should be used.  It will create a very simple
     table that merely sums along each ray.  Note that the end product will
     need to be scaled by the total width through which the rays were cast,
-    a piece of information inacessible to the transfer function.
+    a piece of information inaccessible to the transfer function.
 
     Parameters
     ----------

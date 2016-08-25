@@ -32,9 +32,9 @@ Npixels = 512
 # Also note that we set the field which we want to project as "density", but
 # really we could use any arbitrary field like "temperature", "metallicity"
 # or whatever.
-image, sc = yt.off_axis_projection(ds, c, L, W, Npixels, "density", no_ghost=False)
+image = yt.off_axis_projection(ds, c, L, W, Npixels, "density", no_ghost=False)
 
 # Image is now an NxN array representing the intensities of the various pixels.
 # And now, we call our direct image saver.  We save the log of the result.
-yt.write_projection(image, "offaxis_projection_colorbar.png", 
+yt.write_projection(image, "offaxis_projection_colorbar.png",
                     colorbar_label="Column Density (cm$^{-2}$)")

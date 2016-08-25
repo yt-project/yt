@@ -17,36 +17,36 @@ Grid visitor definitions file
 cimport numpy as np
 
 cdef struct GridTreeNode:
-    int num_children
-    int level
+    np.int32_t num_children
+    np.int32_t level
     np.int64_t index
     np.float64_t left_edge[3]
     np.float64_t right_edge[3]
     GridTreeNode **children
     np.int64_t start_index[3]
-    int dims[3]
+    np.int32_t dims[3]
     np.float64_t dds[3]
 
 cdef struct GridTreeNodePadded:
-    int num_children
-    int level
-    long int index
-    double left_edge_x
-    double left_edge_y
-    double left_edge_z
-    double right_edge_x
-    double right_edge_y
-    double right_edge_z
-    long int children_pointers
-    long int start_index_x
-    long int start_index_y
-    long int start_index_z
-    int dims_x
-    int dims_y
-    int dims_z
-    double dds_x
-    double dds_y
-    double dds_z
+    np.int32_t num_children
+    np.int32_t level
+    np.int64_t index
+    np.float64_t left_edge_x
+    np.float64_t left_edge_y
+    np.float64_t left_edge_z
+    np.float64_t right_edge_x
+    np.float64_t right_edge_y
+    np.float64_t right_edge_z
+    np.int64_t children_pointers
+    np.int64_t start_index_x
+    np.int64_t start_index_y
+    np.int64_t start_index_z
+    np.int32_t dims_x
+    np.int32_t dims_y
+    np.int32_t dims_z
+    np.float64_t dds_x
+    np.float64_t dds_y
+    np.float64_t dds_z
 
 cdef struct GridVisitorData:
     GridTreeNode *grid

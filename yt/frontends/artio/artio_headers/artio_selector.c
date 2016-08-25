@@ -23,10 +23,15 @@
 #include "artio.h"
 #include "artio_internal.h"
 
-#include <stdint.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
+#ifdef _WIN32
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
+#include <stdint.h>
+#endif
 
 #define ARTIO_SELECTION_LIST_SIZE		1024
 #define ARTIO_SELECTION_VOLUME_LIMIT	(1L<<60)

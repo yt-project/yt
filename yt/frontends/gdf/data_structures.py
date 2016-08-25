@@ -19,13 +19,19 @@ import weakref
 import os
 from yt.extern.six import string_types
 from yt.funcs import \
-    just_one, ensure_tuple
+    ensure_tuple, \
+    just_one, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.units.dimensions import \
+    dimensionless as sympy_one
+from yt.units.unit_object import \
+    Unit
 from yt.utilities.exceptions import \
     YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import \
@@ -85,7 +91,6 @@ class GDFHierarchy(GridIndex):
         h5f = h5py.File(self.index_filename, 'r')
         self.dataset_type = dataset_type
         GridIndex.__init__(self, ds, dataset_type)
-        self.max_level = 10  # FIXME
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
@@ -174,10 +179,11 @@ class GDFDataset(Dataset):
 
     def __init__(self, filename, dataset_type='grid_data_format',
                  storage_filename=None, geometry=None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.geometry = geometry
         self.fluid_types += ("gdf",)
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override, unit_system=unit_system)
         self.storage_filename = storage_filename
         self.filename = filename
 
@@ -210,16 +216,26 @@ class GDFDataset(Dataset):
                 current_unit = h5f["/dataset_units/%s" % unit_name]
                 value = current_unit.value
                 unit = current_unit.attrs["unit"]
-                setattr(self, unit_name, self.quan(value, unit))
+                # need to convert to a Unit object and check dimensions
+                # because unit can be things like
+                # 'dimensionless/dimensionless**3' so naive string
+                # comparisons are insufficient
+                unit = Unit(unit, registry=self.unit_registry)
+                if unit_name.endswith('_unit') and unit.dimensions is sympy_one:
+                    un = unit_name[:-5]
+                    un = un.replace('magnetic', 'magnetic_field', 1)
+                    unit = self.unit_system[un]
+                    setdefaultattr(self, unit_name, self.quan(value, unit))
+                setdefaultattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning("'field_units' was overridden by 'dataset_units/%s'"
                                       % (unit_name))
-                    self.field_units[unit_name] = unit
+                    self.field_units[unit_name] = str(unit)
         else:
-            self.length_unit = self.quan(1.0, "cm")
-            self.mass_unit = self.quan(1.0, "g")
-            self.time_unit = self.quan(1.0, "s")
+            setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+            setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+            setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
 
         h5f.close()
 

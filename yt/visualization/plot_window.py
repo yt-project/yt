@@ -13,7 +13,6 @@ from __future__ import print_function
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
 import numpy as np
 import matplotlib
 import types
@@ -21,10 +20,10 @@ import six
 import sys
 
 from distutils.version import LooseVersion
-from matplotlib.mathtext import MathTextParser
 from numbers import Number
 
-from .base_plot_types import ImagePlotMPL
+from .base_plot_types import \
+    ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     ObliqueFixedResolutionBuffer, \
@@ -65,7 +64,9 @@ from yt.utilities.exceptions import \
     YTUnitNotRecognized, \
     YTCannotParseUnitDisplayName, \
     YTUnitConversionError, \
-    YTPlotCallbackError
+    YTPlotCallbackError, \
+    YTDataTypeUnsupported, \
+    YTInvalidFieldType
 import yt.units.dimensions as dimensions
 
 # Some magic for dealing with pyparsing being included or not
@@ -104,7 +105,7 @@ def get_oblique_window_parameters(normal, center, width, ds, depth=None):
         mat = np.transpose(np.column_stack((perp1,perp2,normal)))
         center = np.dot(mat,center)
 
-    w = tuple(el.in_units('unitary') for el in width)
+    w = tuple(el.in_units('code_length') for el in width)
     bounds = tuple(((2*(i % 2))-1)*w[i//2]/2 for i in range(len(w)*2))
 
     return (bounds, center)
@@ -130,6 +131,17 @@ def get_axes_unit(width, ds):
         else:
             axes_unit = None
     return axes_unit
+
+def validate_mesh_fields(data_source, fields):
+    canonical_fields = data_source._determine_fields(fields)
+    invalid_fields = []
+    for field in canonical_fields:
+        if data_source.ds.field_info[field].particle_type is True:
+            invalid_fields.append(field)
+
+    if len(invalid_fields) > 0:
+        raise YTInvalidFieldType(invalid_fields)
+
 
 class PlotWindow(ImagePlotContainer):
     r"""
@@ -161,11 +173,15 @@ class PlotWindow(ImagePlotContainer):
     window_size : float
         The size of the window on the longest axis (in units of inches),
         including the margins but not the colorbar.
+    right_handed : boolean
+        Whether the implicit east vector for the image generated is set to make a right
+        handed coordinate system with a north vector and the normal vector, the
+        direction of the 'window' into the data.
 
     """
     def __init__(self, data_source, bounds, buff_size=(800,800), antialias=True,
-                 periodic=True, origin='center-window', oblique=False, 
-                 window_size=8.0, fields=None, fontsize=18, aspect=None, 
+                 periodic=True, origin='center-window', oblique=False, right_handed=True,
+                 window_size=8.0, fields=None, fontsize=18, aspect=None,
                  setup=False):
         if not hasattr(self, "ds"):
             self.ds = data_source.ds
@@ -175,8 +191,10 @@ class PlotWindow(ImagePlotContainer):
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
+        self._right_handed = right_handed
         self.buff_size = buff_size
         self.antialias = antialias
+
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
         if fields is None:
@@ -226,16 +244,18 @@ class PlotWindow(ImagePlotContainer):
     def frb():
         doc = "The frb property."
         def fget(self):
-            if self._frb is None:
+            if self._frb is None or self._data_valid is False:
                 self._recreate_frb()
             return self._frb
 
         def fset(self, value):
             self._frb = value
+            self._data_valid = True
 
         def fdel(self):
             del self._frb
             self._frb = None
+            self._data_valid = False
 
         return locals()
     frb = property(**frb())
@@ -244,8 +264,8 @@ class PlotWindow(ImagePlotContainer):
         old_fields = None
         # If we are regenerating an frb, we want to know what fields we had before
         if self._frb is not None:
-            old_fields = list(self.frb.keys())
-            old_units = [str(self.frb[of].units) for of in old_fields]
+            old_fields = list(self._frb.keys())
+            old_units = [str(self._frb[of].units) for of in old_fields]
 
         # Set the bounds
         if hasattr(self,'zlim'):
@@ -256,12 +276,11 @@ class PlotWindow(ImagePlotContainer):
             bounds = np.array([b.in_units('code_length') for b in bounds])
 
         # Generate the FRB
-        self._frb = self._frb_generator(self.data_source, bounds,
-                                        self.buff_size, self.antialias,
-                                        periodic=self._periodic)
+        self.frb = self._frb_generator(self.data_source, bounds,
+                                       self.buff_size, self.antialias,
+                                       periodic=self._periodic)
 
         # At this point the frb has the valid bounds, size, aliasing, etc.
-        self._data_valid = True
         if old_fields is None:
             self._frb._get_data_source_fields()
         else:
@@ -608,6 +627,11 @@ class PlotWindow(ImagePlotContainer):
         self._axes_unit_names = unit_name
         return self
 
+    @invalidate_plot
+    def toggle_right_handed(self):
+        self._right_handed = not self._right_handed
+
+
 class PWViewerMPL(PlotWindow):
     """Viewer using matplotlib as a backend via the WindowPlotMPL.
 
@@ -692,6 +716,7 @@ class PWViewerMPL(PlotWindow):
         return xc, yc
 
     def _setup_plots(self):
+        from matplotlib.mathtext import MathTextParser
         if self._plot_valid:
             return
         if not self._data_valid:
@@ -798,13 +823,16 @@ class PWViewerMPL(PlotWindow):
                 ia = ImageArray(ia)
             else:
                 ia = image
-
             self.plots[f] = WindowPlotMPL(
                 ia, self._field_transform[f].name,
                 self._field_transform[f].func,
                 self._colormaps[f], extent, zlim,
                 self.figure_size, font_size,
                 self.aspect, fig, axes, cax)
+
+            if not self._right_handed:
+                ax = self.plots[f].axes
+                ax.invert_xaxis()
 
             axes_unit_labels = ['', '']
             comoving = False
@@ -830,7 +858,9 @@ class PWViewerMPL(PlotWindow):
                 h_power = expr.as_coeff_exponent(h_expr)[1]
                 # un is now the original unit, but with h factored out.
                 un = str(expr*h_expr**(-1*h_power))
-                if str(un).endswith('cm') and un != 'cm':
+                un_unit = Unit(un, registry=self.ds.unit_registry)
+                cm = Unit('cm').expr
+                if str(un).endswith('cm') and cm not in un_unit.expr.atoms():
                     comoving = True
                     un = un[:-2]
                 # no length units besides code_length end in h so this is safe
@@ -840,18 +870,22 @@ class PWViewerMPL(PlotWindow):
                     # It doesn't make sense to scale a position by anything
                     # other than h**-1
                     raise RuntimeError
-                if un in formatted_length_unit_names:
-                    un = formatted_length_unit_names[un]
-                pp = un[0]
-                if pp in latex_prefixes:
-                    symbol_wo_prefix = un[1:]
-                    if symbol_wo_prefix in prefixable_units:
-                        un = un.replace(pp, "{"+latex_prefixes[pp]+"}", 1)
                 if un not in ['1', 'u', 'unitary']:
-                    if hinv:
-                        un = un + '\,h^{-1}'
-                    if comoving:
-                        un = un + '\,(1+z)^{-1}'
+                    if un in formatted_length_unit_names:
+                        un = formatted_length_unit_names[un]
+                    else:
+                        un = Unit(un, registry=self.ds.unit_registry)
+                        un = un.latex_representation()
+                        if hinv:
+                            un = un + '\,h^{-1}'
+                        if comoving:
+                            un = un + '\,(1+z)^{-1}'
+                        pp = un[0]
+                        if pp in latex_prefixes:
+                            symbol_wo_prefix = un[1:]
+                            if symbol_wo_prefix in prefixable_units:
+                                un = un.replace(
+                                    pp, "{"+latex_prefixes[pp]+"}", 1)
                     axes_unit_labels[i] = '\ \ ('+un+')'
 
             if self.oblique:
@@ -976,6 +1010,7 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
+    @invalidate_plot
     def annotate_clear(self, index=None):
         """
         Clear callbacks from the plot.  If index is not set, clear all 
@@ -998,6 +1033,8 @@ class PWViewerMPL(PlotWindow):
                 callback = CallbackMaker(*args[1:], **kwargs)
                 try:
                     callback(cbw)
+                except YTDataTypeUnsupported as e:
+                    six.reraise(YTDataTypeUnsupported, e)
                 except Exception as e:
                     six.reraise(YTPlotCallbackError,
                                 YTPlotCallbackError(callback._type_name, e),
@@ -1045,6 +1082,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_colorbar()
+        return self
 
     def show_colorbar(self, field=None):
         """
@@ -1063,6 +1101,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_colorbar()
+        return self
 
     def hide_axes(self, field=None):
         """
@@ -1101,6 +1140,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].hide_axes()
+        return self
 
     def show_axes(self, field=None):
         """
@@ -1119,6 +1159,7 @@ class PWViewerMPL(PlotWindow):
         field = ensure_list(field)
         for f in field:
             self.plots[f].show_axes()
+        return self
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
@@ -1202,6 +1243,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with a normal vector, the direction of the
+         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1226,7 +1271,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
-                 origin='center-window', fontsize=18, field_parameters=None,
+                 origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
         ts = self._initialize_dataset(ds)
@@ -1248,9 +1293,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             slc = ds.slice(axis, center[axis], field_parameters=field_parameters,
                            center=center, data_source=data_source)
             slc.get_data(fields)
+        validate_mesh_fields(slc, fields)
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
-                             window_size=window_size, aspect=aspect)
+                             window_size=window_size, aspect=aspect, right_handed=right_handed)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1337,7 +1383,10 @@ class ProjectionPlot(PWViewerMPL):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
-
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with the direction of the
+         'window' into the data.
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
@@ -1390,8 +1439,8 @@ class ProjectionPlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
-                 fontsize=18, field_parameters=None, data_source=None,
-                 method = "integrate", proj_style = None, window_size=8.0, 
+                 right_handed=True, fontsize=18, field_parameters=None, data_source=None,
+                 method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
         ts = self._initialize_dataset(ds)
         self.ts = ts
@@ -1408,6 +1457,11 @@ class ProjectionPlot(PWViewerMPL):
                 get_window_parameters(axis, center, width, ds)
         if field_parameters is None: field_parameters = {}
 
+        # We don't use the plot's data source for validation like in the other
+        # plotting classes to avoid an exception
+        test_data_source = ds.all_data()
+        validate_mesh_fields(test_data_source, fields)
+
         if isinstance(ds, YTSpatialPlotDataset):
             proj = ds.all_data()
             proj.axis = axis
@@ -1418,9 +1472,10 @@ class ProjectionPlot(PWViewerMPL):
         else:
             proj = ds.proj(fields, axis, weight_field=weight_field,
                            center=center, data_source=data_source,
-                           field_parameters = field_parameters, method = method)
+                           field_parameters=field_parameters, method=method,
+                           max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             fontsize=fontsize, window_size=window_size, 
+                             right_handed=right_handed, fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1480,10 +1535,14 @@ class OffAxisSlicePlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with the north vector and the normal, the direction of the
+         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -1498,7 +1557,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     _frb_generator = ObliqueFixedResolutionBuffer
 
     def __init__(self, ds, normal, fields, center='c', width=None,
-                 axes_unit=None, north_vector=None, fontsize=18,
+                 axes_unit=None, north_vector=None, right_handed=True, fontsize=18,
                  field_parameters=None, data_source=None):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
@@ -1513,11 +1572,12 @@ class OffAxisSlicePlot(PWViewerMPL):
                                  field_parameters=field_parameters,
                                  data_source=data_source)
             cutting.get_data(fields)
+        validate_mesh_fields(cutting, fields)
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
-                             oblique=True, fontsize=fontsize)
+                             right_handed=right_handed, oblique=True, fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1539,6 +1599,8 @@ class OffAxisProjectionDummyDataSource(object):
         self.fields = fields
         self.interpolated = interpolated
         self.resolution = resolution
+        if weight is not None:
+            weight = self.dd._determine_fields(weight)[0]
         self.weight_field = weight
         self.volume = volume
         self.no_ghost = no_ghost
@@ -1613,10 +1675,14 @@ class OffAxisProjectionPlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
          A vector defining the 'up' direction in the plot.  This
          option sets the orientation of the slicing plane.  If not
          set, an arbitrary grid-aligned north-vector is chosen.
+    right_handed : boolean
+         Whether the implicit east vector for the image generated is set to make a right
+         handed coordinate system with the north vector and the normal, the direction of the
+         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
@@ -1639,8 +1705,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  depth=(1, '1'), axes_unit=None, weight_field=None,
-                 max_level=None, north_vector=None, volume=None, no_ghost=False,
-                 le=None, re=None, interpolated=False, fontsize=18, method="integrate"):
+                 max_level=None, north_vector=None, right_handed=True,
+                 volume=None, no_ghost=False, le=None, re=None,
+                 interpolated=False, fontsize=18, method="integrate"):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1651,14 +1718,23 @@ class OffAxisProjectionPlot(PWViewerMPL):
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
             le=le, re=re, north_vector=north_vector, method=method)
-        # If a non-weighted, integral projection, assure field-label reflects that
+
+        validate_mesh_fields(OffAxisProj, fields)
+
+        if max_level is not None:
+            OffAxisProj.dd.max_level = max_level
+
+        # If a non-weighted, integral projection, assure field label
+        # reflects that
         if weight_field is None and OffAxisProj.method == "integrate":
             self.projected = True
+
         # Hard-coding the origin keyword since the other two options
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
-            periodic=False, oblique=True, fontsize=fontsize)
+            periodic=False, oblique=True, right_handed=right_handed,
+            fontsize=fontsize)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1668,8 +1744,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
 class WindowPlotMPL(ImagePlotMPL):
     """A container for a single PlotWindow matplotlib figure and axes"""
-    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim, figure_size,
-                 fontsize, aspect, figure, axes, cax):
+    def __init__(self, data, cbname, cblinthresh, cmap, extent, zlim,
+                 figure_size, fontsize, aspect, figure, axes, cax):
+        from matplotlib.ticker import ScalarFormatter
         self._draw_colorbar = True
         self._draw_axes = True
         self._fontsize = fontsize
@@ -1701,7 +1778,14 @@ class WindowPlotMPL(ImagePlotMPL):
 
         self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
-        self.image.axes.ticklabel_format(scilimits=(-2, 3))
+        # In matplotlib 2.1 and newer we'll be able to do this using
+        # self.image.axes.ticklabel_format
+        # See https://github.com/matplotlib/matplotlib/pull/6337
+        formatter = ScalarFormatter(useMathText=True)
+        formatter.set_scientific(True)
+        formatter.set_powerlimits((-2, 3))
+        self.image.axes.xaxis.set_major_formatter(formatter)
+        self.image.axes.yaxis.set_major_formatter(formatter)
         if cbname == 'linear':
             self.cb.formatter.set_scientific(True)
             self.cb.formatter.set_powerlimits((-2, 3))
@@ -1805,7 +1889,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          ('{yloc}', '{space}')                  ('lower', 'window')
          ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
          ==================================     ============================
-    north-vector : a sequence of floats
+    north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
         used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
         slicing plane.  If not set, an arbitrary grid-aligned north-vector is

@@ -15,6 +15,9 @@ http://www.sns.ias.edu/~eisenste/hop/hop_doc.html */
  
 #include <stdio.h>
 #include <stdlib.h>
+#ifdef _WIN32
+#define _USE_MATH_DEFINES
+#endif
 #include <math.h>
 #include <string.h>
 #include <ctype.h>
@@ -551,13 +554,13 @@ void outGroupMerge(SMX smx, HC *my_comm)
 {
     int j, den;
     Boundary *hp;
- 
+    int nb = 0;
+
     my_comm->gdensity = vector(0,smx->nGroups-1);
     for (j=0;j<smx->nGroups;j++) {
         den = smx->densestingroup[j];
 	    my_comm->gdensity[j]=NP_DENS(smx->kd, den);
     }
-    int nb = 0;
     for (j=0, hp=smx->hash;j<smx->nHashLength; j++,hp++)
 	if (hp->nGroup1>=0)nb++;
     my_comm->ngroups = smx->nGroups;

@@ -69,6 +69,14 @@ def test_d9p():
                          ad[('specie2', 'particle_type')].size +
                          ad[('specie3', 'particle_type')].size), AnaNDM
 
+    for spnum in range(5):
+        npart_read = ad['specie%s' % spnum, 'particle_type'].size
+        npart_header = ds.particle_type_counts['specie%s' % spnum]
+        if spnum == 3:
+            # see issue 814
+            npart_read += 1
+        assert_equal(npart_read, npart_header)
+
     AnaBoxSize = YTQuantity(7.1442196564, 'Mpc')
     AnaVolume = YTQuantity(364.640074656, 'Mpc**3')
     Volume = 1

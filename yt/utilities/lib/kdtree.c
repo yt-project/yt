@@ -31,7 +31,7 @@ OF SUCH DAMAGE.
 #include <math.h>
 #include "kdtree.h"
 
-#if defined(WIN32) || defined(__WIN32__)
+#ifdef MS_WIN32
 #include <malloc.h>
 #endif
 

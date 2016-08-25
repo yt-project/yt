@@ -90,10 +90,11 @@ class OctreeSubset(YTSelectionContainer):
         return self._num_zones + 2*self._num_ghost_zones
 
     def _reshape_vals(self, arr):
-        if len(arr.shape) == 4 and arr.flags["F_CONTIGUOUS"]:
-            return arr
         nz = self.nz
-        n_oct = arr.shape[0] / (nz**3.0)
+        if len(arr.shape) <= 2:
+            n_oct = arr.shape[0] / (nz**3)
+        else:
+            n_oct = max(arr.shape)
         if arr.size == nz*nz*nz*n_oct:
             new_shape = (nz, nz, nz, n_oct)
         elif arr.size == nz*nz*nz*n_oct * 3:
@@ -115,20 +116,21 @@ class OctreeSubset(YTSelectionContainer):
 
     def select_blocks(self, selector):
         mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
-        mask = self._reshape_vals(mask)
         slicer = OctreeSubsetBlockSlice(self)
         for i, sl in slicer:
-            yield sl, mask[:,:,:,i]
+            yield sl, np.atleast_3d(mask[i,...])
 
     def select_tcoords(self, dobj):
         # These will not be pre-allocated, which can be a problem for speed and
         # memory usage.
         dts, ts = [], []
         for sl, mask in self.select_blocks(dobj.selector):
-            sl.child_mask = mask
+            sl.child_mask = np.asfortranarray(mask)
             dt, t = dobj.selector.get_dt(sl)
             dts.append(dt)
             ts.append(t)
+        if len(dts) == len(ts) == 0:
+            return np.empty(0, "f8"), np.empty(0, "f8")
         return np.concatenate(dts), np.concatenate(ts)
 
     @property
@@ -372,13 +374,15 @@ class OctreeSubset(YTSelectionContainer):
 
     @cell_count_cache
     def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(dobj.selector, domain_id = self.domain_id,
-                                        num_cells = self._cell_count)
+        fcoords = self.oct_handler.fcoords(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
+        return self.ds.arr(fcoords, 'code_length')
 
     @cell_count_cache
     def select_fwidth(self, dobj):
-        return self.oct_handler.fwidth(dobj.selector, domain_id = self.domain_id,
-                                       num_cells = self._cell_count)
+        fwidth = self.oct_handler.fwidth(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
+        return self.ds.arr(fwidth, 'code_length')
 
     @cell_count_cache
     def select_ires(self, dobj):
@@ -431,57 +435,62 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
+class OctreeSubsetBlockSlicePosition(object):
+    def __init__(self, ind, block_slice):
+        self.ind = ind
+        self.block_slice = block_slice
+        nz = self.block_slice.octree_subset.nz
+        self.ActiveDimensions = np.array([nz,nz,nz], dtype="int64")
+
+    def __getitem__(self, key):
+        bs = self.block_slice
+        rv = bs.octree_subset[key][:,:,:,self.ind]
+        if bs.octree_subset._block_reorder:
+            rv = rv.copy(order=bs.octree_subset._block_reorder)
+        return rv
+
+    @property
+    def id(self):
+        return self.ind
+
+    @property
+    def Level(self):
+        return self.block_slice._ires[0,0,0,self.ind]
+
+    @property
+    def LeftEdge(self):
+        LE = (self.block_slice._fcoords[0,0,0,self.ind,:]
+            - self.block_slice._fwidth[0,0,0,self.ind,:]*0.5)
+        return LE
+
+    @property
+    def RightEdge(self):
+        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:]
+            + self.block_slice._fwidth[-1,-1,-1,self.ind,:]*0.5)
+        return RE
+
+    @property
+    def dds(self):
+        return self.block_slice._fwidth[0,0,0,self.ind,:]
+
+    def clear_data(self):
+        pass
+
+    def get_vertex_centered_data(self, *args, **kwargs):
+        raise NotImplementedError
+
+
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):
-        self.ind = None
         self.octree_subset = octree_subset
         # Cache some attributes
-        nz = octree_subset.nz
-        self.ActiveDimensions = np.array([nz,nz,nz], dtype="int64")
         for attr in ["ires", "icoords", "fcoords", "fwidth"]:
             v = getattr(octree_subset, attr)
             setattr(self, "_%s" % attr, octree_subset._reshape_vals(v))
 
     def __iter__(self):
         for i in range(self._ires.shape[-1]):
-            self.ind = i
-            yield i, self
-
-    def clear_data(self):
-        pass
-
-    def __getitem__(self, key):
-        rv = self.octree_subset[key][:,:,:,self.ind]
-        if self.octree_subset._block_reorder:
-            rv = rv.copy(order=self.octree_subset._block_reorder)
-        return rv
-
-    def get_vertex_centered_data(self, *args, **kwargs):
-        raise NotImplementedError
-
-    @property
-    def id(self):
-        return np.random.randint(1)
-
-    @property
-    def Level(self):
-        return self._ires[0,0,0,self.ind]
-
-    @property
-    def LeftEdge(self):
-        LE = (self._fcoords[0,0,0,self.ind,:]
-            - self._fwidth[0,0,0,self.ind,:]*0.5)
-        return LE
-
-    @property
-    def RightEdge(self):
-        RE = (self._fcoords[-1,-1,-1,self.ind,:]
-            + self._fwidth[-1,-1,-1,self.ind,:]*0.5)
-        return RE
-
-    @property
-    def dds(self):
-        return self._fwidth[0,0,0,self.ind,:]
+            yield i, OctreeSubsetBlockSlicePosition(i, self)
 
 class YTPositionArray(YTArray):
     @property

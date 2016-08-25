@@ -67,8 +67,7 @@ def line_integral_convolution_2d(
         np.ndarray[double, ndim=1] kernel):
     cdef int i,j,l,x,y
     cdef int h,w,kernellen
-    cdef int t
-    cdef double fx, fy, tx, ty
+    cdef double fx, fy
     cdef np.ndarray[double, ndim=2] result
 
     w = vectors.shape[0]

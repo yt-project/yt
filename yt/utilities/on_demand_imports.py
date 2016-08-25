@@ -10,19 +10,27 @@ A set of convenient on-demand imports
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from pkg_resources import parse_version
+
 class NotAModule(object):
     """
     A class to implement an informative error message that will be outputted if
-    someone tries to use an on-demand import without having the requisite package installed.
+    someone tries to use an on-demand import without having the requisite
+    package installed.
     """
     def __init__(self, pkg_name):
         self.pkg_name = pkg_name
+        self.error = ImportError(
+            "This functionality requires the %s "
+            "package to be installed." % self.pkg_name)
 
     def __getattr__(self, item):
-        raise ImportError("This functionality requires the %s package to be installed."
-                          % self.pkg_name)
+        raise self.error
 
-class astropy_imports:
+    def __call__(self, *args, **kwargs):
+        raise self.error
+
+class astropy_imports(object):
     _name = "astropy"
     _pyfits = None
     @property
@@ -99,7 +107,7 @@ class astropy_imports:
 
 _astropy = astropy_imports()
 
-class scipy_imports:
+class scipy_imports(object):
     _name = "scipy"
     _integrate = None
     @property
@@ -180,12 +188,27 @@ class scipy_imports:
 
 _scipy = scipy_imports()
 
-class h5py_imports:
+class h5py_imports(object):
     _name = "h5py"
+    _err = None
+
+    def __init__(self):
+        try:
+            import h5py
+            if parse_version(h5py.__version__) < parse_version('2.4.0'):
+                self._err = RuntimeError(
+                    'yt requires h5py version 2.4.0 or newer, '
+                    'please update h5py with e.g. "pip install -U h5py" '
+                    'and try again')
+        except ImportError:
+            pass
+        super(h5py_imports, self).__init__()
 
     _File = None
     @property
     def File(self):
+        if self._err:
+            raise self._err
         if self._File is None:
             try:
                 from h5py import File
@@ -197,6 +220,8 @@ class h5py_imports:
     _Group = None
     @property
     def Group(self):
+        if self._err:
+            raise self._err
         if self._Group is None:
             try:
                 from h5py import Group
@@ -208,6 +233,8 @@ class h5py_imports:
     ___version__ = None
     @property
     def __version__(self):
+        if self._err:
+            raise self._err
         if self.___version__ is None:
             try:
                 from h5py import __version__
@@ -219,6 +246,8 @@ class h5py_imports:
     _get_config = None
     @property
     def get_config(self):
+        if self._err:
+            raise self._err
         if self._get_config is None:
             try:
                 from h5py import get_config
@@ -230,6 +259,8 @@ class h5py_imports:
     _h5f = None
     @property
     def h5f(self):
+        if self._err:
+            raise self._err
         if self._h5f is None:
             try:
                 import h5py.h5f as h5f
@@ -241,6 +272,8 @@ class h5py_imports:
     _h5d = None
     @property
     def h5d(self):
+        if self._err:
+            raise self._err
         if self._h5d is None:
             try:
                 import h5py.h5d as h5d
@@ -252,6 +285,8 @@ class h5py_imports:
     _h5s = None
     @property
     def h5s(self):
+        if self._err:
+            raise self._err
         if self._h5s is None:
             try:
                 import h5py.h5s as h5s
@@ -263,6 +298,8 @@ class h5py_imports:
     _version = None
     @property
     def version(self):
+        if self._err:
+            raise self._err
         if self._version is None:
             try:
                 import h5py.version as version
@@ -272,3 +309,18 @@ class h5py_imports:
         return self._version
 
 _h5py = h5py_imports()
+
+class nose_imports(object):
+    _name = "nose"
+    _run = None
+    @property
+    def run(self):
+        if self._run is None:
+            try:
+                from nose import run
+            except ImportError:
+                run = NotAModule(self._name)
+            self._run = run
+        return self._run
+
+_nose = nose_imports()

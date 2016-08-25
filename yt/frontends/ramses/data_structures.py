@@ -23,7 +23,8 @@ from io import BytesIO
 
 from yt.extern.six import string_types
 from yt.funcs import \
-    mylog
+    mylog, \
+    setdefaultattr
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.geometry_handler import \
@@ -474,6 +475,13 @@ class RAMSESIndex(OctreeIndex):
         for level in range(self.max_level+1):
             self.level_stats[level+self.dataset.min_level+1]['numcells'] = levels[level]
 
+    def _get_particle_type_counts(self):
+        npart = 0
+        for dom in self.domains:
+            npart += dom.local_particle_count
+
+        return {'io': npart}
+
     def print_stats(self):
         
         # This function prints information based on the fluid on the grids,
@@ -520,7 +528,7 @@ class RAMSESDataset(Dataset):
     
     def __init__(self, filename, dataset_type='ramses',
                  fields = None, storage_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
@@ -530,7 +538,8 @@ class RAMSESDataset(Dataset):
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override)
+        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
 
     def __repr__(self):
@@ -557,17 +566,21 @@ class RAMSESDataset(Dataset):
         # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
         mean_molecular_weight_factor = _X**-1
 
-        self.density_unit = self.quan(density_unit, 'g/cm**3')
-        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
-        self.time_unit = self.quan(time_unit, "s")
-        self.mass_unit = self.quan(mass_unit, "g")
-        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
-        self.temperature_unit = (self.velocity_unit**2*mp* 
-                                 mean_molecular_weight_factor/kb).in_units('K')
+        setdefaultattr(self, 'density_unit', self.quan(density_unit, 'g/cm**3'))
+        setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
+        setdefaultattr(self, 'pressure_unit',
+                       self.quan(pressure_unit, 'dyne/cm**2'))
+        setdefaultattr(self, 'time_unit', self.quan(time_unit, "s"))
+        setdefaultattr(self, 'mass_unit', self.quan(mass_unit, "g"))
+        setdefaultattr(self, 'velocity_unit',
+                       self.quan(length_unit, 'cm') / self.time_unit)
+        temperature_unit = (
+            self.velocity_unit**2*mp*mean_molecular_weight_factor/kb)
+        setdefaultattr(self, 'temperature_unit', temperature_unit.in_units('K'))
 
         # Only the length unit get scales by a factor of boxlen
-        self.length_unit = self.quan(length_unit * boxlen, "cm")
+        setdefaultattr(self, 'length_unit',
+                       self.quan(length_unit * boxlen, "cm"))
 
     def _parse_parameter_file(self):
         # hardcoded for now

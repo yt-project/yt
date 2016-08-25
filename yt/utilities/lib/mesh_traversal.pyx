@@ -1,6 +1,6 @@
 """
-This file contains the MeshSampler class, which handles casting rays at a
-MeshSource using pyembree.
+This file contains the MeshSampler classes, which handles casting rays at a
+mesh source using either pyembree or the cython ray caster.
 
 
 """
@@ -21,9 +21,13 @@ cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_scene as rtcs
-from grid_traversal cimport ImageSampler, \
+from .image_samplers cimport \
+    ImageSampler
+from .lenses cimport \
     ImageContainer
 from cython.parallel import prange, parallel, threadid
+from yt.visualization.image_writer import apply_colormap
+from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray
 
 rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
@@ -41,7 +45,8 @@ cdef class YTEmbreeScene:
     def __dealloc__(self):
         rtcs.rtcDeleteScene(self.scene_i)
 
-cdef class MeshSampler(ImageSampler):
+
+cdef class EmbreeMeshSampler(ImageSampler):
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -57,23 +62,17 @@ cdef class MeshSampler(ImageSampler):
         '''
 
         rtcs.rtcCommit(scene.scene_i)
-        cdef int vi, vj, i, j, ni, nj, nn
-        cdef np.int64_t offset
+        cdef int vi, vj, i, j
         cdef ImageContainer *im = self.image
-        cdef np.int64_t elemID
-        cdef np.float64_t value
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
-        cdef np.float64_t px, py
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
-        cdef np.ndarray[np.float64_t, ndim=1] data
         nx = im.nv[0]
         ny = im.nv[1]
         size = nx * ny
-        data = np.empty(size, dtype="float64")
         cdef rtcr.RTCRay ray
         v_pos = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
         v_dir = <np.float64_t *> malloc(3 * sizeof(np.float64_t))
@@ -92,8 +91,11 @@ cdef class MeshSampler(ImageSampler):
             ray.instID = rtcg.RTC_INVALID_GEOMETRY_ID
             ray.mask = -1
             ray.time = 0
+            ray.Ng[0] = 1e37  # we use this to track the hit distance
             rtcs.rtcIntersect(scene.scene_i, ray)
-            data[j] = ray.time
-        self.aimage = data.reshape(self.image.nv[0], self.image.nv[1])
+            im.image[vi, vj, 0] = ray.time
+            im.image_used[vi, vj] = ray.primID
+            im.mesh_lines[vi, vj] = ray.instID
+            im.zbuffer[vi, vj] = ray.tfar
         free(v_pos)
         free(v_dir)

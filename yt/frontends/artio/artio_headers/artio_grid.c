@@ -25,8 +25,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <math.h>
+
+#ifdef _WIN32
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
+#include <stdint.h>
+#endif
 
 int artio_grid_find_file(artio_grid_file *ghandle, int start, int end, int64_t sfc);
 artio_grid_file *artio_grid_file_allocate(void);

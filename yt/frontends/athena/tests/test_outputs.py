@@ -34,7 +34,7 @@ cloud = "ShockCloud/id0/Cloud.0050.vtk"
 def test_cloud():
     ds = data_dir_load(cloud)
     yield assert_equal, str(ds), "Cloud.0050"
-    for test in small_patch_amr(cloud, _fields_cloud):
+    for test in small_patch_amr(ds, _fields_cloud):
         test_cloud.__name__ = test.description
         yield test
 
@@ -45,9 +45,23 @@ blast = "MHDBlast/id0/Blast.0100.vtk"
 def test_blast():
     ds = data_dir_load(blast)
     yield assert_equal, str(ds), "Blast.0100"
-    for test in small_patch_amr(blast, _fields_blast):
+    for test in small_patch_amr(ds, _fields_blast):
         test_blast.__name__ = test.description
         yield test
+
+uo_blast = {
+    'length_unit': (1.0, 'pc'),
+    'mass_unit': (2.38858753789e-24, 'g/cm**3*pc**3'),
+    'time_unit': (1.0, 's*pc/km'),
+}
+
+@requires_file(blast)
+def test_blast_override():
+    # verify that overriding units causes derived unit values to be updated.
+    # see issue #1259
+    ds = load(blast, units_override=uo_blast)
+    assert_equal(float(ds.magnetic_unit.in_units('gauss')),
+                 5.478674679698131e-07)
 
 uo_stripping = {"time_unit":3.086e14,
                 "length_unit":8.0236e22,
@@ -60,7 +74,7 @@ stripping = "RamPressureStripping/id0/rps.0062.vtk"
 def test_stripping():
     ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
     yield assert_equal, str(ds), "rps.0062"
-    for test in small_patch_amr(stripping, _fields_stripping):
+    for test in small_patch_amr(ds, _fields_stripping):
         test_stripping.__name__ = test.description
         yield test
 

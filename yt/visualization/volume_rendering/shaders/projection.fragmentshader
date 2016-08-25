@@ -1,0 +1,64 @@
+#version 330
+in vec4 v_model;
+in vec3 v_camera_pos;
+in vec3 dx;
+in vec3 left_edge;
+in vec3 right_edge;
+flat in mat4 inverse_proj;
+flat in mat4 inverse_view;
+out vec4 output_color;
+
+uniform sampler3D ds_tex;
+//layout (binding = 1) uniform sampler2D depth_tex;
+uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
+
+bool within_bb(vec3 pos)
+{
+    bvec3 left =  greaterThanEqual(pos, left_edge);
+    bvec3 right = lessThanEqual(pos, right_edge);
+    return all(left) && all(right);
+}
+
+void main()
+{
+    // Obtain screen coordinates
+    // https://www.opengl.org/wiki/Compute_eye_space_from_window_space#From_gl_FragCoord
+    vec4 ndcPos;
+    ndcPos.xy = ((2.0 * gl_FragCoord.xy) - (2.0 * viewport.xy)) / (viewport.zw) - 1;
+    ndcPos.z = (2.0 * gl_FragCoord.z - 1.0);
+    ndcPos.w = 1.0;
+
+    vec4 clipPos = ndcPos / gl_FragCoord.w;
+    vec4 eyePos = inverse_proj * clipPos;
+    eyePos /= eyePos.w;
+
+    vec4 world_location = inverse_view * clipPos;
+
+    // Five samples
+    vec3 step_size = dx / 5.0;
+    vec3 dir = normalize(world_location.xyz - v_camera_pos.xyz);
+    vec3 curr_color = vec3(0.0);
+
+    vec3 ray_position = world_location.xyz;
+
+    vec3 tex_curr_pos = vec3(0.0);
+    vec3 range = right_edge - left_edge;
+    bool ray_in_bb = true;
+    // Take into account that texture is clamped
+    vec3 nds = range / dx;
+    vec3 tle = 1.0 / (2.0 * nds);
+    vec3 tre = 1.0 - tle;
+    vec3 tdd = tre - tle;
+    float total_value = 0.0;
+    float color = 0.0;
+    while (ray_in_bb) {
+        tex_curr_pos = tle + tdd * (ray_position - left_edge) / range;
+        vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
+	color = (tex_sample * length(step_size * dir)).r;
+        total_value += length(step_size * dir) * tex_sample.r;
+        ray_position += dir * step_size;
+        ray_in_bb = within_bb(ray_position);
+    }
+    //total_value *= 1e3;
+    output_color = vec4(total_value, total_value, total_value, 1.0);
+}

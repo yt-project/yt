@@ -25,7 +25,7 @@ from yt.units.index_array import YTIndexArray
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 
 class AMRGridPatch(YTSelectionContainer):
@@ -330,12 +330,13 @@ class AMRGridPatch(YTSelectionContainer):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions.prod(), kernel_name)
+        # Everything inside this is fortran ordered, so we reverse it here.
+        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None: return
-        return vals.reshape(self.ActiveDimensions, order="C")
+        return vals.transpose() # Fortran-ordered, so transpose.
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)

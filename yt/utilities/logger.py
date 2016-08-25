@@ -54,21 +54,11 @@ else:
 
 ytLogger = logging.getLogger("yt")
 
-yt_sh = logging.StreamHandler(stream=stream)
-# create formatter and add it to the handlers
-formatter = logging.Formatter(ufstring)
-yt_sh.setFormatter(formatter)
-# add the handler to the logger
-ytLogger.addHandler(yt_sh)
-ytLogger.setLevel(level)
-ytLogger.propagate = False
- 
 def disable_stream_logging():
-    ytLogger.removeHandler(ytLogger.handlers[0])
+    if len(ytLogger.handlers) > 0:
+        ytLogger.removeHandler(ytLogger.handlers[0])
     h = logging.NullHandler()
     ytLogger.addHandler(h)
-
-original_emitter = yt_sh.emit
 
 def colorize_logging():
     f = logging.Formatter(cfstring)
@@ -76,14 +66,31 @@ def colorize_logging():
     yt_sh.emit = add_coloring_to_emit_ansi(yt_sh.emit)
 
 def uncolorize_logging():
-    f = logging.Formatter(ufstring)
-    ytLogger.handlers[0].setFormatter(f)
-    yt_sh.emit = original_emitter
-
-if ytcfg.getboolean("yt", "coloredlogs"):
-    colorize_logging()
+    try:
+        f = logging.Formatter(ufstring)
+        ytLogger.handlers[0].setFormatter(f)
+        yt_sh.emit = original_emitter
+    except NameError:
+        # yt_sh and original_emitter are not defined because
+        # suppressStreamLogging is True, so we continue since there is nothing
+        # to uncolorize
+        pass
 
 if ytcfg.getboolean("yt", "suppressStreamLogging"):
     disable_stream_logging()
+else:
+    yt_sh = logging.StreamHandler(stream=stream)
+    # create formatter and add it to the handlers
+    formatter = logging.Formatter(ufstring)
+    yt_sh.setFormatter(formatter)
+    # add the handler to the logger
+    ytLogger.addHandler(yt_sh)
+    ytLogger.setLevel(level)
+    ytLogger.propagate = False
+
+    original_emitter = yt_sh.emit
+
+    if ytcfg.getboolean("yt", "coloredlogs"):
+        colorize_logging()
 
 ytLogger.debug("Set log level to %s", level)

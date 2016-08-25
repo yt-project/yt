@@ -26,28 +26,35 @@ import tempfile
 import json
 import pprint
 
-
-from yt.config import ytcfg
+from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
     ensure_list, \
     get_hg_version, \
+    get_yt_version, \
     mylog, \
     ensure_dir_exists, \
     update_hg, \
     enable_plugins
 from yt.extern.six import add_metaclass, string_types
-from yt.extern.six.moves import urllib
+from yt.extern.six.moves import urllib, input
+from yt.extern.six.moves.urllib.parse import urlparse
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
+from yt.utilities.metadata import get_metadata
+from yt.utilities.configure import set_config
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified, YTFieldNotParseable
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
 if ytcfg.getboolean("yt","loadfieldplugins"):
     enable_plugins()
+
+_default_colormap = ytcfg.get("yt", "default_colormap")
 
 def _fix_ds(arg):
     if os.path.isdir("%s" % arg) and \
@@ -71,15 +78,89 @@ def _add_arg(sc, arg):
     if "longname" in argc: argnames.append(argc.pop('longname'))
     sc.add_argument(*argnames, **argc)
 
+def _print_failed_source_update(reinstall=False):
+    print()
+    print("The yt package is not installed from a mercurial repository,")
+    print("so you must update this installation manually.")
+    if 'Continuum Analytics' in sys.version or 'Anaconda' in sys.version:
+        # see http://stackoverflow.com/a/21318941/1382869 for why we need
+        # to check both Continuum *and* Anaconda
+        print()
+        print("Since it looks like you are using a python installation")
+        print("that is managed by conda, you may want to do:")
+        print()
+        print("    $ conda update yt")
+        print()
+        print("to update your yt installation.")
+        if reinstall is True:
+            print()
+            print("To update all of your packages, you can do:")
+            print()
+            print("    $ conda update --all")
+
+def _print_installation_information(path):
+    import yt
+    print()
+    print("yt module located at:")
+    print("    %s" % (path))
+    if "YT_DEST" in os.environ:
+        spath = os.path.join(
+            os.environ["YT_DEST"], "src", "yt-supplemental")
+        if os.path.isdir(spath):
+            print("The supplemental repositories are located at:")
+            print("    %s" % (spath))
+    print()
+    print("The current version of yt is:")
+    print()
+    print("---")
+    print("Version = %s" % yt.__version__)
+    vstring = get_hg_version(path)
+    if vstring is not None:
+        print("Changeset = %s" % vstring.strip().decode("utf-8"))
+    print("---")
+    return vstring
+    
+
+def _get_girder_client():
+    try:
+        import girder_client
+    except ImportError:
+        print("this command requires girder_client to be installed")
+        print("Please install them using your python package manager, e.g.:")
+        print("   pip install girder_client --user")
+        exit()
+
+    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
+    gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
+    gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
+    return gc
+
+
+_subparsers = {None: subparsers}
+_subparsers_description = {
+    'config': 'Get and set configuration values for yt',
+    'hub': 'Interact with the yt Hub'
+}
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if cls.name is not None:
             names = ensure_list(cls.name)
+            if cls.subparser not in _subparsers:
+                try:
+                    description = _subparsers_description[cls.subparser]
+                except KeyError:
+                    description = cls.subparser
+                parent_parser = argparse.ArgumentParser(add_help=False)
+                p = subparsers.add_parser(cls.subparser, help=description,
+                                          description=description,
+                                          parents=[parent_parser])
+                _subparsers[cls.subparser] = p.add_subparsers(
+                    title=cls.subparser, dest=cls.subparser)
+            sp = _subparsers[cls.subparser]
             for name in names:
-                sc = subparsers.add_parser(name,
-                    description = cls.description,
-                    help = cls.description)
+                sc = sp.add_parser(name, description=cls.description, 
+                                   help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
                     _add_arg(sc, arg)
@@ -91,10 +172,21 @@ class YTCommand(object):
     description = ""
     aliases = ()
     ndatasets = 1
+    subparser = None
 
     @classmethod
     def run(cls, args):
         self = cls()
+        # Check for some things we know; for instance, comma separated
+        # field names should be parsed as tuples.
+        if getattr(args, 'field', None) is not None and ',' in args.field:
+            if args.field.count(",") > 1:
+                raise YTFieldNotParseable(args.field)
+            args.field = tuple(_.strip() for _ in args.field.split(","))
+        if getattr(args, 'weight', None) is not None and ',' in args.weight:
+            if args.weight.count(",") > 1:
+                raise YTFieldNotParseable(args.weight)
+            args.weight = tuple(_.strip() for _ in args.weight.split(","))
         # Some commands need to be run repeatedly on datasets
         # In fact, this is the rule and the opposite is the exception
         # BUT, we only want to parse the arguments once.
@@ -152,14 +244,16 @@ _common_options = dict(
     field   = dict(short="-f", longname="--field",
                    action="store", type=str,
                    dest="field", default="density",
-                   help="Field to color by"),
+                   help=("Field to color by, "
+                         "use a comma to separate field tuple values")),
     weight  = dict(short="-g", longname="--weight",
                    action="store", type=str,
                    dest="weight", default=None,
-                   help="Field to weight projections with"),
+                   help=("Field to weight projections with, "
+                         "use a comma to separate field tuple values")),
     cmap    = dict(longname="--colormap",
                    action="store", type=str,
-                   dest="cmap", default="algae",
+                   dest="cmap", default=_default_colormap,
                    help="Colormap name"),
     zlim    = dict(short="-z", longname="--zlim",
                    action="store", type=float,
@@ -325,11 +419,18 @@ def _get_yt_stack_date():
     if not os.path.exists(date_file):
         print("Could not determine when yt stack was last updated.")
         return
-    print("".join(file(date_file, 'r').readlines()))
+    print("".join(open(date_file, 'r').readlines()))
     print("To update all dependencies, run \"yt update --all\".")
 
 def _update_yt_stack(path):
     "Rerun the install script to updated all dependencies."
+
+    if "YT_DEST" not in os.environ:
+        print()
+        print("This yt installation does not appear to be managed by the")
+        print("source-based install script, but 'update --all' was specified.")
+        print("You will need to update your dependencies manually.")
+        return
 
     install_script = os.path.join(path, "doc/install_script.sh")
     if not os.path.exists(install_script):
@@ -345,7 +446,7 @@ def _update_yt_stack(path):
     print()
     print("[hit enter to continue or Ctrl-C to stop]")
     try:
-        raw_input()
+        input()
     except:
         sys.exit(0)
     os.environ["REINST_YT"] = "1"
@@ -358,19 +459,6 @@ def _update_yt_stack(path):
         print("The yt stack has been updated successfully.")
         print("Now get back to work!")
 
-def get_yt_version():
-    try:
-        from yt.__hg_version__ import hg_version
-        return hg_version
-    except ImportError:
-        pass
-    import pkg_resources
-    yt_provider = pkg_resources.get_provider("yt")
-    path = os.path.dirname(yt_provider.module_path)
-    if not os.path.isdir(os.path.join(path, ".hg")): return None
-    version = get_hg_version(path)
-    return version
-
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
     uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
@@ -381,7 +469,7 @@ def bb_apicall(endpoint, data, use_pass = True):
         data = urllib.parse.urlencode(data)
     req = urllib.request.Request(uri, data)
     if use_pass:
-        username = raw_input("Bitbucket Username? ")
+        username = input("Bitbucket Username? ")
         password = getpass.getpass()
         upw = '%s:%s' % (username, password)
         req.add_header('Authorization', 'Basic %s' % base64.b64encode(upw).strip())
@@ -419,7 +507,7 @@ class YTBugreportCmd(YTCommand):
         print("   http://yt-project.org/irc.html")
         print("   http://lists.spacepope.org/listinfo.cgi/yt-users-spacepope.org")
         print()
-        summary = raw_input("Press <enter> if you remain firm in your conviction to continue.")
+        summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
         print()
         print("Okay, sorry about that. How about a nice, pithy ( < 12 words )")
@@ -430,7 +518,7 @@ class YTBugreportCmd(YTCommand):
             current_version = get_yt_version()
         except:
             current_version = "Unavailable"
-        summary = raw_input("Summary? ")
+        summary = input("Summary? ")
         bugtype = "bug"
         data = dict(title = summary, type=bugtype)
         print()
@@ -442,7 +530,7 @@ class YTBugreportCmd(YTCommand):
         if "EDITOR" in os.environ:
             print()
             print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
-            raw_input()
+            input()
             tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
@@ -463,7 +551,7 @@ class YTBugreportCmd(YTCommand):
             print()
             lines = []
             while 1:
-                line = raw_input()
+                line = input()
                 if line.strip() == "---": break
                 lines.append(line)
             content = "\n".join(lines)
@@ -487,7 +575,7 @@ class YTBugreportCmd(YTCommand):
         print("'submit'.  Next we'll ask for your Bitbucket Username.")
         print("If you don't have one, run the 'yt bootstrap_dev' command.")
         print()
-        raw_input()
+        input()
         retval = bb_apicall(endpoint, data, use_pass=True)
         import json
         retval = json.loads(retval)
@@ -504,41 +592,46 @@ class YTBugreportCmd(YTCommand):
 
 
 class YTHubRegisterCmd(YTCommand):
-    name = "hub_register"
+    subparser = "hub"
+    name = "register"
     description = \
         """
-        Register a user on the Hub: http://hub.yt-project.org/
+        Register a user on the yt Hub: http://hub.yt/
         """
     def __call__(self, args):
-        # We need these pieces of information:
-        #   1. Name
-        #   2. Email
-        #   3. Username
-        #   4. Password (and password2)
-        #   5. (optional) URL
-        #   6. "Secret" key to make it epsilon harder for spammers
-        if ytcfg.get("yt","hub_api_key") != "":
+        try:
+            import requests
+        except ImportError:
+            print("yt {} requires requests to be installed".format(self.name))
+            print("Please install them using your python package manager, e.g.:")
+            print("   pip install requests --user")
+            exit()
+        if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
-            print("~/.yt/config .  Delete this if you want to force a")
+            print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
             print("new user registration.")
+            exit()
         print("Awesome!  Let's start by registering a new user for you.")
-        print("Here's the URL, for reference: http://hub.yt-project.org/ ")
+        print("Here's the URL, for reference: http://hub.yt/ ")
         print()
         print("As always, bail out with Ctrl-C at any time.")
         print()
         print("What username would you like to go by?")
         print()
-        username = raw_input("Username? ")
+        username = input("Username? ")
         if len(username) == 0: sys.exit(1)
         print()
         print("To start out, what's your name?")
         print()
-        name = raw_input("Name? ")
-        if len(name) == 0: sys.exit(1)
+        first_name = input("First Name? ")
+        if len(first_name) == 0: sys.exit(1)
+        print()
+        last_name = input("Last Name? ")
+        if len(last_name) == 0: sys.exit(1)
         print()
         print("And your email address?")
         print()
-        email = raw_input("Email? ")
+        email = input("Email? ")
         if len(email) == 0: sys.exit(1)
         print()
         print("Please choose a password:")
@@ -551,33 +644,32 @@ class YTHubRegisterCmd(YTCommand):
             print("Sorry, they didn't match!  Let's try again.")
             print()
         print()
-        print("Would you like a URL displayed for your user?")
-        print("Leave blank if no.")
-        print()
-        url = raw_input("URL? ")
-        print()
         print("Okay, press enter to register.  You should receive a welcome")
         print("message at %s when this is complete." % email)
         print()
-        raw_input()
-        data = dict(name = name, email = email, username = username,
-                    password = password1, password2 = password2,
-                    url = url, zap = "rowsdower")
-        data = urllib.parse.urlencode(data)
-        hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib.request.Request(hub_url, data)
-        try:
-            urllib.request.urlopen(req).read()
-        except urllib.error.HTTPError as exc:
-            if exc.code == 400:
-                print("Sorry, the Hub couldn't create your user.")
-                print("You can't register duplicate users, which is the most")
-                print("common cause of this error.  All values for username,")
-                print("name, and email must be unique in our system.")
-                sys.exit(1)
-        except urllib.URLError as exc:
-            print("Something has gone wrong.  Here's the error message.")
-            raise exc
+        input()
+
+        data = dict(firstName=first_name, email=email, login=username,
+                    password=password1, lastName=last_name, admin=False)
+        hub_url = ytcfg.get("yt", "hub_url")
+        req = requests.post(hub_url + "/user", data=data)
+      
+        if req.ok:
+            headers = {'Girder-Token': req.json()['authToken']['token']}
+        else:
+            if req.status_code == 400:
+                print("Registration failed with 'Bad request':")
+                print(req.json()["message"])
+            exit(1)
+        print("User registration successful")
+        print("Obtaining API key...")
+        req = requests.post(hub_url + "/api_key", headers=headers,
+                            data={'name': 'ytcmd', 'active': True})
+        apiKey = req.json()["key"]
+
+        print("Storing API key in configuration file")
+        set_config("yt", "hub_api_key", apiKey)
+        
         print()
         print("SUCCESS!")
         print()
@@ -602,43 +694,17 @@ class YTInstInfoCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
-        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
-        print()
-        print("yt module located at:")
-        print("    %s" % (path))
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print("The supplemental repositories are located at:")
-                print("    %s" % (spath))
-        vstring = get_yt_version()
-        if vstring == -1:
-            vstring = "unknown"
+        vstring = _print_installation_information(path)
         if vstring is not None:
-            print()
-            print("The current version and changeset for the code is:")
-            print()
-            print("---")
-            print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip().decode("utf-8"))
-            print("---")
-            print()
-            if "site-packages" not in path:
-                print("This installation CAN be automatically updated.")
-                if opts.update_source:
-                    update_hg(path)
-                    print("Updated successfully.")
+            print("This installation CAN be automatically updated.")
+            if opts.update_source:
+                update_hg(path)
+                print("Updated successfully.")
                 _get_yt_stack_date()
         elif opts.update_source:
-            print()
-            print("YT site-packages not in path, so you must")
-            print("update this installation manually by committing and")
-            print("merging your modifications to the code before")
-            print("updating to the newest changeset.")
-            print()
+            _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
 
@@ -678,7 +744,10 @@ class YTLoadCmd(YTCommand):
                   "\nHi there!  Welcome to yt.\n\nWe've loaded your dataset as 'ds'.  Enjoy!"
                   )
         else:
-            from IPython.config.loader import Config
+            try:
+                from traitlets.config.loader import Config
+            except ImportError:
+                from IPython.config.loader import Config
             import sys
             cfg = Config()
             # prepend sys.path with current working directory
@@ -780,40 +849,60 @@ class YTPastebinGrabCmd(YTCommand):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
+class YTHubStartNotebook(YTCommand):
+    args = (
+        dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
+             nargs="?", 
+             help="(Optional) Hub folder to mount inside the Notebook"),
+    )
+    description = \
+        """
+        Start the Jupyter Notebook on the yt Hub.
+        """
+    subparser = "hub"
+    name = "start"
+    def __call__(self, args):
+        gc = _get_girder_client()
+
+        # TODO: should happen server-side
+        _id = gc._checkResourcePath(args.folderId)
+
+        resp = gc.post("/notebook/{}".format(_id))
+        try:
+            print("Launched! Please visit this URL:")
+            print("    https://tmpnb.hub.yt" + resp['url'])
+            print()
+        except (KeyError, TypeError):
+            print("Something went wrong. The yt Hub responded with : ")
+            print(resp)
+
 class YTNotebookUploadCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
         """
-        Upload an IPython notebook to hub.yt-project.org.
+        Upload an IPython Notebook to the yt Hub.
         """
 
     name = "upload_notebook"
     def __call__(self, args):
-        filename = args.file
-        if not os.path.isfile(filename):
-            raise IOError(filename)
-        if not filename.endswith(".ipynb"):
-            print("File must be an IPython notebook!")
-            return 1
-        import json
-        try:
-            t = json.loads(open(filename).read())['metadata']['name']
-        except (ValueError, KeyError):
-            print("File does not appear to be an IPython notebook.")
-        if len(t) == 0:
-            t = filename.strip(".ipynb")
-        from yt.utilities.minimal_representation import MinimalNotebook
-        mn = MinimalNotebook(filename, t)
-        rv = mn.upload()
+        gc = _get_girder_client()
+        username = gc.get("/user/me")["login"]
+        gc.upload(args.file, "/user/{}/Public".format(username))
+
+        _id = gc.resourceLookup(
+            "/user/{}/Public/{}".format(username, args.file))["_id"]
+        _fid = next(gc.listFile(_id))["_id"]
+        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
         print("Upload successful!")
         print()
         print("To access your raw notebook go here:")
         print()
-        print("  %s" % (rv['url']))
+        print("  {}://{}/#item/{}".format(hub_url.scheme, hub_url.netloc, _id))
         print()
         print("To view your notebook go here:")
         print()
-        print("  %s" % (rv['url'].replace("/go/", "/nb/")))
+        print("  http://nbviewer.jupyter.org/urls/{}/file/{}/download".format(
+            hub_url.netloc + hub_url.path, _fid))
         print()
 
 class YTPlotCmd(YTCommand):
@@ -917,7 +1006,7 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Run the IPython Notebook
+        Start the Jupyter Notebook locally. 
         """
     def __call__(self, args):
         kwargs = {}
@@ -1021,28 +1110,10 @@ class YTUpdateCmd(YTCommand):
 
     def __call__(self, opts):
         import pkg_resources
-        import yt
         yt_provider = pkg_resources.get_provider("yt")
         path = os.path.dirname(yt_provider.module_path)
-        print()
-        print("yt module located at:")
-        print("    %s" % (path))
-        if "YT_DEST" in os.environ:
-            spath = os.path.join(
-                     os.environ["YT_DEST"], "src", "yt-supplemental")
-            if os.path.isdir(spath):
-                print("The supplemental repositories are located at:")
-                print("    %s" % (spath))
-        vstring = None
-        if "site-packages" not in path:
-            vstring = get_hg_version(path)
-            print()
-            print("The current version and changeset for the code is:")
-            print()
-            print("---")
-            print("Version = %s" % yt.__version__)
-            print("Changeset = %s" % vstring.strip().decode("utf-8"))
-            print("---")
+        vstring = _print_installation_information(path)
+        if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
             update_hg(path, skip_rebuild=opts.reinstall)
@@ -1051,12 +1122,40 @@ class YTUpdateCmd(YTCommand):
             if opts.reinstall:
                 _update_yt_stack(path)
         else:
+            _print_failed_source_update(opts.reinstall)
+
+
+class YTDeleteImageCmd(YTCommand):
+    args = (dict(short="delete_hash", type=str),)
+    description = \
+        """
+        Delete image from imgur.com.
+
+        """
+    name = "delete_image"
+    def __call__(self, args):
+        headers = {'Authorization':
+            'Client-ID {}'.format(ytcfg.get("yt", "imagebin_api_key"))}
+
+        delete_url = ytcfg.get("yt", "imagebin_delete_url")
+        req = urllib.request.Request(
+            delete_url.format(delete_hash=args.delete_hash),
+            headers=headers, method='DELETE')
+        try:
+            response = urllib.request.urlopen(req).read().decode()
+        except urllib.error.HTTPError as e:
+            print("ERROR", e)
+            return {'deleted': False}
+
+        rv = json.loads(response)
+        if 'success' in rv and rv["success"]:
+            print("\nImage successfully deleted!\n")
+        else:
             print()
-            print("YT site-packages not in path, so you must")
-            print("update this installation manually by committing and")
-            print("merging your modifications to the code before")
-            print("updating to the newest changeset.")
+            print("Something has gone wrong!  Here is the server response:")
             print()
+            pprint.pprint(rv)
+
 
 class YTUploadImageCmd(YTCommand):
     args = (dict(short="file", type=str),)
@@ -1071,26 +1170,29 @@ class YTUploadImageCmd(YTCommand):
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
             return 1
+        headers = {'Authorization':
+            'Client-ID {}'.format(ytcfg.get("yt", "imagebin_api_key"))}
+
         image_data = base64.b64encode(open(filename, 'rb').read())
-        api_key = 'f62d550859558f28c4c214136bc797c7'
-        parameters = {'key':api_key, 'image':image_data, type:'base64',
-                      'caption': "",
+        parameters = {'image': image_data, type: 'base64',
+                      'name': filename,
                       'title': "%s uploaded by yt" % filename}
         data = urllib.parse.urlencode(parameters).encode('utf-8')
-        req = urllib.request.Request('http://api.imgur.com/2/upload.json', data)
+        req = urllib.request.Request(
+            ytcfg.get("yt", "imagebin_upload_url"), data=data, headers=headers)
         try:
             response = urllib.request.urlopen(req).read().decode()
         except urllib.error.HTTPError as e:
             print("ERROR", e)
             return {'uploaded':False}
         rv = json.loads(response)
-        if 'upload' in rv and 'links' in rv['upload']:
+        if 'data' in rv and 'link' in rv['data']:
             print()
             print("Image successfully uploaded!  You can find it at:")
-            print("    %s" % (rv['upload']['links']['original']))
+            print("    %s" % (rv['data']['link']))
             print()
-            print("If you'd like to delete it, visit this page:")
-            print("    %s" % (rv['upload']['links']['delete_page']))
+            print("If you'd like to delete it, use the following")
+            print("    yt delete_image %s" % rv['data']['deletehash'])
             print()
         else:
             print()
@@ -1098,6 +1200,109 @@ class YTUploadImageCmd(YTCommand):
             print()
             pprint.pprint(rv)
 
+
+class YTConfigGetCmd(YTCommand):
+    subparser = 'config'
+    name = 'get'
+    description = 'get a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to retrieve.'))
+    def __call__(self, args):
+        from yt.utilities.configure import get_config
+        print(get_config(args.section, args.option))
+
+
+class YTConfigSetCmd(YTCommand):
+    subparser = 'config'
+    name = 'set'
+    description = 'set a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to set.'),
+            dict(short='value', help='The value to set the option to.'))
+    def __call__(self, args):
+        from yt.utilities.configure import set_config
+        set_config(args.section, args.option, args.value)
+
+
+class YTConfigRemoveCmd(YTCommand):
+    subparser = 'config'
+    name = 'rm'
+    description = 'remove a config option'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to remove.'))
+    def __call__(self, args):
+        from yt.utilities.configure import rm_config
+        rm_config(args.section, args.option)
+
+
+class YTConfigListCmd(YTCommand):
+    subparser = 'config'
+    name = 'list'
+    description = 'show the config content'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import write_config
+        write_config(sys.stdout)
+
+
+class YTConfigMigrateCmd(YTCommand):
+    subparser = 'config'
+    name = 'migrate'
+    description = 'migrate old config file'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import migrate_config
+        migrate_config()
+
+
+class YTSearchCmd(YTCommand):
+    args = (dict(short="-o", longname="--output",
+                 action="store", type=str,
+                 dest="output", default="yt_index.json",
+                 help="File in which to place output"),
+            dict(longname="--check-all", short="-a",
+                 help="Attempt to load every file",
+                 action="store_true", default=False,
+                 dest="check_all"),
+            dict(longname="--full", short="-f",
+                 help="Output full contents of parameter file",
+                 action="store_true", default=False,
+                 dest="full_output"),
+            )
+    description = \
+        """
+        Attempt to find outputs that yt can recognize in directories.
+        """
+    name = "search"
+    def __call__(self, args):
+        from yt.utilities.parameter_file_storage import \
+            output_type_registry
+        candidates = []
+        for base, dirs, files in os.walk(".", followlinks=True):
+            print("(% 10i candidates) Examining %s" % (len(candidates), base))
+            recurse = []
+            if args.check_all:
+                candidates.extend([os.path.join(base, _) for _ in files])
+            for _, otr in sorted(output_type_registry.items()):
+                c, r = otr._guess_candidates(base, dirs, files)
+                candidates.extend([os.path.join(base, _) for _ in c])
+                recurse.append(r)
+            if len(recurse) > 0 and not all(recurse):
+                del dirs[:]
+        # Now we have a ton of candidates.  We're going to do something crazy
+        # and try to load each one.
+        records = []
+        for i, c in enumerate(sorted(candidates)):
+            print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
+            try:
+                record = get_metadata(c, args.full_output)
+            except YTOutputNotIdentified:
+                continue
+            records.append(record)
+        with open(args.output, "w") as f:
+            json.dump(records, f, indent=4)
+        print("Identified %s records output to %s" % (
+              len(records), args.output))
 
 def run_main():
     args = parser.parse_args()

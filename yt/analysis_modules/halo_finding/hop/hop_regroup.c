@@ -411,6 +411,10 @@ the idmerge field. */
     FILE *fp;
     FILE *boundfp;
     float *gdensity = my_comm->gdensity;
+    int *g1temp,*g2temp;
+    float *denstemp;
+    int temppos = 0;
+
     ngroups = my_comm->ngroups;
 
     if (densthresh<MINDENS) densthresh=MINDENS;
@@ -446,13 +450,11 @@ the idmerge field. */
        the arrays should be no larger than my_comm->nb. 
        Skory.
     */
-    int *g1temp,*g2temp;
-    float *denstemp;
+
     g1temp = (int *)malloc(sizeof(int) * my_comm->nb);
     g2temp = (int *)malloc(sizeof(int) * my_comm->nb);
     denstemp = (float *)malloc(sizeof(float) * my_comm->nb);
     
-    int temppos = 0;
     for(j=0;j<(my_comm->nb);j++) {
     g1 = my_comm->g1vec[j];
     g2 = my_comm->g2vec[j];

@@ -32,6 +32,7 @@ from yt.utilities.physical_constants import \
 
 @register_field_plugin
 def setup_astro_fields(registry, ftype = "gas", slice_info = None):
+    unit_system = registry.ds.unit_system
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -53,7 +54,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "dynamical_time"),
                        function=_dynamical_time,
-                       units="s")
+                       units=unit_system["time"])
 
     def _jeans_mass(field, data):
         MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
@@ -66,7 +67,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "jeans_mass"),
                        function=_jeans_mass,
-                       units="g")
+                       units=unit_system["mass"])
 
     def _chandra_emissivity(field, data):
         logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
@@ -103,7 +104,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     
     registry.add_field((ftype, "emission_measure"),
                        function=_emission_measure,
-                       units="cm**-3")
+                       units=unit_system["number_density"])
 
     def _xray_emissivity(field, data):
         # old scaling coefficient was 2.168e60
@@ -130,12 +131,15 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         if vel_axis > 2:
             raise NeedsParameter(["axis"])
         vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
-        return scale * vel * data[ftype, "density"]
+        # minus sign is because radial velocity is WRT viewer
+        # See issue #1225
+        return -scale * vel * data[ftype, "density"]
 
     registry.add_field((ftype, "sz_kinetic"),
                        function=_sz_kinetic,
-                       units="1/cm",
-                       validators=[ValidateParameter("axis")])
+                       units=unit_system["length"]**-1,
+                       validators=[
+                           ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
     def _szy(field, data):
         scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
@@ -143,4 +147,4 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
 
     registry.add_field((ftype, "szy"),
                        function=_szy,
-                       units="1/cm")
+                       units=unit_system["length"]**-1)

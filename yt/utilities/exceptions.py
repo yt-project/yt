@@ -75,11 +75,18 @@ class YTCouldNotGenerateField(YTFieldNotFound):
         return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
 
 class YTFieldTypeNotFound(YTException):
-    def __init__(self, fname):
-        self.fname = fname
+    def __init__(self, ftype, ds=None):
+        self.ftype = ftype
+        self.ds = ds
 
     def __str__(self):
-        return "Could not find field '%s'." % (self.fname)
+        if self.ds is not None and \
+          self.ftype in self.ds.particle_types:
+            return ("Could not find field type '%s'.  " +
+                    "This field type is a known particle type for this dataset.  " +
+                    "Try adding this field with particle_type=True.") % self.ftype
+        else:
+            return "Could not find field type '%s'." % (self.ftype)
 
 class YTSimulationNotIdentified(YTException):
     def __init__(self, sim_type):
@@ -193,7 +200,7 @@ class YTUnitsNotReducible(YTException):
         self.unit = unit
         self.units_base = units_base
         YTException.__init__(self)
-        
+
     def __str__(self):
         err = "The unit '%s' cannot be reduced to a single expression within " \
           "the %s base system of units." % (self.unit, self.units_base)
@@ -204,13 +211,13 @@ class YTEquivalentDimsError(YTUnitOperationError):
         self.old_units = old_units
         self.new_units = new_units
         self.base = base
-    
+
     def __str__(self):
         err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
-          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units, 
+          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units,
                                                             self.new_units, self.base)
         return err
-    
+
 class YTUfuncUnitError(YTException):
     def __init__(self, ufunc, unit1, unit2):
         self.ufunc = ufunc
@@ -424,6 +431,17 @@ class YTTooParallel(YTException):
     def __str__(self):
         return "You've used too many processors for this dataset."
 
+
+class YTElementTypeNotRecognized(YTException):
+    def __init__(self, dim, num_nodes):
+        self.dim = dim
+        self.num_nodes = num_nodes
+
+    def __str__(self):
+        return "Element type not recognized - dim = %s, num_nodes = %s" % (
+            self.dim, self.num_nodes)
+
+
 class YTDuplicateFieldInProfile(Exception):
     def __init__(self, field, new_spec, old_spec):
         self.field = field
@@ -521,6 +539,102 @@ class YTDimensionalityError(YTException):
         return 'Dimensionality specified was %s but we need %s' % (
             self.wrong, self.right)
 
+class YTInvalidShaderType(YTException):
+    def __init__(self, source):
+        self.source = source
+
+    def __str__(self):
+        return "Can't identify shader_type for file '%s.'" % (self.source)
+
+class YTInvalidFieldType(YTException):
+    def __init__(self, fields):
+        self.fields = fields
+
+    def __str__(self):
+        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can only "
+               "plot fields that\n"
+               "are defined on a mesh, but received the following particle "
+               "fields:\n\n"
+               "    %s\n\n"
+               "Did you mean to use ParticlePlot or plot a deposited particle "
+               "field instead?" % self.fields)
+        return msg
+
+class YTUnknownUniformKind(YTException):
+    def __init__(self, kind):
+        self.kind = kind
+
+    def __str__(self):
+        return "Can't determine kind specification for %s" % (self.kind)
+
+class YTUnknownUniformSize(YTException):
+    def __init__(self, size_spec):
+        self.size_spec = size_spec
+
+    def __str__(self):
+        return "Can't determine size specification for %s" % (self.size_spec)
+
+class YTDataTypeUnsupported(YTException):
+    def __init__(self, this, supported):
+        self.supported = supported
+        self.this = this
+
+    def __str__(self):
+        v = "This operation is not supported for data of geometry %s; " % self.this
+        v += "It supports data of geometries %s" % (self.supported,)
+        return v
+
+class YTBoundsDefinitionError(YTException):
+    def __init__(self, message, bounds):
+        self.bounds = bounds
+        self.message = message
+
+    def __str__(self):
+        v  = "This operation has encountered a bounds error: "
+        v += self.message
+        v += " Specified bounds are %s" % self.bounds
+        return v
+
+def screen_one_element_list(lis):
+    if len(lis) == 1:
+        return lis[0]
+    return lis
+
+class YTIllDefinedProfile(YTException):
+    def __init__(self, bin_fields, fields, weight_field, is_pfield):
+        nbin = len(bin_fields)
+        nfields = len(fields)
+        self.bin_fields = screen_one_element_list(bin_fields)
+        self.bin_fields_ptype = screen_one_element_list(is_pfield[:nbin])
+        self.fields = screen_one_element_list(fields)
+        self.fields_ptype = screen_one_element_list(is_pfield[nbin:nbin+nfields])
+        self.weight_field = weight_field
+        if self.weight_field is not None:
+            self.weight_field_ptype = is_pfield[-1]
+
+    def __str__(self):
+        msg = (
+            "\nCannot create a profile object that mixes particle and mesh "
+            "fields.\n\n"
+            "Received the following bin_fields:\n\n"
+            "   %s, particle_type = %s\n\n"
+            "Profile fields:\n\n"
+            "   %s, particle_type = %s\n"
+        )
+        msg = msg % (
+            self.bin_fields, self.bin_fields_ptype,
+            self.fields, self.fields_ptype
+        )
+
+        if self.weight_field is not None:
+            weight_msg = "\nAnd weight field:\n\n   %s, particle_type = %s\n"
+            weight_msg = weight_msg % (
+                self.weight_field, self.weight_field_ptype)
+        else:
+            weight_msg = ""
+
+        return msg + weight_msg
+
 class YTImmutableUnitsError(YTException):
     def __init__(self, replacement):
         self.replacement = replacement
@@ -528,3 +642,4 @@ class YTImmutableUnitsError(YTException):
     def __str__(self):
         return ('YTIndexArray does not support in-place unit conversions. '
                 'Use %s instead.' % self.replacement)
+

@@ -57,6 +57,9 @@ class Clump(object):
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
 
+        if parent is not None:
+            self.data.parent = self.parent.data
+
         # List containing characteristics about clumps that are to be written 
         # out by the write routines.
         if clump_info is None:
@@ -82,7 +85,7 @@ class Clump(object):
         if self.children is None: return
         for child in self.children:
             child.add_validator(validator)
-        
+
     def add_info_item(self, info_item, *args, **kwargs):
         "Adds an entry to clump_info list and tells children to do the same."
 

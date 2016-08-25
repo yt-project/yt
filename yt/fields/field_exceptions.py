@@ -46,6 +46,10 @@ class NeedsParameter(ValidationException):
     def __str__(self):
         return "(%s)" % (self.missing_parameters)
 
+class NeedsParameterValue(ValidationException):
+    def __init__(self, parameter_values):
+        self.parameter_values = parameter_values
+
 class NeedsConfiguration(ValidationException):
     def __init__(self, parameter, value):
         self.parameter = parameter

@@ -25,8 +25,13 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
+#ifdef _WIN32
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
+#include <stdint.h>
+#endif
 
 size_t artio_type_size(int type) {
 	size_t t_len=0;

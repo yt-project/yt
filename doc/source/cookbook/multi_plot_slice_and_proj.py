@@ -49,11 +49,11 @@ proj_vel = np.array(proj_frb['velocity_magnitude'])
 
 plots = [dens_axes[0].imshow(slc_dens, origin='lower', norm=LogNorm()),
          dens_axes[1].imshow(proj_dens, origin='lower', norm=LogNorm()),
-         temp_axes[0].imshow(slc_temp, origin='lower'),    
+         temp_axes[0].imshow(slc_temp, origin='lower'),
          temp_axes[1].imshow(proj_temp, origin='lower'),
          vels_axes[0].imshow(slc_vel, origin='lower', norm=LogNorm()),
          vels_axes[1].imshow(proj_vel, origin='lower', norm=LogNorm())]
-         
+
 plots[0].set_clim((1.0e-27,1.0e-25))
 plots[0].set_cmap("bds_highcontrast")
 plots[1].set_clim((1.0e-27,1.0e-25))
@@ -67,7 +67,7 @@ plots[4].set_cmap("gist_rainbow")
 plots[5].set_clim((1e6, 1e8))
 plots[5].set_cmap("gist_rainbow")
 
-titles=[r'$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$', 
+titles=[r'$\mathrm{Density}\ (\mathrm{g\ cm^{-3}})$',
         r'$\mathrm{Temperature}\ (\mathrm{K})$',
         r'$\mathrm{Velocity Magnitude}\ (\mathrm{cm\ s^{-1}})$']
 
@@ -75,5 +75,5 @@ for p, cax, t in zip(plots[0:6:2], colorbars, titles):
     cbar = fig.colorbar(p, cax=cax, orientation=orient)
     cbar.set_label(t)
 
-# And now we're done! 
+# And now we're done!
 fig.savefig("%s_3x2" % ds)

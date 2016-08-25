@@ -21,14 +21,14 @@ from .coordinate_handler import \
     _get_coord_fields, \
     cylindrical_to_cartesian, \
     cartesian_to_cylindrical
-import yt.visualization._MPL as _MPL
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
+    pixelize_cartesian, pixelize_cylinder
 #
 # Cylindrical fields
 #
 
 class CylindricalCoordinateHandler(CoordinateHandler):
+    name = "cylindrical"
 
     def __init__(self, ds, ordering = ('r', 'z', 'theta')):
         super(CylindricalCoordinateHandler, self).__init__(ds, ordering)
@@ -113,11 +113,11 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
-                             bounds, int(antialias),
-                             period, int(periodic)).transpose()
+        buff = pixelize_cartesian(data_source['px'], data_source['py'],
+                                  data_source['pdx'], data_source['pdy'],
+                                  data_source[field], size[0], size[1],
+                                  bounds, int(antialias),
+                                  period, int(periodic)).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
@@ -134,7 +134,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     _image_axis_name = None
 
     @property
-    def image_axis_name(self):    
+    def image_axis_name(self):
         if self._image_axis_name is not None:
             return self._image_axis_name
         # This is the x and y axes labels that get displayed.  For
@@ -192,3 +192,23 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             display_center[z_ax] = self.ds.domain_center[z_ax]
             # zeros for the others
         return center, display_center
+
+    def sanitize_width(self, axis, width, depth):
+        name = self.axis_name[axis]
+        r_ax, theta_ax, z_ax = (self.ds.coordinates.axis_id[ax]
+                                for ax in ('r', 'theta', 'z'))
+        if width is not None:
+             width = super(CylindricalCoordinateHandler,
+                           self).sanitize_width(axis, width, depth)
+        # Note: regardless of axes, these are set up to give consistent plots
+        # when plotted, which is not strictly a "right hand rule" for axes.
+        elif name == "r": # soup can label
+            width = [2.0 * np.pi * self.ds.domain_width.uq,
+                     self.ds.domain_width[z_ax]]
+        elif name == "theta":
+            width = [self.ds.domain_right_edge[r_ax],
+                     self.ds.domain_width[z_ax]]
+        elif name == "z":
+            width = [2.0*self.ds.domain_right_edge[r_ax],
+                     2.0*self.ds.domain_right_edge[r_ax]]
+        return width

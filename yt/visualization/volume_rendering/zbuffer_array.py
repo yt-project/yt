@@ -62,11 +62,17 @@ class ZBuffer(object):
             rgba += (other.rgba * (1.0 - f)[:, None, :])
         else:
             b = self.z > other.z
-            rgba = np.empty(self.rgba.shape)
+            rgba = np.zeros(self.rgba.shape)
             rgba[f] = self.rgba[f]
             rgba[b] = other.rgba[b]
         z = np.min([self.z, other.z], axis=0)
         return ZBuffer(rgba, z)
+
+    def __iadd__(self, other):
+        tmp = self + other
+        self.rgba = tmp.rgba
+        self.z = tmp.z
+        return self    
 
     def __eq__(self, other):
         equal = True

@@ -16,7 +16,6 @@ from yt.extern.six import PY3
 from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _astropy
-from yt.visualization._mpl_imports import FigureCanvasAgg
 from yt.units.yt_array import YTQuantity, YTArray
 from yt.utilities.fits_image import FITSImageData
 if PY3:
@@ -258,6 +257,7 @@ class PlotWindowWCS(object):
         self.pw.save(name=name, mpl_kwargs=mpl_kwargs)
 
     def _repr_html_(self):
+        from yt.visualization._mpl_imports import FigureCanvasAgg
         ret = ''
         for k, v in self.plots.items():
             canvas = FigureCanvasAgg(v)

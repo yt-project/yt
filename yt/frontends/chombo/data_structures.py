@@ -23,7 +23,9 @@ from six import string_types
 from stat import \
     ST_CTIME
 
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.extern import six
@@ -41,6 +43,15 @@ from yt.utilities.lib.misc_utilities import \
 from .fields import ChomboFieldInfo, Orion2FieldInfo, \
     ChomboPICFieldInfo1D, ChomboPICFieldInfo2D, ChomboPICFieldInfo3D, \
     PlutoFieldInfo
+
+
+def is_chombo_hdf5(fn):
+    try:
+        with h5py.File(fn, 'r') as fileh:
+            valid = "Chombo_global" in fileh["/"]
+    except (KeyError, IOError, ImportError):
+        return False
+    return valid
 
 
 class ChomboGrid(AMRGridPatch):
@@ -246,7 +257,7 @@ class ChomboDataset(Dataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
         self.fluid_types += ("chombo",)
         self._handle = HDF5FileHandler(filename)
         self.dataset_type = dataset_type
@@ -255,7 +266,8 @@ class ChomboDataset(Dataset):
         self.ini_filename = ini_filename
         self.fullplotdir = os.path.abspath(filename)
         Dataset.__init__(self, filename, self.dataset_type,
-                         units_override=units_override)
+                         units_override=units_override,
+                         unit_system=unit_system)
         self.storage_filename = storage_filename
         self.cosmological_simulation = False
 
@@ -265,14 +277,19 @@ class ChomboDataset(Dataset):
         self.parameters["EOSType"] = -1 # default
 
     def _set_code_unit_attributes(self):
-        mylog.warning("Setting code length to be 1.0 cm")
-        mylog.warning("Setting code mass to be 1.0 g")
-        mylog.warning("Setting code time to be 1.0 s")
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.magnetic_unit = self.quan(1.0, "gauss")
-        self.velocity_unit = self.length_unit / self.time_unit
+        if not hasattr(self, 'length_unit'):
+            mylog.warning("Setting code length unit to be 1.0 cm")
+        if not hasattr(self, 'mass_unit'):
+            mylog.warning("Setting code mass unit to be 1.0 g")
+        if not hasattr(self, 'time_unit'):
+            mylog.warning("Setting code time unit to be 1.0 s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'magnetic_unit',
+                       self.quan(np.sqrt(4.*np.pi), "gauss"))
+        setdefaultattr(self, 'velocity_unit',
+                       self.length_unit / self.time_unit)
 
     def _localize(self, f, default):
         if f is None:
@@ -349,6 +366,9 @@ class ChomboDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
@@ -446,11 +466,12 @@ class PlutoDataset(ChomboDataset):
 
     def __init__(self, filename, dataset_type='chombo_hdf5',
                  storage_filename = None, ini_filename = None,
-                 units_override=None):
+                 units_override=None, unit_system="cgs"):
 
         ChomboDataset.__init__(self, filename, dataset_type, 
                                storage_filename, ini_filename,
-                               units_override=units_override)
+                               units_override=units_override,
+                               unit_system=unit_system)
 
     def _parse_parameter_file(self):
         """
@@ -472,11 +493,11 @@ class PlutoDataset(ChomboDataset):
 
         if pluto_ini_file_exists:
             lines=[line.strip() for line in open(pluto_ini_filename)]
-            self.domain_left_edge = np.zeros(self.dimensionality)
-            self.domain_right_edge = np.zeros(self.dimensionality)
+            domain_left_edge = np.zeros(self.dimensionality)
+            domain_right_edge = np.zeros(self.dimensionality)
             for il,ll in enumerate(lines[lines.index('[Grid]')+2:lines.index('[Grid]')+2+self.dimensionality]):
-                self.domain_left_edge[il] = float(ll.split()[2])
-                self.domain_right_edge[il] = float(ll.split()[-1])
+                domain_left_edge[il] = float(ll.split()[2])
+                domain_right_edge[il] = float(ll.split()[-1])
             self.periodicity = [0]*3
             for il,ll in enumerate(lines[lines.index('[Boundary]')+2:lines.index('[Boundary]')+2+6:2]):
                 self.periodicity[il] = (ll.split()[1] == 'periodic')
@@ -484,6 +505,8 @@ class PlutoDataset(ChomboDataset):
             for il,ll in enumerate(lines[lines.index('[Parameters]')+2:]):
                 if (ll.split()[0] == 'GAMMA'):
                     self.gamma = float(ll.split()[1])
+            self.domain_left_edge = domain_left_edge
+            self.domain_right_edge = domain_right_edge
         else:
             self.domain_left_edge = self._calc_left_edge()
             self.domain_right_edge = self._calc_right_edge()
@@ -504,6 +527,9 @@ class PlutoDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
 
@@ -647,6 +673,9 @@ class Orion2Dataset(ChomboDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
 
+        if not is_chombo_hdf5(args[0]):
+            return False
+
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
@@ -700,6 +729,9 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        if not is_chombo_hdf5(args[0]):
+            return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False

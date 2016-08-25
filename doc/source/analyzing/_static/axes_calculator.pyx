@@ -1,7 +1,7 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-from stdlib cimport malloc, free
+from libc.stdlib cimport malloc, free
 
 cdef extern from "axes.h":
     ctypedef struct ParticleCollection:
@@ -16,7 +16,9 @@ cdef extern from "axes.h":
 def examine_axes(np.ndarray[np.float64_t, ndim=1] xpos,
                  np.ndarray[np.float64_t, ndim=1] ypos,
                  np.ndarray[np.float64_t, ndim=1] zpos):
-    cdef double ax1[3], ax2[3], ax3[3]
+    cdef double ax1[3]
+    cdef double ax2[3]
+    cdef double ax3[3]
     cdef ParticleCollection particles
     cdef int i
 

@@ -29,6 +29,9 @@ class ChemicalFormula:
                 charge = -int(ionization[1:])
             else:
                 raise NotImplementedError
+        elif self.formula_string.startswith('El'):
+            molecule = self.formula_string
+            charge = -1
         else:
             molecule = self.formula_string
             charge = 0

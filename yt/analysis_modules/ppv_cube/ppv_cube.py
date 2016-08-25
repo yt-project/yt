@@ -54,7 +54,7 @@ class PPVCube(object):
                  width=(1.0,"unitary"), dims=100, thermal_broad=False,
                  atomic_weight=56., depth=(1.0,"unitary"), depth_res=256,
                  method="integrate", weight_field=None, no_shifting=False,
-                 north_vector=None, no_ghost=True):
+                 north_vector=None, no_ghost=True, data_source=None):
         r""" Initialize a PPVCube object.
 
         Parameters
@@ -98,7 +98,8 @@ class PPVCube(object):
             key of the unit: (width, 'unit').  If set to a float, code units
             are assumed. Only for off-axis cubes.
         depth_res : integer, optional
-            The resolution of integration along the line of sight for off-axis cubes. Default: 256
+            Deprecated, this is still in the function signature for API
+            compatibility
         method : string, optional
             Set the projection method to be used.
             "integrate" : line of sight integration over the line element.
@@ -120,6 +121,8 @@ class PPVCube(object):
             accuracy/smoothness in resulting image.  The effects are
             less notable when the transfer function is smooth and
             broad. Default: True
+        data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
+            If specified, this will be the data source used for selecting regions to project.
 
         Examples
         --------
@@ -185,11 +188,15 @@ class PPVCube(object):
             self.current_v = self.vmid_cgs[i]
             if isinstance(normal, string_types):
                 prj = ds.proj("intensity", ds.coordinates.axis_id[normal], method=method,
-                              weight_field=weight_field)
+                              weight_field=weight_field, data_source=data_source)
                 buf = prj.to_frb(width, self.nx, center=self.center)["intensity"]
             else:
-                buf, sc = off_axis_projection(ds, self.center, normal, width,
-                                          (self.nx, self.ny, depth_res), "intensity",
+                if data_source is None:
+                    source = ds
+                else:
+                    source = data_source
+                buf = off_axis_projection(source, self.center, normal, width,
+                                          (self.nx, self.ny), "intensity",
                                           north_vector=north_vector, no_ghost=no_ghost,
                                           method=method, weight=weight_field)
             sto.result_id = i

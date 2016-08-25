@@ -126,6 +126,9 @@ class GridIndex(Index):
         """
         return self.select_grids(self.grid_levels.max())[0].dds[:].min()
 
+    def _get_particle_type_counts(self):
+        return {self.ds.particle_types_raw[0]: self.grid_particle_count.sum()}
+
     def _initialize_level_stats(self):
         # Now some statistics:
         #   0 = number of grids
@@ -196,8 +199,8 @@ class GridIndex(Index):
         Returns the values [field1, field2,...] of the fields at the given
         (x, y, z) points. Returns a numpy array of field values cross coords
         """
-        coords = YTArray(ensure_numpy_array(coords),'code_length', registry=self.ds.unit_registry)
-        grids = self._find_points(coords[:,0], coords[:,1], coords[:,2])[0]
+        coords = self.ds.arr(ensure_numpy_array(coords), 'code_length')
+        grids = self._find_points(coords[:, 0], coords[:, 1], coords[:, 2])[0]
         fields = ensure_list(fields)
         mark = np.zeros(3, dtype=np.int)
         out = []
@@ -209,13 +212,21 @@ class GridIndex(Index):
                 grid_index[grid] = []
             grid_index[grid].append(coord_index)
 
-        out = np.zeros((len(fields),len(coords)), dtype=np.float64)
+        out = []
+        for field in fields:
+            funit = self.ds._get_field_info(field).units
+            out.append(self.ds.arr(np.empty((len(coords))), funit))
+
         for grid in grid_index:
             cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
-            for field in fields:
+            for field_index, field in enumerate(fields):
                 for coord_index in grid_index[grid]:
-                    mark = ((coords[coord_index,:] - grid.LeftEdge) / cellwidth).astype('int')
-                    out[:,coord_index] = grid[field][mark[0],mark[1],mark[2]]
+                    mark = ((coords[coord_index, :] - grid.LeftEdge) / cellwidth)
+                    mark = np.array(mark, dtype='int64')
+                    out[field_index][coord_index] = \
+                        grid[field][mark[0], mark[1], mark[2]]
+        if len(fields) == 1:
+            return out[0]
         return out
 
 

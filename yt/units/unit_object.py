@@ -25,10 +25,13 @@ from keyword import iskeyword
 from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks, \
-    em_dimensions
+    em_dimensions, \
+    angle
+from yt.units.equivalencies import \
+    equivalence_registry
 from yt.units.unit_lookup_table import \
-    unit_prefixes, prefixable_units, cgs_base_units, \
-    mks_base_units, latex_prefixes, yt_base_units
+    unit_prefixes, prefixable_units, latex_prefixes, \
+    default_base_units
 from yt.units.unit_registry import \
     UnitRegistry, \
     UnitParseError
@@ -54,6 +57,8 @@ global_dict = {
     'Rational': Rational,
     'sqrt': sqrt
 }
+
+unit_system_registry = {}
 
 def auto_positive_symbol(tokens, local_dict, global_dict):
     """
@@ -111,8 +116,35 @@ def get_latex_representation(expr, registry):
             symbol_table[ex] = registry.lut[str(ex)][3]
         except:
             symbol_table[ex] = r"\rm{" + str(ex).replace('_', '\ ') + "}"
+
+    # invert the symbol table dict to look for keys with identical values
+    invert_symbols = {}
+    for key, value in symbol_table.items():
+        if value not in invert_symbols:
+            invert_symbols[value] = [key]
+        else:
+            invert_symbols[value].append(key)
+
+    # if there are any units with identical latex representations, substitute
+    # units to avoid  uncanceled terms in the final latex expresion.
+    for val in invert_symbols:
+        symbols = invert_symbols[val]
+        for i in range(1, len(symbols)):
+            expr = expr.subs(symbols[i], symbols[0])
+    prefix = None
+    if isinstance(expr, Mul):
+        coeffs = expr.as_coeff_Mul()
+        if coeffs[0] == 1 or not isinstance(coeffs[0], Float):
+            pass
+        else:
+            expr = coeffs[1]
+            prefix = Float(coeffs[0], 2)
     latex_repr = latex(expr, symbol_names=symbol_table, mul_symbol="dot",
                        fold_frac_powers=True, fold_short_frac=True)
+
+    if prefix is not None:
+        latex_repr = latex(prefix, mul_symbol="times") + '\\ ' + latex_repr
+
     if latex_repr == '1':
         return ''
     else:
@@ -134,7 +166,7 @@ class Unit(Expr):
 
     # Extra attributes
     __slots__ = ["expr", "is_atomic", "base_value", "base_offset", "dimensions",
-                 "registry", "latex_repr"]
+                 "registry", "_latex_repr"]
 
     def __new__(cls, unit_expr=sympy_one, base_value=None, base_offset=0.0,
                 dimensions=None, registry=None, latex_repr=None, **assumptions):
@@ -178,8 +210,13 @@ class Unit(Expr):
                     # Bug catch...
                     # if unit_expr is an empty string, parse_expr fails hard...
                     unit_expr = "1"
-                unit_expr = parse_expr(unit_expr, global_dict=global_dict,
-                                       transformations=unit_text_transform)
+                try:
+                    unit_expr = parse_expr(unit_expr, global_dict=global_dict,
+                                           transformations=unit_text_transform)
+                except SyntaxError as e:
+                    msg = ("Unit expression %s raised an error "
+                           "during parsing:\n%s" % (unit_expr, repr(e)))
+                    raise UnitParseError(msg)
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             if registry is not None:
@@ -224,8 +261,6 @@ class Unit(Expr):
             # check that dimensions is valid
             if dimensions is not None:
                 validate_dimensions(dimensions)
-            if latex_repr is None:
-                latex_repr = get_latex_representation(unit_expr, registry)
         else:
             # lookup the unit symbols
             unit_data = _get_unit_data_from_expr(unit_expr, registry.lut)
@@ -236,7 +271,6 @@ class Unit(Expr):
                 latex_repr = unit_data[3]
             else:
                 base_offset = 0.0
-                latex_repr = get_latex_representation(unit_expr, registry)
 
         # Create obj with superclass construct.
         obj = Expr.__new__(cls, **assumptions)
@@ -247,7 +281,7 @@ class Unit(Expr):
         obj.base_value = base_value
         obj.base_offset = base_offset
         obj.dimensions = dimensions
-        obj.latex_repr = latex_repr
+        obj._latex_repr = latex_repr
         obj.registry = registry
 
         if unit_key is not None:
@@ -256,6 +290,18 @@ class Unit(Expr):
         # Return `obj` so __init__ can handle it.
 
         return obj
+
+    _latex_expr = None
+    @property
+    def latex_repr(self):
+        if self._latex_repr is not None:
+            return self._latex_repr
+        if self.expr.is_Atom:
+            expr = self.expr
+        else:
+            expr = self.expr.copy()
+        self._latex_repr = get_latex_representation(expr, self.registry)
+        return self._latex_repr
 
     ### Some sympy conventions
     def __getnewargs__(self):
@@ -299,13 +345,13 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is temperature and self.is_dimensionless:
+            if u.dimensions in (temperature, angle) and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is temperature and u.is_dimensionless:
+            elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Fahrenheit "
-                                           "and Celsius cannot be multiplied.")
+                                           "and Celsius or angles cannot be multiplied.")
 
         return Unit(self.expr * u.expr,
                     base_value=(self.base_value * u.base_value),
@@ -322,9 +368,9 @@ class Unit(Expr):
 
         base_offset = 0.0
         if self.base_offset or u.base_offset:
-            if u.dimensions is temperature and self.is_dimensionless:
+            if u.dimensions in (temperature, angle) and self.is_dimensionless:
                 base_offset = u.base_offset
-            elif self.dimensions is temperature and u.is_dimensionless:
+            elif self.dimensions in (temperature, angle) and u.is_dimensionless:
                 base_offset = self.base_offset
             else:
                 raise InvalidUnitOperation("Quantities with units of Farhenheit "
@@ -362,8 +408,12 @@ class Unit(Expr):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
             return True
-        return \
-          (self.base_value != u.base_value or self.dimensions != u.dimensions)
+        if self.base_value != u.base_value:
+            return True
+        # use 'is' comparison dimensions to avoid expensive sympy operation
+        if self.dimensions is u.dimensions:
+            return False
+        return self.dimensions != u.dimensions
 
     def copy(self):
         return copy.deepcopy(self)
@@ -385,11 +435,14 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
+        # test first for 'is' equality to avoid expensive sympy operation
+        if self.dimensions is other_unit.dimensions:
+            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property
     def is_dimensionless(self):
-        return self.dimensions == sympy_one
+        return self.dimensions is sympy_one
 
     @property
     def is_code_unit(self):
@@ -441,33 +494,60 @@ class Unit(Expr):
             units.append("".join([unit_string, power_string]))
         return " * ".join(units)
 
-    def get_base_equivalent(self):
+    def list_equivalencies(self):
         """
-        Create and return dimensionally-equivalent base units.
+        Lists the possible equivalencies associated with this unit object
         """
-        units_string = self._get_system_unit_string(yt_base_units)
-        return Unit(units_string, base_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
-    
+        for k, v in equivalence_registry.items():
+            if self.has_equivalent(k):
+                print(v())
+
+    def has_equivalent(self, equiv):
+        """
+        Check to see if this unit object as an equivalent unit in *equiv*.
+        """
+        try:
+            this_equiv = equivalence_registry[equiv]()
+        except KeyError:
+            raise KeyError("No such equivalence \"%s\"." % equiv)
+        old_dims = self.dimensions
+        return old_dims in this_equiv.dims
+
+    def get_base_equivalent(self, unit_system="cgs"):
+        """
+        Create and return dimensionally-equivalent units in a specified base.
+        """
+        yt_base_unit_string = _get_system_unit_string(self.dimensions, default_base_units)
+        yt_base_unit = Unit(yt_base_unit_string, base_value=1.0,
+                            dimensions=self.dimensions, registry=self.registry)
+        if unit_system == "cgs":
+            if current_mks in self.dimensions.free_symbols:
+                raise YTUnitsNotReducible(self, "cgs")
+            return yt_base_unit
+        else:
+            if unit_system == "code":
+                raise RuntimeError(r'You must refer to a dataset instance to convert to a '
+                                   r'code unit system. Try again with unit_system=ds instead, '
+                                   r'where \'ds\' is your dataset.')
+            unit_system = unit_system_registry[str(unit_system)]
+            units_string = _get_system_unit_string(self.dimensions, unit_system.base_units)
+            u = Unit(units_string, registry=self.registry)
+            base_value = get_conversion_factor(self, yt_base_unit)[0]
+            base_value /= get_conversion_factor(self, u)[0]
+            return Unit(units_string, base_value=base_value,
+                        dimensions=self.dimensions, registry=self.registry)
+
     def get_cgs_equivalent(self):
         """
         Create and return dimensionally-equivalent cgs units.
         """
-        if current_mks in self.dimensions.free_symbols:
-            raise YTUnitsNotReducible(self, "cgs")
-        units_string = self._get_system_unit_string(cgs_base_units)
-        return Unit(units_string, base_value=1.0,
-                    dimensions=self.dimensions, registry=self.registry)
+        return self.get_base_equivalent(unit_system="cgs")
 
     def get_mks_equivalent(self):
         """
         Create and return dimensionally-equivalent mks units.
         """
-        units_string = self._get_system_unit_string(mks_base_units)
-        base_value = get_conversion_factor(self, self.get_base_equivalent())[0]
-        base_value /= get_conversion_factor(self, Unit(units_string))[0]
-        return Unit(units_string, base_value=base_value,
-                    dimensions=self.dimensions, registry=self.registry)
+        return self.get_base_equivalent(unit_system="mks")
 
     def get_conversion_factor(self, other_units):
         return get_conversion_factor(self, other_units)
@@ -508,7 +588,7 @@ def get_conversion_factor(old_units, new_units):
     if old_units.base_offset == 0 and new_units.base_offset == 0:
         return (ratio, None)
     else:
-        if old_units.dimensions is temperature:
+        if old_units.dimensions in (temperature, angle):
             return ratio, ratio*old_units.base_offset - new_units.base_offset
         else:
             raise InvalidUnitOperation(
@@ -649,6 +729,25 @@ def validate_dimensions(dimensions):
                                  "allowed.  Got dimensions '%s'" % dimensions)
     elif not isinstance(dimensions, Basic):
         raise UnitParseError("Bad dimensionality expression '%s'." % dimensions)
+
+def _get_system_unit_string(dimensions, base_units):
+    # The dimensions of a unit object is the product of the base dimensions.
+    # Use sympy to factor the dimensions into base CGS unit symbols.
+    units = []
+    my_dims = dimensions.expand()
+    if my_dims is dimensionless:
+        return ""
+    if my_dims in base_units:
+        return base_units[my_dims]
+    for factor in my_dims.as_ordered_factors():
+        dim = list(factor.free_symbols)[0]
+        unit_string = str(base_units[dim])
+        if factor.is_Pow:
+            power_string = "**(%s)" % factor.as_base_exp()[1]
+        else:
+            power_string = ""
+        units.append("(%s)%s" % (unit_string, power_string))
+    return " * ".join(units)
 
 class UnitTuple(tuple):
 

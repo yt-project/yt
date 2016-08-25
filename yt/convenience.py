@@ -127,4 +127,3 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
 
     return simulation_time_series_registry[simulation_type](parameter_filename,
                                                             find_outputs=find_outputs)
-

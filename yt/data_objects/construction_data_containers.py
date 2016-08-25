@@ -17,9 +17,11 @@ Data containers that require processing before they can be utilized.
 import numpy as np
 from functools import wraps
 import fileinput
+import io
 from re import finditer
-from tempfile import TemporaryFile
+from tempfile import NamedTemporaryFile, TemporaryFile
 import os
+import sys
 import zipfile
 
 from yt.config import ytcfg
@@ -39,9 +41,11 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
     YTTooManyVertices
-from yt.utilities.lib.QuadTree import \
+from yt.fields.field_exceptions import \
+    NeedsGridType
+from yt.utilities.lib.quad_tree import \
     QuadTree
-from yt.utilities.lib.Interpolators import \
+from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
 from yt.utilities.lib.misc_utilities import \
     fill_region, fill_region_float
@@ -57,7 +61,7 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
-
+import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -218,7 +222,7 @@ class YTQuadTreeProj(YTSelectionContainer2D):
     def __init__(self, field, axis, weight_field = None,
                  center = None, ds = None, data_source = None,
                  style = None, method = "integrate",
-                 field_parameters = None):
+                 field_parameters = None, max_level = None):
         YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
@@ -240,6 +244,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         self._set_center(center)
         self._projected_units = {}
         if data_source is None: data_source = self.ds.all_data()
+        if max_level is not None:
+            data_source.max_level = max_level
         for k, v in data_source.field_parameters.items():
             if k not in self.field_parameters or \
               self._is_default_field_parameter(k):
@@ -487,6 +493,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         Number of cells along each axis of resulting covering_grid
     fields : array_like, optional
         A list of fields that you'd like pre-generated for your object
+    num_ghost_zones : integer, optional
+        The number of padding ghost zones used when accessing fields.
 
     Examples
     --------
@@ -526,8 +534,6 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self._use_pbar = use_pbar
         self.global_startindex = np.rint(
             (self.left_edge-self.ds.domain_left_edge)/self.dds).astype('int64')
-        self.domain_width = np.rint((self.ds.domain_right_edge -
-                    self.ds.domain_left_edge)/self.dds).astype('int64')
         self._setup_data_source()
         self.get_data(fields)
 
@@ -589,20 +595,14 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tuple(self.ActiveDimensions.tolist())
 
     def _setup_data_source(self):
-        LE = self.left_edge - self.base_dds
-        RE = self.right_edge + self.base_dds
-        if not all(self.ds.periodicity):
-            for i in range(3):
-                if self.ds.periodicity[i]: continue
-                LE[i] = max(LE[i], self.ds.domain_left_edge[i])
-                RE[i] = min(RE[i], self.ds.domain_right_edge[i])
-        self._data_source = self.ds.region(self.center, LE, RE)
+        self._data_source = self.ds.region(self.center,
+            self.left_edge, self.right_edge)
         self._data_source.min_level = 0
         self._data_source.max_level = self.level
-        self._pdata_source = self.ds.region(self.center,
-            self.left_edge, self.right_edge)
-        self._pdata_source.min_level = 0
-        self._pdata_source.max_level = self.level
+        # This triggers "special" behavior in the RegionSelector to ensure we
+        # select *cells* whose bounding boxes overlap with our region, not just
+        # their cell centers.
+        self._data_source.loose_selection = True
 
     def get_data(self, fields = None):
         if fields is None: return
@@ -610,7 +610,16 @@ class YTCoveringGrid(YTSelectionContainer3D):
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0: return
-        fill, gen, part, alias = self._split_fields(fields_to_get)
+        try:
+            fill, gen, part, alias = self._split_fields(fields_to_get)
+        except NeedsGridType:
+            if self._num_ghost_zones == 0:
+                raise RuntimeError(
+                    "Attempting to access a field that needs ghost zones, but "
+                    "num_ghost_zones = %s. You should create the covering grid "
+                    "with nonzero num_ghost_zones." % self._num_ghost_zones)
+            else:
+                raise
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
@@ -641,7 +650,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _fill_particles(self, part):
         for p in part:
-            self[p] = self._pdata_source[p]
+            self[p] = self._data_source[p]
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
@@ -703,11 +712,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions.prod(), kernel_name)
+        op = cls(self.ActiveDimensions, kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.reshape(self.ActiveDimensions, order="C")
+        return vals.copy(order="C")
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -811,7 +820,7 @@ class YTArbitraryGrid(YTCoveringGrid):
                               int(any(self.ds.periodicity)))
         fi = self.ds._get_field_info(field)
         self[field] = self.ds.arr(dest, fi.units)
-        
+
 
 class LevelState(object):
     current_dx = None
@@ -819,7 +828,6 @@ class LevelState(object):
     current_level = None
     global_startindex = None
     old_global_startindex = None
-    domain_iwidth = None
     fields = None
     data_source = None
 
@@ -861,6 +869,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
     """
     _type_name = "smoothed_covering_grid"
     filename = None
+    _min_level = None
     @wraps(YTCoveringGrid.__init__)
     def __init__(self, *args, **kwargs):
         ds = kwargs['ds']
@@ -887,12 +896,47 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         self._pdata_source.min_level = level_state.current_level
         self._pdata_source.max_level = level_state.current_level
 
+    def _compute_minimum_level(self):
+        # This attempts to determine the minimum level that we should be
+        # starting on for this box.  It does this by identifying the minimum
+        # level that could contribute to the minimum bounding box at that
+        # level; that means that all cells from coarser levels will be replaced.
+        if self._min_level is not None:
+            return self._min_level
+        ils = LevelState()
+        min_level = 0
+        for l in range(self.level, 0, -1):
+            dx = self._base_dx / self.ds.relative_refinement(0, l)
+            start_index, end_index, dims = self._minimal_box(dx)
+            ils.left_edge = start_index * dx + self.ds.domain_left_edge
+            ils.right_edge = ils.left_edge + dx * dims
+            ils.current_dx = dx
+            ils.current_level = l
+            self._setup_data_source(ils)
+            # Reset the max_level
+            ils.data_source.min_level = 0
+            ils.data_source.max_level = l
+            ils.data_source.loose_selection = False
+            min_level = self.level
+            for chunk in ils.data_source.chunks([], "io"):
+                # With our odd selection methods, we can sometimes get no-sized ires.
+                ir = chunk.ires
+                if ir.size == 0: continue
+                min_level = min(ir.min(), min_level)
+            if min_level >= l:
+                break
+        self._min_level = min_level
+        return min_level
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
+        min_level = self._compute_minimum_level()
         for level in range(self.level + 1):
+            if level < min_level:
+                self._update_level_state(ls)
+                continue
             domain_dims = self.ds.domain_dimensions.astype("int64") \
                         * self.ds.relative_refinement(0, ls.current_level)
             tot = ls.current_dims.prod()
@@ -932,8 +976,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.left_edge = ls.global_startindex * ls.current_dx \
                      + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        ls.domain_iwidth = np.rint((self.ds.domain_right_edge -
-                    self.ds.domain_left_edge)/ls.current_dx).astype('int64')
         ls.fields = [np.zeros(idims, dtype="float64")-999 for field in fields]
         self._setup_data_source(ls)
         return ls
@@ -972,7 +1014,6 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         ls.left_edge = ls.global_startindex * ls.current_dx \
                      + self.ds.domain_left_edge.d
         ls.right_edge = ls.left_edge + ls.current_dims * ls.current_dx
-        ls.domain_iwidth = np.rint(ls.domain_width/ls.current_dx).astype('int64')
         input_left = (level_state.old_global_startindex) * rf  + 1
         new_fields = []
         for input_field in level_state.fields:
@@ -1177,24 +1218,26 @@ class YTSurface(YTSelectionContainer3D):
         return vv
 
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae",
+                   color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
-        r"""This exports the surface to the OBJ format, suitable for visualization
-        in many different programs (e.g., Blender).  NOTE: this exports an .obj file
-        and an .mtl file, both with the general 'filename' as a prefix.
-        The .obj file points to the .mtl file in its header, so if you move the 2
-        files, make sure you change the .obj header to account for this. ALSO NOTE:
-        the emit_field needs to be a combination of the other 2 fields used to
-        have the emissivity track with the color.
+        r"""Export the surface to the OBJ format
+
+        Suitable for visualization in many different programs (e.g., Blender).
+        NOTE: this exports an .obj file and an .mtl file, both with the general
+        'filename' as a prefix.  The .obj file points to the .mtl file in its
+        header, so if you move the 2 files, make sure you change the .obj header
+        to account for this. ALSO NOTE: the emit_field needs to be a combination
+        of the other 2 fields used to have the emissivity track with the color.
 
         Parameters
-         ----------
+        ----------
+
         filename : string
-            The file this will be exported to.  This cannot be a file-like object.
-            Note - there are no file extentions included - both obj & mtl files
-            are created.
+            The file this will be exported to.  This cannot be a file-like
+            object. If there are no file extentions included - both obj & mtl
+            files are created.
         transparency : float
             This gives the transparency of the output surface plot.  Values
             from 0.0 (invisible) to 1.0 (opaque).
@@ -1203,8 +1246,8 @@ class YTSurface(YTSelectionContainer3D):
         color_field : string
             Should a field be sample and colormapped?
         emit_field : string
-            Should we track the emissivity of a field?
-              NOTE: this should be a combination of the other 2 fields being used.
+            Should we track the emissivity of a field? This should be a
+            combination of the other 2 fields being used.
         color_map : string
             Which color map should be applied?
         color_log : bool
@@ -1248,15 +1291,19 @@ class YTSurface(YTSelectionContainer3D):
         >>> trans = [0.5, 1.0]
         >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
-        ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
+        ...     return (data['density']*data['density'] *
+        ...             np.sqrt(data['temperature']))
         >>> ds.add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', emit_field = 'emissivity',
+        ...                      color_field='temperature',
+        ...                      emit_field='emissivity',
         ...                      dist_fac = distf, plot_index = i)
 
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             if color_field is not None:
                 self.get_data(color_field,"face")
@@ -1275,14 +1322,13 @@ class YTSurface(YTSelectionContainer3D):
     def _color_samples_obj(self, cs, em, color_log, emit_log, color_map, arr,
                            color_field_max, color_field_min, color_field,
                            emit_field_max, emit_field_min, emit_field): # this now holds for obj files
-        from sys import version
         if color_field is not None:
             if color_log: cs = np.log10(cs)
         if emit_field is not None:
             if emit_log: em = np.log10(em)
         if color_field is not None:
             if color_field_min is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
                 mi = cs.min()
@@ -1290,7 +1336,7 @@ class YTSurface(YTSelectionContainer3D):
                 mi = color_field_min
                 if color_log: mi = np.log10(mi)
             if color_field_max is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     cs = [float(field) for field in cs]
                     cs = np.array(cs)
                 ma = cs.max()
@@ -1308,7 +1354,7 @@ class YTSurface(YTSelectionContainer3D):
         # now, get emission
         if emit_field is not None:
             if emit_field_min is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     em = [float(field) for field in em]
                     em = np.array(em)
                 emi = em.min()
@@ -1316,7 +1362,7 @@ class YTSurface(YTSelectionContainer3D):
                 emi = emit_field_min
                 if emit_log: emi = np.log10(emi)
             if emit_field_max is None:
-                if version >= '3':
+                if sys.version_info > (3, ):
                     em = [float(field) for field in em]
                     em = np.array(em)
                 ema = em.max()
@@ -1332,19 +1378,15 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _export_obj(self, filename, transparency, dist_fac = None,
-                    color_field = None, emit_field = None, color_map = "algae",
+                    color_field = None, emit_field = None, color_map = None,
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
-        from sys import version
-        from io import IOBase
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if plot_index is None:
             plot_index = 0
-        if version < '3':
-            checker = file
-        else:
-            checker = IOBase
-        if isinstance(filename, checker):
+        if isinstance(filename, io.IOBase):
             fobj = filename + '.obj'
             fmtl = filename + '.mtl'
         else:
@@ -1432,7 +1474,7 @@ class YTSurface(YTSelectionContainer3D):
 
 
     def export_blender(self,  transparency = 1.0, dist_fac = None,
-                   color_field = None, emit_field = None, color_map = "algae",
+                   color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
                    color_field_max = None, color_field_min = None,
                    emit_field_max = None, emit_field_min = None):
@@ -1512,6 +1554,8 @@ class YTSurface(YTSelectionContainer3D):
         ...                      dist_fac = distf, plot_index = i)
 
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             if color_field is not None:
                 self.get_data(color_field,"face")
@@ -1531,10 +1575,12 @@ class YTSurface(YTSelectionContainer3D):
         return fullverts, colors, alpha, emisses, colorindex
 
     def _export_blender(self, transparency, dist_fac = None,
-                    color_field = None, emit_field = None, color_map = "algae",
+                    color_field = None, emit_field = None, color_map = None,
                     color_log = True, emit_log = True, plot_index = None,
                     color_field_max = None, color_field_min = None,
                     emit_field_max = None, emit_field_min = None):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if plot_index is None:
             plot_index = 0
         ftype = [("cind", "uint8"), ("emit", "float")]
@@ -1579,7 +1625,7 @@ class YTSurface(YTSelectionContainer3D):
 
 
     def export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face",
+                   color_map = None, color_log = True, sample_type = "face",
                    no_ghost=False):
         r"""This exports the surface to the PLY format, suitable for visualization
         in many different programs (e.g., MeshLab).
@@ -1611,6 +1657,8 @@ class YTSurface(YTSelectionContainer3D):
         ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         if self.vertices is None:
             self.get_data(color_field, sample_type, no_ghost=no_ghost)
         elif color_field is not None:
@@ -1635,8 +1683,10 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,
-                   color_map = "algae", color_log = True, sample_type = "face"):
-        if isinstance(filename, file):
+                   color_map = None, color_log = True, sample_type = "face"):
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
+        if hasattr(filename, 'read'):
             f = filename
         else:
             f = open(filename, "wb")
@@ -1649,27 +1699,29 @@ class YTSurface(YTSelectionContainer3D):
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
         fs = [("ni", "uint8"), ("v1", "<i4"), ("v2", "<i4"), ("v3", "<i4"),
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
-        f.write("ply\n")
-        f.write("format binary_little_endian 1.0\n")
-        f.write("element vertex %s\n" % (nv))
-        f.write("property float x\n")
-        f.write("property float y\n")
-        f.write("property float z\n")
+        f.write(b"ply\n")
+        f.write(b"format binary_little_endian 1.0\n")
+        line = "element vertex %i\n" % (nv)
+        f.write(six.b(line))
+        f.write(b"property float x\n")
+        f.write(b"property float y\n")
+        f.write(b"property float z\n")
         if color_field is not None and sample_type == "vertex":
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
+            f.write(b"property uchar red\n")
+            f.write(b"property uchar green\n")
+            f.write(b"property uchar blue\n")
             v = np.empty(self.vertices.shape[1], dtype=vs)
             cs = self.vertex_samples[color_field]
             self._color_samples(cs, color_log, color_map, v)
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
-        f.write("element face %s\n" % (nv/3))
-        f.write("property list uchar int vertex_indices\n")
+        line = "element face %i\n" % (nv / 3)
+        f.write(six.b(line))
+        f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
-            f.write("property uchar red\n")
-            f.write("property uchar green\n")
-            f.write("property uchar blue\n")
+            f.write(b"property uchar red\n")
+            f.write(b"property uchar green\n")
+            f.write(b"property uchar blue\n")
             # Now we get our samples
             cs = self[color_field]
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
@@ -1684,7 +1736,7 @@ class YTSurface(YTSelectionContainer3D):
             np.divide(tmp, w, tmp)
             np.subtract(tmp, 0.5, tmp) # Center at origin.
             v[ax][:] = tmp
-        f.write("end_header\n")
+        f.write(b"end_header\n")
         v.tofile(f)
         arr["ni"][:] = 3
         vi = np.arange(nv, dtype="<i")
@@ -1697,7 +1749,7 @@ class YTSurface(YTSelectionContainer3D):
             f.close()
 
     def export_sketchfab(self, title, description, api_key = None,
-                            color_field = None, color_map = "algae",
+                            color_field = None, color_map = None,
                             color_log = True, bounds = None, no_ghost = False):
         r"""This exports Surfaces to SketchFab.com, where they can be viewed
         interactively in a web browser.
@@ -1754,6 +1806,8 @@ class YTSurface(YTSelectionContainer3D):
         ...     bounds = bounds)
         ...
         """
+        if color_map is None:
+            color_map = ytcfg.get("yt", "default_colormap")
         api_key = api_key or ytcfg.get("yt","sketchfab_api_key")
         if api_key in (None, "None"):
             raise YTNoAPIKey("SketchFab.com", "sketchfab_api_key")
@@ -1773,39 +1827,49 @@ class YTSurface(YTSelectionContainer3D):
             open(fn, "wb").write(ply_file.read())
             raise YTTooManyVertices(self.vertices.shape[1], fn)
 
-        zfs = TemporaryFile()
+        zfs = NamedTemporaryFile(suffix='.zip')
         with zipfile.ZipFile(zfs, "w", zipfile.ZIP_DEFLATED) as zf:
             zf.writestr("yt_export.ply", ply_file.read())
         zfs.seek(0)
 
         zfs.seek(0)
         data = {
-            'title': title,
             'token': api_key,
+            'name': title,
             'description': description,
-            'fileModel': zfs,
-            'filenameModel': "yt_export.zip",
+            'tags': "yt",
         }
-        upload_id = self._upload_to_sketchfab(data)
+        files = {
+            'modelFile': zfs
+        }
+        upload_id = self._upload_to_sketchfab(data, files)
         upload_id = self.comm.mpi_bcast(upload_id, root = 0)
         return upload_id
 
     @parallel_root_only
-    def _upload_to_sketchfab(self, data):
-        import json
-        from yt.extern.six.moves import urllib
-        from yt.utilities.poster.encode import multipart_encode
-        from yt.utilities.poster.streaminghttp import register_openers
-        register_openers()
-        datamulti, headers = multipart_encode(data)
-        request = urllib.request.Request("https://api.sketchfab.com/v1/models",
-                        datamulti, headers)
-        rv = urllib.request.urlopen(request).read()
-        rv = json.loads(rv)
-        upload_id = rv.get("result", {}).get("id", None)
-        if upload_id:
-            mylog.info("Model uploaded to: https://sketchfab.com/show/%s",
-                       upload_id)
+    def _upload_to_sketchfab(self, data, files):
+        import requests
+        SKETCHFAB_DOMAIN = 'sketchfab.com'
+        SKETCHFAB_API_URL = 'https://api.{}/v2/models'.format(SKETCHFAB_DOMAIN)
+        SKETCHFAB_MODEL_URL = 'https://{}/models/'.format(SKETCHFAB_DOMAIN)
+
+        try:
+            r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
+        except requests.exceptions.RequestException as e:
+            mylog.error("An error occured: {}".format(e))
+            return
+
+        result = r.json()
+
+        if r.status_code != requests.codes.created:
+            mylog.error("Upload to SketchFab failed with error: {}".format(result))
+            return
+
+        model_uid = result['uid']
+        model_url = SKETCHFAB_MODEL_URL + model_uid
+        if model_uid:
+            mylog.info("Model uploaded to: {}".format(model_url))
         else:
             mylog.error("Problem uploading.")
-        return upload_id
+
+        return model_uid

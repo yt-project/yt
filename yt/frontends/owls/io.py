@@ -123,11 +123,18 @@ class IOHandlerOWLS(BaseIOHandler):
             f.close()
 
     def _initialize_index(self, data_file, regions):
+        index_ptype = self.index_ptype
         f = _get_h5_handle(data_file.filename)
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+        if index_ptype == "all":
+            pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+            keys = f.keys()
+        else:
+            pt = int(index_ptype[-1])
+            pcount = f["/Header"].attrs["NumPart_ThisFile"][pt]
+            keys = [index_ptype]
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
-        for key in f.keys():
+        for key in keys:
             if not key.startswith("PartType"): continue
             if "Coordinates" not in f[key]: continue
             ds = f[key]["Coordinates"]
