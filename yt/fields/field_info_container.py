@@ -364,8 +364,8 @@ class FieldInfoContainer(dict):
                 if field in self._show_field_errors:
                     raise
                 if type(e) != YTFieldNotFound:
-                    mylog.debug("Raises %s (%) during field %s detection.",
-                                str(type(e)), e, field)
+                    mylog.debug("Raises %s during field %s detection.",
+                                str(type(e)), field)
                 self.pop(field)
                 continue
             # This next bit checks that we can't somehow generate everything.

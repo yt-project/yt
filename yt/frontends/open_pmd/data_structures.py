@@ -35,17 +35,15 @@ from yt.utilities.on_demand_imports import _h5py as h5
 
 
 class OpenPMDGrid(AMRGridPatch):
-    """Represents disjoint chunk of data on-disk.
+    """Represents chunk of data on-disk.
 
-    The chunks are sliced off the original field along the x-axis.
     This defines the index and offset for every mesh and particle type.
     It also defines parents and children grids. Since openPMD does not have multiple levels of refinement,
     there are no parents or children for any grid.
     """
     _id_offset = 0
     __slots__ = ["_level_id"]
-    # Every particle species might have different hdf5-indices and offsets
-    # These contain tuples (ptype, index) and (ptype, offset)
+    # Every particle species and mesh might have different hdf5-indices and offsets
     ftypes=[]
     ptypes=[]
     findex = 0
@@ -71,7 +69,7 @@ class OpenPMDGrid(AMRGridPatch):
 
 
 class OpenPMDHierarchy(GridIndex):
-    """Defines which fields and particles are created and read from the hard disk.
+    """Defines which fields and particles are created and read from disk.
 
     Furthermore it defines the characteristics of the grids.
     """
@@ -178,7 +176,6 @@ class OpenPMDHierarchy(GridIndex):
         """Sets ``self.num_grids`` to be the total number of grids in the simulation.
 
         The number of grids is determined by their respective memory footprint.
-        You may change ``gridsize`` accordingly. Increase if you have few cores or run single-threaded.
         """
         f = self.dataset._handle
         bp = self.dataset.base_path
@@ -236,8 +233,7 @@ class OpenPMDHierarchy(GridIndex):
         Notes
         -----
         ``self.grid_dimensions`` is rounded to the nearest integer. Grid edges are calculated from this dimension.
-        Furthermore the last grid might be smaller and have fewer particles than the others.
-        In general, NOT all particles in a grid will be inside the grid edges.
+        Grids with dimensions [0, 0, 0] are particle only. The others do not have any particles affiliated with them.
         """
         f = self.dataset._handle
         bp = self.dataset.base_path
@@ -348,17 +344,28 @@ class OpenPMDHierarchy(GridIndex):
 
 class OpenPMDDataset(Dataset):
     """Contains all the required information of a single iteration of the simulation.
+
+    Notes
+    -----
+    It is assumed that all meshes cover the same region. Their resolution can be different.
+    It is assumed that all particles reside in this same region exclusively.
+    It is assumed that the particle position is *relative* to the grid origin. (i.e. grid offset is **NOT** considered)
     """
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
-    def __init__(self, filename, dataset_type="openPMD",
+    def __init__(self,
+                 filename,
+                 dataset_type="openPMD",
                  storage_filename=None,
                  units_override=None,
-                 unit_system="mks", **kwargs):
+                 unit_system="mks",
+                 **kwargs):
         self._handle = HDF5FileHandler(filename)
         self._set_paths(self._handle, path.dirname(filename))
-        Dataset.__init__(self, filename, dataset_type,
+        Dataset.__init__(self,
+                         filename,
+                         dataset_type,
                          units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
@@ -419,10 +426,6 @@ class OpenPMDDataset(Dataset):
 
     def _parse_parameter_file(self):
         """Read in metadata describing the overall data on-disk.
-
-        Notes
-        -----
-        All meshes are assumed to have the same dimensions and size.
         """
         f = self._handle
         bp = self.base_path
@@ -447,16 +450,16 @@ class OpenPMDDataset(Dataset):
         fshape = np.append(fshape, np.ones(3 - self.dimensionality))
         self.domain_dimensions = fshape
 
-        self.domain_left_edge = np.zeros(3, dtype=np.float64)
         try:
             mesh = list(f[bp + mp].keys())[0]
             spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-            #offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
+            # offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
             unit_si = np.asarray(f[bp + mp + "/" + mesh].attrs["gridUnitSI"])
-            #self.domain_left_edge = self.domain_dimensions[:spacing.size] * unit_si * offset
+            # self.domain_left_edge = self.domain_dimensions[:spacing.size] * unit_si * offset
+            self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing
-            #self.domain_right_edge += self.domain_left_edge
-            #self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
+            # self.domain_right_edge += self.domain_left_edge
+            # self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except:
             mylog.warning(

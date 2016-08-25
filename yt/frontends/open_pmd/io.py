@@ -146,7 +146,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
         return rv
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        """Reads given fields for given meshes masked by a given selection.
+        """Reads given fields masked by a given selection.
 
         Parameters
         ----------
@@ -212,7 +212,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
         return rv
 
     def get_component(self, group, component_name, index=0, offset=None):
-        """Grab a dataset component from a group as a whole or sliced.
+        """Grabs a dataset component from a group as a whole or sliced.
 
         Parameters
         ----------
@@ -231,7 +231,9 @@ class IOHandlerOpenPMD(BaseIOHandler):
 
         Returns
         -------
-        (N,) ndarray
+        ndarray
+            (N,) 1D in case of particle data
+            (O,P,Q) 1D/2D/3D in case of mesh data
         """
         record_component = group[component_name]
         unit_si = record_component.attrs["unitSI"]

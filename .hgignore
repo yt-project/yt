@@ -85,4 +85,3 @@ doc/source/reference/api/generated/*
 doc/_temp/*
 doc/source/bootcamp/.ipynb_checkpoints/
 dist
-*.DS_Store
