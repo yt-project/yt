@@ -18,7 +18,10 @@ from .coordinate_handler import \
     _get_coord_fields, \
     _get_vert_fields, \
     _unknown_coord
-#import yt.visualization._MPL as _MPL
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_off_axis_cartesian, \
+    pixelize_cartesian
+
 from collections import OrderedDict
 
 
@@ -81,21 +84,23 @@ class CustomCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units(list(self.axes_units.values())).d
-        buff = _MPL.Pixelize(data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
-                             bounds, int(antialias),
-                             period, int(periodic)).transpose()
+        buff = pixelize_cartesian(data_source['px'], data_source['py'],
+                                  data_source['pdx'], data_source['pdy'],
+                                  data_source[field], size[0], size[1],
+                                  bounds, int(antialias),
+                                  period, int(periodic)).transpose()
+
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['dx'])[::-1]
-        buff = _MPL.CPixelize(data_source['x'], data_source['y'],
-                              data_source['z'], data_source['px'],
-                              data_source['py'], data_source['pdx'],
-                              data_source['pdy'], data_source['pdz'],
-                              data_source.center, data_source._inv_mat, indices,
-                              data_source[field], size[0], size[1], bounds).transpose()
+        buff = pixelize_off_axis_cartesian(
+                data_source['x'], data_source['y'],
+                data_source['z'], data_source['px'],
+                data_source['py'], data_source['pdx'],
+                data_source['pdy'], data_source['pdz'],
+                data_source.center, data_source._inv_mat, indices,
+                data_source[field], size[0], size[1], bounds).transpose()
         return buff
 
     def convert_from_cartesian(self, coord):
