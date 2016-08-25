@@ -201,9 +201,9 @@ class LightRay(CosmologySplice):
             if not ((end_position is None) ^ (trajectory is None)):
                 raise RuntimeError("LightRay Error: must specify either end_position " + \
                                    "or trajectory, but not both.")
-            self.light_ray_solution[0]['start'] = np.asarray(start_position)
+            self.light_ray_solution[0]['start'] = start_position
             if end_position is not None:
-                self.light_ray_solution[0]['end'] = np.asarray(end_position)
+                self.light_ray_solution[0]['end'] = end_position
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
@@ -525,9 +525,10 @@ class LightRay(CosmologySplice):
                         my_segment['end']))
 
             # Break periodic ray into non-periodic segments.
-            sub_segments = periodic_ray(my_segment['start'], my_segment['end'],
-                                        left=left_edge,
-                                        right=right_edge)
+            sub_segments = periodic_ray(my_segment['start'].to("code_length"),
+                                        my_segment['end'].to("code_length"),
+                                        left=left_edge.to("code_length"),
+                                        right=right_edge.to("code_length"))
 
             # Prepare data structure for subsegment.
             sub_data = {}
