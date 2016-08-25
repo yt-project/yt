@@ -34,6 +34,7 @@ yt/utilities/lib/bitarray.c
 yt/utilities/lib/bounding_volume_hierarchy.c
 yt/utilities/lib/contour_finding.c
 yt/utilities/lib/depth_first_octree.c
+yt/utilities/lib/distance_queue.c
 yt/utilities/lib/element_mappings.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
