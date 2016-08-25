@@ -287,7 +287,7 @@ class OpenPMDHierarchy(GridIndex):
         handled_ptypes = []
 
         # Particle grids
-        for species, count in list(self.numparts.items()):
+        for (species, count) in list(self.numparts.items()):
             if "#" in species:
                 # This is a particlePatch
                 spec = species.split("#")

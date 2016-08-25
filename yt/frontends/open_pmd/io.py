@@ -89,9 +89,11 @@ class IOHandlerOpenPMD(BaseIOHandler):
             values are (N,) ndarrays with data from that field
         """
         f = self._handle
-        ds = f[self.base_path]
+        bp = self.base_path
+        pp = self.particles_path
+        ds = f[bp + pp]
         unions = self.ds.particle_unions
-        chunks = list(chunks)  # the argument chunks is a generator
+        chunks = list(chunks)  # chunks is a generator
 
         rv = {}
         ind = {}
@@ -119,17 +121,17 @@ class IOHandlerOpenPMD(BaseIOHandler):
             for chunk in chunks:
                 for grid in chunk.objs:
                     if ptype in "io":
-                        spec = list(ds[self.particles_path].keys())[0]
+                        species = list(ds.keys())[0]
                     else:
-                        spec = ptype
-                    if spec not in grid.ptypes:
+                        species = ptype
+                    if species not in grid.ptypes:
                         continue
                     # read particle coords into cache
-                    self._fill_cache(spec, grid.pindex, grid.poffset)
+                    self._fill_cache(species, grid.pindex, grid.poffset)
                     mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
                     if mask is None:
                         continue
-                    pds = ds[self.particles_path + "/" + spec]
+                    pds = ds[species]
                     for field in ptf[ptype]:
                         component = "/".join(field.split("_")[1:]).replace("positionCoarse", "position").replace("-",
                                                                                                                  "_")
@@ -185,8 +187,8 @@ class IOHandlerOpenPMD(BaseIOHandler):
             rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0
 
-        for ftype, fname in fields:
-            field = (ftype, fname)
+        for field in fields:
+            (ftype, fname) = field
             for chunk in chunks:
                 for grid in chunk.objs:
                     mylog.debug("open_pmd - _read_fluid_selection {} {} {}".format(grid, field, size))

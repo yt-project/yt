@@ -209,7 +209,6 @@ class OpenPMDFieldInfo(FieldInfoContainer):
 
         If a field can not be calculated, it will simply be skipped.
         """
-
         # Set up aliases first so the setup for poynting can use them
         if len(self._mag_fields) > 0:
             setup_magnetic_field_aliases(self, "openPMD", self._mag_fields)
