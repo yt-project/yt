@@ -525,7 +525,7 @@ class YTArray(np.ndarray):
             The units you want to convert to.
 
         """
-        new_units = self.units._unit_repr_check_same(units)
+        new_units = _unit_repr_check_same(units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
@@ -583,7 +583,7 @@ class YTArray(np.ndarray):
         YTArray
 
         """
-        new_units = self.units._unit_repr_check_same(units)
+        new_units = _unit_repr_check_same(self.units, units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         new_array = type(self)(self.ndview * conversion_factor, new_units)
@@ -1124,7 +1124,8 @@ class YTArray(np.ndarray):
             ret = super(YTArray, self).__pow__(power)
             return type(self)(ret, input_units='')
 
-        return type(self)(super(YTArray, self).__pow__(power), self.units)
+        return type(self)(super(YTArray, self).__pow__(power),
+                self.units**power)
 
     def __abs__(self):
         """ Return a YTArray with the abs of the data. """

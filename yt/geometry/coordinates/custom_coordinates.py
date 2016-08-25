@@ -18,7 +18,7 @@ from .coordinate_handler import \
     _get_coord_fields, \
     _get_vert_fields, \
     _unknown_coord
-import yt.visualization._MPL as _MPL
+#import yt.visualization._MPL as _MPL
 from collections import OrderedDict
 
 
