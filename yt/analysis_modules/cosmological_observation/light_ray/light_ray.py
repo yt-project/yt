@@ -427,19 +427,19 @@ class LightRay(CosmologySplice):
             right_edge = domain.arr(right_edge, assumed_units)
         right_edge.convert_to_units('unitary')
 
-        if start_position is not None and \
-          hasattr(start_position, 'units'):
-            start_position = start_position
-        elif start_position is not None :
-            start_position = self.ds.arr(start_position, assumed_units)
-        start_position.convert_to_units('unitary')
+        if start_position is not None:
+            if hasattr(start_position, 'units'):
+                start_position = start_position
+            else:
+                start_position = self.ds.arr(start_position, assumed_units)
+            start_position.convert_to_units('unitary')
 
-        if end_position is not None and \
-          hasattr(end_position, 'units'):
-            end_position = end_position
-        elif end_position is not None :
-            end_position = self.ds.arr(end_position, assumed_units)
-        end_position.convert_to_units('unitary')
+        if end_position is not None:
+            if hasattr(end_position, 'units'):
+                end_position = end_position
+            else:
+                end_position = self.ds.arr(end_position, assumed_units)
+            end_position.convert_to_units('unitary')
 
         if get_los_velocity is not None:
             use_peculiar_velocity = get_los_velocity
@@ -498,10 +498,6 @@ class LightRay(CosmologySplice):
 
             if setup_function is not None:
                 setup_function(ds)
-
-            if start_position is not None:
-                my_segment["start"] = ds.arr(my_segment["start"], "unitary")
-                my_segment["end"] = ds.arr(my_segment["end"], "unitary")
 
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
