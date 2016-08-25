@@ -130,7 +130,6 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 if data_file.total_particles[ptype] == 0: continue
                 pos = f[ptype]["CenterOfMass"].value.astype("float64")
                 pos = np.resize(pos, (data_file.total_particles[ptype], 3))
-                pos = data_file.ds.arr(pos, "code_length")
                 pos = YTIndexArray(pos, ("code_length",)*3,
                                    registry=data_file.ds.unit_registry)
                 # These are 32 bit numbers, so we give a little lee-way.
