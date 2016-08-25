@@ -482,3 +482,9 @@ def test_setup_origin():
         for l in lims:
             generated_limits.append(l)
     yield assert_array_almost_equal, correct_limits, generated_limits
+
+def test_frb_regen():
+    ds = fake_random_ds(32)
+    slc = SlicePlot(ds, 2, 'density')
+    slc.set_buff_size(1200)
+    assert_equal(slc.frb['density'].shape, (1200, 1200))

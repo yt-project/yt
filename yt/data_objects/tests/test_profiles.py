@@ -8,7 +8,13 @@ from yt.data_objects.profiles import \
 from yt.testing import \
     fake_random_ds, \
     assert_equal, \
+    assert_raises, \
     assert_rel_equal
+from yt.utilities.exceptions import \
+    YTIllDefinedProfile
+from yt.visualization.profile_plotter import \
+    ProfilePlot, \
+    PhasePlot
 
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
 _units = ("g/cm**3", "K", "dyne", "erg")
@@ -158,3 +164,34 @@ def test_particle_profiles():
                         weight_field = None)
         p3d.add_fields(["particle_ones"])
         yield assert_equal, p3d["particle_ones"].sum(), 32**3
+
+def test_mixed_particle_mesh_profiles():
+    ds = fake_random_ds(32, particles=10)
+    ad = ds.all_data()
+    assert_raises(
+        YTIllDefinedProfile, ProfilePlot, ad, 'radius', 'particle_mass')
+    assert_raises(
+        YTIllDefinedProfile, ProfilePlot, ad, 'radius',
+        ['particle_mass', 'particle_ones'])
+    assert_raises(
+        YTIllDefinedProfile, ProfilePlot, ad, 'radius',
+        ['particle_mass', 'ones'])
+    assert_raises(
+        YTIllDefinedProfile, ProfilePlot, ad, 'particle_radius', 'particle_mass',
+        'cell_mass')
+    assert_raises(
+        YTIllDefinedProfile, ProfilePlot, ad, 'radius', 'cell_mass',
+        'particle_ones')
+
+    assert_raises(
+        YTIllDefinedProfile, PhasePlot, ad, 'radius', 'particle_mass',
+        'velocity_x')
+    assert_raises(
+        YTIllDefinedProfile, PhasePlot, ad, 'particle_radius', 'particle_mass',
+        'cell_mass')
+    assert_raises(
+        YTIllDefinedProfile, PhasePlot, ad, 'radius', 'cell_mass',
+        'particle_ones')
+    assert_raises(
+        YTIllDefinedProfile, PhasePlot, ad, 'particle_radius', 'particle_mass',
+        'particle_ones')

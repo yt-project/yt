@@ -26,7 +26,7 @@ from yt.funcs import \
     iterable, \
     ensure_list
 from yt.utilities.io_handler import io_registry
-from yt.data_objects.data_containers import \
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.data_objects.particle_unions import \
     ParticleUnion
