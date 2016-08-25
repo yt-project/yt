@@ -1220,18 +1220,13 @@ class YTArray(np.ndarray):
             else:
                 return ret
         elif context[0] in unary_operators:
-<<<<<<< local
-            u = getattr(context[1][0], 'units', NULL_UNIT)
-            unit = UFUNC_REGISTRY[context[0]](u)
-=======
             u = getattr(context[1][0], 'units', None)
             if u is None:
                 u = NULL_UNIT
             if u.dimensions is angle and context[0] in trigonometric_operators:
                 out_arr = context[0](
                     context[1][0].in_units('radian').view(np.ndarray))
-            unit = self._ufunc_registry[context[0]](u)
->>>>>>> other
+            unit = UFUNC_REGISTRY[context[0]](u)
             ret_class = type(self)
         elif context[0] in binary_operators:
             oper1 = coerce_iterable_units(context[1][0])
@@ -1254,26 +1249,13 @@ class YTArray(np.ndarray):
                         else:
                             raise YTUnitOperationError(context[0], unit1, unit2)
                     unit2 = 1.0
-<<<<<<< local
             unit_operator = UFUNC_REGISTRY[context[0]]
-            if unit_operator in same_unit_operators:
-=======
-            unit_operator = self._ufunc_registry[context[0]]
             if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
                 # Allow comparisons, addition, and subtraction with
                 # dimensionless quantities or arrays filled with zeros.
                 u1d = unit1.is_dimensionless
                 u2d = unit2.is_dimensionless
->>>>>>> other
                 if unit1 != unit2:
-<<<<<<< local
-                    if not unit1.same_dimensions_as(unit2):
-                        raise YTUnitOperationError(context[0], unit1, unit2)
-                    else:
-                        raise YTUfuncUnitError(context[0], unit1, unit2)
-            unit = unit_operator(unit1, unit2)
-            if unit_operator in commutative_operators:
-=======
                     any_nonzero = [np.any(oper1), np.any(oper2)]
                     if any_nonzero[0] is np.bool_(False):
                         unit1 = unit2
@@ -1286,7 +1268,6 @@ class YTArray(np.ndarray):
                             raise YTUfuncUnitError(context[0], unit1, unit2)
             unit = unit_operator(unit1, unit2)
             if unit_operator in (multiply_units, divide_units):
->>>>>>> other
                 if unit.is_dimensionless and unit.base_value != 1.0:
                     if not unit1.is_dimensionless:
                         if unit1.dimensions == unit2.dimensions:
