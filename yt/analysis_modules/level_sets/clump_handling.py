@@ -295,7 +295,7 @@ class Clump(TreeContainer):
             contour_fields = \
               [("index", "contours_%s" % ckey)
                for ckey in np.unique(clump_info["contour_key"]) \
-               if ckey != "-1"]
+               if str(ckey) != "-1"]
 
             ptypes = []
             field_data = {}
