@@ -23,6 +23,8 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import \
     data_dir_load
 
+import numpy as np
+
 twoD = "example-2d/hdf5/data00000100.h5"
 threeD = "example-3d/hdf5/data00000100.h5"
 
@@ -58,8 +60,8 @@ def test_3d_out():
                   ('openPMD', 'E_y'),
                   ('openPMD', 'E_z'),
                   ('openPMD', 'rho')]
-    domain_dimensions = [26, 26, 201]
-    domain_width = [2.08e-05, 2.08e-05, 2.01e-05]
+    domain_dimensions = [26, 26, 201] * np.ones_like(ds.domain_dimensions)
+    domain_width = [2.08e-05, 2.08e-05, 2.01e-05] * np.ones_like(ds.domain_left_edge)
 
     assert isinstance(ds, OpenPMDDataset)
     yield assert_equal, str(ds), "data00000100.h5"
@@ -67,8 +69,8 @@ def test_3d_out():
     yield assert_equal, ds.particle_types_raw, ('io',)
     assert "all" in ds.particle_unions
     yield assert_array_equal, ds.field_list, field_list
-    yield assert_array_equal, ds.domain_domensions, domain_dimensions
-    yield assert_almost_equal, ds.current_time, 3.28471214521e-14
+    yield assert_array_equal, ds.domain_dimensions, domain_dimensions
+    yield assert_almost_equal, ds.current_time, 3.28471214521e-14 * np.ones_like(ds.current_time)
     yield assert_almost_equal, ds.domain_right_edge - ds.domain_left_edge, domain_width
 
 
@@ -121,8 +123,8 @@ def test_2d_out():
                   ('openPMD', 'J_y'),
                   ('openPMD', 'J_z'),
                   ('openPMD', 'rho')]
-    domain_dimensions = [51, 201, 1]
-    domain_width = [3.06e-05, 2.01e-05, 1e+0]
+    domain_dimensions = [51, 201, 1] * np.ones_like(ds.domain_dimensions)
+    domain_width = [3.06e-05, 2.01e-05, 1e+0] * np.ones_like(ds.domain_left_edge)
 
     assert isinstance(ds, OpenPMDDataset)
     yield assert_equal, str(ds), "data00000100.h5"
@@ -130,6 +132,6 @@ def test_2d_out():
     yield assert_equal, ds.particle_types_raw, ('Hydrogen1+', 'electrons')
     assert "all" in ds.particle_unions
     yield assert_array_equal, ds.field_list, field_list
-    yield assert_array_equal, ds.domain_domensions, domain_dimensions
-    yield assert_almost_equal, ds.current_time, 3.29025596712e-14
+    yield assert_array_equal, ds.domain_dimensions, domain_dimensions
+    yield assert_almost_equal, ds.current_time, 3.29025596712e-14 * np.ones_like(ds.current_time)
     yield assert_almost_equal, ds.domain_right_edge - ds.domain_left_edge, domain_width
