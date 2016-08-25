@@ -526,7 +526,6 @@ class YTArray(np.ndarray):
 
         """
         new_units = _unit_repr_check_same(self.units, units)
-        new_units = _unit_repr_check_same(units)
         (conversion_factor, offset) = self.units.get_conversion_factor(new_units)
 
         self.units = new_units
