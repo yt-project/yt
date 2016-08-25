@@ -145,6 +145,7 @@ class Clump(TreeContainer):
         for child in self.children:
             child.clear_clump_info()
 
+    @deprecate("Clump.save_as_dataset")
     def write_info(self, level, f_ptr):
         "Writes information for clump using the list of items in clump_info."
 
