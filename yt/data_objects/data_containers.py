@@ -93,6 +93,17 @@ def restore_field_information_state(func):
         return tr
     return save_state
 
+def sanitize_weight_field(ds, field, weight):
+    field_object = ds._get_field_info(field)
+    if weight is None:
+        if field_object.particle_type is True:
+            weight_field = (field_object.name[0], 'particle_ones')
+        else:
+            weight_field = ('index', 'ones')
+    else:
+        weight_field = weight
+    return weight_field
+
 class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
@@ -451,7 +462,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        fields : list of strings or tuples, default None
+        fields : list of strings or tuple field names, default None
             If this is supplied, it is the list of fields to be exported into
             the data frame.  If not supplied, whatever fields presently exist
             will be used.
@@ -493,7 +504,7 @@ class YTDataContainer(object):
             The name of the file to be written.  If None, the name 
             will be a combination of the original dataset and the type 
             of data container.
-        fields : list of strings or tuples, optional
+        fields : list of string or tuple field names, optional
             If this is supplied, it is the list of fields to be saved to
             disk.  If not supplied, all the fields that have been queried
             will be saved.
@@ -623,7 +634,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to maximize.
         axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
@@ -663,7 +674,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to minimize.
         axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
@@ -714,7 +725,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to maximize.
         axis : string, optional
             If supplied, the axis to project the maximum along.
@@ -753,7 +764,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to minimize.
         axis : string, optional
             If supplied, the axis to compute the minimum along.
@@ -784,7 +795,25 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
 
     def std(self, field, weight=None):
-        raise NotImplementedError
+        """Compute the variance of a field.
+
+        This will, in a parallel-ware fashion, compute the variance of
+        the given field.
+
+        Parameters
+        ----------
+        field : string or tuple field name
+            The field to calculate the variance of
+        weight : string or tuple field name
+            The field to weight the variance calculation by. Defaults to
+            unweighted if unset.
+
+        Returns
+        -------
+        Scalar
+        """
+        weight_field = sanitize_weight_field(self.ds, field, weight)
+        return self.quantities.weighted_variance(field, weight_field)[0]
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
@@ -794,7 +823,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to average.
 
         Returns
@@ -881,18 +910,19 @@ class YTDataContainer(object):
                    fractional, deposition)
         return p
 
-    def mean(self, field, axis=None, weight='ones'):
+    def mean(self, field, axis=None, weight=None):
         r"""Compute the mean of a field, optionally along an axis, with a
         weight.
 
         This will, in a parallel-aware fashion, compute the mean of the
         given field.  If an axis is supplied, it will return a projection,
-        where the weight is also supplied.  By default the weight is "ones",
-        resulting in a strict average.
+        where the weight is also supplied.  By default the weight field will be
+        "ones" or "particle_ones", depending on the field being averaged,
+        resulting in an unweighted average.
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to average.
         axis : string, optional
             If supplied, the axis to compute the mean along (i.e., to project
@@ -910,8 +940,10 @@ class YTDataContainer(object):
         >>> avg_rho = reg.mean("density", weight="cell_volume")
         >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
         """
+        weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
+            r = self.ds.proj(field, axis, data_source=self,
+                             weight_field=weight_field)
         elif axis is None:
             r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
@@ -928,7 +960,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to sum.
         axis : string, optional
             If supplied, the axis to sum along.
@@ -955,15 +987,17 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
 
-    def integrate(self, field, axis=None):
+    def integrate(self, field, weight=None, axis=None):
         r"""Compute the integral (projection) of a field along an axis.
 
         This projects a field along an axis.
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to project.
+        weight: string or tuple field name
+            The field to weight the projection by
         axis : string
             The axis to project along.
 
@@ -976,8 +1010,13 @@ class YTDataContainer(object):
 
         >>> column_density = reg.integrate("density", axis="z")
         """
+        if weight is not None:
+            weight_field = sanitize_weight_field(self.ds, field, weight)
+        else:
+            weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self)
+            r = self.ds.proj(field, axis, data_source=self,
+                             weight_field=weight_field)
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
         return r

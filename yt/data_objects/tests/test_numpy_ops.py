@@ -10,9 +10,10 @@ def setup():
 def test_mean_sum_integrate():
     for nprocs in [-1, 1, 2, 16]:
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density",))
+            ds = fake_amr_ds(fields=("density",), particles=20)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density",))
+            ds = fake_random_ds(32, nprocs=nprocs, fields=("density",),
+                                particles=20)
         ad = ds.all_data()
 
         # Sums
@@ -20,80 +21,109 @@ def test_mean_sum_integrate():
 
         q1 = ad.quantities.total_quantity('density')
 
-        yield assert_equal, q, q1
+        assert_equal(q, q1)
+
+        q = ad.sum('particle_ones')
+
+        q1 = ad.quantities.total_quantity('particle_ones')
+
+        assert_equal(q, q1)
 
         # Weighted Averages
         w = ad.mean("density")
 
         w1 = ad.quantities.weighted_average_quantity('density', 'ones')
 
-        yield assert_equal, w, w1
+        assert_equal(w, w1)
 
         w = ad.mean("density", weight="density")
 
         w1 = ad.quantities.weighted_average_quantity('density', 'density')
 
-        yield assert_equal, w, w1
+        assert_equal(w, w1)
+
+        w = ad.mean('particle_mass')
+
+        w1 = ad.quantities.weighted_average_quantity(
+            'particle_mass', 'particle_ones')
+
+        assert_equal(w, w1)
+
+        w = ad.mean('particle_mass', weight='particle_mass')
+
+        w1 = ad.quantities.weighted_average_quantity(
+            'particle_mass', 'particle_mass')
+
+        assert_equal(w, w1)
 
         # Projections
         p = ad.sum('density', axis=0)
 
         p1 = ds.proj('density', 0, data_source=ad, method="sum")
 
-        yield assert_equal, p['density'], p1['density']
+        assert_equal(p['density'], p1['density'])
 
         # Check by axis-name
         p = ad.sum('density', axis='x')
 
-        yield assert_equal, p['density'], p1['density']
+        assert_equal(p['density'], p1['density'])
 
         # Now we check proper projections
         p = ad.integrate("density", axis=0)
         p1 = ds.proj("density", 0, data_source=ad)
 
-        yield assert_equal, p['density'], p1['density']
+        assert_equal(p['density'], p1['density'])
 
         # Check by axis-name
         p = ad.integrate('density', axis='x')
 
-        yield assert_equal, p['density'], p1['density']
+        assert_equal(p['density'], p1['density'])
 
 def test_min_max():
     for nprocs in [-1, 1, 2, 16]:
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density","temperature"))
+            ds = fake_amr_ds(fields=("density","temperature"), particles=20)
         else:
             ds = fake_random_ds(32, nprocs=nprocs,
-                fields=("density","temperature"))
+                fields=("density","temperature"), particles=20)
 
         ad = ds.all_data()
 
         q = ad.min("density").v
-        yield assert_equal, q, ad["density"].min()
+        assert_equal(q, ad["density"].min())
 
         q = ad.max("density").v
-        yield assert_equal, q, ad["density"].max()
+        assert_equal(q, ad["density"].max())
+
+        q = ad.min('particle_mass').v
+        assert_equal(q, ad['particle_mass'].min())
+
+        q = ad.max('particle_mass').v
+        assert_equal(q, ad['particle_mass'].max())
 
         ptp = ad.ptp("density").v
-        yield assert_equal, ptp, ad["density"].max() - ad["density"].min()
+        assert_equal(ptp, ad["density"].max() - ad["density"].min())
+
+        ptp = ad.ptp("particle_mass").v
+        assert_equal(ptp, ad["particle_mass"].max() - ad["particle_mass"].min())
 
         p = ad.max("density", axis=1)
         p1 = ds.proj("density", 1, data_source=ad, method="mip")
-        yield assert_equal, p["density"], p1["density"]
+        assert_equal(p["density"], p1["density"])
 
         p = ad.max("density", axis="y")
         p1 = ds.proj("density", 1, data_source=ad, method="mip")
-        yield assert_equal, p["density"], p1["density"]
+        assert_equal(p["density"], p1["density"])
 
         # Test that we can get multiple in a single pass
 
         qrho, qtemp = ad.max(["density", "temperature"])
-        yield assert_equal, qrho, ad["density"].max()
-        yield assert_equal, qtemp, ad["temperature"].max()
+        assert_equal(qrho, ad["density"].max())
+        assert_equal(qtemp, ad["temperature"].max())
 
         qrho, qtemp = ad.min(["density", "temperature"])
-        yield assert_equal, qrho, ad["density"].min()
-        yield assert_equal, qtemp, ad["temperature"].min()
+        assert_equal(qrho, ad["density"].min())
+        assert_equal(qtemp, ad["temperature"].min())
 
 def test_argmin():
     for nprocs in [-1, 1, 2, 16]:
