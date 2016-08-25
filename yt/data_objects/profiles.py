@@ -26,7 +26,9 @@ from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
 from yt.units.unit_object import Unit
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.field_data import YTFieldData
+from yt.utilities.exceptions import \
+    YTIllDefinedProfile
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -453,6 +455,14 @@ class Profile1D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
 
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        with the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import ProfilePlot
+        return ProfilePlot.from_profiles(self)
+
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
     A 1D profile object loaded from a ytdata dataset.
@@ -571,6 +581,14 @@ class Profile2D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.PhasePlot with
+        the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import PhasePlot
+        return PhasePlot.from_profile(self)
 
 class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
     """
@@ -928,7 +946,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     data from profile[<field_name>].
 
     >>> ds = load("DD0046/DD0046")
-    >>> ad = ds.h.all_data()
+    >>> ad = ds.all_data()
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
@@ -940,10 +958,18 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     fields = ensure_list(fields)
     is_pfield = [data_source.ds._get_field_info(f).particle_type
                  for f in bin_fields + fields]
+    wf = None
+    if weight_field is not None:
+        wf = data_source.ds._get_field_info(weight_field)
+        is_pfield.append(wf.particle_type)
+        wf = wf.name
 
-    if len(bin_fields) == 1:
+    if any(is_pfield) and not all(is_pfield):
+        raise YTIllDefinedProfile(
+            bin_fields, data_source._determine_fields(fields), wf, is_pfield)
+    elif len(bin_fields) == 1:
         cls = Profile1D
-    elif len(bin_fields) == 2 and np.all(is_pfield):
+    elif len(bin_fields) == 2 and all(is_pfield):
         # log bin_fields set to False for Particle Profiles.
         # doesn't make much sense for CIC deposition.
         # accumulation and fractional set to False as well.

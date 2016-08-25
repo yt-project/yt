@@ -28,7 +28,8 @@ from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp, \
-    assert_array_almost_equal
+    assert_array_almost_equal, \
+    assert_almost_equal
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
@@ -1221,3 +1222,16 @@ def test_builtin_sum():
     arr = [1, 2, 3]*km
     assert_equal(sum(arr), 6*km)
 
+def test_initialization_different_registries():
+    from yt.testing import fake_random_ds
+
+    ds1 = fake_random_ds(32, length_unit=1)
+    ds2 = fake_random_ds(32, length_unit=3)
+
+    l1 = ds1.quan(0.3, 'unitary')
+    l2 = ds2.quan(l1, 'unitary')
+
+    assert_almost_equal(float(l1.in_cgs()), 0.3)
+    assert_almost_equal(float(l2.in_cgs()), 0.9)
+    assert_almost_equal(float(ds1.quan(0.3, 'unitary').in_cgs()), 0.3)
+    assert_almost_equal(float(ds2.quan(0.3, 'unitary').in_cgs()), 0.9)

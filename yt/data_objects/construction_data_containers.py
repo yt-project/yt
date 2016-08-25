@@ -28,7 +28,8 @@ from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer1D, \
     YTSelectionContainer2D, \
-    YTSelectionContainer3D, \
+    YTSelectionContainer3D
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.funcs import \
     ensure_list, \

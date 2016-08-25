@@ -117,10 +117,11 @@ ctypedef void (*jac_type3D)(double* rcol,
 #
 # outputs:
 #
-#     A        - A flattened array storing the Jacobian matrix
-#                The order of this array is [J11, J12, J21, J22]
+#     rcol     - the first column of the jacobian
+#     scol     - the second column of the jacobian
 #
-ctypedef void (*jac_type2D)(double* A,
+ctypedef void (*jac_type2D)(double* rcol,
+                            double* scol,
                             double* x,
                             double* vertices,
                             double* phys_x) nogil
