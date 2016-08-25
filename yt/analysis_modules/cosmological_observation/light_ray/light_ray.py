@@ -316,12 +316,14 @@ class LightRay(CosmologySplice):
         left_edge : optional, iterable of floats or YTArray
             The left corner of the region in which rays are to be
             generated.  If None, the left edge will be that of the
-            domain.
+            domain.  If specified without units, it is assumed to
+            be in code units.
             Default: None.
         right_edge : optional, iterable of floats or YTArray
             The right corner of the region in which rays are to be
             generated.  If None, the right edge will be that of the
-            domain.
+            domain.  If specified without units, it is assumed to
+            be in code units.
             Default: None.
         min_level : optional, int
             The minimum refinement level of the spatial region in which
@@ -412,29 +414,32 @@ class LightRay(CosmologySplice):
         else:
             domain = self.simulation
 
+        assumed_units = "code_length"
         if left_edge is None:
             left_edge = domain.domain_left_edge
         elif not hasattr(left_edge, 'units'):
-            left_edge = domain.arr(left_edge, 'code_length')
+            left_edge = domain.arr(left_edge, assumed_units)
         left_edge.convert_to_units('unitary')
 
         if right_edge is None:
             right_edge = domain.domain_right_edge
         elif not hasattr(right_edge, 'units'):
-            right_edge = domain.arr(right_edge, 'code_length')
+            right_edge = domain.arr(right_edge, assumed_units)
         right_edge.convert_to_units('unitary')
 
-        if start_position is not None and hasattr(start_position, 'units'):
-            start_position = start_position.to('unitary')
+        if start_position is not None and \
+          hasattr(start_position, 'units'):
+            start_position = start_position
         elif start_position is not None :
-            start_position = self.ds.arr(
-                start_position, 'code_length').to('unitary')
+            start_position = self.ds.arr(start_position, assumed_units)
+        start_position.convert_to_units('unitary')
 
-        if end_position is not None and hasattr(end_position, 'units'):
-            end_position = end_position.to('unitary')
+        if end_position is not None and \
+          hasattr(end_position, 'units'):
+            end_position = end_position
         elif end_position is not None :
-            end_position = self.ds.arr(
-                end_position, 'code_length').to('unitary')
+            end_position = self.ds.arr(end_position, assumed_units)
+        end_position.convert_to_units('unitary')
 
         if get_los_velocity is not None:
             use_peculiar_velocity = get_los_velocity
