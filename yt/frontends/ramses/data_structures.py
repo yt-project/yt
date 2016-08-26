@@ -43,6 +43,9 @@ from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
 
+from yt.utilities.lib.time_arrays import \
+    friedman
+
 class RAMSESDomainFile(object):
     _last_mask = None
     _last_selector_id = None
@@ -642,83 +645,6 @@ class RAMSESDataset(Dataset):
         self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
 
-        def dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0):
-           return np.sqrt( aexp_tau**3 * (O_mat_0 + O_vac_0*aexp_tau**3 + O_k_0*aexp_tau) )
-
-        def dadt(aexp_t,O_mat_0,O_vac_0,O_k_0):
-           return np.sqrt( (1./aexp_t)*(O_mat_0 + O_vac_0*aexp_t**3 + O_k_0*aexp_t) )
-
-        def step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0):
-            dtau = alpha * aexp_tau / dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)
-            aexp_tau_pre = aexp_tau - dadtau(aexp_tau,O_mat_0,O_vac_0,O_k_0)*dtau/2.0
-            aexp_tau = aexp_tau - dadtau(aexp_tau_pre,O_mat_0,O_vac_0,O_k_0)*dtau
-            tau = tau - dtau
-
-            dt = alpha * aexp_t / dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)
-            aexp_t_pre = aexp_t - dadt(aexp_t,O_mat_0,O_vac_0,O_k_0)*dt/2.0
-            aexp_t = aexp_t - dadt(aexp_t_pre,O_mat_0,O_vac_0,O_k_0)*dt
-            t = t - dt
-
-            return tau,aexp_tau,t,aexp_t
-
-        def friedman(O_mat_0, O_vac_0, O_k_0):
-            alpha = 1.e-5
-            aexp_min = 1.e-3
-            aexp_tau = 1.
-            aexp_t = 1.
-            tau = 0.
-            t = 0.
-            nstep = 0
-
-            while aexp_tau >= aexp_min or aexp_t >= aexp_min:
-                nstep = nstep + 1
-                tau,aexp_tau,t,aexp_t = step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0)
-
-            age_tot=-t
-            ntable = 1000
-            if nstep < ntable :
-                ntable = nstep
-                alpha = alpha / 2.
-
-            tau_out = np.zeros([ntable+1])
-            t_out = np.zeros([ntable+1])
-            # (sampling the first half of the table more finely than second half):
-            delta_tau = 20.*tau/ntable/11.
-
-            aexp_tau = 1.
-            aexp_t = 1.
-            tau = 0.
-            t = 0.
-
-            n_out = 0
-            t_out[n_out] = t
-            tau_out[n_out] = tau
-
-            next_tau = tau + delta_tau/10.
-
-            while n_out < ntable/2 : 
-                tau,aexp_tau,t,aexp_t = step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0)
-
-                if tau < next_tau:
-                    n_out = n_out + 1
-                    t_out[n_out] = t
-                    tau_out[n_out] = tau
-                    next_tau = next_tau + delta_tau/10.
-
-            while aexp_tau >= aexp_min or aexp_t >= aexp_min:
-                tau,aexp_tau,t,aexp_t = step_cosmo(alpha,tau,aexp_tau,t,aexp_t,O_mat_0,O_vac_0,O_k_0)
-
-                if tau < next_tau:
-                    n_out = n_out + 1
-                    t_out[n_out] = t
-                    tau_out[n_out] = tau
-                    next_tau = next_tau + delta_tau
-
-            n_out = ntable
-            t_out[n_out] = t
-            tau_out[n_out] = tau
-
-            return tau_out, t_out, delta_tau, ntable, age_tot
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters['time'] * self.parameters['unit_t']
