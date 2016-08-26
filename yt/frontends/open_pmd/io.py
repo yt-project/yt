@@ -191,7 +191,6 @@ class IOHandlerOpenPMD(BaseIOHandler):
             (ftype, fname) = field
             for chunk in chunks:
                 for grid in chunk.objs:
-                    mylog.debug("open_pmd - _read_fluid_selection {} {} {}".format(grid, field, size))
                     if fname.split("_")[0] not in grid.ftypes:
                         continue
                     mask = grid._get_selector_mask(selector)
@@ -241,12 +240,11 @@ class IOHandlerOpenPMD(BaseIOHandler):
             if offset is None:
                 offset = record_component.attrs["shape"] - index
             # component is constant, craft an array by hand
-            mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, offset))
+            # mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, offset))
             return np.full(offset, record_component.attrs["value"] * unit_si)
         else:
             if offset is not None:
                 offset += index
             # component is a dataset, return it (possibly masked)
-            mylog.debug(
-                "open_pmd - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+            # mylog.debug("open_pmd - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
             return np.multiply(record_component[index:offset], unit_si)
