@@ -61,6 +61,7 @@ yt/utilities/lib/points_in_volume.c
 yt/utilities/lib/quad_tree.c
 yt/utilities/lib/ray_integrators.c
 yt/utilities/lib/ragged_arrays.c
+yt/utilities/lib/cosmology_time.c
 yt/utilities/lib/grid_traversal.c
 yt/utilities/lib/marching_cubes.c
 yt/utilities/lib/png_writer.h
