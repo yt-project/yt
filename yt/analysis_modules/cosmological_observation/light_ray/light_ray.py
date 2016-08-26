@@ -249,7 +249,7 @@ class LightRay(CosmologySplice):
                     else:
                         ds = load(self.light_ray_solution[q]["filename"])
                         ray_length = \
-                          ds.quan(self.light_ray_solution[q]['traversal_box_fraction'].d,
+                          ds.quan(self.light_ray_solution[q]['traversal_box_fraction'],
                                   "unitary")
                         self.light_ray_solution[q]['start'], \
                           self.light_ray_solution[q]['end'] = \
@@ -502,7 +502,8 @@ class LightRay(CosmologySplice):
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
             elif self.near_redshift == self.far_redshift:
-                if isinstance(my_segment["traversal_box_fraction"], YTArray):
+                if isinstance(my_segment["traversal_box_fraction"], YTArray) and \
+                  not my_segment["traversal_box_fraction"].units.is_dimensionless:
                     segment_length = \
                       my_segment["traversal_box_fraction"].in_units("Mpccm / h")
                 else:
