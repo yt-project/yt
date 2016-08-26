@@ -174,11 +174,21 @@ class YTIndexArray(YTArray):
 
             unit_operator = UFUNC_REGISTRY[context[0]]
             if unit_operator in same_unit_operators:
+                # Allow comparisons, addition, and subtraction with
+                # dimensionless quantities or arrays filled with zeros.
+                u1d = all(u.is_dimensionless for u in unit1)
+                u2d = all(u.is_dimensionless for u in unit2)
                 if unit1 != unit2:
-                    if not unit1.same_dimensions_as(unit2):
-                        raise YTUnitOperationError(context[0], unit1, unit2)
-                    else:
-                        raise YTUfuncUnitError(context[0], unit1, unit2)
+                    any_nonzero = [np.any(oper1), np.any(oper2)]
+                    if any_nonzero[0] is np.bool_(False):
+                        unit1 = unit2
+                    elif any_nonzero[1] is np.bool_(False):
+                        unit2 = unit1
+                    elif not any([u1d, u2d]):
+                        if not unit1.same_dimensions_as(unit2):
+                            raise YTUnitOperationError(context[0], unit1, unit2)
+                        else:
+                            raise YTUfuncUnitError(context[0], unit1, unit2)
             units = tuple(unit_operator(u1, u2) for u1, u2 in zip(unit1, unit2))
             if all([u is None for u in units]):
                 units = None
