@@ -110,8 +110,8 @@ class IOHandlerRAMSES(BaseIOHandler):
                 for ipart, age in enumerate(tr[field]):
                     if age < 0.:
                         iage = 1 + int(10.*age/subset.domain.ds.dtau)
-                        if iage > nOver2:
-                            iage = nOver2 + (iage - nOver2)/10
+                        iage = np.min([iage,nOver2 + (iage - nOver2)/10])
+
                         t = t_frw[iage  ]*(age-tau_frw[iage-1])/(tau_frw[iage]-tau_frw[iage-1])+ \
                             t_frw[iage-1]*(age-tau_frw[iage  ])/(tau_frw[iage-1]-tau_frw[iage])
                         newage = (tsim-t)/(h100*1e7/3.08e24)/subset.domain.ds['unit_t']

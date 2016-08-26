@@ -654,8 +654,7 @@ class RAMSESDataset(Dataset):
 
             age = self.parameters['time']
             iage = 1 + int(10.*age/self.dtau)
-            if iage > self.n_frw/2:
-                iage = self.n_frw/2 + (iage - self.n_frw/2 )/10
+            iage = np.min([iage,self.n_frw/2 + (iage - self.n_frw/2)/10])
 
             self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
                              self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
