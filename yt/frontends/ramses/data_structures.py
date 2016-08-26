@@ -43,7 +43,7 @@ from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
 
-from yt.utilities.lib.time_arrays import \
+from yt.utilities.lib.cosmology_time import \
     friedman
 
 class RAMSESDomainFile(object):
