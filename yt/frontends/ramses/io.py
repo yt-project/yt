@@ -118,6 +118,6 @@ class IOHandlerRAMSES(BaseIOHandler):
                      (tauf[iage] - tauf[iage - 1]))
                 t = t + (tf[iage-1]*(ages[wh]-tauf[iage]) /
                          (tauf[iage-1]-tauf[iage]))
-                newages = (tsim - t)/(h100 * 100 * cm_per_km / cm_per_mpc)
+                newages = (tsim - t)/(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
                 tr[field][wh] = np.maximum(np.zeros_like(newages), newages)
         return tr
