@@ -21,7 +21,6 @@ import numpy as np
 
 from yt.frontends.open_pmd.misc import is_const_component
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerOpenPMD(BaseIOHandler):
