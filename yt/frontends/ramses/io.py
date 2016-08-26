@@ -21,6 +21,8 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
+from yt.utilities.lib.cosmology_time import \
+    get_ramses_ages
 from yt.extern.six import PY3
 
 if PY3:
@@ -105,19 +107,12 @@ class IOHandlerRAMSES(BaseIOHandler):
             cosmo = subset.domain.ds.cosmological_simulation
             if cosmo == 1 and field[1] == "particle_age":
                 tf = subset.domain.ds.t_frw
+                dtau = subset.domain.ds.dtau
                 tauf = subset.domain.ds.tau_frw
                 tsim = subset.domain.ds.time_simu
                 h100 = subset.domain.ds.hubble_constant
                 nOver2 = subset.domain.ds.n_frw/2
+                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
                 ages = tr[field]
-                wh = ages < 0
-                iage = 1 + (10*ages[wh]/subset.domain.ds.dtau)
-                iage = np.minimum(iage, nOver2 + (iage - nOver2)/10.)
-                iage = iage.astype('int')
-                t = (tf[iage]*(ages[wh] - tauf[iage - 1]) /
-                     (tauf[iage] - tauf[iage - 1]))
-                t = t + (tf[iage-1]*(ages[wh]-tauf[iage]) /
-                         (tauf[iage-1]-tauf[iage]))
-                newages = (tsim - t)/(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                tr[field][wh] = np.maximum(np.zeros_like(newages), newages)
+                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))            
         return tr
