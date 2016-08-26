@@ -386,7 +386,7 @@ class AthenaHierarchy(GridIndex):
                 dx = dx_root/self.dataset.refine_by**(levels[i])
                 dxs.append(dx)
 
-            YTIndexArray(dxs, "code_length", registry=self.ds.unit_registry)
+            dx = YTIndexArray(dxs, "code_length", registry=self.ds.unit_registry)
             self.grid_left_edge = self.ds.arr(np.round(dle + dx*glis, decimals=12),
                                               "code_length")
             self.grid_dimensions = gdims.astype("int32")
