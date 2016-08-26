@@ -175,16 +175,13 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
                 function=function, units=unit_system["velocity"], take_log=False,
                 validators=[ValidateSpatial(0)])
 
-    try : 
-        for method, name in zip(("cic", "sum"), ("cic", "nn")):
-            function = _get_density_weighted_deposit_field(
-                "particle_age", "s", method)
-            registry.add_field(
-                ("deposit", ("%s_"+name+"_age") % (ptype)),
-                function=function, units=unit_system["time"], take_log=False,
-                  validators=[ValidateSpatial(0)])
-    except :
-        pass
+    for method, name in zip(("cic", "sum"), ("cic", "nn")):
+        function = _get_density_weighted_deposit_field(
+            "age", "s", method)
+        registry.add_field(
+            ("deposit", ("%s_"+name+"_age") % (ptype)),
+            function=function, units=unit_system["time"], take_log=False,
+            validators=[ValidateSpatial(0)])
 
     # Now some translation functions.
 
