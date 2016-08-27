@@ -1,5 +1,5 @@
 """
-API for yt.frontends._skeleton
+API for yt.frontends.open_pmd
 
 
 
@@ -24,3 +24,6 @@ from .fields import \
 
 from .io import \
     IOHandlerOpenPMD
+
+from . import \
+    tests
