@@ -320,6 +320,7 @@ class CosmologySplice(object):
         # Use Hubble's law for initial guess
         target_distance = self.cosmology.quan(target_distance.to("Mpccm / h"))
         v = self.cosmology.hubble_parameter(z) * target_distance
+        v = min(v, 0.9 * c)
         dz = np.sqrt((1. + v/c) / (1. - v/c)) - 1.
         z2 = z1 - dz
         distance1 = self.cosmology.quan(0.0, "Mpccm / h")
