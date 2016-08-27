@@ -786,6 +786,10 @@ class UnitTuple(tuple):
     def dimensions(self):
         return tuple(u.dimensions for u in self)
 
+    @property
+    def base_value(self):
+        return tuple(u.base_value for u in self)
+
     def same_dimensions_as(self, other):
         return all(u.same_dimensions_as(o) for u, o in zip(self, other))
 

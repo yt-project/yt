@@ -961,12 +961,14 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "addition")
-        return type(self)(super(YTArray, self).__add__(ro), self.units)
-
+        return super(YTArray, self).__add__(ro)
+        #return type(self)(super(YTArray, self).__add__(ro), self.units)
+    
     def __radd__(self, left_object):
         """ See __add__. """
         lo = sanitize_units_add(self, left_object, "addition")
-        return type(self)(super(YTArray, self).__radd__(lo), self.units)
+        return super(YTArray, self).__radd__(lo)
+        #return type(self)(super(YTArray, self).__radd__(lo), self.units)
 
     def __iadd__(self, other):
         """ See __add__. """
@@ -981,12 +983,14 @@ class YTArray(np.ndarray):
 
         """
         ro = sanitize_units_add(self, right_object, "subtraction")
-        return type(self)(super(YTArray, self).__sub__(ro), self.units)
+        #return type(self)(super(YTArray, self).__sub__(ro), self.units)
+        return super(YTArray, self).__sub__(ro)
 
     def __rsub__(self, left_object):
         """ See __sub__. """
         lo = sanitize_units_add(self, left_object, "subtraction")
-        return type(self)(super(YTArray, self).__rsub__(lo), self.units)
+        #return type(self)(super(YTArray, self).__rsub__(lo), self.units)
+        return super(YTArray, self).__rsub__(lo)
 
     def __isub__(self, other):
         """ See __sub__. """
@@ -1125,7 +1129,7 @@ class YTArray(np.ndarray):
             return type(self)(ret, input_units='')
 
         return type(self)(super(YTArray, self).__pow__(power),
-                self.units**power)
+                          self.units**power)
 
     def __abs__(self):
         """ Return a YTArray with the abs of the data. """
