@@ -517,15 +517,18 @@ class LightRay(CosmologySplice):
             else:
                 next_redshift = my_segment['next']['redshift']
 
+            # Make sure start, end, left, right
+            # are using the dataset's unit system.
+            my_start = ds.arr(my_segment['start'])
+            my_end   = ds.arr(my_segment['end'])
+            my_left  = ds.arr(left_edge)
+            my_right = ds.arr(right_edge)
             mylog.info("Getting segment at z = %s: %s to %s." %
-                       (my_segment['redshift'], my_segment['start'],
-                        my_segment['end']))
+                       (my_segment['redshift'], my_start, my_end))
 
             # Break periodic ray into non-periodic segments.
-            sub_segments = periodic_ray(my_segment['start'],
-                                        my_segment['end'],
-                                        left=left_edge,
-                                        right=right_edge)
+            sub_segments = periodic_ray(my_start, my_end,
+                                        left=my_left, right=my_right)
 
             # Prepare data structure for subsegment.
             sub_data = {}
@@ -598,8 +601,7 @@ class LightRay(CosmologySplice):
             # Get redshift for each lixel.  Assume linear relation between l 
             # and z.
             sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
-                (sub_data['dl'] / vector_length(my_segment['start'],
-                                                my_segment['end']).in_cgs())
+                (sub_data['dl'] / vector_length(my_start, my_end).in_cgs())
             sub_data['redshift'] = my_segment['redshift'] - \
               sub_data['dredshift'].cumsum() + sub_data['dredshift']
 
