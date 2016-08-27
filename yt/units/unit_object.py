@@ -794,8 +794,10 @@ class UnitTuple(tuple):
         return all(u.same_dimensions_as(o) for u, o in zip(self, other))
 
     def __mul__(self, other):
-        ret = super(UnitTuple, self).__mul__(other)
-        return UnitTuple(ret)
+        if isinstance(other, Unit):
+            return UnitTuple(u*other for u in self)
+        else:
+            return UnitTuple(u*v for u, v in zip(self, other))
 
     def __pow__(self, power):
         return UnitTuple(u**power for u in self)
