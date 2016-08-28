@@ -87,7 +87,7 @@ def test_helper_methods():
     assert_equal(arr.unit_array, YTIndexArray(ones, ['km', 'g', 's']))
     assert_equal(arr.ua, YTIndexArray(ones, ['km', 'g', 's']))
 
-    assert_equal(arr.sqrt(),
+    assert_equal(np.sqrt(arr),
                  YTIndexArray(np.sqrt(vals), ['km**0.5', 'g**0.5', 's**0.5']))
     assert_equal(arr.prod(), YTQuantity(vals.prod(), '(km*g*s)**10'))
     assert_equal(arr.prod(axis=0),
