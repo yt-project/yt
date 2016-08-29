@@ -174,12 +174,17 @@ def sanitize_unit_tuples(unit1, unit2):
 def sanitize_units_mul(this_object, other_object):
     inp = coerce_iterable_units(this_object)
     ret = coerce_iterable_units(other_object)
+    (li_units, i_units), (lr_units, r_units) = sanitize_unit_tuples(
+        getattr(inp, 'units', None), getattr(ret, 'units', None))
     # If the other object is a YTArray and has the same dimensions as the object
     # under consideration, convert so we don't mix units with the same
     # dimensions.
     if isinstance(ret, YTArray):
-        if inp.units.same_dimensions_as(ret.units):
-            ret.in_units(inp.units)
+        if i_units.same_dimensions_as(r_units):
+            if li_units <= lr_units:
+                ret = ret.in_units(inp.units)
+            else:
+                ret = ret.in_units(inp.units[0])
     return ret
 
 
