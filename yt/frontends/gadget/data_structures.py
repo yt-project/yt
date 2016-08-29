@@ -46,10 +46,23 @@ def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
+def _get_gadget_format(filename):
+    # check and return gadget binary format
+    f = open(filename, 'rb')
+    (rhead,) = struct.unpack('<I',f.read(4))
+    f.close()
+    if (rhead == 134217728) | (rhead == 8):
+        return 2
+    elif (rhead == 65536) | (rhead == 256):
+        return 1
+    else:
+        raise RuntimeError("Un correct Gadget format!")
 
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
+            if _get_gadget_format(filename) == 2:
+                f.seek(f.tell()+16)
             self.header = read_record(f, ds._header_spec)
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
@@ -135,6 +148,8 @@ class GadgetDataset(ParticleDataset):
         # in the GADGET-2 user guide.
 
         f = open(self.parameter_filename, 'rb')
+        if _get_gadget_format(self.parameter_filename) == 2:
+            f.seek(f.tell()+16)
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:

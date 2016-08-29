@@ -27,11 +27,13 @@ from yt.utilities.lib.geometry_utils import \
     compute_morton
 from yt.utilities.logger import ytLogger as mylog
 
+from .data_structures import _get_gadget_format
+
 class IOHandlerGadgetHDF5(IOHandlerOWLS):
     _dataset_type = "gadget_hdf5"
 
 ZeroMass = object()
-    
+
 class IOHandlerGadgetBinary(BaseIOHandler):
     _dataset_type = "gadget_binary"
     _vector_fields = (("Coordinates", 3),
@@ -61,6 +63,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         self._vector_fields = dict(self._vector_fields)
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
+        self.data_files = set([])
+        self._format =  _get_gadget_format(ds.parameter_filename)#default gadget format 1
         super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
 
     @property
@@ -173,7 +177,13 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             if not any( (ptype, field) in field_list
                         for ptype in self._ptypes):
                 continue
-            pos += 4
+            if self._format == 2:
+                pos += 20 #skip block header
+                #print("With Gadget format 2")
+            elif self._format == 1:
+                pos += 4
+            else:
+                raise RuntimeError("Un correct Gadget format!")
             any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
@@ -189,7 +199,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             pos += 4
             if not any_ptypes: pos -= 8
         if file_size is not None:
-            if file_size != pos:
+            if (file_size != pos) & (self._format == 1): #ignore the rest of format 2 
                 mylog.warning("Your Gadget-2 file may have extra " +
                               "columns or different precision!" +
                               " (%s file vs %s computed)",
