@@ -150,7 +150,7 @@ class GadgetDataset(ParticleDataset):
 
         f = open(self.parameter_filename, 'rb')
         if _get_gadget_format(self.parameter_filename) == 2:
-            f.seek(f.tell()+16, os.SEEK_END)
+            f.seek(f.tell()+16)
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:
