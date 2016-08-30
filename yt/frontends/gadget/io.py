@@ -179,11 +179,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
                 continue
             if self._format == 2:
                 pos += 20 #skip block header
-                #print("With Gadget format 2")
             elif self._format == 1:
                 pos += 4
             else:
-                raise RuntimeError("Un correct Gadget format!")
+                raise RuntimeError("incorrect Gadget format %s!" % str(self._format))
             any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
