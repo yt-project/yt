@@ -52,12 +52,12 @@ def _get_gadget_format(filename):
     f = open(filename, 'rb')
     (rhead,) = struct.unpack('<I',f.read(4))
     f.close()
-    if (rhead == 134217728) or (rhead == 8):
+    if (rhead == 134217728) | (rhead == 8):
         return 2
-    elif (rhead == 65536) or (rhead == 256):
+    elif (rhead == 65536) | (rhead == 256):
         return 1
     else:
-        raise RuntimeError("Un correct Gadget format!")
+        raise RuntimeError("Incorrect Gadget format %s!" % str(rhead))
 
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
