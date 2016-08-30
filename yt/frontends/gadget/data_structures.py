@@ -46,14 +46,15 @@ def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
+    
 def _get_gadget_format(filename):
     # check and return gadget binary format
     f = open(filename, 'rb')
     (rhead,) = struct.unpack('<I',f.read(4))
     f.close()
-    if (rhead == 134217728) | (rhead == 8):
+    if (rhead == 134217728) or (rhead == 8):
         return 2
-    elif (rhead == 65536) | (rhead == 256):
+    elif (rhead == 65536) or (rhead == 256):
         return 1
     else:
         raise RuntimeError("Un correct Gadget format!")
@@ -149,7 +150,7 @@ class GadgetDataset(ParticleDataset):
 
         f = open(self.parameter_filename, 'rb')
         if _get_gadget_format(self.parameter_filename) == 2:
-            f.seek(f.tell()+16)
+            f.seek(f.tell()+16, os.SEEK_END)
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:
@@ -326,7 +327,7 @@ class GadgetDataset(ParticleDataset):
             endianswap = '>'
         # Disabled for now (does any one still use SnapFormat=2?)
         # If so, alternate read would be needed based on header.
-        # Eabled Format2 here
+        # Enabled Format2 here
         elif rhead == 8:
             return True, '<'
         elif rhead == 134217728:
