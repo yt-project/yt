@@ -65,7 +65,10 @@ class GAMERHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         # find all field names in the current dataset
-        self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
+        try:
+            self.field_list = [ ('gamer', v) for v in self._handle['GridData'].keys() ]
+        except KeyError:
+            self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
     
     def _count_grids(self):
         # count the total number of patches at all levels  

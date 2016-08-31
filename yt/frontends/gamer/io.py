@@ -61,7 +61,11 @@ class IOHandlerGAMER(BaseIOHandler):
                      size, [f2 for f1, f2 in fields], ng )
 
         for field in fields:
-            ds     = self._handle[ "/Data/%s" % field[1] ]
+            try:
+                ds = self._handle[ "/GridData/%s" % field[1] ]
+            except KeyError:
+                ds = self._handle[ "/Data/%s" % field[1] ]
+
             offset = 0
             for chunk in chunks:
                 for gs in grid_sequences(chunk.objs):
@@ -79,7 +83,10 @@ class IOHandlerGAMER(BaseIOHandler):
         for g in chunk.objs: rv[g.id] = {}
 
         for field in fields:
-            ds = self._handle[ "/Data/%s" % field[1] ]
+            try:
+                ds = self._handle[ "/GridData/%s" % field[1] ]
+            except KeyError:
+                ds = self._handle[ "/Data/%s" % field[1] ]
 
             for gs in grid_sequences(chunk.objs):
                 start = gs[ 0].id
