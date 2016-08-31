@@ -12,15 +12,27 @@ non-interactively.  We recommend the interactive method, but if you're pressed
 on time, you can non-interactively go through the linked pages below and view the
 worked examples.
 
-To execute the quickstart interactively, you need to download the repository and
-start the IPython notebook.  If you do not already have the yt repository, the
-easiest way to get the repository is to clone it using mercurial:
+To execute the quickstart interactively, you have a couple of options: 1) run
+the notebook from your own system or 2) run it from the url
+https://demo.use.yt. Option 1 requires an existing installation of yt (see
+:ref:`getting-and-installing-yt`), a copy of the yt source (which you may
+already have depending on your installation choice), and a download of the
+tutorial data-sets (total about 3 GB). If you know you are going to be a yt user
+and have the time to download the data-sets, option 1 is a good choice. However,
+if you're only interested in getting a feel for yt and its capabilities, or you
+already have yt but don't want to spend time downloading the data, go ahead to
+https://demo.use.yt.
+
+If you're running the tutorial from your own system and you do not already have
+the yt repository, the easiest way to get the repository is to clone it using
+mercurial:
 
 .. code-block:: bash
 
    hg clone https://bitbucket.org/yt_analysis/yt
 
-Now start the IPython notebook from within the repository:
+Now start the IPython notebook from within the repository (we presume you have
+yt installed):
 
 .. code-block:: bash
 
