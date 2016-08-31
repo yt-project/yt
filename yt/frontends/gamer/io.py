@@ -78,7 +78,7 @@ class IOHandlerGAMER(BaseIOHandler):
 
     def _read_chunk_data(self, chunk, fields):
         rv = {}
-        if len(chunk.objs) == 0: return rv 
+        if len(chunk.objs) == 0: return rv
 
         for g in chunk.objs: rv[g.id] = {}
 

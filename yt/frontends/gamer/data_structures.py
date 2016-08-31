@@ -52,7 +52,7 @@ class GAMERGrid(AMRGridPatch):
 class GAMERHierarchy(GridIndex):
     grid                 = GAMERGrid
     _preload_implemented = True # since gamer defines "_read_chunk_data" in io.py
-    
+
     def __init__(self, ds, dataset_type = 'gamer'):
         self.dataset_type     = dataset_type
         self.dataset          = weakref.proxy(ds)
@@ -65,23 +65,27 @@ class GAMERHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         # find all field names in the current dataset
+        # grid fields
         try:
             self.field_list = [ ('gamer', v) for v in self._handle['GridData'].keys() ]
         except KeyError:
             self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
-    
+
+        # particle fields
+        if "Particle" in self._handle:
+            self.field_list += [ ('io', v) for v in self._handle['Particle'].keys() ]
+
     def _count_grids(self):
-        # count the total number of patches at all levels  
+        # count the total number of patches at all levels
         self.num_grids = self.dataset.parameters['NPatch'].sum()
-        
+
     def _parse_index(self):
         parameters       = self.dataset.parameters
         gid0             = 0
         grid_corner      = self._handle['Tree/Corner'].value
         convert2physical = self._handle['Tree/Corner'].attrs['Cvt2Phy']
 
-        self.grid_dimensions    [:] = parameters['PatchSize']
-        self.grid_particle_count[:] = 0
+        self.grid_dimensions[:] = parameters['PatchSize']
 
         for lv in range(0, parameters['NLevel']):
             num_grids_level = parameters['NPatch'][lv]
@@ -106,7 +110,17 @@ class GAMERHierarchy(GridIndex):
 
         # maximum level with patches (which can be lower than MAX_LEVEL)
         self.max_level = self.grid_levels.max()
-        
+
+        # number of particles in each grid
+        try:
+            self.grid_particle_count[:] = self._handle['Tree/NPar'].value[:,None]
+        except KeyError:
+            self.grid_particle_count[:] = 0.0
+
+        # calculate the starting particle indices for each grid (starting from 0)
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        np.add.accumulate(self.grid_particle_count.squeeze(), out=self._particle_indices[1:])
+
     def _populate_grid_objects(self):
         son_list = self._handle["Tree/Son"].value
 
@@ -147,7 +161,7 @@ class GAMERHierarchy(GridIndex):
                        'Grid %d, Children %d, Children->Parent %d' % \
                        (grid.id, c.id, c.Parent.id)
 
-            # all refinement grids should have parent 
+            # all refinement grids should have parent
             if grid.Level > 0:
                 assert grid.Parent is not None and grid.Parent.id >= 0, \
                        'Grid %d, Level %d, Parent %d' % \
@@ -166,18 +180,18 @@ class GAMERHierarchy(GridIndex):
                 assert_equal(grid.LeftEdge,  grid.Children[0].LeftEdge )
                 assert_equal(grid.RightEdge, grid.Children[7].RightEdge)
         mylog.info('Check passed')
-               
+
 
 class GAMERDataset(Dataset):
     _index_class      = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle           = None
     _debug            = False # debug mode for the GAMER frontend
-    
+
     def __init__(self, filename,
                  dataset_type      = 'gamer',
                  storage_filename  = None,
-                 particle_filename = None, 
+                 particle_filename = None,
                  units_override    = None,
                  unit_system       = "cgs"):
 
@@ -202,7 +216,7 @@ class GAMERDataset(Dataset):
                          units_override = units_override,
                          unit_system    = unit_system)
         self.storage_filename = storage_filename
-        
+
     def _set_code_unit_attributes(self):
         # GAMER does not assume any unit yet ...
         if len(self.units_override) == 0:
@@ -214,7 +228,7 @@ class GAMERDataset(Dataset):
 
             if len(self.units_override) == 0:
                 mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-        
+
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
@@ -240,7 +254,7 @@ class GAMERDataset(Dataset):
         if Makefile['Comoving']:
             self.cosmological_simulation = 1
             self.current_redshift        = 1.0/self.current_time - 1.0
-            self.omega_matter            = InputPara['OmegaM0'] 
+            self.omega_matter            = InputPara['OmegaM0']
             self.omega_lambda            = 1.0 - self.omega_matter
             self.hubble_constant         = 0.6955   # H0 is not set in GAMER
         else:

@@ -47,6 +47,13 @@ class GAMERFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
+        ( "ParMass", ("code_mass",     ["particle_mass"],       None) ),
+        ( "ParPosX", ("code_length",   ["particle_position_x"], None) ),
+        ( "ParPosY", ("code_length",   ["particle_position_y"], None) ),
+        ( "ParPosZ", ("code_length",   ["particle_position_z"], None) ),
+        ( "ParVelX", ("code_velocity", ["particle_velocity_x"], None) ),
+        ( "ParVelY", ("code_velocity", ["particle_velocity_y"], None) ),
+        ( "ParVelZ", ("code_velocity", ["particle_velocity_z"], None) ),
     )
 
     def __init__(self, ds, field_list):
