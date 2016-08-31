@@ -650,6 +650,12 @@ class YTProfileDataset(YTNonspatialDataset):
                   tuple(self.parameters[bin_field])
             setattr(self, bin_field, self.parameters[bin_field])
 
+    def _setup_gas_alias(self):
+        "Alias the grid type to gas with a field alias."
+        for ftype, field in self.field_list:
+            if ftype == "data":
+                self.field_info.alias(("gas", field), (ftype, field))
+
     def create_field_info(self):
         super(YTProfileDataset, self).create_field_info()
         self.field_info.alias(self.parameters["weight_field"],
