@@ -15,6 +15,8 @@ ytdata frontend tests using enzo_tiny_cosmology
 
 from yt.convenience import \
     load
+from yt.data_objects.api import \
+    create_profile
 from yt.frontends.ytdata.api import \
     YTDataContainerDataset, \
     YTSpatialPlotDataset, \
@@ -32,8 +34,9 @@ from yt.utilities.answer_testing.framework import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.data_objects.api import \
-    create_profile
+from yt.visualization.profile_plotter import \
+    ProfilePlot, \
+    PhasePlot
 import numpy as np
 import tempfile
 import os
@@ -143,6 +146,10 @@ def test_profile_data():
     prof_1d_ds = load(full_fn)
     assert isinstance(prof_1d_ds, YTProfileDataset)
 
+    p1 = ProfilePlot(prof_1d_ds.data, "density", "temperature",
+                     weight_field="cell_mass")
+    p1.save()
+
     yield YTDataFieldTest(full_fn, "temperature", geometric=False)
     yield YTDataFieldTest(full_fn, "x", geometric=False)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
@@ -153,6 +160,11 @@ def test_profile_data():
     full_fn = os.path.join(tmpdir, fn)
     prof_2d_ds = load(full_fn)
     assert isinstance(prof_2d_ds, YTProfileDataset)
+
+    p2 = PhasePlot(prof_2d_ds.data, "density", "temperature",
+                   "cell_mass", weight_field=None)
+    p2.save()
+
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     yield YTDataFieldTest(full_fn, "x", geometric=False)
     yield YTDataFieldTest(full_fn, "temperature", geometric=False)

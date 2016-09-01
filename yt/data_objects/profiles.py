@@ -372,8 +372,9 @@ class ProfileNDFromDataset(ProfileND):
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
             setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            setattr(self, "%s_field" % ax,
-                    tuple(ds.parameters["%s_field" % ax]))
+            field_name = tuple(ds.parameters["%s_field" % ax])
+            setattr(self, "%s_field" % ax, field_name)
+            self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
             exclude_fields.extend([ax, "%s_bins" % ax,
                                    ds.parameters["%s_field" % ax][1]])
@@ -384,6 +385,7 @@ class ProfileNDFromDataset(ProfileND):
         for field in profile_fields:
             self.field_map[field[1]] = field
             self.field_data[field] = ds.data[field]
+            self.field_info[field] = ds.field_info[field]
             self.field_units[field] = ds.data[field].units
 
 class Profile1D(ProfileND):

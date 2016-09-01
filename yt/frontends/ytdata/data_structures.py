@@ -78,14 +78,12 @@ class YTDataset(Dataset):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
             for key in f.attrs.keys():
-                v = f.attrs[key]
-                if isinstance(v, bytes):
-                    v = v.decode("utf8")
+                v = parse_h5_attr(f, key)
                 if key == "con_args":
                     v = v.astype("str")
                 self.parameters[key] = v
             self.num_particles = \
-              dict([(group, f[group].attrs["num_elements"])
+              dict([(group, parse_h5_attr(f[group], "num_elements"))
                     for group in f if group != self.default_fluid_type])
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
@@ -146,7 +144,7 @@ class YTDataset(Dataset):
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
-            self.header = dict((field, f.attrs[field]) \
+            self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
         super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
@@ -329,7 +327,7 @@ class YTDataHierarchy(GridIndex):
                     field_name = (str(group), str(field))
                     self.field_list.append(field_name)
                     self.ds.field_units[field_name] = \
-                      f[group][field].attrs["units"]
+                      parse_h5_attr(f[group][field], "units")
 
 class YTGridHierarchy(YTDataHierarchy):
     grid = YTGrid
@@ -613,7 +611,7 @@ class YTProfileDataset(YTNonspatialDataset):
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
             self.parameters["weight_field"] = \
-              tuple(self.parameters["weight_field"])
+              tuple(self.parameters["weight_field"].astype(str))
 
         for a in ["profile_dimensions"] + \
           ["%s_%s" % (ax, attr)
@@ -647,13 +645,20 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):
                 self.parameters[bin_field] = \
-                  tuple(self.parameters[bin_field])
+                  tuple(self.parameters[bin_field].astype(str))
             setattr(self, bin_field, self.parameters[bin_field])
+
+    def _setup_gas_alias(self):
+        "Alias the grid type to gas with a field alias."
+        for ftype, field in self.field_list:
+            if ftype == "data":
+                self.field_info.alias(("gas", field), (ftype, field))
 
     def create_field_info(self):
         super(YTProfileDataset, self).create_field_info()
-        self.field_info.alias(self.parameters["weight_field"],
-                              (self.default_fluid_type, "weight"))
+        if self.parameters["weight_field"] is not None:
+            self.field_info.alias(self.parameters["weight_field"],
+                                  (self.default_fluid_type, "weight"))
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge +
