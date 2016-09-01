@@ -19,6 +19,7 @@ from itertools import groupby
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+from yt.geometry.selection_routines import AlwaysSelector
 
 
 #-----------------------------------------------------------------------------
@@ -134,7 +135,24 @@ class IOHandlerGAMER(BaseIOHandler):
 
         for g in chunk.objs: rv[g.id] = {}
 
-        for field in fields:
+        # Split into particles and non-particles
+        fluid_fields, particle_fields = [], []
+        for ftype, fname in fields:
+            if ftype in self.ds.particle_types:
+                particle_fields.append( (ftype, fname) )
+            else:
+                fluid_fields.append( (ftype, fname) )
+
+        # particles
+        if len(particle_fields) > 0:
+            selector = AlwaysSelector(self.ds)
+            rv.update( self._read_particle_selection(
+                [chunk], selector, particle_fields) )
+
+        # fluid
+        if len(fluid_fields) == 0: return rv
+
+        for field in fluid_fields:
             try:
                 ds = self._handle[ "/GridData/%s" % field[1] ]
             except KeyError:
