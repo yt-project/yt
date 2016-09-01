@@ -118,6 +118,8 @@ class GAMERHierarchy(GridIndex):
             self.grid_particle_count[:] = 0.0
 
         # calculate the starting particle indices for each grid (starting from 0)
+        # --> note that the last element must store the total number of particles
+        #    (see _read_particle_coords and _read_particle_fields in io.py)
         self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
         np.add.accumulate(self.grid_particle_count.squeeze(), out=self._particle_indices[1:])
 

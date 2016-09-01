@@ -27,10 +27,16 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 # group grids with consecutive indices together to improve the I/O performance
+# --> grids are assumed to be sorted into ascending numerical order already
 def grid_sequences(grids):
-    for k, g in groupby( enumerate(grids), lambda i_x1:i_x1[0]-i_x1[1].id ):
+    for k, g in groupby( enumerate(grids), lambda i_x:i_x[0]-i_x[1].id ):
         seq = list(v[1] for v in g)
         yield seq
+
+def particle_sequences(grids):
+    for k, g in groupby( enumerate(grids), lambda i_x:i_x[0]-i_x[1].id ):
+        seq = list(v[1] for v in g)
+        yield seq[0], seq[-1]
 
 class IOHandlerGAMER(BaseIOHandler):
     _particle_reader = False
@@ -38,14 +44,60 @@ class IOHandlerGAMER(BaseIOHandler):
 
     def __init__(self, ds):
         super(IOHandlerGAMER, self).__init__(ds)
-        self._handle      = ds._handle
-        self._field_dtype = "float64" # fixed even when FLOAT8 is off
+        self._handle          = ds._handle
+        self._field_dtype     = "float64" # fixed even when FLOAT8 is off
+        self._particle_handle = ds._particle_handle
 
     def _read_particle_coords(self, chunks, ptf):
-        pass
+        chunks = list(chunks)   # generator --> list
+        p_idx  = self.ds.index._particle_indices
+
+        # shortcuts
+        par_posx = self._handle[ "/Particle/ParPosX" ]
+        par_posy = self._handle[ "/Particle/ParPosY" ]
+        par_posz = self._handle[ "/Particle/ParPosZ" ]
+
+        # currently GAMER does not support multiple particle types
+        assert( len(ptf) == 1 )
+        ptype = ptf.keys()[0]
+
+        for chunk in chunks:
+            for g1, g2 in particle_sequences(chunk.objs):
+                start = p_idx[g1.id    ]
+                end   = p_idx[g2.id + 1]
+                x     = np.asarray( par_posx[start:end], dtype=self._field_dtype )
+                y     = np.asarray( par_posy[start:end], dtype=self._field_dtype )
+                z     = np.asarray( par_posz[start:end], dtype=self._field_dtype )
+                yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        pass
+        chunks = list(chunks)   # generator --> list
+        p_idx  = self.ds.index._particle_indices
+
+        # shortcuts
+        par_posx = self._handle[ "/Particle/ParPosX" ]
+        par_posy = self._handle[ "/Particle/ParPosY" ]
+        par_posz = self._handle[ "/Particle/ParPosZ" ]
+
+        # currently GAMER does not support multiple particle types
+        assert( len(ptf) == 1 )
+        ptype   = ptf.keys()[0]
+        pfields = ptf[ptype]
+
+        for chunk in chunks:
+            for g1, g2 in particle_sequences(chunk.objs):
+                start = p_idx[g1.id    ]
+                end   = p_idx[g2.id + 1]
+                x     = np.asarray( par_posx[start:end], dtype=self._field_dtype )
+                y     = np.asarray( par_posy[start:end], dtype=self._field_dtype )
+                z     = np.asarray( par_posz[start:end], dtype=self._field_dtype )
+
+                mask = selector.select_points(x, y, z, 0.0)
+                if mask is None: continue
+
+                for field in pfields:
+                    data = self._handle["/Particle/%s" % field][start:end]
+                    yield (ptype, field), data[mask]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks) # generator --> list

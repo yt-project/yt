@@ -117,5 +117,4 @@ class GAMERFieldInfo(FieldInfoContainer):
                         units = unit_system["temperature"] )
 
     def setup_particle_fields(self, ptype):
-        # This will get called for every particle type.
-        pass
+        super(GAMERFieldInfo, self).setup_particle_fields(ptype)
