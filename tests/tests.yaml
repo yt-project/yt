@@ -67,7 +67,7 @@ answer_tests:
   local_ytdata_000:
     - yt/frontends/ytdata
 
-  local_absorption_spectrum_004:
+  local_absorption_spectrum_005:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo_novpec
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
