@@ -431,13 +431,16 @@ class HaloCatalog(ParallelAnalysisInterface):
                     key, quantity = action
                     if quantity in self.halos_ds.field_info:
                         new_halo.quantities[key] = \
-                          self.data_source[quantity][int(i)].in_cgs()
+                          self.data_source[quantity][int(i)]
                     elif callable(quantity):
                         new_halo.quantities[key] = quantity(new_halo)
                 else:
-                    raise RuntimeError("Action must be a callback, filter, or quantity.")
+                    raise RuntimeError(
+                        "Action must be a callback, filter, or quantity.")
 
             if halo_filter:
+                for quantity in new_halo.quantities.values():
+                    quantity.convert_to_base()
                 self.catalog.append(new_halo.quantities)
 
             if save_halos and halo_filter:
@@ -465,7 +468,7 @@ class HaloCatalog(ParallelAnalysisInterface):
                      "omega_matter", "hubble_constant"]:
             out_file.attrs[attr] = getattr(self.halos_ds, attr)
         for attr in ["domain_left_edge", "domain_right_edge"]:
-            out_file.attrs[attr] = getattr(self.halos_ds, attr).in_cgs()
+            out_file.attrs[attr] = getattr(self.halos_ds, attr).in_base()
         out_file.attrs["data_type"] = "halo_catalog"
         out_file.attrs["num_halos"] = n_halos
         if n_halos > 0:
