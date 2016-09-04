@@ -13,10 +13,11 @@ HaloCatalog object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
 from yt.funcs import \
     ensure_dir, \
     mylog
@@ -461,27 +462,18 @@ class HaloCatalog(ParallelAnalysisInterface):
         mylog.info("Saving halo catalog (%d halos) to %s." %
                    (n_halos, os.path.join(self.output_dir,
                                          self.output_prefix)))
-        out_file = h5py.File(filename, 'w')
-        for attr in ["current_redshift", "current_time",
-                     "domain_dimensions",
-                     "cosmological_simulation", "omega_lambda",
-                     "omega_matter", "hubble_constant"]:
-            out_file.attrs[attr] = getattr(self.halos_ds, attr)
-        for attr in ["domain_left_edge", "domain_right_edge"]:
-            out_file.attrs[attr] = getattr(self.halos_ds, attr).in_base()
-        out_file.attrs["data_type"] = "halo_catalog"
-        out_file.attrs["num_halos"] = n_halos
+        extra_attrs = {"data_type": "halo_catalog",
+                       "num_halos": n_halos}
+        data = {}
+        ftypes = {}
         if n_halos > 0:
-            field_data = np.empty(n_halos)
             for key in self.quantities:
-                units = ""
-                if hasattr(self.catalog[0][key], "units"):
-                    units = str(self.catalog[0][key].units)
-                for i in range(n_halos):
-                    field_data[i] = self.catalog[i][key]
-                dataset = out_file.create_dataset(str(key), data=field_data)
-                dataset.attrs["units"] = units
-        out_file.close()
+                ftypes[key] = "."
+                data[key] = self.halos_ds.arr(
+                    [halo[key] for halo in self.catalog])
+
+        save_as_dataset(self.halos_ds, filename, data,
+                        field_types=ftypes, extra_attrs=extra_attrs)
 
     def add_default_quantities(self, field_type='halos'):
         self.add_quantity("particle_identifier", field_type=field_type,prepend=True)
