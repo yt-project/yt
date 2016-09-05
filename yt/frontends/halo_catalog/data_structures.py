@@ -88,6 +88,6 @@ class HaloCatalogDataset(Dataset):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
             if "data_type" in f.attrs and \
-              f.attrs["data_type"] == "halo_catalog":
+              f.attrs["data_type"].decode("utf-8") == "halo_catalog":
                 return True
         return False
