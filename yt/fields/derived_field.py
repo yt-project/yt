@@ -144,12 +144,18 @@ class DerivedField(object):
         return dd
 
     def get_units(self):
-        u = Unit(self.units, registry=self.ds.unit_registry)
+        if self.ds is not None:
+            u = Unit(self.units, registry=self.ds.unit_registry)
+        else:
+            u = Unit(self.units)
         return u.latex_representation()
 
     def get_projected_units(self):
-        u = Unit(self.units, registry=self.ds.unit_registry)*Unit('cm')
-        return u.latex_representation()
+        if self.ds is not None:
+            u = Unit(self.units, registry=self.ds.unit_registry)
+        else:
+            u = Unit(self.units)
+        return (u*Unit('cm')).latex_representation()
 
     def check_available(self, data):
         """
@@ -222,7 +228,10 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = Unit(self.units, registry=self.ds.unit_registry)
+            if self.ds is not None:
+                units = Unit(self.units, registry=self.ds.unit_registry)
+            else:
+                units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\ \ (%s)" % (units.latex_representation())
