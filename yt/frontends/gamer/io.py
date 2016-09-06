@@ -116,6 +116,7 @@ class IOHandlerGAMER(BaseIOHandler):
         for field in fields:
             try:
                 ds = self._handle[ "/GridData/%s" % field[1] ]
+            # to catch the old data format
             except KeyError:
                 ds = self._handle[ "/Data/%s" % field[1] ]
 
@@ -155,6 +156,7 @@ class IOHandlerGAMER(BaseIOHandler):
         for field in fluid_fields:
             try:
                 ds = self._handle[ "/GridData/%s" % field[1] ]
+            # to catch the old data format
             except KeyError:
                 ds = self._handle[ "/Data/%s" % field[1] ]
 

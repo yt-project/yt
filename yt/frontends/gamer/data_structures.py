@@ -68,6 +68,7 @@ class GAMERHierarchy(GridIndex):
         # grid fields
         try:
             self.field_list = [ ('gamer', v) for v in self._handle['GridData'].keys() ]
+        # to catch the old data format
         except KeyError:
             self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
 
