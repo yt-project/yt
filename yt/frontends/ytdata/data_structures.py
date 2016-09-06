@@ -41,7 +41,8 @@ from yt.data_objects.static_output import \
 from yt.extern.six import \
     string_types
 from yt.funcs import \
-    is_root
+    is_root, \
+    parse_h5_attr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -64,13 +65,6 @@ from yt.data_objects.data_containers import \
 _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
-
-def parse_h5_attr(f, attr):
-    val = f.attrs.get(attr, None)
-    if isinstance(val, bytes):
-        return val.decode('utf8')
-    else:
-        return val
 
 class YTDataset(Dataset):
     """Base dataset class for all ytdata datasets."""
