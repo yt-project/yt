@@ -834,8 +834,8 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
    ds = yt.load("snapshot_061.hdf5")
 
 Gadget data in raw binary format can also be loaded with the ``load`` command.
-This is only supported for snapshots created with the ``SnapFormat`` parameter
-set to 1 (the standard for Gadget-2).
+This is supported for snapshots created with the ``SnapFormat`` parameter
+set to 1 (the standard for Gadget-2) or 2.
 
 .. code-block:: python
 
