@@ -59,6 +59,8 @@ class GAMERHierarchy(GridIndex):
         self.index_filename   = self.dataset.parameter_filename
         self.directory        = os.path.dirname(self.index_filename)
         self._handle          = ds._handle
+        self._group_grid      = ds._group_grid
+        self._group_particle  = ds._group_particle
         self.float_type       = 'float64' # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
         GridIndex.__init__(self, ds, dataset_type)
@@ -66,15 +68,11 @@ class GAMERHierarchy(GridIndex):
     def _detect_output_fields(self):
         # find all field names in the current dataset
         # grid fields
-        try:
-            self.field_list = [ ('gamer', v) for v in self._handle['GridData'].keys() ]
-        # to catch the old data format
-        except KeyError:
-            self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
+        self.field_list = [ ('gamer', v) for v in self._group_grid.keys() ]
 
         # particle fields
-        if "Particle" in self._handle:
-            self.field_list += [ ('io', v) for v in self._handle['Particle'].keys() ]
+        if self._group_particle is not None:
+            self.field_list += [ ('io', v) for v in self._group_particle.keys() ]
 
     def _count_grids(self):
         # count the total number of patches at all levels
@@ -189,6 +187,8 @@ class GAMERDataset(Dataset):
     _index_class      = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle           = None
+    _group_grid       = None
+    _group_particle   = None
     _debug            = False # debug mode for the GAMER frontend
 
     def __init__(self, filename,
@@ -203,6 +203,15 @@ class GAMERDataset(Dataset):
         self.fluid_types      += ('gamer',)
         self._handle           = HDF5FileHandler(filename)
         self.particle_filename = particle_filename
+
+        # to catch both the new and old data formats for the grid data
+        try:
+            self._group_grid = self._handle['GridData']
+        except KeyError:
+            self._group_grid = self._handle['Data']
+
+        if 'Particle' in self._handle:
+            self._group_particle = self._handle['Particle']
 
         if self.particle_filename is None:
             self._particle_handle = self._handle

@@ -46,6 +46,8 @@ class IOHandlerGAMER(BaseIOHandler):
     def __init__(self, ds):
         super(IOHandlerGAMER, self).__init__(ds)
         self._handle          = ds._handle
+        self._group_grid      = ds._group_grid
+        self._group_particle  = ds._group_particle
         self._field_dtype     = "float64" # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
 
@@ -54,9 +56,9 @@ class IOHandlerGAMER(BaseIOHandler):
         p_idx  = self.ds.index._particle_indices
 
         # shortcuts
-        par_posx = self._handle[ "/Particle/ParPosX" ]
-        par_posy = self._handle[ "/Particle/ParPosY" ]
-        par_posz = self._handle[ "/Particle/ParPosZ" ]
+        par_posx = self._group_particle["ParPosX"]
+        par_posy = self._group_particle["ParPosY"]
+        par_posz = self._group_particle["ParPosZ"]
 
         # currently GAMER does not support multiple particle types
         assert( len(ptf) == 1 )
@@ -76,9 +78,9 @@ class IOHandlerGAMER(BaseIOHandler):
         p_idx  = self.ds.index._particle_indices
 
         # shortcuts
-        par_posx = self._handle[ "/Particle/ParPosX" ]
-        par_posy = self._handle[ "/Particle/ParPosY" ]
-        par_posz = self._handle[ "/Particle/ParPosZ" ]
+        par_posx = self._group_particle["ParPosX"]
+        par_posy = self._group_particle["ParPosY"]
+        par_posz = self._group_particle["ParPosZ"]
 
         # currently GAMER does not support multiple particle types
         assert( len(ptf) == 1 )
@@ -97,7 +99,7 @@ class IOHandlerGAMER(BaseIOHandler):
                 if mask is None: continue
 
                 for field in pfields:
-                    data = self._handle["/Particle/%s" % field][start:end]
+                    data = self._group_particle[field][start:end]
                     yield (ptype, field), data[mask]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -114,12 +116,7 @@ class IOHandlerGAMER(BaseIOHandler):
                      size, [f2 for f1, f2 in fields], ng )
 
         for field in fields:
-            try:
-                ds = self._handle[ "/GridData/%s" % field[1] ]
-            # to catch the old data format
-            except KeyError:
-                ds = self._handle[ "/Data/%s" % field[1] ]
-
+            ds     = self._group_grid[ field[1] ]
             offset = 0
             for chunk in chunks:
                 for gs in grid_sequences(chunk.objs):
@@ -154,11 +151,7 @@ class IOHandlerGAMER(BaseIOHandler):
         if len(fluid_fields) == 0: return rv
 
         for field in fluid_fields:
-            try:
-                ds = self._handle[ "/GridData/%s" % field[1] ]
-            # to catch the old data format
-            except KeyError:
-                ds = self._handle[ "/Data/%s" % field[1] ]
+            ds = self._group_grid[ field[1] ]
 
             for gs in grid_sequences(chunk.objs):
                 start = gs[ 0].id
