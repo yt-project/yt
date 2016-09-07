@@ -444,6 +444,44 @@ def test_plot_particle_field_error():
             assert_raises(
                 YTInvalidFieldType, object, ds, normal, field_name_list)
 
+def test_setup_origin():
+    origin_inputs = ('domain',
+                     'left-window',
+                     'center-domain',
+                     'lower-right-window',
+                     ('window',),
+                     ('right', 'domain'),
+                     ('lower', 'window'),
+                     ('lower', 'right', 'window'),
+                     (0.5, 0.5, 'domain'),
+                     ((50, 'cm'), (50, 'cm'), 'domain'))
+    w=(10, 'cm')
+
+    ds = fake_random_ds(32, length_unit=100.0)
+    generated_limits = []
+    #lower limit -> llim
+    #upper limit -> ulim
+    #                 xllim xulim yllim yulim
+    correct_limits = [45.0, 55.0, 45.0, 55.0,
+                      0.0, 10.0, 0.0, 10.0,
+                      -5.0, 5.0, -5.0, 5.0,
+                      -10.0, 0, 0, 10.0,
+                      0.0, 10.0, 0.0, 10.0,
+                      -55.0, -45.0, -55.0, -45.0,
+                      -5.0, 5.0, 0.0, 10.0,
+                      -10.0, 0, 0, 10.0,
+                      -5.0, 5.0, -5.0, 5.0,
+                      -5.0, 5.0, -5.0, 5.0
+                      ]
+    for o in origin_inputs:
+        slc = SlicePlot(ds, 2, 'density', width=w, origin=o)
+        ax = slc.plots['density'].axes
+        xlims = ax.get_xlim()
+        ylims = ax.get_ylim()
+        lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
+        for l in lims:
+            generated_limits.append(l)
+    assert_array_almost_equal(correct_limits, generated_limits)
 
 def test_frb_regen():
     ds = fake_random_ds(32)

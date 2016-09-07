@@ -156,7 +156,8 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj`
+    or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
         slice.  (For cutting planes, see
         `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
@@ -397,33 +398,39 @@ class PlotWindow(ImagePlotContainer):
 
         Parameters
         ----------
-        origin : string or length 1, 2, or 3 sequence of strings
-            The location of the origin of the plot coordinate system.  This is
-            represented by '-' separated string or a tuple of strings.  In the
-            first index the y-location is given by 'lower', 'upper', or 'center'.
-            The second index is the x-location, given as 'left', 'right', or
-            'center'.  Finally, the whether the origin is applied in 'domain'
-            space, plot 'window' space or 'native' simulation coordinate system
-            is given. For example, both 'upper-right-domain' and ['upper',
-            'right', 'domain'] place the origin in the upper right hand
-            corner of domain space. If x or y are not given, a value is inferred.
-            For instance, 'left-domain' corresponds to the lower-left hand corner
-            of the simulation domain, 'center-domain' corresponds to the center
-            of the simulation domain, or 'center-window' for the center of the
-            plot window. Further examples:
+        origin : string or length 1, 2, or 3 sequence.
+            The location of the origin of the plot coordinate system. This
+            is typically represented by a '-' separated string or a tuple of
+            strings. In the first index the y-location is given by 'lower',
+            'upper', or 'center'. The second index is the x-location, given as
+            'left', 'right', or 'center'. Finally, the whether the origin is
+            applied in 'domain' space, plot 'window' space or 'native'
+            simulation coordinate system is given. For example, both
+            'upper-right-domain' and ['upper', 'right', 'domain'] place the
+            origin in the upper right hand corner of domain space. If x or y
+            are not given, a value is inferred. For instance, 'left-domain'
+            corresponds to the lower-left hand corner of the simulation domain,
+            'center-domain' corresponds to the center of the simulation domain,
+            or 'center-window' for the center of the plot window. In the event
+            that none of these options place the origin in a desired location,
+            a sequence of tuples and a string specifying the
+            coordinate space can be given. If plain numeric types are input,
+            units of `code_length` are assumed. Further examples:
 
-            ==================================     ============================
-            format                                 example
-            ==================================     ============================
-            '{space}'                              'domain'
-            '{xloc}-{space}'                       'left-window'
-            '{yloc}-{space}'                       'upper-domain'
-            '{yloc}-{xloc}-{space}'                'lower-right-window'
-            ('{space}',)                           ('window',)
-            ('{xloc}', '{space}')                  ('right', 'domain')
-            ('{yloc}', '{space}')                  ('lower', 'window')
-            ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-            ==================================     ============================
+         ==================================                ============================
+         format                                            example
+         ==================================                ============================
+         '{space}'                                          'domain'
+         '{xloc}-{space}'                                   'left-window'
+         '{yloc}-{space}'                                   'upper-domain'
+         '{yloc}-{xloc}-{space}'                            'lower-right-window'
+         ('{space}',)                                       ('window',)
+         ('{xloc}', '{space}')                              ('right', 'domain')
+         ('{yloc}', '{space}')                              ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+         ==================================                 ============================
 
         """
         self.origin = origin
@@ -651,6 +658,9 @@ class PWViewerMPL(PlotWindow):
     def _setup_origin(self):
         origin = self.origin
         axis_index = self.data_source.axis
+        xc = None
+        yc = None
+
         if isinstance(origin, string_types):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
@@ -660,6 +670,13 @@ class PWViewerMPL(PlotWindow):
             origin = (o0map[origin[0]],) + origin
         elif 2 == len(origin) and origin[0] in set(['lower','upper','center']):
             origin = (origin[0], 'center', origin[-1])
+        elif 3 == len(origin) and isinstance(origin[0], (int, float)):
+            xc = self.ds.quan(origin[0], 'code_length')
+            yc = self.ds.quan(origin[1], 'code_length')
+        elif 3 == len(origin) and isinstance(origin[0], tuple):
+            xc = YTQuantity(origin[0][0], origin[0][1])
+            yc = YTQuantity(origin[1][0], origin[0][1])
+
         assert origin[-1] in ['window', 'domain', 'native']
 
         if origin[2] == 'window':
@@ -678,33 +695,42 @@ class PWViewerMPL(PlotWindow):
         else:
             mylog.warn("origin = {0}".format(origin))
             msg = \
-                ('origin keyword "{0}" not recognized, must declare "domain" '
-                 'or "center" as the last term in origin.').format(self.origin)
+                  ('origin keyword "{0}" not recognized, must declare "domain" '
+                   'or "center" as the last term in origin.').format(self.origin)
             raise RuntimeError(msg)
+        if xc is None and yc is None:
+            if origin[0] == 'lower':
+                yc = yllim
+            elif origin[0] == 'upper':
+                yc = yrlim
+            elif origin[0] == 'center':
+                yc = (yllim + yrlim)/2.0
+            else:
+                mylog.warn("origin = {0}".format(origin))
+                msg = ('origin keyword "{0}" not recognized, must declare "lower" '
+                       '"upper" or "center" as the first term in origin.')
+                msg = msg.format(self.origin)
+                raise RuntimeError(msg)
 
-        if origin[0] == 'lower':
-            yc = yllim
-        elif origin[0] == 'upper':
-            yc = yrlim
-        elif origin[0] == 'center':
-            yc = (yllim + yrlim)/2.0
-        else:
-            mylog.warn("origin = {0}".format(origin))
-            msg = ('origin keyword "{0}" not recognized, must declare "lower" '
-                   '"upper" or "center" as the first term in origin.')
-            msg = msg.format(self.origin)
-            raise RuntimeError(msg)
+            if origin[1] == 'left':
+                xc = xllim
+            elif origin[1] == 'right':
+                xc = xrlim
+            elif origin[1] == 'center':
+                xc = (xllim + xrlim)/2.0
+            else:
+                mylog.warn("origin = {0}".format(origin))
+                msg = ('origin keyword "{0}" not recognized, must declare "left" '
+                       '"right" or "center" as the second term in origin.')
+                msg = msg.format(self.origin)
+                raise RuntimeError(msg)
 
-        if origin[1] == 'left':
-            xc = xllim
-        elif origin[1] == 'right':
-            xc = xrlim
-        elif origin[1] == 'center':
-            xc = (xllim + xrlim)/2.0
-        else:
-            mylog.warn("origin = {0}".format(origin))
-            msg = ('origin keyword "{0}" not recognized, must declare "left" '
-                   '"right" or "center" as the second term in origin.')
+        x_in_bounds = xc >= xllim and xc <= xrlim
+        y_in_bounds = yc >= yllim and yc <= yrlim
+
+        if not x_in_bounds and not y_in_bounds:
+            msg = ('orgin inputs not in bounds of specified coordinate sytem' +
+                   'domain.')
             msg = msg.format(self.origin)
             raise RuntimeError(msg)
 
@@ -736,7 +762,6 @@ class PWViewerMPL(PlotWindow):
             if self.aspect is None:
                 self.aspect = float((self.ds.quan(1.0, unit_y) /
                                      self.ds.quan(1.0, unit_x)).in_cgs())
-
             extentx = [(self.xlim[i] - xc).in_units(unit_x) for i in (0, 1)]
             extenty = [(self.ylim[i] - yc).in_units(unit_y) for i in (0, 1)]
 
@@ -1196,38 +1221,44 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
+    origin : string or length 1, 2, or 3 sequence.
+         The location of the origin of the plot coordinate system. This
+         is typically represented by a '-' separated string or a tuple of
+         strings. In the first index the y-location is given by 'lower',
+         'upper', or 'center'. The second index is the x-location, given as
+         'left', 'right', or 'center'. Finally, the whether the origin is
+         applied in 'domain' space, plot 'window' space or 'native'
+         simulation coordinate system is given. For example, both
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
+         origin in the upper right hand corner of domain space. If x or y
+         are not given, a value is inferred. For instance, 'left-domain'
+         corresponds to the lower-left hand corner of the simulation domain,
+         'center-domain' corresponds to the center of the simulation domain,
+         or 'center-window' for the center of the plot window. In the event
+         that none of these options place the origin in a desired location,
+         a sequence of tuples and a string specifying the
+         coordinate space can be given. If plain numeric types are input,
+         units of `code_length` are assumed. Further examples:
+
+         ==================================                ============================
+         format                                            example
+         ==================================                ============================
+         '{space}'                                          'domain'
+         '{xloc}-{space}'                                   'left-window'
+         '{yloc}-{space}'                                   'upper-domain'
+         '{yloc}-{xloc}-{space}'                            'lower-right-window'
+         ('{space}',)                                       ('window',)
+         ('{xloc}', '{space}')                              ('right', 'domain')
+         ('{yloc}', '{space}')                              ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+         ==================================                 ============================
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    origin : string or length 1, 2, or 3 sequence of strings
-         The location of the origin of the plot coordinate system.  This is
-         represented by '-' separated string or a tuple of strings.  In the
-         first index the y-location is given by 'lower', 'upper', or 'center'.
-         The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, whether the origin is applied in 'domain'
-         space, plot 'window' space or 'native' simulation coordinate system
-         is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inferred.
-         For instance, the default location 'center-window' corresponds to
-         the center of the plot window, 'left-domain' corresponds to the
-         lower-left hand corner of the simulation domain, or 'center-domain'
-         for the center of the simulation domain. Further examples:
-
-         ==================================     ============================
-         format                                 example
-         ==================================     ============================
-         '{space}'                              'domain'
-         '{xloc}-{space}'                       'left-window'
-         '{yloc}-{space}'                       'upper-domain'
-         '{yloc}-{xloc}-{space}'                'lower-right-window'
-         ('{space}',)                           ('window',)
-         ('{xloc}', '{space}')                  ('right', 'domain')
-         ('{yloc}', '{space}')                  ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         ==================================     ============================
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
          handed coordinate system with a normal vector, the direction of the
@@ -1341,33 +1372,40 @@ class ProjectionPlot(PWViewerMPL):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    origin : string or length 1, 2, or 3 sequence of strings
-         The location of the origin of the plot coordinate system.  This is
-         represented by '-' separated string or a tuple of strings.  In the
-         first index the y-location is given by 'lower', 'upper', or 'center'.
-         The second index is the x-location, given as 'left', 'right', or
-         'center'.  Finally, whether the origin is applied in 'domain'
-         space, plot 'window' space or 'native' simulation coordinate system
-         is given. For example, both 'upper-right-domain' and ['upper',
-         'right', 'domain'] place the origin in the upper right hand
-         corner of domain space. If x or y are not given, a value is inferred.
-         For instance, 'left-domain' corresponds to the lower-left hand corner
-         of the simulation domain, 'center-domain' corresponds to the center
-         of the simulation domain, or 'center-window' for the center of the
-         plot window. Further examples:
+    origin : string or length 1, 2, or 3 sequence.
+         The location of the origin of the plot coordinate system. This
+         is typically represented by a '-' separated string or a tuple of
+         strings. In the first index the y-location is given by 'lower',
+         'upper', or 'center'. The second index is the x-location, given as
+         'left', 'right', or 'center'. Finally, the whether the origin is
+         applied in 'domain' space, plot 'window' space or 'native'
+         simulation coordinate system is given. For example, both
+         'upper-right-domain' and ['upper', 'right', 'domain'] place the
+         origin in the upper right hand corner of domain space. If x or y
+         are not given, a value is inferred. For instance, 'left-domain'
+         corresponds to the lower-left hand corner of the simulation domain,
+         'center-domain' corresponds to the center of the simulation domain,
+         or 'center-window' for the center of the plot window. In the event
+         that none of these options place the origin in a desired location,
+         a sequence of tuples and a string specifying the
+         coordinate space can be given. If plain numeric types are input,
+         units of `code_length` are assumed. Further examples:
 
-         ==================================     ============================
-         format                                 example
-         ==================================     ============================
-         '{space}'                              'domain'
-         '{xloc}-{space}'                       'left-window'
-         '{yloc}-{space}'                       'upper-domain'
-         '{yloc}-{xloc}-{space}'                'lower-right-window'
-         ('{space}',)                           ('window',)
-         ('{xloc}', '{space}')                  ('right', 'domain')
-         ('{yloc}', '{space}')                  ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         ==================================     ============================
+         ==================================                ============================
+         format                                            example
+         ==================================                ============================
+         '{space}'                                          'domain'
+         '{xloc}-{space}'                                   'left-window'
+         '{yloc}-{space}'                                   'upper-domain'
+         '{yloc}-{xloc}-{space}'                            'lower-right-window'
+         ('{space}',)                                       ('window',)
+         ('{xloc}', '{space}')                              ('right', 'domain')
+         ('{yloc}', '{space}')                              ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+         ==================================                 ============================
+
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
          handed coordinate system with the direction of the
@@ -1392,13 +1430,13 @@ class ProjectionPlot(PWViewerMPL):
 
          "mip" : pick out the maximum value of the field in the line of sight.
 
-         "sum" : This method is the same as integrate, except that it does not 
-         multiply by a path length when performing the integration, and is 
+         "sum" : This method is the same as integrate, except that it does not
+         multiply by a path length when performing the integration, and is
          just a straight summation of the field along the given axis. WARNING:
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
     proj_style : string
-         The method of projection--same as method keyword.  Deprecated as of 
+         The method of projection--same as method keyword.  Deprecated as of
          version 3.0.2.  Please use method instead.
     window_size : float
          The size of the window in inches. Set to 8 by default.
@@ -1841,35 +1879,40 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    origin : string or length 1, 2, or 3 sequence of strings
+    origin : string or length 1, 2, or 3 sequence.
          The location of the origin of the plot coordinate system for
-         `AxisAlignedSlicePlot` objects; for `OffAxisSlicePlot` objects,
-         this parameter is discarded.  This is represented by '-' separated
-         string or a tuple of strings.  In the first index the y-location is
-         given by 'lower', 'upper', or 'center'.  The second index is the
-         x-location, given as 'left', 'right', or 'center'.  Finally,
-         whether the origin is applied in 'domain' space, plot 'window' space
-         or 'native' simulation coordinate system is given. For example, both
+         `AxisAlignedSlicePlot` object; for `OffAxisSlicePlot` objects this
+         parameter is discarded. This is typically represented by a '-'
+         separated string or a tuple of strings. In the first index the
+         y-location is given by 'lower', 'upper', or 'center'. The second index
+         is the x-location, given as 'left', 'right', or 'center'. Finally, the
+         whether the origin is applied in 'domain' space, plot 'window' space or
+         'native' simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the
-         origin in the upper right hand corner of domain space. If x or y are
-         not given, a value is inferred.  For instance, 'left-domain'
+         origin in the upper right hand corner of domain space. If x or y
+         are not given, a value is inferred. For instance, 'left-domain'
          corresponds to the lower-left hand corner of the simulation domain,
          'center-domain' corresponds to the center of the simulation domain,
-         or 'center-window' for the center of the plot window. Further
-         examples:
+         or 'center-window' for the center of the plot window. In the event
+         that none of these options place the origin in a desired location,
+         a sequence of tuples and a string specifying the
+         coordinate space can be given. If plain numeric types are input,
+         units of `code_length` are assumed. Further examples:
 
-         ==================================     ============================
-         format                                 example
-         ==================================     ============================
-         '{space}'                              'domain'
-         '{xloc}-{space}'                       'left-window'
-         '{yloc}-{space}'                       'upper-domain'
-         '{yloc}-{xloc}-{space}'                'lower-right-window'
-         ('{space}',)                           ('window',)
-         ('{xloc}', '{space}')                  ('right', 'domain')
-         ('{yloc}', '{space}')                  ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')        ('lower', 'right', 'window')
-         ==================================     ============================
+         ==================================                ============================
+         format                                            example
+         ==================================                ============================
+         '{space}'                                          'domain'
+         '{xloc}-{space}'                                   'left-window'
+         '{yloc}-{space}'                                   'upper-domain'
+         '{yloc}-{xloc}-{space}'                            'lower-right-window'
+         ('{space}',)                                       ('window',)
+         ('{xloc}', '{space}')                              ('right', 'domain')
+         ('{yloc}', '{space}')                              ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
+         ==================================                 ============================
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
         used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
