@@ -105,7 +105,7 @@ First, here is an example of rendering an 8-node, hexahedral MOOSE dataset.
     sc = yt.create_scene(ds)
 
     # override the default colormap
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'Eos A'
 
     # adjust the camera position and orientation
@@ -133,7 +133,7 @@ You can also overplot the mesh boundaries:
     sc = yt.create_scene(ds)
 
     # override the default colormap
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'Eos A'
 
     # adjust the camera position and orientation
@@ -165,7 +165,7 @@ using the mesh labelled by "connect2":
     sc = yt.create_scene(ds, ('connect2', 'diffused'))
 
     # override the default colormap
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'Eos A'
 
     # adjust the camera position and orientation
@@ -196,7 +196,7 @@ that we want to look at the last one.
     sc = yt.create_scene(ds, ("connect1", "u"))
 
     # override the default colormap
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'Eos A'
 
     # adjust the camera position and orientation
@@ -224,7 +224,7 @@ Here is an example using 6-node wedge elements:
    sc = yt.create_scene(ds, ('connect2', 'diffused'))
 
    # override the default colormap
-   ms = sc.get_source(0)
+   ms = sc.get_source()
    ms.cmap = 'Eos A'
 
    # adjust the camera position and orientation
@@ -250,7 +250,7 @@ MOOSE dataset:
 
     # override the default colormap. This time we also override
     # the default color bounds
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'hot'
     ms.color_bounds = (500.0, 1700.0)
 
@@ -287,7 +287,7 @@ add an offset to the mesh by 1.0 unit in the x-direction:
 
     # override the default colormap. This time we also override
     # the default color bounds
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'hot'
     ms.color_bounds = (500.0, 1700.0)
 
@@ -320,7 +320,7 @@ camera position according to some opening angle:
     sc = yt.create_scene(ds, ("connect2", "diffused"))
 
     # override the default colormap
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'Eos A'
 
     # Create a perspective Camera
@@ -392,7 +392,7 @@ disk each time.
     sc = yt.create_scene(ds)
 
     # override the default colormap
-    ms = sc.get_source(0)
+    ms = sc.get_source()
     ms.cmap = 'Eos A'
 
     # adjust the camera position and orientation
