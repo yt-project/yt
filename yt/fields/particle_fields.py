@@ -183,7 +183,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
 
     registry.add_field((ptype, "particle_ones"),
                        function = particle_ones,
-                       particle_type = True,
+                       sampling_type = "particle",
                        units = "",
                        display_name = r"Particle Count")
 
@@ -199,7 +199,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],
             units = '',
-            particle_type = True)
+            sampling_type = "particle")
 
     return list(set(registry.keys()).difference(orig))
 
@@ -220,10 +220,10 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs(axi, ptype)
         registry.add_field((ptype, "particle_velocity_%s" % ax),
-            particle_type = True, function = v,
+            sampling_type = "particle", function = v,
             units = "code_velocity")
         registry.add_field((ptype, "particle_position_%s" % ax),
-            particle_type = True, function = p,
+            sampling_type = "particle", function = p,
             units = "code_length")
 
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
@@ -310,7 +310,7 @@ def standard_particle_fields(registry, ptype,
         f, v = _get_spec_ang_mom_comp(axi, ax, ptype)
         registry.add_field(
             (ptype, "particle_specific_angular_momentum_%s" % ax),
-            particle_type = True, function=f, units=unit_system["specific_angular_momentum"],
+            sampling_type = "particle", function=f, units=unit_system["specific_angular_momentum"],
             validators=[ValidateParameter("center")]
         )
         registry.add_field((ptype, "particle_angular_momentum_%s" % ax),
@@ -398,10 +398,10 @@ def standard_particle_fields(registry, ptype,
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs_relative(axi, ptype)
         registry.add_field((ptype, "particle_velocity_relative_%s" % ax),
-            particle_type = True, function = v,
+            sampling_type = "particle", function = v,
             units = "code_velocity")
         registry.add_field((ptype, "particle_position_relative_%s" % ax),
-            particle_type = True, function = p,
+            sampling_type = "particle", function = p,
             units = "code_length")
 
 
@@ -827,7 +827,7 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
         return distances
     registry.add_field(field_name, function = _nth_neighbor,
                        validators = [ValidateSpatial(0)],
-                       particle_type = True,
+                       sampling_type = "particle",
                        units = "code_length")
     return [field_name]
 

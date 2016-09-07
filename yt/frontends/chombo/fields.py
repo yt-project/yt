@@ -88,7 +88,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
         for ax in 'xyz':
             self.add_field((ptype, "particle_velocity_%s" % ax), 
                            function=_get_vel(ax),
-                           particle_type=True,
+                           sampling_type = "particle",
                            units="code_length/code_time")
 
         super(Orion2FieldInfo, self).setup_particle_fields(ptype)
@@ -200,7 +200,7 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
             if (ptype, f) not in self.field_list:
                 continue
             self.add_output_field((ptype, f),
-                units = units, particle_type = True,
+                units = units, sampling_type = "particle",
                 display_name = dn, output_units = output_units, take_log=False)
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
@@ -221,7 +221,7 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
                 continue
             self.add_output_field(field, 
                                   units = self.ds.field_units.get(field, ""),
-                                  particle_type = True)
+                                  sampling_type = "particle")
         self.setup_smoothed_fields(ptype,
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
@@ -266,11 +266,11 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
 
         for ptype in particle_field_types:                
             self.add_field((ptype, "particle_position_z"), function = _dummy_position,
-                           particle_type = True,
+                           sampling_type = "particle",
                            units = "code_length")
 
             self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
-                           particle_type = True,
+                           sampling_type = "particle",
                            units = "code_length / code_time")
 
 
@@ -298,16 +298,16 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
 
         for ptype in particle_field_types:
             self.add_field((ptype, "particle_position_y"), function = _dummy_position,
-                           particle_type = True,
+                           sampling_type = "particle",
                            units = "code_length")
             self.add_field((ptype, "particle_position_z"), function = _dummy_position,
-                           particle_type = True,
+                           sampling_type = "particle",
                            units = "code_length")
             self.add_field((ptype, "particle_velocity_y"), function = _dummy_velocity,
-                           particle_type = True,
+                           sampling_type = "particle",
                            units = "code_length / code_time")
             self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
-                           particle_type = True,
+                           sampling_type = "particle",
                            units = "code_length / code_time")
 
 
