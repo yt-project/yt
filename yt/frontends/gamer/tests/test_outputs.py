@@ -52,6 +52,18 @@ def test_psiDM():
         yield test
 
 
+plummer         = "Plummer/plummer_000000"
+_fields_plummer = ( ("gamer","ParDens"), ("deposit","io_cic") )
+
+@requires_ds(plummer, big_data=True)
+def test_plummer():
+    ds = data_dir_load(plummer)
+    yield assert_equal, str(ds), "plummer_000000"
+    for test in small_patch_amr(ds, _fields_plummer):
+        test_plummer.__name__ = test.description
+        yield test
+
+
 @requires_file(psiDM)
 def test_GAMERDataset():
     assert isinstance(data_dir_load(psiDM), GAMERDataset)
