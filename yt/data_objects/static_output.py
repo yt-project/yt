@@ -868,8 +868,7 @@ class Dataset(object):
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda,
-                              unit_registry=self.unit_registry)
+                              omega_lambda=self.omega_lambda)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
@@ -889,9 +888,11 @@ class Dataset(object):
         return new_unit
 
     def set_code_units(self):
-        self._set_code_unit_attributes()
         # here we override units, if overrides have been provided.
         self._override_code_units()
+
+        # set attributes like ds.length_unit
+        self._set_code_unit_attributes()
 
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
@@ -932,19 +933,22 @@ class Dataset(object):
     def _override_code_units(self):
         if len(self.units_override) == 0:
             return
-        mylog.warning("Overriding code units. This is an experimental and potentially "+
-                      "dangerous option that may yield inconsistent results, and must be used "+
-                      "very carefully, and only if you know what you want from it.")
+        mylog.warning(
+            "Overriding code units. This is an experimental and potentially "
+            "dangerous option that may yield inconsistent results, and must be "
+            "used very carefully, and only if you know what you want from it.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
-                          ("velocity","cm/s"), ("magnetic","gauss"), ("temperature","K")]:
+                          ("velocity","cm/s"), ("magnetic","gauss"), 
+                          ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
                 if isinstance(val, YTQuantity):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
-                u = getattr(self, "%s_unit" % unit)
-                mylog.info("Overriding %s_unit: %g %s -> %g %s.", unit, u.v, u.units, val[0], val[1])
+                u = getattr(self, "%s_unit" % unit, None)
+                mylog.info("Overriding %s_unit: %g -> %g %s.",
+                           unit, u, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
     _arr = None

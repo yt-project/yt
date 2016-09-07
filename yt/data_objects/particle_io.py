@@ -21,11 +21,12 @@ from yt.funcs import \
     ensure_list, \
     mylog
 from yt.extern.six import add_metaclass
+from yt.data_objects.field_data import \
+    YTFieldData
 
 particle_handler_registry = defaultdict()
 
 def particle_converter(func):
-    from .data_containers import YTFieldData
     def save_state(grid):
         old_params = grid.field_parameters
         old_keys = grid.field_data.keys()

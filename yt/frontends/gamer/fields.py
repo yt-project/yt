@@ -30,19 +30,30 @@ psi_units = "code_mass**(1/2) / code_length**(3/2)"
 class GAMERFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # hydro fields on disk (GAMER outputs conservative variables)
-        ( "Dens", (rho_units, ["density"],                 r"\rho") ),
-        ( "MomX", (mom_units, ["momentum_x"],              None   ) ),
-        ( "MomY", (mom_units, ["momentum_y"],              None   ) ),
-        ( "MomZ", (mom_units, ["momentum_z"],              None   ) ),
-        ( "Engy", (erg_units, ["total_energy_per_volume"], None   ) ),
-        ( "Pote", (pot_units, ["gravitational_potential"], None   ) ),
+        ( "Dens",     (rho_units, ["density"],                  r"\rho") ),
+        ( "MomX",     (mom_units, ["momentum_x"],               None   ) ),
+        ( "MomY",     (mom_units, ["momentum_y"],               None   ) ),
+        ( "MomZ",     (mom_units, ["momentum_z"],               None   ) ),
+        ( "Engy",     (erg_units, ["total_energy_per_volume"],  None   ) ),
+        ( "Pote",     (pot_units, ["gravitational_potential"],  None   ) ),
 
         # psiDM fields on disk
-        ( "Real", (psi_units, ["psidm_real_part"],         None   ) ),
-        ( "Imag", (psi_units, ["psidm_imaginary_part"],    None   ) ),
+        ( "Real",     (psi_units, ["psidm_real_part"],          None   ) ),
+        ( "Imag",     (psi_units, ["psidm_imaginary_part"],     None   ) ),
+
+        # particle fields on disk (deposited onto grids)
+        ("ParDens",   (rho_units, ["particle_density_on_grid"], None   ) ),
+        ("TotalDens", (rho_units, ["total_density_on_grid"],    None   ) ),
     )
 
     known_particle_fields = (
+        ( "ParMass", ("code_mass",     ["particle_mass"],       None) ),
+        ( "ParPosX", ("code_length",   ["particle_position_x"], None) ),
+        ( "ParPosY", ("code_length",   ["particle_position_y"], None) ),
+        ( "ParPosZ", ("code_length",   ["particle_position_z"], None) ),
+        ( "ParVelX", ("code_velocity", ["particle_velocity_x"], None) ),
+        ( "ParVelY", ("code_velocity", ["particle_velocity_y"], None) ),
+        ( "ParVelZ", ("code_velocity", ["particle_velocity_z"], None) ),
     )
 
     def __init__(self, ds, field_list):
@@ -106,5 +117,4 @@ class GAMERFieldInfo(FieldInfoContainer):
                         units = unit_system["temperature"] )
 
     def setup_particle_fields(self, ptype):
-        # This will get called for every particle type.
-        pass
+        super(GAMERFieldInfo, self).setup_particle_fields(ptype)

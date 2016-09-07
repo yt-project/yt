@@ -25,8 +25,9 @@ from collections import defaultdict
 
 from yt.config import ytcfg
 from yt.funcs import \
+    ensure_list, \
     mylog, \
-    ensure_list
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -447,10 +448,10 @@ class FITSDataset(Dataset):
             mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
             length_factor = 1.0
             length_unit = "cm"
-        self.length_unit = self.quan(length_factor,length_unit)
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")
+        setdefaultattr(self, 'length_unit', self.quan(length_factor,length_unit))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
         if "beam_size" in self.specified_parameters:
             beam_size = self.specified_parameters["beam_size"]
             beam_size = self.quan(beam_size[0], beam_size[1]).in_cgs().value

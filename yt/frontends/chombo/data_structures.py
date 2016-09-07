@@ -23,7 +23,9 @@ from six import string_types
 from stat import \
     ST_CTIME
 
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.extern import six
@@ -275,14 +277,19 @@ class ChomboDataset(Dataset):
         self.parameters["EOSType"] = -1 # default
 
     def _set_code_unit_attributes(self):
-        mylog.warning("Setting code length to be 1.0 cm")
-        mylog.warning("Setting code mass to be 1.0 g")
-        mylog.warning("Setting code time to be 1.0 s")
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.magnetic_unit = self.quan(np.sqrt(4.*np.pi), "gauss")
-        self.velocity_unit = self.length_unit / self.time_unit
+        if not hasattr(self, 'length_unit'):
+            mylog.warning("Setting code length unit to be 1.0 cm")
+        if not hasattr(self, 'mass_unit'):
+            mylog.warning("Setting code mass unit to be 1.0 g")
+        if not hasattr(self, 'time_unit'):
+            mylog.warning("Setting code time unit to be 1.0 s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'magnetic_unit',
+                       self.quan(np.sqrt(4.*np.pi), "gauss"))
+        setdefaultattr(self, 'velocity_unit',
+                       self.length_unit / self.time_unit)
 
     def _localize(self, f, default):
         if f is None:

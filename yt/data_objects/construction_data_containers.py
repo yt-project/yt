@@ -28,7 +28,8 @@ from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer1D, \
     YTSelectionContainer2D, \
-    YTSelectionContainer3D, \
+    YTSelectionContainer3D
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.funcs import \
     ensure_list, \
@@ -940,8 +941,12 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             if level < min_level:
                 self._update_level_state(ls)
                 continue
-            domain_dims = self.ds.domain_dimensions.astype("int64") \
-                        * self.ds.relative_refinement(0, ls.current_level)
+            nd = self.ds.dimensionality
+            refinement = np.zeros_like(ls.base_dx)
+            refinement += self.ds.relative_refinement(0, ls.current_level)
+            refinement[nd:] = 1
+            domain_dims = self.ds.domain_dimensions * refinement
+            domain_dims = domain_dims.astype("int64")
             tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
@@ -955,7 +960,8 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 raise RuntimeError
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
-            if self.level > 0: v = v[1:-1,1:-1,1:-1]
+            if self.level > 0:
+                v = v[1:-1, 1:-1, 1:-1]
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
 
@@ -1009,8 +1015,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         rf = float(self.ds.relative_refinement(
                     ls.current_level, ls.current_level + 1))
         ls.current_level += 1
-        ls.current_dx = ls.base_dx / \
-            self.ds.relative_refinement(0, ls.current_level)
+        nd = self.ds.dimensionality
+        refinement = np.zeros_like(ls.base_dx)
+        refinement += self.ds.relative_refinement(0, ls.current_level)
+        refinement[nd:] = 1
+        ls.current_dx = ls.base_dx / refinement
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex, end_index, ls.current_dims = \
             self._minimal_box(ls.current_dx)

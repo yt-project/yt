@@ -1069,6 +1069,8 @@ you need to supply conversions for length, time, and mass to ``load`` using the 
 This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, but the GAMER fields,
 e.g., ``("gamer","Dens")``, will be in code units.
 
+Particle data are supported and are always stored in the same file as the grid data.
+
 .. rubric:: Caveats
 
 * GAMER data in raw binary format (i.e., OPT__OUTPUT_TOTAL = C-binary) is not supported.
