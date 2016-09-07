@@ -23,7 +23,9 @@ from .data_structures import \
     YTNonspatialDataset, \
     YTNonspatialHierarchy, \
     YTNonspatialGrid, \
-    YTProfileDataset
+    YTProfileDataset, \
+    YTClumpContainer, \
+    YTClumpTreeDataset
 
 from .io import \
     IOHandlerYTDataContainerHDF5, \
