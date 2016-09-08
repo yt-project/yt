@@ -468,6 +468,8 @@ class HaloCatalog(ParallelAnalysisInterface):
         ftypes = {}
         if n_halos > 0:
             for key in self.quantities:
+                # This sets each field to be saved in the root hdf5 group,
+                # as per the HaloCatalog format.
                 ftypes[key] = "."
                 data[key] = self.halos_ds.arr(
                     [halo[key] for halo in self.catalog])
