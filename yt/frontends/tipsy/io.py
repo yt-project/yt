@@ -325,6 +325,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                             for f in glob.glob(data_file.filename + '.*')]
         for afield in self._aux_fields:
             filename = data_file.filename + '.' + afield
+            if not os.path.exists(filename): continue
             # We need to do some fairly ugly detection to see what format the
             # auxiliary files are in.  They can be either ascii or binary, and
             # the binary files can be either floats, ints, or doubles.  We're
