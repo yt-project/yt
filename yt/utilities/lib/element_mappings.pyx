@@ -1,6 +1,6 @@
 """
 This file contains coordinate mappings between physical coordinates and those
-defined on unit elements, as well as doing the corresponding intracell 
+defined on unit elements, as well as doing the corresponding intracell
 interpolation on finite element data.
 
 
@@ -33,8 +33,8 @@ cdef extern from "platform_dep.h":
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef double determinant_3x3(double* col0, 
-                            double* col1, 
+cdef double determinant_3x3(double* col0,
+                            double* col1,
                             double* col2) nogil:
     return col0[0]*col1[1]*col2[2] - col0[0]*col1[2]*col2[1] - \
            col0[1]*col1[0]*col2[2] + col0[1]*col1[2]*col2[0] + \
@@ -49,7 +49,7 @@ cdef double maxnorm(double* f, int dim) nogil:
     cdef int i
     err = fabs(f[0])
     for i in range(1, dim):
-        err = fmax(err, fabs(f[i])) 
+        err = fmax(err, fabs(f[i]))
     return err
 
 
@@ -58,7 +58,7 @@ cdef class ElementSampler:
 
     This is a base class for sampling the value of a finite element solution
     at an arbitrary point inside a mesh element. In general, this will be done
-    by transforming the requested physical coordinate into a mapped coordinate 
+    by transforming the requested physical coordinate into a mapped coordinate
     system, sampling the solution in mapped coordinates, and returning the result.
     This is not to be used directly; use one of the subclasses instead.
 
@@ -71,11 +71,11 @@ cdef class ElementSampler:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void map_real_to_unit(self,
-                               double* mapped_x, 
+                               double* mapped_x,
                                double* vertices,
                                double* physical_x) nogil:
         pass
-        
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -127,43 +127,43 @@ cdef class P1Sampler2D(ElementSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void map_real_to_unit(self, double* mapped_x, 
+    cdef void map_real_to_unit(self, double* mapped_x,
                                double* vertices, double* physical_x) nogil:
-    
+
         cdef double[3] col0
         cdef double[3] col1
         cdef double[3] col2
-    
+
         col0[0] = vertices[0]
         col0[1] = vertices[1]
         col0[2] = 1.0
-    
+
         col1[0] = vertices[2]
         col1[1] = vertices[3]
         col1[2] = 1.0
-    
+
         col2[0] = vertices[4]
         col2[1] = vertices[5]
         col2[2] = 1.0
-    
+
         det = determinant_3x3(col0, col1, col2)
-    
+
         mapped_x[0] = ((vertices[3] - vertices[5])*physical_x[0] + \
                        (vertices[4] - vertices[2])*physical_x[1] + \
                        (vertices[2]*vertices[5] - vertices[4]*vertices[3])) / det
-    
+
         mapped_x[1] = ((vertices[5] - vertices[1])*physical_x[0] + \
                        (vertices[0] - vertices[4])*physical_x[1] + \
                        (vertices[4]*vertices[1] - vertices[0]*vertices[5])) / det
-    
+
         mapped_x[2] = 1.0 - mapped_x[1] - mapped_x[0]
-    
+
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self,
-                                     double* coord, 
+                                     double* coord,
                                      double* vals) nogil:
         return vals[0]*coord[0] + vals[1]*coord[1] + vals[2]*coord[2]
 
@@ -197,16 +197,16 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void map_real_to_unit(self, double* mapped_x, 
+    cdef void map_real_to_unit(self, double* mapped_x,
                                double* vertices, double* physical_x) nogil:
-    
+
         cdef int i
         cdef double d
         cdef double[3] bvec
         cdef double[3] col0
         cdef double[3] col1
         cdef double[3] col2
-    
+
         # here, we express positions relative to the 4th element,
         # which is selected by vertices[9]
         for i in range(3):
@@ -214,7 +214,7 @@ cdef class P1Sampler3D(ElementSampler):
             col0[i] = vertices[0 + i]     - vertices[9 + i]
             col1[i] = vertices[3 + i]     - vertices[9 + i]
             col2[i] = vertices[6 + i]     - vertices[9 + i]
-        
+
         d = determinant_3x3(col0, col1, col2)
         mapped_x[0] = determinant_3x3(bvec, col1, col2)/d
         mapped_x[1] = determinant_3x3(col0, bvec, col2)/d
@@ -225,7 +225,7 @@ cdef class P1Sampler3D(ElementSampler):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self,
-                                     double* coord, 
+                                     double* coord,
                                      double* vals) nogil:
         return vals[0]*coord[0] + vals[1]*coord[1] + \
             vals[2]*coord[2] + vals[3]*coord[3]
@@ -265,11 +265,11 @@ cdef class P1Sampler3D(ElementSampler):
             u = mapped_coord[1]
             v = mapped_coord[2]
             w = mapped_coord[0]
-        if ((u < thresh) or 
-            (v < thresh) or 
+        if ((u < thresh) or
+            (v < thresh) or
             (w < thresh) or
-            (fabs(u - 1) < thresh) or 
-            (fabs(v - 1) < thresh) or 
+            (fabs(u - 1) < thresh) or
+            (fabs(v - 1) < thresh) or
             (fabs(w - 1) < thresh)):
             return 1
         return -1
@@ -281,7 +281,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
 
     This is a base class for handling element samplers that require
     a nonlinear solve to invert the mapping between coordinate systems.
-    To do this, we perform Newton-Raphson iteration using a specified 
+    To do this, we perform Newton-Raphson iteration using a specified
     system of equations with an analytic Jacobian matrix. This solver
     is hard-coded for 3D for reasons of efficiency. This is not to be
     used directly, use one of the subclasses instead.
@@ -302,7 +302,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
                                double* physical_x) nogil:
         cdef int i
         cdef double d
-        cdef double[3] f 
+        cdef double[3] f
         cdef double[3] r
         cdef double[3] s
         cdef double[3] t
@@ -313,11 +313,11 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
         # initial guess
         for i in range(3):
             x[i] = 0.0
-    
+
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f, 3)  
-   
+        err = maxnorm(f, 3)
+
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
             self.jac(r, s, t, x, vertices, physical_x)
@@ -325,7 +325,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
             x[0] = x[0] - (determinant_3x3(f, s, t)/d)
             x[1] = x[1] - (determinant_3x3(r, f, t)/d)
             x[2] = x[2] - (determinant_3x3(r, s, f)/d)
-            self.func(f, x, vertices, physical_x)        
+            self.func(f, x, vertices, physical_x)
             err = maxnorm(f, 3)
             iterations += 1
 
@@ -340,7 +340,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
 
 cdef class Q1Sampler3D(NonlinearSolveSampler3D):
 
-    ''' 
+    '''
 
     This implements sampling inside a 3D, linear, hexahedral mesh element.
 
@@ -358,14 +358,14 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
         cdef double F, rm, rp, sm, sp, tm, tp
-    
+
         rm = 1.0 - coord[0]
         rp = 1.0 + coord[0]
         sm = 1.0 - coord[1]
         sp = 1.0 + coord[1]
         tm = 1.0 - coord[2]
         tp = 1.0 + coord[2]
-    
+
         F = vals[0]*rm*sm*tm + vals[1]*rp*sm*tm + vals[2]*rp*sp*tm + vals[3]*rm*sp*tm + \
             vals[4]*rm*sm*tp + vals[5]*rp*sm*tp + vals[6]*rp*sp*tp + vals[7]*rm*sp*tp
         return 0.125*F
@@ -374,10 +374,10 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
-        # for hexes, the mapped coordinates all go from -1 to 1 
+        # for hexes, the mapped coordinates all go from -1 to 1
         # if we are inside the element.
         if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
-            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
@@ -401,7 +401,7 @@ cdef class Q1Sampler3D(NonlinearSolveSampler3D):
 
 cdef class S2Sampler3D(NonlinearSolveSampler3D):
 
-    ''' 
+    '''
 
     This implements sampling inside a 3D, 20-node hexahedral mesh element.
 
@@ -459,7 +459,7 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
         if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
-            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or 
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol or
             fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
@@ -485,8 +485,8 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef inline void S2Function3D(double* fx,
-                              double* x, 
-                              double* vertices, 
+                              double* x,
+                              double* vertices,
                               double* phys_x) nogil:
         cdef int i
         cdef double r, s, t, rm, rp, sm, sp, tm, tp
@@ -533,9 +533,9 @@ cdef inline void S2Function3D(double* fx,
 cdef inline void S2Jacobian3D(double* rcol,
                               double* scol,
                               double* tcol,
-                              double* x, 
-                              double* vertices, 
-                              double* phys_x) nogil:    
+                              double* x,
+                              double* vertices,
+                              double* phys_x) nogil:
         cdef int i
         cdef double r, s, t, rm, rp, sm, sp, tm, tp
 
@@ -616,7 +616,7 @@ cdef inline void S2Jacobian3D(double* rcol,
 
 cdef class W1Sampler3D(NonlinearSolveSampler3D):
 
-    ''' 
+    '''
 
     This implements sampling inside a 3D, linear, wedge mesh element.
 
@@ -648,15 +648,15 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
-        # for wedges the bounds of the mapped coordinates are: 
+        # for wedges the bounds of the mapped coordinates are:
         #     0 <= mapped_coord[0] <= 1 - mapped_coord[1]
         #     0 <= mapped_coord[1]
         #    -1 <= mapped_coord[2] <= 1
         if (mapped_coord[0] < -self.inclusion_tol or
             mapped_coord[0] + mapped_coord[1] - 1.0 > self.inclusion_tol):
-            return 0 
+            return 0
         if (mapped_coord[1] < -self.inclusion_tol):
-            return 0 
+            return 0
         if (fabs(mapped_coord[2]) - 1.0 > self.inclusion_tol):
             return 0
         return 1
@@ -675,7 +675,7 @@ cdef class W1Sampler3D(NonlinearSolveSampler3D):
         near_edge_r = (r < thresh) or (fabs(r + s - 1.0) < thresh)
         near_edge_s = (s < thresh)
         near_edge_t = fabs(fabs(mapped_coord[2]) - 1.0) < thresh
-        
+
         # we use ray.instID to pass back whether the ray is near the
         # element boundary or not (used to annotate mesh lines)
         if (near_edge_r and near_edge_s):
@@ -694,7 +694,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
 
     This is a base class for handling element samplers that require
     a nonlinear solve to invert the mapping between coordinate systems.
-    To do this, we perform Newton-Raphson iteration using a specified 
+    To do this, we perform Newton-Raphson iteration using a specified
     system of equations with an analytic Jacobian matrix. This solver
     is hard-coded for 2D for reasons of efficiency. This is not to be
     used directly, use one of the subclasses instead.
@@ -724,20 +724,20 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
         # initial guess
         for i in range(2):
             x[i] = 0.0
-    
+
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f, 2)  
-   
+        err = maxnorm(f, 2)
+
         # begin Newton iteration
         while (err > self.tolerance and iterations < self.max_iter):
             self.jac(&A[0], &A[2], x, vertices, physical_x)
             d = (A[0]*A[3] - A[1]*A[2])
-            
+
             x[0] -= ( A[3]*f[0] - A[2]*f[1]) / d
             x[1] -= (-A[1]*f[0] + A[0]*f[1]) / d
 
-            self.func(f, x, vertices, physical_x)        
+            self.func(f, x, vertices, physical_x)
             err = maxnorm(f, 2)
             iterations += 1
 
@@ -752,7 +752,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
 
 cdef class Q1Sampler2D(NonlinearSolveSampler2D):
 
-    ''' 
+    '''
 
     This implements sampling inside a 2D, linear, quadrilateral mesh element.
 
@@ -770,14 +770,57 @@ cdef class Q1Sampler2D(NonlinearSolveSampler2D):
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
         cdef double F, rm, rp, sm, sp
-    
+
         rm = 1.0 - coord[0]
         rp = 1.0 + coord[0]
         sm = 1.0 - coord[1]
         sp = 1.0 + coord[1]
-    
+
         F = vals[0]*rm*sm + vals[1]*rp*sm + vals[2]*rp*sp + vals[3]*rm*sp
         return 0.25*F
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        # for quads, we check whether the mapped_coord is between
+        # -1 and 1 in both directions.
+        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
+            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol):
+            return 0
+        return 1
+
+cdef class T2Sampler2D(NonlinearSolveSampler2D):
+
+    '''
+
+    This implements sampling inside a 2D, linear, quadrilateral mesh element.
+
+    '''
+
+    def __init__(self):
+        super(T2Sampler2D, self).__init__()
+        self.num_mapped_coords = 2
+        self.dim = 2
+        self.func = T2Function2D
+        self.jac = T2Jacobian2D
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
+        cdef double phi0, phi1, phi2, phi3, phi4, phi5
+
+        phi0 = 1 - 3 * coord[0] + 2 * coord[0]**2 - 3 * coord[1] + \
+               2 * coord[1]**2 + 4 * coord[0] * coord[1]
+        phi1 = -coord[0] + 2 * coord[0]**2
+        phi2 = -coord[1] + 2 * coord[1]**2
+        phi3 = 4 * coord[0] - 4 * coord[0]**2 - 4 * coord[0] * coord[1]
+        phi4 = 4 * coord[0] * coord[1]
+        phi5 = 4 * coord[1] - 4 * coord[1]**2 - 4 * coord[0] * coord[1]
+
+        return vals[0]*phi0 + vals[1]*phi1 + vals[2]*phi2 + vals[3]*phi3 + \
+               vals[4]*phi4 + vals[5]*phi5
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

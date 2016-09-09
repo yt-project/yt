@@ -68,6 +68,31 @@ cdef void Q1Jacobian2D(double* rcol,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True) 
+cdef void T2Function2D(double* fx,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: 
+	fx[0] = (-x[0] + 2*pow(x[0], 2))*vertices[2] + (-x[1] + 2*pow(x[1], 2))*vertices[4] + (-4*x[0]*x[1] + 4*x[1] - 4*pow(x[1], 2))*vertices[10] + (4*x[0] - 4*x[0]*x[1] - 4*pow(x[0], 2))*vertices[6] + (1 - 3*x[0] + 4*x[0]*x[1] + 2*pow(x[0], 2) - 3*x[1] + 2*pow(x[1], 2))*vertices[0] - phys_x[0] + 4*x[0]*x[1]*vertices[8];
+	fx[1] = (-x[0] + 2*pow(x[0], 2))*vertices[3] + (-x[1] + 2*pow(x[1], 2))*vertices[5] + (-4*x[0]*x[1] + 4*x[1] - 4*pow(x[1], 2))*vertices[11] + (4*x[0] - 4*x[0]*x[1] - 4*pow(x[0], 2))*vertices[7] + (1 - 3*x[0] + 4*x[0]*x[1] + 2*pow(x[0], 2) - 3*x[1] + 2*pow(x[1], 2))*vertices[1] - phys_x[1] + 4*x[0]*x[1]*vertices[9];
+
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True) 
+cdef void T2Jacobian2D(double* rcol,
+                       double* scol,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: 
+	rcol[0] = (-1 + 4*x[0])*vertices[2] + (-3 + 4*x[0] + 4*x[1])*vertices[0] + (4 - 8*x[0] - 4*x[1])*vertices[6] + 4*x[1]*vertices[8] - 4*x[1]*vertices[10];
+	scol[0] = (-1 + 4*x[1])*vertices[4] + (-3 + 4*x[0] + 4*x[1])*vertices[0] + (4 - 4*x[0] - 8*x[1])*vertices[10] - 4*x[0]*vertices[6] + 4*x[0]*vertices[8];
+	rcol[1] = (-1 + 4*x[0])*vertices[3] + (-3 + 4*x[0] + 4*x[1])*vertices[1] + (4 - 8*x[0] - 4*x[1])*vertices[7] + 4*x[1]*vertices[9] - 4*x[1]*vertices[11];
+	scol[1] = (-1 + 4*x[1])*vertices[5] + (-3 + 4*x[0] + 4*x[1])*vertices[1] + (4 - 4*x[0] - 8*x[1])*vertices[11] - 4*x[0]*vertices[7] + 4*x[0]*vertices[9];
+
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True) 
 cdef void W1Function3D(double* fx,
                        double* x,
                        double* vertices,
