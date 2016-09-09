@@ -321,8 +321,12 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         tot_parts = np.sum(list(data_file.total_particles.values()))
         endian = data_file.ds.endian
         self._aux_pdtypes = {}
-        self._aux_fields = [f.rsplit('.')[-1]
-                            for f in glob.glob(data_file.filename + '.*')]
+        self._aux_fields = []
+        for f in glob.glob(data_file.filename + '.*'):
+            afield = f.rsplit('.')[-1]
+            filename = data_file.filename + '.' + afield
+            if not os.path.exists(filename): continue
+            self._aux_fields.append(afield)
         for afield in self._aux_fields:
             filename = data_file.filename + '.' + afield
             # We need to do some fairly ugly detection to see what format the
