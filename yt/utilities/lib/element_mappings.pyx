@@ -115,7 +115,8 @@ cdef class P1Sampler2D(ElementSampler):
     '''
 
     This implements sampling inside a linear, triangular mesh element.
-    This mapping is linear and can be inverted easily.
+    This mapping is linear and can be inverted easily. Note that this
+    implementation uses triangular (or barycentric) coordinates.
 
     '''
 
@@ -794,7 +795,8 @@ cdef class T2Sampler2D(NonlinearSolveSampler2D):
 
     '''
 
-    This implements sampling inside a 2D, linear, quadrilateral mesh element.
+    This implements sampling inside a 2D, quadratic, triangular mesh
+    element. Note that this implementation uses canonical coordinates.
 
     '''
 
@@ -828,11 +830,12 @@ cdef class T2Sampler2D(NonlinearSolveSampler2D):
     cdef int check_inside(self, double* mapped_coord) nogil:
         # for quads, we check whether the mapped_coord is between
         # -1 and 1 in both directions.
-        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol or
-            fabs(mapped_coord[1]) - 1.0 > self.inclusion_tol):
-            return 0
+        cdef int i
+        for i in range(2):
+            if (mapped_coord[i] < -self.inclusion_tol or
+                mapped_coord[i] - 1.0 > self.inclusion_tol):
+                return 0
         return 1
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
