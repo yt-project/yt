@@ -22,7 +22,8 @@ from yt.utilities.lib.element_mappings import \
     test_tri_sampler, \
     test_quad_sampler, \
     test_hex20_sampler, \
-    test_wedge_sampler
+    test_wedge_sampler, \
+    test_tri2_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
@@ -127,3 +128,16 @@ def test_W1Sampler3D():
     field_values = np.array([1.,  2.,  3.,  4., 5., 6.])
 
     check_all_vertices(test_wedge_sampler, vertices, field_values)
+
+def test_T2Sampler2D():
+
+    vertices = np.array([[0.1 , 0.2 ],
+                         [0.3 , 0.5 ],
+                         [0.2 , 0.9 ],
+                         [0.2 , 0.35],
+                         [0.25, 0.7 ],
+                         [0.15, 0.55]])
+
+    field_values = np.array([15., 37., 49., 32., 46., 24.])
+
+    check_all_vertices(test_tri2_sampler, vertices, field_values)

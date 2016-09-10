@@ -5,7 +5,7 @@
 
  
 cimport cython 
- 
+from libc.math cimport pow 
 
  
 @cython.boundscheck(False)
