@@ -1953,7 +1953,7 @@ class TimestampCallback(PlotCallback):
         # If we're annotating the redshift, put it in the correct format
         if self.redshift:
             try:
-                z = np.abs(plot.data.ds.current_redshift)
+                z = plot.data.ds.current_redshift
             except AttributeError:
                 raise AttributeError("Dataset does not have current_redshift. "
                                      "Set redshift=False.")
