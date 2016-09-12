@@ -57,3 +57,12 @@ def test_RAMSESDataset():
 def test_units_override():
     for test in units_override_check(output_00080):
         yield test
+
+
+ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
+@requires_file(ramsesNonCosmo)
+def test_unit_non_cosmo():
+    ds = data_dir_load(ramsesNonCosmo)
+
+    expected_value = 14087886140997.336
+    assert_equal(ds.current_time.value, expected_value)
