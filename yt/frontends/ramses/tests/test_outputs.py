@@ -64,5 +64,8 @@ ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
 def test_unit_non_cosmo():
     ds = data_dir_load(ramsesNonCosmo)
 
-    expected_value = 14087886140997.336
-    assert_equal(ds.current_time.value, expected_value)
+    expected_raw_time = 0.0299468077820411 # in ramses unit
+    yield assert_equal, ds.current_time.value, expected_raw_time
+
+    expected_time = 14087886140997.336 # in seconds
+    assert_equal(ds.current_time.in_units('s').value, expected_value)
