@@ -36,9 +36,6 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_open_pmd_000:
-    - yt/frontends/open_pmd/tests/test_ouputs.py
-  
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
   
