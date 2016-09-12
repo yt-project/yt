@@ -25,6 +25,8 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
+import os
+import yt
 
 _fields = ("temperature", "density", "velocity_magnitude",
            ("deposit", "all_density"), ("deposit", "all_count"))
@@ -62,10 +64,10 @@ def test_units_override():
 ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
 @requires_file(ramsesNonCosmo)
 def test_unit_non_cosmo():
-    ds = data_dir_load(ramsesNonCosmo)
+    ds = yt.load(os.path.join(ramsesNonCosmo, 'info_00002.txt'))
 
     expected_raw_time = 0.0299468077820411 # in ramses unit
     yield assert_equal, ds.current_time.value, expected_raw_time
 
     expected_time = 14087886140997.336 # in seconds
-    assert_equal(ds.current_time.in_units('s').value, expected_value)
+    assert_equal(ds.current_time.in_units('s').value, expected_time)
