@@ -647,7 +647,7 @@ class RAMSESDataset(Dataset):
 
 
         if self.cosmological_simulation == 0:
-            self.current_time = self.parameters['time'] # * self.parameters['unit_t']
+            self.current_time = self.parameters['time']
         else :
             self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = \
                 friedman( self.omega_matter, self.omega_lambda, 1. - self.omega_matter - self.omega_lambda )
