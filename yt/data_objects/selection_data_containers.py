@@ -197,10 +197,20 @@ class YTRay(YTSelectionContainer1D):
     def __init__(self, start_point, end_point, ds=None,
                  field_parameters=None, data_source=None):
         super(YTRay, self).__init__(ds, field_parameters, data_source)
-        self.start_point = self.ds.arr(start_point,
-                            'code_length', dtype='float64')
-        self.end_point = self.ds.arr(end_point,
-                            'code_length', dtype='float64')
+        if isinstance(start_point, YTArray):
+            self.start_point = \
+              self.ds.arr(start_point).to("code_length")
+        else:
+            self.start_point = \
+              self.ds.arr(start_point, 'code_length',
+                          dtype='float64')
+        if isinstance(end_point, YTArray):
+            self.end_point = \
+              self.ds.arr(end_point).to("code_length")
+        else:
+            self.end_point = \
+              self.ds.arr(end_point, 'code_length',
+                          dtype='float64')
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
