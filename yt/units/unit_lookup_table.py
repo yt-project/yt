@@ -113,6 +113,7 @@ default_unit_symbol_lut = {
     "steradian": (1.0, dimensions.solid_angle, 0.0, r"\rm{sr}"),
     "lat": (-np.pi/180.0, dimensions.angle, 90.0, r"\rm{Latitude}"),
     "lon": (np.pi/180.0, dimensions.angle, -180.0, r"\rm{Longitude}"),
+    "chandra_pixel": (np.pi/648000.*0.492, dimensions.angle, 0.0, r"\rm{Chandra pixels}"),
 
     # misc
     "eV": (erg_per_eV, dimensions.energy, 0.0, r"\rm{eV}"),

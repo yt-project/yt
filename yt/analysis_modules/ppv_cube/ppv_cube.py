@@ -256,7 +256,7 @@ class PPVCube(object):
 
     @parallel_root_only
     def write_fits(self, filename, clobber=False, length_unit=None,
-                   sky_scale=None, sky_center=None):
+                   sky_scale=None, sky_center=None, clobber_old_wcs=True):
         r""" Write the PPVCube to a FITS file.
 
         Parameters
@@ -274,6 +274,10 @@ class PPVCube(object):
         sky_center : tuple, optional
             The (RA, Dec) coordinate in degrees of the central pixel. Must
             be specified with *sky_scale*.
+        clobber_old_wcs : boolean, optional
+            Whether or not to overwrite the default WCS of the 
+            FITS file. If false, a second WCS will be added to the 
+            header. Default: True.
 
         Examples
         --------
@@ -305,7 +309,7 @@ class PPVCube(object):
         fib.update_all_headers("bunit", re.sub('()', '', str(self.proj_units)))
         fib.update_all_headers("btype", self.field)
         if sky_scale is not None and sky_center is not None:
-            fib.create_sky_wcs(sky_center, sky_scale)
+            fib.create_sky_wcs(sky_center, sky_scale, clobber_old_wcs=clobber_old_wcs)
         fib.writeto(filename, clobber=clobber)
 
     def __repr__(self):
