@@ -830,8 +830,8 @@ cdef class T2Sampler2D(NonlinearSolveSampler2D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int check_inside(self, double* mapped_coord) nogil:
-        # for quads, we check whether the mapped_coord is between
-        # -1 and 1 in both directions.
+        # for canonical tris, we check whether the mapped_coords are between
+        # 0 and 1.
         cdef int i
         for i in range(2):
             if (mapped_coord[i] < -self.inclusion_tol or
