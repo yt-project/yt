@@ -709,7 +709,7 @@ class Camera(Orientation):
 
         """
 
-        self.set_width(self.width / factor)
+        self.width[:2] = self.width[:2] / factor
 
     def iter_zoom(self, final, n_steps):
         r"""Loop over a iter_zoom and return snapshots along the way.
