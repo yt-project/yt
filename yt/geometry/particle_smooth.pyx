@@ -185,8 +185,7 @@ cdef class ParticleSmoothOperation:
         # Note that what we will be providing to our processing functions will
         # actually be indirectly-sorted fields.  This preserves memory at the
         # expense of additional pointer lookups.
-        pind = np.argsort(pdoms)
-        pind = np.asarray(pind, dtype='int64', order='C')
+        pind = np.asarray(np.argsort(pdoms), dtype='int64', order='C')
         # So what this means is that we now have all the oct-0 particle indices
         # in order, then the oct-1, etc etc.
         # This now gives us the indices to the particles for each domain.
