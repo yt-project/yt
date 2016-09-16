@@ -15,7 +15,6 @@ openPMD-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 
-import h5py as h5
 import numpy as np
 
 from yt.fields.field_info_container import FieldInfoContainer
@@ -23,6 +22,7 @@ from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import \
     parse_unit_dimension, \
     is_const_component
+from yt.utilities.on_demand_imports import _h5py as h5
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_constants import \

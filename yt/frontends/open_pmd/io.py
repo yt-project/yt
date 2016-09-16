@@ -190,12 +190,12 @@ class IOHandlerOpenPMD(BaseIOHandler):
             field = (ftype, fname)
             for chunk in chunks:
                 for grid in chunk.objs:
-                    if fname.split("_")[0] not in grid.ftypes:
+                    component = fname.replace("_", "/").replace("-", "_")
+                    if component.split("/")[0] not in grid.ftypes:
                         continue
                     mask = grid._get_selector_mask(selector)
                     if mask is None:
                         continue
-                    component = fname.replace("_", "/").replace("-", "_")
                     data = self.get_component(ds, component, grid.findex, grid.foffset)
                     # The following is a modified AMRGridPatch.select(...)
                     data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
