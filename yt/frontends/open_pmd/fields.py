@@ -123,9 +123,6 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         (equivalently, the regex \w).
     Since yt widely uses the underscore in field names, openPMD's underscores (_) are replaced by hyphen (-).
 
-    The constructor of the super-class is called after the fields have been dynamically parsed, so they are known when
-    needed during the call of ``setup_fluid_aliases`` .
-
     Derived fields will automatically be set up, if names and units of your known on-disk (or manually derived)
     fields match the ones in [1].
 

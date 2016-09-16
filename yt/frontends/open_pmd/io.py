@@ -100,8 +100,8 @@ class IOHandlerOpenPMD(BaseIOHandler):
         ptf = defaultdict(list)  # ParticleTypes&Fields
         rfm = defaultdict(list)  # RequestFieldMapping
 
-        for ptype, pname in fields:
-            pfield = ptype, pname
+        for (ptype, pname) in fields:
+            pfield = (ptype, pname)
             # Overestimate the size of all pfields so they include all particles, shrink it later
             particle_count[pfield] = 0
             if ptype in unions:
@@ -186,8 +186,8 @@ class IOHandlerOpenPMD(BaseIOHandler):
             rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0
 
-        for field in fields:
-            (ftype, fname) = field
+        for (ftype, fname) in fields:
+            field = (ftype, fname)
             for chunk in chunks:
                 for grid in chunk.objs:
                     if fname.split("_")[0] not in grid.ftypes:
@@ -236,11 +236,14 @@ class IOHandlerOpenPMD(BaseIOHandler):
         record_component = group[component_name]
         unit_si = record_component.attrs["unitSI"]
         if is_const_component(record_component):
+            shape = record_component.attrs["shape"]
             if offset is None:
-                offset = record_component.attrs["shape"] - index
+                shape[0] -= index  # This makes constant meshes readable
+            else:
+                shape[0] = offset
             # component is constant, craft an array by hand
-            # mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, offset))
-            return np.full(offset, record_component.attrs["value"] * unit_si)
+            # mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, shape))
+            return np.full(shape, record_component.attrs["value"] * unit_si)
         else:
             if offset is not None:
                 offset += index

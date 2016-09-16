@@ -204,7 +204,7 @@ class OpenPMDHierarchy(GridIndex):
                     self.numparts[species] = f[bp + pp + species + "/position/" + axis].len()
 
         # Limit values per grid by resulting memory footprint
-        self.vpg = int(self.dataset.gridsize / (self.dataset.dimensionality * 4))  # 4Byte per value per dimension (f32)
+        self.vpg = int(self.dataset.gridsize / 4)  # 4Byte per value (f32)
 
         # Meshes of the same size do not need separate chunks
         for shape in set(self.meshshapes.values()):
@@ -349,7 +349,7 @@ class OpenPMDDataset(Dataset):
     -----
     It is assumed that all meshes cover the same region. Their resolution can be different.
     It is assumed that all particles reside in this same region exclusively.
-    It is assumed that the particle position is *relative* to the grid origin. (i.e. grid offset is **NOT** considered)
+    It is assumed that the particle and mesh positions are *absolute* with respect to the simulation origin.
     """
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
@@ -453,13 +453,13 @@ class OpenPMDDataset(Dataset):
         try:
             mesh = list(f[bp + mp].keys())[0]
             spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-            # offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
+            offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
             unit_si = np.asarray(f[bp + mp + "/" + mesh].attrs["gridUnitSI"])
-            # self.domain_left_edge = self.domain_dimensions[:spacing.size] * unit_si * offset
-            self.domain_left_edge = np.zeros(3, dtype=np.float64)
+            self.domain_left_edge = offset * unit_si
+            # self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing
-            # self.domain_right_edge += self.domain_left_edge
-            # self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
+            self.domain_right_edge += self.domain_left_edge
+            self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
             self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
         except:
             mylog.warning(
