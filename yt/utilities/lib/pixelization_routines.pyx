@@ -31,7 +31,8 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler2D, \
     Q1Sampler2D, \
     W1Sampler3D, \
-    T2Sampler2D
+    T2Sampler2D, \
+    Tet2Sampler3D
 
 cdef extern from "pixelization_constants.h":
     enum:
@@ -597,6 +598,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = Q1Sampler2D()
     elif ndim == 2 and nvertices == 6:
         sampler = T2Sampler2D()
+    elif ndim == 3 and nvertices == 10:
+        sampler = Tet2Sampler3D()
     else:
         raise YTElementTypeNotRecognized(ndim, nvertices)
 
