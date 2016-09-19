@@ -37,33 +37,33 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
-        registry.add_field(("index", "dx"), function=_unknown_coord)
-        registry.add_field(("index", "dy"), function=_unknown_coord)
-        registry.add_field(("index", "dz"), function=_unknown_coord)
-        registry.add_field(("index", "x"), function=_unknown_coord)
-        registry.add_field(("index", "y"), function=_unknown_coord)
-        registry.add_field(("index", "z"), function=_unknown_coord)
+        registry.add_field(("index", "dx"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "dy"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "dz"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "x"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "y"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "z"), "cell",  function=_unknown_coord)
         f1, f2 = _get_coord_fields(self.axis_id['latitude'], "")
-        registry.add_field(("index", "dlatitude"), function = f1,
+        registry.add_field(("index", "dlatitude"), "cell",  function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "latitude"), function = f2,
+        registry.add_field(("index", "latitude"), "cell",  function = f2,
                            display_field = False,
                            units = "")
 
         f1, f2 = _get_coord_fields(self.axis_id['longitude'], "")
-        registry.add_field(("index", "dlongitude"), function = f1,
+        registry.add_field(("index", "dlongitude"), "cell",  function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "longitude"), function = f2,
+        registry.add_field(("index", "longitude"), "cell",  function = f2,
                            display_field = False,
                            units = "")
 
         f1, f2 = _get_coord_fields(self.axis_id[self.radial_axis])
-        registry.add_field(("index", "d%s" % (self.radial_axis,)), function = f1,
+        registry.add_field(("index", "d%s" % (self.radial_axis,)), "cell",  function = f1,
                            display_field = False,
                            units = "code_length")
-        registry.add_field(("index", self.radial_axis), function = f2,
+        registry.add_field(("index", self.radial_axis), "cell",  function = f2,
                            display_field = False,
                            units = "code_length")
 
@@ -76,20 +76,20 @@ class GeographicCoordinateHandler(CoordinateHandler):
             vol *= data["index", "dtheta"]
             vol *= data["index", "dphi"]
             return vol
-        registry.add_field(("index", "cell_volume"),
+        registry.add_field(("index", "cell_volume"), "cell", 
                  function=_SphericalVolume,
                  units = "code_length**3")
 
         def _path_radial_axis(field, data):
             return data["index", "d%s" % self.radial_axis]
-        registry.add_field(("index", "path_element_%s" % self.radial_axis),
+        registry.add_field(("index", "path_element_%s" % self.radial_axis), "cell", 
                  function = _path_radial_axis,
                  units = "code_length")
         def _path_latitude(field, data):
             # We use r here explicitly
             return data["index", "r"] * \
                 data["index", "dlatitude"] * np.pi/180.0
-        registry.add_field(("index", "path_element_latitude"),
+        registry.add_field(("index", "path_element_latitude"), "cell", 
                  function = _path_latitude,
                  units = "code_length")
         def _path_longitude(field, data):
@@ -97,31 +97,31 @@ class GeographicCoordinateHandler(CoordinateHandler):
             return data["index", "r"] \
                     * data["index", "dlongitude"] * np.pi/180.0 \
                     * np.sin((data["index", "latitude"] + 90.0) * np.pi/180.0)
-        registry.add_field(("index", "path_element_longitude"),
+        registry.add_field(("index", "path_element_longitude"), "cell", 
                  function = _path_longitude,
                  units = "code_length")
 
         def _latitude_to_theta(field, data):
             # latitude runs from -90 to 90
             return (data["latitude"] + 90) * np.pi/180.0
-        registry.add_field(("index", "theta"),
+        registry.add_field(("index", "theta"), "cell", 
                  function = _latitude_to_theta,
                  units = "")
         def _dlatitude_to_dtheta(field, data):
             return data["dlatitude"] * np.pi/180.0
-        registry.add_field(("index", "dtheta"),
+        registry.add_field(("index", "dtheta"), "cell", 
                  function = _dlatitude_to_dtheta,
                  units = "")
 
         def _longitude_to_phi(field, data):
             # longitude runs from -180 to 180
             return (data["longitude"] + 180) * np.pi/180.0
-        registry.add_field(("index", "phi"),
+        registry.add_field(("index", "phi"), "cell", 
                  function = _longitude_to_phi,
                  units = "")
         def _dlongitude_to_dphi(field, data):
             return data["dlongitude"] * np.pi/180.0
-        registry.add_field(("index", "dphi"),
+        registry.add_field(("index", "dphi"), "cell", 
                  function = _dlongitude_to_dphi,
                  units = "")
 
@@ -138,7 +138,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                 else:
                     surface_height = data.ds.quan(0.0, "code_length")
             return data["altitude"] + surface_height
-        registry.add_field(("index", "r"),
+        registry.add_field(("index", "r"), "cell", 
                  function=_altitude_to_radius,
                  units = "code_length")
         registry.alias(("index", "dr"), ("index", "daltitude"))
@@ -341,7 +341,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
                     rax = self.axis_id[self.radial_axis]
                     outer_radius = data.ds.domain_right_edge[rax]
             return -1.0 * data["depth"] + outer_radius
-        registry.add_field(("index", "r"),
+        registry.add_field(("index", "r"), "cell", 
                  function=_depth_to_radius,
                  units = "code_length")
         registry.alias(("index", "dr"), ("index", "ddepth"))

@@ -46,26 +46,26 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
               data[ftype,"magnetic_field_y"]**2 +
               data[ftype,"magnetic_field_z"]**2)
         return np.sqrt(B2)
-    registry.add_field((ftype,"magnetic_field_strength"),
+    registry.add_field((ftype,"magnetic_field_strength"), "cell", 
                        function=_magnetic_field_strength,
                        units=u)
 
     def _magnetic_energy(field, data):
         B = data[ftype,"magnetic_field_strength"]
         return 0.5*B*B/mag_factors[B.units.dimensions]
-    registry.add_field((ftype, "magnetic_energy"),
+    registry.add_field((ftype, "magnetic_energy"), "cell", 
              function=_magnetic_energy,
              units=unit_system["pressure"])
 
     def _plasma_beta(field,data):
         return data[ftype,'pressure']/data[ftype,'magnetic_energy']
-    registry.add_field((ftype, "plasma_beta"),
+    registry.add_field((ftype, "plasma_beta"), "cell", 
              function=_plasma_beta,
              units="")
 
     def _magnetic_pressure(field,data):
         return data[ftype,'magnetic_energy']
-    registry.add_field((ftype, "magnetic_pressure"),
+    registry.add_field((ftype, "magnetic_pressure"), "cell", 
              function=_magnetic_pressure,
              units=unit_system["pressure"])
 
@@ -83,7 +83,7 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
 
         return get_sph_theta_component(Bfields, theta, phi, normal)
 
-    registry.add_field((ftype, "magnetic_field_poloidal"),
+    registry.add_field((ftype, "magnetic_field_poloidal"), "cell", 
              function=_magnetic_field_poloidal,
              units=u, validators=[ValidateParameter("normal")])
 
@@ -99,19 +99,19 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
         phi = data["index", 'spherical_phi']
         return get_sph_phi_component(Bfields, phi, normal)
 
-    registry.add_field((ftype, "magnetic_field_toroidal"),
+    registry.add_field((ftype, "magnetic_field_toroidal"), "cell", 
              function=_magnetic_field_toroidal,
              units=u, validators=[ValidateParameter("normal")])
 
     def _alfven_speed(field,data):
         B = data[ftype,'magnetic_field_strength']
         return B/np.sqrt(mag_factors[B.units.dimensions]*data[ftype,'density'])
-    registry.add_field((ftype, "alfven_speed"), function=_alfven_speed,
+    registry.add_field((ftype, "alfven_speed"), "cell",  function=_alfven_speed,
                        units=unit_system["velocity"])
 
     def _mach_alfven(field,data):
         return data[ftype,'velocity_magnitude']/data[ftype,'alfven_speed']
-    registry.add_field((ftype, "mach_alfven"), function=_mach_alfven,
+    registry.add_field((ftype, "mach_alfven"), "cell",  function=_mach_alfven,
                        units="dimensionless")
 
 def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
@@ -161,6 +161,6 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
             return convert(data[fd])
         return _mag_field
     for ax, fd in zip("xyz", ds_fields):
-        registry.add_field((ftype,"magnetic_field_%s" % ax),
+        registry.add_field((ftype,"magnetic_field_%s" % ax), "cell", 
                            function=mag_field(fd),
                            units=unit_system[to_units.dimensions])

@@ -46,7 +46,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """
         return get_radius(data, "")
 
-    registry.add_field(("index", "radius"),
+    registry.add_field(("index", "radius"), "cell", 
                        function=_radius,
                        validators=[ValidateParameter("center")],
                        units=unit_system["length"])
@@ -59,7 +59,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
             return data._reshape_vals(arr)
         return arr
 
-    registry.add_field(("index", "grid_level"),
+    registry.add_field(("index", "grid_level"), "cell", 
                        function=_grid_level,
                        units="",
                        validators=[ValidateSpatial(0)])
@@ -76,7 +76,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
             return data._reshape_vals(arr)
         return arr
 
-    registry.add_field(("index", "grid_indices"),
+    registry.add_field(("index", "grid_indices"), "cell", 
                        function=_grid_indices,
                        units="",
                        validators=[ValidateSpatial(0)],
@@ -87,7 +87,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         return np.ones(data["index", "ones"].shape,
                        dtype="float64")/data["index", "dx"]
 
-    registry.add_field(("index", "ones_over_dx"),
+    registry.add_field(("index", "ones_over_dx"), "cell", 
                        function=_ones_over_dx,
                        units=unit_system["length"]**-1,
                        display_field=False)
@@ -97,7 +97,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         arr = np.zeros(data["index", "ones"].shape, dtype='float64')
         return data.apply_units(arr, field.units)
 
-    registry.add_field(("index", "zeros"),
+    registry.add_field(("index", "zeros"), "cell", 
                        function=_zeros,
                        units="",
                        display_field=False)
@@ -109,7 +109,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
             return data._reshape_vals(arr)
         return data.apply_units(arr, field.units)
 
-    registry.add_field(("index", "ones"),
+    registry.add_field(("index", "ones"), "cell", 
                        function=_ones,
                        units="",
                        display_field=False)
@@ -132,7 +132,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
                                 data["index", "z"].ravel(), LE, RE)
         morton.shape = data["index", "x"].shape
         return morton.view("f8")
-    registry.add_field(("index", "morton_index"), function=_morton_index,
+    registry.add_field(("index", "morton_index"), "cell",  function=_morton_index,
                        units = "")
         
     def _spherical_radius(field, data):
@@ -144,7 +144,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         coords = get_periodic_rvec(data)
         return data.ds.arr(get_sph_r(coords), "code_length").in_base(unit_system.name)
 
-    registry.add_field(("index", "spherical_radius"),
+    registry.add_field(("index", "spherical_radius"), "cell", 
                        function=_spherical_radius,
                        validators=[ValidateParameter("center")],
                        units=unit_system["length"])
@@ -153,7 +153,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """This field is deprecated and will be removed in a future release"""
         return data['index', 'spherical_radius']
 
-    registry.add_field(("index", "spherical_r"),
+    registry.add_field(("index", "spherical_r"), "cell", 
                        function=_spherical_r,
                        validators=[ValidateParameter("center")],
                        units=unit_system["length"])
@@ -171,7 +171,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         coords = get_periodic_rvec(data)
         return get_sph_theta(coords, normal)
 
-    registry.add_field(("index", "spherical_theta"),
+    registry.add_field(("index", "spherical_theta"), "cell", 
                        function=_spherical_theta,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
@@ -190,7 +190,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         coords = get_periodic_rvec(data)
         return get_sph_phi(coords, normal)
 
-    registry.add_field(("index", "spherical_phi"),
+    registry.add_field(("index", "spherical_phi"), "cell", 
                        function=_spherical_phi,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
@@ -206,7 +206,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         coords = get_periodic_rvec(data)
         return data.ds.arr(get_cyl_r(coords, normal), "code_length").in_base(unit_system.name)
 
-    registry.add_field(("index", "cylindrical_radius"),
+    registry.add_field(("index", "cylindrical_radius"), "cell", 
                        function=_cylindrical_radius,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
@@ -216,7 +216,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """This field is deprecated and will be removed in a future release"""
         return data['index', 'cylindrical_radius']
 
-    registry.add_field(("index", "cylindrical_r"),
+    registry.add_field(("index", "cylindrical_r"), "cell", 
                        function=_cylindrical_r,
                        validators=[ValidateParameter("center")],
                        units=unit_system["length"])
@@ -231,7 +231,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         coords = get_periodic_rvec(data)
         return data.ds.arr(get_cyl_z(coords, normal), "code_length").in_base(unit_system.name)
 
-    registry.add_field(("index", "cylindrical_z"),
+    registry.add_field(("index", "cylindrical_z"), "cell", 
                        function=_cylindrical_z,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
@@ -250,7 +250,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         coords = get_periodic_rvec(data)
         return get_cyl_theta(coords, normal)
 
-    registry.add_field(("index", "cylindrical_theta"),
+    registry.add_field(("index", "cylindrical_theta"), "cell", 
                        function=_cylindrical_theta,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],
@@ -260,7 +260,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """This field is dprecated and will be removed in a future release"""
         return data["index", "spherical_theta"]
 
-    registry.add_field(("index", "disk_angle"),
+    registry.add_field(("index", "disk_angle"), "cell", 
                        function=_disk_angle,
                        take_log=False,
                        display_field=False,
@@ -272,7 +272,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         """This field is deprecated and will be removed in a future release"""
         return data["index", "cylindrical_z"]
 
-    registry.add_field(("index", "height"),
+    registry.add_field(("index", "height"), "cell", 
                        function=_height,
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("normal")],

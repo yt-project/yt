@@ -67,7 +67,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
     bv_validators = [ValidateSpatial(1, [(ftype, "density"), (ftype, "pressure")])]
     for ax in 'xyz':
         n = "baroclinic_vorticity_%s" % ax
-        registry.add_field((ftype, n), function=eval("_%s" % n),
+        registry.add_field((ftype, n), "cell",  function=eval("_%s" % n),
                            validators=bv_validators,
                            units=unit_system["frequency"]**2)
 
@@ -119,7 +119,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                              (ftype, "velocity_z")])]
     for ax in 'xyz':
         n = "vorticity_%s" % ax
-        registry.add_field((ftype, n),
+        registry.add_field((ftype, n), "cell", 
                            function=eval("_%s" % n),
                            units=unit_system["frequency"],
                            validators=vort_validators)
@@ -138,7 +138,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_z"]
     for ax in 'xyz':
         n = "vorticity_stretching_%s" % ax
-        registry.add_field((ftype, n), 
+        registry.add_field((ftype, n), "cell",  
                            function=eval("_%s" % n),
                            units = unit_system["frequency"]**2,
                            validators=vort_validators)
@@ -159,7 +159,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
           data[ftype, "baroclinic_vorticity_z"]
     for ax in 'xyz':
         n = "vorticity_growth_%s" % ax
-        registry.add_field((ftype, n),
+        registry.add_field((ftype, n), "cell", 
                            function=eval("_%s" % n),
                            units=unit_system["frequency"]**2,
                            validators=vort_validators)
@@ -175,7 +175,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         result = np.sign(dot) * result
         return result
     
-    registry.add_field((ftype, "vorticity_growth_magnitude"),
+    registry.add_field((ftype, "vorticity_growth_magnitude"), "cell", 
               function=_vorticity_growth_magnitude,
               units=unit_system["frequency"]**2,
               validators=vort_validators,
@@ -186,7 +186,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        data[ftype, "vorticity_growth_y"]**2 +
                        data[ftype, "vorticity_growth_z"]**2)
     
-    registry.add_field((ftype, "vorticity_growth_magnitude_absolute"),
+    registry.add_field((ftype, "vorticity_growth_magnitude_absolute"), "cell", 
                        function=_vorticity_growth_magnitude_absolute,
                        units=unit_system["frequency"]**2,
                        validators=vort_validators)
@@ -197,7 +197,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         domegaz_dt = data[ftype, "vorticity_z"] / data[ftype, "vorticity_growth_z"]
         return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
     
-    registry.add_field((ftype, "vorticity_growth_timescale"),
+    registry.add_field((ftype, "vorticity_growth_timescale"), "cell", 
                        function=_vorticity_growth_timescale,
                        units=unit_system["time"],
                        validators=vort_validators)
@@ -232,7 +232,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                              (ftype, "radiation_acceleration_z")])]
     for ax in 'xyz':
         n = "vorticity_radiation_pressure_%s" % ax
-        registry.add_field((ftype, n),
+        registry.add_field((ftype, n), "cell", 
                            function=eval("_%s" % n),
                            units=unit_system["frequency"]**2,
                            validators=vrp_validators)
@@ -257,7 +257,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                
     for ax in 'xyz':
         n = "vorticity_radiation_pressure_growth_%s" % ax
-        registry.add_field((ftype, n),
+        registry.add_field((ftype, n), "cell", 
                            function=eval("_%s" % n),
                            units=unit_system["frequency"]**2,
                            validators=vrp_validators)
@@ -273,7 +273,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         result = np.sign(dot) * result
         return result
     
-    registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude"),
+    registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude"), "cell", 
                        function=_vorticity_radiation_pressure_growth_magnitude,
                        units=unit_system["frequency"]**2,
                        validators=vrp_validators,
@@ -284,7 +284,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
                        data[ftype, "vorticity_radiation_pressure_growth_y"]**2 +
                        data[ftype, "vorticity_radiation_pressure_growth_z"]**2)
     
-    registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude_absolute"),
+    registry.add_field((ftype, "vorticity_radiation_pressure_growth_magnitude_absolute"), "cell", 
                        function=_vorticity_radiation_pressure_growth_magnitude_absolute,
                        units="s**(-2)",
                        validators=vrp_validators)
@@ -298,7 +298,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
           data[ftype, "vorticity_radiation_pressure_growth_z"]
         return np.sqrt(domegax_dt**2 + domegay_dt**2 + domegaz_dt**2)
     
-    registry.add_field((ftype, "vorticity_radiation_pressure_growth_timescale"),
+    registry.add_field((ftype, "vorticity_radiation_pressure_growth_timescale"), "cell", 
                        function=_vorticity_radiation_pressure_growth_timescale,
                        units=unit_system["time"],
                        validators=vrp_validators)
@@ -344,7 +344,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
     
-    registry.add_field((ftype, "shear"),
+    registry.add_field((ftype, "shear"), "cell", 
                        function=_shear,
                        validators=[ValidateSpatial(1,
                         [(ftype, "velocity_x"),
@@ -361,7 +361,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         
         return data[ftype, "shear"] / data[ftype, "sound_speed"]
 
-    registry.add_field((ftype, "shear_criterion"),
+    registry.add_field((ftype, "shear_criterion"), "cell", 
                        function=_shear_criterion,
                        units=unit_system["length"]**-1,
                        validators=[ValidateSpatial(1,
@@ -417,7 +417,7 @@ def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
     
-    registry.add_field((ftype, "shear_mach"),
+    registry.add_field((ftype, "shear_mach"), "cell", 
                        function=_shear_mach,
                        units="",
                        validators=[ValidateSpatial(1,

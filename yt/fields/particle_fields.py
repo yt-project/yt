@@ -103,6 +103,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
+             "cell",          
              function = particle_count,
              validators = [ValidateSpatial()],
              units = '',
@@ -116,6 +117,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_mass" % ptype),
+             "cell",          
              function = particle_mass,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s Mass}" % ptype_dn,
@@ -130,6 +132,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return d
 
     registry.add_field(("deposit", "%s_density" % ptype),
+             "cell",          
              function = particle_density,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s Density}" % ptype_dn,
@@ -143,6 +146,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return d
 
     registry.add_field(("deposit", "%s_cic" % ptype),
+             "cell",          
              function = particle_cic,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s CIC Density}" % ptype_dn,
@@ -171,7 +175,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             function = _get_density_weighted_deposit_field(
                 "particle_velocity_%s" % ax, "cm/s", method)
             registry.add_field(
-                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)),
+                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)), "cell",
                 function=function, units=unit_system["velocity"], take_log=False,
                 validators=[ValidateSpatial(0)])
 
@@ -179,7 +183,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         function = _get_density_weighted_deposit_field(
             "age", "s", method)
         registry.add_field(
-            ("deposit", ("%s_"+name+"_age") % (ptype)),
+            ("deposit", ("%s_"+name+"_age") % (ptype)), "cell",
             function=function, units=unit_system["time"], take_log=False,
             validators=[ValidateSpatial(0)])
 
@@ -190,8 +194,8 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(v, field.units)
 
     registry.add_field((ptype, "particle_ones"),
+                       "particle",
                        function = particle_ones,
-                       sampling_type = "particle",
                        units = "",
                        display_name = r"Particle Count")
 
@@ -204,10 +208,10 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         data.deposit(pos, [ids], method = "mesh_id")
         return data.apply_units(ids, "")
     registry.add_field((ptype, "mesh_id"),
+            "particle",           
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],
-            units = '',
-            sampling_type = "particle")
+            units = '')
 
     return list(set(registry.keys()).difference(orig))
 
@@ -228,11 +232,9 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs(axi, ptype)
         registry.add_field((ptype, "particle_velocity_%s" % ax),
-            sampling_type = "particle", function = v,
-            units = "code_velocity")
+            "particle", function = v, units = "code_velocity")
         registry.add_field((ptype, "particle_position_%s" % ax),
-            sampling_type = "particle", function = p,
-            units = "code_length")
+            "particle", function = p, units = "code_length")
 
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
@@ -248,13 +250,13 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
             return data.apply_units(c, field.units)
         return particle_vectors
     registry.add_field((ptype, "particle_position"),
+                       "particle",
                        function=_get_vec_func(ptype, coord_names),
-                       units = "code_length",
-                       particle_type=True)
+                       units = "code_length")
     registry.add_field((ptype, "particle_velocity"),
+                       "particle",
                        function=_get_vec_func(ptype, vel_names),
-                       units = unit_system["velocity"],
-                       particle_type=True)
+                       units = unit_system["velocity"])
 
 def get_angular_momentum_components(ptype, data, spos, svel):
     if data.has_field_parameter("normal"):
@@ -282,8 +284,8 @@ def standard_particle_fields(registry, ptype,
                      + (data[ptype, svel % 'z'] - bulk_velocity[2])**2 )
 
     registry.add_field((ptype, "particle_velocity_magnitude"),
+                  "particle",
                   function=_particle_velocity_magnitude,
-                  particle_type=True,
                   take_log=False,
                   units=unit_system["velocity"])
 
@@ -301,8 +303,8 @@ def standard_particle_fields(registry, ptype,
 
 
     registry.add_field((ptype, "particle_specific_angular_momentum"),
+              "particle",
               function=_particle_specific_angular_momentum,
-              particle_type=True,
               units=unit_system["specific_angular_momentum"],
               validators=[ValidateParameter("center")])
 
@@ -322,7 +324,7 @@ def standard_particle_fields(registry, ptype,
             validators=[ValidateParameter("center")]
         )
         registry.add_field((ptype, "particle_angular_momentum_%s" % ax),
-            function=v, units=unit_system["angular_momentum"], particle_type=True,
+            "particle", function=v, units=unit_system["angular_momentum"],
             validators=[ValidateParameter('center')])
 
     def _particle_angular_momentum(field, data):
@@ -330,8 +332,8 @@ def standard_particle_fields(registry, ptype,
         return am.T
 
     registry.add_field((ptype, "particle_angular_momentum"),
+              "particle",
               function=_particle_angular_momentum,
-              particle_type=True,
               units=unit_system["angular_momentum"],
               validators=[ValidateParameter("center")])
 
@@ -349,9 +351,9 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_radius"),
+        "particle",
         function=_particle_radius,
         units=unit_system["length"],
-        particle_type=True,
         validators=[ValidateParameter("center")])
 
     def _particle_position_relative(field, data):
@@ -370,8 +372,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_position_relative"),
+        "particle",
         function=_particle_position_relative,
-        particle_type=True,
         units=unit_system["length"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -391,8 +393,9 @@ def standard_particle_fields(registry, ptype,
         return vel
 
     registry.add_field((ptype, "particle_velocity_relative"),
+              "particle",
               function=_particle_velocity_relative,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -406,18 +409,17 @@ def standard_particle_fields(registry, ptype,
     for axi, ax in enumerate("xyz"):
         v, p = _get_coord_funcs_relative(axi, ptype)
         registry.add_field((ptype, "particle_velocity_relative_%s" % ax),
-            sampling_type = "particle", function = v,
-            units = "code_velocity")
+            "particle", function = v, units = "code_velocity")
         registry.add_field((ptype, "particle_position_relative_%s" % ax),
-            sampling_type = "particle", function = p,
-            units = "code_length")
+            "particle", function = p, units = "code_length")
 
 
     # this is just particle radius but we add it with an alias for the sake of
     # consistent naming
     registry.add_field((ptype, "particle_position_spherical_radius"),
+              "particle",
               function=_particle_radius,
-              particle_type=True, units=unit_system["length"],
+              units=unit_system["length"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -426,8 +428,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_position_spherical_radius']
 
     registry.add_field((ptype, "particle_spherical_position_radius"),
+              "particle",  
               function=_particle_spherical_position_radius,
-              particle_type=True, units=unit_system["length"],
+              units=unit_system["length"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -445,8 +448,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_position_spherical_theta"),
+        "particle",
         function=_particle_position_spherical_theta,
-        particle_type=True,
         units="",
         validators=[ValidateParameter("center"), ValidateParameter("normal")])
 
@@ -455,8 +458,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_position_spherical_theta']
 
     registry.add_field((ptype, "particle_spherical_position_theta"),
+              "particle",
               function=_particle_spherical_position_theta,
-              particle_type=True, units="",
+              units="",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -474,8 +478,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_position_spherical_phi"),
+        "particle",
         function=_particle_position_spherical_phi,
-        particle_type=True,
         units="",
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -484,8 +488,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_position_spherical_phi']
 
     registry.add_field((ptype, "particle_spherical_position_phi"),
+             "particle",
              function=_particle_spherical_position_phi,
-             particle_type=True, units="",
+             units="",
              validators=[ValidateParameter("center"),
                          ValidateParameter("normal")])
 
@@ -509,8 +514,9 @@ def standard_particle_fields(registry, ptype,
         return sphr
 
     registry.add_field((ptype, "particle_velocity_spherical_radius"),
+              "particle",
               function=_particle_velocity_spherical_radius,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -519,16 +525,18 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_velocity_spherical_radius']
 
     registry.add_field((ptype, "particle_spherical_velocity_radius"),
+              "particle",
               function=_particle_spherical_velocity_radius,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
     # particel_velocity_spherical_radius is simply aliased to
     # "particle_radial_velocity" for convenience
     registry.add_field((ptype, "particle_radial_velocity"),
+              "particle",
               function=_particle_spherical_velocity_radius,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -553,8 +561,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_velocity_spherical_theta"),
+        "particle",
         function=_particle_velocity_spherical_theta,
-        particle_type=True,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -563,8 +571,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_velocity_spherical_theta']
 
     registry.add_field((ptype, "particle_spherical_velocity_theta"),
+              "particle",
               function=_particle_spherical_velocity_theta,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -587,8 +596,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_velocity_spherical_phi"),
+        "particle",
         function=_particle_velocity_spherical_phi,
-        particle_type=True,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -597,8 +606,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_spherical_velocity_theta']
 
     registry.add_field((ptype, "particle_spherical_velocity_phi"),
+              "particle",
               function=_particle_spherical_velocity_phi,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -617,9 +627,9 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_position_cylindrical_radius"),
+        "particle",
         function=_particle_position_cylindrical_radius,
         units=unit_system["length"],
-        particle_type=True,
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
     def _particle_position_cylindrical_theta(field,data):
@@ -636,8 +646,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_position_cylindrical_theta"),
+        "particle",
         function=_particle_position_cylindrical_theta,
-        particle_type=True,
         units="",
         validators=[ValidateParameter("center"), ValidateParameter("normal")])
 
@@ -656,9 +666,9 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_position_cylindrical_z"),
+        "particle",
         function=_particle_position_cylindrical_z,
         units=unit_system["length"],
-        particle_type=True,
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
     def _particle_velocity_cylindrical_radius(field, data):
@@ -680,8 +690,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_velocity_cylindrical_radius"),
+        "particle",
         function=_particle_velocity_cylindrical_radius,
-        particle_type=True,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -704,8 +714,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_velocity_cylindrical_theta"),
+        "particle",
         function=_particle_velocity_cylindrical_theta,
-        particle_type=True,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -714,8 +724,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_velocity_cylindrical_theta']
 
     registry.add_field((ptype, "particle_cylindrical_velocity_theta"),
+              "particle",
               function=_particle_cylindrical_velocity_theta,
-              particle_type=True, units="cm/s",
+              units="cm/s",
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -737,8 +748,8 @@ def standard_particle_fields(registry, ptype,
 
     registry.add_field(
         (ptype, "particle_velocity_cylindrical_z"),
+        "particle",
         function=_particle_velocity_cylindrical_z,
-        particle_type=True,
         units=unit_system["velocity"],
         validators=[ValidateParameter("normal"), ValidateParameter("center")])
 
@@ -747,8 +758,9 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, "particle_velocity_cylindrical_z"]
 
     registry.add_field((ptype, "particle_cylindrical_velocity_z"),
+              "particle",
               function=_particle_cylindrical_velocity_z,
-              particle_type=True, units=unit_system["velocity"],
+              units=unit_system["velocity"],
               validators=[ValidateParameter("normal"),
                           ValidateParameter("center")])
 
@@ -769,9 +781,8 @@ def add_particle_average(registry, ptype, field_name,
         v[np.isnan(v)] = 0.0
         return v
     fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
-    registry.add_field(fn, function=_pfunc_avg,
+    registry.add_field(fn, "cell", function=_pfunc_avg,
                        validators = [ValidateSpatial(0)],
-                       particle_type = False,
                        units = field_units)
     return fn
 
@@ -816,7 +827,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         rv /= hsml.uq**3 / hsml.uq.in_base(unit_system.name).uq**3
         rv = data.apply_units(rv, field_units)
         return rv
-    registry.add_field(field_name, function = _vol_weight,
+    registry.add_field(field_name, "cell", function = _vol_weight,
                        validators = [ValidateSpatial(0)],
                        units = field_units)
     registry.find_dependencies((field_name,))
@@ -833,9 +844,8 @@ def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors = 64):
                          nneighbors = nneighbors)
         # Now some quick unit conversions.
         return distances
-    registry.add_field(field_name, function = _nth_neighbor,
+    registry.add_field(field_name, "particle", function = _nth_neighbor,
                        validators = [ValidateSpatial(0)],
-                       sampling_type = "particle",
                        units = "code_length")
     return [field_name]
 
@@ -850,6 +860,6 @@ def add_union_field(registry, ptype, field_name, units):
                              for dep_type in data.ds.particle_types_raw])
 
     registry.add_field((ptype, field_name),
+                       "particle",
                        function=_cat_field,
-                       particle_type=True,
                        units=units)

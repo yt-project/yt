@@ -35,33 +35,33 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
-        registry.add_field(("index", "dx"), function=_unknown_coord)
-        registry.add_field(("index", "dy"), function=_unknown_coord)
-        registry.add_field(("index", "dz"), function=_unknown_coord)
-        registry.add_field(("index", "x"), function=_unknown_coord)
-        registry.add_field(("index", "y"), function=_unknown_coord)
-        registry.add_field(("index", "z"), function=_unknown_coord)
+        registry.add_field(("index", "dx"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "dy"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "dz"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "x"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "y"), "cell",  function=_unknown_coord)
+        registry.add_field(("index", "z"), "cell",  function=_unknown_coord)
         f1, f2 = _get_coord_fields(self.axis_id['r'])
-        registry.add_field(("index", "dr"), function = f1,
+        registry.add_field(("index", "dr"), "cell",  function = f1,
                            display_field = False,
                            units = "code_length")
-        registry.add_field(("index", "r"), function = f2,
+        registry.add_field(("index", "r"), "cell",  function = f2,
                            display_field = False,
                            units = "code_length")
 
         f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
-        registry.add_field(("index", "dtheta"), function = f1,
+        registry.add_field(("index", "dtheta"), "cell",  function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "theta"), function = f2,
+        registry.add_field(("index", "theta"), "cell",  function = f2,
                            display_field = False,
                            units = "")
 
         f1, f2 = _get_coord_fields(self.axis_id['phi'], "")
-        registry.add_field(("index", "dphi"), function = f1,
+        registry.add_field(("index", "dphi"), "cell",  function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "phi"), function = f2,
+        registry.add_field(("index", "phi"), "cell",  function = f2,
                            display_field = False,
                            units = "")
 
@@ -73,19 +73,19 @@ class SphericalCoordinateHandler(CoordinateHandler):
             vol *= data["index", "dtheta"]
             vol *= data["index", "dphi"]
             return vol
-        registry.add_field(("index", "cell_volume"),
+        registry.add_field(("index", "cell_volume"), "cell", 
                  function=_SphericalVolume,
                  units = "code_length**3")
 
         def _path_r(field, data):
             return data["index", "dr"]
-        registry.add_field(("index", "path_element_r"),
+        registry.add_field(("index", "path_element_r"), "cell", 
                  function = _path_r,
                  units = "code_length")
         def _path_theta(field, data):
             # Note: this already assumes cell-centered
             return data["index", "r"] * data["index", "dtheta"]
-        registry.add_field(("index", "path_element_theta"),
+        registry.add_field(("index", "path_element_theta"), "cell", 
                  function = _path_theta,
                  units = "code_length")
         def _path_phi(field, data):
@@ -93,7 +93,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             return data["index", "r"] \
                     * data["index", "dphi"] \
                     * np.sin(data["index", "theta"])
-        registry.add_field(("index", "path_element_phi"),
+        registry.add_field(("index", "path_element_phi"), "cell", 
                  function = _path_phi,
                  units = "code_length")
 

@@ -1043,7 +1043,7 @@ class Dataset(object):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function=None, **kwargs):
+    def add_field(self, name, sampling_type="cell", function=None, **kwargs):
         """
         Dataset-specific call to add_field
 
@@ -1081,7 +1081,7 @@ class Dataset(object):
         if not override and name in self.field_info:
             mylog.warning("Field %s already exists. To override use " +
                           "force_override=True.", name)
-        self.field_info.add_field(name, function=function, **kwargs)
+        self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
