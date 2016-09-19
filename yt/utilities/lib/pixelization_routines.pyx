@@ -777,19 +777,26 @@ cdef class SPHKernelInterpolationTable:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_kernel(np.float64_t[:,:] bounds,
-                        np.float64_t[:,:] buff,
-                        np.float64_t[:] posx, np.float64_t[:] posy,
+def pixelize_sph_kernel(np.float64_t[:] posx, np.float64_t[:] posy,
                         np.float64_t[:] hsml, np.float64_t[:] dens,
-                        kernel_name = "cubic", int num_threads = 1):
+                        np.intp_t xsize, np.intp_t ysize, 
+                        bounds, kernel_name="cubic"):
 
+    cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t qxy2, posx_diff, posy_diff, coeff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
 
-    dx = (bounds[0,1] - bounds[0,0]) / buff.shape[0]
-    dy = (bounds[1,1] - bounds[1,0]) / buff.shape[1]
+    cdef np.float64_t[:, :] buff = np.zeros((xsize, ysize), dtype='f8')
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+
+    dx = (x_max - x_min) / buff.shape[0]
+    dy = (y_max - y_min) / buff.shape[1]
     idx = 1.0/dx
     idy = 1.0/dy
 
@@ -798,30 +805,31 @@ def pixelize_sph_kernel(np.float64_t[:,:] bounds,
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
     
     with nogil:
-        for j in prange(0, posx.shape[0], num_threads = num_threads):
+        for j in prange(0, posx.shape[0]):
             coeff = dens[j] * hsml[j] * dens[j]
 
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - bounds[0,0]) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - bounds[0,0]) * idx)
+            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
+            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, buff.shape[0]-1)
             x1 = iclip(x1+1, 0, buff.shape[0]-1)
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - bounds[1,0]) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - bounds[1,0]) * idy)
+            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
+            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
             y0 = iclip(y0-1, 0, buff.shape[1]-1)
             y1 = iclip(y1+1, 0, buff.shape[1]-1)
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
+            
             for xi in range(x0, x1):
-                x = (xi + 0.5) * dx + bounds[0,0]
+                x = (xi + 0.5) * dx + x_min
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
                 if posx_diff > h_j2: continue
 
                 for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + bounds[1,0]
+                    y = (yi + 0.5) * dy + y_min
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
@@ -832,3 +840,5 @@ def pixelize_sph_kernel(np.float64_t[:,:] bounds,
                         continue
 
                     buff[xi, yi] += coeff * itab.interpolate(qxy2)
+
+    return np.array(buff)
