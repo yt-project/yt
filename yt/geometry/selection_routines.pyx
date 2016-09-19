@@ -553,25 +553,23 @@ cdef class SelectorObject:
     def count_points(self, np.ndarray[anyfloat, ndim=1] x,
                            np.ndarray[anyfloat, ndim=1] y,
                            np.ndarray[anyfloat, ndim=1] z,
-                           np.float64_t radius):
+                           np.float64_t[:] radii):
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
+        cdef np.float64_t radius
         _ensure_code(x)
         _ensure_code(y)
         _ensure_code(z)
         with nogil:
-            if radius == 0.0 :
-                for i in range(x.shape[0]):
-                    pos[0] = x[i]
-                    pos[1] = y[i]
-                    pos[2] = z[i]
+            for i in range(x.shape[0]):
+                pos[0] = x[i]
+                pos[1] = y[i]
+                pos[2] = z[i]
+                radius = radii[i]
+                if radius == 0:
                     count += self.select_point(pos)
-            else :
-                for i in range(x.shape[0]):
-                    pos[0] = x[i]
-                    pos[1] = y[i]
-                    pos[2] = z[i]
+                else:
                     count += self.select_sphere(pos, radius)
         return count
 
@@ -581,10 +579,11 @@ cdef class SelectorObject:
     def select_points(self, np.ndarray[anyfloat, ndim=1] x,
                             np.ndarray[anyfloat, ndim=1] y,
                             np.ndarray[anyfloat, ndim=1] z,
-                            np.float64_t radius):
+                            np.float64_t[:] radii):
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
+        cdef np.float64_t radius
         cdef np.ndarray[np.uint8_t, ndim=1] mask
         mask = np.empty(x.shape[0], dtype='uint8')
         _ensure_code(x)
@@ -598,20 +597,16 @@ cdef class SelectorObject:
         # between a ray and a point is null, while ray and a
         # sphere is allowed)
         with nogil:
-            if radius == 0.0 :
-                for i in range(x.shape[0]) :
-                    pos[0] = x[i]
-                    pos[1] = y[i]
-                    pos[2] = z[i]
+            for i in range(x.shape[0]) :
+                pos[0] = x[i]
+                pos[1] = y[i]
+                pos[2] = z[i]
+                radius = radii[i]
+                if radius == 0:
                     mask[i] = self.select_point(pos)
-                    count += mask[i]
-            else :
-                for i in range(x.shape[0]):
-                    pos[0] = x[i]
-                    pos[1] = y[i]
-                    pos[2] = z[i]
+                else:
                     mask[i] = self.select_sphere(pos, radius)
-                    count += mask[i]
+                count += mask[i]
         if count == 0: return None
         return mask.view("bool")
 

@@ -125,8 +125,8 @@ class BaseIOHandler(object):
 
     def _count_particles_chunks(self, chunks, ptf, selector):
         psize = defaultdict(lambda: 0) # COUNT PTYPES ON DISK
-        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
-            psize[ptype] += selector.count_points(x, y, z, 0.0)
+        for ptype, (x, y, z, hsml) in self._read_particle_coords(chunks, ptf):
+            psize[ptype] += selector.count_points(x, y, z, hsml)
         return dict(psize.items())
 
     def _read_particle_selection(self, chunks, selector, fields):

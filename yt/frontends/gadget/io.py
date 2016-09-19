@@ -71,7 +71,8 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
                 x = f["/%s/Coordinates" % ptype][:,0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][:,1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][:,2].astype("float64")
-                yield ptype, (x, y, z)
+                hsml = f["/%s/SmoothingLength" % ptype][:].astype("float64")
+                yield ptype, (x, y, z, hsml)
             f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -87,10 +88,15 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
                     continue
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][:].astype("float64")
+                if ptype == 'PartType0':
+                    hsmls = g["SmoothingLength"][:].astype("float64")
+                else:
+                    hsmls = 0
                 mask = selector.select_points(
-                            coords[:,0], coords[:,1], coords[:,2], 0.0)
+                            coords[:,0], coords[:,1], coords[:,2], hsmls)
                 del coords
-                if mask is None: continue
+                if mask is None:
+                    continue
                 for field in field_list:
 
                     if field in ("Mass", "Masses") and \
