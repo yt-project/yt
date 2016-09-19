@@ -21,8 +21,6 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from yt.extern.six import add_metaclass
 
-_axis_ids = {0:2,1:1,2:0}
-
 io_registry = {}
 
 class RegisteredIOHandler(type):
