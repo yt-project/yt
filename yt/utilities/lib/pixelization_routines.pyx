@@ -40,7 +40,7 @@ from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
 from cython.parallel cimport prange
 
-TABLE_NVALS=512
+cdef int TABLE_NVALS=512
 
 cdef extern from "pixelization_constants.h":
     enum:
@@ -702,27 +702,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     free(field_vals)
     return img
 
-
-def weight_function(q):
-    if 0. <= q and q < 1.:
-        return 1. - 3./2.*q*q + 3./4.*q*q*q
-    elif 1. <= q and q < 2.:
-        return 1./4.*(2.-q)*(2.-q)*(2.-q)
-    else:
-        return 0
-
-def evaluate_integrate(np.float64_t qxy2, int n_steps):
-    def F_func(qz):
-        return weight_function( math.sqrt(qxy2 + qz*qz) )
-    
-    cdef np.float64_t R, integral
-    R = 2.0
-
-    qz_vals = np.linspace(-math.sqrt(R*R - qxy2), math.sqrt(R*R - qxy2), n_steps)
-    F_vals = np.array( [F_func(qz) for qz in qz_vals] )
-    integral = np.trapz(F_vals, qz_vals)
-    return integral
-
+# used as a cache to avoid repeatedly creating
+# instances of SPHKernelInterpolationTable
 kernel_tables = {}
 
 cdef class SPHKernelInterpolationTable:
@@ -745,7 +726,7 @@ cdef class SPHKernelInterpolationTable:
         cdef int i
         # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
         # And our R is always 1; note that our smoothing kernel functions
-        # expect it to run from 0 .. 1, so we cut in half before we feed it in.
+        # expect it to run from 0 .. 1, so we divide the result by 2
         cdef int N = 200
         cdef np.float64_t qz
         cdef np.float64_t R = 1
@@ -763,10 +744,6 @@ cdef class SPHKernelInterpolationTable:
         integral *= (R1-R0)/(2*N)
         return integral
         
-    @cython.initializedcheck(False)
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
     def populate_table(self):
         cdef int i
         self.table = cvarray(format="d", shape=(TABLE_NVALS,),
@@ -785,7 +762,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t interpolate(self, np.float64_t qxy2) nogil:
+    cdef inline np.float64_t interpolate(self, np.float64_t qxy2) nogil:
         cdef int index
         cdef np.float64_t F_interpolate
         index = <int> ((qxy2 - self.qxy2_vals[0])*self.iqxy2_range)
