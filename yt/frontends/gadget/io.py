@@ -271,9 +271,12 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             for ptype in ptf:
                 # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                            tp[ptype], "Coordinates")
-                yield ptype, (pos[:,0], pos[:,1], pos[:,2])
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
+                f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                hsml = self._read_field_from_file(
+                    f, tp[ptype], "SmoothingLength")
+                yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2], hsml)
             f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -287,12 +290,17 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items()):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                            tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
+                f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                hsml = self._read_field_from_file(
+                    f, tp[ptype], "SmoothingLength")
                 mask = selector.select_points(
-                    pos[:,0], pos[:,1], pos[:,2], 0.0)
+                    pos[:, 0], pos[:, 1], pos[:, 2], hsml)
                 del pos
-                if mask is None: continue
+                del hsml
+                if mask is None:
+                    continue
                 for field in field_list:
                     if field == "Mass" and ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
