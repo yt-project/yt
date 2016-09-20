@@ -132,15 +132,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
         buff = np.zeros((size[1], size[0]), dtype="f8")
         if isinstance(data_source.ds, ParticleDataset) and field[0] == 'gas':
             ptype = data_source.ds._sph_ptype
-            # TODO: make this composite onto buff like the other pixelizers
+            ounits = data_source.ds.field_info[field].output_units
             buff = pixelize_sph_kernel_slice(
                 data_source[ptype, 'particle_position_x'],
                 data_source[ptype, 'particle_position_y'],
                 data_source[ptype, 'smoothing_length'],
                 data_source[ptype, 'particle_mass'],
                 data_source[ptype, 'density'],
-                data_source[ptype, 'density'],
-                size[0], size[1], bounds)
+                data_source[ptype, 'density'].in_units(ounits),
+                size[0], size[1], bounds).transpose()
         else:
             pixelize_cartesian(buff, data_source['px'], data_source['py'],
                                data_source['pdx'], data_source['pdy'],
