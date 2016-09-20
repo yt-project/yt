@@ -24,7 +24,7 @@ from .coordinate_handler import \
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian
+    pixelize_cartesian, pixelize_sph_kernel_slice
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 
 
@@ -122,6 +122,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
+        from yt.frontends.sph.data_structures import ParticleDataset
         # We should be using fcoords
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
@@ -129,11 +130,23 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
         buff = np.zeros((size[1], size[0]), dtype="f8")
-        pixelize_cartesian(buff, data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field],
-                             bounds, int(antialias),
-                             period, int(periodic))
+        if isinstance(data_source.ds, ParticleDataset) and field[0] == 'gas':
+            ptype = data_source.ds._sph_ptype
+            # TODO: make this composite onto buff like the other pixelizers
+            buff = pixelize_sph_kernel_slice(
+                data_source[ptype, 'particle_position_x'],
+                data_source[ptype, 'particle_position_y'],
+                data_source[ptype, 'smoothing_length'],
+                data_source[ptype, 'particle_mass'],
+                data_source[ptype, 'density'],
+                data_source[ptype, 'density'],
+                size[0], size[1], bounds)
+        else:
+            pixelize_cartesian(buff, data_source['px'], data_source['py'],
+                               data_source['pdx'], data_source['pdy'],
+                               data_source[field], size[0], size[1],
+                               bounds, int(antialias),
+                               period, int(periodic)).transpose()
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
