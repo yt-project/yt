@@ -727,7 +727,7 @@ cdef class SPHKernelInterpolationTable:
         cdef int i
         # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
         # And our R is always 1; note that our smoothing kernel functions
-        # expect it to run from 0 .. 1, so we divide the result by 2
+        # expect it to run from 0 .. 1, so we multiply the integrand by 2
         cdef int N = 200
         cdef np.float64_t qz
         cdef np.float64_t R = 1
@@ -823,6 +823,7 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
             ih_j2 = 1.0/h_j2
             
             w_j = pmass[j] / pdens[j] / hsml[j]**3
+            coeff = w_j * hsml[j] * quantity_to_smooth[j]
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
@@ -846,7 +847,6 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
                         continue
 
                     # see equation 32 of the SPLASH paper
-                    coeff = w_j * hsml[j] * quantity_to_smooth[j]
                     buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
 
     return np.array(buff)
@@ -868,15 +868,17 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
 
-    cdef np.float64_t[:, :] buff = np.zeros((xsize, ysize), dtype='f8')
+    cdef np.float64_t[:, :] buff_num = np.zeros((xsize, ysize), dtype='f8')
+    cdef np.float64_t[:, :] buff_denom = np.zeros((xsize, ysize), dtype='f8')
+    cdef np.float64_t[:, :] buff = np.zeros_like(buff_num)
 
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
     y_max = bounds[3]
 
-    dx = (x_max - x_min) / buff.shape[0]
-    dy = (y_max - y_min) / buff.shape[1]
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
     idx = 1.0/dx
     idy = 1.0/dy
 
@@ -886,19 +888,20 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
         for j in prange(0, posx.shape[0]):
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, buff.shape[0]-1)
-            x1 = iclip(x1+1, 0, buff.shape[0]-1)
+            x0 = iclip(x0-1, 0, xsize-1)
+            x1 = iclip(x1+1, 0, xsize-1)
 
             y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
             y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, buff.shape[1]-1)
-            y1 = iclip(y1+1, 0, buff.shape[1]-1)
+            y0 = iclip(y0-1, 0, ysize-1)
+            y1 = iclip(y1+1, 0, ysize-1)
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             h_j = math.sqrt(h_j2)
             ih_j = 1.0/h_j
 
             w_j = pmass[j] / pdens[j] / hsml[j]**3
+            coeff = w_j * quantity_to_smooth[j]
 
             # Now we know which pixels to deposit onto for this particle,
             # so loop over them and add this particle's contribution
@@ -908,21 +911,30 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
-                if posx_diff > h_j2: continue
+                if posx_diff > 2 * h_j2: continue
 
                 for yi in range(y0, y1):
                     y = (yi + 0.5) * dy + y_min
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2: continue
+                    if posy_diff > 2 * h_j2: continue
 
-                    qxy = math.sqrt(posx_diff + posy_diff) * ih_j
+                    # note that yt's kernel functions use a different convention
+                    # than the SPLASH paper (following Gadget-2), and qxy is
+                    # twice the value of q used in the SPLASH paper
+                    qxy = 2.0 * math.sqrt(posx_diff + posy_diff) * ih_j
                     if qxy >= 1:
                         continue
 
                     # see equation 11 of the SPLASH paper
-                    coeff = w_j * quantity_to_smooth[j]
-                    buff[xi, yi] +=  coeff * kernel_func(qxy)
-
+                    buff_num[xi, yi] +=  coeff * kernel_func(qxy)
+                    buff_denom[xi, yi] += w_j * kernel_func(qxy)
+    # now we can calculate the normalized image buffer we want to return
+    # be careful to avoid producing NaNs in the results
+    for xi in range(xsize):
+        for yi in range(ysize):
+            if buff_denom[xi, yi] == 0:
+                continue
+            buff[xi, yi] = buff_num[xi, yi] / buff_denom[xi, yi]
     return np.array(buff)
