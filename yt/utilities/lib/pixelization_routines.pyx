@@ -850,3 +850,79 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
                     buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
 
     return np.array(buff)
+
+@cython.initializedcheck(False)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
+                              np.float64_t[:] hsml, np.float64_t[:] pmass,
+                              np.float64_t[:] pdens,
+                              np.float64_t[:] quantity_to_smooth,
+                              np.intp_t xsize, np.intp_t ysize,
+                              bounds, kernel_name="cubic"):
+
+    cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
+    cdef np.int64_t xi, yi, x0, x1, y0, y1
+    cdef np.float64_t qxy, posx_diff, posy_diff, ih_j
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
+    cdef int index, i, j
+
+    cdef np.float64_t[:, :] buff = np.zeros((xsize, ysize), dtype='f8')
+
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+
+    dx = (x_max - x_min) / buff.shape[0]
+    dy = (y_max - y_min) / buff.shape[1]
+    idx = 1.0/dx
+    idy = 1.0/dy
+
+    kernel_func = get_kernel_func(kernel_name)
+
+    with nogil:
+        for j in prange(0, posx.shape[0]):
+            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
+            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
+            x0 = iclip(x0-1, 0, buff.shape[0]-1)
+            x1 = iclip(x1+1, 0, buff.shape[0]-1)
+
+            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
+            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
+            y0 = iclip(y0-1, 0, buff.shape[1]-1)
+            y1 = iclip(y1+1, 0, buff.shape[1]-1)
+
+            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+            h_j = math.sqrt(h_j2)
+            ih_j = 1.0/h_j
+
+            w_j = pmass[j] / pdens[j] / hsml[j]**3
+
+            # Now we know which pixels to deposit onto for this particle,
+            # so loop over them and add this particle's contribution
+
+            for xi in range(x0, x1):
+                x = (xi + 0.5) * dx + x_min
+
+                posx_diff = posx[j] - x
+                posx_diff = posx_diff * posx_diff
+                if posx_diff > h_j2: continue
+
+                for yi in range(y0, y1):
+                    y = (yi + 0.5) * dy + y_min
+
+                    posy_diff = posy[j] - y
+                    posy_diff = posy_diff * posy_diff
+                    if posy_diff > h_j2: continue
+
+                    qxy = math.sqrt(posx_diff + posy_diff) * ih_j
+                    if qxy >= 1:
+                        continue
+
+                    # see equation 11 of the SPLASH paper
+                    coeff = w_j * quantity_to_smooth[j]
+                    buff[xi, yi] +=  coeff * kernel_func(qxy)
+
+    return np.array(buff)
