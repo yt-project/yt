@@ -860,17 +860,17 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
                               np.float64_t[:] pdens,
                               np.float64_t[:] quantity_to_smooth,
                               np.intp_t xsize, np.intp_t ysize,
-                              bounds, kernel_name="cubic"):
+                              bounds, kernel_name="cubic",
+                              use_normalization=True):
 
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t qxy, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
-
     cdef np.float64_t[:, :] buff_num = np.zeros((xsize, ysize), dtype='f8')
     cdef np.float64_t[:, :] buff_denom = np.zeros((xsize, ysize), dtype='f8')
-    cdef np.float64_t[:, :] buff = np.zeros_like(buff_num)
+    cdef np.float64_t[:, :] buff = np.zeros((xsize, ysize))
 
     x_min = bounds[0]
     x_max = bounds[1]
@@ -883,6 +883,10 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
     idy = 1.0/dy
 
     kernel_func = get_kernel_func(kernel_name)
+
+    # define this to avoid using the use_normalization python object
+    # in the tight loop
+    cdef np.intp_t use_norm = int(use_normalization)
 
     with nogil:
         for j in prange(0, posx.shape[0]):
@@ -927,14 +931,18 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
                     if qxy >= 1:
                         continue
 
-                    # see equation 11 of the SPLASH paper
-                    buff_num[xi, yi] +=  coeff * kernel_func(qxy)
-                    buff_denom[xi, yi] += w_j * kernel_func(qxy)
-    # now we can calculate the normalized image buffer we want to return
-    # be careful to avoid producing NaNs in the results
-    for xi in range(xsize):
-        for yi in range(ysize):
-            if buff_denom[xi, yi] == 0:
-                continue
-            buff[xi, yi] = buff_num[xi, yi] / buff_denom[xi, yi]
+                    # see equations 6, 9, and 11 of the SPLASH paper
+                    if use_norm:
+                        buff_num[xi, yi] += coeff * kernel_func(qxy)
+                        buff_denom[xi, yi] += w_j * kernel_func(qxy)
+                    else:
+                        buff[xi, yi] += coeff * kernel_func(qxy)
+    if use_norm:
+        # now we can calculate the normalized image buffer we want to 
+        # return, being careful to avoid producing NaNs in the result
+        for xi in range(xsize):
+            for yi in range(ysize):
+                if buff_denom[xi, yi] == 0:
+                    continue
+                buff[xi, yi] = buff_num[xi, yi] / buff_denom[xi, yi]
     return np.array(buff)
