@@ -124,9 +124,11 @@ class BaseIOHandler(object):
         return {}
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        for ptype, (x, y, z, hsml) in self._read_particle_coords(chunks, ptf):
-            psize[ptype] += selector.count_points(x, y, z, hsml)
-        return dict(psize.items())
+        for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+            # assume particles have zero radius, we break this assumption
+            # in the SPH frontend and override this function there
+            psize[ptype] += selector.count_points(x, y, z, 0.0)
+        return dict(psize)
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}

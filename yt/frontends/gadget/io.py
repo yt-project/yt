@@ -19,8 +19,8 @@ import numpy as np
 import os
 
 from yt.extern.six import string_types
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.frontends.sph.io import \
+    IOHandlerSPH
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 from yt.utilities.logger import ytLogger as mylog
@@ -33,7 +33,7 @@ from .definitions import \
     gadget_hdf5_ptypes
 
 
-class IOHandlerGadgetHDF5(BaseIOHandler):
+class IOHandlerGadgetHDF5(IOHandlerSPH):
     _dataset_type = "gadget_hdf5"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = gadget_hdf5_ptypes
@@ -213,7 +213,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
 
 ZeroMass = object()
 
-class IOHandlerGadgetBinary(BaseIOHandler):
+class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
     _vector_fields = (("Coordinates", 3),
                       ("Velocity", 3),
