@@ -83,7 +83,7 @@ class OpenPMDHierarchy(GridIndex):
         GridIndex.__init__(self, ds, dataset_type)
 
     def _get_particle_type_counts(self):
-        """Sets the active number of particles for every species.
+        """Reads the active number of particles for every species.
 
         Returns
         -------
@@ -189,9 +189,13 @@ class OpenPMDHierarchy(GridIndex):
 
         for mesh in list(f[bp + mp].keys()):
             if type(f[bp + mp + mesh]) is h5.Group:
-                self.meshshapes[mesh] = f[bp + mp + mesh + "/" + list(f[bp + mp + mesh].keys())[0]].shape
+                shape = f[bp + mp + mesh + "/" + list(f[bp + mp + mesh].keys())[0]].shape
             else:
-                self.meshshapes[mesh] = f[bp + mp + mesh].shape
+                shape = f[bp + mp + mesh].shape
+            spacing = tuple(f[bp + mp + mesh].attrs["gridSpacing"])
+            offset = tuple(f[bp + mp + mesh].attrs["gridGlobalOffset"])
+            unit_si = f[bp + mp + mesh].attrs["gridUnitSI"]
+            self.meshshapes[mesh] = (shape, spacing, offset, unit_si)
         for species in list(f[bp + pp].keys()):
             if "particlePatches" in list(f[bp + pp + "/" + species].keys()):
                 for patch, size in enumerate(f[bp + pp + "/" + species + "/particlePatches/numParticles"]):
@@ -207,13 +211,13 @@ class OpenPMDHierarchy(GridIndex):
         self.vpg = int(self.dataset.gridsize / 4)  # 4Byte per value (f32)
 
         # Meshes of the same size do not need separate chunks
-        for shape in set(self.meshshapes.values()):
+        for (shape, spacing, offset, unit_si) in set(self.meshshapes.values()):
             self.num_grids += min(shape[0], int(np.ceil(reduce(mul, shape) * self.vpg**-1)))
 
         # Same goes for particle chunks if they are not inside particlePatches
         patches = {}
         no_patches = {}
-        for k, v in list(self.numparts.items()):
+        for (k, v) in list(self.numparts.items()):
             if "#" in k:
                 patches[k] = v
             else:
@@ -242,27 +246,43 @@ class OpenPMDHierarchy(GridIndex):
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype="object")
 
-        def get_component(group, component_name, index, offset):
+        def get_component(group, component_name, _index=0, _offset=None):
             record_component = group[component_name]
-            unit_si = record_component.attrs["unitSI"]
-            return np.multiply(record_component[index:index+offset], unit_si)
+            _unit_si = record_component.attrs["unitSI"]
+            if is_const_component(record_component):
+                _shape = tuple(record_component.attrs["shape"],)
+                if _offset is None:
+                    _shape[0] -= _index
+                else:
+                    _shape[0] = _offset
+                return np.full(_shape, record_component.attrs["value"] * _unit_si)
+            else:
+                if _offset is not None:
+                    _offset += _index
+                return np.multiply(record_component[_index:_offset], _unit_si)
 
         grid_index_total = 0
 
         # Mesh grids
-        for shape in set(self.meshshapes.values()):
+        for mesh in set(self.meshshapes.values()):
+            (shape, spacing, offset, unit_si) = mesh
+            shape = np.asarray(shape)
+            spacing = np.asarray(spacing)
+            offset = np.asarray(offset)
             # Total dimension of this grid
             domain_dimension = np.asarray(shape, dtype=np.int32)
             domain_dimension = np.append(domain_dimension, np.ones(3 - len(domain_dimension)))
             # Number of grids of this shape
             num_grids = min(shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1)))
-            gle = self.dataset.domain_left_edge
-            gre = self.dataset.domain_right_edge
+            gle = offset * unit_si  # self.dataset.domain_left_edge
+            gre = domain_dimension[:spacing.size] * unit_si * spacing + gle  # self.dataset.domain_right_edge
+            gle = np.append(gle, np.zeros(3 - len(gle)))
+            gre = np.append(gre, np.ones(3 - len(gre)))
             grid_dim_offset = np.linspace(0, domain_dimension[0], num_grids + 1, dtype=np.int32)
             grid_edge_offset = grid_dim_offset * np.float(domain_dimension[0]) ** -1 * (gre[0] - gle[0]) + gle[0]
             mesh_names = []
-            for (mname, mshape) in list(self.meshshapes.items()):
-                if shape == mshape:
+            for (mname, mdata) in list(self.meshshapes.items()):
+                if mesh == mdata:
                     mesh_names.append(str(mname))
             prev = 0
             for grid in range(num_grids):
@@ -394,7 +414,8 @@ class OpenPMDDataset(Dataset):
             iterations = list(handle["/data"].keys())
             mylog.info("open_pmd - found {} iterations in file".format(len(iterations)))
         elif "fileBased" in encoding:
-            regex = "^" + handle.attrs["iterationFormat"].decode().replace("%T", "[0-9]+") + "$"
+            itformat = handle.attrs["iterationFormat"].split("/")[-1]
+            regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
             if path is "":
                 mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
                 pass
@@ -446,15 +467,13 @@ class OpenPMDDataset(Dataset):
             mylog.warning("open_pmd - Could not detect shape of simulated field! "
                           "Assuming a single cell and thus setting fshape to [1, 1, 1]!")
         self.dimensionality = len(fshape)
-
-        fshape = np.append(fshape, np.ones(3 - self.dimensionality))
-        self.domain_dimensions = fshape
+        self.domain_dimensions = np.append(fshape, np.ones(3 - self.dimensionality))
 
         try:
             mesh = list(f[bp + mp].keys())[0]
             spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
             offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
-            unit_si = np.asarray(f[bp + mp + "/" + mesh].attrs["gridUnitSI"])
+            unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
             self.domain_left_edge = offset * unit_si
             # self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing

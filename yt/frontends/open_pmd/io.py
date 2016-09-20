@@ -236,7 +236,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
         record_component = group[component_name]
         unit_si = record_component.attrs["unitSI"]
         if is_const_component(record_component):
-            shape = record_component.attrs["shape"]
+            shape = tuple(record_component.attrs["shape"],)
             if offset is None:
                 shape[0] -= index  # This makes constant meshes readable
             else:
