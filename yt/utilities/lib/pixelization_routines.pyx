@@ -723,6 +723,7 @@ cdef class SPHKernelInterpolationTable:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef np.float64_t integrate_qxy2(self, np.float64_t qxy2) nogil:
+        # See equation 30 of the SPLASH paper
         cdef int i
         # Our bounds are -sqrt(R*R - qxy2) and sqrt(R*R-qxy2)
         # And our R is always 1; note that our smoothing kernel functions
@@ -777,14 +778,16 @@ cdef class SPHKernelInterpolationTable:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_kernel(np.float64_t[:] posx, np.float64_t[:] posy,
-                        np.float64_t[:] hsml, np.float64_t[:] dens,
-                        np.intp_t xsize, np.intp_t ysize, 
-                        bounds, kernel_name="cubic"):
+def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
+                                   np.float64_t[:] hsml, np.float64_t[:] pmass,
+                                   np.float64_t[:] pdens,
+                                   np.float64_t[:] quantity_to_smooth,
+                                   np.intp_t xsize, np.intp_t ysize,
+                                   bounds, kernel_name="cubic"):
 
-    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
-    cdef np.float64_t qxy2, posx_diff, posy_diff, coeff, ih_j2
+    cdef np.float64_t qxy2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
 
@@ -806,8 +809,6 @@ def pixelize_sph_kernel(np.float64_t[:] posx, np.float64_t[:] posy,
     
     with nogil:
         for j in prange(0, posx.shape[0]):
-            coeff = dens[j] * hsml[j] * dens[j]
-
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, buff.shape[0]-1)
@@ -821,6 +822,11 @@ def pixelize_sph_kernel(np.float64_t[:] posx, np.float64_t[:] posy,
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
             
+            w_j = pmass[j] / pdens[j] / hsml[j]**3
+
+            # Now we know which pixels to deposit onto for this particle,
+            # so loop over them and add this particle's contribution
+
             for xi in range(x0, x1):
                 x = (xi + 0.5) * dx + x_min
 
@@ -839,6 +845,8 @@ def pixelize_sph_kernel(np.float64_t[:] posx, np.float64_t[:] posy,
                     if qxy2 >= 1:
                         continue
 
-                    buff[xi, yi] += coeff * itab.interpolate(qxy2)
+                    # see equation 32 of the SPLASH paper
+                    coeff = w_j * hsml[j] * quantity_to_smooth[j]
+                    buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
 
     return np.array(buff)
