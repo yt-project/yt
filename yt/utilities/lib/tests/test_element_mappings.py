@@ -34,8 +34,6 @@ def check_all_vertices(sampler, vertices, field_values):
     for i in range(NV):
         x = vertices[i]
         val = sampler(vertices, field_values, x)
-        print("Actual equals " + str(val))
-        print("Desired equals " + str(field_values[i]))
         assert_almost_equal(val, field_values[i])
 
 
