@@ -41,7 +41,7 @@ def compare(ds, field, test_prefix, decimals=12):
     test.prefix = test_prefix
     return test
 
-tri2 = "MOOSE_sample_data/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
+tri2 = "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
 
 @requires_ds(tri2)
 def test_tri2():
