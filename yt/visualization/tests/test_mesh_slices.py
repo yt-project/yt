@@ -32,7 +32,9 @@ def setup():
 def compare(ds, field, test_prefix, decimals=12):
     def slice_image(filename_prefix):
         sl = yt.SlicePlot(ds, 'z', field)
-        return sl.save(filename_prefix)
+        sl.set_log('all', False)
+        image_file = sl.save(filename_prefix)
+        return image_file
 
     slice_image.__name__ = "slice_{}".format(test_prefix)
     test = GenericImageTest(ds, slice_image, decimals)
@@ -43,7 +45,7 @@ tri2 = "MOOSE_sample_data/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
 
 @requires_ds(tri2)
 def test_tri2():
-    ds = data_dir_load(tri2)
+    ds = data_dir_load(tri2, kwargs={'step':-1})
     for field in ds.field_list:
         yield compare(ds, field, "answers_tri2_%s_%s" % (field[0], field[1]))
 
