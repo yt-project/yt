@@ -135,7 +135,8 @@ cdef class DistanceQueue:
         will return the indices into the points array of the maxn closest
         neighbors."""
         cdef int i, j
-        cdef np.float64_t ppos[3], cpos[3]
+        cdef np.float64_t ppos[3]
+        cdef np.float64_t cpos[3]
         self.neighbor_reset()
         for i in range(3):
             cpos[i] = center[i]

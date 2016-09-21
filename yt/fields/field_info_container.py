@@ -98,7 +98,7 @@ class FieldInfoContainer(dict):
             if (ptype, f) not in self.field_list:
                 continue
             self.add_output_field((ptype, f),
-                units = units, particle_type = True,
+                units = units, sampling_type = "particle",
                 display_name = dn, output_units = output_units)
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
@@ -136,7 +136,7 @@ class FieldInfoContainer(dict):
                 continue
             self.add_output_field(field, 
                                   units = self.ds.field_units.get(field, ""),
-                                  particle_type = True)
+                                  sampling_type = "particle")
         self.setup_smoothed_fields(ptype, 
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
@@ -311,7 +311,7 @@ class FieldInfoContainer(dict):
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
-            particle_type = self[original_name].particle_type,
+            sampling_type = self[original_name].sampling_type,
             display_name = self[original_name].display_name,
             units = units)
 

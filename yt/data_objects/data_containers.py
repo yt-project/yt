@@ -310,7 +310,7 @@ class YTDataContainer(object):
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
-            if finfo.particle_type:
+            if finfo.particle_type: # This is a property now
                 tr = self._generate_particle_field(field)
             else:
                 tr = self._generate_fluid_field(field)
