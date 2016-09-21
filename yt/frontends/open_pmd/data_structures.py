@@ -414,7 +414,7 @@ class OpenPMDDataset(Dataset):
             iterations = list(handle["/data"].keys())
             mylog.info("open_pmd - found {} iterations in file".format(len(iterations)))
         elif "fileBased" in encoding:
-            itformat = handle.attrs["iterationFormat"].split("/")[-1]
+            itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
             if path is "":
                 mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
