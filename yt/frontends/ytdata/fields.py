@@ -48,7 +48,7 @@ class YTDataContainerFieldInfo(FieldInfoContainer):
                 return data["grid", "dx"] * \
                   data["grid", "dy"] * \
                   data["grid", "dz"]
-            self.add_field(("grid", "cell_volume"), function=_cell_volume,
+            self.add_field(("grid", "cell_volume"), "cell",  function=_cell_volume,
                            units="cm**3", particle_type=True)
 
 class YTGridFieldInfo(FieldInfoContainer):

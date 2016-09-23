@@ -73,7 +73,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 return data["momentum_%s" % axis]/data["density"]
             return velocity
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax),
+            self.add_field(("gas", "velocity_%s" % ax), "cell", 
                            function = _get_vel(ax),
                            units = unit_system["velocity"])
 
@@ -97,7 +97,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         # TODO: The conversion factor here needs to be addressed, as previously
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
-        self.add_field(("gas", "temperature"), function = _temperature,
+        self.add_field(("gas", "temperature"), "cell",  function = _temperature,
                        units = unit_system["temperature"])
 
         # Create a metal_density field as sum of existing metal fields. 
@@ -117,7 +117,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 def _metal_density(field, data):
                     tr = data["metal_ii_density"]
                     return tr
-            self.add_field(("gas","metal_density"),
+            self.add_field(("gas","metal_density"), "cell", 
                            function=_metal_density,
                            units=unit_system["density"],
                            take_log=True)
@@ -137,9 +137,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
                     return data["STAR","creation_time"]
                 return data.ds.current_time - data["STAR","creation_time"]
 
-            self.add_field((ptype, "creation_time"), function=_creation_time, units="yr",
+            self.add_field((ptype, "creation_time"), "cell",  function=_creation_time, units="yr",
                         particle_type=True)
-            self.add_field((ptype, "age"), function=_age, units="yr",
+            self.add_field((ptype, "age"), "cell",  function=_age, units="yr",
                         particle_type=True)
 
             if self.ds.cosmological_simulation:
@@ -151,7 +151,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
                         return data["STAR","BIRTH_TIME"]
                     return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
 
-                self.add_field((ptype, "creation_redshift"), function=_creation_redshift,
+                self.add_field((ptype, "creation_redshift"), "cell",  function=_creation_redshift,
                         particle_type=True)
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)

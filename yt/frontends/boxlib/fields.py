@@ -98,7 +98,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
             return velocity
 
         for ax in 'xyz':
-            self.add_field((ptype, "particle_velocity_%s" % ax), 
+            self.add_field((ptype, "particle_velocity_%s" % ax), "cell",  
                            function=_get_vel(ax),
                            particle_type=True,
                            units="code_length/code_time")
@@ -112,14 +112,14 @@ class BoxlibFieldInfo(FieldInfoContainer):
             self.setup_momentum_to_velocity()
         elif any(f[1] == "xvel" for f in self.field_list):
             self.setup_velocity_to_momentum()
-        self.add_field(("gas", "thermal_energy"),
+        self.add_field(("gas", "thermal_energy"), "cell", 
                        function=_thermal_energy,
                        units=unit_system["specific_energy"])
-        self.add_field(("gas", "thermal_energy_density"),
+        self.add_field(("gas", "thermal_energy_density"), "cell", 
                        function=_thermal_energy_density,
                        units=unit_system["pressure"])
         if ("gas", "temperature") not in self.field_aliases:
-            self.add_field(("gas", "temperature"),
+            self.add_field(("gas", "temperature"), "cell", 
                            function=_temperature,
                            units=unit_system["temperature"])
 
@@ -129,7 +129,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
                 return data["%smom" % axis]/data["density"]
             return velocity
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax),
+            self.add_field(("gas", "velocity_%s" % ax), "cell", 
                            function=_get_vel(ax),
                            units=self.ds.unit_system["velocity"])
 
@@ -139,7 +139,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
                 return data["%svel" % axis]*data["density"]
             return momentum
         for ax in 'xyz':
-            self.add_field(("gas", "momentum_%s" % ax),
+            self.add_field(("gas", "momentum_%s" % ax), "cell", 
                            function=_get_mom(ax),
                            units=mom_units)
 

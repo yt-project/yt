@@ -65,7 +65,7 @@ class ARTFieldInfo(FieldInfoContainer):
             tr *= (data.ds.parameters['gamma'] - 1.)
             tr /= data.ds.parameters['aexpn']**2
             return tr * data['art', 'GasEnergy'] / data['art', 'Density']
-        self.add_field(('gas', 'temperature'),
+        self.add_field(('gas', 'temperature'), "cell", 
                        function=_temperature, 
                        units=unit_system["temperature"])
 
@@ -75,7 +75,7 @@ class ARTFieldInfo(FieldInfoContainer):
                         data[('gas','density')])
             return velocity
         for ax in 'xyz':
-            self.add_field(('gas','velocity_%s' % ax),
+            self.add_field(('gas','velocity_%s' % ax), "cell", 
                            function = _get_vel(ax),
                            units=unit_system["velocity"])
 
@@ -85,7 +85,7 @@ class ARTFieldInfo(FieldInfoContainer):
                   data['gas','momentum_z']**2)**0.5
             tr *= data['index','cell_volume'].in_units('cm**3')
             return tr
-        self.add_field(('gas', 'momentum_magnitude'),
+        self.add_field(('gas', 'momentum_magnitude'), "cell", 
                        function=_momentum_magnitude,
                        units=unit_system["momentum"])
 
@@ -93,7 +93,7 @@ class ARTFieldInfo(FieldInfoContainer):
             tr = data['gas','momentum_magnitude']
             tr /= data['gas','cell_mass']
             return tr
-        self.add_field(('gas', 'velocity_magnitude'),
+        self.add_field(('gas', 'velocity_magnitude'), "cell", 
                        function=_velocity_magnitude,
                        units=unit_system["velocity"])
 
@@ -101,7 +101,7 @@ class ARTFieldInfo(FieldInfoContainer):
             tr = data['gas','metal_ia_density']
             tr += data['gas','metal_ii_density']
             return tr
-        self.add_field(('gas','metal_density'),
+        self.add_field(('gas','metal_density'), "cell", 
                        function=_metal_density,
                        units=unit_system["density"])
 
@@ -109,7 +109,7 @@ class ARTFieldInfo(FieldInfoContainer):
             tr = data['gas','metal_density']
             tr /= data['gas','density']
             return tr
-        self.add_field(('gas', 'metal_mass_fraction'),
+        self.add_field(('gas', 'metal_mass_fraction'), "cell", 
                        function=_metal_mass_fraction,
                        units='')
 
@@ -117,7 +117,7 @@ class ARTFieldInfo(FieldInfoContainer):
             tr = (1. - data.ds.parameters['Y_p'] - 
                   data['gas', 'metal_mass_fraction'])
             return tr
-        self.add_field(('gas', 'H_mass_fraction'),
+        self.add_field(('gas', 'H_mass_fraction'), "cell", 
                        function=_H_mass_fraction,
                        units='')
 
@@ -125,6 +125,6 @@ class ARTFieldInfo(FieldInfoContainer):
             tr = data['gas','metal_mass_fraction']
             tr /= data['gas','H_mass_fraction']
             return tr
-        self.add_field(('gas', 'metallicity'),
+        self.add_field(('gas', 'metallicity'), "cell", 
                        function=_metallicity,
                        units='')

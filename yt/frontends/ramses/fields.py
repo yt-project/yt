@@ -89,7 +89,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             rv = data["gas", "pressure"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
             return rv
-        self.add_field(("gas", "temperature"), function=_temperature,
+        self.add_field(("gas", "temperature"), "cell",  function=_temperature,
                         units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
 

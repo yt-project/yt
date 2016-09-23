@@ -124,7 +124,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 except:
                     pass
                 return ener
-            self.add_field(("gas","total_energy"), function=_ener,
+            self.add_field(("gas","total_energy"), "cell",  function=_ener,
                            units=unit_system["specific_energy"])
         if ("flash","eint") in self.field_list:
             self.add_output_field(("flash","eint"),
@@ -139,29 +139,29 @@ class FLASHFieldInfo(FieldInfoContainer):
                 except:
                     pass
                 return eint
-            self.add_field(("gas","thermal_energy"), function=_eint,
+            self.add_field(("gas","thermal_energy"), "cell",  function=_eint,
                            units=unit_system["specific_energy"])
         ## Derived FLASH Fields
         def _nele(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","ye"]*Na_code
-        self.add_field(('flash','nele'), function=_nele, units="code_length**-3")
-        self.add_field(('flash','edens'), function=_nele, units="code_length**-3")
+        self.add_field(('flash','nele'), "cell",  function=_nele, units="code_length**-3")
+        self.add_field(('flash','edens'), "cell",  function=_nele, units="code_length**-3")
         def _nion(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
-        self.add_field(('flash','nion'), function=_nion, units="code_length**-3")
+        self.add_field(('flash','nion'), "cell",  function=_nion, units="code_length**-3")
         
         if ("flash", "abar") in self.field_list:
             self.add_output_field(("flash", "abar"), units="1")
         else:
             def _abar(field, data):
                 return 1.0 / data["flash","sumy"]
-            self.add_field(("flash","abar"), function=_abar, units="1")
+            self.add_field(("flash","abar"), "cell",  function=_abar, units="1")
 
         def _number_density(fields,data):
             return (data["nele"]+data["nion"])
-        self.add_field(("gas","number_density"), function=_number_density,
+        self.add_field(("gas","number_density"), "cell",  function=_number_density,
                        units=unit_system["number_density"])
 
         setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
