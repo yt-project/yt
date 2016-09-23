@@ -327,16 +327,16 @@ OpenPMD
 ^^^^^^^
 
 .. autosummary::
-:toctree: generated/
+   :toctree: generated/
 
-      ~yt.frontends.open_pmd.data_structures.OpenPMDGrid
-      ~yt.frontends.open_pmd.data_structures.OpenPMDHierarchy
-      ~yt.frontends.open_pmd.data_structures.OpenPMDDataset
-      ~yt.frontends.open_pmd.fields.OpenPMDFieldInfo
-      ~yt.frontends.open_pmd.io.IOHandlerOpenPMDHDF5
-      ~yt.frontends.open_pmd.misc.parse_unit_dimension
-      ~yt.frontends.open_pmd.misc.is_const_component
-      ~yt.frontends.open_pmd.misc.get_component
+   ~yt.frontends.open_pmd.data_structures.OpenPMDGrid
+   ~yt.frontends.open_pmd.data_structures.OpenPMDHierarchy
+   ~yt.frontends.open_pmd.data_structures.OpenPMDDataset
+   ~yt.frontends.open_pmd.fields.OpenPMDFieldInfo
+   ~yt.frontends.open_pmd.io.IOHandlerOpenPMDHDF5
+   ~yt.frontends.open_pmd.misc.parse_unit_dimension
+   ~yt.frontends.open_pmd.misc.is_const_component
+   ~yt.frontends.open_pmd.misc.get_component
 
 RAMSES
 ^^^^^^
