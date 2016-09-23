@@ -69,6 +69,8 @@ from yt.data_objects.unstructured_mesh import \
 from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
+from yt.frontends.exodus_ii.util import \
+    get_num_pseudo_dims
 
 class StreamGrid(AMRGridPatch):
     """
@@ -1661,9 +1663,9 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     coordinates : array_like
         The 3D coordinates of mesh vertices. This should be of size (L, D) where
         L is the number of vertices and D is the number of coordinates per vertex
-        (the spatial dimensions of the dataset). When loading more than one mesh,
-        the data for each mesh should be concatenated into a single coordinates
-        array.
+        (the spatial dimensions of the dataset). Currently this must be either 2 or 3.
+        When loading more than one mesh, the data for each mesh should be concatenated
+        into a single coordinates array.
     node_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 2D numpy arrays,
         representing data defined at element vertices. For multiple meshes,
@@ -1723,6 +1725,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     """
 
     dimensionality = coordinates.shape[1]
+    num_pseudo = get_num_pseudo_dims(coordinates)
+    if (num_pseudo > 1 or dimensionality < 2):
+        raise RuntimeError("1D unstructured mesh data "
+                           "is currently not supported.")
+
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
 
