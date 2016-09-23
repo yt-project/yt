@@ -553,11 +553,12 @@ cdef class SelectorObject:
     def count_points(self, np.ndarray[anyfloat, ndim=1] x,
                            np.ndarray[anyfloat, ndim=1] y,
                            np.ndarray[anyfloat, ndim=1] z,
-                           np.float64_t[:] radii):
+                           radii):
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.float64_t radius
+        cdef np.float64_t[:] _radii = np.atleast_1d(np.array(radii))
         _ensure_code(x)
         _ensure_code(y)
         _ensure_code(z)
@@ -566,7 +567,10 @@ cdef class SelectorObject:
                 pos[0] = x[i]
                 pos[1] = y[i]
                 pos[2] = z[i]
-                radius = radii[i]
+                if _radii.shape[0] == 1:
+                    radius = 0
+                else:
+                    radius = _radii[i]
                 if radius == 0:
                     count += self.select_point(pos)
                 else:
@@ -576,15 +580,17 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def select_points(self, np.ndarray[anyfloat, ndim=1] x,
-                            np.ndarray[anyfloat, ndim=1] y,
-                            np.ndarray[anyfloat, ndim=1] z,
-                            np.float64_t[:] radii):
+    def select_points(self,
+                      np.ndarray[anyfloat, ndim=1] x,
+                      np.ndarray[anyfloat, ndim=1] y,
+                      np.ndarray[anyfloat, ndim=1] z,
+                      radii):
         cdef int count = 0
         cdef int i
         cdef np.float64_t pos[3]
         cdef np.float64_t radius
         cdef np.ndarray[np.uint8_t, ndim=1] mask
+        cdef np.float64_t[:] _radii = np.atleast_1d(np.array(radii))
         mask = np.empty(x.shape[0], dtype='uint8')
         _ensure_code(x)
         _ensure_code(y)
@@ -601,7 +607,10 @@ cdef class SelectorObject:
                 pos[0] = x[i]
                 pos[1] = y[i]
                 pos[2] = z[i]
-                radius = radii[i]
+                if _radii.shape[0] == 1:
+                    radius = 0
+                else:
+                    radius = _radii[i]
                 if radius == 0:
                     mask[i] = self.select_point(pos)
                 else:

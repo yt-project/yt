@@ -71,7 +71,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 x = f["/%s/Coordinates" % ptype][:,0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][:,1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][:,2].astype("float64")
-                hsml = f["/%s/SmoothingLength" % ptype][:].astype("float64")
+                if ptype == self.ds._sph_ptype:
+                    hsml = f["/%s/SmoothingLength" % ptype][:].astype("float64")
+                else:
+                    hsml = 0.0
                 yield ptype, (x, y, z, hsml)
             f.close()
 
@@ -91,7 +94,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 if ptype == 'PartType0':
                     hsmls = g["SmoothingLength"][:].astype("float64")
                 else:
-                    hsmls = 0
+                    hsmls = 0.0
                 mask = selector.select_points(
                             coords[:,0], coords[:,1], coords[:,2], hsmls)
                 del coords
