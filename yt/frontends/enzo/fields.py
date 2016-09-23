@@ -241,8 +241,7 @@ class EnzoFieldInfo(FieldInfoContainer):
 
         def _age(field, data):
             return data.ds.current_time - data["creation_time"]
-        self.add_field((ptype, "age"), function = _age,
-                           sampling_type = "particle",
+        self.add_field((ptype, "age"), "particle", function = _age,
                            units = "yr")
 
         super(EnzoFieldInfo, self).setup_particle_fields(ptype)
