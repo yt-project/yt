@@ -51,7 +51,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         if str((ptype, index, offset)) not in self._cached_ptype:
             self._cached_ptype = str((ptype, index, offset))
             pds = self._handle[self.base_path + self.particles_path + "/" + ptype]
-            axes = [str(ax) for ax in pds["position"].keys()]
+            axes = list(pds["position"].keys())
             if offset is None:
                 if is_const_component(pds["position/" + axes[0]]):
                     offset = pds["position/" + axes[0]].attrs["shape"]
@@ -122,7 +122,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             for chunk in chunks:
                 for grid in chunk.objs:
                     if str(ptype) == "io":
-                        species = ds.keys()[0]
+                        species = list(ds.keys())[0]
                     else:
                         species = ptype
                     if species not in grid.ptypes:
@@ -134,8 +134,9 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                         continue
                     pds = ds[species]
                     for field in ptf[ptype]:
-                        component = "/".join(field.split("_")[1:]).replace("positionCoarse", "position").replace("-",
-                                                                                                                 "_")
+                        component = "/".join(field.split("_")[1:])
+                        component = component.replace("positionCoarse", "position")
+                        component = component.replace("-", "_")
                         data = get_component(pds, component, grid.pindex, grid.poffset)[mask]
                         for request_field in rfm[(ptype, field)]:
                             rv[request_field][ind[request_field]:ind[request_field] + data.shape[0]] = data

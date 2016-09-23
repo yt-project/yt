@@ -100,10 +100,10 @@ class OpenPMDHierarchy(GridIndex):
         pp = self.dataset.particles_path
         for ptype in self.ds.particle_types_raw:
             if str(ptype) == "io":
-                spec = f[bp + pp].keys()[0]
+                spec = list(f[bp + pp].keys())[0]
             else:
                 spec = ptype
-            axis = f[bp + pp + "/" + spec + "/position"].keys()[0]
+            axis = list(f[bp + pp + "/" + spec + "/position"].keys())[0]
             pos = f[bp + pp + "/" + spec + "/position/" + axis]
             if is_const_component(pos):
                 result[ptype] = pos.attrs["shape"]
@@ -152,7 +152,7 @@ class OpenPMDHierarchy(GridIndex):
                         try:
                             # Create a field for every axis (x,y,z) of every property (position)
                             # of every species (electrons)
-                            axes = f[bp + pp + species + "/" + record].keys()
+                            axes = list(f[bp + pp + species + "/" + record].keys())
                             if str(record) == "position":
                                 record = "positionCoarse"
                             for axis in axes:
@@ -166,7 +166,7 @@ class OpenPMDHierarchy(GridIndex):
                             pass
                     else:
                         pass
-            if len(f[bp + pp].keys()) > 1:
+            if len(list(f[bp + pp].keys())) > 1:
                 # There is more than one particle species, use the specific names as field types
                 self.field_list.extend(
                     [(str(field).split("_")[0],
@@ -197,7 +197,7 @@ class OpenPMDHierarchy(GridIndex):
 
         for mesh in f[bp + mp].keys():
             if type(f[bp + mp + mesh]) is h5.Group:
-                shape = f[bp + mp + mesh + "/" + f[bp + mp + mesh].keys()[0]].shape
+                shape = f[bp + mp + mesh + "/" + list(f[bp + mp + mesh].keys())[0]].shape
             else:
                 shape = f[bp + mp + mesh].shape
             spacing = tuple(f[bp + mp + mesh].attrs["gridSpacing"])
@@ -209,7 +209,7 @@ class OpenPMDHierarchy(GridIndex):
                 for (patch, size) in enumerate(f[bp + pp + "/" + species + "/particlePatches/numParticles"]):
                     self.numparts[species + "#" + str(patch)] = size
             else:
-                axis = f[bp + pp + species + "/position"].keys()[0]
+                axis = list(f[bp + pp + species + "/position"].keys())[0]
                 if is_const_component(f[bp + pp + species + "/position/" + axis]):
                     self.numparts[species] = f[bp + pp + species + "/position/" + axis].attrs["shape"]
                 else:
@@ -404,7 +404,7 @@ class OpenPMDDataset(Dataset):
         iterations = []
         encoding = handle.attrs["iterationEncoding"].decode()
         if "groupBased" in encoding:
-            iterations = handle["/data"].keys()
+            iterations = list(handle["/data"].keys())
             mylog.info("open_pmd - found {} iterations in file".format(len(iterations)))
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
@@ -420,9 +420,9 @@ class OpenPMDDataset(Dataset):
         if len(iterations) == 0:
             mylog.warning("open_pmd - no iterations found!")
         if "groupBased" in encoding and len(iterations) > 1:
-            mylog.warning("open_pmd - only choose to load one iteration ({})".format(handle["/data"].keys()[0]))
+            mylog.warning("open_pmd - only choose to load one iteration ({})".format(list(handle["/data"].keys())[0]))
 
-        self.base_path = "/data/{}/".format(handle["/data"].keys()[0])
+        self.base_path = "/data/{}/".format(list(handle["/data"].keys())[0])
         self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
         self.particles_path = self._handle["/"].attrs["particlesPath"].decode()
 
@@ -454,7 +454,7 @@ class OpenPMDDataset(Dataset):
         shapes = [[1, 1, 1]]
         for mesh in f[bp + mp].keys():
             if type(f[bp + mp + mesh]) is h5.Group:
-                shapes.append(f[bp + mp + mesh + "/" + f[bp + mp + mesh].keys()[0]].shape)
+                shapes.append(f[bp + mp + mesh + "/" + list(f[bp + mp + mesh].keys())[0]].shape)
             else:
                 shapes.append(f[bp + mp + mesh].shape)
         fshape = np.empty(3, dtype=np.float64)
@@ -465,7 +465,7 @@ class OpenPMDDataset(Dataset):
         self.domain_dimensions = np.append(fshape, np.ones(3 - self.dimensionality))
 
         try:
-            mesh = f[bp + mp].keys()[0]
+            mesh = list(f[bp + mp].keys())[0]
             spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
             offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
             unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
@@ -492,14 +492,17 @@ class OpenPMDDataset(Dataset):
             return False
 
         requirements = ["openPMD", "basePath", "meshesPath", "particlesPath"]
-        attrs = f["/"].attrs.keys()
+        attrs = list(f["/"].attrs.keys())
         for i in requirements:
             if i not in attrs:
+                f.close()
                 return False
 
         known_versions = [StrictVersion("1.0.0"),
                           StrictVersion("1.0.1")]
         if StrictVersion(f.attrs["openPMD"].decode()) in known_versions:
+            f.close()
             return True
         else:
+            f.close()
             return False
