@@ -1519,6 +1519,57 @@ information.  At this time, halo member particles cannot be loaded.
    # The halo mass
    print(ad["FOF", "particle_mass"])
 
+.. _loading-openpmd-data:
+
+openPMD Data
+---------
+
+`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+scheme for mesh based data and particle data. It does not actually define a file
+format.
+
+HDF5-containers respecting the minimal set of meta information from
+versions 1.0.0 and 1.0.1 of the standard are compatible.
+Support for the ED-PIC extension is not available. Mesh data in cartesian coordinates
+and particle data can be read by this frontend.
+
+To load the first in-file iteration of a openPMD datasets using the standard HDF5
+output format:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load('example-3d/hdf5/data00000100.h5')
+
+If you operate on large files, you may want to modify the virtual chunking behaviour through
+``open_pmd_virtual_gridsize``. The supplied value is an estimate of the size of a single read request
+for each particle attribute/mesh (in Byte).
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5', open_pmd_virtual_gridsize=10e4)
+  sp = yt.SlicePlot(ds, 'x', 'rho')
+  sp.show()
+
+Particle data is fully supported:
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5')
+  ad = f.all_data()
+  ppp = yt.ParticlePhasePlot(ad, 'particle_position_y', 'particle_momentum_y', 'particle_weighting')
+  ppp.show()
+
+.. rubric:: Caveats
+
+* 1D, 2D and 3D data is compatible, but lower dimensional data might yield
+  strange results since it gets padded and treated as 3D. Extraneous dimensions are
+  set to be of length 1.0m and have a width of one cell.
+* The frontend has hardcoded logic for renaming the openPMD ``position``
+  of particles to ``positionCoarse``
+
 .. _loading-pyne-data:
 
 PyNE Data
