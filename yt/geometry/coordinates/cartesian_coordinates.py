@@ -172,4 +172,3 @@ class CartesianCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return self.ds.domain_width
-

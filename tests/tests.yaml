@@ -35,10 +35,10 @@ answer_tests:
     - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
-  
+
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
-  
+
   local_pw_006:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
@@ -46,24 +46,25 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
-  
+
   local_tipsy_001:
     - yt/frontends/tipsy/tests/test_outputs.py
-  
-  local_varia_003:
+
+  local_varia_004:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
     - yt/visualization/volume_rendering/tests/test_vr_orientation.py
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
+    - yt/visualization/tests/test_mesh_slices.py:test_tri2
 
   local_orion_000:
     - yt/frontends/boxlib/tests/test_orion.py
-  
+
   local_ramses_000:
     - yt/frontends/ramses/tests/test_outputs.py
-  
+
   local_ytdata_000:
     - yt/frontends/ytdata
 
@@ -81,6 +82,7 @@ answer_tests:
 other_tests:
   unittests:
      - '-v'
+     - '--exclude=test_mesh_slices'  # disable randomly failing test
   cookbook:
      - '-v'
      - 'doc/source/cookbook/tests/test_cookbook.py'
