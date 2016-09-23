@@ -1281,7 +1281,7 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
 
 Here, we have made up a simple, 2D unstructured mesh dataset consisting of two
 triangles and one node-centered data field. This data can be loaded as an in-memory
- dataset as follows:
+dataset as follows:
 
 .. code-block:: python
 
