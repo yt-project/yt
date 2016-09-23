@@ -133,9 +133,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if isinstance(data_source.ds, ParticleDataset) and field[0] == 'gas':
             ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
+            px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
+            py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
             buff = pixelize_sph_kernel_slice(
-                data_source[ptype, 'particle_position_x'],
-                data_source[ptype, 'particle_position_y'],
+                data_source[ptype, px_name],
+                data_source[ptype, py_name],
                 data_source[ptype, 'smoothing_length'],
                 data_source[ptype, 'particle_mass'],
                 data_source[ptype, 'density'],
