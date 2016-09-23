@@ -165,7 +165,7 @@ class ExodusIIDataset(Dataset):
             num_pseudo = get_num_pseudo_dims(mesh.connectivity_coords)
             if (num_pseudo > 1 or self.dimensionality < 2):
                 raise RuntimeError("1D unstructured mesh data "
-                                   "is currently not supported.")
+                                   "are currently not supported.")
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

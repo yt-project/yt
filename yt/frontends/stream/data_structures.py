@@ -1728,7 +1728,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     num_pseudo = get_num_pseudo_dims(coordinates)
     if (num_pseudo > 1 or dimensionality < 2):
         raise RuntimeError("1D unstructured mesh data "
-                           "is currently not supported.")
+                           "are currently not supported.")
 
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
