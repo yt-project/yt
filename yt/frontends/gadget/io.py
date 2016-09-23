@@ -299,7 +299,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 hsml = self._read_field_from_file(
                     f, tp[ptype], "SmoothingLength")
                 mask = selector.select_points(
-                    pos[:, 0], pos[:, 1], pos[:, 2], hsml)
+                    pos[:, 0], pos[:, 1], pos[:, 2], 2*hsml)
                 del pos
                 del hsml
                 if mask is None:
