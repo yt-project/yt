@@ -23,7 +23,6 @@ from os import \
 from re import match
 
 import numpy as np
-
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
@@ -451,32 +450,42 @@ class OpenPMDDataset(Dataset):
         self.refine_by = 1
         self.cosmological_simulation = 0
 
-        shapes = [[1, 1, 1]]
-        for mesh in f[bp + mp].keys():
-            if type(f[bp + mp + mesh]) is h5.Group:
-                shapes.append(f[bp + mp + mesh + "/" + list(f[bp + mp + mesh].keys())[0]].shape)
-            else:
-                shapes.append(f[bp + mp + mesh].shape)
-        fshape = np.empty(3, dtype=np.float64)
-        shapes = np.asarray(shapes)
-        for i in [0, 1, 2]:
-            fshape[i] = np.max(shapes.transpose()[i])
-        self.dimensionality = len(fshape)
-        self.domain_dimensions = np.append(fshape, np.ones(3 - self.dimensionality))
-
         try:
-            mesh = list(f[bp + mp].keys())[0]
-            spacing = np.asarray(f[bp + mp + "/" + mesh].attrs["gridSpacing"])
-            offset = np.asarray(f[bp + mp + "/" + mesh].attrs["gridGlobalOffset"])
-            unit_si = f[bp + mp + "/" + mesh].attrs["gridUnitSI"]
-            self.domain_left_edge = offset * unit_si
-            # self.domain_left_edge = np.zeros(3, dtype=np.float64)
-            self.domain_right_edge = self.domain_dimensions[:spacing.size] * unit_si * spacing
-            self.domain_right_edge += self.domain_left_edge
-            self.domain_left_edge = np.append(self.domain_left_edge, np.zeros(3 - self.domain_left_edge.size))
-            self.domain_right_edge = np.append(self.domain_right_edge, np.ones(3 - self.domain_right_edge.size))
-        except IndexError:
+            shapes = {}
+            left_edges = {}
+            right_edges = {}
+            for mesh in f[bp + mp].keys():
+                if type(f[bp + mp + mesh]) is h5.Group:
+                    shape = np.asarray(f[bp + mp + mesh + "/" + list(f[bp + mp + mesh].keys())[0]].shape)
+                else:
+                    shapes[mesh] = np.asarray(f[bp + mp + mesh].shape)
+                spacing = np.asarray(f[bp + mp + mesh].attrs["gridSpacing"])
+                offset = np.asarray(f[bp + mp + mesh].attrs["gridGlobalOffset"])
+                unit_si = np.asarray(f[bp + mp + mesh].attrs["gridUnitSI"])
+                le = offset * unit_si
+                re = le + shape * unit_si * spacing
+                shapes[mesh] = shape
+                left_edges[mesh] = le
+                right_edges[mesh] = re
+            lowest_dim = np.min([len(i) for i in shapes.values()])
+            shapes = np.asarray([i[:lowest_dim] for i in shapes.values()])
+            left_edges = np.asarray([i[:lowest_dim] for i in left_edges.values()])
+            right_edges = np.asarray([i[:lowest_dim] for i in right_edges.values()])
+            fs = []
+            dle = []
+            dre = []
+            for i in np.arange(lowest_dim):
+                fs.append(np.max(shapes.transpose()[i]))
+                dle.append(np.min(left_edges.transpose()[i]))
+                dre.append(np.min(right_edges.transpose()[i]))
+            self.dimensionality = len(fs)
+            self.domain_dimensions = np.append(fs, np.ones(3 - self.dimensionality))
+            self.domain_left_edge = np.append(dle, np.zeros(3 - len(dle)))
+            self.domain_right_edge = np.append(dre, np.ones(3 - len(dre)))
+        except ValueError:
             mylog.warning("open_pmd - It seems your data does not contain meshes. Assuming domain extent of 1m^3!")
+            self.dimensionality = 3
+            self.domain_dimensions = np.ones(3, dtype=np.float64)
             self.domain_left_edge = np.zeros(3, dtype=np.float64)
             self.domain_right_edge = np.ones(3, dtype=np.float64)
 
