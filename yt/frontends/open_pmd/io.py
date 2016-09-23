@@ -19,11 +19,13 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.frontends.open_pmd.misc import is_const_component
+from yt.frontends.open_pmd.misc import \
+    is_const_component, \
+    get_component
 from yt.utilities.io_handler import BaseIOHandler
 
 
-class IOHandlerOpenPMD(BaseIOHandler):
+class IOHandlerOpenPMDHDF5(BaseIOHandler):
     _field_dtype = "float32"
     _dataset_type = "openPMD"
 
@@ -49,18 +51,18 @@ class IOHandlerOpenPMD(BaseIOHandler):
         if str((ptype, index, offset)) not in self._cached_ptype:
             self._cached_ptype = str((ptype, index, offset))
             pds = self._handle[self.base_path + self.particles_path + "/" + ptype]
-            axes = [str(ax) for ax in list(pds["position"].keys())]
+            axes = [str(ax) for ax in pds["position"].keys()]
             if offset is None:
                 if is_const_component(pds["position/" + axes[0]]):
                     offset = pds["position/" + axes[0]].attrs["shape"]
                 else:
                     offset = pds["position/" + axes[0]].len()
             self.cache = np.empty((3, offset), dtype=np.float64)
-            for i in range(3):
+            for i in np.arange(3):
                 ax = "xyz"[i]
                 if ax in axes:
-                    np.add(self.get_component(pds, "position/" + ax, index, offset),
-                           self.get_component(pds, "positionOffset/" + ax, index, offset),
+                    np.add(get_component(pds, "position/" + ax, index, offset),
+                           get_component(pds, "positionOffset/" + ax, index, offset),
                            self.cache[i])
                 else:
                     # Pad accordingly with zeros to make 1D/2D datasets compatible
@@ -119,8 +121,8 @@ class IOHandlerOpenPMD(BaseIOHandler):
         for ptype in ptf:
             for chunk in chunks:
                 for grid in chunk.objs:
-                    if ptype in "io":
-                        species = list(ds.keys())[0]
+                    if str(ptype) == "io":
+                        species = ds.keys()[0]
                     else:
                         species = ptype
                     if species not in grid.ptypes:
@@ -134,7 +136,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     for field in ptf[ptype]:
                         component = "/".join(field.split("_")[1:]).replace("positionCoarse", "position").replace("-",
                                                                                                                  "_")
-                        data = self.get_component(pds, component, grid.pindex, grid.poffset)[mask]
+                        data = get_component(pds, component, grid.pindex, grid.poffset)[mask]
                         for request_field in rfm[(ptype, field)]:
                             rv[request_field][ind[request_field]:ind[request_field] + data.shape[0]] = data
                             ind[request_field] += data.shape[0]
@@ -196,7 +198,7 @@ class IOHandlerOpenPMD(BaseIOHandler):
                     mask = grid._get_selector_mask(selector)
                     if mask is None:
                         continue
-                    data = self.get_component(ds, component, grid.findex, grid.foffset)
+                    data = get_component(ds, component, grid.findex, grid.foffset)
                     # The following is a modified AMRGridPatch.select(...)
                     data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
                     count = grid.count(selector)
@@ -208,45 +210,3 @@ class IOHandlerOpenPMD(BaseIOHandler):
             rv[field].flatten()
 
         return rv
-
-    def get_component(self, group, component_name, index=0, offset=None):
-        """Grabs a dataset component from a group as a whole or sliced.
-
-        Parameters
-        ----------
-        group : h5py.Group
-        component_name : str
-            relative path of the component in the group
-        index : int, optional
-            first entry along the first axis to read
-        offset : int, optional
-            number of entries to read
-            if not supplied, every entry after index is returned
-
-        Notes
-        -----
-        This scales every entry of the component with the respective "unitSI".
-
-        Returns
-        -------
-        ndarray
-            (N,) 1D in case of particle data
-            (O,P,Q) 1D/2D/3D in case of mesh data
-        """
-        record_component = group[component_name]
-        unit_si = record_component.attrs["unitSI"]
-        if is_const_component(record_component):
-            shape = tuple(record_component.attrs["shape"],)
-            if offset is None:
-                shape[0] -= index  # This makes constant meshes readable
-            else:
-                shape[0] = offset
-            # component is constant, craft an array by hand
-            # mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, shape))
-            return np.full(shape, record_component.attrs["value"] * unit_si)
-        else:
-            if offset is not None:
-                offset += index
-            # component is a dataset, return it (possibly masked)
-            # mylog.debug("open_pmd - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
-            return np.multiply(record_component[index:offset], unit_si)

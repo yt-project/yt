@@ -22,9 +22,9 @@ from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import \
     parse_unit_dimension, \
     is_const_component
-from yt.utilities.on_demand_imports import _h5py as h5
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5
 from yt.utilities.physical_constants import \
     speed_of_light, \
     mu_0
@@ -142,9 +142,9 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         pp = ds.particles_path
         fields = f[bp + mp]
 
-        for fname in list(fields.keys()):
+        for fname in fields.keys():
             field = fields[fname]
-            if type(field) is h5.Dataset:
+            if type(field) is h5.Dataset or is_const_component(field):
                 # Don't consider axes. This appears to be a vector field of single dimensionality
                 ytname = str("_".join([fname.replace("_", "-")]))
                 parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
@@ -152,51 +152,45 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                 aliases = []
                 # Save a list of magnetic fields for aliasing later on
                 # We can not reasonably infer field type/unit by name in openPMD
-                if unit in "T" or "kg/(A*s**2)" in unit:
+                if unit == "T" or unit == "kg/(A*s**2)":
                     self._mag_fields.append(ytname)
                 self.known_other_fields += ((ytname, (unit, aliases, None)),)
             else:
-                axes = list(field.keys())
-                for axis in axes:
+                for axis in field.keys():
                     ytname = str("_".join([fname.replace("_", "-"), axis]))
                     parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
                     unit = str(YTQuantity(1, parsed).units)
                     aliases = []
                     # Save a list of magnetic fields for aliasing later on
                     # We can not reasonably infer field type by name in openPMD
-                    if unit in "T" or "kg/(A*s**2)" in unit:
+                    if unit == "T" or unit == "kg/(A*s**2)":
                         self._mag_fields.append(ytname)
                     self.known_other_fields += ((ytname, (unit, aliases, None)),)
         for i in self.known_other_fields:
             mylog.debug("open_pmd - known_other_fields - {}".format(i))
-        particle_fields = ()
         particles = f[bp + pp]
-        for species in list(particles.keys()):
-            for attrib in list(particles[species].keys()):
+        for species in particles.keys():
+            for record in particles[species].keys():
                 try:
-                    parsed = parse_unit_dimension(
-                        np.asarray(particles.get(species).get(attrib).attrs["unitDimension"],
-                                   dtype=np.int))
+                    pds = particles[species + "/" + record]
+                    parsed = parse_unit_dimension(pds.attrs["unitDimension"])
                     unit = str(YTQuantity(1, parsed).units)
-                    name = ["particle", attrib]
-                    ytattrib = attrib
-                    if ytattrib in "position":
+                    ytattrib = str(record).replace("_", "-")
+                    if ytattrib == "position":
                         # Symbolically rename position to preserve yt's interpretation of the pfield
                         # particle_position is later derived in setup_absolute_positions in the way yt expects it
                         ytattrib = "positionCoarse"
-                    pds = particles[species + "/" + attrib]
                     if type(pds) is h5.Dataset or is_const_component(pds):
-                        particle_fields += ((str("_".join(name)), (unit, [], None)),)
+                        name = ["particle", ytattrib]
+                        self.known_particle_fields += ((str("_".join(name)), (unit, [], None)),)
                     else:
-                        for axis in list(pds.keys()):
+                        for axis in pds.keys():
                             aliases = []
-                            if axis in "rxyz":
-                                name = ["particle", ytattrib.replace("_", "-"), axis]
+                            name = ["particle", ytattrib, axis]
                             ytname = str("_".join(name))
-                            particle_fields += ((ytname, (unit, aliases, None)),)
+                            self.known_particle_fields += ((ytname, (unit, aliases, None)),)
                 except KeyError:
-                    mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(species, attrib))
-        self.known_particle_fields = particle_fields
+                    mylog.info("open_pmd - {}_{} does not seem to have unitDimension".format(species, record))
         for i in self.known_particle_fields:
             mylog.debug("open_pmd - known_particle_fields - {}".format(i))
         super(OpenPMDFieldInfo, self).__init__(ds, field_list)

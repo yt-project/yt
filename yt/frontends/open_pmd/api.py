@@ -23,7 +23,7 @@ from .fields import \
     OpenPMDFieldInfo
 
 from .io import \
-    IOHandlerOpenPMD
+    IOHandlerOpenPMDHDF5
 
 from . import \
     tests
