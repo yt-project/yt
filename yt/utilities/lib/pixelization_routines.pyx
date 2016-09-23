@@ -915,14 +915,16 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
 
                 posx_diff = posx[j] - x
                 posx_diff = posx_diff * posx_diff
-                if posx_diff > 2 * h_j2: continue
+                if posx_diff > 2 * h_j2:
+                    continue
 
                 for yi in range(y0, y1):
                     y = (yi + 0.5) * dy + y_min
 
                     posy_diff = posy[j] - y
                     posy_diff = posy_diff * posy_diff
-                    if posy_diff > 2 * h_j2: continue
+                    if posy_diff > 2 * h_j2:
+                        continue
 
                     # note that yt's kernel functions use a different convention
                     # than the SPLASH paper (following Gadget-2), and qxy is
