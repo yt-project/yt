@@ -1024,3 +1024,14 @@ def setdefaultattr(obj, name, value):
     if not hasattr(obj, name):
         setattr(obj, name, value)
     return getattr(obj, name)
+
+def parse_h5_attr(f, attr):
+    """A Python3-safe function for getting hdf5 attributes.
+
+    If an attribute is supposed to be a string, this will return it as such.
+    """
+    val = f.attrs.get(attr, None)
+    if isinstance(val, bytes):
+        return val.decode('utf8')
+    else:
+        return val
