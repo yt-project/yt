@@ -19,6 +19,7 @@ import warnings
 
 import matplotlib
 import numpy as np
+import re
 
 from distutils.version import LooseVersion
 from functools import wraps
@@ -1953,11 +1954,14 @@ class TimestampCallback(PlotCallback):
         # If we're annotating the redshift, put it in the correct format
         if self.redshift:
             try:
-                z = np.abs(plot.data.ds.current_redshift)
+                z = plot.data.ds.current_redshift
             except AttributeError:
                 raise AttributeError("Dataset does not have current_redshift. "
                                      "Set redshift=False.")
+            # Replace instances of -0.0* with 0.0* to avoid
+            # negative null redshifts (e.g., "-0.00").
             self.text += self.redshift_format.format(redshift=float(z))
+            self.text = re.sub('-(0.0*)$', "\g<1>", self.text)
 
         # This is just a fancy wrapper around the TextLabelCallback
         tcb = TextLabelCallback(self.pos, self.text,
