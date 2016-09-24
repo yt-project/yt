@@ -1497,10 +1497,13 @@ def load_octree(octree_mask, data,
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.  It should be of
-        size n_octs * 8, where each item is 1 for an oct-cell being refined and
-        0 for it not being refined.  Note that for over_refine_factors != 1,
-        the children count will still be 8, so this is always 8.
+        This is a depth-first refinement mask for an Octree.  It should be 
+        of size n_octs * 8 (but see note about the root oct below), where 
+        each item is 1 for an oct-cell being refined and 0 for it not being
+        refined.  For over_refine_factors != 1, the children count will 
+        still be 8, so there will stil be n_octs * 8 entries. Note that if 
+        the root oct is not refined, there will be only one entry
+        for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
@@ -1522,8 +1525,29 @@ def load_octree(octree_mask, data,
         Determines whether the data will be treated as periodic along
         each axis
     partial_coverage : boolean
-        Whether or not an oct can be refined cell-by-cell, or whether all 8 get
-        refined.
+        Whether or not an oct can be refined cell-by-cell, or whether all 
+        8 get refined.
+
+    Example
+    -------
+
+    >>> import yt
+    >>> import numpy as np
+    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
+    ...             0, 0, 0, 0, 0, 0, 0, 0,
+    ...             8, 0, 0, 0, 0, 0, 0, 0,
+    ...             0]
+    >>>
+    >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
+    >>> quantities = {}
+    >>> quantities['gas', 'density'] = np.random.random((22, 1), dtype='f8')
+    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
+    >>>
+    >>> ds = yt.load_octree(octree_mask=octree_mask,
+    ...                     data=quantities,
+    ...                     bbox=bbox,
+    ...                     over_refine_factor=0,
+    ...                     partial_coverage=0)
 
     """
 
