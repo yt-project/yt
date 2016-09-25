@@ -73,8 +73,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         self.add_field(
             (ptype, "H_density"),
+            "particle",
             function=_h_density,
-            particle_type=True,
             units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H", particle_type=True)
         for suffix in ["density", "fraction", "mass", "number_density"]:
@@ -88,8 +88,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         self.add_field(
             (ptype, "H_p1_density"),
+            "particle",
             function=_h_p1_density,
-            particle_type=True,
             units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
 
@@ -111,8 +111,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
         for species in self.nuclei_names:
             self.add_field(
                 (ptype, "%s_nuclei_mass_density" % species),
+                "particle",
                 function=_nuclei_mass_density_field,
-                particle_type=True,
                 units=self.ds.unit_system["density"])
 
             for suf in ["_nuclei_mass_density", "_metallicity"]:

@@ -140,27 +140,28 @@ class Orion2FieldInfo(ChomboFieldInfo):
             return velocity
 
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax), function = _get_vel(ax),
+            self.add_field(("gas", "velocity_%s" % ax), "cell",
+                           function = _get_vel(ax),
                            units = unit_system["velocity"])
-        self.add_field(("gas", "thermal_energy"),
+        self.add_field(("gas", "thermal_energy"), "cell",
                        function = _thermal_energy,
                        units = unit_system["specific_energy"])
-        self.add_field(("gas", "thermal_energy_density"),
+        self.add_field(("gas", "thermal_energy_density"), "cell",
                        function = _thermal_energy_density,
                        units = unit_system["pressure"])
-        self.add_field(("gas", "kinetic_energy"),
+        self.add_field(("gas", "kinetic_energy"), "cell",
                        function = _kinetic_energy,
                        units = unit_system["pressure"])
-        self.add_field(("gas", "specific_kinetic_energy"),
+        self.add_field(("gas", "specific_kinetic_energy"), "cell",
                        function = _specific_kinetic_energy,
                        units = unit_system["specific_energy"])
-        self.add_field(("gas", "magnetic_energy"),
+        self.add_field(("gas", "magnetic_energy"), "cell",
                        function = _magnetic_energy,
                        units = unit_system["pressure"])
-        self.add_field(("gas", "specific_magnetic_energy"),
+        self.add_field(("gas", "specific_magnetic_energy"), "cell",
                        function = _specific_magnetic_energy,
                        units = unit_system["specific_energy"])
-        self.add_field(("gas", "temperature"), function=_temperature,
+        self.add_field(("gas", "temperature"), "cell",  function=_temperature,
                        units=unit_system["temperature"])
 
         setup_magnetic_field_aliases(self, "chombo", ["%s-magnfield" % ax for ax in "XYZ"])
@@ -260,7 +261,8 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
         super(ChomboPICFieldInfo2D, self).__init__(ds, field_list)
 
         for ftype in fluid_field_types:
-            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field,
+            self.add_field((ftype, 'gravitational_field_z'), "cell",
+                            function = _dummy_field,
                             units = "code_length / code_time**2")
 
         for ptype in particle_field_types:
@@ -289,11 +291,13 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
         super(ChomboPICFieldInfo1D, self).__init__(ds, field_list)
 
         for ftype in fluid_field_types:
-            self.add_field((ftype, 'gravitational_field_y'), function = _dummy_field,
+            self.add_field((ftype, 'gravitational_field_y'), "cell",
+                            function = _dummy_field,
                             units = "code_length / code_time**2")
 
-            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field,
-                    units = "code_length / code_time**2")
+            self.add_field((ftype, 'gravitational_field_z'), "cell",
+                            function = _dummy_field,
+                            units = "code_length / code_time**2")
 
         for ptype in particle_field_types:
             self.add_field((ptype, "particle_position_y"), "particle",

@@ -107,7 +107,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 return rv
-            self.add_field(name = name, function=_func,
+            self.add_field(name = name, "cell", function=_func,
                                  units = "code_length**-3")
         avals = {}
         tvals = {}
@@ -124,7 +124,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     var = var.reshape((n1, n2, var.size / (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = var[:,:,i]
-        
+
         for n in tvals:
             interp = BilinearFieldInterpolator(tvals[n],
                         (avals["lognH"], avals["logT"]),

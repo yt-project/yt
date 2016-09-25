@@ -100,7 +100,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
         for i in range(1, 1000):
-            self.add_output_field(("flash", "r{0:03}".format(i)), 
+            self.add_output_field(("flash", "r{0:03}".format(i)), "cell",
                 units = "",
                 display_name="Energy Group {0}".format(i))
         # Add energy fields
@@ -112,7 +112,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 ek += data["flash","velz"]**2
             return 0.5*ek
         if ("flash","ener") in self.field_list:
-            self.add_output_field(("flash","ener"),
+            self.add_output_field(("flash","ener"), "cell",
                                   units="code_length**2/code_time**2")
             self.alias(("gas","total_energy"),("flash","ener"),
                        units=unit_system["specific_energy"])
@@ -127,7 +127,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             self.add_field(("gas","total_energy"), "cell",  function=_ener,
                            units=unit_system["specific_energy"])
         if ("flash","eint") in self.field_list:
-            self.add_output_field(("flash","eint"),
+            self.add_output_field(("flash","eint"), "cell",
                                   units="code_length**2/code_time**2")
             self.alias(("gas","thermal_energy"),("flash","eint"),
                        units=unit_system["specific_energy"])
@@ -151,9 +151,9 @@ class FLASHFieldInfo(FieldInfoContainer):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
         self.add_field(('flash','nion'), "cell",  function=_nion, units="code_length**-3")
-        
+
         if ("flash", "abar") in self.field_list:
-            self.add_output_field(("flash", "abar"), units="1")
+            self.add_output_field(("flash", "abar"), "cell",  units="1")
         else:
             def _abar(field, data):
                 return 1.0 / data["flash","sumy"]
@@ -165,5 +165,3 @@ class FLASHFieldInfo(FieldInfoContainer):
                        units=unit_system["number_density"])
 
         setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
-
-

@@ -276,7 +276,7 @@ class EnzoHierarchy(GridIndex):
             version = float(params["Internal"]["Provenance"]["VersionNumber"])
         if version >= 3.0:
             active_particles = True
-            nap = dict((ap_type, []) for ap_type in 
+            nap = dict((ap_type, []) for ap_type in
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
         else:
             if "AppendActiveParticleType" in self.parameters:
@@ -425,7 +425,7 @@ class EnzoHierarchy(GridIndex):
             for apt in aps:
                 dd = field._copy_def()
                 dd.pop("name")
-                self.ds.field_info.add_field((apt, fname), **dd)
+                self.ds.field_info.add_field((apt, fname), "cell", **dd)
 
     def _detect_output_fields(self):
         self.field_list = []
@@ -761,7 +761,7 @@ class EnzoDataset(Dataset):
         """
         # Let's read the file
         with open(self.parameter_filename, "r") as f:
-            line = f.readline().strip() 
+            line = f.readline().strip()
             f.seek(0)
             if line == "Internal:":
                 self._parse_enzo3_parameter_file(f)
@@ -1099,4 +1099,3 @@ def rlines(f, keepends=False):
             for line in lines:
                 yield line
     yield buf  # First line.
-
