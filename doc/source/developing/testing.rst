@@ -32,10 +32,10 @@ What do Unit Tests Do
 
 Unit tests are tests that operate on some small set of machinery, and verify
 that the machinery works.  yt uses the `Nose
-<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.
-In practice, what this means is that we write scripts that ``yield``
-assertions, and Nose identifies those scripts, runs them, and verifies that the
-assertions are true.
+<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.  In
+practice, what this means is that we write scripts that assert statements, and
+Nose identifies those scripts, runs them, and verifies that the assertions are
+true and the code runs without crashing.
 
 How to Run the Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -104,8 +104,9 @@ To create new unit tests:
    functionality and should also verify that the results are correct using
    assert statements or functions.  
 #. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
-   ``argument_two``, etc.  For example ``yield assert_equal, 1.0, 1.0`` would be
-   captured by nose as a test that asserts that 1.0 is equal to 1.0.
+   ``argument_two``, etc.  For example ``yield my_test, 'banana', 2.0`` would be
+   captured by nose and the ``my_test`` function will be run with the provided
+   arguments.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
    several combinations of ``nproc``, so that domain decomposition can be
    tested as well.
