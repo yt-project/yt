@@ -12,6 +12,7 @@ This is a container for storing local fields defined on each load of yt.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
+import warnings
 
 from yt.utilities.logger import \
     ytLogger as mylog
@@ -23,12 +24,10 @@ from .field_info_container import \
     FieldInfoContainer
 
 class LocalFieldInfoContainer(FieldInfoContainer):
-    def add_field(self, name, function=None, **kwargs):
-        sampling_type = "cell"
+    def add_field(self, name, function=None, sampling_type=None, **kwargs):
         if not isinstance(name, tuple):
             if kwargs.setdefault('particle_type', False):
                 name = ('all', name)
-                sampling_type = "particle"
             else:
                 name = ('gas', name)
         override = kwargs.get("force_override", False)
@@ -36,6 +35,17 @@ class LocalFieldInfoContainer(FieldInfoContainer):
         if not override and name in self:
             mylog.warning("Field %s already exists. To override use " +
                           "force_override=True.", name)
+        if ((sampling_type is not None and sampling_type != "particle") \
+            and particle_type):
+            raise RuntimeError("Clashing definition of 'sampling_type' and "
+                               "'particle_type'. Note that 'particle_type' is "
+                               "deprecated. Please just use 'sampling_type'.")
+        if sampling_type is None:
+            warnings.warn("Because 'sampling_type' not specified, yt will "
+                          "assume a cell 'sampling_type'")
+            sampling_type = "cell"
+        if kwargs.setdefault('particle_type', False):
+            sampling_type = "particle"
         return super(LocalFieldInfoContainer,
                      self).add_field(name, sampling_type, function, **kwargs)
 
