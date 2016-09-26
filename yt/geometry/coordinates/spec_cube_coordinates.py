@@ -67,14 +67,14 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
                     rv[:] = 1.0
                     return rv
                 return _length_func
-            registry.add_field(("index", "d%s" % ax), "cell",  function = f1,
+            registry.add_field(("index", "d%s" % ax), sampling_type="cell",  function = f1,
                                display_field = False,
                                units = "code_length")
-            registry.add_field(("index", "path_element_%s" % ax), "cell", 
+            registry.add_field(("index", "path_element_%s" % ax), sampling_type="cell", 
                                function = _get_length_func(),
                                display_field = False,
                                units = "")
-            registry.add_field(("index", "%s" % ax), "cell",  function = f2,
+            registry.add_field(("index", "%s" % ax), sampling_type="cell",  function = f2,
                                display_field = False,
                                units = "code_length")
         def _cell_volume(field, data):
@@ -82,7 +82,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             rv *= data["index", "dy"]
             rv *= data["index", "dz"]
             return rv
-        registry.add_field(("index", "cell_volume"), "cell",  function=_cell_volume,
+        registry.add_field(("index", "cell_volume"), sampling_type="cell",  function=_cell_volume,
                            display_field=False, units = "code_length**3")
         registry.check_derived_fields(
             [("index", "dx"), ("index", "dy"), ("index", "dz"),

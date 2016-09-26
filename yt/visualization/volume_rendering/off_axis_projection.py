@@ -138,7 +138,7 @@ def off_axis_projection(data_source, center, normal_vector,
                 return b.apply_units(tr, a.units)
                 return tr
             return temp_weightfield
-        data_source.ds.field_info.add_field(weightfield, "cell",
+        data_source.ds.field_info.add_field(weightfield, sampling_type="cell",
             function=_make_wf(item, weight))
         # Now we have to tell the dataset to add it and to calculate
         # its dependencies..
