@@ -425,7 +425,7 @@ class EnzoHierarchy(GridIndex):
             for apt in aps:
                 dd = field._copy_def()
                 dd.pop("name")
-                self.ds.field_info.add_field((apt, fname), "cell", **dd)
+                self.ds.field_info.add_field((apt, fname), sampling_type="cell", **dd)
 
     def _detect_output_fields(self):
         self.field_list = []

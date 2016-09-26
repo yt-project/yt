@@ -73,6 +73,6 @@ class TipsyFieldInfo(SPHFieldInfo):
 
         self.add_field(
             (ptype, "smoothing_length"),
-            "particle",
+            sampling_type="particle",
             function=_func(),
             units="code_length")

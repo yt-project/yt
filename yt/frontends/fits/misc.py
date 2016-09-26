@@ -68,7 +68,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
-        ds.add_field((ftype,fname), "cell",  function=cfunc,
+        ds.add_field((ftype,fname), sampling_type="cell",  function=cfunc,
                      units="counts/pixel",
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))
@@ -178,7 +178,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         ret = data["zeros"].copy()
         ret[new_mask] = 1.
         return ret
-    ds.add_field(("gas",reg_name), "cell",  function=_reg_field)
+    ds.add_field(("gas",reg_name), sampling_type="cell",  function=_reg_field)
     if obj is None:
         obj = ds.all_data()
     if field_parameters is not None:

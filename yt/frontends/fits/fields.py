@@ -37,14 +37,14 @@ class FITSFieldInfo(FieldInfoContainer):
             unit = str(self.ds.wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg": unit = "degree"
             if unit.lower() == "rad": unit = "radian"
-            self.add_field(("fits",name), "cell",  function=world_f(axis, unit), units=unit)
+            self.add_field(("fits",name), sampling_type="cell",  function=world_f(axis, unit), units=unit)
 
         if self.ds.dimensionality == 3:
             def _spec(field, data):
                 axis = "xyz"[data.ds.spec_axis]
                 sp = (data[axis].ndarray_view()-self.ds._p0)*self.ds._dz + self.ds._z0
                 return data.ds.arr(sp, data.ds.spec_unit)
-            self.add_field(("fits","spectral"), "cell",  function=_spec,
+            self.add_field(("fits","spectral"), sampling_type="cell",  function=_spec,
                            units=self.ds.spec_unit, display_name=self.ds.spec_name)
 
     def setup_fluid_fields(self):
@@ -52,6 +52,6 @@ class FITSFieldInfo(FieldInfoContainer):
         if self.ds.spec_cube:
             def _pixel(field, data):
                 return data.ds.arr(data["ones"], "pixel")
-            self.add_field(("fits","pixel"), "cell",  function=_pixel, units="pixel")
+            self.add_field(("fits","pixel"), sampling_type="cell",  function=_pixel, units="pixel")
             self._setup_spec_cube_fields()
             return
