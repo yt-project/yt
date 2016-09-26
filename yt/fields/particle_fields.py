@@ -103,7 +103,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
-             sampling_type="cell",          
+             sampling_type="cell",
              function = particle_count,
              validators = [ValidateSpatial()],
              units = '',
@@ -117,7 +117,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_mass" % ptype),
-             sampling_type="cell",          
+             sampling_type="cell",
              function = particle_mass,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s Mass}" % ptype_dn,
@@ -132,7 +132,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return d
 
     registry.add_field(("deposit", "%s_density" % ptype),
-             sampling_type="cell",          
+             sampling_type="cell",
              function = particle_density,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s Density}" % ptype_dn,
@@ -146,7 +146,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return d
 
     registry.add_field(("deposit", "%s_cic" % ptype),
-             sampling_type="cell",          
+             sampling_type="cell",
              function = particle_cic,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s CIC Density}" % ptype_dn,
@@ -208,7 +208,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         data.deposit(pos, [ids], method = "mesh_id")
         return data.apply_units(ids, "")
     registry.add_field((ptype, "mesh_id"),
-            sampling_type="particle",           
+            sampling_type="particle",
             function = particle_mesh_ids,
             validators = [ValidateSpatial()],
             units = '')
@@ -239,7 +239,7 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
 def particle_vector_functions(ptype, coord_names, vel_names, registry):
 
     unit_system = registry.ds.unit_system
-    
+
     # This will column_stack a set of scalars to create vector fields.
 
     def _get_vec_func(_ptype, names):
@@ -320,7 +320,7 @@ def standard_particle_fields(registry, ptype,
         f, v = _get_spec_ang_mom_comp(axi, ax, ptype)
         registry.add_field(
             (ptype, "particle_specific_angular_momentum_%s" % ax),
-            sampling_type = sampling_type="particle", function=f, units=unit_system["specific_angular_momentum"],
+            sampling_type="particle", function=f, units=unit_system["specific_angular_momentum"],
             validators=[ValidateParameter("center")]
         )
         registry.add_field((ptype, "particle_angular_momentum_%s" % ax),
@@ -338,7 +338,7 @@ def standard_particle_fields(registry, ptype,
               validators=[ValidateParameter("center")])
 
     create_magnitude_field(registry, "particle_angular_momentum",
-                           unit_system["angular_momentum"], 
+                           unit_system["angular_momentum"],
                            ftype=ptype, particle_type=True)
 
     def _particle_radius(field, data):
@@ -428,7 +428,7 @@ def standard_particle_fields(registry, ptype,
         return data[ptype, 'particle_position_spherical_radius']
 
     registry.add_field((ptype, "particle_spherical_position_radius"),
-              sampling_type="particle",  
+              sampling_type="particle",
               function=_particle_spherical_position_radius,
               units=unit_system["length"],
               validators=[ValidateParameter("normal"),
