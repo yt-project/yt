@@ -107,7 +107,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 return rv
-            self.add_field(name = name, sampling_type = sampling_type="cell", function=_func,
+            self.add_field(name = name, sampling_type="cell", function=_func,
                                  units = "code_length**-3")
         avals = {}
         tvals = {}
