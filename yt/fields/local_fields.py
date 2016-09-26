@@ -24,9 +24,11 @@ from .field_info_container import \
 
 class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function=None, **kwargs):
+        sampling_type = "cell"
         if not isinstance(name, tuple):
             if kwargs.setdefault('particle_type', False):
                 name = ('all', name)
+                sampling_type = "particle"
             else:
                 name = ('gas', name)
         override = kwargs.get("force_override", False)
@@ -35,7 +37,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
             mylog.warning("Field %s already exists. To override use " +
                           "force_override=True.", name)
         return super(LocalFieldInfoContainer,
-                     self).add_field(name, function, **kwargs)
+                     self).add_field(name, sampling_type, function, **kwargs)
 
 # Empty FieldInfoContainer
 local_fields = LocalFieldInfoContainer(None, [], None)
