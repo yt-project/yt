@@ -20,6 +20,7 @@ import numpy as np
 import os
 import time
 import weakref
+import warnings
 
 from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
