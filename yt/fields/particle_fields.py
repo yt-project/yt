@@ -103,7 +103,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_count" % ptype),
-             "cell",          
+             sampling_type="cell",          
              function = particle_count,
              validators = [ValidateSpatial()],
              units = '',
@@ -117,7 +117,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return data.apply_units(d, field.units)
 
     registry.add_field(("deposit", "%s_mass" % ptype),
-             "cell",          
+             sampling_type="cell",          
              function = particle_mass,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s Mass}" % ptype_dn,
@@ -132,7 +132,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return d
 
     registry.add_field(("deposit", "%s_density" % ptype),
-             "cell",          
+             sampling_type="cell",          
              function = particle_density,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s Density}" % ptype_dn,
@@ -146,7 +146,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         return d
 
     registry.add_field(("deposit", "%s_cic" % ptype),
-             "cell",          
+             sampling_type="cell",          
              function = particle_cic,
              validators = [ValidateSpatial()],
              display_name = r"\mathrm{%s CIC Density}" % ptype_dn,
@@ -175,7 +175,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             function = _get_density_weighted_deposit_field(
                 "particle_velocity_%s" % ax, "cm/s", method)
             registry.add_field(
-                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)), "cell",
+                ("deposit", ("%s_"+name+"_velocity_%s") % (ptype, ax)), sampling_type="cell",
                 function=function, units=unit_system["velocity"], take_log=False,
                 validators=[ValidateSpatial(0)])
 
@@ -183,7 +183,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         function = _get_density_weighted_deposit_field(
             "age", "s", method)
         registry.add_field(
-            ("deposit", ("%s_"+name+"_age") % (ptype)), "cell",
+            ("deposit", ("%s_"+name+"_age") % (ptype)), sampling_type="cell",
             function=function, units=unit_system["time"], take_log=False,
             validators=[ValidateSpatial(0)])
 
@@ -781,7 +781,7 @@ def add_particle_average(registry, ptype, field_name,
         v[np.isnan(v)] = 0.0
         return v
     fn = ("deposit", "%s_avg_%s" % (ptype, field_name))
-    registry.add_field(fn, "cell", function=_pfunc_avg,
+    registry.add_field(fn, sampling_type="cell", function=_pfunc_avg,
                        validators = [ValidateSpatial(0)],
                        units = field_units)
     return fn
@@ -827,7 +827,7 @@ def add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
         rv /= hsml.uq**3 / hsml.uq.in_base(unit_system.name).uq**3
         rv = data.apply_units(rv, field_units)
         return rv
-    registry.add_field(field_name, "cell", function = _vol_weight,
+    registry.add_field(field_name, sampling_type="cell", function = _vol_weight,
                        validators = [ValidateSpatial(0)],
                        units = field_units)
     registry.find_dependencies((field_name,))

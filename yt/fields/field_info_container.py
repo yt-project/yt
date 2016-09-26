@@ -195,7 +195,7 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, "cell", units = units,
+            self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
             for alias in aliases:
                 self.alias(("gas", alias), field)
