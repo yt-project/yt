@@ -203,7 +203,7 @@ class CastroFieldInfo(FieldInfoContainer):
                            units="")
                 func = _create_density_func(("gas", "%s_fraction" % nice_name))
                 self.add_field(name=("gas", "%s_density" % nice_name),
-                               "cell",
+                               sampling_type="cell",
                                function = func,
                                units = self.ds.unit_system["density"])
                 # We know this will either have one letter, or two.
@@ -296,7 +296,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                            units="")
                 func = _create_density_func(("gas", "%s_fraction" % nice_name))
                 self.add_field(name=("gas", "%s_density" % nice_name),
-                               "cell",
+                               sampling_type="cell",
                                function=func,
                                units=unit_system["density"],
                                display_name=r'\rho %s' % tex_label)
