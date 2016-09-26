@@ -97,7 +97,7 @@ class FieldInfoContainer(dict):
                 output_units = units
             if (ptype, f) not in self.field_list:
                 continue
-            self.add_output_field((ptype, f), "particle",
+            self.add_output_field((ptype, f), sampling_type="particle",
                 units = units, display_name = dn, 
                 output_units = output_units)
             for alias in aliases:
@@ -134,7 +134,7 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
-            self.add_output_field(field, "particle",
+            self.add_output_field(field, sampling_type="particle",
                                   units = self.ds.field_units.get(field, ""))
         self.setup_smoothed_fields(ptype, 
                                    num_neighbors=num_neighbors,
