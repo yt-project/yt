@@ -68,7 +68,7 @@ run:
 
 .. code-block:: bash
 
-   $ nosetests visualization/tests/test_plotwindow.py
+   $ nosetests yt/visualization/tests/test_plotwindow.py
 
 How to Write Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -309,7 +309,7 @@ project's contiguous integration server.
 .. code-block:: bash
 
    $ cd $YT_HG
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy frontends.tipsy
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy yt.frontends.tipsy
 
 This command will create a set of local answers from the tipsy frontend tests
 and store them in ``$HOME/Documents/test`` (this can but does not have to be the
@@ -321,7 +321,7 @@ command:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-name=local-tipsy frontends.tipsy
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-name=local-tipsy yt.frontends.tipsy
 
 The results from a nose testing session are pretty straightforward to
 understand, the results for each test are printed directly to STDOUT.  If a test
@@ -334,7 +334,7 @@ OWLS frontend, do the following:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data frontends.owls
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data yt.frontends.owls
 
 
 How to Write Answer Tests
