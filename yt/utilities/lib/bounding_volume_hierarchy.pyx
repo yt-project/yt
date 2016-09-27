@@ -45,11 +45,11 @@ cdef class BVH:
     '''
 
     This class implements a bounding volume hierarchy (BVH), a spatial acceleration
-    structure for fast ray-tracing. A BVH is like a kd-tree, except that instead of 
-    partitioning the *volume* of the parent to create the children, we partition the 
+    structure for fast ray-tracing. A BVH is like a kd-tree, except that instead of
+    partitioning the *volume* of the parent to create the children, we partition the
     triangles themselves into 'left' or 'right' sub-trees. The bounding volume for a
     node is then determined by computing the bounding volume of the triangles that
-    belong to it. This allows us to quickly discard triangles that are not close 
+    belong to it. This allows us to quickly discard triangles that are not close
     to intersecting a given ray.
 
     '''
@@ -109,7 +109,7 @@ cdef class BVH:
                     self.vertices[vertex_offset + k] = vertices[indices[i,j]][k]
             field_offset = i*self.num_field_per_elem
             for j in range(self.num_field_per_elem):
-                self.field_data[field_offset + j] = field_data[i][j]                
+                self.field_data[field_offset + j] = field_data[i][j]
 
         # set up primitives
         if self.num_verts_per_elem == 20:
@@ -124,7 +124,7 @@ cdef class BVH:
             self.get_bbox = triangle_bbox
             self.get_intersect = ray_triangle_intersect
             self._set_up_triangles(vertices, indices)
-        
+
         self.root = self._recursive_build(0, self.num_prim)
 
     @cython.boundscheck(False)
@@ -181,7 +181,7 @@ cdef class BVH:
                                   tri_index,
                                   self.centroids[tri_index])
                 self.get_bbox(self.primitives,
-                              tri_index, 
+                              tri_index,
                               &(self.bboxes[tri_index]))
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
@@ -191,6 +191,8 @@ cdef class BVH:
         free(node)
 
     def __dealloc__(self):
+        if self.root == NULL:
+            return
         self._recursive_free(self.root)
         free(self.primitives)
         free(self.prim_ids)
@@ -224,11 +226,11 @@ cdef class BVH:
                 mid += 1
             begin += 1
         return mid
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _get_node_bbox(self, BVHNode* node, 
+    cdef void _get_node_bbox(self, BVHNode* node,
                              np.int64_t begin, np.int64_t end) nogil:
         cdef np.int64_t i, j
         cdef BBox box = self.bboxes[begin]
@@ -236,7 +238,7 @@ cdef class BVH:
             for j in range(3):
                 box.left_edge[j] = fmin(box.left_edge[j],
                                         self.bboxes[i].left_edge[j])
-                box.right_edge[j] = fmax(box.right_edge[j], 
+                box.right_edge[j] = fmax(box.right_edge[j],
                                          self.bboxes[i].right_edge[j])
         node.bbox = box
 
@@ -245,7 +247,7 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef void intersect(self, Ray* ray) nogil:
         self._recursive_intersect(ray, self.root)
-        
+
         if ray.elem_id < 0:
             return
 
@@ -253,7 +255,7 @@ cdef class BVH:
         cdef np.int64_t i
         for i in range(3):
             position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
-            
+
         cdef np.float64_t* vertex_ptr
         cdef np.float64_t* field_ptr
         vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
@@ -297,17 +299,17 @@ cdef class BVH:
         node.end = end
 
         self._get_node_bbox(node, begin, end)
-        
+
         # check for leaf
         if (end - begin) <= LEAF_SIZE:
             return node
-        
+
         # we use the "split in the middle of the longest axis approach"
         # see: http://www.vadimkravcenko.com/bvh-tree-building/
 
         # compute longest dimension
         cdef np.int64_t ax = 0
-        cdef np.float64_t d = fabs(node.bbox.right_edge[0] - 
+        cdef np.float64_t d = fabs(node.bbox.right_edge[0] -
                                    node.bbox.left_edge[0])
         if fabs(node.bbox.right_edge[1] - node.bbox.left_edge[1]) > d:
             ax = 1
@@ -323,7 +325,7 @@ cdef class BVH:
 
         if(mid == begin or mid == end):
             mid = begin + (end-begin)/2
-        
+
         # recursively build sub-trees
         node.left = self._recursive_build(begin, mid)
         node.right = self._recursive_build(mid, end)
@@ -337,16 +339,16 @@ cdef class BVH:
 cdef void cast_rays(np.float64_t* image,
                     const np.float64_t* origins,
                     const np.float64_t* direction,
-                    const int N, 
+                    const int N,
                     BVH bvh) nogil:
 
-    cdef Ray* ray 
+    cdef Ray* ray
     cdef int i, j, k
-    
+
     with nogil, parallel():
-       
+
         ray = <Ray *> malloc(sizeof(Ray))
-    
+
         for k in range(3):
             ray.direction[k] = direction[k]
             ray.inv_dir[k] = 1.0 / direction[k]
@@ -366,11 +368,11 @@ cdef void cast_rays(np.float64_t* image,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def test_ray_trace(np.ndarray[np.float64_t, ndim=1] image, 
+def test_ray_trace(np.ndarray[np.float64_t, ndim=1] image,
                    np.ndarray[np.float64_t, ndim=2] origins,
                    np.ndarray[np.float64_t, ndim=1] direction,
                    BVH bvh):
-    
+
     cdef int N = origins.shape[0]
     cast_rays(&image[0], &origins[0, 0], &direction[0], N, bvh)
 
