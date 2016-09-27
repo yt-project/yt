@@ -24,13 +24,16 @@ from yt.utilities.lib.element_mappings cimport \
     Q1Sampler3D, \
     P1Sampler3D, \
     W1Sampler3D, \
-    S2Sampler3D
+    S2Sampler3D, \
+    Tet2Sampler3D
+
 from yt.utilities.lib.vec3_ops cimport L2_norm
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
 cdef ElementSampler W1Sampler = W1Sampler3D()
 cdef ElementSampler S2Sampler = S2Sampler3D()
+cdef ElementSampler Tet2Sampler = Tet2Sampler3D()
 
 cdef extern from "platform_dep.h" nogil:
     double fmax(double x, double y)
@@ -82,6 +85,10 @@ cdef class BVH:
         elif self.num_verts_per_elem == 20:
             self.num_prim_per_elem = 6
             self.sampler = S2Sampler
+        elif self.num_verts_per_elem == 10:
+            self.num_prim_per_elem = 4
+            self.tri_array = triangulate_tetra
+            self.sampler = Tet2Sampler
         else:
             raise NotImplementedError("Could not determine element type for "
                                       "nverts = %d. " % self.num_verts_per_elem)
