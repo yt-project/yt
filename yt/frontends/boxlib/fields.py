@@ -98,9 +98,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
             return velocity
 
         for ax in 'xyz':
-            self.add_field((ptype, "particle_velocity_%s" % ax), sampling_type="cell",
+            self.add_field((ptype, "particle_velocity_%s" % ax), sampling_type="particle",
                            function=_get_vel(ax),
-                           particle_type=True,
                            units="code_length/code_time")
 
         super(BoxlibFieldInfo, self).setup_particle_fields(ptype)

@@ -59,8 +59,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("MASS", ("code_mass", ["particle_mass"], None)),
         ("PID", ("", ["particle_index"], None)),
         ("SPECIES", ("", ["particle_type"], None)),
-        ("BIRTH_TIME", ("", [], None)),  # code-units defined as dimensionless to 
-                                         # avoid incorrect conversion 
+        ("BIRTH_TIME", ("", [], None)),  # code-units defined as dimensionless to
+                                         # avoid incorrect conversion
         ("INITIAL_MASS", ("code_mass", ["initial_mass"], None)),
         ("METALLICITY_SNIa", ("", ["metallicity_snia"], None)),
         ("METALLICITY_SNII", ("", ["metallicity_snii"], None)),
@@ -73,7 +73,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 return data["momentum_%s" % axis]/data["density"]
             return velocity
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax), sampling_type="cell", 
+            self.add_field(("gas", "velocity_%s" % ax), sampling_type="cell",
                            function = _get_vel(ax),
                            units = unit_system["velocity"])
 
@@ -100,7 +100,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         self.add_field(("gas", "temperature"), sampling_type="cell",  function = _temperature,
                        units = unit_system["temperature"])
 
-        # Create a metal_density field as sum of existing metal fields. 
+        # Create a metal_density field as sum of existing metal fields.
         flag1 = ("artio", "HVAR_METAL_DENSITY_Ia") in self.field_list
         flag2 = ("artio", "HVAR_METAL_DENSITY_II") in self.field_list
         if flag1 or flag2:
@@ -117,7 +117,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 def _metal_density(field, data):
                     tr = data["metal_ii_density"]
                     return tr
-            self.add_field(("gas","metal_density"), sampling_type="cell", 
+            self.add_field(("gas","metal_density"), sampling_type="cell",
                            function=_metal_density,
                            units=unit_system["density"],
                            take_log=True)
@@ -125,7 +125,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         if ptype == "STAR":
             def _creation_time(field,data):
-                # this test is necessary to avoid passing invalid tcode values 
+                # this test is necessary to avoid passing invalid tcode values
                 # to the function tphys_from_tcode during field detection
                 # (1.0 is not a valid tcode value)
                 if isinstance(data, FieldDetector):
@@ -137,21 +137,18 @@ class ARTIOFieldInfo(FieldInfoContainer):
                     return data["STAR","creation_time"]
                 return data.ds.current_time - data["STAR","creation_time"]
 
-            self.add_field((ptype, "creation_time"), sampling_type="cell",  function=_creation_time, units="yr",
-                        particle_type=True)
-            self.add_field((ptype, "age"), sampling_type="cell",  function=_age, units="yr",
-                        particle_type=True)
+            self.add_field((ptype, "creation_time"), sampling_type="particle",  function=_creation_time, units="yr")
+            self.add_field((ptype, "age"), sampling_type="particle",  function=_age, units="yr")
 
             if self.ds.cosmological_simulation:
                 def _creation_redshift(field,data):
-                    # this test is necessary to avoid passing invalid tcode values 
+                    # this test is necessary to avoid passing invalid tcode values
                     # to the function auni_from_tcode during field detection
                     # (1.0 is not a valid tcode value)
                     if isinstance(data, FieldDetector):
                         return data["STAR","BIRTH_TIME"]
                     return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
 
-                self.add_field((ptype, "creation_redshift"), sampling_type="cell",  function=_creation_redshift,
-                        particle_type=True)
+                self.add_field((ptype, "creation_redshift"), sampling_type="particle",  function=_creation_redshift)
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)
