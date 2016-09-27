@@ -131,7 +131,7 @@ class VolumeSource(RenderSource):
     --------
 
     The easiest way to make a VolumeSource is to use the volume_render
-    function, so that the VolumeSource gets created automatically. This 
+    function, so that the VolumeSource gets created automatically. This
     example shows how to do this and then access the resulting source:
 
     >>> import yt
@@ -545,7 +545,7 @@ class MeshSource(OpaqueSource):
         '''
         This is the name of the colormap that will be used when rendering
         this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
-        
+
         '''
 
         def fget(self):
@@ -562,7 +562,7 @@ class MeshSource(OpaqueSource):
         '''
         These are the bounds that will be used with the colormap to the display
         the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
-        None, the bounds will be automatically inferred from the max and min of 
+        None, the bounds will be automatically inferred from the max and min of
         the rendered data.
 
         '''
@@ -603,10 +603,10 @@ class MeshSource(OpaqueSource):
         if len(field_data.shape) == 1:
             field_data = np.expand_dims(field_data, 1)
 
-        # Here, we decide whether to render based on high-order or 
+        # Here, we decide whether to render based on high-order or
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
-        if indices.shape[1] == 20:
+        if indices.shape[1] == 20 or indices.shape[1] == 10:
             self.mesh = mesh_construction.QuadraticElementMesh(self.volume,
                                                                vertices,
                                                                indices,
@@ -620,12 +620,12 @@ class MeshSource(OpaqueSource):
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
-            elif indices.shape[1] == 10:
-                # tetrahedral
-                mylog.warning("10-node tetrahedral elements not yet supported, " +
-                              "dropping to 1st order.")
-                field_data = field_data[:, 0:4]
-                indices = indices[:, 0:4]
+            # elif indices.shape[1] == 10:
+            #     # tetrahedral
+            #     mylog.warning("10-node tetrahedral elements not yet supported, " +
+            #                   "dropping to 1st order.")
+            #     field_data = field_data[:, 0:4]
+            #     indices = indices[:, 0:4]
 
             self.mesh = mesh_construction.LinearElementMesh(self.volume,
                                                             vertices,
@@ -651,7 +651,7 @@ class MeshSource(OpaqueSource):
         if len(field_data.shape) == 1:
             field_data = np.expand_dims(field_data, 1)
 
-        # Here, we decide whether to render based on high-order or 
+        # Here, we decide whether to render based on high-order or
         # low-order geometry.
         if indices.shape[1] == 27:
             # hexahedral
@@ -659,12 +659,12 @@ class MeshSource(OpaqueSource):
                           "dropping to 1st order.")
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
-        elif indices.shape[1] == 10:
-            # tetrahedral
-            mylog.warning("10-node tetrahedral elements not yet supported, " +
-                          "dropping to 1st order.")
-            field_data = field_data[:, 0:4]
-            indices = indices[:, 0:4]
+        # elif indices.shape[1] == 10:
+        #     # tetrahedral
+        #     mylog.warning("10-node tetrahedral elements not yet supported, " +
+        #                   "dropping to 1st order.")
+        #     field_data = field_data[:, 0:4]
+        #     indices = indices[:, 0:4]
 
         self.volume = BVH(vertices, indices, field_data)
 
@@ -794,7 +794,7 @@ class MeshSource(OpaqueSource):
                                cmap_name=self._cmap)/255.
         alpha = image[:, :, 3]
         alpha[self.sampler.aimage_used == -1] = 0.0
-        image[:, :, 3] = alpha        
+        image[:, :, 3] = alpha
         return image
 
     def __repr__(self):
@@ -854,7 +854,7 @@ class PointSource(OpaqueSource):
         assert(positions.ndim == 2 and positions.shape[1] == 3)
         if colors is not None:
             assert(colors.ndim == 2 and colors.shape[1] == 4)
-            assert(colors.shape[0] == positions.shape[0]) 
+            assert(colors.shape[0] == positions.shape[0])
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -1057,7 +1057,7 @@ class BoxSource(LineSource):
     Examples
     --------
 
-    This example shows how to use BoxSource to add an outline of the 
+    This example shows how to use BoxSource to add an outline of the
     domain boundaries to a volume rendering.
 
     >>> import yt
@@ -1065,12 +1065,12 @@ class BoxSource(LineSource):
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>>
     >>> im, sc = yt.volume_render(ds)
-    >>> 
+    >>>
     >>> box_source = BoxSource(ds.domain_left_edge,
     ...                       ds.domain_right_edge,
     ...                       [1.0, 1.0, 1.0, 1.0])
     >>> sc.add_source(box_source)
-    >>> 
+    >>>
     >>> im = sc.render()
 
     """
@@ -1078,7 +1078,7 @@ class BoxSource(LineSource):
 
         assert(left_edge.shape == (3,))
         assert(right_edge.shape == (3,))
-        
+
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
 
@@ -1118,7 +1118,7 @@ class GridSource(LineSource):
     Examples
     --------
 
-    This example makes a volume rendering and adds outlines of all the 
+    This example makes a volume rendering and adds outlines of all the
     AMR grids in the simulation:
 
     >>> import yt
@@ -1140,12 +1140,12 @@ class GridSource(LineSource):
     >>> import yt
     >>> from yt.visualization.volume_rendering.api import GridSource
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    >>> 
+    >>>
     >>> im, sc = yt.volume_render(ds)
-    >>> 
+    >>>
     >>> dd = ds.sphere("c", (0.1, "unitary"))
     >>> grid_source = GridSource(dd, alpha=1.0)
-    >>> 
+    >>>
     >>> sc.add_source(grid_source)
     >>>
     >>> im = sc.render()
@@ -1223,11 +1223,11 @@ class CoordinateVectorSource(OpaqueSource):
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>>
     >>> im, sc = yt.volume_render(ds)
-    >>> 
+    >>>
     >>> coord_source = CoordinateVectorSource()
-    >>> 
+    >>>
     >>> sc.add_source(coord_source)
-    >>> 
+    >>>
     >>> im = sc.render()
 
     """

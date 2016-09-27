@@ -322,7 +322,7 @@ class build_ext(_build_ext):
     def finalize_options(self):
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
-                self.distribution.ext_modules)
+                self.distribution.ext_modules, gdb_debug=True)
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
@@ -337,7 +337,7 @@ class sdist(_sdist):
     def run(self):
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
-        cythonize(cython_extensions)
+        cythonize(cython_extensions, gdb_dbg=True)
         _sdist.run(self)
 
 setup(
