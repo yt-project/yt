@@ -9,13 +9,13 @@ http://yt-project.org/
 For LaTex and BibTex users:
 
 \bibitem[Turk et al.(2011)]{2011ApJS..192....9T} Turk, M.~J., Smith, B.~D.,
-Oishi, J.~S., et al.\ 2011, \apjs, 192, 9
+Oishi, J.~S., et al.\ 2011, The Astrophysical Journal Supplement Series, 192, 9
 
 @ARTICLE{2011ApJS..192....9T,
    author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and
 {Skillman}, S.~W. and {Abel}, T. and {Norman}, M.~L.},
     title = "{yt: A Multi-code Analysis Toolkit for Astrophysical Simulation Data}",
-  journal = {\apjs},
+  journal = {The Astrophysical Journal Supplement Series},
 archivePrefix = "arXiv",
    eprint = {1011.3514},
  primaryClass = "astro-ph.IM",
