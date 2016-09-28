@@ -86,7 +86,7 @@ cdef class BVH:
             self.num_prim_per_elem = 6
             self.sampler = S2Sampler
         elif self.num_verts_per_elem == 10:
-            self.num_prim_per_elem = 4
+            self.num_prim_per_elem = TETRA_NT
             self.tri_array = triangulate_tetra
             self.sampler = Tet2Sampler
         else:
