@@ -37,17 +37,28 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
-            registry.add_field(("index", "d%s" % ax), sampling_type="cell",  function = f1,
+            registry.add_field(("index", "d%s" % ax),
+                               sampling_type="cell",
+                               function = f1,
                                display_field = False,
                                units = "code_length")
-            registry.add_field(("index", "path_element_%s" % ax), sampling_type="cell",  function = f1,
+
+            registry.add_field(("index", "path_element_%s" % ax),
+                               sampling_type="cell",
+                               function = f1,
                                display_field = False,
                                units = "code_length")
-            registry.add_field(("index", "%s" % ax), sampling_type="cell",  function = f2,
+
+            registry.add_field(("index", "%s" % ax),
+                               sampling_type="cell",
+                               function = f2,
                                display_field = False,
                                units = "code_length")
+
             f3 = _get_vert_fields(axi)
-            registry.add_field(("index", "vertex_%s" % ax), sampling_type="cell",  function = f3,
+            registry.add_field(("index", "vertex_%s" % ax),
+                               sampling_type="cell",
+                               function = f3,
                                display_field = False,
                                units = "code_length")
         def _cell_volume(field, data):
@@ -55,8 +66,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             rv *= data["index", "dy"]
             rv *= data["index", "dz"]
             return rv
-        registry.add_field(("index", "cell_volume"), sampling_type="cell",  function=_cell_volume,
-                           display_field=False, units = "code_length**3")
+
+        registry.add_field(("index", "cell_volume"),
+                           sampling_type="cell",
+                           function=_cell_volume,
+                           display_field=False,
+                           units = "code_length**3")
+
         registry.check_derived_fields(
             [("index", "dx"), ("index", "dy"), ("index", "dz"),
              ("index", "x"), ("index", "y"), ("index", "z"),

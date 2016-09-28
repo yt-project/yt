@@ -216,10 +216,10 @@ class OWLSFieldInfo(SPHFieldInfo):
             #---------------------------------------------------
             fname = yt_ion + '_density'
             dens_func = self._create_ion_density_func( ftype, ion )
-            self.add_field( (ftype, fname),
-                            sampling_type="particle",
-                            function = dens_func,
-                            units=self.ds.unit_system["density"])
+            self.add_field((ftype, fname),
+                           sampling_type="particle",
+                           function = dens_func,
+                           units=self.ds.unit_system["density"])
             self._show_field_errors.append( (ftype,fname) )
 
 

@@ -82,11 +82,10 @@ class GizmoFieldInfo(GadgetFieldInfo):
             return x_H * data[(ptype, "density")] * \
               data[(ptype, "NeutralHydrogenAbundance")]
 
-        self.add_field(
-            (ptype, "H_density"),
-            sampling_type="particle",
-            function=_h_density,
-            units=self.ds.unit_system["density"])
+        self.add_field((ptype, "H_density"),
+                       sampling_type="particle",
+                       function=_h_density,
+                       units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H", particle_type=True)
         for suffix in ["density", "fraction", "mass", "number_density"]:
             self.alias((ptype, "H_p0_%s" % suffix), (ptype, "H_%s" % suffix))
@@ -97,11 +96,10 @@ class GizmoFieldInfo(GadgetFieldInfo):
             return x_H * data[(ptype, "density")] * \
               (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
 
-        self.add_field(
-            (ptype, "H_p1_density"),
-            sampling_type="particle",
-            function=_h_p1_density,
-            units=self.ds.unit_system["density"])
+        self.add_field((ptype, "H_p1_density"),
+                       sampling_type="particle",
+                       function=_h_p1_density,
+                       units=self.ds.unit_system["density"])
         add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
 
         def _nuclei_mass_density_field(field, data):
@@ -120,11 +118,10 @@ class GizmoFieldInfo(GadgetFieldInfo):
                 self.alias(("gas", field), fn[0])
 
         for species in self.nuclei_names:
-            self.add_field(
-                (ptype, "%s_nuclei_mass_density" % species),
-                sampling_type="particle",
-                function=_nuclei_mass_density_field,
-                units=self.ds.unit_system["density"])
+            self.add_field((ptype, "%s_nuclei_mass_density" % species),
+                           sampling_type="particle",
+                           function=_nuclei_mass_density_field,
+                           units=self.ds.unit_system["density"])
 
             for suf in ["_nuclei_mass_density", "_metallicity"]:
                 field = "%s%s" % (species, suf)

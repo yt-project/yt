@@ -89,8 +89,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
             rv = data["gas", "pressure"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
             return rv
-        self.add_field(("gas", "temperature"), sampling_type="cell",  function=_temperature,
-                        units=self.ds.unit_system["temperature"])
+        self.add_field(("gas", "temperature"),
+                       sampling_type="cell",
+                       function=_temperature,
+                       units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
 
     def create_cooling_fields(self):
@@ -107,8 +109,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 return rv
-            self.add_field(name = name, sampling_type="cell", function=_func,
-                                 units = "code_length**-3")
+            self.add_field(name = name,
+                           sampling_type="cell",
+                           function=_func,
+                           units="code_length**-3")
         avals = {}
         tvals = {}
         with open(filename, "rb") as f:

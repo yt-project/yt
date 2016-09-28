@@ -51,10 +51,10 @@ class GadgetFieldInfo(SPHFieldInfo):
                     return data[(ptype, 'FourMetalFractions')][:,i]
                 return _Fraction
 
-            self.add_field( (ptype, metal_name+"_fraction"),
-                            sampling_type="particle",
-                            function=_Fraction_wrap(i),
-                            units="")
+            self.add_field((ptype, metal_name+"_fraction"),
+                           sampling_type="particle",
+                           function=_Fraction_wrap(i),
+                           units="")
 
             # add the metal density fields
             def _Density_wrap(i):
@@ -63,10 +63,10 @@ class GadgetFieldInfo(SPHFieldInfo):
                            data[(ptype, 'density')]
                 return _Metal_density
 
-            self.add_field( (ptype, metal_name+"_density"),
-                            sampling_type="particle",
-                            function=_Density_wrap(i),
-                            units=self.ds.unit_system["density"])
+            self.add_field((ptype, metal_name+"_density"),
+                           sampling_type="particle",
+                           function=_Density_wrap(i),
+                           units=self.ds.unit_system["density"])
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "ElectronAbundance") in self.ds.field_list:
