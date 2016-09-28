@@ -60,19 +60,19 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         return xv * rv[...,1] - yv * rv[...,0]
 
     registry.add_field((ftype, "specific_angular_momentum_x"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_specific_angular_momentum_x,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center")])
 
     registry.add_field((ftype, "specific_angular_momentum_y"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_specific_angular_momentum_y,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center")])
 
     registry.add_field((ftype, "specific_angular_momentum_z"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_specific_angular_momentum_z,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center")])
@@ -95,7 +95,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
              * data[ftype, "specific_angular_momentum_y"]
 
     registry.add_field((ftype, "angular_momentum_y"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_angular_momentum_y,
                        units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center')])
@@ -105,7 +105,7 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
              * data[ftype, "specific_angular_momentum_z"]
 
     registry.add_field((ftype, "angular_momentum_z"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_angular_momentum_z,
                        units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center')])

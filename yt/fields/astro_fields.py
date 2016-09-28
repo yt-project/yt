@@ -53,7 +53,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         return np.sqrt(3.0 * np.pi / (16.0 * G * data[ftype, "density"]))
 
     registry.add_field((ftype, "dynamical_time"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_dynamical_time,
                        units=unit_system["time"])
 
@@ -67,7 +67,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         return u
 
     registry.add_field((ftype, "jeans_mass"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_jeans_mass,
                        units=unit_system["mass"])
 
@@ -91,7 +91,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                            "") # add correct units here
 
     registry.add_field((ftype, "chandra_emissivity"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_chandra_emissivity,
                        units="") # add correct units here
 
@@ -106,7 +106,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         return nenh
     
     registry.add_field((ftype, "emission_measure"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_emission_measure,
                        units=unit_system["number_density"])
 
@@ -117,7 +117,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
                            "") # add correct units here
 
     registry.add_field((ftype, "xray_emissivity"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_xray_emissivity,
                        units="") # add correct units here
 
@@ -127,7 +127,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         return data["density"]*data["density"]*data["kT"]**-0.25/mh/mh
 
     registry.add_field((ftype,"mazzotta_weighting"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_mazzotta_weighting,
                        units="keV**-0.25*cm**-6")
 
@@ -142,7 +142,7 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         return -scale * vel * data[ftype, "density"]
 
     registry.add_field((ftype, "sz_kinetic"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_sz_kinetic,
                        units=unit_system["length"]**-1,
                        validators=[
@@ -153,6 +153,6 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         return scale * data[ftype, "density"] * data[ftype, "temperature"]
 
     registry.add_field((ftype, "szy"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_szy,
                        units=unit_system["length"]**-1)

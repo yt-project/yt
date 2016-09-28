@@ -60,7 +60,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "density"] * data[ftype, "cell_volume"]
 
     registry.add_field((ftype, "cell_mass"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cell_mass,
                        units=unit_system["mass"])
 
@@ -69,7 +69,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return np.sqrt(tr)
     
     registry.add_field((ftype, "sound_speed"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_sound_speed,
                        units=unit_system["velocity"])
 
@@ -79,7 +79,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return np.abs(tr)
     
     registry.add_field((ftype, "radial_mach_number"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_radial_mach_number,
                        units = "")
 
@@ -89,7 +89,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
                                               + data[ftype, "velocity_z"]**2.0 )
     
     registry.add_field((ftype, "kinetic_energy"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function = _kin_energy,
                        units = unit_system["pressure"])
 
@@ -98,7 +98,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
     
     registry.add_field((ftype, "mach_number"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_mach_number,
                        units = "")
 
@@ -113,7 +113,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return tr
 
     registry.add_field((ftype, "courant_time_step"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_courant_time_step,
                        units=unit_system["time"])
 
@@ -124,7 +124,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return tr
 
     registry.add_field((ftype, "pressure"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_pressure,
                        units=unit_system["pressure"])
 
@@ -132,7 +132,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return (kboltz*data[ftype, "temperature"]).in_units("keV")
     
     registry.add_field((ftype, "kT"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_kT,
                        units="keV",
                        display_name="Temperature")
@@ -147,7 +147,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return data.apply_units(tr, field.units)
     
     registry.add_field((ftype, "entropy"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        units="keV*cm**2",
                        function=_entropy)
 
@@ -157,7 +157,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return data.apply_units(tr, "Zsun")
     
     registry.add_field((ftype, "metallicity"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_metallicity,
                        units="Zsun")
 
@@ -165,7 +165,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "metal_density"] * data[ftype, "cell_volume"]
     
     registry.add_field((ftype, "metal_mass"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_metal_mass,
                        units=unit_system["mass"])
 
@@ -177,7 +177,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return field_data
     
     registry.add_field((ftype, "number_density"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function = _number_density,
                        units=unit_system["number_density"])
     
@@ -185,7 +185,7 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
         return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
     
     registry.add_field((ftype, "mean_molecular_weight"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_mean_molecular_weight,
                        units="")
 
@@ -231,7 +231,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     for axi, ax in enumerate('xyz'):
         f = grad_func(axi, ax)
         registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                           sampling_type="cell",
+                           sampling_type="local",
                            function = f,
                            validators = [ValidateSpatial(1, [grad_field])],
                            units = grad_units)

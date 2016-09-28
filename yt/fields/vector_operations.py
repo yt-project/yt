@@ -45,7 +45,7 @@ def create_magnitude_field(registry, basename, field_units,
         return np.sqrt(mag)
 
     registry.add_field((ftype, "%s_magnitude" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_magnitude, units=field_units,
                        validators=validators, particle_type=particle_type)
 
@@ -64,7 +64,7 @@ def create_squared_field(registry, basename, field_units,
         return squared
 
     registry.add_field((ftype, "%s_squared" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_squared, units=field_units,
                        validators=validators, particle_type=particle_type)
 
@@ -113,7 +113,7 @@ def create_vector_fields(registry, basename, field_units,
         return rv
 
     registry.add_field((ftype, "%s_spherical_radius" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_spherical_radius_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -131,19 +131,19 @@ def create_vector_fields(registry, basename, field_units,
                        data[ftype, "%s_spherical_radius" % basename]**2.0)
 
     registry.add_field((ftype, "radial_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_radial,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
                                    ValidateParameter("center")])
 
     registry.add_field((ftype, "radial_%s_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_radial_absolute,
                        units=field_units)
 
     registry.add_field((ftype, "tangential_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_tangential,
                        units=field_units)
 
@@ -161,7 +161,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_sph_theta_component(vectors, theta, phi, normal)
 
     registry.add_field((ftype, "%s_spherical_theta" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_spherical_theta_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -181,7 +181,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_sph_phi_component(vectors, phi, normal)
 
     registry.add_field((ftype, "%s_spherical_phi" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_spherical_phi_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -201,15 +201,15 @@ def create_vector_fields(registry, basename, field_units,
         return _cp_val
 
     registry.add_field((ftype, "cutting_plane_%s_x" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cp_vectors('x'),
                        units=field_units)
     registry.add_field((ftype, "cutting_plane_%s_y" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cp_vectors('y'),
                        units=field_units)
     registry.add_field((ftype, "cutting_plane_%s_z" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cp_vectors('z'),
                        units=field_units)
 
@@ -235,13 +235,13 @@ def create_vector_fields(registry, basename, field_units,
     div_units = field_units / registry.ds.unit_system["length"]
 
     registry.add_field((ftype, "%s_divergence" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_divergence,
                        units=div_units,
                        validators=[ValidateSpatial(1)])
     
     registry.add_field((ftype, "%s_divergence_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_divergence_abs,
                        units=div_units)
 
@@ -249,8 +249,9 @@ def create_vector_fields(registry, basename, field_units,
         tr = data[ftype, "tangential_%s" % basename] / \
              data[ftype, "%s_magnitude" % basename]
         return np.abs(tr)
+
     registry.add_field((ftype, "tangential_over_%s_magnitude" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_tangential_over_magnitude,
                        take_log=False)
 
@@ -267,7 +268,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_cyl_r_component(vectors, theta, normal)
 
     registry.add_field((ftype, "%s_cylindrical_radius" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_radius_component,
                        units=field_units,
                        validators=[ValidateParameter("normal")])
@@ -277,7 +278,7 @@ def create_vector_fields(registry, basename, field_units,
         return data[ftype, '%s_cylindrical_radius' % basename]
 
     registry.add_field((ftype, "cylindrical_radial_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_radial,
                        units=field_units)
 
@@ -286,7 +287,7 @@ def create_vector_fields(registry, basename, field_units,
         return np.abs(data[ftype, '%s_cylindrical_radius' % basename])
 
     registry.add_field((ftype, "cylindrical_radial_%s_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_radial_absolute,
                        units=field_units,
                        validators=[ValidateParameter("normal")])
@@ -305,7 +306,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_cyl_theta_component(vectors, theta, normal)
 
     registry.add_field((ftype, "%s_cylindrical_theta" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_theta_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
@@ -321,12 +322,12 @@ def create_vector_fields(registry, basename, field_units,
         return np.abs(data['cylindrical_tangential_%s' % basename])
 
     registry.add_field((ftype, "cylindrical_tangential_%s" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_tangential,
                        units=field_units)
 
     registry.add_field((ftype, "cylindrical_tangential_%s_absolute" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_tangential_absolute,
                        units=field_units)
 
@@ -341,7 +342,7 @@ def create_vector_fields(registry, basename, field_units,
         return get_cyl_z_component(vectors, normal)
 
     registry.add_field((ftype, "%s_cylindrical_z" % basename),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_cylindrical_z_component,
                        units=field_units,
                        validators=[ValidateParameter("normal"),
