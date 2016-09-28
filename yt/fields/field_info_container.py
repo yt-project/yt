@@ -97,9 +97,9 @@ class FieldInfoContainer(dict):
                 output_units = units
             if (ptype, f) not in self.field_list:
                 continue
-            self.add_output_field((ptype, f),
-                units = units, sampling_type = "particle",
-                display_name = dn, output_units = output_units)
+            self.add_output_field((ptype, f), sampling_type="particle",
+                units = units, display_name = dn, 
+                output_units = output_units)
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
 
@@ -134,9 +134,8 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
-            self.add_output_field(field, 
-                                  units = self.ds.field_units.get(field, ""),
-                                  sampling_type = "particle")
+            self.add_output_field(field, sampling_type="particle",
+                                  units = self.ds.field_units.get(field, ""))
         self.setup_smoothed_fields(ptype, 
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
@@ -196,12 +195,12 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, units = units,
+            self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
             for alias in aliases:
                 self.alias(("gas", alias), field)
 
-    def add_field(self, name, function=None, **kwargs):
+    def add_field(self, name, sampling_type, function=None, **kwargs):
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -250,12 +249,12 @@ class FieldInfoContainer(dict):
         kwargs.setdefault('ds', self.ds)
         if function is None:
             def create_function(f):
-                self[name] = DerivedField(name, f, **kwargs)
+                self[name] = DerivedField(name, sampling_type, f, **kwargs)
                 return f
             return create_function
 
         if isinstance(name, tuple):
-            self[name] = DerivedField(name, function, **kwargs)
+            self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
         if kwargs.get("particle_type", False):
@@ -265,10 +264,11 @@ class FieldInfoContainer(dict):
 
         if (ftype, name) not in self:
             tuple_name = (ftype, name)
-            self[tuple_name] = DerivedField(tuple_name, function, **kwargs)
+            self[tuple_name] = DerivedField(tuple_name, sampling_type, function,
+                                            **kwargs)
             self.alias(name, tuple_name)
         else:
-            self[name] = DerivedField(name, function, **kwargs)
+            self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
     def load_all_plugins(self, ftype="gas"):
         loaded = []
@@ -296,9 +296,9 @@ class FieldInfoContainer(dict):
         self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return loaded, unavailable
 
-    def add_output_field(self, name, **kwargs):
+    def add_output_field(self, name, sampling_type, **kwargs):
         kwargs.setdefault('ds', self.ds)
-        self[name] = DerivedField(name, NullFunc, **kwargs)
+        self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
         if original_name not in self: return

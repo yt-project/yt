@@ -100,7 +100,7 @@ class FLASHFieldInfo(FieldInfoContainer):
             setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
         for i in range(1, 1000):
-            self.add_output_field(("flash", "r{0:03}".format(i)), 
+            self.add_output_field(("flash", "r{0:03}".format(i)), sampling_type="cell",
                 units = "",
                 display_name="Energy Group {0}".format(i))
         # Add energy fields
@@ -112,7 +112,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 ek += data["flash","velz"]**2
             return 0.5*ek
         if ("flash","ener") in self.field_list:
-            self.add_output_field(("flash","ener"),
+            self.add_output_field(("flash","ener"), sampling_type="cell",
                                   units="code_length**2/code_time**2")
             self.alias(("gas","total_energy"),("flash","ener"),
                        units=unit_system["specific_energy"])
@@ -124,10 +124,10 @@ class FLASHFieldInfo(FieldInfoContainer):
                 except:
                     pass
                 return ener
-            self.add_field(("gas","total_energy"), function=_ener,
+            self.add_field(("gas","total_energy"), sampling_type="cell",  function=_ener,
                            units=unit_system["specific_energy"])
         if ("flash","eint") in self.field_list:
-            self.add_output_field(("flash","eint"),
+            self.add_output_field(("flash","eint"), sampling_type="cell",
                                   units="code_length**2/code_time**2")
             self.alias(("gas","thermal_energy"),("flash","eint"),
                        units=unit_system["specific_energy"])
@@ -139,31 +139,29 @@ class FLASHFieldInfo(FieldInfoContainer):
                 except:
                     pass
                 return eint
-            self.add_field(("gas","thermal_energy"), function=_eint,
+            self.add_field(("gas","thermal_energy"), sampling_type="cell",  function=_eint,
                            units=unit_system["specific_energy"])
         ## Derived FLASH Fields
         def _nele(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","ye"]*Na_code
-        self.add_field(('flash','nele'), function=_nele, units="code_length**-3")
-        self.add_field(('flash','edens'), function=_nele, units="code_length**-3")
+        self.add_field(('flash','nele'), sampling_type="cell",  function=_nele, units="code_length**-3")
+        self.add_field(('flash','edens'), sampling_type="cell",  function=_nele, units="code_length**-3")
         def _nion(field, data):
             Na_code = data.ds.quan(Na, '1/code_mass')
             return data["flash","dens"]*data["flash","sumy"]*Na_code
-        self.add_field(('flash','nion'), function=_nion, units="code_length**-3")
-        
+        self.add_field(('flash','nion'), sampling_type="cell",  function=_nion, units="code_length**-3")
+
         if ("flash", "abar") in self.field_list:
-            self.add_output_field(("flash", "abar"), units="1")
+            self.add_output_field(("flash", "abar"), sampling_type="cell",  units="1")
         else:
             def _abar(field, data):
                 return 1.0 / data["flash","sumy"]
-            self.add_field(("flash","abar"), function=_abar, units="1")
+            self.add_field(("flash","abar"), sampling_type="cell",  function=_abar, units="1")
 
         def _number_density(fields,data):
             return (data["nele"]+data["nion"])
-        self.add_field(("gas","number_density"), function=_number_density,
+        self.add_field(("gas","number_density"), sampling_type="cell",  function=_number_density,
                        units=unit_system["number_density"])
 
         setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
-
-
