@@ -663,6 +663,492 @@ class ProfilePlot(object):
 
         return (x_title, y_title)
 
+
+class LinePlot(object):
+    r"""
+    Create a 1d line plot.
+
+    Given a dataset and a list of fields, this will create a set of
+    one-dimensional plots showing the fields as functions of position.
+
+    Parameters
+    ----------
+
+    ds : :class:`yt.data_objects.api.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    fields : str or list
+        The field or fields to be plotted.
+    label : str or list of strings
+        If a string, the label to be put on the line plotted.  If a list,
+        this should be a list of labels, one for each field.
+        Default: None.
+    plot_spec : dict or list of dicts
+        A dictionary or list of dictionaries containing plot keyword 
+        arguments.  For example, dict(color="red", linestyle=":").
+        Default: None.
+    y_log : dict
+        A dictionary containing field:boolean pairs, setting the logarithmic
+        property for that field. May be overridden after instantiation using 
+        set_log.
+        Default: None
+
+    Examples
+    --------
+
+    """
+    y_log = None
+    y_title = None
+    _plot_valid = False
+
+    def __init__(self, ds, fields, label=None, plot_spec=None, y_log=None):
+
+        if isinstance(data_source.ds, YTProfileDataset):
+            profiles = [data_source.ds.profile]
+        else:
+            profiles = [create_profile(data_source, [x_field],
+                                       n_bins=[n_bins],
+                                       fields=ensure_list(y_fields),
+                                       weight_field=weight_field,
+                                       accumulation=accumulation,
+                                       fractional=fractional,
+                                       logs=logs)]
+
+        if plot_spec is None:
+            plot_spec = [dict() for p in profiles]
+        if not isinstance(plot_spec, list):
+            plot_spec = [plot_spec.copy() for p in profiles]
+
+        ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
+
+    @validate_plot
+    def save(self, name=None, suffix=None, mpl_kwargs=None):
+        r"""
+        Saves a 1d profile plot.
+
+        Parameters
+        ----------
+        name : str
+            The output file keyword.
+        suffix : string
+            Specify the image type by its suffix. If not specified, the output
+            type will be inferred from the filename. Defaults to PNG.
+        mpl_kwargs : dict
+            A dict of keyword arguments to be passed to matplotlib.
+        """
+        if not self._plot_valid:
+            self._setup_plots()
+        unique = set(self.plots.values())
+        if len(unique) < len(self.plots):
+            iters = izip(range(len(unique)), sorted(unique))
+        else:
+            iters = iteritems(self.plots)
+        if not suffix:
+            suffix = "png"
+        suffix = ".%s" % suffix
+        fullname = False
+        if name is None:
+            if len(self.profiles) == 1:
+                prefix = self.profiles[0].ds
+            else:
+                prefix = "Multi-data"
+            name = "%s%s" % (prefix, suffix)
+        else:
+            sfx = get_image_suffix(name)
+            if sfx != '':
+                suffix = sfx
+                prefix = name[:name.rfind(suffix)]
+                fullname = True
+            else:
+                prefix = name
+        xfn = self.profiles[0].x_field
+        if isinstance(xfn, tuple):
+            xfn = xfn[1]
+        fns = []
+        for uid, plot in iters:
+            if isinstance(uid, tuple):
+                uid = uid[1]
+            if fullname:
+                fns.append("%s%s" % (prefix, suffix))
+            else:
+                fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+            mylog.info("Saving %s", fns[-1])
+            with matplotlib_style_context():
+                plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
+        return fns
+
+    @validate_plot
+    def show(self):
+        r"""This will send any existing plots to the IPython notebook.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will send any existing plots to the
+        notebook for display.
+
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp.show()
+
+        """
+        if "__IPYTHON__" in dir(builtins):
+            api_version = get_ipython_api_version()
+            if api_version in ('0.10', '0.11'):
+                self._send_zmq()
+            else:
+                from IPython.display import display
+                display(self)
+        else:
+            raise YTNotInsideNotebook
+
+    @validate_plot
+    def _repr_html_(self):
+        """Return an html representation of the plot object. Will display as a
+        png for each WindowPlotMPL instance in self.plots"""
+        from . import _mpl_imports as mpl
+        ret = ''
+        unique = set(self.figures.values())
+        if len(unique) < len(self.figures):
+            iters = izip(range(len(unique)), sorted(unique))
+        else:
+            iters = iteritems(self.figures)
+        for uid, fig in iters:
+            canvas = mpl.FigureCanvasAgg(fig)
+            f = BytesIO()
+            with matplotlib_style_context():
+                canvas.print_figure(f)
+            f.seek(0)
+            img = base64.b64encode(f.read()).decode()
+            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
+                   r'src="data:image/png;base64,{0}"><br>'.format(img)
+        return ret
+
+    def _setup_plots(self):
+        if self._plot_valid is True:
+            return
+        for f in self.axes:
+            self.axes[f].cla()
+        for i, profile in enumerate(self.profiles):
+            for field, field_data in profile.items():
+                self.axes[field].plot(np.array(profile.x), np.array(field_data),
+                                      label=self.label[i], **self.plot_spec[i])
+
+        for (fname, axes), profile in zip(self.axes.items(), self.profiles):
+            xscale, yscale = self._get_field_log(fname, profile)
+            xtitle, ytitle = self._get_field_title(fname, profile)
+            axes.set_xscale(xscale)
+            axes.set_yscale(yscale)
+            axes.set_xlabel(xtitle)
+            axes.set_ylabel(ytitle)
+            axes.set_ylim(*self.axes.ylim[fname])
+            if any(self.label):
+                axes.legend(loc="best")
+        self._set_font_properties()
+        self._plot_valid = True
+
+    @classmethod
+    def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
+        from matplotlib.font_manager import FontProperties
+        obj._font_properties = FontProperties(family='stixgeneral', size=18)
+        obj._font_color = None
+        obj.profiles = ensure_list(profiles)
+        obj.x_log = None
+        obj.y_log = {}
+        if y_log is not None:
+            for field, log in y_log.items():
+                field, = obj.profiles[0].data_source._determine_fields([field])
+                obj.y_log[field] = log
+        obj.y_title = {}
+        obj.label = sanitize_label(labels, len(obj.profiles))
+        if plot_specs is None:
+            plot_specs = [dict() for p in obj.profiles]
+        obj.plot_spec = plot_specs
+        obj.plots = PlotContainer()
+        obj.figures = FigureContainer(obj.plots)
+        obj.axes = AxesContainer(obj.plots)
+        obj._setup_plots()
+        return obj
+
+    @classmethod
+    def from_profiles(cls, profiles, labels=None, plot_specs=None, y_log=None):
+        r"""
+        Instantiate a ProfilePlot object from a list of profiles
+        created with :func:`~yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        profiles : a profile or list of profiles
+            A single profile or list of profile objects created with
+            :func:`~yt.data_objects.profiles.create_profile`.
+        labels : list of strings
+            A list of labels for each profile to be overplotted.
+            Default: None.
+        plot_specs : list of dicts
+            A list of dictionaries containing plot keyword
+            arguments.  For example, [dict(color="red", linestyle=":")].
+            Default: None.
+
+        Examples
+        --------
+
+        >>> from yt import simulation
+        >>> es = simulation("AMRCosmology.enzo", "Enzo")
+        >>> es.get_time_series()
+
+        >>> profiles = []
+        >>> labels = []
+        >>> plot_specs = []
+        >>> for ds in es[-4:]:
+        ...     ad = ds.all_data()
+        ...     profiles.append(create_profile(ad, ["Density"],
+        ...                                    fields=["Temperature",
+        ...                                            "x-velocity"]))
+        ...     labels.append(ds.current_redshift)
+        ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
+        >>>
+        >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
+        ...                                  plot_specs=plot_specs)
+        >>> plot.save()
+        
+        """
+        if labels is not None and len(profiles) != len(labels):
+            raise RuntimeError("Profiles list and labels list must be the same size.")
+        if plot_specs is not None and len(plot_specs) != len(profiles):
+            raise RuntimeError("Profiles list and plot_specs list must be the same size.")
+        obj = cls.__new__(cls)
+        return cls._initialize_instance(obj, profiles, labels, plot_specs, y_log)
+
+    @invalidate_plot
+    def set_line_property(self, property, value, index=None):
+        r"""
+        Set properties for one or all lines to be plotted.
+
+        Parameters
+        ----------
+        property : str
+            The line property to be set.
+        value : str, int, float
+            The value to set for the line property.
+        index : int
+            The index of the profile in the list of profiles to be 
+            changed.  If None, change all plotted lines.
+            Default : None.
+
+        Examples
+        --------
+
+        Change all the lines in a plot
+        plot.set_line_property("linestyle", "-")
+
+        Change a single line.
+        plot.set_line_property("linewidth", 4, index=0)
+        
+        """
+        if index is None:
+            specs = self.plot_spec
+        else:
+            specs = [self.plot_spec[index]]
+        for spec in specs:
+            spec[property] = value
+        return self
+
+    @invalidate_plot
+    def set_log(self, field, log):
+        """set a field to log or linear.
+
+        Parameters
+        ----------
+        field : string
+            the field to set a transform
+        log : boolean
+            Log on/off.
+        """
+        if field == "all":
+            self.x_log = log
+            for field in list(self.profiles[0].field_data.keys()):
+                self.y_log[field] = log
+        else:
+            field, = self.profiles[0].data_source._determine_fields([field])
+            if field == self.profiles[0].x_field:
+                self.x_log = log
+            elif field in self.profiles[0].field_data:
+                self.y_log[field] = log
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
+        return self
+
+    @invalidate_plot
+    def set_unit(self, field, unit):
+        """Sets a new unit for the requested field
+
+        Parameters
+        ----------
+        field : string
+           The name of the field that is to be changed.
+
+        new_unit : string or Unit object
+           The name of the new unit.
+        """
+        for profile in self.profiles:
+            if field == profile.x_field[1]:
+                profile.set_x_unit(unit)
+            elif field in self.profiles[0].field_map:
+                profile.set_field_unit(field, unit)
+            else:
+                raise KeyError("Field %s not in profile plot!" % (field))
+        return self
+
+    @invalidate_plot
+    def set_xlim(self, xmin=None, xmax=None):
+        """Sets the limits of the bin field
+
+        Parameters
+        ----------
+        
+        xmin : float or None
+          The new x minimum.  Defaults to None, which leaves the xmin
+          unchanged.
+
+        xmax : float or None
+          The new x maximum.  Defaults to None, which leaves the xmax
+          unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', 'temperature')
+        >>> pp.set_xlim(1e-29, 1e-24)
+        >>> pp.save()
+
+        """
+        for i, p in enumerate(self.profiles):
+            if xmin is None:
+                xmi = p.x_bins.min()
+            else:
+                xmi = xmin
+            if xmax is None:
+                xma = p.x_bins.max()
+            else:
+                xma = xmax
+            extrema = {p.x_field: ((xmi, str(p.x.units)), (xma, str(p.x.units)))}
+            units = {p.x_field: str(p.x.units)}
+            if self.x_log is None:
+                logs = None
+            else:
+                logs = {p.x_field: self.x_log}
+            for field in p.field_map.values():
+                units[field] = str(p.field_data[field].units)
+            self.profiles[i] = \
+                create_profile(p.data_source, p.x_field,
+                               n_bins=len(p.x_bins)-1,
+                               fields=list(p.field_map.values()),
+                               weight_field=p.weight_field,
+                               accumulation=p.accumulation,
+                               fractional=p.fractional,
+                               logs=logs,
+                               extrema=extrema, units=units)
+        return self
+
+    @invalidate_plot
+    def set_ylim(self, field, ymin=None, ymax=None):
+        """Sets the plot limits for the specified field we are binning.
+
+        Parameters
+        ----------
+
+        field : string or field tuple
+
+        The field that we want to adjust the plot limits for.
+        
+        ymin : float or None
+          The new y minimum.  Defaults to None, which leaves the ymin
+          unchanged.
+
+        ymax : float or None
+          The new y maximum.  Defaults to None, which leaves the ymax
+          unchanged.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>> pp = yt.ProfilePlot(ds.all_data(), 'density', ['temperature', 'x-velocity'])
+        >>> pp.set_ylim('temperature', 1e4, 1e6)
+        >>> pp.save()
+
+        """
+        if field is 'all':
+            fields = list(self.axes.keys())
+        else:
+            fields = ensure_list(field)
+        for profile in self.profiles:
+            for field in profile.data_source._determine_fields(fields):
+                if field in profile.field_map:
+                    field = profile.field_map[field]
+                self.axes.ylim[field] = (ymin, ymax)
+                # Continue on to the next profile.
+                break
+        return self
+
+    def _set_font_properties(self):
+        for f in self.plots:
+            self.plots[f]._set_font_properties(
+                self._font_properties, self._font_color)
+
+    def _get_field_log(self, field_y, profile):
+        yfi = profile.field_info[field_y]
+        if self.x_log is None:
+            x_log = profile.x_log
+        else:
+            x_log = self.x_log
+        if field_y in self.y_log:
+            y_log = self.y_log[field_y]
+        else:
+            y_log = yfi.take_log
+        scales = {True: 'log', False: 'linear'}
+        return scales[x_log], scales[y_log]
+
+    def _get_field_label(self, field, field_info, field_unit, fractional=False):
+        field_unit = field_unit.latex_representation()
+        field_name = field_info.display_name
+        if isinstance(field, tuple): field = field[1]
+        if field_name is None:
+            field_name = r'$\rm{'+field+r'}$'
+            field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
+        elif field_name.find('$') == -1:
+            field_name = field_name.replace(' ','\ ')
+            field_name = r'$\rm{'+field_name+r'}$'
+        if fractional:
+            label = field_name + r'$\rm{\ Probability\ Density}$'
+        elif field_unit is None or field_unit == '':
+            label = field_name
+        else:
+            label = field_name+r'$\ \ ('+field_unit+r')$'
+        return label
+
+    def _get_field_title(self, field_y, profile):
+        field_x = profile.x_field
+        xfi = profile.field_info[field_x]
+        yfi = profile.field_info[field_y]
+        x_unit = profile.x.units
+        y_unit = profile.field_units[field_y]
+        fractional = profile.fractional
+        x_title = self.x_title or self._get_field_label(field_x, xfi, x_unit)
+        y_title = self.y_title.get(field_y, None) or \
+            self._get_field_label(field_y, yfi, y_unit, fractional)
+
+        return (x_title, y_title)
+
+
 class PhasePlot(ImagePlotContainer):
     r"""
     Create a 2d profile (phase) plot from a data source or from 
