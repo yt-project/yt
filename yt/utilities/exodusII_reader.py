@@ -4,6 +4,7 @@ from netCDF4 import Dataset
 import numpy as np
 from yt.config import ytcfg
 import os
+import warnings
 
 
 def sanitize_string(s):
@@ -12,6 +13,10 @@ def sanitize_string(s):
 
 
 def get_data(fn):
+    warnings.warn("The yt.utilities.exodusII_reader module is deprecated "
+                  "and will be removed in a future release. "
+                  "Please use the normal yt.load() command to access "
+                  "your data instead.")
     try:
         f = Dataset(fn)
     except RuntimeError:
