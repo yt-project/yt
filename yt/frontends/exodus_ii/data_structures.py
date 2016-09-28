@@ -170,8 +170,9 @@ class ExodusIIDataset(Dataset):
                 num_pseudo = num_pseudo_dims
 
         self.dimensionality -= num_pseudo
-        self.domain_right_edge = self.domain_right_edge[:self.dimensionality]
-        self.domain_left_edge = self.domain_left_edge[:self.dimensionality]
+        for i in range(self.dimensionality, 3):
+            self.domain_left_edge[i] = 0.0
+            self.domain_right_edge[i] = 1.0
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
