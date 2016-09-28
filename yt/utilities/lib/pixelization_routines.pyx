@@ -25,11 +25,12 @@ from libc.stdlib cimport malloc, free
 from vec3_ops cimport dot, cross, subtract
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
+    P1Sampler1D, \
+    P1Sampler2D, \
     P1Sampler3D, \
     Q1Sampler3D, \
-    S2Sampler3D, \
-    P1Sampler2D, \
     Q1Sampler2D, \
+    S2Sampler3D, \
     W1Sampler3D, \
     T2Sampler2D, \
     Tet2Sampler3D
@@ -594,6 +595,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = S2Sampler3D()
     elif ndim == 2 and nvertices == 3:
         sampler = P1Sampler2D()
+    elif ndim == 1 and nvertices == 2:
+        sampler = P1Sampler1D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
     elif ndim == 2 and nvertices == 6:
@@ -648,10 +651,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                 pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
                 pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
 
-            # override for the 2D case
-            if ndim == 2:
+            # override for the low-dimensional case
+            if ndim < 3:
                 pstart[2] = 0
                 pend[2] = 0
+            if ndim < 2:
+                pstart[1] = 0
+                pend[1] = 0
 
             if use == 0:
                 continue

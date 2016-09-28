@@ -115,6 +115,41 @@ cdef class ElementSampler:
         return val
 
 
+cdef class P1Sampler1D(ElementSampler):
+    '''
+
+    This implements sampling inside a linear, 1D element.
+
+    '''
+
+    def __init__(self):
+        super(P1Sampler1D, self).__init__()
+        self.num_mapped_coords = 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void map_real_to_unit(self, double* mapped_x,
+                               double* vertices, double* physical_x) nogil:
+        mapped_x[0] = -1.0 + 2.0*(physical_x[0] - vertices[0]) / (vertices[1] - vertices[0])
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef double sample_at_unit_point(self,
+                                     double* coord,
+                                     double* vals) nogil:
+        return vals[0] * (1 - coord[0]) / 2.0 + vals[1] * (1.0 + coord[0]) / 2.0
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_inside(self, double* mapped_coord) nogil:
+        if (fabs(mapped_coord[0]) - 1.0 > self.inclusion_tol):
+            return 0
+        return 1
+
+
 cdef class P1Sampler2D(ElementSampler):
     '''
 
@@ -966,6 +1001,24 @@ def test_wedge_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
     val = sampler.sample_at_real_point(<double*> vertices.data,
                                        <double*> field_values.data,
                                        <double*> physical_x.data)
+    return val
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def test_linear1D_sampler(np.ndarray[np.float64_t, ndim=2] vertices,
+                          np.ndarray[np.float64_t, ndim=1] field_values,
+                          np.ndarray[np.float64_t, ndim=1] physical_x):
+
+    cdef double val
+
+    sampler = P1Sampler1D()
+
+    val = sampler.sample_at_real_point(<double*> vertices.data,
+                                       <double*> field_values.data,
+                                       <double*> physical_x.data)
+
     return val
 
 
