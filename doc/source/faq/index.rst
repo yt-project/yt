@@ -447,8 +447,8 @@ which would produce debug (as well as info, warning, and error) messages, or at 
 
 .. code-block:: python
 
-   from yt.config import ytcfg
-   ytcfg["yt","loglevel"] = "40" # This sets the log level to "ERROR"
+   from yt.funcs import mylog
+   mylog.setLevel(40) # This sets the log level to "ERROR"
 
 which in this case would suppress everything below error messages. For reference, the numerical
 values corresponding to different log levels are:
