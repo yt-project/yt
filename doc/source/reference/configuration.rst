@@ -62,27 +62,6 @@ This has the same effect as setting ``loglevel = 1`` in the configuration
 file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
-Setting Configuration On the Command Line
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Options can also be set directly on the command line by specifying a
-command-line option.  For instance, if you are running the script
-``my_script.py`` you can specify a configuration option with the ``--config``
-argument.  As an example, to lower the log level (thus making it more verbose)
-you can specify:
-
-.. code-block:: bash
-
-   $ python2.7 my_script.py --config loglevel=1
-
-Any configuration option specific to yt can be specified in this manner.  One
-common configuration option would be to disable serialization:
-
-.. code-block:: bash
-
-   $ python2.7 my_script.py --config serialize=False
-
-This way projections are always re-created.
 
 Available Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
