@@ -834,8 +834,8 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
    ds = yt.load("snapshot_061.hdf5")
 
 Gadget data in raw binary format can also be loaded with the ``load`` command.
-This is only supported for snapshots created with the ``SnapFormat`` parameter
-set to 1 (the standard for Gadget-2).
+This is supported for snapshots created with the ``SnapFormat`` parameter
+set to 1 (the standard for Gadget-2) or 2.
 
 .. code-block:: python
 
@@ -1069,6 +1069,8 @@ you need to supply conversions for length, time, and mass to ``load`` using the 
 This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, but the GAMER fields,
 e.g., ``("gamer","Dens")``, will be in code units.
 
+Particle data are supported and are always stored in the same file as the grid data.
+
 .. rubric:: Caveats
 
 * GAMER data in raw binary format (i.e., OPT__OUTPUT_TOTAL = C-binary) is not supported.
@@ -1262,23 +1264,37 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
 
 .. code-block:: python
 
-   import yt
-   import numpy
-   from yt.utilities.exodusII_reader import get_data
+    import yt
+    import numpy as np
 
-   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
+    coords = np.array([[0.0, 0.0],
+                       [1.0, 0.0],
+                       [1.0, 1.0],
+                       [0.0, 1.0]], dtype=np.float64)
 
-This uses a publically available `MOOSE <http://mooseframework.org/>`
-dataset along with the get_data function to parse the coords, connectivity,
-and data. Then, these can be loaded as an in-memory dataset as follows:
+     connect = np.array([[0, 1, 3],
+                         [1, 2, 3]], dtype=np.int64)
+
+     data = {}
+     data['connect1', 'test'] = np.array([[0.0, 1.0, 3.0],
+                                          [1.0, 2.0, 3.0]], dtype=np.float64)
+
+Here, we have made up a simple, 2D unstructured mesh dataset consisting of two
+triangles and one node-centered data field. This data can be loaded as an in-memory
+dataset as follows:
 
 .. code-block:: python
 
-    mesh_id = 0
-    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
+    ds = yt.load_unstructured_mesh(connect, coords, data)
 
-Note that load_unstructured_mesh can take either a single or a list of meshes.
-Here, we have selected only the first mesh to load.
+Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
+Here, we only have one mesh. The in-memory dataset can then be visualized as usual,
+e.g.:
+
+.. code-block:: python
+
+    sl = yt.SlicePlot(ds, 'z', 'test')
+    sl.annotate_mesh_lines()
 
 .. rubric:: Caveats
 
@@ -1516,6 +1532,57 @@ information.  At this time, halo member particles cannot be loaded.
    ad = ds.all_data()
    # The halo mass
    print(ad["FOF", "particle_mass"])
+
+.. _loading-openpmd-data:
+
+openPMD Data
+---------
+
+`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+scheme for mesh based data and particle data. It does not actually define a file
+format.
+
+HDF5-containers respecting the minimal set of meta information from
+versions 1.0.0 and 1.0.1 of the standard are compatible.
+Support for the ED-PIC extension is not available. Mesh data in cartesian coordinates
+and particle data can be read by this frontend.
+
+To load the first in-file iteration of a openPMD datasets using the standard HDF5
+output format:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load('example-3d/hdf5/data00000100.h5')
+
+If you operate on large files, you may want to modify the virtual chunking behaviour through
+``open_pmd_virtual_gridsize``. The supplied value is an estimate of the size of a single read request
+for each particle attribute/mesh (in Byte).
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5', open_pmd_virtual_gridsize=10e4)
+  sp = yt.SlicePlot(ds, 'x', 'rho')
+  sp.show()
+
+Particle data is fully supported:
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5')
+  ad = f.all_data()
+  ppp = yt.ParticlePhasePlot(ad, 'particle_position_y', 'particle_momentum_y', 'particle_weighting')
+  ppp.show()
+
+.. rubric:: Caveats
+
+* 1D, 2D and 3D data is compatible, but lower dimensional data might yield
+  strange results since it gets padded and treated as 3D. Extraneous dimensions are
+  set to be of length 1.0m and have a width of one cell.
+* The frontend has hardcoded logic for renaming the openPMD ``position``
+  of particles to ``positionCoarse``
 
 .. _loading-pyne-data:
 

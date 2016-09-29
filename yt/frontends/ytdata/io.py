@@ -42,14 +42,13 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
                 rv.update(gf)
             if len(rv) == len(fields): return rv
             f = h5py.File(u(g.filename), "r")
-            gds = f["data"]
             for field in fields:
                 if field in rv:
                     self._hits += 1
                     continue
                 self._misses += 1
                 ftype, fname = field
-                rv[(ftype, fname)] = gds[fname].value
+                rv[(ftype, fname)] = f[ftype][fname].value
             if self._cache_on:
                 for gid in rv:
                     self._cached_fields.setdefault(gid, {})

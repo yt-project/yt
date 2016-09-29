@@ -714,7 +714,7 @@ class VRImageComparisonTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
-        
+
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
@@ -758,7 +758,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
     _type_name = "PhasePlotAttribute"
     _attrs = ('plot_type', 'x_field', 'y_field', 'z_field',
               'attr_name', 'attr_args')
-    def __init__(self, ds_fn, x_field, y_field, z_field, 
+    def __init__(self, ds_fn, x_field, y_field, z_field,
                  attr_name, attr_args, decimals, plot_type='PhasePlot'):
         super(PhasePlotAttributeTest, self).__init__(ds_fn)
         self.data_source = self.ds.all_data()
@@ -771,7 +771,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         self.attr_args = attr_args
         self.decimals = decimals
 
-    def create_plot(self, data_source, x_field, y_field, z_field, 
+    def create_plot(self, data_source, x_field, y_field, z_field,
                     plot_type, plot_kwargs=None):
         # plot_type should be a string
         # plot_kwargs should be a dict
@@ -819,6 +819,10 @@ class GenericArrayTest(AnswerTestingTest):
             kwargs = self.kwargs
         return self.array_func(*args, **kwargs)
     def compare(self, new_result, old_result):
+        if not isinstance(new_result, dict):
+            new_result = {'answer': new_result}
+            old_result = {'answer': old_result}
+
         assert_equal(len(new_result), len(old_result),
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
@@ -924,7 +928,7 @@ def requires_answer_testing():
         return ftrue
     else:
         return ffalse
-    
+
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None

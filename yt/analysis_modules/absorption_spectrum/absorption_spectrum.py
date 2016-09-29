@@ -203,6 +203,13 @@ class AbsorptionSpectrum(object):
             input_ds = input_file
         field_data = input_ds.all_data()
 
+        # temperature field required to calculate voigt profile widths
+        if ('temperature' not in input_ds.derived_field_list) and \
+           (('gas', 'temperature') not in input_ds.derived_field_list):
+            raise RuntimeError(
+                "('gas', 'temperature') field required to be present in %s "
+                "for AbsorptionSpectrum to function." % input_file)
+
         self.tau_field = np.zeros(self.lambda_field.size)
         self.absorbers_list = []
 
@@ -210,6 +217,7 @@ class AbsorptionSpectrum(object):
             comm = _get_comm(())
             njobs = min(comm.size, len(self.line_list))
 
+        mylog.info("Creating spectrum")
         self._add_lines_to_spectrum(field_data, use_peculiar_velocity,
                                     output_absorbers_file,
                                     subgrid_resolution=subgrid_resolution,
@@ -268,47 +276,96 @@ class AbsorptionSpectrum(object):
                 redshift_eff = ((1 + redshift) * \
                                 (1 + field_data['redshift_dopp'])) - 1.
 
+        if not use_peculiar_velocity:
+            redshift_eff = redshift
+
         return redshift, redshift_eff
 
     def _add_continua_to_spectrum(self, field_data, use_peculiar_velocity,
                                   observing_redshift=0.):
         """
-        Add continuum features to the spectrum.
+        Add continuum features to the spectrum.  Continuua are recorded as
+        a name, associated field, wavelength, normalization value, and index.
+        Continuua are applied at and below the denoted wavelength, where the
+        optical depth decreases as a power law of desired index.  For positive 
+        index values, this means optical depth is highest at the denoted 
+        wavelength, and it drops with shorter and shorter wavelengths.  
+        Consequently, transmitted flux undergoes a discontinuous cutoff at the 
+        denoted wavelength, and then slowly increases with decreasing wavelength 
+        according to the power law.
         """
         # Change the redshifts of continuum sources to account for the
         # redshift at which the observer sits
         redshift, redshift_eff = self._apply_observing_redshift(field_data,
                                  use_peculiar_velocity, observing_redshift)
 
-        # Only add continuum features down to tau of 1.e-4.
-        min_tau = 1.e-3
+        # min_tau is the minimum optical depth value that warrants 
+        # accounting for an absorber.  for a single absorber, noticeable 
+        # continuum effects begin for tau = 1e-3 (leading to transmitted 
+        # flux of e^-tau ~ 0.999).  but we apply a cutoff to remove
+        # absorbers with insufficient column_density to contribute 
+        # significantly to a continuum (see below).  because lots of 
+        # low column density absorbers can add up to a significant
+        # continuum effect, we normalize min_tau by the n_absorbers.
+        n_absorbers = field_data['dl'].size
+        min_tau = 1.e-3/n_absorbers
 
         for continuum in self.continuum_list:
-            column_density = field_data[continuum['field_name']] * field_data['dl']
+
+            # Normalization is in cm**-2, so column density must be as well
+            column_density = (field_data[continuum['field_name']] * 
+                              field_data['dl']).in_units('cm**-2')
+            if (column_density == 0).all():
+                mylog.info("Not adding continuum %s: insufficient column density" % continuum['label'])
+                continue
 
             # redshift_eff field combines cosmological and velocity redshifts
             if use_peculiar_velocity:
                 delta_lambda = continuum['wavelength'] * redshift_eff
             else:
                 delta_lambda = continuum['wavelength'] * redshift
-            this_wavelength = delta_lambda + continuum['wavelength']
-            right_index = np.digitize(this_wavelength, self.lambda_field).clip(0, self.n_lambda)
-            left_index = np.digitize((this_wavelength *
-                                     np.power((min_tau * continuum['normalization'] /
-                                               column_density), (1. / continuum['index']))),
-                                    self.lambda_field).clip(0, self.n_lambda)
 
+            # right index of continuum affected area is wavelength itself
+            this_wavelength = delta_lambda + continuum['wavelength']
+            right_index = np.digitize(this_wavelength, 
+                                      self.lambda_field).clip(0, self.n_lambda)
+            # left index of continuum affected area wavelength at which 
+            # optical depth reaches tau_min
+            left_index = np.digitize((this_wavelength *
+                              np.power((min_tau * continuum['normalization'] /
+                                        column_density),
+                                       (1. / continuum['index']))),
+                              self.lambda_field).clip(0, self.n_lambda)
+
+            # Only calculate the effects of continuua where normalized 
+            # column_density is greater than min_tau
+            # because lower column will not have significant contribution
             valid_continuua = np.where(((column_density /
                                          continuum['normalization']) > min_tau) &
                                        (right_index - left_index > 1))[0]
+            if valid_continuua.size == 0:
+                mylog.info("Not adding continuum %s: insufficient column density or out of range" %
+                    continuum['label'])
+                continue
+
             pbar = get_pbar("Adding continuum - %s [%f A]: " % \
                                 (continuum['label'], continuum['wavelength']),
                             valid_continuua.size)
+
+            # Tau value is (wavelength / continuum_wavelength)**index / 
+            #              (column_dens / norm)
+            # i.e. a power law decreasing as wavelength decreases
+
+            # Step through the absorber list and add continuum tau for each to
+            # the total optical depth for all wavelengths
             for i, lixel in enumerate(valid_continuua):
-                line_tau = np.power((self.lambda_field[left_index[lixel]:right_index[lixel]] /
-                                     this_wavelength[lixel]), continuum['index']) * \
-                                     column_density[lixel] / continuum['normalization']
-                self.tau_field[left_index[lixel]:right_index[lixel]] += line_tau
+                cont_tau = \
+                    np.power((self.lambda_field[left_index[lixel] :
+                                                right_index[lixel]] /
+                                   this_wavelength[lixel]), \
+                              continuum['index']) * \
+                    (column_density[lixel] / continuum['normalization'])
+                self.tau_field[left_index[lixel]:right_index[lixel]] += cont_tau
                 pbar.update(i)
             pbar.finish()
 
@@ -333,6 +390,9 @@ class AbsorptionSpectrum(object):
         # and deposit the lines into the spectrum
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
+            if (column_density == 0).all():
+                mylog.info("Not adding line %s: insufficient column density" % line['label'])
+                continue
 
             # redshift_eff field combines cosmological and velocity redshifts
             # so delta_lambda gives the offset in angstroms from the rest frame
@@ -376,7 +436,10 @@ class AbsorptionSpectrum(object):
             cdens = column_density.in_units("cm**-2").d # cm**-2
             thermb = thermal_b.in_cgs().d  # thermal b coefficient; cm / s
             dlambda = delta_lambda.d  # lambda offset; angstroms
-            vlos = field_data['velocity_los'].in_units("km/s").d # km/s
+            if use_peculiar_velocity:
+                vlos = field_data['velocity_los'].in_units("km/s").d # km/s
+            else:
+                vlos = np.zeros(field_data['temperature'].size)
 
             # When we actually deposit the voigt profile, sometimes we will
             # have underresolved lines (ie lines with smaller widths than
@@ -412,6 +475,12 @@ class AbsorptionSpectrum(object):
             # for a given transition, step through each location in the
             # observed spectrum where it occurs and deposit a voigt profile
             for i in parallel_objects(np.arange(n_absorbers), njobs=-1):
+
+                # if there is a ray element with temperature = 0 or column
+                # density = 0, skip it
+                if (thermal_b[i] == 0.) or (cdens[i] == 0.):
+                    pbar.update(i)
+                    continue
 
                 # the virtual window into which the line is deposited initially
                 # spans a region of 2 coarse spectral bins

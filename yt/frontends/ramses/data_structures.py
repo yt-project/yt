@@ -23,7 +23,8 @@ from io import BytesIO
 
 from yt.extern.six import string_types
 from yt.funcs import \
-    mylog
+    mylog, \
+    setdefaultattr
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
 from yt.geometry.geometry_handler import \
@@ -41,6 +42,9 @@ import yt.utilities.fortran_utils as fpu
 from yt.geometry.oct_container import \
     RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
+
+from yt.utilities.lib.cosmology_time import \
+    friedman
 
 class RAMSESDomainFile(object):
     _last_mask = None
@@ -565,17 +569,21 @@ class RAMSESDataset(Dataset):
         # For now assume an atomic ideal gas with cosmic abundances (x_H = 0.76)
         mean_molecular_weight_factor = _X**-1
 
-        self.density_unit = self.quan(density_unit, 'g/cm**3')
-        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
-        self.pressure_unit = self.quan(pressure_unit, 'dyne/cm**2')
-        self.time_unit = self.quan(time_unit, "s")
-        self.mass_unit = self.quan(mass_unit, "g")
-        self.velocity_unit = self.quan(length_unit, 'cm') / self.time_unit
-        self.temperature_unit = (self.velocity_unit**2*mp* 
-                                 mean_molecular_weight_factor/kb).in_units('K')
+        setdefaultattr(self, 'density_unit', self.quan(density_unit, 'g/cm**3'))
+        setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
+        setdefaultattr(self, 'pressure_unit',
+                       self.quan(pressure_unit, 'dyne/cm**2'))
+        setdefaultattr(self, 'time_unit', self.quan(time_unit, "s"))
+        setdefaultattr(self, 'mass_unit', self.quan(mass_unit, "g"))
+        setdefaultattr(self, 'velocity_unit',
+                       self.quan(length_unit, 'cm') / self.time_unit)
+        temperature_unit = (
+            self.velocity_unit**2*mp*mean_molecular_weight_factor/kb)
+        setdefaultattr(self, 'temperature_unit', temperature_unit.in_units('K'))
 
         # Only the length unit get scales by a factor of boxlen
-        self.length_unit = self.quan(length_unit * boxlen, "cm")
+        setdefaultattr(self, 'length_unit',
+                       self.quan(length_unit * boxlen, "cm"))
 
     def _parse_parameter_file(self):
         # hardcoded for now
@@ -615,7 +623,6 @@ class RAMSESDataset(Dataset):
                 dom, mi, ma = f.readline().split()
                 self.hilbert_indices[int(dom)] = (float(mi), float(ma))
         self.parameters.update(rheader)
-        self.current_time = self.parameters['time'] * self.parameters['unit_t']
         self.domain_left_edge = np.zeros(3, dtype='float64')
         self.domain_dimensions = np.ones(3, dtype='int32') * \
                         2**(self.min_level+1)
@@ -637,6 +644,23 @@ class RAMSESDataset(Dataset):
             self.hubble_constant = rheader["H0"] / 100.0 # This is H100
         self.max_level = rheader['levelmax'] - self.min_level - 1
         f.close()
+
+
+        if self.cosmological_simulation == 0:
+            self.current_time = self.parameters['time']
+        else :
+            self.tau_frw, self.t_frw, self.dtau, self.n_frw, self.time_tot = \
+                friedman( self.omega_matter, self.omega_lambda, 1. - self.omega_matter - self.omega_lambda )
+
+            age = self.parameters['time']
+            iage = 1 + int(10.*age/self.dtau)
+            iage = np.min([iage,self.n_frw/2 + (iage - self.n_frw/2)/10])
+
+            self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
+                             self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
+ 
+            self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
+
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

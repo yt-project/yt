@@ -16,11 +16,11 @@ This is a container for storing fields defined in the my_plugins.py file.
 from .field_plugin_registry import \
     register_field_plugin
 
-from .field_info_container import \
-    FieldInfoContainer
+from .local_fields import \
+    LocalFieldInfoContainer
 
 # Empty FieldInfoContainer
-my_plugins_fields = FieldInfoContainer(None, [], None)
+my_plugins_fields = LocalFieldInfoContainer(None, [], None)
 
 @register_field_plugin
 def setup_my_plugins_fields(registry, ftype="gas", slice_info=None):

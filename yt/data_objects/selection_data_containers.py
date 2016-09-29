@@ -197,10 +197,20 @@ class YTRay(YTSelectionContainer1D):
     def __init__(self, start_point, end_point, ds=None,
                  field_parameters=None, data_source=None):
         super(YTRay, self).__init__(ds, field_parameters, data_source)
-        self.start_point = self.ds.arr(start_point,
-                            'code_length', dtype='float64')
-        self.end_point = self.ds.arr(end_point,
-                            'code_length', dtype='float64')
+        if isinstance(start_point, YTArray):
+            self.start_point = \
+              self.ds.arr(start_point).to("code_length")
+        else:
+            self.start_point = \
+              self.ds.arr(start_point, 'code_length',
+                          dtype='float64')
+        if isinstance(end_point, YTArray):
+            self.end_point = \
+              self.ds.arr(end_point).to("code_length")
+        else:
+            self.end_point = \
+              self.ds.arr(end_point, 'code_length',
+                          dtype='float64')
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
@@ -773,6 +783,7 @@ class YTCutRegion(YTSelectionContainer3D):
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
+        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -795,7 +806,8 @@ class YTCutRegion(YTSelectionContainer3D):
             f = self.base_object[field]
             if f.shape != ind.shape:
                 parent = getattr(self, "parent", self.base_object)
-                self.field_data[field] = parent[field][self._part_ind]
+                self.field_data[field] = \
+                  parent[field][self._part_ind(field[0])]
             else:
                 self.field_data[field] = self.base_object[field][ind]
 
@@ -825,21 +837,22 @@ class YTCutRegion(YTSelectionContainer3D):
                 np.logical_and(res, ind, ind)
         return ind
 
-    _particle_mask = None
-    @property
-    def _part_ind(self):
-        if self._particle_mask is None:
+    def _part_ind(self, ptype):
+        if self._particle_mask.get(ptype) is None:
             parent = getattr(self, "parent", self.base_object)
             units = "code_length"
             mask = points_in_cells(
-                self["x"].to(units), self["y"].to(units),
-                self["z"].to(units), self["dx"].to(units),
-                self["dy"].to(units), self["dz"].to(units),
-                parent["particle_position_x"].to(units),
-                parent["particle_position_y"].to(units),
-                parent["particle_position_z"].to(units))
-            self._particle_mask = mask
-        return self._particle_mask
+                self[("index", "x")].to(units),
+                self[("index", "y")].to(units),
+                self[("index", "z")].to(units),
+                self[("index", "dx")].to(units),
+                self[("index", "dy")].to(units),
+                self[("index", "dz")].to(units),
+                parent[(ptype, "particle_position_x")].to(units),
+                parent[(ptype, "particle_position_y")].to(units),
+                parent[(ptype, "particle_position_z")].to(units))
+            self._particle_mask[ptype] = mask
+        return self._particle_mask[ptype]
 
     @property
     def icoords(self):

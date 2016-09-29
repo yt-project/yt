@@ -250,6 +250,7 @@ GAMER
 
 * ``InteractingJets/jet_000002``
 * ``WaveDarkMatter/psiDM_000020``
+* ``Plummer/plummer_000000``
 
 Halo Catalog
 ~~~~~~~~~~~~

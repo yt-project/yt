@@ -21,8 +21,6 @@ from yt.convenience import \
     load
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
-from yt.units.unit_object import \
-    Unit
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
@@ -81,21 +79,23 @@ class LightRay(CosmologySplice):
     max_box_fraction : optional, float
         In terms of the size of the domain, the maximum length a light
         ray segment can be in order to span the redshift interval from
-        one dataset to another.
+        one dataset to another.  If using a zoom-in simulation, this
+        parameter can be set to the length of the high resolution
+        region so as to limit ray segments to that size.  If the
+        high resolution region is not cubical, the smallest side
+        should be used.
         Default: 1.0 (the size of the box)
     deltaz_min : optional, float
         Specifies the minimum :math:`\Delta z` between consecutive
         datasets in the returned list.  Do not use for simple rays.
         Default: 0.0.
     minimum_coherent_box_fraction : optional, float
-        Used with use_minimum_datasets set to False, this parameter
-        specifies the fraction of the total box size to be traversed
-        before rerandomizing the projection axis and center.  This
-        was invented to allow light rays with thin slices to sample
-        coherent large scale structure, but in practice does not work
-        so well.  Try setting this parameter to 1 and see what happens.  
-        Do not use for simple rays.
-        Default: 0.0.
+        Use to specify the minimum length of a ray, in terms of the
+        size of the domain, before the trajectory is re-randomized.
+        Set to 0 to have ray trajectory randomized for every dataset.
+        Set to np.inf (infinity) to use a single trajectory for the
+        entire ray.
+        Default: 0.
     time_data : optional, bool
         Whether or not to include time outputs when gathering
         datasets for time series.  Do not use for simple rays.
@@ -124,6 +124,11 @@ class LightRay(CosmologySplice):
                  deltaz_min=0.0, minimum_coherent_box_fraction=0.0,
                  time_data=True, redshift_data=True,
                  find_outputs=False, load_kwargs=None):
+
+        if near_redshift is not None and far_redshift is not None and \
+          near_redshift >= far_redshift:
+            raise RuntimeError(
+                "near_redshift must be less than far_redshift.")
 
         self.near_redshift = near_redshift
         self.far_redshift = far_redshift
@@ -156,8 +161,7 @@ class LightRay(CosmologySplice):
                 self.cosmology = Cosmology(
                     hubble_constant=self.ds.hubble_constant,
                     omega_matter=self.ds.omega_matter,
-                    omega_lambda=self.ds.omega_lambda,
-                    unit_registry=self.ds.unit_registry)
+                    omega_lambda=self.ds.omega_lambda)
             else:
                 redshift = 0.
             self.light_ray_solution.append({"filename": self.parameter_filename,
@@ -171,20 +175,23 @@ class LightRay(CosmologySplice):
             CosmologySplice.__init__(self, self.parameter_filename, simulation_type,
                                      find_outputs=find_outputs)
             self.light_ray_solution = \
-              self.create_cosmology_splice(self.near_redshift, self.far_redshift,
-                                           minimal=self.use_minimum_datasets,
-                                           max_box_fraction=max_box_fraction,
-                                           deltaz_min=self.deltaz_min,
-                                           time_data=time_data,
-                                           redshift_data=redshift_data)
+              self.create_cosmology_splice(
+                  self.near_redshift, self.far_redshift,
+                  minimal=self.use_minimum_datasets,
+                  max_box_fraction=max_box_fraction,
+                  deltaz_min=self.deltaz_min,
+                  time_data=time_data,
+                  redshift_data=redshift_data)
 
     def _calculate_light_ray_solution(self, seed=None,
+                                      left_edge=None, right_edge=None,
+                                      min_level=None, periodic=True,
                                       start_position=None, end_position=None,
                                       trajectory=None, filename=None):
         "Create list of datasets to be added together to make the light ray."
 
         # Calculate dataset sizes, and get random dataset axes and centers.
-        np.random.seed(seed)
+        my_random = np.random.RandomState(seed)
 
         # If using only one dataset, set start and stop manually.
         if start_position is not None:
@@ -194,9 +201,9 @@ class LightRay(CosmologySplice):
             if not ((end_position is None) ^ (trajectory is None)):
                 raise RuntimeError("LightRay Error: must specify either end_position " + \
                                    "or trajectory, but not both.")
-            self.light_ray_solution[0]['start'] = np.asarray(start_position)
+            self.light_ray_solution[0]['start'] = start_position
             if end_position is not None:
-                self.light_ray_solution[0]['end'] = np.asarray(end_position)
+                self.light_ray_solution[0]['end'] = end_position
             else:
                 # assume trajectory given as r, theta, phi
                 if len(trajectory) != 3:
@@ -230,29 +237,40 @@ class LightRay(CosmologySplice):
 
                 # Get dataset axis and center.
                 # If using box coherence, only get start point and vector if
-                # enough of the box has been used,
-                # or if box_fraction_used will be greater than 1 after this slice.
-                if (q == 0) or (self.minimum_coherent_box_fraction == 0) or \
-                        (box_fraction_used >
-                         self.minimum_coherent_box_fraction) or \
-                        (box_fraction_used +
-                         self.light_ray_solution[q]['traversal_box_fraction'] > 1.0):
-                    # Random start point
-                    self.light_ray_solution[q]['start'] = np.random.random(3)
-                    theta = np.pi * np.random.random()
-                    phi = 2 * np.pi * np.random.random()
-                    box_fraction_used = 0.0
+                # enough of the box has been used.
+                if (q == 0) or (box_fraction_used >=
+                                self.minimum_coherent_box_fraction):
+                    if periodic:
+                        self.light_ray_solution[q]['start'] = left_edge + \
+                          (right_edge - left_edge) * my_random.random_sample(3)
+                        theta = np.pi * my_random.random_sample()
+                        phi = 2 * np.pi * my_random.random_sample()
+                        box_fraction_used = 0.0
+                    else:
+                        ds = load(self.light_ray_solution[q]["filename"])
+                        ray_length = \
+                          ds.quan(self.light_ray_solution[q]['traversal_box_fraction'],
+                                  "unitary")
+                        self.light_ray_solution[q]['start'], \
+                          self.light_ray_solution[q]['end'] = \
+                          non_periodic_ray(ds, left_edge, right_edge, ray_length,
+                                           my_random=my_random, min_level=min_level)
+                        del ds
                 else:
-                    # Use end point of previous segment and same theta and phi.
+                    # Use end point of previous segment, adjusted for periodicity,
+                    # and the same trajectory.
                     self.light_ray_solution[q]['start'] = \
-                      self.light_ray_solution[q-1]['end'][:]
+                      periodic_adjust(self.light_ray_solution[q-1]['end'][:],
+                                      left=left_edge, right=right_edge)
 
-                self.light_ray_solution[q]['end'] = \
-                  self.light_ray_solution[q]['start'] + \
-                    self.light_ray_solution[q]['traversal_box_fraction'] * \
-                    np.array([np.cos(phi) * np.sin(theta),
-                              np.sin(phi) * np.sin(theta),
-                              np.cos(theta)])
+                if "end" not in self.light_ray_solution[q]:
+                    self.light_ray_solution[q]['end'] = \
+                      self.light_ray_solution[q]['start'] + \
+                        self.light_ray_solution[q]['traversal_box_fraction'] * \
+                        self.simulation.box_size * \
+                        np.array([np.cos(phi) * np.sin(theta),
+                                  np.sin(phi) * np.sin(theta),
+                                  np.cos(theta)])
                 box_fraction_used += \
                   self.light_ray_solution[q]['traversal_box_fraction']
 
@@ -263,15 +281,18 @@ class LightRay(CosmologySplice):
                             'far_redshift':self.far_redshift,
                             'near_redshift':self.near_redshift})
 
-    def make_light_ray(self, seed=None,
+    def make_light_ray(self, seed=None, periodic=True,
+                       left_edge=None, right_edge=None, min_level=None,
                        start_position=None, end_position=None,
                        trajectory=None,
                        fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
-                       get_los_velocity=None, use_peculiar_velocity=True, 
-                       redshift=None, njobs=-1):
+                       get_los_velocity=None, use_peculiar_velocity=True,
+                       redshift=None, field_parameters=None, njobs=-1):
         """
-        make_light_ray(seed=None, start_position=None, end_position=None,
+        make_light_ray(seed=None, periodic=True,
+                       left_edge=None, right_edge=None, min_level=None,
+                       start_position=None, end_position=None,
                        trajectory=None, fields=None, setup_function=None,
                        solution_filename=None, data_filename=None,
                        use_peculiar_velocity=True, redshift=None,
@@ -286,6 +307,29 @@ class LightRay(CosmologySplice):
         ----------
         seed : optional, int
             Seed for the random number generator.
+            Default: None.
+        periodic : optional, bool
+            If True, ray trajectories will make use of periodic
+            boundaries.  If False, ray trajectories will not be
+            periodic.
+            Default : True.
+        left_edge : optional, iterable of floats or YTArray
+            The left corner of the region in which rays are to be
+            generated.  If None, the left edge will be that of the
+            domain.  If specified without units, it is assumed to
+            be in code units.
+            Default: None.
+        right_edge : optional, iterable of floats or YTArray
+            The right corner of the region in which rays are to be
+            generated.  If None, the right edge will be that of the
+            domain.  If specified without units, it is assumed to
+            be in code units.
+            Default: None.
+        min_level : optional, int
+            The minimum refinement level of the spatial region in which
+            the ray passes.  This can be used with zoom-in simulations
+            where the high resolution region does not keep a constant
+            geometry.
             Default: None.
         start_position : optional, iterable of floats or YTArray.
             Used only if creating a light ray from a single dataset.
@@ -365,33 +409,63 @@ class LightRay(CosmologySplice):
         ...                       use_peculiar_velocity=True)
 
         """
+        if self.simulation_type is None:
+            domain = self.ds
+        else:
+            domain = self.simulation
 
-        if start_position is not None and hasattr(start_position, 'units'):
-            start_position = start_position.to('unitary')
-        elif start_position is not None :
-            start_position = self.ds.arr(
-                start_position, 'code_length').to('unitary')
+        assumed_units = "code_length"
+        if left_edge is None:
+            left_edge = domain.domain_left_edge
+        elif not hasattr(left_edge, 'units'):
+            left_edge = domain.arr(left_edge, assumed_units)
+        left_edge.convert_to_units('unitary')
 
-        if end_position is not None and hasattr(end_position, 'units'):
-            end_position = end_position.to('unitary')
-        elif end_position is not None :
-            end_position = self.ds.arr(
-                end_position, 'code_length').to('unitary')
+        if right_edge is None:
+            right_edge = domain.domain_right_edge
+        elif not hasattr(right_edge, 'units'):
+            right_edge = domain.arr(right_edge, assumed_units)
+        right_edge.convert_to_units('unitary')
+
+        if start_position is not None:
+            if hasattr(start_position, 'units'):
+                start_position = start_position
+            else:
+                start_position = self.ds.arr(start_position, assumed_units)
+            start_position.convert_to_units('unitary')
+
+        if end_position is not None:
+            if hasattr(end_position, 'units'):
+                end_position = end_position
+            else:
+                end_position = self.ds.arr(end_position, assumed_units)
+            end_position.convert_to_units('unitary')
 
         if get_los_velocity is not None:
             use_peculiar_velocity = get_los_velocity
-            mylog.warn("'get_los_velocity' kwarg is deprecated. Use 'use_peculiar_velocity' instead.")
+            mylog.warn("'get_los_velocity' kwarg is deprecated. " + \
+                       "Use 'use_peculiar_velocity' instead.")
 
         # Calculate solution.
         self._calculate_light_ray_solution(seed=seed,
+                                           left_edge=left_edge,
+                                           right_edge=right_edge,
+                                           min_level=min_level, periodic=periodic,
                                            start_position=start_position,
                                            end_position=end_position,
                                            trajectory=trajectory,
                                            filename=solution_filename)
 
+        if field_parameters is None:
+            field_parameters = {}
+
         # Initialize data structures.
         self._data = {}
+        # temperature field is automatically added to fields
         if fields is None: fields = []
+        if (('gas', 'temperature') not in fields) and \
+           ('temperature' not in fields):
+           fields.append(('gas', 'temperature'))
         data_fields = fields[:]
         all_fields = fields[:]
         all_fields.extend(['dl', 'dredshift', 'redshift'])
@@ -425,19 +499,11 @@ class LightRay(CosmologySplice):
             if setup_function is not None:
                 setup_function(ds)
 
-            if start_position is not None:
-                my_segment["start"] = ds.arr(my_segment["start"], "unitary")
-                my_segment["end"] = ds.arr(my_segment["end"], "unitary")
-            else:
-                my_segment["start"] = ds.domain_width * my_segment["start"] + \
-                  ds.domain_left_edge
-                my_segment["end"] = ds.domain_width * my_segment["end"] + \
-                  ds.domain_left_edge
-
             if not ds.cosmological_simulation:
                 next_redshift = my_segment["redshift"]
             elif self.near_redshift == self.far_redshift:
-                if isinstance(my_segment["traversal_box_fraction"], YTArray):
+                if isinstance(my_segment["traversal_box_fraction"], YTArray) and \
+                  not my_segment["traversal_box_fraction"].units.is_dimensionless:
                     segment_length = \
                       my_segment["traversal_box_fraction"].in_units("Mpccm / h")
                 else:
@@ -451,18 +517,18 @@ class LightRay(CosmologySplice):
             else:
                 next_redshift = my_segment['next']['redshift']
 
+            # Make sure start, end, left, right
+            # are using the dataset's unit system.
+            my_start = ds.arr(my_segment['start'])
+            my_end   = ds.arr(my_segment['end'])
+            my_left  = ds.arr(left_edge)
+            my_right = ds.arr(right_edge)
             mylog.info("Getting segment at z = %s: %s to %s." %
-                       (my_segment['redshift'], my_segment['start'],
-                        my_segment['end']))
-
-            # Convert segment units from unitary to code length for sub_ray
-            my_segment['start'] = my_segment['start'].to('code_length')
-            my_segment['end'] = my_segment['end'].to('code_length')
+                       (my_segment['redshift'], my_start, my_end))
 
             # Break periodic ray into non-periodic segments.
-            sub_segments = periodic_ray(my_segment['start'], my_segment['end'],
-                                        left=ds.domain_left_edge,
-                                        right=ds.domain_right_edge)
+            sub_segments = periodic_ray(my_start, my_end,
+                                        left=my_left, right=my_right)
 
             # Prepare data structure for subsegment.
             sub_data = {}
@@ -475,6 +541,8 @@ class LightRay(CosmologySplice):
                 mylog.info("Getting subsegment: %s to %s." %
                            (list(sub_segment[0]), list(sub_segment[1])))
                 sub_ray = ds.ray(sub_segment[0], sub_segment[1])
+                for key, val in field_parameters.items():
+                    sub_ray.set_field_parameter(key, val)
                 asort = np.argsort(sub_ray["t"])
                 sub_data['dl'].extend(sub_ray['dts'][asort] *
                                       vector_length(sub_ray.start_point,
@@ -513,7 +581,7 @@ class LightRay(CosmologySplice):
                     # sight) and the velocity vectors: a dot b = ab cos(theta)
 
                     sub_vel_mag = sub_ray['velocity_magnitude']
-                    cos_theta = np.dot(line_of_sight, sub_vel) / sub_vel_mag
+                    cos_theta = line_of_sight.dot(sub_vel) / sub_vel_mag
                     # Protect against stituations where velocity mag is exactly
                     # zero, in which case zero / zero = NaN.
                     cos_theta = np.nan_to_num(cos_theta)
@@ -533,8 +601,7 @@ class LightRay(CosmologySplice):
             # Get redshift for each lixel.  Assume linear relation between l 
             # and z.
             sub_data['dredshift'] = (my_segment['redshift'] - next_redshift) * \
-                (sub_data['dl'] / vector_length(my_segment['start'],
-                                                my_segment['end']).in_cgs())
+                (sub_data['dl'] / vector_length(my_start, my_end).in_cgs())
             sub_data['redshift'] = my_segment['redshift'] - \
               sub_data['dredshift'].cumsum() + sub_data['dredshift']
 
@@ -604,19 +671,18 @@ class LightRay(CosmologySplice):
               self.cosmology.t_from_z(ds["current_redshift"])
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
+
         # Only return LightRay elements with non-zero density
-        mask_field_units = ['K', 'cm**-3', 'g/cm**3']
-        mask_field_units = [Unit(u) for u in mask_field_units]
-        for f in data:
-            for u in mask_field_units:
-                if data[f].units.same_dimensions_as(u):
-                    mask = data[f] > 0
-                    if not np.any(mask):
-                        raise RuntimeError(
-                            "No zones along light ray with nonzero %s. "
-                            "Please modify your light ray trajectory." % (f,))
-                    for key in data.keys():
-                        data[key] = data[key][mask]
+        if 'temperature' in data: f = 'temperature'
+        if ('gas', 'temperature') in data: f = ('gas', 'temperature')
+        if 'temperature' in data or ('gas', 'temperature') in data:
+            mask = data[f] > 0
+            if not np.any(mask):
+                raise RuntimeError(
+                    "No zones along light ray with nonzero %s. "
+                    "Please modify your light ray trajectory." % (f,))
+            for key in data.keys():
+                data[key] = data[key][mask]
         save_as_dataset(ds, filename, data, field_types=field_types,
                         extra_attrs=extra_attrs)
 
@@ -671,6 +737,22 @@ def vector_length(start, end):
 
     return np.sqrt(np.power((end - start), 2).sum())
 
+def periodic_adjust(p, left=None, right=None):
+    """
+    Return the point p adjusted for periodic boundaries.
+
+    """
+    if isinstance(p, YTArray):
+        p.convert_to_units("unitary")
+    if left is None:
+        left = np.zeros_like(p)
+    if right is None:
+        right = np.ones_like(p)
+
+    w = right - left
+    p -= left
+    return np.mod(p, w)
+
 def periodic_distance(coord1, coord2):
     """
     periodic_distance(coord1, coord2)
@@ -712,7 +794,7 @@ def periodic_ray(start, end, left=None, right=None):
     dim = right - left
 
     vector = end - start
-    wall = np.zeros(start.shape)
+    wall = np.zeros_like(start)
     close = np.zeros(start.shape, dtype=object)
 
     left_bound = vector < 0
@@ -732,7 +814,6 @@ def periodic_ray(start, end, left=None, right=None):
     this_end = end.copy()
     t = 0.0
     tolerance = 1e-6
-
     while t < 1.0 - tolerance:
         hit_left = (this_start <= left) & (vector < 0)
         if (hit_left).any():
@@ -750,8 +831,44 @@ def periodic_ray(start, end, left=None, right=None):
         now = this_start + vector * dt
         close_enough = np.abs(now - nearest) / np.abs(vector.max()) < 1e-10
         now[close_enough] = nearest[close_enough]
-        segments.append([np.copy(this_start), np.copy(now)])
+        segments.append([this_start.copy(), now.copy()])
         this_start = now.copy()
         t += dt
 
     return segments
+
+def non_periodic_ray(ds, left_edge, right_edge, ray_length, max_iter=5000,
+                     min_level=None, my_random=None):
+
+    max_length = vector_length(left_edge, right_edge)
+    if ray_length > max_length:
+        raise RuntimeError(
+            ("The maximum segment length in the region %s to %s is %s, " +
+             "but the ray length requested is %s.  Decrease ray length.") %
+             (left_edge, right_edge, max_length, ray_length))
+
+    if my_random is None:
+        my_random = np.random.RandomState()
+    i = 0
+    while True:
+        start = my_random.random_sample(3) * \
+          (right_edge - left_edge) + left_edge
+        theta = np.pi * my_random.random_sample()
+        phi = 2 * np.pi * my_random.random_sample()
+        end = start + ray_length * \
+          np.array([np.cos(phi) * np.sin(theta),
+                    np.sin(phi) * np.sin(theta),
+                    np.cos(theta)])
+        i += 1
+        test_ray = ds.ray(start, end)
+        if (end >= left_edge).all() and (end <= right_edge).all() and \
+          (min_level is None or min_level <= 0 or
+           (test_ray["grid_level"] >= min_level).all()):
+            mylog.info("Found ray after %d attempts." % i)
+            del test_ray
+            return start, end
+        del test_ray
+        if i > max_iter:
+            raise RuntimeError(
+                ("Failed to create segment in %d attempts.  " +
+                 "Decreasing ray length is recommended") % i)

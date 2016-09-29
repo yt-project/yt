@@ -27,14 +27,14 @@ master_clump = Clump(data_source, field)
 # As many validators can be added as you want.
 master_clump.add_validator("min_cells", 20)
 
+# Calculate center of mass for all clumps.
+master_clump.add_info_item("center_of_mass")
+
 # Begin clump finding.
 find_clumps(master_clump, c_min, c_max, step)
 
-# Write out the full clump hierarchy.
-write_clump_index(master_clump, 0, "%s_clump_hierarchy.txt" % ds)
-
-# Write out only the leaf nodes of the hierarchy.
-write_clumps(master_clump,0, "%s_clumps.txt" % ds)
+# Save the clump tree as a reloadable dataset
+fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
 
 # We can traverse the clump hierarchy to get a list of all of the 'leaf' clumps
 leaf_clumps = get_lowest_clumps(master_clump)
@@ -46,5 +46,17 @@ prj = yt.ProjectionPlot(ds, 2, field, center='c', width=(20,'kpc'))
 # Next we annotate the plot with contours on the borders of the clumps
 prj.annotate_clumps(leaf_clumps)
 
-# Lastly, we write the plot to disk.
+# Save the plot to disk.
 prj.save('clumps')
+
+# Reload the clump dataset.
+cds = yt.load(fn)
+
+# Query fields for clumps in the tree.
+print (cds.tree["clump", "center_of_mass"])
+print (cds.tree.children[0]["grid", "density"])
+print (cds.tree.children[1]["all", "particle_mass"])
+
+# Get all of the leaf clumps.
+print (cds.leaves)
+print (cds.leaves[0]["clump", "cell_mass"])

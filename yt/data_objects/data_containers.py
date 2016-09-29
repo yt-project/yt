@@ -67,6 +67,8 @@ import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.profiles import create_profile
 
 data_object_registry = {}
 
@@ -93,11 +95,16 @@ def restore_field_information_state(func):
         return tr
     return save_state
 
-class YTFieldData(dict):
-    """
-    A Container object for field data, instead of just having it be a dict.
-    """
-    pass
+def sanitize_weight_field(ds, field, weight):
+    field_object = ds._get_field_info(field)
+    if weight is None:
+        if field_object.particle_type is True:
+            weight_field = (field_object.name[0], 'particle_ones')
+        else:
+            weight_field = ('index', 'ones')
+    else:
+        weight_field = weight
+    return weight_field
 
 class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
@@ -305,7 +312,7 @@ class YTDataContainer(object):
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
-            if finfo.particle_type:
+            if finfo.particle_type: # This is a property now
                 tr = self._generate_particle_field(field)
             else:
                 tr = self._generate_fluid_field(field)
@@ -457,7 +464,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        fields : list of strings or tuples, default None
+        fields : list of strings or tuple field names, default None
             If this is supplied, it is the list of fields to be exported into
             the data frame.  If not supplied, whatever fields presently exist
             will be used.
@@ -499,7 +506,7 @@ class YTDataContainer(object):
             The name of the file to be written.  If None, the name 
             will be a combination of the original dataset and the type 
             of data container.
-        fields : list of strings or tuples, optional
+        fields : list of string or tuple field names, optional
             If this is supplied, it is the list of fields to be saved to
             disk.  If not supplied, all the fields that have been queried
             will be saved.
@@ -629,7 +636,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to maximize.
         axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
@@ -669,7 +676,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to minimize.
         axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
@@ -720,7 +727,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to maximize.
         axis : string, optional
             If supplied, the axis to project the maximum along.
@@ -759,7 +766,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to minimize.
         axis : string, optional
             If supplied, the axis to compute the minimum along.
@@ -790,7 +797,25 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
 
     def std(self, field, weight=None):
-        raise NotImplementedError
+        """Compute the variance of a field.
+
+        This will, in a parallel-ware fashion, compute the variance of
+        the given field.
+
+        Parameters
+        ----------
+        field : string or tuple field name
+            The field to calculate the variance of
+        weight : string or tuple field name
+            The field to weight the variance calculation by. Defaults to
+            unweighted if unset.
+
+        Returns
+        -------
+        Scalar
+        """
+        weight_field = sanitize_weight_field(self.ds, field, weight)
+        return self.quantities.weighted_variance(field, weight_field)[0]
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
@@ -800,7 +825,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to average.
 
         Returns
@@ -815,21 +840,91 @@ class YTDataContainer(object):
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
 
-    def hist(self, field, weight = None, bins = None):
-        raise NotImplementedError
+    def profile(self, bin_fields, fields, n_bins=64,
+                extrema=None, logs=None, units=None,
+                weight_field="cell_mass",
+                accumulation=False, fractional=False,
+                deposition='ngp'):
+        r"""
+        Create a 1, 2, or 3D profile object from this data_source.
 
-    def mean(self, field, axis=None, weight='ones'):
+        The dimensionality of the profile object is chosen by the number of
+        fields given in the bin_fields argument.  This simply calls
+        :func:`yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        bin_fields : list of strings
+            List of the binning fields for profiling.
+        fields : list of strings
+            The fields to be profiled.
+        n_bins : int or list of ints
+            The number of bins in each dimension.  If None, 64 bins for
+            each bin are used for each bin field.
+            Default: 64.
+        extrema : dict of min, max tuples
+            Minimum and maximum values of the bin_fields for the profiles.
+            The keys correspond to the field names. Defaults to the extrema
+            of the bin_fields of the dataset. If a units dict is provided, extrema
+            are understood to be in the units specified in the dictionary.
+        logs : dict of boolean values
+            Whether or not to log the bin_fields for the profiles.
+            The keys correspond to the field names. Defaults to the take_log
+            attribute of the field.
+        units : dict of strings
+            The units of the fields in the profiles, including the bin_fields.
+        weight_field : str or tuple field identifier
+            The weight field for computing weighted average for the profile
+            values.  If None, the profile values are sums of the data in
+            each bin.
+        accumulation : bool or list of bools
+            If True, the profile values for a bin n are the cumulative sum of
+            all the values from bin 0 to n.  If -True, the sum is reversed so
+            that the value for bin n is the cumulative sum from bin N (total bins)
+            to n.  If the profile is 2D or 3D, a list of values can be given to
+            control the summation in each dimension independently.
+            Default: False.
+        fractional : If True the profile values are divided by the sum of all
+            the profile data such that the profile represents a probability
+            distribution function.
+        deposition : Controls the type of deposition used for ParticlePhasePlots.
+            Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
+            ignored the if the input fields are not of particle type.
+
+
+        Examples
+        --------
+
+        Create a 1d profile.  Access bin field from profile.x and field
+        data from profile[<field_name>].
+
+        >>> ds = load("DD0046/DD0046")
+        >>> ad = ds.all_data()
+        >>> profile = ad.profile(ad, [("gas", "density")],
+        ...                          [("gas", "temperature"),
+        ...                          ("gas", "velocity_x")])
+        >>> print (profile.x)
+        >>> print (profile["gas", "temperature"])
+        >>> plot = profile.plot()
+        """
+        p = create_profile(self, bin_fields, fields, n_bins,
+                   extrema, logs, units, weight_field, accumulation,
+                   fractional, deposition)
+        return p
+
+    def mean(self, field, axis=None, weight=None):
         r"""Compute the mean of a field, optionally along an axis, with a
         weight.
 
         This will, in a parallel-aware fashion, compute the mean of the
         given field.  If an axis is supplied, it will return a projection,
-        where the weight is also supplied.  By default the weight is "ones",
-        resulting in a strict average.
+        where the weight is also supplied.  By default the weight field will be
+        "ones" or "particle_ones", depending on the field being averaged,
+        resulting in an unweighted average.
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to average.
         axis : string, optional
             If supplied, the axis to compute the mean along (i.e., to project
@@ -847,13 +942,12 @@ class YTDataContainer(object):
         >>> avg_rho = reg.mean("density", weight="cell_volume")
         >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
         """
+        weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
+            r = self.ds.proj(field, axis, data_source=self,
+                             weight_field=weight_field)
         elif axis is None:
-            if weight is None:
-                r = self.quantities.total_quantity(field)
-            else:
-                r = self.quantities.weighted_average_quantity(field, weight)
+            r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
@@ -868,7 +962,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to sum.
         axis : string, optional
             If supplied, the axis to sum along.
@@ -895,15 +989,17 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
 
-    def integrate(self, field, axis=None):
+    def integrate(self, field, weight=None, axis=None):
         r"""Compute the integral (projection) of a field along an axis.
 
         This projects a field along an axis.
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to project.
+        weight: string or tuple field name
+            The field to weight the projection by
         axis : string
             The axis to project along.
 
@@ -916,8 +1012,13 @@ class YTDataContainer(object):
 
         >>> column_density = reg.integrate("density", axis="z")
         """
+        if weight is not None:
+            weight_field = sanitize_weight_field(self.ds, field, weight)
+        else:
+            weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self)
+            r = self.ds.proj(field, axis, data_source=self,
+                             weight_field=weight_field)
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
@@ -1596,13 +1697,18 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _extract_isocontours_from_grid(self, grid, mask, field, value,
                                        sample_values=None):
-        vals = grid.get_vertex_centered_data(field, no_ghost=False)
+        vc_fields = [field]
         if sample_values is not None:
-            svals = grid.get_vertex_centered_data(sample_values)
-        else:
+            vc_fields.append(sample_values)
+
+        vc_data = grid.get_vertex_centered_data(vc_fields, no_ghost=False)
+        try:
+            svals = vc_data[sample_values]
+        except KeyError:
             svals = None
-        my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
-                                    grid.dds, svals)
+
+        my_verts = march_cubes_grid(value, vc_data[field], mask,
+            grid.LeftEdge, grid.dds, svals)
         return my_verts
 
     def calculate_isocontour_flux(self, field, value,
@@ -1674,15 +1780,21 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-        vals = grid.get_vertex_centered_data(field)
+        
+        vc_fields = [field, field_x, field_y, field_z]
+        if fluxing_field is not None:
+            vc_fields.append(fluxing_field)
+
+        vc_data = grid.get_vertex_centered_data(vc_fields)
+
         if fluxing_field is None:
-            ff = np.ones(vals.shape, dtype="float64")
+            ff = np.ones_like(vc_data[field], dtype="float64")
         else:
-            ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f) for f in
-                     [field_x, field_y, field_z]]
-        return march_cubes_grid_flux(value, vals, xv, yv, zv,
-                    ff, mask, grid.LeftEdge, grid.dds)
+            ff = vc_data[fluxing_field]
+
+        return march_cubes_grid_flux(value, vc_data[field], vc_data[field_x],
+            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
+            grid.dds)
 
     def extract_connected_sets(self, field, num_levels, min_val, max_val,
                                log_space=True, cumulative=True):

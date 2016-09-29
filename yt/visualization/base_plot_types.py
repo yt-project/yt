@@ -357,6 +357,7 @@ class ImagePlotMPL(PlotMPL):
         self._toggle_colorbar(True)
         return self
 
+
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):
     r"""Construct a multiple axes plot object, with or without a colorbar, into
@@ -440,3 +441,5 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
             ax.clear()
             cbars.append(ax)
     return fig, tr, cbars
+
+

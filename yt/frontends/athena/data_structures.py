@@ -471,12 +471,15 @@ class AthenaDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         """
-        Generates the conversion to various physical _units based on the parameter file
+        Generates the conversion to various physical _units based on the
+        parameter file
         """
         if "length_unit" not in self.units_override:
             self.no_cgs_equiv_length = True
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            # We set these to cgs for now, but they may be overridden later.
+            # We set these to cgs for now, but they may have been overriden
+            if getattr(self, unit+'_unit', None) is not None:
+                continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /

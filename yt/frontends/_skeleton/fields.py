@@ -42,5 +42,5 @@ class SkeletonFieldInfo(FieldInfoContainer):
         pass
 
     def setup_particle_fields(self, ptype):
+        super(SkeletonFieldInfo, self).setup_particle_fields(ptype)
         # This will get called for every particle type.
-        pass
