@@ -304,10 +304,13 @@ class AMRKDTree(ParallelAnalysisInterface):
             dds = self.current_vcds[self.current_saved_grids.index(grid)]
         else:
             dds = []
+            vcd = grid.get_vertex_centered_data(self.fields, smoothed=True,
+                                                no_ghost=self.no_ghost)
             for i, field in enumerate(self.fields):
-                vcd = grid.get_vertex_centered_data(field, smoothed=True, no_ghost=self.no_ghost).astype('float64')
-                if self.log_fields[i]: vcd = np.log10(vcd)
-                dds.append(vcd)
+                if self.log_fields[i]:
+                    dds.append(np.log10(vcd[field].astype('float64')))
+                else:
+                    dds.append(vcd[field].astype('float64'))
                 self.current_saved_grids.append(grid)
                 self.current_vcds.append(dds)
 

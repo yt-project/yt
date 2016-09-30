@@ -1132,12 +1132,15 @@ class YTSurface(YTSelectionContainer3D):
                                        mask, sample_values = None,
                                        sample_type = "face",
                                        no_ghost = False):
-        vals = grid.get_vertex_centered_data(field, no_ghost = no_ghost)
+        # TODO: check if multiple fields can be passed here
+        vals = grid.get_vertex_centered_data([field], no_ghost=no_ghost)[field]
         if sample_values is not None:
-            svals = grid.get_vertex_centered_data(sample_values)
+            # TODO: is no_ghost=False correct here?
+            svals = grid.get_vertex_centered_data([sample_values])[sample_values]
         else:
             svals = None
-        sample_type = {"face":1, "vertex":2}[sample_type]
+
+        sample_type = {"face": 1, "vertex": 2}[sample_type]
         my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
                                     grid.dds, svals, sample_type)
         return my_verts
@@ -1209,15 +1212,21 @@ class YTSurface(YTSelectionContainer3D):
 
     def _calculate_flux_in_grid(self, grid, mask,
             field_x, field_y, field_z, fluxing_field = None):
-        vals = grid.get_vertex_centered_data(self.surface_field)
+
+        vc_fields = [self.surface_field, field_x, field_y, field_z]
+        if fluxing_field is not None:
+            vc_fields.append(fluxing_field)
+
+        vc_data = grid.get_vertex_centered_data(vc_fields)
         if fluxing_field is None:
-            ff = np.ones(vals.shape, dtype="float64")
+            ff = np.ones_like(vc_data[self.surface_field], dtype="float64")
         else:
-            ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f)
-                      for f in [field_x, field_y, field_z]]
-        return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
-                    ff, mask, grid.LeftEdge, grid.dds)
+            ff = vc_data[fluxing_field]
+
+        return march_cubes_grid_flux(
+            self.field_value, vc_data[self.surface_field], vc_data[field_x],
+            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
+            grid.dds)
 
     @property
     def triangles(self):

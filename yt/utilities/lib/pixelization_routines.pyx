@@ -30,7 +30,9 @@ from yt.utilities.lib.element_mappings cimport \
     S2Sampler3D, \
     P1Sampler2D, \
     Q1Sampler2D, \
-    W1Sampler3D
+    W1Sampler3D, \
+    T2Sampler2D, \
+    Tet2Sampler3D
 
 cdef extern from "pixelization_constants.h":
     enum:
@@ -331,7 +333,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     
     cdef int imax = np.asarray(radius).argmax()
     rmax = radius[imax] + dradius[imax]
-          
+
     x0, x1, y0, y1 = extents
     dx = (x1 - x0) / buff.shape[1]
     dy = (y1 - y0) / buff.shape[0]
@@ -377,7 +379,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
             sintheta = math.sin(theta_i)
             while r_i < r0 + dr_i:
                 if rmax <= r_i:
-                    r_i += 0.5*dx 
+                    r_i += 0.5*dx
                     continue
                 y = r_i * costheta
                 x = r_i * sintheta
@@ -422,7 +424,7 @@ def pixelize_aitoff(np.float64_t[:] theta,
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
     nf = field.shape[0]
-    
+
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
         img[:] = np.nan
@@ -561,7 +563,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           np.ndarray[np.int64_t, ndim=2] conn,
                           buff_size,
                           np.ndarray[np.float64_t, ndim=2] field,
-                          extents, 
+                          extents,
                           int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
@@ -604,6 +606,10 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = P1Sampler2D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
+    elif ndim == 2 and nvertices == 6:
+        sampler = T2Sampler2D()
+    elif ndim == 3 and nvertices == 10:
+        sampler = Tet2Sampler3D()
     else:
         raise YTElementTypeNotRecognized(ndim, nvertices)
 
@@ -612,7 +618,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         if buff_size[2] != 1:
             raise RuntimeError("Slices of 2D datasets must be "
                                "perpendicular to the 'z' direction.")
-    
+
     # allocate temporary storage
     vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
     field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)

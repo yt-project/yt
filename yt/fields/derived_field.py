@@ -13,6 +13,7 @@ Derived field base class.
 
 import contextlib
 import inspect
+import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
@@ -66,8 +67,14 @@ class DerivedField(object):
        Describes whether the field should be logged
     validators : list
        A list of :class:`FieldValidator` objects
+    sampling_type : string, default = "cell"
+        How is the field sampled?  This can be one of the following options at
+        present: "cell" (cell-centered), "discrete" (or "particle") for
+        discretely sampled data.
     particle_type : bool
-       Is this a particle (1D) field?
+       (Deprecated) Is this a particle (1D) field?  This is deprecated. Use
+       sampling_type = "discrete" or sampling_type = "particle".  This will
+       *override* sampling_type.
     vector_field : bool
        Describes the dimensionality of the field.  Currently unused.
     display_field : bool
@@ -84,9 +91,9 @@ class DerivedField(object):
        The dimensions of the field, only needed if units="auto" and only used
        for error checking.
     """
-    def __init__(self, name, function, units=None,
+    def __init__(self, name, sampling_type, function, units=None,
                  take_log=True, validators=None,
-                 particle_type=False, vector_field=False, display_field=True,
+                 particle_type=None, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
                  dimensions=None, ds=None):
         self.name = name
@@ -94,7 +101,12 @@ class DerivedField(object):
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        self.particle_type = particle_type
+        if particle_type is True:
+            warnings.warn("particle_type for derived fields "
+                          "has been replaced with sampling_type = 'particle'",
+                          DeprecationWarning)
+            sampling_type = "particle"
+        self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
 
@@ -136,12 +148,16 @@ class DerivedField(object):
         dd['units'] = self.units
         dd['take_log'] = self.take_log
         dd['validators'] = list(self.validators)
-        dd['particle_type'] = self.particle_type
+        dd['sampling_type'] = self.sampling_type
         dd['vector_field'] = self.vector_field
         dd['display_field'] = True
         dd['not_in_all'] = self.not_in_all
         dd['display_name'] = self.display_name
         return dd
+
+    @property
+    def particle_type(self):
+        return self.sampling_type in ("discrete", "particle")
 
     def get_units(self):
         if self.ds is not None:

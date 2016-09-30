@@ -98,7 +98,7 @@ class Scene(object):
         # pass kwargs into _repr_png_()
         self._sigma_clip = None
 
-    def get_source(self, source_num):
+    def get_source(self, source_num=0):
         """Returns the volume rendering source indexed by ``source_num``"""
         return list(itervalues(self.sources))[source_num]
 

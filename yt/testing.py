@@ -32,6 +32,7 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
+from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
@@ -180,6 +181,7 @@ def fake_random_ds(
         negative = False, nprocs = 1, particles = 0, length_unit=1.0,
         unit_system="cgs", bbox=None):
     from yt.frontends.stream.api import load_uniform_grid
+    prng = RandomState(0x4d3d3d3)
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
     else:
@@ -195,7 +197,7 @@ def fake_random_ds(
             offsets.append(0.0)
     data = {}
     for field, offset, u in zip(fields, offsets, units):
-        v = (np.random.random(ndims) - offset) * peak_value
+        v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
             data['number_of_particles'] = v.size
             v = v.ravel()
@@ -204,15 +206,15 @@ def fake_random_ds(
         if particle_fields is not None:
             for field, unit in zip(particle_fields, particle_field_units):
                 if field in ('particle_position', 'particle_velocity'):
-                    data['io', field] = (np.random.random((particles, 3)), unit)
+                    data['io', field] = (prng.random_sample((particles, 3)), unit)
                 else:
-                    data['io', field] = (np.random.random(size=particles), unit)
+                    data['io', field] = (prng.random_sample(size=particles), unit)
         else:
             for f in ('particle_position_%s' % ax for ax in 'xyz'):
-                data['io', f] = (np.random.random(size=particles), 'code_length')
+                data['io', f] = (prng.random_sample(size=particles), 'code_length')
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-                data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
-            data['io', 'particle_mass'] = (np.random.random(particles), 'g')
+                data['io', f] = (prng.random_sample(size=particles) - 0.5, 'cm/s')
+            data['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
         data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
                            unit_system=unit_system, bbox=bbox)
@@ -231,6 +233,7 @@ _geom_transforms = {
 
 def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
     from yt.frontends.stream.api import load_amr_grids
+    prng = RandomState(0x4d3d3d3)
     LE, RE = _geom_transforms[geometry]
     LE = np.array(LE)
     RE = np.array(RE)
@@ -244,16 +247,16 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
                      right_edge = right_edge,
                      dimensions = dims)
         for f in fields:
-            gdata[f] = np.random.random(dims)
+            gdata[f] = prng.random_sample(dims)
         if particles:
             for i, f in enumerate('particle_position_%s' % ax for ax in 'xyz'):
-                pdata = np.random.random(particles)
+                pdata = prng.random_sample(particles)
                 pdata /= (right_edge[i] - left_edge[i])
                 pdata += left_edge[i]
                 gdata['io', f] = (pdata, 'code_length')
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-                gdata['io', f] = (np.random.random(particles) - 0.5, 'cm/s')
-            gdata['io', 'particle_mass'] = (np.random.random(particles), 'g')
+                gdata['io', f] = (prng.random_sample(particles) - 0.5, 'cm/s')
+            gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
             gdata['number_of_particles'] = particles
         data.append(gdata)
     bbox = np.array([LE, RE]).T
@@ -271,6 +274,8 @@ def fake_particle_ds(
         negative = (False, False, False, False, True, True, True),
         npart = 16**3, length_unit=1.0):
     from yt.frontends.stream.api import load_particles
+
+    prng = RandomState(0x4d3d3d3)
     if not iterable(negative):
         negative = [negative for f in fields]
     assert(len(fields) == len(negative))
@@ -283,9 +288,9 @@ def fake_particle_ds(
     data = {}
     for field, offset, u in zip(fields, offsets, units):
         if "position" in field:
-            v = np.random.normal(loc=0.5, scale=0.25, size=npart)
+            v = prng.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
-        v = (np.random.random(npart) - offset)
+        v = (prng.random_sample(npart) - offset)
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     ds = load_particles(data, 1.0, bbox=bbox)
@@ -296,6 +301,8 @@ def fake_tetrahedral_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
     from yt.frontends.stream.sample_data.tetrahedral_mesh import \
         _connectivity, _coordinates
+    
+    prng = RandomState(0x4d3d3d3)
 
     # the distance from the origin
     node_data = {}
@@ -304,7 +311,7 @@ def fake_tetrahedral_ds():
 
     # each element gets a random number
     elem_data = {}
-    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+    elem_data[('connect1', 'elem')] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(_connectivity,
                                 _coordinates,
@@ -318,6 +325,7 @@ def fake_hexahedral_ds():
     from yt.frontends.stream.sample_data.hexahedral_mesh import \
         _connectivity, _coordinates
 
+    prng = RandomState(0x4d3d3d3)
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
@@ -325,7 +333,7 @@ def fake_hexahedral_ds():
 
     # each element gets a random number
     elem_data = {}
-    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+    elem_data[('connect1', 'elem')] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(_connectivity-1,
                                 _coordinates,
