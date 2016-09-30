@@ -1749,11 +1749,6 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     """
 
     dimensionality = coordinates.shape[1]
-    num_pseudo = get_num_pseudo_dims(coordinates)
-    if (num_pseudo > 1 or dimensionality < 2):
-        raise RuntimeError("1D unstructured mesh data "
-                           "are currently not supported.")
-
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
 
@@ -1788,8 +1783,17 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
                  coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
                 for i in range(dimensionality)]
 
-    if dimensionality == 2:
+    if dimensionality < 3:
         bbox.append([0.0, 1.0])
+    if dimensionality < 2:
+        bbox.append([0.0, 1.0])
+
+    # handle pseudo-dims here
+    num_pseudo_dims = get_num_pseudo_dims(coordinates)
+    dimensionality -= num_pseudo_dims
+    for i in range(dimensionality, 3):
+        bbox[i][0] = 0.0
+        bbox[i][1] = 1.0
 
     bbox = np.array(bbox, dtype=np.float64)
     domain_left_edge = np.array(bbox[:, 0], 'float64')

@@ -235,7 +235,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-    
+
     @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
