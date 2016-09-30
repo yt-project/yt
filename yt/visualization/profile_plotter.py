@@ -44,6 +44,8 @@ from yt.funcs import \
     get_image_suffix, \
     get_ipython_api_version, \
     matplotlib_style_context
+from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
+from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -701,30 +703,64 @@ class LinePlot(object):
     y_title = None
     _plot_valid = False
 
-    def __init__(self, ds, fields, label=None, plot_spec=None, y_log=None):
+    def __init__(self, ds, fields, label=None, plot_spec=None, y_log=None, resolution=800):
 
-        if isinstance(data_source.ds, YTProfileDataset):
-            profiles = [data_source.ds.profile]
-        else:
-            profiles = [create_profile(data_source, [x_field],
-                                       n_bins=[n_bins],
-                                       fields=ensure_list(y_fields),
-                                       weight_field=weight_field,
-                                       accumulation=accumulation,
-                                       fractional=fractional,
-                                       logs=logs)]
+        self.ds = ds
+        self.x_field = 'x'
+        index = ds.index
+        assert(ds.dimensionality == 1)
+        assert(hasattr(index, 'meshes') and not isinstance(index.meshes[0], SemiStructuredMesh))
+        
+        buff_size = [resolution, 1, 1]
+
+        self.fields = ensure_list(fields)
+        self.y_data = []
+        for field in self.fields:
+            ftype, fname = field
+            mesh_id = int(ftype[-1]) - 1
+            mesh = index.meshes[mesh_id]
+            coords = mesh.connectivity_coords
+            indices = mesh.connectivity_indices
+            offset = mesh._index_offset
+            ad = ds.all_data()
+            field_data = ad[field]
+            extents = [[coords.min(), coords.max()]]
+
+            dds = (extents[0][1] - extents[0][0]) / buff_size[0]
+            x = np.linspace(extents[0][0] + 0.5*dds, extents[0][1] - 0.5*dds, buff_size[0])
+            self.x_data = x
+
+            img = pixelize_element_mesh(coords, indices, buff_size, 
+                                        field_data, extents, index_offset=offset)
+            self.y_data.append(img[:, 0, 0])
 
         if plot_spec is None:
-            plot_spec = [dict() for p in profiles]
+            plot_spec = [dict() for f in self.fields]
         if not isinstance(plot_spec, list):
-            plot_spec = [plot_spec.copy() for p in profiles]
+            plot_spec = [plot_spec.copy() for f in self.fields]
 
-        ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
+        self.plot_spec = plot_spec
+        from matplotlib.font_manager import FontProperties
+        self._font_properties = FontProperties(family='stixgeneral', size=18)
+        self._font_color = None
+        self.x_log = None
+        self.y_log = {}
+        if y_log is not None:
+            for field, log in y_log.items():
+                field, = ad._determine_fields([field])
+                self.y_log[field] = log
+        self.y_title = {}
+        self.label = sanitize_label(label, len(self.y_data))
+        self.plots = PlotContainer()
+        self.figures = FigureContainer(self.plots)
+        self.axes = AxesContainer(self.plots)
+        self._setup_plots()
+
 
     @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
-        Saves a 1d profile plot.
+        Saves a 1d line plot.
 
         Parameters
         ----------
@@ -748,8 +784,8 @@ class LinePlot(object):
         suffix = ".%s" % suffix
         fullname = False
         if name is None:
-            if len(self.profiles) == 1:
-                prefix = self.profiles[0].ds
+            if len(self.y_data) == 1:
+                prefix = self.ds
             else:
                 prefix = "Multi-data"
             name = "%s%s" % (prefix, suffix)
@@ -761,7 +797,7 @@ class LinePlot(object):
                 fullname = True
             else:
                 prefix = name
-        xfn = self.profiles[0].x_field
+        xfn = self.x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
         fns = []
@@ -834,10 +870,9 @@ class LinePlot(object):
             return
         for f in self.axes:
             self.axes[f].cla()
-        for i, profile in enumerate(self.profiles):
-            for field, field_data in profile.items():
-                self.axes[field].plot(np.array(profile.x), np.array(field_data),
-                                      label=self.label[i], **self.plot_spec[i])
+        for i, field in enumerate(self.fields):
+            self.axes[field].plot(self.x_data, self.y_data[i],
+                                  label=self.label[i], **self.plot_spec[i])
 
         for (fname, axes), profile in zip(self.axes.items(), self.profiles):
             xscale, yscale = self._get_field_log(fname, profile)
@@ -851,78 +886,6 @@ class LinePlot(object):
                 axes.legend(loc="best")
         self._set_font_properties()
         self._plot_valid = True
-
-    @classmethod
-    def _initialize_instance(cls, obj, profiles, labels, plot_specs, y_log):
-        from matplotlib.font_manager import FontProperties
-        obj._font_properties = FontProperties(family='stixgeneral', size=18)
-        obj._font_color = None
-        obj.profiles = ensure_list(profiles)
-        obj.x_log = None
-        obj.y_log = {}
-        if y_log is not None:
-            for field, log in y_log.items():
-                field, = obj.profiles[0].data_source._determine_fields([field])
-                obj.y_log[field] = log
-        obj.y_title = {}
-        obj.label = sanitize_label(labels, len(obj.profiles))
-        if plot_specs is None:
-            plot_specs = [dict() for p in obj.profiles]
-        obj.plot_spec = plot_specs
-        obj.plots = PlotContainer()
-        obj.figures = FigureContainer(obj.plots)
-        obj.axes = AxesContainer(obj.plots)
-        obj._setup_plots()
-        return obj
-
-    @classmethod
-    def from_profiles(cls, profiles, labels=None, plot_specs=None, y_log=None):
-        r"""
-        Instantiate a ProfilePlot object from a list of profiles
-        created with :func:`~yt.data_objects.profiles.create_profile`.
-
-        Parameters
-        ----------
-        profiles : a profile or list of profiles
-            A single profile or list of profile objects created with
-            :func:`~yt.data_objects.profiles.create_profile`.
-        labels : list of strings
-            A list of labels for each profile to be overplotted.
-            Default: None.
-        plot_specs : list of dicts
-            A list of dictionaries containing plot keyword
-            arguments.  For example, [dict(color="red", linestyle=":")].
-            Default: None.
-
-        Examples
-        --------
-
-        >>> from yt import simulation
-        >>> es = simulation("AMRCosmology.enzo", "Enzo")
-        >>> es.get_time_series()
-
-        >>> profiles = []
-        >>> labels = []
-        >>> plot_specs = []
-        >>> for ds in es[-4:]:
-        ...     ad = ds.all_data()
-        ...     profiles.append(create_profile(ad, ["Density"],
-        ...                                    fields=["Temperature",
-        ...                                            "x-velocity"]))
-        ...     labels.append(ds.current_redshift)
-        ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
-        >>>
-        >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
-        ...                                  plot_specs=plot_specs)
-        >>> plot.save()
-        
-        """
-        if labels is not None and len(profiles) != len(labels):
-            raise RuntimeError("Profiles list and labels list must be the same size.")
-        if plot_specs is not None and len(plot_specs) != len(profiles):
-            raise RuntimeError("Profiles list and plot_specs list must be the same size.")
-        obj = cls.__new__(cls)
-        return cls._initialize_instance(obj, profiles, labels, plot_specs, y_log)
 
     @invalidate_plot
     def set_line_property(self, property, value, index=None):
