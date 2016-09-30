@@ -167,13 +167,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     data_source=data_source.data_source
                 )
                 buff = pixelize_sph_kernel_projection(
-                    proj_reg[ptype, px_name],
-                    proj_reg[ptype, py_name],
-                    proj_reg[ptype, 'smoothing_length'],
-                    proj_reg[ptype, 'particle_mass'],
-                    proj_reg[ptype, 'density'],
-                    proj_reg[ptype, 'density'],
-                    size[0], size[1], bounds).transpose()
+                    proj_reg[ptype, px_name].in_units('cm'),
+                    proj_reg[ptype, py_name].in_units('cm'),
+                    proj_reg[ptype, 'smoothing_length'].in_units('cm'),
+                    proj_reg[ptype, 'particle_mass'].in_units('g'),
+                    proj_reg[ptype, 'density'].in_units('g/cm**3'),
+                    proj_reg[ptype, 'density'].in_units(ounits),
+                    size[0], size[1],
+                    data_source.ds.arr(bounds, 'code_length').in_units('cm').tolist()).transpose()
             elif isinstance(data_source, YTSlice):
                 buff = pixelize_sph_kernel_slice(
                     data_source[ptype, px_name],
