@@ -158,7 +158,7 @@ class Camera(Orientation):
 
     def position():
         doc = '''
-        The location of the camera. 
+        The location of the camera.
 
         Parameters
         ----------
@@ -178,8 +178,6 @@ class Camera(Orientation):
                 raise RuntimeError(
                     'Cannot set the camera focus and position to the same value')
             self._position = position
-            self.switch_orientation(normal_vector=self.focus - self._position,
-                                    north_vector=None)
 
         def fdel(self):
             del self._position
@@ -483,11 +481,11 @@ class Camera(Orientation):
         >>> sc = Scene()
         >>> cam = sc.add_camera()
         >>> # rotate the camera by pi / 4 radians:
-        >>> cam.rotate(np.pi/4.0)  
+        >>> cam.rotate(np.pi/4.0)
         >>> # rotate the camera about the y-axis instead of cam.north_vector:
-        >>> cam.rotate(np.pi/4.0, np.array([0.0, 1.0, 0.0]))  
+        >>> cam.rotate(np.pi/4.0, np.array([0.0, 1.0, 0.0]))
         >>> # rotate the camera about the origin instead of its own position:
-        >>> cam.rotate(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))  
+        >>> cam.rotate(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
         """
         rotate_all = rot_vector is not None
@@ -593,7 +591,7 @@ class Camera(Orientation):
         >>> sc = Scene()
         >>> cam = sc.add_camera(ds)
         >>> # roll the camera by pi / 4 radians:
-        >>> cam.roll(np.pi/4.0)  
+        >>> cam.roll(np.pi/4.0)
         >>> # roll the camera about the origin instead of its own position:
         >>> cam.roll(np.pi/4.0, rot_center=np.array([0.0, 0.0, 0.0]))
 
@@ -627,7 +625,7 @@ class Camera(Orientation):
         >>> import yt
         >>> import numpy as np
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-        >>> 
+        >>>
         >>> im, sc = yt.volume_render(ds)
         >>> cam = sc.camera
         >>> for i in cam.iter_rotate(np.pi, 10):
@@ -688,7 +686,7 @@ class Camera(Orientation):
     def zoom(self, factor):
         r"""Change the width of the FOV of the camera.
 
-        This will appear to zoom the camera in by some `factor` toward the 
+        This will appear to zoom the camera in by some `factor` toward the
         focal point along the current view direction, but really it's just
         changing the width of the field of view.
 
