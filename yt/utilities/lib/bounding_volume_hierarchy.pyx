@@ -18,7 +18,12 @@ from yt.utilities.lib.primitives cimport \
     Patch, \
     ray_patch_intersect, \
     patch_centroid, \
-    patch_bbox
+    patch_bbox, \
+    TetPatch, \
+    ray_tetPatch_intersect, \
+    tetPatch_centroid, \
+    tetPatch_bbox
+
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     Q1Sampler3D, \
@@ -86,8 +91,7 @@ cdef class BVH:
             self.num_prim_per_elem = 6
             self.sampler = S2Sampler
         elif self.num_verts_per_elem == 10:
-            self.num_prim_per_elem = TETRA_NT
-            self.tri_array = triangulate_tetra
+            self.num_prim_per_elem = 4
             self.sampler = Tet2Sampler
         else:
             raise NotImplementedError("Could not determine element type for "
@@ -125,6 +129,12 @@ cdef class BVH:
             self.get_bbox = patch_bbox
             self.get_intersect = ray_patch_intersect
             self._set_up_patches(vertices, indices)
+        elif self.num_verts_per_elem == 10:
+            self.primitives = malloc(self.num_prim * sizeof(TetPatch))
+            self.get_centroid = tetPatch_centroid
+            self.get_bbox = tetPatch_bbox
+            self.get_intersect = ray_tetPatch_intersect
+            self._set_up_tetPatches(vertices, indices)
         else:
             self.primitives = malloc(self.num_prim * sizeof(Triangle))
             self.get_centroid = triangle_centroid
@@ -153,6 +163,32 @@ cdef class BVH:
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = vertices[indices[i, ind]][idim]
+                self.get_centroid(self.primitives,
+                                  prim_index,
+                                  self.centroids[prim_index])
+                self.get_bbox(self.primitives,
+                              prim_index,
+                              &(self.bboxes[prim_index]))
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _set_up_tetPatches(self, np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil:
+        cdef TetPatch* tetPatch
+        cdef np.int64_t i, j, k, ind, idim
+        cdef np.int64_t offset, prim_index
+        for i in range(self.num_elem):
+            offset = self.num_prim_per_elem*i
+            for j in range(self.num_prim_per_elem):  # for each face
+                prim_index = offset + j
+                tetPatch = &( <TetPatch*> self.primitives)[prim_index]
+                self.prim_ids[prim_index] = prim_index
+                tetPatch.elem_id = i
+                for k in range(6):  # for each vertex
+                    ind = tet10_faces[j][k]
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        tetPatch.v[k][idim] = vertices[indices[i, ind]][idim]
                 self.get_centroid(self.primitives,
                                   prim_index,
                                   self.centroids[prim_index])

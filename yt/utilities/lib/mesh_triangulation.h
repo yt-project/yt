@@ -12,7 +12,7 @@
 // here: http://homepages.cae.wisc.edu/~tautges/papers/cnmev3.pdf
 // Note that this is the case for Exodus II data.
 int triangulate_hex[MAX_NUM_TRI][3] = {
-  {0, 2, 1}, {0, 3, 2}, // Face is 3 2 1 0 
+  {0, 2, 1}, {0, 3, 2}, // Face is 3 2 1 0
   {4, 5, 6}, {4, 6, 7}, // Face is 4 5 6 7
   {0, 1, 5}, {0, 5, 4}, // Face is 0 1 5 4
   {1, 2, 6}, {1, 6, 5}, // Face is 1 2 6 5
@@ -22,7 +22,7 @@ int triangulate_hex[MAX_NUM_TRI][3] = {
 
 // Similarly, this is used to triangulate the tetrahedral cells
 int triangulate_tetra[MAX_NUM_TRI][3] = {
-  {0, 1, 3}, 
+  {0, 1, 3},
   {2, 3, 1},
   {0, 3, 2},
   {0, 2, 1},
@@ -57,10 +57,18 @@ int triangulate_wedge[MAX_NUM_TRI][3] = {
 
 // This is used to select faces from a 20-sided hex element
 int hex20_faces[6][8] = {
-  {0, 1, 5, 4, 12, 8,  13, 16}, 
+  {0, 1, 5, 4, 12, 8,  13, 16},
   {1, 2, 6, 5, 13, 9,  14, 17},
   {3, 2, 6, 7, 15, 10, 14, 18},
   {0, 3, 7, 4, 12, 11, 15, 19},
   {4, 5, 6, 7, 19, 16, 17, 18},
   {0, 1, 2, 3, 11, 8,  9,  10}
+};
+
+// This is used to select faces from a second-order tet element
+int tet10_faces[4][6] = {
+  {0, 1, 3, 7, 4, 8},
+  {2, 3, 1, 5, 9, 8},
+  {0, 3, 2, 6, 7, 9},
+  {0, 2, 1, 4, 6, 5}
 };

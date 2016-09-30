@@ -1,4 +1,4 @@
-cimport cython 
+cimport cython
 import numpy as np
 cimport numpy as np
 from yt.utilities.lib.element_mappings cimport ElementSampler
@@ -18,6 +18,7 @@ cdef extern from "mesh_triangulation.h":
     int triangulate_tetra[MAX_NUM_TRI][3]
     int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
+    int tet10_faces[4][6]
 
 # node for the bounding volume hierarchy
 cdef struct BVHNode:
@@ -70,7 +71,7 @@ cdef class BVH:
                               np.float64_t[:, :] vertices,
                               np.int64_t[:, :] indices) nogil
     cdef void intersect(self, Ray* ray) nogil
-    cdef void _get_node_bbox(self, BVHNode* node, 
+    cdef void _get_node_bbox(self, BVHNode* node,
                              np.int64_t begin, np.int64_t end) nogil
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil
     cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) nogil
