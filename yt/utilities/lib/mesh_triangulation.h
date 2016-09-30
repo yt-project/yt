@@ -67,8 +67,8 @@ int hex20_faces[6][8] = {
 
 // This is used to select faces from a second-order tet element
 int tet10_faces[4][6] = {
-  {0, 1, 3, 7, 4, 8},
-  {2, 3, 1, 5, 9, 8},
-  {0, 3, 2, 6, 7, 9},
-  {0, 2, 1, 4, 6, 5}
+  {0, 1, 3, 4, 8, 7},
+  {2, 3, 1, 9, 8, 5},
+  {0, 3, 2, 7, 9, 6},
+  {0, 2, 1, 6, 5, 4}
 };

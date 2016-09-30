@@ -70,6 +70,9 @@ cdef class BVH:
     cdef void _set_up_patches(self,
                               np.float64_t[:, :] vertices,
                               np.int64_t[:, :] indices) nogil
+    cdef void _set_up_tet_patches(self,
+                              np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil
     cdef void intersect(self, Ray* ray) nogil
     cdef void _get_node_bbox(self, BVHNode* node,
                              np.int64_t begin, np.int64_t end) nogil

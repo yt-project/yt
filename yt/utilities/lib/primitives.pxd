@@ -83,33 +83,33 @@ cdef struct TetPatch:
     np.float64_t[6][3] v # 6 vertices per patch
     np.int64_t elem_id
 
-cdef RayHitData compute_tetPatch_hit(cython.floating[6][3] verts,
+cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
                                   cython.floating[3] ray_origin,
                                   cython.floating[3] ray_direction) nogil
 
-cdef void tetPatchSurfaceFunc(const cython.floating[6][3] verts,
+cdef void tet_patchSurfaceFunc(const cython.floating[6][3] verts,
                            const cython.floating u,
                            const cython.floating v,
                            cython.floating[3] S) nogil
 
-cdef void tetPatchSurfaceDerivU(const cython.floating[6][3] verts,
+cdef void tet_patchSurfaceDerivU(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
                              cython.floating[3] Su) nogil
 
-cdef void tetPatchSurfaceDerivV(const cython.floating[6][3] verts,
+cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
                              cython.floating[3] Sv) nogil
 
-cdef np.int64_t ray_tetPatch_intersect(const void* primitives,
+cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
                                     const np.int64_t item,
                                     Ray* ray) nogil
 
-cdef void tetPatch_centroid(const void *primitives,
+cdef void tet_patch_centroid(const void *primitives,
                          const np.int64_t item,
                          np.float64_t[3] centroid) nogil
 
-cdef void tetPatch_bbox(const void *primitives,
+cdef void tet_patch_bbox(const void *primitives,
                      const np.int64_t item,
                      BBox* bbox) nogil

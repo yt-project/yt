@@ -305,7 +305,7 @@ cdef void patch_bbox(const void *primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void tetPatchSurfaceFunc(const cython.floating[6][3] verts,
+cdef void tet_patchSurfaceFunc(const cython.floating[6][3] verts,
                            const cython.floating u,
                            const cython.floating v,
                            cython.floating[3] S) nogil:
@@ -323,7 +323,7 @@ cdef void tetPatchSurfaceFunc(const cython.floating[6][3] verts,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void tetPatchSurfaceDerivU(const cython.floating[6][3] verts,
+cdef void tet_patchSurfaceDerivU(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
                              cython.floating[3] Su) nogil:
@@ -340,7 +340,7 @@ cdef void tetPatchSurfaceDerivU(const cython.floating[6][3] verts,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void tetPatchSurfaceDerivV(const cython.floating[6][3] verts,
+cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
                              const cython.floating u,
                              const cython.floating v,
                              cython.floating[3] Sv) nogil:
@@ -358,7 +358,7 @@ cdef void tetPatchSurfaceDerivV(const cython.floating[6][3] verts,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef RayHitData compute_tetPatch_hit(cython.floating[6][3] verts,
+cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
                                   cython.floating[3] ray_origin,
                                   cython.floating[3] ray_direction) nogil:
 
@@ -385,7 +385,7 @@ cdef RayHitData compute_tetPatch_hit(cython.floating[6][3] verts,
     cdef cython.floating u = 0.0
     cdef cython.floating v = 0.0
     cdef cython.floating[3] S
-    tetPatchSurfaceFunc(verts, u, v, S)
+    tet_patchSurfaceFunc(verts, u, v, S)
     cdef cython.floating fu = dot(N1, S) + d1
     cdef cython.floating fv = dot(N2, S) + d2
     cdef cython.floating err = fmax(fabs(fu), fabs(fv))
@@ -399,8 +399,8 @@ cdef RayHitData compute_tetPatch_hit(cython.floating[6][3] verts,
     cdef cython.floating J11, J12, J21, J22, det
     while ((err > tol) and (iterations < max_iter)):
         # compute the Jacobian
-        tetPatchSurfaceDerivU(verts, u, v, Su)
-        tetPatchSurfaceDerivV(verts, u, v, Sv)
+        tet_patchSurfaceDerivU(verts, u, v, Su)
+        tet_patchSurfaceDerivV(verts, u, v, Sv)
         J11 = dot(N1, Su)
         J12 = dot(N1, Sv)
         J21 = dot(N2, Su)
@@ -411,7 +411,7 @@ cdef RayHitData compute_tetPatch_hit(cython.floating[6][3] verts,
         u -= ( J22*fu - J12*fv) / det
         v -= (-J21*fu + J11*fv) / det
 
-        tetPatchSurfaceFunc(verts, u, v, S)
+        tet_patchSurfaceFunc(verts, u, v, S)
         fu = dot(N1, S) + d1
         fv = dot(N2, S) + d2
 
@@ -433,13 +433,13 @@ cdef RayHitData compute_tetPatch_hit(cython.floating[6][3] verts,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef np.int64_t ray_tetPatch_intersect(const void* primitives,
+cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
                                     const np.int64_t item,
                                     Ray* ray) nogil:
 
-    cdef TetPatch tetPatch = (<TetPatch*> primitives)[item]
+    cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
 
-    cdef RayHitData hd = compute_tetPatch_hit(tetPatch.v, ray.origin, ray.direction)
+    cdef RayHitData hd = compute_tet_patch_hit(tet_patch.v, ray.origin, ray.direction)
 
     # only count this is it's the closest hit
     if (hd.t < ray.t_near or hd.t > ray.t_far):
@@ -448,7 +448,7 @@ cdef np.int64_t ray_tetPatch_intersect(const void* primitives,
     if ((0 <= hd.u <= 1.0) and (0 <= hd.v <= 1.0) and hd.converged):
         # we have a hit, so update ray information
         ray.t_far = hd.t
-        ray.elem_id = tetPatch.elem_id
+        ray.elem_id = tet_patch.elem_id
         return True
 
     return False
@@ -457,19 +457,19 @@ cdef np.int64_t ray_tetPatch_intersect(const void* primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void tetPatch_centroid(const void *primitives,
+cdef void tet_patch_centroid(const void *primitives,
                          const np.int64_t item,
                          np.float64_t[3] centroid) nogil:
 
     cdef np.int64_t i, j
-    cdef TetPatch tetPatch = (<TetPatch*> primitives)[item]
+    cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
 
     for j in range(3):
         centroid[j] = 0.0
 
     for i in range(6):
         for j in range(3):
-            centroid[j] += tetPatch.v[i][j]
+            centroid[j] += tet_patch.v[i][j]
 
     for j in range(3):
         centroid[j] /= 6.0
@@ -478,18 +478,18 @@ cdef void tetPatch_centroid(const void *primitives,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef void tetPatch_bbox(const void *primitives,
+cdef void tet_patch_bbox(const void *primitives,
                     const np.int64_t item,
                      BBox* bbox) nogil:
 
     cdef np.int64_t i, j
-    cdef TetPatch tetPatch = (<TetPatch*> primitives)[item]
+    cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
 
     for j in range(3):
-        bbox.left_edge[j] = tetPatch.v[0][j]
-        bbox.right_edge[j] = tetPatch.v[0][j]
+        bbox.left_edge[j] = tet_patch.v[0][j]
+        bbox.right_edge[j] = tet_patch.v[0][j]
 
     for i in range(1, 6):
         for j in range(3):
-            bbox.left_edge[j] = fmin(bbox.left_edge[j], tetPatch.v[i][j])
-            bbox.right_edge[j] = fmax(bbox.right_edge[j], tetPatch.v[i][j])
+            bbox.left_edge[j] = fmin(bbox.left_edge[j], tet_patch.v[i][j])
+            bbox.right_edge[j] = fmax(bbox.right_edge[j], tet_patch.v[i][j])
