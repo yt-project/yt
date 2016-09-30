@@ -24,9 +24,9 @@ from .coordinate_handler import \
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian, pixelize_sph_kernel_slice
+    pixelize_cartesian, pixelize_sph_kernel_slice, \
+    pixelize_sph_kernel_projection
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
-
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -139,6 +139,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
         from yt.frontends.sph.data_structures import ParticleDataset
+        from yt.data_objects.selection_data_containers import \
+            YTSlice
+        from yt.data_objects.construction_data_containers import \
+            YTQuadTreeProj
         # We should be using fcoords
         period = self.period[:2].copy() # dummy here
         period[0] = self.period[self.x_axis[dim]]
@@ -151,14 +155,38 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
             py_name = 'particle_position_%s' % self.axis_name[self.y_axis[dim]]
-            buff = pixelize_sph_kernel_slice(
-                data_source[ptype, px_name],
-                data_source[ptype, py_name],
-                data_source[ptype, 'smoothing_length'],
-                data_source[ptype, 'particle_mass'],
-                data_source[ptype, 'density'],
-                data_source[ptype, 'density'].in_units(ounits),
-                size[0], size[1], bounds).transpose()
+            if isinstance(data_source, YTQuadTreeProj):
+                le = data_source.data_source.left_edge.in_units('code_length')
+                re = data_source.data_source.right_edge.in_units('code_length')
+                le[self.x_axis[dim]] = bounds[0]
+                le[self.y_axis[dim]] = bounds[2]
+                re[self.x_axis[dim]] = bounds[1]
+                re[self.y_axis[dim]] = bounds[3]
+                proj_reg = data_source.ds.region(
+                    left_edge=le, right_edge=re, center=data_source.center,
+                    data_source=data_source.data_source
+                )
+                buff = pixelize_sph_kernel_projection(
+                    proj_reg[ptype, px_name],
+                    proj_reg[ptype, py_name],
+                    proj_reg[ptype, 'smoothing_length'],
+                    proj_reg[ptype, 'particle_mass'],
+                    proj_reg[ptype, 'density'],
+                    proj_reg[ptype, 'density'],
+                    size[0], size[1], bounds).transpose()
+            elif isinstance(data_source, YTSlice):
+                buff = pixelize_sph_kernel_slice(
+                    data_source[ptype, px_name],
+                    data_source[ptype, py_name],
+                    data_source[ptype, 'smoothing_length'],
+                    data_source[ptype, 'particle_mass'],
+                    data_source[ptype, 'density'],
+                    data_source[ptype, 'density'].in_units(ounits),
+                    size[0], size[1], bounds).transpose()
+            else:
+                raise NotImplementedError(
+                    "A pixelization routine has not been implemented for %s "
+                    "data objects" % str(type(data_source)))
         else:
             pixelize_cartesian(buff, data_source['px'], data_source['py'],
                                data_source['pdx'], data_source['pdy'],

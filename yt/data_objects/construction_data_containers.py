@@ -62,6 +62,7 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
+from yt.frontends.sph.data_structures import ParticleDataset
 import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
@@ -320,6 +321,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
+        if isinstance(self.ds, ParticleDataset):
+            return
         tree = self._get_tree(len(fields))
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.

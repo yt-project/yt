@@ -18,6 +18,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
+from libc.stdio cimport printf
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
@@ -568,7 +569,7 @@ cdef class SelectorObject:
                 pos[1] = y[i]
                 pos[2] = z[i]
                 if _radii.shape[0] == 1:
-                    radius = 0
+                    radius = _radii[0]
                 else:
                     radius = _radii[i]
                 if radius == 0:
@@ -915,6 +916,21 @@ cdef class RegionSelector(SelectorObject):
                pos[i] >= self.right_edge[i]:
                 return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        # adapted from http://stackoverflow.com/a/4579192/1382869
+        cdef int i
+        cdef np.float64_t r2 = radius**2
+        cdef np.float64_t dmin = 0
+        for i in range(3):
+            if pos[i] < self.left_edge[i]:
+                dmin += (pos[i] - self.left_edge[i])**2
+            elif pos[i] > self.right_edge[i]:
+                dmin += (pos[i] - self.right_edge[i])**2
+        return int(dmin <= r2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

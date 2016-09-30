@@ -87,8 +87,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             # X_fraction are defined in snapshot
             #-----------------------------------------------
             for s in self._elements:
-                add_species_field_by_fraction(self, ptype, s,
-                                              particle_type=True)
+                add_species_field_by_fraction(self, ptype, s)
 
         # this needs to be called after the call to
         # add_species_field_by_fraction for some reason ...
@@ -150,8 +149,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
                 # add particle field
                 #---------------------------------------------------
-                add_species_field_by_density(self, ptype, yt_ion,
-                                             particle_type=True)
+                add_species_field_by_density(self, ptype, yt_ion)
 
 
             # add smoothed ion fields
