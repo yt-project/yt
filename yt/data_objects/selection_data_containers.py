@@ -924,7 +924,7 @@ class YTDataObjectUnion(YTSelectionContainer3D):
     --------
 
     >>> import yt
-    >>> ds = yt.load("RedshiftOutput0005")
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.1)
     >>> sp2 = ds.sphere((0.3, 0.5, 0.15), 0.1)
     >>> sp3 = ds.sphere((0.5, 0.5, 0.9), 0.1)

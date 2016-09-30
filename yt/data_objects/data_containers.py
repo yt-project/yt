@@ -1933,7 +1933,7 @@ class YTBooleanContainer(YTSelectionContainer3D):
     --------
 
     >>> import yt
-    >>> ds = yt.load("RedshiftOutput0005")
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     >>> sp = ds.sphere("c", 0.1)
     >>> dd = ds.r[:,:,:]
     >>> new_obj = sp ^ dd
