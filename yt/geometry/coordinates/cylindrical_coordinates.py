@@ -113,19 +113,22 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = pixelize_cartesian(data_source['px'], data_source['py'],
+        buff = np.zeros(size, dtype="f8")
+        pixelize_cartesian(buff, data_source['px'], data_source['py'],
                                   data_source['pdx'], data_source['pdy'],
-                                  data_source[field], size[0], size[1],
+                                  data_source[field],
                                   bounds, int(antialias),
-                                  period, int(periodic)).transpose()
+                                  period, int(periodic))
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias):
-        buff = pixelize_cylinder(data_source['px'],
-                                 data_source['pdx'],
-                                 data_source['py'],
-                                 data_source['pdy'],
-                                 size, data_source[field], bounds)
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        pixelize_cylinder(buff,
+                          data_source['px'],
+                          data_source['pdx'],
+                          data_source['py'],
+                          data_source['pdy'],
+                          data_source[field], bounds)
         return buff
 
     _x_pairs = (('r', 'theta'), ('z', 'r'), ('theta', 'r'))

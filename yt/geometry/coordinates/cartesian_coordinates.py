@@ -128,22 +128,24 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = pixelize_cartesian(data_source['px'], data_source['py'],
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        pixelize_cartesian(buff, data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
+                             data_source[field],
                              bounds, int(antialias),
-                             period, int(periodic)).transpose()
+                             period, int(periodic))
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
-        indices = np.argsort(data_source['dx'])[::-1]
-        buff = pixelize_off_axis_cartesian(
+        indices = np.argsort(data_source['pdx'])[::-1]
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        pixelize_off_axis_cartesian(buff,
                               data_source['x'], data_source['y'],
                               data_source['z'], data_source['px'],
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],
                               data_source.center, data_source._inv_mat, indices,
-                              data_source[field], size[0], size[1], bounds).transpose()
+                              data_source[field], bounds)
         return buff
 
     def convert_from_cartesian(self, coord):
