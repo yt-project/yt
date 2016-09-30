@@ -415,6 +415,7 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
         np.ndarray[np.int64_t, ndim=1] ys,
         np.ndarray[np.float64_t, ndim=1] zs,
         np.ndarray[np.float64_t, ndim=2] colors,
+        np.ndarray[np.int64_t, ndim=1] radii, #pixels
         int points_per_color=1,
         int thick=1,
         int flip=0):
@@ -425,37 +426,45 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
     cdef np.float64_t[:] alpha
     cdef np.float64_t talpha
     cdef int i, j, c
+    cdef int kx, ky, r
+    cdef np.int64_t[:] idx
     cdef np.int64_t x0, y0, yi0
     cdef np.float64_t z0
     alpha = np.zeros(4)
-    for j in range(0, nl):
-        x0 = xs[j]
-        y0 = ys[j]
-        z0 = zs[j]
-        if (x0 < 0 or x0 >= nx): continue
-        if (y0 < 0 or y0 >= ny): continue
-        c = j/points_per_color
-        for i in range(3):
-            alpha[i] = colors[c, i] * colors[c, 3]
-        alpha[3] = colors[c, 3]
-        if flip:
-            yi0 = ny - y0
-        else:
-            yi0 = y0
-
-        if z0 < zbuffer[x0, yi0]:
-            if alpha[3] != 1.0:
-                talpha = image[x0, yi0, 3]
-                image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+    #the sources must be ordered along z to avoid edges when two overlap
+    idx = np.argsort(zs)
+    for j in idx: #range(0, nl):
+        r = radii[j]
+        for kx in range(-r,r+1):
+            for ky in range(-r,r+1):
+                if (kx**2 + ky**2 > (r+0.3)**2): continue
+                x0 = xs[j]+kx
+                y0 = ys[j]+ky
+                z0 = zs[j]
+                if (x0 < 0 or x0 >= nx): continue
+                if (y0 < 0 or y0 >= ny): continue
+                c = j/points_per_color
                 for i in range(3):
-                    image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
-                    if image[x0, yi0, 3] == 0.0:
-                        image[x0, yi0, i] = 0.0
-            else:
-                for i in range(4):
-                    image[x0, yi0, i] = alpha[i]
-            if (1.0 - image[x0, yi0, 3] < 1.0e-4):
-                zbuffer[x0, yi0] = z0
+                    alpha[i] = colors[c, i] * colors[c, 3]
+                alpha[3] = colors[c, 3]
+                if flip:
+                    yi0 = ny - y0
+                else:
+                    yi0 = y0
+
+                if z0 < zbuffer[x0, yi0]:
+                    if alpha[3] != 1.0:
+                        talpha = image[x0, yi0, 3]
+                        image[x0, yi0, 3] = alpha[3] + talpha * (1 - alpha[3])
+                        for i in range(3):
+                            image[x0, yi0, i] = (alpha[3]*alpha[i] + image[x0, yi0, i]*talpha*(1.0-alpha[3]))/image[x0,yi0,3]
+                            if image[x0, yi0, 3] == 0.0:
+                                image[x0, yi0, i] = 0.0
+                    else:
+                        for i in range(4):
+                            image[x0, yi0, i] = alpha[i]
+                    if (1.0 - image[x0, yi0, 3] < 1.0e-4):
+                        zbuffer[x0, yi0] = z0
     return
 
 
