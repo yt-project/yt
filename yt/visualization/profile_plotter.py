@@ -44,8 +44,6 @@ from yt.funcs import \
     get_image_suffix, \
     get_ipython_api_version, \
     matplotlib_style_context
-from yt.utilities.lib.pixelization_routines import pixelize_element_mesh
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -237,7 +235,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-
+    
     @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
@@ -664,7 +662,6 @@ class ProfilePlot(object):
             self._get_field_label(field_y, yfi, y_unit, fractional)
 
         return (x_title, y_title)
-
 
 class PhasePlot(ImagePlotContainer):
     r"""
