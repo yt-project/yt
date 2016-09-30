@@ -178,6 +178,8 @@ class Camera(Orientation):
                 raise RuntimeError(
                     'Cannot set the camera focus and position to the same value')
             self._position = position
+            self.switch_orientation(normal_vector=self.focus - self._position,
+                                    north_vector=self.north_vector)
 
         def fdel(self):
             del self._position
@@ -384,9 +386,9 @@ class Camera(Orientation):
             calculated automatically.
 
         """
+        if north_vector is not None:
+            self.north_vector = north_vector
         self.position = position
-        self.switch_orientation(normal_vector=self.focus - self.position,
-                                north_vector=north_vector)
 
     def get_position(self):
         """Return the current camera position"""
