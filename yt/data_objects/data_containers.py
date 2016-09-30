@@ -1876,7 +1876,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def __or__(self, other):
         if not isinstance(other, YTSelectionContainer3D):
             raise YTBooleanObjectError(other)
-        if not self.ds is other.ds:
+        if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
         # Should maybe do something with field parameters here
         return YTBooleanContainer("OR", self, other, ds = self.ds)
@@ -1889,14 +1889,14 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def __xor__(self, other):
         if not isinstance(other, YTSelectionContainer3D):
             raise YTBooleanObjectError(other)
-        if not self.ds is other.ds:
+        if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
         return YTBooleanContainer("XOR", self, other, ds = self.ds)
 
     def __and__(self, other):
         if not isinstance(other, YTSelectionContainer3D):
             raise YTBooleanObjectError(other)
-        if not self.ds is other.ds:
+        if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
         return YTBooleanContainer("AND", self, other, ds = self.ds)
 
@@ -1906,7 +1906,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
     def __sub__(self, other):
         if not isinstance(other, YTSelectionContainer3D):
             raise YTBooleanObjectError(other)
-        if not self.ds is other.ds:
+        if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
         return YTBooleanContainer("NEG", self, other, ds = self.ds)
 
