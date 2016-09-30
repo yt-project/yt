@@ -620,12 +620,6 @@ class MeshSource(OpaqueSource):
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
-            # elif indices.shape[1] == 10:
-            #     # tetrahedral
-            #     mylog.warning("10-node tetrahedral elements not yet supported, " +
-            #                   "dropping to 1st order.")
-            #     field_data = field_data[:, 0:4]
-            #     indices = indices[:, 0:4]
 
             self.mesh = mesh_construction.LinearElementMesh(self.volume,
                                                             vertices,
@@ -659,12 +653,6 @@ class MeshSource(OpaqueSource):
                           "dropping to 1st order.")
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
-        # elif indices.shape[1] == 10:
-        #     # tetrahedral
-        #     mylog.warning("10-node tetrahedral elements not yet supported, " +
-        #                   "dropping to 1st order.")
-        #     field_data = field_data[:, 0:4]
-        #     indices = indices[:, 0:4]
 
         self.volume = BVH(vertices, indices, field_data)
 
