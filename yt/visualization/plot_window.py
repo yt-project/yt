@@ -26,7 +26,6 @@ from .base_plot_types import \
     ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import callback_registry
 from .plot_container import \
@@ -156,11 +155,9 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj`
     or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
-        slice.  (For cutting planes, see
-        `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
+        slice or a cutting plane.
     bounds : sequence of floats
         Bounds are the min and max in the image plane that we want our
         image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
@@ -272,8 +269,6 @@ class PlotWindow(ImagePlotContainer):
             bounds = self.xlim+self.ylim+self.zlim
         else:
             bounds = self.xlim+self.ylim
-        if self._frb_generator is ObliqueFixedResolutionBuffer:
-            bounds = np.array([b.in_units('code_length') for b in bounds])
 
         # Generate the FRB
         self.frb = self._frb_generator(self.data_source, bounds,
@@ -1577,7 +1572,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     """
 
     _plot_type = 'OffAxisSlice'
-    _frb_generator = ObliqueFixedResolutionBuffer
+    _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, right_handed=True, fontsize=18,

@@ -20,6 +20,7 @@ import numpy as np
 import os
 import time
 import weakref
+import warnings
 
 from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
@@ -214,7 +215,7 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None, 
+    def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
@@ -338,7 +339,7 @@ class Dataset(object):
         in that directory, and a list of subdirectories.  It should return a
         list of filenames (defined relative to the supplied directory) and a
         boolean as to whether or not further directories should be recursed.
-        
+
         This function doesn't need to catch all possibilities, nor does it need
         to filter possibilities.
         """
@@ -938,7 +939,7 @@ class Dataset(object):
             "dangerous option that may yield inconsistent results, and must be "
             "used very carefully, and only if you know what you want from it.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
-                          ("velocity","cm/s"), ("magnetic","gauss"), 
+                          ("velocity","cm/s"), ("magnetic","gauss"),
                           ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
@@ -1043,7 +1044,7 @@ class Dataset(object):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function=None, **kwargs):
+    def add_field(self, name, function=None, sampling_type=None, **kwargs):
         """
         Dataset-specific call to add_field
 
@@ -1081,7 +1082,18 @@ class Dataset(object):
         if not override and name in self.field_info:
             mylog.warning("Field %s already exists. To override use " +
                           "force_override=True.", name)
-        self.field_info.add_field(name, function=function, **kwargs)
+        if kwargs.setdefault('particle_type', False):
+            if sampling_type is not None and sampling_type != "particle":
+                raise RuntimeError("Clashing definition of 'sampling_type' and "
+                               "'particle_type'. Note that 'particle_type' is "
+                               "deprecated. Please just use 'sampling_type'.")
+            else:
+                sampling_type = "particle"
+        if sampling_type is None:
+            warnings.warn("Because 'sampling_type' not specified, yt will "
+                          "assume a cell 'sampling_type'")
+            sampling_type = "cell"
+        self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)

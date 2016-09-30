@@ -49,7 +49,6 @@ Fixed Resolution Pixelization
    ~yt.visualization.fixed_resolution.FixedResolutionBuffer
    ~yt.visualization.fixed_resolution.ParticleImageBuffer
    ~yt.visualization.fixed_resolution.CylindricalFixedResolutionBuffer
-   ~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer
    ~yt.visualization.fixed_resolution.OffAxisProjectionFixedResolutionBuffer
 
 Data Sources

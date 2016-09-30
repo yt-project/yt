@@ -39,7 +39,7 @@ answer_tests:
   local_owls_000:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_006:
+  local_pw_008:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -50,7 +50,7 @@ answer_tests:
   local_tipsy_001:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_004:
+  local_varia_005:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py

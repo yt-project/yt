@@ -75,6 +75,10 @@ cdef class OctreeSubsetSelector(SelectorObject):
     cdef SelectorObject base_selector
     cdef public np.int64_t domain_id
 
+cdef class BooleanSelector(SelectorObject):
+    cdef public SelectorObject sel1
+    cdef public SelectorObject sel2
+
 cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
                                         np.float64_t dw, bint periodic) nogil:
     cdef np.float64_t rel = x1 - x2

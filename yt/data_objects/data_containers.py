@@ -49,7 +49,9 @@ from yt.utilities.exceptions import \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
-    YTDimensionalityError
+    YTDimensionalityError, \
+    YTBooleanObjectError, \
+    YTBooleanObjectsWrongDataset
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -1415,7 +1417,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self.index._identify_base_chunk(self)
         return self._current_chunk.fcoords_vertex
 
-
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
     _dimensionality = 0
@@ -1871,6 +1872,86 @@ class YTSelectionContainer3D(YTSelectionContainer):
         from what might be expected from the geometric volume.
         """
         return self.quantities.total_quantity(("index", "cell_volume"))
+
+    def __or__(self, other):
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        # Should maybe do something with field parameters here
+        return YTBooleanContainer("OR", self, other, ds = self.ds)
+
+    def __invert__(self):
+        # ~obj
+        asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
+        return YTBooleanContainer("NOT", self, asel, ds = self.ds)
+
+    def __xor__(self, other):
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("XOR", self, other, ds = self.ds)
+
+    def __and__(self, other):
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("AND", self, other, ds = self.ds)
+
+    def __add__(self, other):
+        return self.__or__(other)
+
+    def __sub__(self, other):
+        if not isinstance(other, YTSelectionContainer3D):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("NEG", self, other, ds = self.ds)
+
+class YTBooleanContainer(YTSelectionContainer3D):
+    """
+    This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
+    multiple data objects.
+
+    This object is not designed to be created directly; it is designed to be
+    created implicitly by using one of the bitwise operations (&, |, ^, ~) on
+    one or two other data objects.  These correspond to the appropriate boolean
+    operations, and the resultant object can be nested.
+
+    Parameters
+    ----------
+    op : string
+        Can be AND, OR, XOR, NOT or NEG.
+    dobj1 : YTSelectionContainer3D
+        The first selection object
+    dobj2 : YTSelectionContainer3D
+        The second object
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> sp = ds.sphere("c", 0.1)
+    >>> dd = ds.r[:,:,:]
+    >>> new_obj = sp ^ dd
+    >>> print(new_obj.sum("cell_volume"), dd.sum("cell_volume") -
+    ...    sp.sum("cell_volume"))
+    """
+    _type_name = "bool"
+    _con_args = ("op", "dobj1", "dobj2")
+    def __init__(self, op, dobj1, dobj2, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        self.op = op.upper()
+        self.dobj1 = dobj1
+        self.dobj2 = dobj2
+        name = "Boolean%sSelector" % (self.op,)
+        sel_cls = getattr(yt.geometry.selection_routines, name)
+        self._selector = sel_cls(self)
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the

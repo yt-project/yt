@@ -54,12 +54,13 @@ cdef extern from "pixelization_constants.h":
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
-                       np.ndarray[np.float64_t, ndim=1] py,
-                       np.ndarray[np.float64_t, ndim=1] pdx,
-                       np.ndarray[np.float64_t, ndim=1] pdy,
-                       np.ndarray[np.float64_t, ndim=1] data,
-                       int cols, int rows, bounds,
+def pixelize_cartesian(np.float64_t[:,:] buff,
+                       np.float64_t[:] px,
+                       np.float64_t[:] py,
+                       np.float64_t[:] pdx,
+                       np.float64_t[:] pdy,
+                       np.float64_t[:] data,
+                       bounds,
                        int antialias = 1,
                        period = None,
                        int check_period = 1,
@@ -78,7 +79,6 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
     cdef int yiter[2]
     cdef np.float64_t xiterv[2]
     cdef np.float64_t yiterv[2]
-    cdef np.ndarray[np.float64_t, ndim=2] my_array
     if period is not None:
         period_x = period[0]
         period_y = period[1]
@@ -88,18 +88,15 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> rows)
-    px_dy = height / (<np.float64_t> cols)
+    px_dx = width / (<np.float64_t> buff.shape[1])
+    px_dy = height / (<np.float64_t> buff.shape[0])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
-    if rows == 0 or cols == 0:
-        raise YTPixelizeError("Cannot scale to zero size")
     if px.shape[0] != py.shape[0] or \
        px.shape[0] != pdx.shape[0] or \
        px.shape[0] != pdy.shape[0] or \
        px.shape[0] != data.shape[0]:
         raise YTPixelizeError("Arrays are not of correct shape.")
-    my_array = np.zeros((rows, cols), "float64")
     xiter[0] = yiter[0] = 0
     xiterv[0] = yiterv[0] = 0.0
     # Here's a basic outline of what we're going to do here.  The xiter and
@@ -120,6 +117,31 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
     # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
     # depositing into them the data value.  Overlap computes the relative
     # overlap of a data value with a pixel.
+    # 
+    # NOTE ON ROWS AND COLUMNS:
+    #
+    #   The way that images are plotting in matplotlib is somewhat different
+    #   from what most might expect.  The first axis of the array plotted is
+    #   what varies along the x axis.  So for instance, if you supply
+    #   origin='lower' and plot the results of an mgrid operation, at a fixed
+    #   'y' value you will see the results of that array held constant in the
+    #   first dimension.  Here is some example code:
+    #
+    #   import matplotlib.pyplot as plt
+    #   import numpy as np
+    #   x, y = np.mgrid[0:1:100j,0:1:100j]
+    #   plt.imshow(x, interpolation='nearest', origin='lower')
+    #   plt.imshow(y, interpolation='nearest', origin='lower')
+    #
+    #   The values in the image:
+    #       lower left:  arr[0,0]
+    #       lower right: arr[0,-1]
+    #       upper left:  arr[-1,0]
+    #       upper right: arr[-1,-1]
+    #
+    #   So what we want here is to fill an array such that we fill:
+    #       first axis : y_min .. y_max
+    #       second axis: x_min .. x_max
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
@@ -161,8 +183,10 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                     # truncated, but no similar truncation was done in the
                     # comparison of j to rc (double).  So give ourselves a
                     # bonus row and bonus column here.
-                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), rows)
-                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), cols)
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), buff.shape[1])
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), buff.shape[0])
+                    # Note that we're iterating here over *y* in the i
+                    # direction.  See the note above about this.
                     for i in range(lr, rr):
                         lypx = px_dy * i + y_min
                         rypx = px_dy * (i+1) + y_min
@@ -187,7 +211,7 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                             fabs(cy - (ysp-dysp)))
                                 ld_y *= ipx_dy
                                 if ld_x <= line_width or ld_y <= line_width:
-                                    my_array[j,i] = 1.0
+                                    buff[i,j] = 1.0
                             elif antialias == 1:
                                 overlap1 = ((fmin(rxpx, xsp+dxsp)
                                            - fmax(lxpx, (xsp-dxsp)))*ipx_dx)
@@ -200,16 +224,15 @@ def pixelize_cartesian(np.ndarray[np.float64_t, ndim=1] px,
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
                                 if overlap1 * overlap2 == 0.0: continue
-                                my_array[j,i] += (dsp * overlap1) * overlap2
+                                buff[i,j] += (dsp * overlap1) * overlap2
                             else:
-                                my_array[j,i] = dsp
-
-    return my_array
+                                buff[i,j] = dsp
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def pixelize_off_axis_cartesian(
+                       np.float64_t[:,:] buff,
                        np.float64_t[:] x,
                        np.float64_t[:] y,
                        np.float64_t[:] z,
@@ -222,7 +245,7 @@ def pixelize_off_axis_cartesian(
                        np.float64_t[:,:] inv_mat,
                        np.int64_t[:] indices,
                        np.float64_t[:] data,
-                       int cols, int rows, bounds):
+                       bounds):
     cdef np.float64_t x_min, x_max, y_min, y_max
     cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy, md
     cdef int i, j, p, ip
@@ -231,7 +254,6 @@ def pixelize_off_axis_cartesian(
     cdef np.float64_t xsp, ysp, zsp, dxsp, dysp, dzsp, dsp
     cdef np.float64_t pxsp, pysp, cxpx, cypx, cx, cy, cz
     # Some periodicity helpers
-    cdef np.ndarray[np.float64_t, ndim=2] my_array
     cdef np.ndarray[np.int64_t, ndim=2] mask
     x_min = bounds[0]
     x_max = bounds[1]
@@ -239,12 +261,10 @@ def pixelize_off_axis_cartesian(
     y_max = bounds[3]
     width = x_max - x_min
     height = y_max - y_min
-    px_dx = width / (<np.float64_t> rows)
-    px_dy = height / (<np.float64_t> cols)
+    px_dx = width / (<np.float64_t> buff.shape[1])
+    px_dy = height / (<np.float64_t> buff.shape[0])
     ipx_dx = 1.0 / px_dx
     ipx_dy = 1.0 / px_dy
-    if rows == 0 or cols == 0:
-        raise YTPixelizeError("Cannot scale to zero size")
     if px.shape[0] != py.shape[0] or \
        px.shape[0] != pdx.shape[0] or \
        px.shape[0] != pdy.shape[0] or \
@@ -252,8 +272,7 @@ def pixelize_off_axis_cartesian(
        px.shape[0] != indices.shape[0] or \
        px.shape[0] != data.shape[0]:
         raise YTPixelizeError("Arrays are not of correct shape.")
-    my_array = np.zeros((rows, cols), "float64")
-    mask = np.zeros((rows, cols), "int64")
+    mask = np.zeros((buff.shape[0], buff.shape[1]), "int64")
     with nogil:
         for ip in range(indices.shape[0]):
             p = indices[ip]
@@ -275,8 +294,8 @@ def pixelize_off_axis_cartesian(
                 continue
             lc = <int> fmax(((pxsp - md - x_min)*ipx_dx),0)
             lr = <int> fmax(((pysp - md - y_min)*ipx_dy),0)
-            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), rows)
-            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), cols)
+            rc = <int> fmin(((pxsp + md - x_min)*ipx_dx + 1), buff.shape[1])
+            rr = <int> fmin(((pysp + md - y_min)*ipx_dy + 1), buff.shape[0])
             for i in range(lr, rr):
                 cypx = px_dy * (i + 0.5) + y_min
                 for j in range(lc, rc):
@@ -289,40 +308,35 @@ def pixelize_off_axis_cartesian(
                        fabs(zsp - cz) * 0.99 > dzsp:
                         continue
                     mask[i, j] += 1
-                    my_array[i, j] += dsp
-    my_array /= mask
-    return my_array.T
-
+                    buff[i, j] += dsp
+    for i in range(buff.shape[0]):
+        for j in range(buff.shape[1]):
+            if mask[i,j] == 0: continue
+            buff[i,j] /= mask[i,j]
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
-                      np.ndarray[np.float64_t, ndim=1] dradius,
-                      np.ndarray[np.float64_t, ndim=1] theta,
-                      np.ndarray[np.float64_t, ndim=1] dtheta,
-                      buff_size,
-                      np.ndarray[np.float64_t, ndim=1] field,
-                      extents, input_img = None):
+def pixelize_cylinder(np.float64_t[:,:] buff,
+                      np.float64_t[:] radius,
+                      np.float64_t[:] dradius,
+                      np.float64_t[:] theta,
+                      np.float64_t[:] dtheta,
+                      np.float64_t[:] field,
+                      extents):
 
-    cdef np.ndarray[np.float64_t, ndim=2] img
     cdef np.float64_t x, y, dx, dy, r0, theta0
     cdef np.float64_t rmax, x0, y0, x1, y1
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
-
-    imax = radius.argmax()
+    
+    cdef int imax = np.asarray(radius).argmax()
     rmax = radius[imax] + dradius[imax]
 
-    if input_img is None:
-        img = np.zeros((buff_size[0], buff_size[1]))
-        img[:] = np.nan
-    else:
-        img = input_img
     x0, x1, y0, y1 = extents
-    dx = (x1 - x0) / img.shape[0]
-    dy = (y1 - y0) / img.shape[1]
+    dx = (x1 - x0) / buff.shape[1]
+    dy = (y1 - y0) / buff.shape[0]
     cdef np.float64_t rbounds[2]
     cdef np.float64_t corners[8]
     # Find our min and max r
@@ -371,15 +385,11 @@ def pixelize_cylinder(np.ndarray[np.float64_t, ndim=1] radius,
                 x = r_i * sintheta
                 pi = <int>((x - x0)/dx)
                 pj = <int>((y - y0)/dy)
-                if pi >= 0 and pi < img.shape[0] and \
-                   pj >= 0 and pj < img.shape[1]:
-                    if img[pi, pj] != img[pi, pj]:
-                        img[pi, pj] = 0.0
-                    img[pi, pj] = field[i]
+                if pi >= 0 and pi < buff.shape[0] and \
+                   pj >= 0 and pj < buff.shape[1]:
+                    buff[pi, pj] = field[i]
                 r_i += 0.5*dx
             theta_i += dthetamin
-
-    return img
 
 cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
                                 np.float64_t *x, np.float64_t *y):
@@ -390,12 +400,12 @@ cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def pixelize_aitoff(np.ndarray[np.float64_t, ndim=1] theta,
-                    np.ndarray[np.float64_t, ndim=1] dtheta,
-                    np.ndarray[np.float64_t, ndim=1] phi,
-                    np.ndarray[np.float64_t, ndim=1] dphi,
+def pixelize_aitoff(np.float64_t[:] theta,
+                    np.float64_t[:] dtheta,
+                    np.float64_t[:] phi,
+                    np.float64_t[:] dphi,
                     buff_size,
-                    np.ndarray[np.float64_t, ndim=1] field,
+                    np.float64_t[:] field,
                     extents, input_img = None,
                     np.float64_t theta_offset = 0.0,
                     np.float64_t phi_offset = 0.0):
