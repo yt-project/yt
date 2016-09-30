@@ -299,15 +299,15 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
 cdef np.int64_t ray_patch_intersect(const void* primitives,
                                     const np.int64_t item,
                                     Ray* ray) nogil:
-    '''
-    
-    This returns an integer flag that indicates whether the given patch is the
-    closest hit for the ray so far. If it is, the ray is updated to store the
-    current primitive index and the distance to the first hit. The patch used
-    is the one indexed by "item" in the array of primitives.
-    
-    
-    '''
+'''
+
+This returns an integer flag that indicates whether the given patch is the
+closest hit for the ray so far. If it is, the ray is updated to store the
+current primitive index and the distance to the first hit. The patch used
+is the one indexed by "item" in the array of primitives.
+
+
+'''
     cdef Patch patch = (<Patch*> primitives)[item]
 
     cdef RayHitData hd = compute_patch_hit(patch.v, ray.origin, ray.direction)
@@ -331,14 +331,14 @@ cdef np.int64_t ray_patch_intersect(const void* primitives,
 cdef void patch_centroid(const void *primitives,
                          const np.int64_t item,
                          np.float64_t[3] centroid) nogil:
-    '''
-    
-    This computes the centroid of the input patch. The patch used
-    is the one indexed by "item" in the array of primitives. The result
-    will be stored in the numpy array passed in as "centroid".
-    
-    '''
-    
+'''
+
+This computes the centroid of the input patch. The patch used
+is the one indexed by "item" in the array of primitives. The result
+will be stored in the numpy array passed in as "centroid".
+
+'''
+
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
 
@@ -360,13 +360,13 @@ cdef void patch_bbox(const void *primitives,
                     const np.int64_t item,
                      BBox* bbox) nogil:
 
-    '''
-    
-    This computes the bounding box of the input patch. The patch used
-    is the one indexed by "item" in the array of primitives. The result
-    will be stored in the input BBox.
-    
-    '''
+'''
+
+This computes the bounding box of the input patch. The patch used
+is the one indexed by "item" in the array of primitives. The result
+will be stored in the input BBox.
+
+'''
 
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
