@@ -426,23 +426,26 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
     cdef np.float64_t[:] alpha
     cdef np.float64_t talpha
     cdef int i, j, c
-    cdef int kx, ky, r
-    cdef np.int64_t[:] idx
+    cdef np.int64_t kx, ky, r, r2
+    cdef np.int64_t[:] idx, ks
     cdef np.int64_t x0, y0, yi0
     cdef np.float64_t z0
     alpha = np.zeros(4)
     #the sources must be ordered along z to avoid edges when two overlap
     idx = np.argsort(zs)
-    for j in idx: #range(0, nl):
+    for j in idx:
         r = radii[j]
-        for kx in range(-r,r+1):
-            for ky in range(-r,r+1):
-                if (kx**2 + ky**2 > (r+0.3)**2): continue
-                x0 = xs[j]+kx
+        r2 = int((r+0.3)*(r+0.3))  #0.3 to get nicer shape
+        ks = np.arange(-r,r+1,dtype=int)
+        z0 = zs[j]
+        for kx in ks:
+            x0 = xs[j]+kx
+            if (x0 < 0 or x0 >= nx): continue
+            for ky in ks:
                 y0 = ys[j]+ky
-                z0 = zs[j]
-                if (x0 < 0 or x0 >= nx): continue
                 if (y0 < 0 or y0 >= ny): continue
+                if (kx*kx + ky*ky > r2): continue
+
                 c = j/points_per_color
                 for i in range(3):
                     alpha[i] = colors[c, i] * colors[c, 3]
