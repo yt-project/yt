@@ -445,7 +445,7 @@ cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
     if (hd.t < ray.t_near or hd.t > ray.t_far):
         return False
 
-    if ((0 <= hd.u <= 1.0) and (0 <= hd.v <= 1.0) and hd.converged):
+    if (0 <= hd.u and 0 <= hd.v and hd.u + hd.v <= 1.0 and hd.converged):
         # we have a hit, so update ray information
         ray.t_far = hd.t
         ray.elem_id = tet_patch.elem_id

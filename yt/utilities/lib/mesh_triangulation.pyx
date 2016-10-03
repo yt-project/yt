@@ -180,7 +180,7 @@ cdef class MeshInfoHolder:
         if (self.VPE == 8 or self.VPE == 20 or self.VPE == 27):
             self.TPE = HEX_NT
             self.tri_array = triangulate_hex
-        elif self.VPE == 4:
+        elif (self.VPE == 4 or self.VPE == 10):
             self.TPE = TETRA_NT
             self.tri_array = triangulate_tetra
         elif self.VPE == 6:
