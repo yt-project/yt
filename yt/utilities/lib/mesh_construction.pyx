@@ -37,7 +37,9 @@ from mesh_samplers cimport \
     sample_wedge
 from mesh_intersection cimport \
     patchIntersectFunc, \
-    patchBoundsFunc
+    patchBoundsFunc, \
+    tet_patchIntersectFunc, \
+    tet_patchBoundsFunc
 from yt.utilities.exceptions import YTElementTypeNotRecognized
 
 cdef extern from "mesh_triangulation.h":
@@ -54,6 +56,7 @@ cdef extern from "mesh_triangulation.h":
     int triangulate_tetra[MAX_NUM_TRI][3]
     int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
+    int tet10_faces[4][6]
 
 
 cdef class LinearElementMesh:
@@ -240,39 +243,48 @@ cdef class QuadraticElementMesh:
 
     '''
 
-    cdef Patch* patches
     cdef np.float64_t* vertices
     cdef np.float64_t* field_data
     cdef unsigned int mesh
     # patches per element, vertices per element, vertices per face,
     # and field points per element, respectively:
     cdef int ppe, vpe, vpf, fpe
+    cdef int* faces
 
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices,
                  np.ndarray indices,
                  np.ndarray field_data):
+        cdef int i, j
 
         # 20-point hexes
         if indices.shape[1] == 20:
             self.vpe = 20
             self.ppe = 6
             self.vpf = 8
+            self.faces = <int*>malloc(6 * 8 * sizeof(int))
+            for i in range(6):
+                for j in range(8):
+                    self.faces[i*6 + j] = hex20_faces[i][j]
+            self._build_from_indices_hex20(scene, vertices, indices, field_data)
         # 10-point tets
         elif indices.shape[1] == 10:
             self.vpe = 10
             self.ppe = 4
             self.vpf = 6
+            self.faces = <int*>malloc(4 * 6 * sizeof(int))
+            for i in range(4):
+                for j in range(6):
+                    self.faces[i*4 + j] = tet10_faces[i][j]
+            self._build_from_indices_tet10(scene, vertices, indices, field_data)
         else:
             raise NotImplementedError
 
-        self._build_from_indices(scene, vertices, indices, field_data)
-
-    cdef void _build_from_indices(self, YTEmbreeScene scene,
+    cdef void _build_from_indices_hex20(self, YTEmbreeScene scene,
                                   np.ndarray vertices_in,
                                   np.ndarray indices_in,
                                   np.ndarray field_data):
-        cdef int i, j, ind, idim
+        cdef int i, j, k, ind, idim
         cdef int ne = indices_in.shape[0]
         cdef int nv = vertices_in.shape[0]
         cdef int npatch = self.ppe*ne;
@@ -282,14 +294,6 @@ cdef class QuadraticElementMesh:
         cdef Patch* patches = <Patch*> malloc(npatch * sizeof(Patch))
         self.vertices = <np.float64_t*> malloc(self.vpe * ne * 3 * sizeof(np.float64_t))
         self.field_data = <np.float64_t*> malloc(self.vpe * ne * sizeof(np.float64_t))
-
-        cdef int faces[self.ppe][self.vpf];
-        if self.vpe == 20:
-            faces = hex20_faces
-        elif self.vpe == 10:
-            faces = tet10_faces
-        else:
-            raise NotImplementedError
 
         for i in range(ne):
             element_vertices = vertices_in[indices_in[i]]
@@ -305,22 +309,65 @@ cdef class QuadraticElementMesh:
                 patch = &(patches[i*self.ppe+j])
                 patch.geomID = mesh
                 for k in range(self.vpf):  # for each vertex
-                    ind = faces[j][k]
+                    ind = self.faces[j*self.ppe + k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
                 patch.vertices = self.vertices + i*self.vpe*3
                 patch.field_data = self.field_data + i*self.vpe
 
-        self.patches = patches
         self.mesh = mesh
 
-        rtcg.rtcSetUserData(scene.scene_i, self.mesh, self.patches)
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, patches)
         rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
                                    <rtcgu.RTCBoundsFunc> patchBoundsFunc)
         rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
                                       <rtcgu.RTCIntersectFunc> patchIntersectFunc)
 
+    cdef void _build_from_indices_tet10(self, YTEmbreeScene scene,
+                                  np.ndarray vertices_in,
+                                  np.ndarray indices_in,
+                                  np.ndarray field_data):
+        cdef int i, j, k, ind, idim
+        cdef int ne = indices_in.shape[0]
+        cdef int nv = vertices_in.shape[0]
+        cdef int npatch = self.ppe*ne;
+
+        cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
+        cdef np.ndarray[np.float64_t, ndim=2] element_vertices
+        cdef Tet_Patch* tet_patches = <Tet_Patch*> malloc(npatch * sizeof(Tet_Patch))
+        self.vertices = <np.float64_t*> malloc(self.vpe * ne * 3 * sizeof(np.float64_t))
+        self.field_data = <np.float64_t*> malloc(self.vpe * ne * sizeof(np.float64_t))
+
+        for i in range(ne):
+            element_vertices = vertices_in[indices_in[i]]
+            for j in range(self.vpe):
+                self.field_data[i*self.vpe + j] = field_data[i][j]
+                for k in range(3):
+                    self.vertices[i*self.vpe*3 + j*3 + k] = element_vertices[j][k]
+
+        cdef Tet_Patch* tet_patch
+        for i in range(ne):  # for each element
+            element_vertices = vertices_in[indices_in[i]]
+            for j in range(self.ppe):  # for each face
+                tet_patch = &(tet_patches[i*self.ppe+j])
+                tet_patch.geomID = mesh
+                for k in range(self.vpf):  # for each vertex
+                    ind = self.faces[j*self.ppe + k]
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        tet_patch.v[k][idim] = element_vertices[ind][idim]
+                tet_patch.vertices = self.vertices + i*self.vpe*3
+                tet_patch.field_data = self.field_data + i*self.vpe
+
+        self.mesh = mesh
+
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, tet_patches)
+        rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
+                                   <rtcgu.RTCBoundsFunc> tet_patchBoundsFunc)
+        rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
+                                      <rtcgu.RTCIntersectFunc> tet_patchIntersectFunc)
+
+
     def __dealloc__(self):
-        free(self.patches)
         free(self.vertices)
         free(self.field_data)
+        free(self.faces)

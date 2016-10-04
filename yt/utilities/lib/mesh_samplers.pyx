@@ -18,14 +18,16 @@ cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
 from yt.utilities.lib.mesh_construction cimport \
     MeshDataContainer, \
-    Patch
-from yt.utilities.lib.primitives cimport patchSurfaceFunc
+    Patch, \
+    Tet_Patch
+from yt.utilities.lib.primitives cimport patchSurfaceFunc, tet_patchSurfaceFunc
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     P1Sampler3D, \
     Q1Sampler3D, \
     S2Sampler3D, \
-    W1Sampler3D
+    W1Sampler3D, \
+    Tet2Sampler3D
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmax
@@ -34,6 +36,7 @@ cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
 cdef ElementSampler S2Sampler = S2Sampler3D()
 cdef ElementSampler W1Sampler = W1Sampler3D()
+cdef ElementSampler Tet2Sampler = Tet2Sampler3D()
 
 
 @cython.boundscheck(False)
@@ -94,7 +97,7 @@ cdef void sample_hex(void* userPtr,
     elem_id = ray_id / data.tpe
 
     get_hit_position(position, userPtr, ray)
-    
+
     for i in range(8):
         element_indices[i] = data.element_indices[elem_id*8+i]
 
@@ -104,7 +107,7 @@ cdef void sample_hex(void* userPtr,
     for i in range(8):
         vertices[i*3]     = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
-        vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
+        vertices[i*3 + 2] = data.vertices[element_indices[i]].z
 
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
@@ -145,7 +148,7 @@ cdef void sample_wedge(void* userPtr,
     elem_id = ray_id / data.tpe
 
     get_hit_position(position, userPtr, ray)
-    
+
     for i in range(6):
         element_indices[i] = data.element_indices[elem_id*6+i]
 
@@ -155,7 +158,7 @@ cdef void sample_wedge(void* userPtr,
     for i in range(6):
         vertices[i*3]     = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
-        vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
+        vertices[i*3 + 2] = data.vertices[element_indices[i]].z
 
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
@@ -195,14 +198,14 @@ cdef void sample_hex20(void* userPtr,
     patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)
     for i in range(3):
         position[i] = <double> pos[i]
- 
+
     # we use ray.time to pass the value of the field
     cdef double mapped_coord[3]
     S2Sampler.map_real_to_unit(mapped_coord, patch.vertices, position)
     val = S2Sampler.sample_at_unit_point(mapped_coord, patch.field_data)
     ray.time = val
     ray.instID = S2Sampler.check_mesh_lines(mapped_coord)
-    
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -228,14 +231,14 @@ cdef void sample_tetra(void* userPtr,
     # ray_id records the id number of the hit according to
     # embree, in which the primitives are triangles. Here,
     # we convert this to the element id by dividing by the
-    # number of triangles per element.    
+    # number of triangles per element.
     elem_id = ray_id / data.tpe
 
     for i in range(4):
         element_indices[i] = data.element_indices[elem_id*4+i]
         vertices[i*3] = data.vertices[element_indices[i]].x
         vertices[i*3 + 1] = data.vertices[element_indices[i]].y
-        vertices[i*3 + 2] = data.vertices[element_indices[i]].z    
+        vertices[i*3 + 2] = data.vertices[element_indices[i]].z
 
     for i in range(data.fpe):
         field_data[i] = data.field_data[elem_id*data.fpe+i]
@@ -249,3 +252,39 @@ cdef void sample_tetra(void* userPtr,
         val = P1Sampler.sample_at_unit_point(mapped_coord, field_data)
     ray.time = val
     ray.instID = P1Sampler.check_mesh_lines(mapped_coord)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.initializedcheck(False)
+@cython.cdivision(True)
+cdef void sample_tet10(void* userPtr,
+                       rtcr.RTCRay& ray) nogil:
+    cdef int ray_id, elem_id, i
+    cdef double val
+    cdef double[3] position
+    cdef float[3] pos
+    cdef Tet_Patch* data
+
+    data = <Tet_Patch*> userPtr
+    ray_id = ray.primID
+    if ray_id == -1:
+        return
+    cdef Tet_Patch tet_patch = data[ray_id]
+
+    # ray_id records the id number of the hit according to
+    # embree, in which the primitives are patches. Here,
+    # we convert this to the element id by dividing by the
+    # number of patches per element.
+    elem_id = ray_id / 4
+
+    # fills "position" with the physical position of the hit
+    tet_patchSurfaceFunc(data[ray_id].v, ray.u, ray.v, pos)
+    for i in range(3):
+        position[i] = <double> pos[i]
+
+    # we use ray.time to pass the value of the field
+    cdef double mapped_coord[3]
+    Tet2Sampler.map_real_to_unit(mapped_coord, tet_patch.vertices, position)
+    val = Tet2Sampler.sample_at_unit_point(mapped_coord, tet_patch.field_data)
+    ray.time = val
+    ray.instID = Tet2Sampler.check_mesh_lines(mapped_coord)
