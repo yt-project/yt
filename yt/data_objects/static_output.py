@@ -947,13 +947,7 @@ class Dataset(object):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
-                u = getattr(self, "%s_unit" % unit, None)
-                if u is None:
-                    mylog.info("Overriding %s_unit: %g %s.",
-                               unit, val[0], val[1])
-                else:
-                    mylog.info("Overriding %s_unit: %g -> %g %s.",
-                               unit, u, val[0], val[1])
+                mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
     _arr = None
