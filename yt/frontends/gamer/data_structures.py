@@ -230,45 +230,64 @@ class GAMERDataset(Dataset):
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
-        # GAMER does not assume any unit yet ...
-        if len(self.units_override) == 0:
-            mylog.warning("GAMER does not assume any unit ==> " +
-                          "Use units_override to specify the units")
+        if self.parameters['Opt__Unit']:
+            # GAMER units are always in CGS
+            setdefaultattr( self, 'length_unit', self.quan(self.parameters['Unit_L'], 'cm') )
+            setdefaultattr( self, 'mass_unit',   self.quan(self.parameters['Unit_M'], 'g' ) )
+            setdefaultattr( self, 'time_unit',   self.quan(self.parameters['Unit_T'], 's' ) )
 
-        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            setdefaultattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
-
+        else:
             if len(self.units_override) == 0:
-                mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+                mylog.warning("Cannot determine code units ==> " +
+                              "Use units_override to specify the units")
+
+            for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+                setdefaultattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
+
+                if len(self.units_override) == 0:
+                    mylog.warning("Assuming %s unit = 1.0 %s", unit, cgs)
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
-        # shortcuts for different simulation information
-        KeyInfo   = self._handle['Info']['KeyInfo']
-        InputPara = self._handle['Info']['InputPara']
-        Makefile  = self._handle['Info']['Makefile']
-        SymConst  = self._handle['Info']['SymConst']
+        # code-specific parameters
+        for t in self._handle['Info']:
+            info_category = self._handle['Info'][t]
+            for v in info_category.dtype.names: self.parameters[v] = info_category[v]
+
+        # shortcut for self.parameters
+        parameters = self.parameters
+
+        # reset 'Model' to be more readable
+        if parameters['Model'] == 1:
+            parameters['Model'] = 'Hydro'
+        elif parameters['Model'] == 2:
+            parameters['Model'] = 'MHD'
+        elif parameters['Model'] == 3:
+            parameters['Model'] = 'ELBDM'
+        else:
+            parameters['Model'] = 'Unknown'
 
         # simulation time and domain
-        self.current_time      = KeyInfo['Time'][0]
+        self.current_time      = parameters['Time'][0]
         self.dimensionality    = 3  # always 3D
         self.domain_left_edge  = np.array([0.,0.,0.], dtype='float64')
-        self.domain_right_edge = KeyInfo['BoxSize'].astype('float64')
-        self.domain_dimensions = KeyInfo['NX0'].astype('int64')
+        self.domain_right_edge = parameters['BoxSize'].astype('float64')
+        self.domain_dimensions = parameters['NX0'].astype('int64')
 
         # periodicity
-        periodic         = InputPara['Opt__BC_Flu'][0] == 0
+        periodic         = parameters['Opt__BC_Flu'][0] == 0
         self.periodicity = (periodic,periodic,periodic)
 
         # cosmological parameters
-        if Makefile['Comoving']:
+        if parameters['Comoving']:
             self.cosmological_simulation = 1
             self.current_redshift        = 1.0/self.current_time - 1.0
-            self.omega_matter            = InputPara['OmegaM0']
+            self.omega_matter            = parameters['OmegaM0']
             self.omega_lambda            = 1.0 - self.omega_matter
-            self.hubble_constant         = 0.6955   # H0 is not set in GAMER
+            # default to 0.7 for old data format
+            self.hubble_constant         = parameters.get('Hubble0', 0.7)
         else:
             self.cosmological_simulation = 0
             self.current_redshift        = 0.0
@@ -276,25 +295,14 @@ class GAMERDataset(Dataset):
             self.omega_lambda            = 0.0
             self.hubble_constant         = 0.0
 
-        # code-specific parameters
-        for t in KeyInfo, InputPara, Makefile, SymConst:
-            for v in t.dtype.names: self.parameters[v] = t[v]
-
-        # reset 'Model' to be more readable
-        if KeyInfo['Model'] == 1:
-            self.parameters['Model'] = 'Hydro'
-        elif KeyInfo['Model'] == 2:
-            self.parameters['Model'] = 'MHD'
-        elif KeyInfo['Model'] == 3:
-            self.parameters['Model'] = 'ELBDM'
-        else:
-            self.parameters['Model'] = 'Unknown'
-
         # make aliases to some frequently used variables
-        if self.parameters['Model'] == 'Hydro' or \
-           self.parameters['Model'] == 'MHD':
-            self.gamma = self.parameters["Gamma"]
-            self.mu    = self.parameters.get("mu",0.6) # mean molecular weight
+        if parameters['Model'] == 'Hydro' or parameters['Model'] == 'MHD':
+            self.gamma = parameters["Gamma"]
+            # default to 0.6 for old data format
+            self.mu    = parameters.get('MolecularWeight', 0.6)
+
+        # old data format (version < 2210) does not contain any information of code units
+        self.parameters.setdefault('Opt__Unit', 0)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
