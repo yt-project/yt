@@ -30,14 +30,14 @@ cdef extern from "platform_dep.h" nogil:
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
-'''
+    '''
+    
+    This returns an integer flag that indicates whether a ray and a bounding
+    box intersect. It does not modify either either the ray or the box.
+    
+    '''
 
-This returns an integer flag that indicates whether a ray and a bounding
-box intersect. It does not modify either either the ray or the box.
-
-'''
-
-# https://tavianator.com/fast-branchless-raybounding-box-intersections/
+    # https://tavianator.com/fast-branchless-raybounding-box-intersections/
 
     cdef np.float64_t tmin = -INF
     cdef np.float64_t tmax =  INF
@@ -58,17 +58,17 @@ box intersect. It does not modify either either the ray or the box.
 cdef np.int64_t ray_triangle_intersect(const void* primitives,
                                        const np.int64_t item,
                                        Ray* ray) nogil:
-'''
+    '''
+    
+    This returns an integer flag that indicates whether a triangle is the
+    closest hit for the ray so far. If it is, the ray is updated to store the
+    current triangle index and the distance to the first hit. The triangle used
+    is the one indexed by "item" in the array of primitives.
+    
+    
+    '''
 
-This returns an integer flag that indicates whether a triangle is the
-closest hit for the ray so far. If it is, the ray is updated to store the
-current triangle index and the distance to the first hit. The triangle used
-is the one indexed by "item" in the array of primitives.
-
-
-'''
-
-# https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
+    # https://en.wikipedia.org/wiki/M%C3%B6ller%E2%80%93Trumbore_intersection_algorithm
 
     cdef Triangle tri = (<Triangle*> primitives)[item]
 
@@ -117,13 +117,13 @@ is the one indexed by "item" in the array of primitives.
 cdef void triangle_centroid(const void *primitives,
                             const np.int64_t item,
                             np.float64_t[3] centroid) nogil:
-'''
-
-This computes the centroid of the input triangle. The triangle used
-is the one indexed by "item" in the array of primitives. The result
-will be stored in the numpy array passed in as "centroid".
-
-'''
+    '''
+    
+    This computes the centroid of the input triangle. The triangle used
+    is the one indexed by "item" in the array of primitives. The result
+    will be stored in the numpy array passed in as "centroid".
+    
+    '''
         
     cdef Triangle tri = (<Triangle*> primitives)[item]
     cdef np.int64_t i
@@ -137,14 +137,14 @@ will be stored in the numpy array passed in as "centroid".
 cdef void triangle_bbox(const void *primitives,
                         const np.int64_t item,
                         BBox* bbox) nogil:
-'''
-
-This computes the bounding box of the input triangle. The triangle used
-is the one indexed by "item" in the array of primitives. The result
-will be stored in the input BBox.
-
-'''
-
+    '''
+    
+    This computes the bounding box of the input triangle. The triangle used
+    is the one indexed by "item" in the array of primitives. The result
+    will be stored in the input BBox.
+    
+    '''
+    
     cdef Triangle tri = (<Triangle*> primitives)[item]
     cdef np.int64_t i
     for i in range(3):
@@ -159,26 +159,26 @@ cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
                            const cython.floating u, 
                            const cython.floating v,
                            cython.floating[3] S) nogil:
-'''
-
-This function is a parametric representation of the surface of a bi-quadratic
-patch. The inputs are the eight nodes that define a face of a 20-node hex element,
-and two parameters u and v that vary from -1 to 1 and tell you where you are on
-the surface of the patch. The output is the array 'S' that stores the physical
-(x, y, z) position of the corresponding point on the patch. This function is needed
-to compute the intersection of rays and bi-quadratic patches.
-
-'''
-  cdef int i
-  for i in range(3):
-      S[i] = 0.25*(1.0 - u)*(1.0 - v)*(-u - v - 1)*verts[0][i] + \
-             0.25*(1.0 + u)*(1.0 - v)*( u - v - 1)*verts[1][i] + \
-             0.25*(1.0 + u)*(1.0 + v)*( u + v - 1)*verts[2][i] + \
-             0.25*(1.0 - u)*(1.0 + v)*(-u + v - 1)*verts[3][i] + \
-             0.5*(1 - u)*(1 - v*v)*verts[4][i] + \
-             0.5*(1 - u*u)*(1 - v)*verts[5][i] + \
-             0.5*(1 + u)*(1 - v*v)*verts[6][i] + \
-             0.5*(1 - u*u)*(1 + v)*verts[7][i]
+    '''
+    
+    This function is a parametric representation of the surface of a bi-quadratic
+    patch. The inputs are the eight nodes that define a face of a 20-node hex element,
+    and two parameters u and v that vary from -1 to 1 and tell you where you are on
+    the surface of the patch. The output is the array 'S' that stores the physical
+    (x, y, z) position of the corresponding point on the patch. This function is needed
+    to compute the intersection of rays and bi-quadratic patches.
+    
+    '''
+    cdef int i
+    for i in range(3):
+        S[i] = 0.25*(1.0 - u)*(1.0 - v)*(-u - v - 1)*verts[0][i] + \
+               0.25*(1.0 + u)*(1.0 - v)*( u - v - 1)*verts[1][i] + \
+               0.25*(1.0 + u)*(1.0 + v)*( u + v - 1)*verts[2][i] + \
+               0.25*(1.0 - u)*(1.0 + v)*(-u + v - 1)*verts[3][i] + \
+               0.5*(1 - u)*(1 - v*v)*verts[4][i] + \
+               0.5*(1 - u*u)*(1 - v)*verts[5][i] + \
+               0.5*(1 + u)*(1 - v*v)*verts[6][i] + \
+               0.5*(1 - u*u)*(1 + v)*verts[7][i]
 
 
 @cython.boundscheck(False)
@@ -188,19 +188,19 @@ cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
                              const cython.floating u, 
                              const cython.floating v,
                              cython.floating[3] Su) nogil:
-'''
-
-This function computes the derivative of the S(u, v) function w.r.t u. 
-
-'''
-  cdef int i
-  for i in range(3):
-      Su[i] = (-0.25*(v - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
-              (-0.25*(v - 1.0)*(u - v - 1) - 0.25*(u + 1.0)*(v - 1.0))*verts[1][i] + \
-              ( 0.25*(v + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*verts[2][i] + \
-              ( 0.25*(v + 1.0)*(u - v + 1) + 0.25*(u - 1.0)*(v + 1.0))*verts[3][i] + \
-              0.5*(v*v - 1.0)*verts[4][i] + u*(v - 1.0)*verts[5][i] - \
-              0.5*(v*v - 1.0)*verts[6][i] - u*(v + 1.0)*verts[7][i]
+    '''
+    
+    This function computes the derivative of the S(u, v) function w.r.t u. 
+    
+    '''
+    cdef int i
+    for i in range(3):
+        Su[i] = (-0.25*(v - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
+                (-0.25*(v - 1.0)*(u - v - 1) - 0.25*(u + 1.0)*(v - 1.0))*verts[1][i] + \
+                ( 0.25*(v + 1.0)*(u + v - 1) + 0.25*(u + 1.0)*(v + 1.0))*verts[2][i] + \
+                ( 0.25*(v + 1.0)*(u - v + 1) + 0.25*(u - 1.0)*(v + 1.0))*verts[3][i] + \
+                0.5*(v*v - 1.0)*verts[4][i] + u*(v - 1.0)*verts[5][i] - \
+                0.5*(v*v - 1.0)*verts[6][i] - u*(v + 1.0)*verts[7][i]
 
 
 @cython.boundscheck(False)
@@ -210,11 +210,11 @@ cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
                              const cython.floating u, 
                              const cython.floating v,
                              cython.floating[3] Sv) nogil:
-'''
-
-This function computes the derivative of the S(u, v) function w.r.t v.
-
-'''
+    '''
+    
+    This function computes the derivative of the S(u, v) function w.r.t v.
+    
+    '''
     cdef int i 
     for i in range(3):
         Sv[i] = (-0.25*(u - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
@@ -231,13 +231,13 @@ This function computes the derivative of the S(u, v) function w.r.t v.
 cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
                                   cython.floating[3] ray_origin,
                                   cython.floating[3] ray_direction) nogil:
-"""
-
-This function iteratively computes whether the bi-quadratic patch defined by the
-eight input nodes intersects with the given ray. Either way, information about
-the potential hit is stored in the returned RayHitData.
-
-"""
+    """
+    
+    This function iteratively computes whether the bi-quadratic patch defined by the
+    eight input nodes intersects with the given ray. Either way, information about
+    the potential hit is stored in the returned RayHitData.
+    
+    """
     # first we compute the two planes that define the ray.
     cdef cython.floating[3] n, N1, N2
     cdef cython.floating A = dot(ray_direction, ray_direction)
@@ -312,15 +312,15 @@ the potential hit is stored in the returned RayHitData.
 cdef np.int64_t ray_patch_intersect(const void* primitives,
                                     const np.int64_t item,
                                     Ray* ray) nogil:
-'''
-
-This returns an integer flag that indicates whether the given patch is the
-closest hit for the ray so far. If it is, the ray is updated to store the
-current primitive index and the distance to the first hit. The patch used
-is the one indexed by "item" in the array of primitives.
-
-
-'''
+    '''
+    
+    This returns an integer flag that indicates whether the given patch is the
+    closest hit for the ray so far. If it is, the ray is updated to store the
+    current primitive index and the distance to the first hit. The patch used
+    is the one indexed by "item" in the array of primitives.
+    
+    
+    '''
     cdef Patch patch = (<Patch*> primitives)[item]
 
     cdef RayHitData hd = compute_patch_hit(patch.v, ray.origin, ray.direction)
@@ -344,14 +344,14 @@ is the one indexed by "item" in the array of primitives.
 cdef void patch_centroid(const void *primitives,
                          const np.int64_t item,
                          np.float64_t[3] centroid) nogil:
-'''
-
-This computes the centroid of the input patch. The patch used
-is the one indexed by "item" in the array of primitives. The result
-will be stored in the numpy array passed in as "centroid".
-
-'''
-
+    '''
+    
+    This computes the centroid of the input patch. The patch used
+    is the one indexed by "item" in the array of primitives. The result
+    will be stored in the numpy array passed in as "centroid".
+    
+    '''
+    
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
 
@@ -373,13 +373,13 @@ cdef void patch_bbox(const void *primitives,
                     const np.int64_t item,
                      BBox* bbox) nogil:
 
-'''
-
-This computes the bounding box of the input patch. The patch used
-is the one indexed by "item" in the array of primitives. The result
-will be stored in the input BBox.
-
-'''
+    '''
+    
+    This computes the bounding box of the input patch. The patch used
+    is the one indexed by "item" in the array of primitives. The result
+    will be stored in the input BBox.
+    
+    '''
 
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
