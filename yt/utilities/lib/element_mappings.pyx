@@ -900,6 +900,31 @@ cdef class Tet2Sampler3D(NonlinearSolveSampler3D):
             return 0
         return 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        cdef double u, v
+        cdef double thresh = 2.0e-2
+        if mapped_coord[0] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+        elif mapped_coord[1] == 0:
+            u = mapped_coord[2]
+            v = mapped_coord[0]
+        elif mapped_coord[2] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[0]
+        else:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+        if ((u < thresh) or
+            (v < thresh) or
+            (fabs(u - 1) < thresh) or
+            (fabs(v - 1) < thresh)):
+            return 1
+        return -1
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)

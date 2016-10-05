@@ -249,7 +249,6 @@ cdef class QuadraticElementMesh:
     # patches per element, vertices per element, vertices per face,
     # and field points per element, respectively:
     cdef int ppe, vpe, vpf, fpe
-    cdef int* faces
 
     def __init__(self, YTEmbreeScene scene,
                  np.ndarray vertices,
@@ -262,20 +261,12 @@ cdef class QuadraticElementMesh:
             self.vpe = 20
             self.ppe = 6
             self.vpf = 8
-            self.faces = <int*>malloc(6 * 8 * sizeof(int))
-            for i in range(6):
-                for j in range(8):
-                    self.faces[i*6 + j] = hex20_faces[i][j]
             self._build_from_indices_hex20(scene, vertices, indices, field_data)
         # 10-point tets
         elif indices.shape[1] == 10:
             self.vpe = 10
             self.ppe = 4
             self.vpf = 6
-            self.faces = <int*>malloc(4 * 6 * sizeof(int))
-            for i in range(4):
-                for j in range(6):
-                    self.faces[i*4 + j] = tet10_faces[i][j]
             self._build_from_indices_tet10(scene, vertices, indices, field_data)
         else:
             raise NotImplementedError
@@ -309,7 +300,7 @@ cdef class QuadraticElementMesh:
                 patch = &(patches[i*self.ppe+j])
                 patch.geomID = mesh
                 for k in range(self.vpf):  # for each vertex
-                    ind = self.faces[j*self.ppe + k]
+                    ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = element_vertices[ind][idim]
                 patch.vertices = self.vertices + i*self.vpe*3
@@ -352,7 +343,7 @@ cdef class QuadraticElementMesh:
                 tet_patch = &(tet_patches[i*self.ppe+j])
                 tet_patch.geomID = mesh
                 for k in range(self.vpf):  # for each vertex
-                    ind = self.faces[j*self.ppe + k]
+                    ind = tet10_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         tet_patch.v[k][idim] = element_vertices[ind][idim]
                 tet_patch.vertices = self.vertices + i*self.vpe*3
@@ -370,4 +361,3 @@ cdef class QuadraticElementMesh:
     def __dealloc__(self):
         free(self.vertices)
         free(self.field_data)
-        free(self.faces)
