@@ -55,7 +55,7 @@ def test_linear_interpolator_3d():
                np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j]))
     tfi = lin.TrilinearFieldInterpolator(random_data,
             (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True)
-    yield assert_array_equal, tfi(fv), random_data
+    yield assert_array_almost_equal, tfi(fv), random_data
 
     # randomly spaced bins
     size = 64
