@@ -243,6 +243,7 @@ cdef class QuadraticElementMesh:
 
     '''
 
+    cdef void* patches
     cdef np.float64_t* vertices
     cdef np.float64_t* field_data
     cdef unsigned int mesh
@@ -325,7 +326,7 @@ cdef class QuadraticElementMesh:
 
         cdef unsigned int mesh = rtcgu.rtcNewUserGeometry(scene.scene_i, npatch)
         cdef np.ndarray[np.float64_t, ndim=2] element_vertices
-        cdef Tet_Patch* tet_patches = <Tet_Patch*> malloc(npatch * sizeof(Tet_Patch))
+        cdef Tet_Patch* patches = <Tet_Patch*> malloc(npatch * sizeof(Tet_Patch))
         self.vertices = <np.float64_t*> malloc(self.vpe * ne * 3 * sizeof(np.float64_t))
         self.field_data = <np.float64_t*> malloc(self.vpe * ne * sizeof(np.float64_t))
 
@@ -336,22 +337,22 @@ cdef class QuadraticElementMesh:
                 for k in range(3):
                     self.vertices[i*self.vpe*3 + j*3 + k] = element_vertices[j][k]
 
-        cdef Tet_Patch* tet_patch
+        cdef Tet_Patch* patch
         for i in range(ne):  # for each element
             element_vertices = vertices_in[indices_in[i]]
             for j in range(self.ppe):  # for each face
-                tet_patch = &(tet_patches[i*self.ppe+j])
-                tet_patch.geomID = mesh
+                patch = &(patches[i*self.ppe+j])
+                patch.geomID = mesh
                 for k in range(self.vpf):  # for each vertex
                     ind = tet10_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
-                        tet_patch.v[k][idim] = element_vertices[ind][idim]
-                tet_patch.vertices = self.vertices + i*self.vpe*3
-                tet_patch.field_data = self.field_data + i*self.vpe
+                        patch.v[k][idim] = element_vertices[ind][idim]
+                patch.vertices = self.vertices + i*self.vpe*3
+                patch.field_data = self.field_data + i*self.vpe
 
         self.mesh = mesh
 
-        rtcg.rtcSetUserData(scene.scene_i, self.mesh, tet_patches)
+        rtcg.rtcSetUserData(scene.scene_i, self.mesh, patches)
         rtcgu.rtcSetBoundsFunction(scene.scene_i, self.mesh,
                                    <rtcgu.RTCBoundsFunc> tet_patchBoundsFunc)
         rtcgu.rtcSetIntersectFunction(scene.scene_i, self.mesh,
@@ -359,5 +360,6 @@ cdef class QuadraticElementMesh:
 
 
     def __dealloc__(self):
+        free(self.patches)
         free(self.vertices)
         free(self.field_data)
