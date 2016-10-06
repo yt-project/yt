@@ -15,7 +15,7 @@ import numpy as np
 from functools import wraps
 from yt.config import \
     ytcfg
-from yt.funcs import mylog, ensure_numpy_array
+from yt.funcs import mylog, ensure_numpy_array, iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -857,7 +857,12 @@ class PointSource(OpaqueSource):
         if colors is not None:
             assert(colors.ndim == 2 and colors.shape[1] == 4)
             assert(colors.shape[0] == positions.shape[0]) 
-        if radii is not None:
+        if not iterable(radii):
+            if radii is not None:  #broadcast the value
+                radii = radii*np.ones(positions.shape[0], dtype='int64')
+            else: #default radii to 0 pixels (i.e. point is 1 pixel wide)
+                radii = np.zeros(positions.shape[0], dtype='int64')
+        else:
             assert(radii.ndim == 1)
             assert(radii.shape[0] == positions.shape[0]) 
         self.positions = positions
@@ -866,9 +871,6 @@ class PointSource(OpaqueSource):
             colors = np.ones((len(positions), 4))
         self.colors = colors
         self.color_stride = color_stride
-        # If radii aren't individually set, we default to 1 pixel
-        if radii is None:
-            radii = np.ones(len(positions)).astype(int)
         self.radii = radii
 
     def render(self, camera, zbuffer=None):
