@@ -307,6 +307,7 @@ cdef class QuadraticElementMesh:
                 patch.vertices = self.vertices + i*self.vpe*3
                 patch.field_data = self.field_data + i*self.vpe
 
+        self.patches = patches
         self.mesh = mesh
 
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, patches)
@@ -350,6 +351,7 @@ cdef class QuadraticElementMesh:
                 patch.vertices = self.vertices + i*self.vpe*3
                 patch.field_data = self.field_data + i*self.vpe
 
+        self.patches = patches
         self.mesh = mesh
 
         rtcg.rtcSetUserData(scene.scene_i, self.mesh, patches)
