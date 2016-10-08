@@ -20,6 +20,12 @@ import numpy as np
 from libc.stdlib cimport malloc, free
 from libc.string cimport memmove
 
+# THESE TWO STRUCTS MUST BE EQUIVALENT
+
+cdef struct ItemList:
+    np.int64_t ind
+    np.float64_t value
+
 cdef struct NeighborList:
     np.int64_t pn       # Particle number
     np.float64_t r2     # radius**2
@@ -31,9 +37,14 @@ cdef np.float64_t r2dist(np.float64_t ppos[3],
                          bint periodicity[3],
                          np.float64_t max_dist2)
 
-cdef class DistanceQueue:
+cdef class PriorityQueue:
     cdef int maxn
     cdef int curn
+    cdef ItemList* items
+    cdef void item_reset(self)
+    cdef int item_insert(self, np.int64_t i, np.float64_t value)
+
+cdef class DistanceQueue(PriorityQueue):
     cdef np.float64_t DW[3]
     cdef bint periodicity[3]
     cdef NeighborList* neighbors # flat array
