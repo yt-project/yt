@@ -57,7 +57,16 @@ cdef np.float64_t r2dist(np.float64_t ppos[3],
     return r2
 
 cdef class PriorityQueue:
-
+    """This class acts as a "priority-queue."  It was extracted from the
+    DistanceQueue object so that it could serve as a general-purpose method for
+    storing the N-most "valuable" objects.  It's relatively simple, in that it
+    provides storage for a single int64 (which is usually an 'index' into an
+    external array or list) and a single float64 "value" associated with them.
+    You can insert new objects, and then if it's already at maxn objects in it,
+    it'll bump the least valuable one off the end.  Of particular note is that
+    *lower* values are considered to be *more valuable* than higher ones; this
+    is because our typical use case is to store radii.
+    """
     def __cinit__(self, int maxn):
         cdef int i
         self.maxn = maxn
