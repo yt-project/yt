@@ -75,7 +75,7 @@ INST_SCIPY=0    # Install scipy?
 INST_H5PY=1     # Install h5py?
 INST_ASTROPY=0  # Install astropy?
 INST_NOSE=1     # Install nose?
-INST_NETCDF4=0  # Install netcdf4 and its python bindings?
+INST_NETCDF4=1  # Install netcdf4 and its python bindings?
 
 # These options allow you to customize the builds of yt dependencies.
 # They are only used if INST_CONDA=0.
@@ -535,9 +535,9 @@ then
     if [ $INST_CONDA -eq 0 ]
     then
         echo "This script can only install netcdf4 through conda."
-        echo "Please set INST_CONDA to 1"
-        echo "and re-run the install script"
-        exit 1
+        echo "Please set INST_CONDA to 1 to install netcdf4"
+        echo "Setting INST_NETCDF4=0"
+        INST_NETCDF4=0
     fi
 fi
 
