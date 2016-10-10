@@ -1027,6 +1027,7 @@ class PWViewerMPL(PlotWindow):
         else:
             del self._callbacks[index]
         self.setup_callbacks()
+        return self
 
     def run_callbacks(self):
         for f in self.fields:
