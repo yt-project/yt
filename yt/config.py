@@ -128,6 +128,13 @@ ytcfg.read([_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])
 if not ytcfg.has_section("yt"):
     ytcfg.add_section("yt")
 
+# Expand dir so that ~, $HOME and etc. could be used in config files.
+for key, val in ytcfg_defaults.items():
+    if 'dir' in key:
+        expanded_dir = os.path.expanduser(ytcfg.get("yt", key))
+        expanded_dir = os.path.expandvars(expanded_dir)
+        ytcfg.set("yt", key, expanded_dir)
+
 # Now we have parsed the config file.  Overrides come from the command line.
 
 # This should be implemented at some point.  The idea would be to have a set of
