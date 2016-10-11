@@ -114,7 +114,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    ts   : DatasetSeries, Dataset
+    ts: DatasetSeries, Dataset
         This is the data source containing the DM particles. Because 
         halo IDs may change from one snapshot to the next, the only
         way to keep a consistent halo ID across time is to feed 
@@ -165,13 +165,12 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
     --------
     
     To use the script below you must run it using MPI:
-    mpirun -np 4 python run_rockstar.py --parallel
+    mpirun -np 4 python run_rockstar.py
 
     >>> import yt
+    >>> yt.enable_parallelism()
     >>> from yt.analysis_modules.halo_finding.rockstar.api import \
-    ... RockstarHaloFinder
-    >>> from yt.data_objects.particle_filters import \
-    ... particle_filter
+    ...     RockstarHaloFinder
 
     >>> # create a particle filter to remove star particles
     >>> @yt.particle_filter("dark_matter", requires=["creation_time"])
