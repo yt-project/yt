@@ -118,23 +118,10 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
     with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
         cp.write(new_cfg)
 
-def _expand_dir(get_val):
-    @wraps(get_val)
-    def get_val_and_expand(*arg, **kwargs):
-        val = get_val(*arg, **kwargs)
-        return os.path.expanduser(os.path.expandvars(val))
-    return get_val_and_expand
-
 class _YTInterpolation(configparser.Interpolation):
-    @_expand_dir
     def before_get(self, parser, section, option, value, defaults):
-        return super(_YTInterpolation, self)\
-               .before_get(parser, section, option, value, defaults)
-
-    @_expand_dir
-    def before_set(self, parser, section, option, value):
-        return super(_YTInterpolation, self)\
-               .before_set(parser, section, option, value)
+        # Return the expanded value instead of the original one.
+        return os.path.expanduser(os.path.expandvars(value))
 
 class YTConfigParser(configparser.ConfigParser):
     _DEFAULT_INTERPOLATION = _YTInterpolation()
