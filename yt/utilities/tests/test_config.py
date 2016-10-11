@@ -15,9 +15,9 @@ import unittest
 import yt.utilities.command_line
 import yt.config
 from yt.config import \
-    CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, CONFIG_DIR
+    CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, CONFIG_DIR, YTConfigParser
 from yt.extern.six import StringIO
-from yt.extern.six.moves.configparser import NoOptionError, SafeConfigParser
+from yt.extern.six.moves.configparser import NoOptionError
 from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
 
 _TEST_PLUGIN = '_test_plugin.py'
@@ -47,7 +47,7 @@ def setUpModule():
             os.rename(cfgfile, cfgfile + '.bak_test')
 
             if cfgfile == CURRENT_CONFIG_FILE:
-                yt.utilities.configure.CONFIG = SafeConfigParser()
+                yt.utilities.configure.CONFIG = YTConfigParser()
                 if not yt.utilities.configure.CONFIG.has_section('yt'):
                     yt.utilities.configure.CONFIG.add_section('yt')
 
@@ -77,6 +77,17 @@ class TestYTConfig(unittest.TestCase):
             'stderr': output[1]
         }
 
+    def _testKeyValue(self, key, val_set, val_get):
+        info = self._runYTConfig(['set', 'yt', key, val_set])
+        self.assertEqual(info['rc'], 0)
+
+        info = self._runYTConfig(['get', 'yt', key])
+        self.assertEqual(info['rc'], 0)
+        self.assertEqual(info['stdout'].strip(), val_get)
+
+        info = self._runYTConfig(['rm', 'yt', key])
+        self.assertEqual(info['rc'], 0)
+
 class TestYTConfigCommands(TestYTConfig):
     def testConfigCommands(self):
         self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
@@ -91,15 +102,11 @@ class TestYTConfigCommands(TestYTConfig):
         self.assertEqual(info['rc'], 0)
         self.assertIn('[yt]', info['stdout'])
 
-        info = self._runYTConfig(['set', 'yt', '__parallel', 'True'])
-        self.assertEqual(info['rc'], 0)
-
-        info = self._runYTConfig(['get', 'yt', '__parallel'])
-        self.assertEqual(info['rc'], 0)
-        self.assertEqual(info['stdout'].strip(), 'True')
-
-        info = self._runYTConfig(['rm', 'yt', '__parallel'])
-        self.assertEqual(info['rc'], 0)
+        self._testKeyValue('__parallel', 'True', 'True')
+        self._testKeyValue('test_data_dir', '~/yt-data',
+                           os.path.expanduser('~/yt-data'))
+        self._testKeyValue('test_data_dir', '$HOME/yt-data',
+                           os.path.expandvars('$HOME/yt-data'))
 
         with self.assertRaises(NoOptionError):
             self._runYTConfig(['get', 'yt', 'foo'])
