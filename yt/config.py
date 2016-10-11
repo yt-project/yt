@@ -117,17 +117,16 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
     with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
         cp.write(new_cfg)
 
-class _YTInterpolation(configparser.Interpolation):
-    def before_get(self, parser, section, option, value, defaults):
-        # Return the expanded value instead of the original one.
-        return os.path.expanduser(os.path.expandvars(value))
-
-class YTConfigParser(configparser.ConfigParser):
-    _DEFAULT_INTERPOLATION = _YTInterpolation()
+class YTConfigParser(configparser.ConfigParser, object):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
+
     def __getitem__(self, key):
         self.get(key[0], key[1])
+
+    def get(self, section, option, *args, **kwargs):
+        val = super(YTConfigParser, self).get(section, option, *args, **kwargs)
+        return os.path.expanduser(os.path.expandvars(val))
 
 ytcfg = YTConfigParser(ytcfg_defaults)
 ytcfg.read([_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])
