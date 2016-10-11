@@ -15,6 +15,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from functools import wraps
 import os
 import warnings
 from yt.extern.six.moves import configparser
@@ -117,7 +118,26 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
     with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
         cp.write(new_cfg)
 
+def _expand_dir(get_val):
+    @wraps(get_val)
+    def get_val_and_expand(*arg, **kwargs):
+        val = get_val(*arg, **kwargs)
+        return os.path.expanduser(os.path.expandvars(val))
+    return get_val_and_expand
+
+class _YTInterpolation(configparser.Interpolation):
+    @_expand_dir
+    def before_get(self, parser, section, option, value, defaults):
+        return super(_YTInterpolation, self)\
+               .before_get(parser, section, option, value, defaults)
+
+    @_expand_dir
+    def before_set(self, parser, section, option, value):
+        return super(_YTInterpolation, self)\
+               .before_set(parser, section, option, value)
+
 class YTConfigParser(configparser.ConfigParser):
+    _DEFAULT_INTERPOLATION = _YTInterpolation()
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
     def __getitem__(self, key):
@@ -127,13 +147,6 @@ ytcfg = YTConfigParser(ytcfg_defaults)
 ytcfg.read([_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])
 if not ytcfg.has_section("yt"):
     ytcfg.add_section("yt")
-
-# Expand dir so that ~, $HOME and etc. could be used in config files.
-for key, val in ytcfg_defaults.items():
-    if 'dir' in key:
-        expanded_dir = os.path.expanduser(ytcfg.get("yt", key))
-        expanded_dir = os.path.expandvars(expanded_dir)
-        ytcfg.set("yt", key, expanded_dir)
 
 # Now we have parsed the config file.  Overrides come from the command line.
 
