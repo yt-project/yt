@@ -669,6 +669,9 @@ class LightRay(CosmologySplice):
                 ds[attr] = getattr(self.cosmology, attr)
             ds["current_time"] = \
               self.cosmology.t_from_z(ds["current_redshift"])
+            if isinstance(ds["hubble_constant"], YTArray):
+                ds["hubble_constant"] = \
+                  ds["hubble_constant"].to("100*km/(Mpc*s)").d
         extra_attrs = {"data_type": "yt_light_ray"}
         field_types = dict([(field, "grid") for field in data.keys()])
 
