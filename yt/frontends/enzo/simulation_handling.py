@@ -587,6 +587,10 @@ class EnzoSimulation(SimulationTimeSeries):
                      len(potential_outputs))
 
         my_outputs = {}
+        llevel = mylog.level
+        # suppress logging as we load every dataset, unless set to debug
+        if llevel > 10 and llevel < 40:
+            mylog.setLevel(40)
         for my_storage, output in parallel_objects(potential_outputs,
                                                    storage=my_outputs):
             if self.parameters['DataDumpDir'] in output:
@@ -609,6 +613,7 @@ class EnzoSimulation(SimulationTimeSeries):
                             my_storage.result['redshift'] = ds.current_redshift
                 except YTOutputNotIdentified:
                     mylog.error('Failed to load %s', filename)
+        mylog.setLevel(llevel)
         my_outputs = [my_output for my_output in my_outputs.values() \
                       if my_output is not None]
 
