@@ -113,7 +113,6 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        ptype = self.index_ptype
         if self.index_ptype == "all":
             ptypes = self.ds.particle_types_raw
             pcount = sum(data_file.total_particles.values())
