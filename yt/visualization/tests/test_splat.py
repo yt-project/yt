@@ -36,14 +36,15 @@ def test_splat():
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
+    prng = np.random.RandomState(0x4d3d3d3)
     N = 16 
     Np = int(1e2)
     image = np.zeros([N,N,4])
-    xs = np.random.random(Np)
-    ys = np.random.random(Np)
+    xs = prng.random_sample(Np)
+    ys = prng.random_sample(Np)
 
     cbx = yt.visualization.color_maps.mcm.RdBu
-    cs = cbx(np.random.random(Np))
+    cs = cbx(prng.random_sample(Np))
     add_rgba_points_to_image(image, xs, ys, cs)
 
     before_hash = image.copy()

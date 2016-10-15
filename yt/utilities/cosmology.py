@@ -33,7 +33,14 @@ class Cosmology(object):
 
     For an explanation of the various cosmological measures, see, for example 
     Hogg (1999, http://xxx.lanl.gov/abs/astro-ph/9905116).
-    
+
+    WARNING: Cosmological distance calculations return values that are either
+    in the comoving or proper frame, depending on the specific quantity.  For
+    simplicity, the proper and comoving frames are set equal to each other
+    within the cosmology calculator.  This means that for some distance value,
+    x, x.to("Mpc") and x.to("Mpccm") will be the same.  The user should take
+    care to understand which reference frame is correct for the given calculation.
+
     Parameters
     ----------
     hubble_constant : float
@@ -58,7 +65,7 @@ class Cosmology(object):
     >>> from yt.utilities.cosmology import Cosmology
     >>> co = Cosmology()
     >>> print(co.hubble_time(0.0).in_units("Gyr"))
-    
+
     """
     def __init__(self, hubble_constant = 0.71,
                  omega_matter = 0.27,
@@ -66,9 +73,9 @@ class Cosmology(object):
                  omega_curvature = 0.0,
                  unit_registry = None,
                  unit_system = "cgs"):
-        self.omega_matter = omega_matter
-        self.omega_lambda = omega_lambda
-        self.omega_curvature = omega_curvature
+        self.omega_matter = float(omega_matter)
+        self.omega_lambda = float(omega_lambda)
+        self.omega_curvature = float(omega_curvature)
         if unit_registry is None:
             unit_registry = UnitRegistry()
             unit_registry.modify("h", hubble_constant)

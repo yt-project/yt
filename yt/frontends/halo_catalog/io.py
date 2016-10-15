@@ -78,6 +78,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
+        if pcount == 0: return None
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
             pos = np.empty((pcount, 3), dtype="float64")

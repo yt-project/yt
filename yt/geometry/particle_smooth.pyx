@@ -24,44 +24,6 @@ from libc.math cimport sqrt, fabs, sin, cos
 from oct_container cimport Oct, OctAllocationContainer, \
     OctreeContainer, OctInfo
 
-cdef int Neighbor_compare(void *on1, void *on2) nogil:
-    cdef NeighborList *n1
-    cdef NeighborList *n2
-    n1 = <NeighborList *> on1
-    n2 = <NeighborList *> on2
-    # Note that we set this up so that "greatest" evaluates to the *end* of the
-    # list, so we can do standard radius comparisons.
-    if n1.r2 < n2.r2:
-        return -1
-    elif n1.r2 == n2.r2:
-        return 0
-    else:
-        return 1
-
-@cython.cdivision(True)
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.initializedcheck(False)
-cdef np.float64_t r2dist(np.float64_t ppos[3],
-                         np.float64_t cpos[3],
-                         np.float64_t DW[3],
-                         bint periodicity[3],
-                         np.float64_t max_dist2):
-    cdef int i
-    cdef np.float64_t r2, DR
-    r2 = 0.0
-    for i in range(3):
-        DR = (ppos[i] - cpos[i])
-        if not periodicity[i]:
-            pass
-        elif (DR > DW[i]/2.0):
-            DR -= DW[i]
-        elif (DR < -DW[i]/2.0):
-            DR += DW[i]
-        r2 += DR * DR
-        if max_dist2 >= 0.0 and r2 > max_dist2:
-            return -1.0
-    return r2
 
 cdef void spherical_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
     opos[0] = ipos[0] * sin(ipos[1]) * cos(ipos[2])
@@ -80,10 +42,6 @@ cdef class ParticleSmoothOperation:
         self.nvals = nvals
         self.nfields = nfields
         self.maxn = max_neighbors
-
-        self.neighbors = <NeighborList *> malloc(
-            sizeof(NeighborList) * self.maxn)
-        self.neighbor_reset()
         self.sph_kernel = get_kernel_func(kernel_name)
 
     def initialize(self, *args):
@@ -227,8 +185,7 @@ cdef class ParticleSmoothOperation:
         # Note that what we will be providing to our processing functions will
         # actually be indirectly-sorted fields.  This preserves memory at the
         # expense of additional pointer lookups.
-        pind = np.argsort(pdoms)
-        pind = np.asarray(pind, dtype='int64', order='C')
+        pind = np.asarray(np.argsort(pdoms), dtype='int64', order='C')
         # So what this means is that we now have all the oct-0 particle indices
         # in order, then the oct-1, etc etc.
         # This now gives us the indices to the particles for each domain.
@@ -247,6 +204,9 @@ cdef class ParticleSmoothOperation:
         cdef np.ndarray[np.uint8_t, ndim=1] visited
         visited = np.zeros(mdom_ind.shape[0], dtype="uint8")
         cdef int nproc = 0
+        # This should be thread-private if we ever go to OpenMP
+        cdef DistanceQueue dist_queue = DistanceQueue(self.maxn)
+        dist_queue._setup(self.DW, self.periodicity)
         for i in range(oct_positions.shape[0]):
             for j in range(3):
                 pos[j] = oct_positions[i, j]
@@ -260,7 +220,7 @@ cdef class ParticleSmoothOperation:
                 dims, moi.left_edge, moi.dds, cart_positions, field_pointers, doff,
                 &nind, pind, pcount, offset, index_field_pointers,
                 particle_octree, domain_id, &nsize, oct_left_edges,
-                oct_dds)
+                oct_dds, dist_queue)
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
@@ -369,6 +329,9 @@ cdef class ParticleSmoothOperation:
         # refers to that oct's particles.
         cdef int maxnei = 0
         cdef int nproc = 0
+        # This should be thread-private if we ever go to OpenMP
+        cdef DistanceQueue dist_queue = DistanceQueue(self.maxn)
+        dist_queue._setup(self.DW, self.periodicity)
         for i in range(doff.shape[0]):
             if doff[i] < 0: continue
             offset = pind[doff[i]]
@@ -380,7 +343,8 @@ cdef class ParticleSmoothOperation:
                     pos[k] = positions[pind0, k]
                 self.neighbor_process_particle(pos, cart_positions, field_pointers,
                             doff, &nind, pind, pcount, pind0,
-                            NULL, particle_octree, domain_id, &nsize)
+                            NULL, particle_octree, domain_id, &nsize,
+                            dist_queue)
         #print "VISITED", visited.sum(), visited.size,
         #print 100.0*float(visited.sum())/visited.size
         if nind != NULL:
@@ -463,54 +427,8 @@ cdef class ParticleSmoothOperation:
 
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **ifields):
+                      np.float64_t **ifields, DistanceQueue dq):
         raise NotImplementedError
-
-    cdef void neighbor_reset(self):
-        self.curn = 0
-        for i in range(self.maxn):
-            self.neighbors[i].pn = -1
-            self.neighbors[i].r2 = 1e300
-
-    cdef void neighbor_eval(self, np.int64_t pn, np.float64_t ppos[3],
-                            np.float64_t cpos[3]):
-        # Here's a python+numpy simulator of this:
-        # http://paste.yt-project.org/show/5445/
-        cdef int i, di
-        cdef np.float64_t r2, r2_trunc
-        if self.curn == self.maxn:
-            # Truncate calculation if it's bigger than this in any dimension
-            r2_trunc = self.neighbors[self.curn - 1].r2
-        else:
-            # Don't truncate our calculation
-            r2_trunc = -1
-        r2 = r2dist(ppos, cpos, self.DW, self.periodicity, r2_trunc)
-        if r2 == -1:
-            return
-        if self.curn == 0:
-            self.neighbors[0].r2 = r2
-            self.neighbors[0].pn = pn
-            self.curn += 1
-            return
-        # Now insert in a sorted way
-        di = -1
-        for i in range(self.curn - 1, -1, -1):
-            # We are checking if i is less than us, to see if we should insert
-            # to the right (i.e., i+1).
-            if self.neighbors[i].r2 < r2:
-                di = i
-                break
-        # The outermost one is already too small.
-        if di == self.maxn - 1:
-            return
-        if (self.maxn - (di + 2)) > 0:
-            memmove(<void *> (self.neighbors + di + 2),
-                    <void *> (self.neighbors + di + 1),
-                    sizeof(NeighborList) * (self.maxn - (di + 2)))
-        self.neighbors[di + 1].r2 = r2
-        self.neighbors[di + 1].pn = pn
-        if self.curn < self.maxn:
-            self.curn += 1
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -526,6 +444,7 @@ cdef class ParticleSmoothOperation:
                             np.float64_t cpos[3],
                             np.float64_t[:,:] oct_left_edges,
                             np.float64_t[:,:] oct_dds,
+                            DistanceQueue dq
                             ):
         # We are now given the number of neighbors, the indices into the
         # domains for them, and the number of particles for each.
@@ -535,13 +454,13 @@ cdef class ParticleSmoothOperation:
         cdef np.float64_t ex[2] 
         cdef np.float64_t DR[2]
         cdef np.float64_t cp, r2_trunc, r2, dist
-        self.neighbor_reset()
+        dq.neighbor_reset()
         for ni in range(nneighbors):
             if nind[ni] == -1: continue
             # terminate early if all 8 corners of oct are farther away than
             # most distant currently known neighbor
-            if oct_left_edges != None and self.curn == self.maxn:
-                r2_trunc = self.neighbors[self.curn - 1].r2
+            if oct_left_edges != None and dq.curn == dq.maxn:
+                r2_trunc = dq.neighbors[dq.curn - 1].r2
                 # iterate over each dimension in the outer loop so we can
                 # consolidate temporary storage
                 # What this next bit does is figure out which component is the
@@ -577,7 +496,7 @@ cdef class ParticleSmoothOperation:
                 pn = pinds[offset + i]
                 for j in range(3):
                     pos[j] = ppos[pn, j]
-                self.neighbor_eval(pn, pos, cpos)
+                dq.neighbor_eval(pn, pos, cpos)
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -592,7 +511,8 @@ cdef class ParticleSmoothOperation:
                                np.float64_t **index_fields,
                                OctreeContainer octree, np.int64_t domain_id,
                                int *nsize, np.float64_t[:,:] oct_left_edges,
-                               np.float64_t[:,:] oct_dds):
+                               np.float64_t[:,:] oct_dds,
+                               DistanceQueue dq):
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
@@ -610,17 +530,18 @@ cdef class ParticleSmoothOperation:
                     nneighbors = self.neighbor_search(opos, octree,
                                     nind, nsize, nneighbors, domain_id, &oct, 0)
                     self.neighbor_find(nneighbors, nind[0], doffs, pcounts,
-                                       pinds, ppos, opos, oct_left_edges, oct_dds)
+                                       pinds, ppos, opos, oct_left_edges,
+                                       oct_dds, dq)
                     # Now we have all our neighbors in our neighbor list.
-                    if self.curn <-1*self.maxn:
+                    if dq.curn <-1*dq.maxn:
                         ntot = nntot = 0
                         for m in range(nneighbors):
                             if nind[0][m] < 0: continue
                             nntot += 1
                             ntot += pcounts[nind[0][m]]
-                        print "SOMETHING WRONG", self.curn, nneighbors, ntot, nntot
+                        print "SOMETHING WRONG", dq.curn, nneighbors, ntot, nntot
                     self.process(offset, i, j, k, dim, opos, fields,
-                                 index_fields)
+                                 index_fields, dq)
                     cpos[2] += dds[2]
                 cpos[1] += dds[1]
             cpos[0] += dds[0]
@@ -637,7 +558,8 @@ cdef class ParticleSmoothOperation:
                                np.int64_t offset,
                                np.float64_t **index_fields,
                                OctreeContainer octree,
-                               np.int64_t domain_id, int *nsize):
+                               np.int64_t domain_id, int *nsize,
+                               DistanceQueue dq):
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
@@ -652,8 +574,8 @@ cdef class ParticleSmoothOperation:
         nneighbors = self.neighbor_search(opos, octree,
                         nind, nsize, nneighbors, domain_id, &oct, 0)
         self.neighbor_find(nneighbors, nind[0], doffs, pcounts, pinds, ppos,
-                           opos, None, None)
-        self.process(offset, i, j, k, dim, opos, fields, index_fields)
+                           opos, None, None, dq)
+        self.process(offset, i, j, k, dim, opos, fields, index_fields, dq)
 
 cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
     # This smoothing function evaluates the field, *without* normalization, at
@@ -692,7 +614,7 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
     @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
+                      np.float64_t **index_fields, DistanceQueue dq):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef int n, fi
@@ -702,13 +624,13 @@ cdef class VolumeWeightedSmooth(ParticleSmoothOperation):
         cdef np.int64_t pn
         # We get back our mass
         # rho_i = sum(j = 1 .. n) m_j * W_ij
-        max_r = sqrt(self.neighbors[self.curn-1].r2)
+        max_r = sqrt(dq.neighbors[dq.curn-1].r2)
         max_hsml = index_fields[0][gind(i,j,k,dim) + offset]
-        for n in range(self.curn):
+        for n in range(dq.curn):
             # No normalization for the moment.
             # fields[0] is the smoothing length.
-            r2 = self.neighbors[n].r2
-            pn = self.neighbors[n].pn
+            r2 = dq.neighbors[n].r2
+            pn = dq.neighbors[n].pn
             # Smoothing kernel weight function
             mass = fields[0][pn]
             hsml = fields[1][pn]
@@ -751,15 +673,15 @@ cdef class NearestNeighborSmooth(ParticleSmoothOperation):
     @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
+                      np.float64_t **index_fields, DistanceQueue dq):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef np.int64_t pn
         # We get back our mass
         # rho_i = sum(j = 1 .. n) m_j * W_ij
-        pn = self.neighbors[0].pn
+        pn = dq.neighbors[0].pn
         self.fp[gind(i,j,k,dim) + offset] = fields[0][pn]
-        #self.fp[gind(i,j,k,dim) + offset] = self.neighbors[0].r2
+        #self.fp[gind(i,j,k,dim) + offset] = dq.neighbors[0].r2
         return
 
 nearest_smooth = NearestNeighborSmooth
@@ -785,18 +707,18 @@ cdef class IDWInterpolationSmooth(ParticleSmoothOperation):
     @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
+                      np.float64_t **index_fields, DistanceQueue dq):
         # We have our i, j, k for our cell, as well as the cell position.
         # We also have a list of neighboring particles with particle numbers.
         cdef np.int64_t pn, ni, di
         cdef np.float64_t total_weight = 0.0, total_value = 0.0, r2, val, w
         # We're going to do a very simple IDW average
-        if self.neighbors[0].r2 == 0.0:
-            pn = self.neighbors[0].pn
+        if dq.neighbors[0].r2 == 0.0:
+            pn = dq.neighbors[0].pn
             self.fp[gind(i,j,k,dim) + offset] = fields[0][pn]
-        for ni in range(self.curn):
-            r2 = self.neighbors[ni].r2
-            val = fields[0][self.neighbors[ni].pn]
+        for ni in range(dq.curn):
+            r2 = dq.neighbors[ni].r2
+            val = fields[0][dq.neighbors[ni].pn]
             w = r2
             for di in range(self.p2 - 1):
                 w *= r2
@@ -821,10 +743,10 @@ cdef class NthNeighborDistanceSmooth(ParticleSmoothOperation):
     @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
+                      np.float64_t **index_fields, DistanceQueue dq):
         cdef np.float64_t max_r
         # We assume "offset" here is the particle index.
-        max_r = sqrt(self.neighbors[self.curn-1].r2)
+        max_r = sqrt(dq.neighbors[dq.curn-1].r2)
         fields[0][offset] = max_r
 
 nth_neighbor_smooth = NthNeighborDistanceSmooth
@@ -842,16 +764,16 @@ cdef class SmoothedDensityEstimate(ParticleSmoothOperation):
     @cython.initializedcheck(False)
     cdef void process(self, np.int64_t offset, int i, int j, int k,
                       int dim[3], np.float64_t cpos[3], np.float64_t **fields,
-                      np.float64_t **index_fields):
+                      np.float64_t **index_fields, DistanceQueue dq):
         cdef np.float64_t r2, hsml, dens, mass, weight, lw
         cdef int pn
         # We assume "offset" here is the particle index.
-        hsml = sqrt(self.neighbors[self.curn-1].r2)
+        hsml = sqrt(dq.neighbors[dq.curn-1].r2)
         dens = 0.0
         weight = 0.0
-        for pn in range(self.curn):
-            mass = fields[0][self.neighbors[pn].pn]
-            r2 = self.neighbors[pn].r2
+        for pn in range(dq.curn):
+            mass = fields[0][dq.neighbors[pn].pn]
+            r2 = dq.neighbors[pn].r2
             lw = self.sph_kernel(sqrt(r2) / hsml)
             dens += mass * lw
         weight = (4.0/3.0) * 3.1415926 * hsml**3

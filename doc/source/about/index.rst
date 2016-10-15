@@ -73,7 +73,7 @@ entry: ::
       author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and
    	{Skillman}, S.~W. and {Abel}, T. and {Norman}, M.~L.},
        title = "{yt: A Multi-code Analysis Toolkit for Astrophysical Simulation Data}",
-     journal = {\apjs},
+     journal = {The Astrophysical Journal Supplement Series},
    archivePrefix = "arXiv",
       eprint = {1011.3514},
     primaryClass = "astro-ph.IM",
@@ -81,7 +81,8 @@ entry: ::
         year = 2011,
        month = jan,
       volume = 192,
-       pages = {9-+},
+         eid = {9},
+       pages = {9},
          doi = {10.1088/0067-0049/192/1/9},
       adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}

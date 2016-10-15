@@ -25,7 +25,8 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.funcs import \
-    mylog
+    mylog, \
+    setdefaultattr
 from yt.geometry.oct_container import \
     ARTOctreeContainer
 from yt.frontends.art.definitions import \
@@ -243,10 +244,10 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, "g*%s" % ng**3)
-        self.length_unit = self.quan(box_proper, "Mpc")
-        self.velocity_unit = self.quan(velocity, "cm/s")
-        self.time_unit = self.length_unit / self.velocity_unit
+        setdefaultattr(self, 'mass_unit', self.quan(mass, "g*%s" % ng**3))
+        setdefaultattr(self, 'length_unit', self.quan(box_proper, "Mpc"))
+        setdefaultattr(self, 'velocity_unit', self.quan(velocity, "cm/s"))
+        setdefaultattr(self, 'time_unit', self.length_unit / self.velocity_unit)
 
     def _parse_parameter_file(self):
         """

@@ -19,6 +19,7 @@ from itertools import groupby
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+from yt.geometry.selection_routines import AlwaysSelector
 
 
 #-----------------------------------------------------------------------------
@@ -27,10 +28,16 @@ from yt.utilities.logger import ytLogger as mylog
 
 
 # group grids with consecutive indices together to improve the I/O performance
+# --> grids are assumed to be sorted into ascending numerical order already
 def grid_sequences(grids):
-    for k, g in groupby( enumerate(grids), lambda i_x1:i_x1[0]-i_x1[1].id ):
+    for k, g in groupby( enumerate(grids), lambda i_x:i_x[0]-i_x[1].id ):
         seq = list(v[1] for v in g)
         yield seq
+
+def particle_sequences(grids):
+    for k, g in groupby( enumerate(grids), lambda i_x:i_x[0]-i_x[1].id ):
+        seq = list(v[1] for v in g)
+        yield seq[0], seq[-1]
 
 class IOHandlerGAMER(BaseIOHandler):
     _particle_reader = False
@@ -38,14 +45,62 @@ class IOHandlerGAMER(BaseIOHandler):
 
     def __init__(self, ds):
         super(IOHandlerGAMER, self).__init__(ds)
-        self._handle      = ds._handle
-        self._field_dtype = "float64" # fixed even when FLOAT8 is off
+        self._handle          = ds._handle
+        self._group_grid      = ds._group_grid
+        self._group_particle  = ds._group_particle
+        self._field_dtype     = "float64" # fixed even when FLOAT8 is off
+        self._particle_handle = ds._particle_handle
 
     def _read_particle_coords(self, chunks, ptf):
-        pass
+        chunks = list(chunks)   # generator --> list
+        p_idx  = self.ds.index._particle_indices
+
+        # shortcuts
+        par_posx = self._group_particle["ParPosX"]
+        par_posy = self._group_particle["ParPosY"]
+        par_posz = self._group_particle["ParPosZ"]
+
+        # currently GAMER does not support multiple particle types
+        assert( len(ptf) == 1 )
+        ptype = list( ptf.keys() )[0]
+
+        for chunk in chunks:
+            for g1, g2 in particle_sequences(chunk.objs):
+                start = p_idx[g1.id    ]
+                end   = p_idx[g2.id + 1]
+                x     = np.asarray( par_posx[start:end], dtype=self._field_dtype )
+                y     = np.asarray( par_posy[start:end], dtype=self._field_dtype )
+                z     = np.asarray( par_posz[start:end], dtype=self._field_dtype )
+                yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        pass
+        chunks = list(chunks)   # generator --> list
+        p_idx  = self.ds.index._particle_indices
+
+        # shortcuts
+        par_posx = self._group_particle["ParPosX"]
+        par_posy = self._group_particle["ParPosY"]
+        par_posz = self._group_particle["ParPosZ"]
+
+        # currently GAMER does not support multiple particle types
+        assert( len(ptf) == 1 )
+        ptype   = list( ptf.keys() )[0]
+        pfields = ptf[ptype]
+
+        for chunk in chunks:
+            for g1, g2 in particle_sequences(chunk.objs):
+                start = p_idx[g1.id    ]
+                end   = p_idx[g2.id + 1]
+                x     = np.asarray( par_posx[start:end], dtype=self._field_dtype )
+                y     = np.asarray( par_posy[start:end], dtype=self._field_dtype )
+                z     = np.asarray( par_posz[start:end], dtype=self._field_dtype )
+
+                mask = selector.select_points(x, y, z, 0.0)
+                if mask is None: continue
+
+                for field in pfields:
+                    data = self._group_particle[field][start:end]
+                    yield (ptype, field), data[mask]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks) # generator --> list
@@ -61,7 +116,7 @@ class IOHandlerGAMER(BaseIOHandler):
                      size, [f2 for f1, f2 in fields], ng )
 
         for field in fields:
-            ds     = self._handle[ "/Data/%s" % field[1] ]
+            ds     = self._group_grid[ field[1] ]
             offset = 0
             for chunk in chunks:
                 for gs in grid_sequences(chunk.objs):
@@ -74,12 +129,29 @@ class IOHandlerGAMER(BaseIOHandler):
 
     def _read_chunk_data(self, chunk, fields):
         rv = {}
-        if len(chunk.objs) == 0: return rv 
+        if len(chunk.objs) == 0: return rv
 
         for g in chunk.objs: rv[g.id] = {}
 
-        for field in fields:
-            ds = self._handle[ "/Data/%s" % field[1] ]
+        # Split into particles and non-particles
+        fluid_fields, particle_fields = [], []
+        for ftype, fname in fields:
+            if ftype in self.ds.particle_types:
+                particle_fields.append( (ftype, fname) )
+            else:
+                fluid_fields.append( (ftype, fname) )
+
+        # particles
+        if len(particle_fields) > 0:
+            selector = AlwaysSelector(self.ds)
+            rv.update( self._read_particle_selection(
+                [chunk], selector, particle_fields) )
+
+        # fluid
+        if len(fluid_fields) == 0: return rv
+
+        for field in fluid_fields:
+            ds = self._group_grid[ field[1] ]
 
             for gs in grid_sequences(chunk.objs):
                 start = gs[ 0].id
