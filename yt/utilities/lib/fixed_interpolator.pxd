@@ -23,7 +23,8 @@ cimport numpy as np
 @cython.cdivision(True)
 cdef inline np.float64_t offset_interpolate(np.float64_t dp[3],
                 np.float64_t[:,:,:] data, int i, int j, int k) nogil:
-    cdef np.float64_t dv, vz[4]
+    cdef np.float64_t dv
+    cdef np.float64_t vz[4]
     with cython.boundscheck(False):
         dv = 1.0 - dp[2]
         vz[0] = dv*data[i+0,j+0,k+0] + dp[2]*data[i+0,j+0,k+1]

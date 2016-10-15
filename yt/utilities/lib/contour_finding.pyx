@@ -421,7 +421,8 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
     cdef np.ndarray[np.int64_t, ndim=2] joins = np.zeros((s, 2), dtype="int64")
     cdef int ti = 0, side, m1, m2, index
     cdef int pos[3]
-    cdef int my_pos[3], o_pos[3]
+    cdef int my_pos[3]
+    cdef int o_pos[3]
     cdef np.float64_t spos[3]
 
     for ax in range(3):
