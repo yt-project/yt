@@ -781,8 +781,14 @@ class Dataset(object):
         without having to specify a *center* value.  It assumes the center
         is the midpoint between the left_edge and right_edge.
         """
-        left_edge = np.array(left_edge)
-        right_edge = np.array(right_edge)
+        # we handle units in the region data object
+        # but need to check if left_edge or right_edge is a
+        # list or other non-array iterable before calculating
+        # the center
+        if not isinstance(left_edge, np.ndarray):
+            left_edge = np.array(left_edge)
+        if not isinstance(right_edge, np.ndarray):
+            right_edge = np.array(right_edge)
         c = (left_edge + right_edge)/2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
