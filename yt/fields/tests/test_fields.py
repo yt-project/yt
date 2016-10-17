@@ -139,6 +139,9 @@ def get_base_ds(nprocs):
                              omega_matter=ds.omega_matter,
                              omega_lambda=ds.omega_lambda,
                              unit_registry=ds.unit_registry)
+    # ensures field errors are raised during testing
+    # see FieldInfoContainer.check_derived_fields
+    ds._field_test_dataset = True
     return ds
     
 def test_all_fields():
