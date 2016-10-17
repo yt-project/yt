@@ -8,9 +8,15 @@
 #-----------------------------------------------------------------------------
 
 import contextlib
-import mock
 import os
 import sys
+if sys.version_info.major < 3:
+    try:
+        import mock
+    except ImportError:
+        mock = None
+else:
+    import unittest.mock as mock
 import unittest
 import yt.utilities.command_line
 import yt.config
@@ -79,6 +85,10 @@ class TestYTConfig(unittest.TestCase):
 
 class TestYTConfigCommands(TestYTConfig):
     def testConfigCommands(self):
+        # stub out test if mock isn't installed in Python2
+        if mock is None:
+            return
+
         self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
 
         info = self._runYTConfig(['--help'])
