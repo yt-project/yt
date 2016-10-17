@@ -15,7 +15,7 @@ import numpy as np
 from functools import wraps
 from yt.config import \
     ytcfg
-from yt.funcs import mylog, ensure_numpy_array
+from yt.funcs import mylog, ensure_numpy_array, iterable
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -807,6 +807,8 @@ class PointSource(OpaqueSource):
     color_stride : int, optional
         The stride with which to access the colors when putting them on the
         scene.
+    radii : array, shape (N), optional
+        The radii of the points in the final image, in pixels (int)
 
     Examples
     --------
@@ -838,17 +840,26 @@ class PointSource(OpaqueSource):
     _image = None
     data_source = None
 
-    def __init__(self, positions, colors=None, color_stride=1):
+    def __init__(self, positions, colors=None, color_stride=1, radii=None):
         assert(positions.ndim == 2 and positions.shape[1] == 3)
         if colors is not None:
             assert(colors.ndim == 2 and colors.shape[1] == 4)
             assert(colors.shape[0] == positions.shape[0])
+        if not iterable(radii):
+            if radii is not None:  #broadcast the value
+                radii = radii*np.ones(positions.shape[0], dtype='int64')
+            else: #default radii to 0 pixels (i.e. point is 1 pixel wide)
+                radii = np.zeros(positions.shape[0], dtype='int64')
+        else:
+            assert(radii.ndim == 1)
+            assert(radii.shape[0] == positions.shape[0]) 
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.ones((len(positions), 4))
         self.colors = colors
         self.color_stride = color_stride
+        self.radii = radii
 
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -883,8 +894,8 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-
-        zpoints(empty, z, px, py, dz, self.colors, self.color_stride)
+        
+        zpoints(empty, z, px, py, dz, self.colors, self.radii, self.color_stride)
 
         self.zbuffer = zbuffer
         return zbuffer
