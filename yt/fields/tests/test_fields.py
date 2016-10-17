@@ -317,12 +317,3 @@ def test_morton_index():
     a1 = np.argsort(mi)
     a2 = np.argsort(mi2)
     assert_array_equal(a1, a2)
-
-if __name__ == "__main__":
-    setup()
-    for t in test_all_fields():
-        t()
-    test_add_deposited_particle_field()
-    test_add_field_unit_semantics()
-    test_array_like_field()
-    test_add_field_string()
