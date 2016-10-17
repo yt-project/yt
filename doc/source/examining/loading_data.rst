@@ -1055,8 +1055,8 @@ GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the da
    import yt
    ds = yt.load("InteractingJets/jet_000002")
 
-Currently GAMER does not assume any unit for non-cosmological simulations. To specify the units for yt,
-you need to supply conversions for length, time, and mass to ``load`` using the ``units_override`` functionality:
+For simulations without units (i.e., OPT__UNIT = 0), you can supply conversions for
+length, time, and mass to ``load`` using the ``units_override`` functionality:
 
 .. code-block:: python
 
