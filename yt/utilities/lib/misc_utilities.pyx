@@ -752,7 +752,8 @@ def obtain_rv_vec(data, field_names = ("velocity_x",
         if bulk_vector is None:
             bv[0] = bv[1] = bv[2] = 0.0
         else:
-            bulk_vector = bulk_vector.in_units(vxg.units)
+            if hasattr(bulk_vector, 'in_units'):
+                bulk_vector = bulk_vector.in_units(vxg.units)
             bv[0] = bulk_vector[0]
             bv[1] = bulk_vector[1]
             bv[2] = bulk_vector[2]

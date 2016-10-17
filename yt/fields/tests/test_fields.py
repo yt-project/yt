@@ -31,6 +31,8 @@ def get_params(ds):
             registry = ds.unit_registry),
         bulk_velocity = YTArray((0.0, 0.0, 0.0),
             "cm/s", registry = ds.unit_registry),
+        bulk_magnetic_field = YTArray((0.0, 0.0, 0.0),
+            "G", registry = ds.unit_registry),        
         normal = YTArray((0.0, 0.0, 1.0),
             "", registry = ds.unit_registry),
         cp_x_vec = YTArray((1.0, 0.0, 0.0),
@@ -123,7 +125,6 @@ def get_base_ds(nprocs):
 
     ds = fake_random_ds(
         4, fields=fields, units=units, particles=20, nprocs=nprocs)
-    ds.index
     ds.parameters["HydroMethod"] = "streaming"
     ds.parameters["EOSType"] = 1.0
     ds.parameters["EOSSoundSpeed"] = 1.0
@@ -142,6 +143,7 @@ def get_base_ds(nprocs):
     # ensures field errors are raised during testing
     # see FieldInfoContainer.check_derived_fields
     ds._field_test_dataset = True
+    ds.index
     return ds
     
 def test_all_fields():
