@@ -110,3 +110,12 @@ def test_scene_and_camera_attributes():
 
     for lens_type in valid_lens_types:
         cam.set_lens(lens_type)
+
+    # See issue #1287
+    cam.focus = [0, 0, 0]
+    cam_pos = [1, 0, 0]
+    north_vector = [0, 1, 0]
+    cam.set_position(cam_pos, north_vector)
+    cam_pos = [0, 1, 0]
+    north_vector = [0, 0, 1]
+    cam.set_position(cam_pos, north_vector)

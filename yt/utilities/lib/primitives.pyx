@@ -21,15 +21,15 @@ cdef np.int64_t ray_bbox_intersect(Ray* ray, const BBox bbox) nogil:
 
     cdef np.float64_t tmin = -INF
     cdef np.float64_t tmax =  INF
- 
+
     cdef np.int64_t i
     cdef np.float64_t t1, t2
     for i in range(3):
         t1 = (bbox.left_edge[i]  - ray.origin[i])*ray.inv_dir[i]
-        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i] 
+        t2 = (bbox.right_edge[i] - ray.origin[i])*ray.inv_dir[i]
         tmin = fmax(tmin, fmin(t1, t2))
         tmax = fmin(tmax, fmax(t1, t2))
- 
+
     return tmax >= fmax(tmin, 0.0)
 
 @cython.boundscheck(False)
@@ -53,7 +53,7 @@ cdef np.int64_t ray_triangle_intersect(const void* primitives,
 
     cdef np.float64_t det, inv_det
     det = dot(e1, P)
-    if(det > -DETERMINANT_EPS and det < DETERMINANT_EPS): 
+    if(det > -DETERMINANT_EPS and det < DETERMINANT_EPS):
         return False
     inv_det = 1.0 / det
 
@@ -87,7 +87,7 @@ cdef np.int64_t ray_triangle_intersect(const void* primitives,
 cdef void triangle_centroid(const void *primitives,
                             const np.int64_t item,
                             np.float64_t[3] centroid) nogil:
-        
+
     cdef Triangle tri = (<Triangle*> primitives)[item]
     cdef np.int64_t i
     for i in range(3):
@@ -112,7 +112,7 @@ cdef void triangle_bbox(const void *primitives,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
-                           const cython.floating u, 
+                           const cython.floating u,
                            const cython.floating v,
                            cython.floating[3] S) nogil:
 
@@ -132,9 +132,9 @@ cdef void patchSurfaceFunc(const cython.floating[8][3] verts,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
-                             const cython.floating u, 
+                             const cython.floating u,
                              const cython.floating v,
-                             cython.floating[3] Su) nogil: 
+                             cython.floating[3] Su) nogil:
   cdef int i
   for i in range(3):
       Su[i] = (-0.25*(v - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
@@ -149,10 +149,10 @@ cdef void patchSurfaceDerivU(const cython.floating[8][3] verts,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef void patchSurfaceDerivV(const cython.floating[8][3] verts,
-                             const cython.floating u, 
+                             const cython.floating u,
                              const cython.floating v,
                              cython.floating[3] Sv) nogil:
-    cdef int i 
+    cdef int i
     for i in range(3):
         Sv[i] = (-0.25*(u - 1.0)*(u + v + 1) - 0.25*(u - 1.0)*(v - 1.0))*verts[0][i] + \
                 (-0.25*(u + 1.0)*(u - v - 1) + 0.25*(u + 1.0)*(v - 1.0))*verts[1][i] + \
@@ -196,7 +196,7 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
     cdef cython.floating fu = dot(N1, S) + d1
     cdef cython.floating fv = dot(N2, S) + d2
     cdef cython.floating err = fmax(fabs(fu), fabs(fv))
-    
+
     # begin Newton interation
     cdef cython.floating tol = 1.0e-5
     cdef int iterations = 0
@@ -213,11 +213,11 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
         J21 = dot(N2, Su)
         J22 = dot(N2, Sv)
         det = (J11*J22 - J12*J21)
-        
+
         # update the u, v values
         u -= ( J22*fu - J12*fv) / det
         v -= (-J21*fu + J11*fv) / det
-        
+
         patchSurfaceFunc(verts, u, v, S)
         fu = dot(N1, S) + d1
         fv = dot(N2, S) + d2
@@ -227,7 +227,7 @@ cdef RayHitData compute_patch_hit(cython.floating[8][3] verts,
 
     # t is the distance along the ray to this hit
     cdef cython.floating t = distance(S, ray_origin) / L2_norm(ray_direction)
-    
+
     # return hit data
     cdef RayHitData hd
     hd.u = u
@@ -247,7 +247,7 @@ cdef np.int64_t ray_patch_intersect(const void* primitives,
     cdef Patch patch = (<Patch*> primitives)[item]
 
     cdef RayHitData hd = compute_patch_hit(patch.v, ray.origin, ray.direction)
-    
+
     # only count this is it's the closest hit
     if (hd.t < ray.t_near or hd.t > ray.t_far):
         return False
@@ -259,7 +259,7 @@ cdef np.int64_t ray_patch_intersect(const void* primitives,
         return True
 
     return False
-        
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -291,7 +291,7 @@ cdef void patch_bbox(const void *primitives,
 
     cdef np.int64_t i, j
     cdef Patch patch = (<Patch*> primitives)[item]
-    
+
     for j in range(3):
         bbox.left_edge[j] = patch.v[0][j]
         bbox.right_edge[j] = patch.v[0][j]
@@ -300,3 +300,196 @@ cdef void patch_bbox(const void *primitives,
         for j in range(3):
             bbox.left_edge[j] = fmin(bbox.left_edge[j], patch.v[i][j])
             bbox.right_edge[j] = fmax(bbox.right_edge[j], patch.v[i][j])
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void tet_patchSurfaceFunc(const cython.floating[6][3] verts,
+                           const cython.floating u,
+                           const cython.floating v,
+                           cython.floating[3] S) nogil:
+
+    cdef int i
+    # Computes for canonical triangle coordinates
+    for i in range(3):
+        S[i] = (1.0 - 3.0*u + 2.0*u*u - 3.0*v + 2.0*v*v + 4.0*u*v)*verts[0][i] + \
+             (-u + 2.0*u*u)*verts[1][i] + \
+             (-v + 2.0*v*v)*verts[2][i] + \
+             (4.0*u - 4.0*u*u - 4.0*u*v)*verts[3][i] + \
+             (4.0*u*v)*verts[4][i] + \
+             (4.0*v - 4.0*v*v - 4.0*u*v)*verts[5][i]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void tet_patchSurfaceDerivU(const cython.floating[6][3] verts,
+                             const cython.floating u,
+                             const cython.floating v,
+                             cython.floating[3] Su) nogil:
+    cdef int i
+    # Computes for canonical triangle coordinates
+    for i in range(3):
+        Su[i] = (-3.0 + 4.0*u + 4.0*v)*verts[0][i] + \
+             (-1.0 + 4.0*u)*verts[1][i] + \
+             (4.0 - 8.0*u - 4.0*v)*verts[3][i] + \
+             (4.0*v)*verts[4][i] + \
+             (-4.0*v)*verts[5][i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void tet_patchSurfaceDerivV(const cython.floating[6][3] verts,
+                             const cython.floating u,
+                             const cython.floating v,
+                             cython.floating[3] Sv) nogil:
+
+    cdef int i
+    # Computes for canonical triangle coordinates
+    for i in range(3):
+        Sv[i] = (-3.0 + 4.0*v + 4.0*u)*verts[0][i] + \
+             (-1.0 + 4.0*v)*verts[2][i] + \
+             (-4.0*u)*verts[3][i] + \
+             (4.0*u)*verts[4][i] + \
+             (4.0 - 8.0*v - 4.0*u)*verts[5][i]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef RayHitData compute_tet_patch_hit(cython.floating[6][3] verts,
+                                  cython.floating[3] ray_origin,
+                                  cython.floating[3] ray_direction) nogil:
+
+    # first we compute the two planes that define the ray.
+    cdef cython.floating[3] n, N1, N2
+    cdef cython.floating A = dot(ray_direction, ray_direction)
+    for i in range(3):
+        n[i] = ray_direction[i] / A
+
+    if ((fabs(n[0]) > fabs(n[1])) and (fabs(n[0]) > fabs(n[2]))):
+        N1[0] = n[1]
+        N1[1] =-n[0]
+        N1[2] = 0.0
+    else:
+        N1[0] = 0.0
+        N1[1] = n[2]
+        N1[2] =-n[1]
+    cross(N1, n, N2)
+
+    cdef cython.floating d1 = -dot(N1, ray_origin)
+    cdef cython.floating d2 = -dot(N2, ray_origin)
+
+    # the initial guess is set to zero
+    cdef cython.floating u = 0.0
+    cdef cython.floating v = 0.0
+    cdef cython.floating[3] S
+    tet_patchSurfaceFunc(verts, u, v, S)
+    cdef cython.floating fu = dot(N1, S) + d1
+    cdef cython.floating fv = dot(N2, S) + d2
+    cdef cython.floating err = fmax(fabs(fu), fabs(fv))
+
+    # begin Newton interation
+    cdef cython.floating tol = 1.0e-5
+    cdef int iterations = 0
+    cdef int max_iter = 10
+    cdef cython.floating[3] Su
+    cdef cython.floating[3] Sv
+    cdef cython.floating J11, J12, J21, J22, det
+    while ((err > tol) and (iterations < max_iter)):
+        # compute the Jacobian
+        tet_patchSurfaceDerivU(verts, u, v, Su)
+        tet_patchSurfaceDerivV(verts, u, v, Sv)
+        J11 = dot(N1, Su)
+        J12 = dot(N1, Sv)
+        J21 = dot(N2, Su)
+        J22 = dot(N2, Sv)
+        det = (J11*J22 - J12*J21)
+
+        # update the u, v values
+        u -= ( J22*fu - J12*fv) / det
+        v -= (-J21*fu + J11*fv) / det
+
+        tet_patchSurfaceFunc(verts, u, v, S)
+        fu = dot(N1, S) + d1
+        fv = dot(N2, S) + d2
+
+        err = fmax(fabs(fu), fabs(fv))
+        iterations += 1
+
+    # t is the distance along the ray to this hit
+    cdef cython.floating t = distance(S, ray_origin) / L2_norm(ray_direction)
+
+    # return hit data
+    cdef RayHitData hd
+    hd.u = u
+    hd.v = v
+    hd.t = t
+    hd.converged = (iterations < max_iter)
+    return hd
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef np.int64_t ray_tet_patch_intersect(const void* primitives,
+                                    const np.int64_t item,
+                                    Ray* ray) nogil:
+
+    cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
+
+    cdef RayHitData hd = compute_tet_patch_hit(tet_patch.v, ray.origin, ray.direction)
+
+    # only count this is it's the closest hit
+    if (hd.t < ray.t_near or hd.t > ray.t_far):
+        return False
+
+    if (0 <= hd.u and 0 <= hd.v and hd.u + hd.v <= 1.0 and hd.converged):
+        # we have a hit, so update ray information
+        ray.t_far = hd.t
+        ray.elem_id = tet_patch.elem_id
+        return True
+
+    return False
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void tet_patch_centroid(const void *primitives,
+                         const np.int64_t item,
+                         np.float64_t[3] centroid) nogil:
+
+    cdef np.int64_t i, j
+    cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
+
+    for j in range(3):
+        centroid[j] = 0.0
+
+    for i in range(6):
+        for j in range(3):
+            centroid[j] += tet_patch.v[i][j]
+
+    for j in range(3):
+        centroid[j] /= 6.0
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cdef void tet_patch_bbox(const void *primitives,
+                    const np.int64_t item,
+                     BBox* bbox) nogil:
+
+    cdef np.int64_t i, j
+    cdef TetPatch tet_patch = (<TetPatch*> primitives)[item]
+
+    for j in range(3):
+        bbox.left_edge[j] = tet_patch.v[0][j]
+        bbox.right_edge[j] = tet_patch.v[0][j]
+
+    for i in range(1, 6):
+        for j in range(3):
+            bbox.left_edge[j] = fmin(bbox.left_edge[j], tet_patch.v[i][j])
+            bbox.right_edge[j] = fmax(bbox.right_edge[j], tet_patch.v[i][j])
