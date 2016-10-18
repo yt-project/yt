@@ -1208,3 +1208,4 @@ class ParticleFile(object):
 
     def __lt__(self, other):
         return self.filename < other.filename
+

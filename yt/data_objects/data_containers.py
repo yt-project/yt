@@ -64,6 +64,7 @@ import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
+from yt.units.yt_array import uconcatenate
 
 data_object_registry = {}
 
@@ -358,6 +359,7 @@ class YTDataContainer(object):
                         rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
                                          units)
                         outputs.append(rv)
+                        ind = 0 # Does this work with mesh?
                     with o._activate_cache():
                         ind += o.select(self.selector, o[field], rv, ind)
         else:

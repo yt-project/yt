@@ -413,11 +413,11 @@ class ParticleOctreeSubset(OctreeSubset):
     # octree may multiply include data files.  While we can attempt to mitigate
     # this, it's unavoidable for many types of data storage on disk.
     _type_name = 'octree_subset'
-    _con_args = ('data_files', 'ds', 'min_ind', 'max_ind')
+    _con_args = ('base_region', 'data_files', 'overlap_files', 'selector_mask')
     domain_id = -1
-    def __init__(self, base_region, data_files, ds, 
-                 min_ind = 0, max_ind = 0, over_refine_factor = 1,
-                 selector_mask = None, base_grid = None, overlap_files = []):
+    def __init__(self, base_region, data_files, overlap_files = [],
+                 selector_mask = None, over_refine_factor = 1,
+                 min_ind = 0, max_ind = 0, base_grid = None):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
@@ -426,7 +426,7 @@ class ParticleOctreeSubset(OctreeSubset):
         self.domain_id = -1
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.ds = ds
+        self.ds = self.data_files[0].ds
         self._index = self.ds.index
         self.min_ind = min_ind
         if max_ind == 0: max_ind = (1 << 63)
@@ -447,6 +447,7 @@ class ParticleOctreeSubset(OctreeSubset):
         #     self._base_grid = self
         #     if id(self) != id(self._base_grid):
         #         raise Exception('IDs do not match')
+        self._oct_handler = None
 
     def select(self, selector, source, dest, offset):
         if self._base_grid is None or id(self) == id(self._base_grid):
@@ -463,42 +464,53 @@ class ParticleOctreeSubset(OctreeSubset):
         return n
 
     @contextlib.contextmanager
-    def _expand_data_files(self):
-        if ghost_particles:
-            old_data_files = self.data_files
-            self.data_files = list(set(self.data_files + self.overlap_files))
-            self.data_files.sort()
-            yield self
-            self.data_files = old_data_files
-        else:
-            yield self
+    def _as_spatial(self):
+        # To be consistent with Particle Container
+        yield self
 
-    @property
-    def domain_ind(self):
-        if self._domain_ind is None:
-            di = self.oct_handler.domain_ind(self.selector, self.domain_id)
-            self._domain_ind = di
-        return self._domain_ind
+    @contextlib.contextmanager
+    def _expand_data_files(self):
+        old_data_files = self.data_files
+        old_overlap_files = self.overlap_files
+        self.data_files = list(set(self.data_files + self.overlap_files))
+        self.data_files.sort()
+        self.overlap_files = []
+        yield self
+        self.data_files = old_data_files
+        self.overlap_files = old_overlap_files
 
     @property
     def oct_handler(self):
-        if self._index.regions._last_octree_subset == id(self):
-            return self._index.regions._last_oct_handler
-        if self._index.regions._prev_octree_subset == id(self):
-            return self._index.regions._prev_oct_handler
         cache = self._index.regions._cached_octrees
+        if id(self) in cache:
+            return cache[id(self)]
         # TODO Change this to use a primary file ID for forest owners
         base_mask = None
         if self._base_grid is not None:
             base_mask = self._base_grid.selector_mask
         oct_handler = self._index.regions.construct_octree(self._index,
-            self._index.io, self.data_files, self._oref,
-            self.selector_mask, base_mask = base_mask)
-        self._index.regions._prev_octree_subset = self._index.regions._last_octree_subset
-        self._index.regions._prev_oct_handler = self._index.regions._last_oct_handler
-        self._index.regions._last_octree_subset = id(self)
-        self._index.regions._last_oct_handler = oct_handler
+            self._index.io, list(set(self.data_files + self.overlap_files)), 
+            self._oref, self.selector_mask, base_mask = base_mask)
+        cache[id(self)] = oct_handler
         return oct_handler
+
+    def retrieve_ghost_zones(self, ngz, coarse_ghosts = False):
+        bobj = getattr(self, '_chunk_with_buffer', None)
+        if (bobj is not None) and (getattr(bobj, '_buffer_ngz', None) == ngz):
+            return bobj
+        gzi, gmask = self._index.regions.get_ghost_zones(
+            self.base_selector, ngz, self.selector_mask,
+            coarse_ghosts = coarse_ghosts)
+        buffer_files = [self._index.data_files[i] for i in gzi]
+        bobj = ParticleOctreeSubset(
+            self.base_region, self.data_files, #list(set(self.data_files + buffer_files)), 
+            overlap_files = list(set(self.overlap_files + buffer_files)), 
+            selector_mask = gmask, over_refine_factor = self._oref,
+            min_ind = self.min_ind, max_ind = self.max_ind, base_grid = self)
+        bobj._buffer_ngz = ngz
+        bobj._chunk_with_buffer = bobj
+        self._chunk_with_buffer = bobj
+        return bobj
 
 class OctreeSubsetBlockSlice(object):
     def __init__(self, octree_subset):
