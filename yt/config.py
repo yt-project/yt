@@ -48,6 +48,7 @@ ytcfg_defaults = dict(
     reconstruct_index = 'False',
     test_storage_dir = '/does/not/exist',
     test_data_dir = '/does/not/exist',
+    requires_ds_strict = 'False',
     enzo_db = '',
     hub_url = 'https://girder.hub.yt/api/v1',
     hub_api_key = '',
