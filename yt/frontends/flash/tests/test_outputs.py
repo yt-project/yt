@@ -81,13 +81,13 @@ dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'
 @requires_file(dens_turb_mag)
 def test_FLASH25_dataset():
     ds = data_dir_load(dens_turb_mag)
-    dd = ds.all_data()
     assert_equal(ds.parameters['time'], 751000000000.0)
     assert_equal(ds.domain_dimensions, np.array([8, 8, 8]))
     assert_equal(ds.domain_left_edge, 
                  ds.arr([-2e18, -2e18, -2e18], 'code_length'))
 
-    assert_equal(ds.index.num_grids, len(list(dd.blocks)))
+    assert_equal(ds.index.num_grids, 73)
+    dd = ds.all_data()
     dd['density']
 
 
