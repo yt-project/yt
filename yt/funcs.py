@@ -234,6 +234,15 @@ def rootloginfo(*args):
     if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
     mylog.info(*args)
 
+class VisibleDeprecationWarning(UserWarning):
+    """Visible deprecation warning, adapted from NumPy
+
+    By default python does not show users deprecation warnings.
+    This ensures that a deprecation warning is visible to users
+    if that is desired.
+    """
+    pass
+
 def deprecate(replacement):
     def real_deprecate(func):
         """
