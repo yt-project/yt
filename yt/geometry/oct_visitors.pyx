@@ -139,6 +139,18 @@ cdef class IndexOcts(OctVisitor):
             self.oct_index[o.domain_ind] = self.index
             self.index += 1
 
+# Compute a mapping from domain_ind to flattend index with some octs masked.
+cdef class MaskedIndexOcts(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        # Note that we provide an index even if the cell is not selected.
+        if self.last != o.domain_ind:
+            self.last = o.domain_ind
+            if self.oct_mask[o.domain_ind] == 1:
+                self.oct_index[o.domain_ind] = self.index
+                self.index += 1
+
 # Compute a mapping from domain_ind to flattened index checking mask.
 cdef class IndexMaskMapOcts(OctVisitor):
     def __init__(self, OctreeContainer octree, int domain_id = -1):

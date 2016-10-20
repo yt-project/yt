@@ -34,6 +34,8 @@ from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
 
+_use_global_octree = True
+
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
         if hash(dobj.selector) != self._last_selector_id:
@@ -259,7 +261,7 @@ class OctreeSubset(YTSelectionContainer):
             # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
             particle_octree.add(morton)
-            particle_octree.finalize(-1)
+            particle_octree.finalize(self.domain_id)
             pdom_ind = particle_octree.domain_ind(self.selector)
         else:
             particle_octree = self.oct_handler
@@ -414,16 +416,15 @@ class ParticleOctreeSubset(OctreeSubset):
     # this, it's unavoidable for many types of data storage on disk.
     _type_name = 'octree_subset'
     _con_args = ('base_region', 'data_files', 'overlap_files', 'selector_mask')
-    domain_id = -1
+    # domain_id = -1
     def __init__(self, base_region, data_files, overlap_files = [],
                  selector_mask = None, over_refine_factor = 1,
-                 min_ind = 0, max_ind = 0, base_grid = None):
+                 min_ind = 0, max_ind = 0, base_grid = None, domain_id = -1):
         # The first attempt at this will not work in parallel.
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
         self.data_files = ensure_list(data_files)
         self.overlap_files = ensure_list(overlap_files)
-        self.domain_id = -1
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.ds = self.data_files[0].ds
@@ -439,15 +440,11 @@ class ParticleOctreeSubset(OctreeSubset):
         self.base_selector = base_region.selector
         self.selector_mask = selector_mask
         self._base_grid = base_grid
-        # if base_grid is not None:
-        #     self._base_grid = base_grid
-        #     if id(self) == id(self._base_grid):
-        #         raise Exception('IDs match')
-        # else:
-        #     self._base_grid = self
-        #     if id(self) != id(self._base_grid):
-        #         raise Exception('IDs do not match')
-        self._oct_handler = None
+        # To ensure there are not domains if global octree not used
+        if _use_global_octree:
+            self.domain_id = domain_id
+        else:
+            self.domain_id = -1
 
     def select(self, selector, source, dest, offset):
         if self._base_grid is None or id(self) == id(self._base_grid):
@@ -456,11 +453,14 @@ class ParticleOctreeSubset(OctreeSubset):
         else:
             # Create map from indexes in buffered octree to indexes in base 
             # octree. The order of the visit should be the same.
-            idx = self.oct_handler.get_index_base_octs(self._base_grid.domain_ind)
-            idx = self.domain_ind[idx]
-            assert(np.sum(self._base_grid.domain_ind >= 0) == idx.shape[0])
-            assert(np.max(idx) < source.shape[-1])
-            n = self._base_grid.select(selector, source[:,:,:,idx], dest, offset)
+            if _use_global_octree:
+                n = self._base_grid.select(selector, source, dest, offset)
+            else:
+                idx = self.oct_handler.get_index_base_octs(self._base_grid.domain_ind)
+                idx = self.domain_ind[idx]
+                assert(np.sum(self._base_grid.domain_ind >= 0) == idx.shape[0])
+                assert(np.max(idx) < source.shape[-1])
+                n = self._base_grid.select(selector, source[:,:,:,idx], dest, offset)
         return n
 
     @contextlib.contextmanager
@@ -480,17 +480,30 @@ class ParticleOctreeSubset(OctreeSubset):
         self.overlap_files = old_overlap_files
 
     @property
+    def domain_ind(self):
+        if self._domain_ind is None:
+            if _use_global_octree:
+                di = self.oct_handler.domain_ind(self.selector, domain_id = self.domain_id)
+            else:
+                di = self.oct_handler.domain_ind(self.selector)
+            self._domain_ind = di
+        return self._domain_ind
+
+    @property
     def oct_handler(self):
         cache = self._index.regions._cached_octrees
         if id(self) in cache:
             return cache[id(self)]
         # TODO Change this to use a primary file ID for forest owners
-        base_mask = None
-        if self._base_grid is not None:
-            base_mask = self._base_grid.selector_mask
-        oct_handler = self._index.regions.construct_octree(self._index,
-            self._index.io, list(set(self.data_files + self.overlap_files)), 
-            self._oref, self.selector_mask, base_mask = base_mask)
+        if _use_global_octree:
+            oct_handler = self._index.global_oct_handler
+        else:
+            base_mask = None
+            if self._base_grid is not None:
+                base_mask = self._base_grid.selector_mask
+            oct_handler = self._index.regions.construct_octree(self._index,
+                self._index.io, list(set(self.data_files + self.overlap_files)), 
+                self._oref, self.selector_mask, base_mask = base_mask)
         cache[id(self)] = oct_handler
         return oct_handler
 
@@ -505,7 +518,8 @@ class ParticleOctreeSubset(OctreeSubset):
         bobj = ParticleOctreeSubset(
             self.base_region, self.data_files, #list(set(self.data_files + buffer_files)), 
             overlap_files = list(set(self.overlap_files + buffer_files)), 
-            selector_mask = gmask, over_refine_factor = self._oref,
+            selector_mask = gmask, domain_id = self.domain_id,
+            over_refine_factor = self._oref,
             min_ind = self.min_ind, max_ind = self.max_ind, base_grid = self)
         bobj._buffer_ngz = ngz
         bobj._chunk_with_buffer = bobj

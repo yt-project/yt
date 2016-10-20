@@ -72,6 +72,10 @@ cdef class MaskOcts(OctVisitor):
 cdef class IndexOcts(OctVisitor):
     cdef np.int64_t[:] oct_index
 
+cdef class MaskedIndexOcts(OctVisitor):
+    cdef np.int64_t[:] oct_index
+    cdef np.uint8_t[:] oct_mask
+
 cdef class IndexMaskMapOcts(OctVisitor):
     cdef np.int64_t[:] oct_index
     cdef np.uint8_t[:] oct_mask

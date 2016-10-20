@@ -23,7 +23,8 @@ from yt.data_objects.data_containers import \
 from yt.funcs import *
 from yt.utilities.exceptions import \
     YTNonIndexedDataContainer
-from yt.data_objects.octree_subset import ParticleOctreeSubset
+from yt.data_objects.octree_subset import \
+     ParticleOctreeSubset, _use_global_octree
 
 # def _octree_indexed(self, *args, 
 
@@ -42,7 +43,7 @@ class ParticleContainer(YTSelectionContainer):
     _con_args = ('base_region', 'data_files', 'overlap_files', 'selector_mask')
 
     def __init__(self, base_region, data_files, overlap_files = [], 
-                 selector_mask = None):
+                 selector_mask = None, domain_id = -1):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.data_files = ensure_list(data_files)
@@ -67,7 +68,12 @@ class ParticleContainer(YTSelectionContainer):
         elif isinstance(base_region, ParticleOctreeSubset):
             self._temp_spatial = True
             self._octree = base_region
-
+        # To ensure there are not domains if global octree not used
+        if _use_global_octree:
+            self.domain_id = domain_id
+        else:
+            self.domain_id = -1
+            
     def __getattr__(self, *args, **kwargs):
         if self._temp_spatial:
             return getattr(self.octree, *args, **kwargs)
@@ -116,7 +122,8 @@ class ParticleContainer(YTSelectionContainer):
             self._octree = ParticleOctreeSubset(
                 self.base_region, self.data_files,
                 overlap_files = self.overlap_files,
-                selector_mask = self.selector_mask,
+                selector_mask = self.selector_mask, 
+                domain_id = self.domain_id,
                 over_refine_factor = self.ds.over_refine_factor)
         return self._octree
 
@@ -124,7 +131,8 @@ class ParticleContainer(YTSelectionContainer):
         gz_oct = self.octree.retrieve_ghost_zones(ngz, coarse_ghosts = coarse_ghosts)
         gz = ParticleContainer(gz_oct.base_region, gz_oct.data_files,
                                overlap_files = gz_oct.overlap_files,
-                               selector_mask = gz_oct.selector_mask)
+                               selector_mask = gz_oct.selector_mask,
+                               domain_id = gz_oct.domain_id)
         gz._octree = gz_oct
         return gz
 

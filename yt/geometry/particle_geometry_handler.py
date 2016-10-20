@@ -32,7 +32,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.extern.functools32 import lru_cache
 
 from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.octree_subset import ParticleOctreeSubset
+from yt.data_objects.octree_subset import ParticleOctreeSubset, _use_global_octree
 from yt.data_objects.particle_container import ParticleContainer
 
 class ParticleIndex(Index):
@@ -75,7 +75,25 @@ class ParticleIndex(Index):
                            for i in range(ndoms)]
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
+        # Get index & populate octree
         self._initialize_index()
+        # Intialize global octree
+        if _use_global_octree:
+            ds = self.dataset
+            self.global_oct_handler = ParticleOctreeContainer(
+                [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
+                over_refine = ds.over_refine_factor)
+            self.global_oct_handler.n_ref = ds.n_ref
+            self.global_oct_handler.add(self.regions.primary_indices(), 
+                                        self.regions.index_order1)
+            self.global_oct_handler.finalize()
+            self.max_level = self.global_oct_handler.max_level
+            for i in range(ndoms):
+                fmask = self.regions.file_ownership_mask(i)
+                self.global_oct_handler.apply_domain(i+1, fmask, 
+                                                     self.regions.index_order1)
+            tot = sum(self.global_oct_handler.recursively_count().values())
+            mylog.info("Identified %0.3e octs in global octree", tot)
 
     def _index_filename(self,o1,o2):
         import shutil
@@ -205,14 +223,15 @@ class ParticleIndex(Index):
                 nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
                 for i in range(nfiles):
+                    domain_id = i+1
                     dobj._chunk_info[i] = ParticleContainer(
                         dobj, [self.data_files[dfi[i]]],
                         overlap_files = [self.data_files[k] for k in addfi[i]],
-                        selector_mask = file_masks[i])
+                        selector_mask = file_masks[i], domain_id = domain_id)
                     # dobj._chunk_info[i] = ParticleOctreeSubset(
                     #     dobj, [self.data_files[dfi[i]]], 
                     #     overlap_files = [self.data_files[k] for k in addfi[i]],
-                    #     selector_mask = file_masks[i],
+                    #     selector_mask = file_masks[i], domain_id = domain_id,
                     #     over_refine_factor = self.ds.over_refine_factor)
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
