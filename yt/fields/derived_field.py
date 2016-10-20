@@ -17,7 +17,8 @@ import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
-    ensure_list
+    ensure_list, \
+    VisibleDeprecationWarning
 from .field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
@@ -157,6 +158,9 @@ class DerivedField(object):
 
     @property
     def particle_type(self):
+        warnings.warn("particle_type has been deprecated, "
+                      "check for field.sampling_type == 'particle' instead.",
+                      VisibleDeprecationWarning, stacklevel=2)
         return self.sampling_type in ("discrete", "particle")
 
     def get_units(self):
