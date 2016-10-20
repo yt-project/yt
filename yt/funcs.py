@@ -261,7 +261,7 @@ def deprecate(replacement):
             message = "%s has been deprecated and may be removed without notice!"
             if replacement is not None:
                 message += " Use %s instead." % replacement
-            warnings.warn(message % func.__name__, DeprecationWarning,
+            warnings.warn(message % func.__name__, VisibleDeprecationWarning,
                           stacklevel=2)
             func(*args, **kwargs)
         return run_func
