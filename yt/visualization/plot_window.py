@@ -365,7 +365,8 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @invalidate_plot
-    def set_unit(self, field, new_unit):
+    def set_unit(self, field, new_unit, equivalency=None,
+                 equivalency_kwargs=None):
         """Sets a new unit for the requested field
 
         parameters
@@ -375,7 +376,18 @@ class PlotWindow(ImagePlotContainer):
 
         new_unit : string or Unit object
            The name of the new unit.
+
+        equivalency : string
+           If set, the equivalency to use to convert the current units to
+           the new requested unit. If None, the unit conversion will be done
+           without an equivelancy
+
+        equivalency_kwargs : string
+           Keyword arguments to be passed to the equivalency. Only used if
+           ``equivalency`` is set.
         """
+        if equivalency_kwargs is None:
+            equivalency_kwargs = {}
         field = self.data_source._determine_fields(field)[0]
         field = ensure_list(field)
         new_unit = ensure_list(new_unit)
@@ -384,7 +396,19 @@ class PlotWindow(ImagePlotContainer):
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
-            self.frb[f].convert_to_units(u)
+            if equivalency is None:
+                self.frb[f].convert_to_units(u)
+            else:
+                equiv_array = self.frb[f].to_equivalent(
+                    u, equivalency, **equivalency_kwargs)
+                # equiv_array isn't necessarily an ImageArray. This is an issue
+                # inherent to the way the unit system handles YTArray
+                # sublcasses and I don't see how to modify the unit system to
+                # fix this. Instead, we paper over this issue and hard code
+                # that equiv_array is an ImageArray
+                self.frb[f] = ImageArray(
+                    equiv_array, equiv_array.units, equiv_array.units.registry,
+                    self.frb[f].info)
         return self
 
     @invalidate_plot
