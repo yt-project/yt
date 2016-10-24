@@ -184,8 +184,8 @@ class AMRGridPatch(YTSelectionContainer):
         if dlevel != 1:
             rf = rf**dlevel
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
-        startIndex = np.maximum(0, cgi / rf - gi)
-        endIndex = np.minimum((cgi + child.ActiveDimensions) / rf - gi,
+        startIndex = np.maximum(0, cgi // rf - gi)
+        endIndex = np.minimum((cgi + child.ActiveDimensions) // rf - gi,
                               self.ActiveDimensions)
         endIndex += (startIndex == endIndex)
         mask[startIndex[0]:endIndex[0],
