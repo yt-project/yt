@@ -614,7 +614,7 @@ class YTArray(np.ndarray):
                 self, conv_unit.dimensions, **kwargs)
             if isinstance(new_arr, tuple):
                 try:
-                    return YTArray(new_arr[0], new_arr[1]).in_units(unit)
+                    return type(self)(new_arr[0], new_arr[1]).in_units(unit)
                 except YTUnitConversionError:
                     raise YTInvalidUnitEquivalence(equiv, self.units, unit)
             else:
