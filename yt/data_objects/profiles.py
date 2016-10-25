@@ -964,12 +964,12 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     """
     bin_fields = data_source._determine_fields(bin_fields)
     fields = ensure_list(fields)
-    is_pfield = [data_source.ds._get_field_info(f).particle_type
+    is_pfield = [data_source.ds._get_field_info(f).sampling_type == "particle"
                  for f in bin_fields + fields]
     wf = None
     if weight_field is not None:
         wf = data_source.ds._get_field_info(weight_field)
-        is_pfield.append(wf.particle_type)
+        is_pfield.append(wf.sampling_type == "particle")
         wf = wf.name
 
     if any(is_pfield) and not all(is_pfield):
@@ -998,7 +998,8 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     logs = sanitize_field_tuple_keys(logs, data_source)
     if weight_field is not None and cls == ParticleProfile:
         weight_field, = data_source._determine_fields([weight_field])
-        if not data_source.ds._get_field_info(weight_field).particle_type:
+        wf = data_source.ds._get_field_info(weight_field)
+        if not wf.sampling_type == "particle":
             weight_field = None
     if not iterable(n_bins):
         n_bins = [n_bins] * len(bin_fields)

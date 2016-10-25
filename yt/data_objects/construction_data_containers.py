@@ -652,7 +652,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 fill.append(field)
         for field in fill:
             finfo = self.ds._get_field_info(*field)
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
         fill = [f for f in fill if f not in particles]

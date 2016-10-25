@@ -78,7 +78,7 @@ class OctreeSubset(YTSelectionContainer):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             # We may need to reshape the field, if it is being queried from
             # field_data.  If it's already cached, it just passes through.
             if len(tr.shape) < 4:

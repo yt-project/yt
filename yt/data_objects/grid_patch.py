@@ -89,7 +89,7 @@ class AMRGridPatch(YTSelectionContainer):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             return tr.reshape(self.ActiveDimensions)
         return tr
 

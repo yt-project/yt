@@ -135,7 +135,7 @@ def validate_mesh_fields(data_source, fields):
     canonical_fields = data_source._determine_fields(fields)
     invalid_fields = []
     for field in canonical_fields:
-        if data_source.ds.field_info[field].particle_type is True:
+        if data_source.ds.field_info[field].sampling_type == "particle":
             invalid_fields.append(field)
 
     if len(invalid_fields) > 0:

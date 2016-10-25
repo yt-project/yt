@@ -177,7 +177,7 @@ class EnzoGridGZ(EnzoGrid):
                 conv_factor = 1.0
                 if field in self.ds.field_info:
                     conv_factor = self.ds.field_info[field]._convert_function(self)
-                if self.ds.field_info[field].particle_type: continue
+                if self.ds.field_info[field].sampling_type == "particle": continue
                 temp = self.index.io._read_raw_data_set(self, field)
                 temp = temp.swapaxes(0, 2)
                 cube.field_data[field] = np.multiply(temp, conv_factor, temp)[sl]
@@ -419,7 +419,7 @@ class EnzoHierarchy(GridIndex):
         aps = self.dataset.parameters.get(
             "AppendActiveParticleType", [])
         for fname, field in self.ds.field_info.items():
-            if not field.particle_type: continue
+            if not field.sampling_type == "particle": continue
             if isinstance(fname, tuple): continue
             if field._function is NullFunc: continue
             for apt in aps:

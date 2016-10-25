@@ -302,7 +302,7 @@ class Clump(TreeContainer):
             need_grid_positions = False
             for f in self.base.data._determine_fields(fields) + contour_fields:
                 field_data[f] = self.base[f]
-                if ds.field_info[f].particle_type:
+                if ds.field_info[f].sampling_type == "particle":
                     if f[0] not in ptypes:
                         ptypes.append(f[0])
                     ftypes[f] = f[0]

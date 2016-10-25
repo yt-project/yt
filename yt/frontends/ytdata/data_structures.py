@@ -316,7 +316,7 @@ class YTGrid(AMRGridPatch):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             return tr.reshape(self.ActiveDimensions[:self.ds.dimensionality])
         return tr
 
@@ -517,7 +517,7 @@ class YTNonspatialGrid(AMRGridPatch):
         for ftype, fname in fields_to_get:
             finfo = self.ds._get_field_info(ftype, fname)
             finfos[ftype, fname] = finfo
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))

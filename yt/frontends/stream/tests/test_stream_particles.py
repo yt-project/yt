@@ -70,18 +70,18 @@ def test_stream_particles():
     # Check to make sure the fields have been defined correctly
 
     for ptype in ("all", "io"):
-        assert ug1._get_field_info(ptype, "particle_position_x").particle_type
-        assert ug1._get_field_info(ptype, "particle_position_y").particle_type
-        assert ug1._get_field_info(ptype, "particle_position_z").particle_type
-        assert ug1._get_field_info(ptype, "particle_mass").particle_type
-    assert not ug1._get_field_info("gas", "density").particle_type
+        assert ug1._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert ug1._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert ug1._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert ug1._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+    assert not ug1._get_field_info("gas", "density").sampling_type == "particle"
 
     for ptype in ("all", "io"):
-        assert ug2._get_field_info(ptype, "particle_position_x").particle_type
-        assert ug2._get_field_info(ptype, "particle_position_y").particle_type
-        assert ug2._get_field_info(ptype, "particle_position_z").particle_type
-        assert ug2._get_field_info(ptype, "particle_mass").particle_type
-    assert not ug2._get_field_info("gas", "density").particle_type
+        assert ug2._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert ug2._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert ug2._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert ug2._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+    assert not ug2._get_field_info("gas", "density").sampling_type == "particle"
 
     # Now refine this
 
@@ -115,14 +115,14 @@ def test_stream_particles():
     yield assert_equal, np.sum(number_of_particles1), num_particles
     yield assert_equal, number_of_particles1, number_of_particles2
 
-    assert amr1._get_field_info("all", "particle_position_x").particle_type
-    assert amr1._get_field_info("all", "particle_position_y").particle_type
-    assert amr1._get_field_info("all", "particle_position_z").particle_type
-    assert amr1._get_field_info("all", "particle_mass").particle_type
-    assert not amr1._get_field_info("gas", "density").particle_type
+    assert amr1._get_field_info("all", "particle_position_x").sampling_type == "particle"
+    assert amr1._get_field_info("all", "particle_position_y").sampling_type == "particle"
+    assert amr1._get_field_info("all", "particle_position_z").sampling_type == "particle"
+    assert amr1._get_field_info("all", "particle_mass").sampling_type == "particle"
+    assert not amr1._get_field_info("gas", "density").sampling_type == "particle"
 
-    assert amr2._get_field_info("all", "particle_position_x").particle_type
-    assert amr2._get_field_info("all", "particle_position_y").particle_type
-    assert amr2._get_field_info("all", "particle_position_z").particle_type
-    assert amr2._get_field_info("all", "particle_mass").particle_type
-    assert not amr2._get_field_info("gas", "density").particle_type
+    assert amr2._get_field_info("all", "particle_position_x").sampling_type == "particle"
+    assert amr2._get_field_info("all", "particle_position_y").sampling_type == "particle"
+    assert amr2._get_field_info("all", "particle_position_z").sampling_type == "particle"
+    assert amr2._get_field_info("all", "particle_mass").sampling_type == "particle"
+    assert not amr2._get_field_info("gas", "density").sampling_type == "particle"

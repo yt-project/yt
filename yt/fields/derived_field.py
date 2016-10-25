@@ -277,7 +277,7 @@ class DerivedField(object):
         s += "(units: %s" % self.units
         if self.display_name is not None:
             s += ", display_name: '%s'" % (self.display_name)
-        if self.particle_type:
+        if self.sampling_type == "particle":
             s += ", particle field"
         s += ")"
         return s
