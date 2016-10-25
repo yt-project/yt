@@ -12,7 +12,9 @@ Writing PNGs
 
 import matplotlib
 import matplotlib._png as _png
-from yt.extern.six import PY2
+from yt.extern.six import PY2, b
+import numpy
+from yt.funcs import get_yt_version, get_version_stack_str
 
 if PY2:
     from cStringIO import StringIO
@@ -23,12 +25,16 @@ from distutils.version import LooseVersion
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 MPL_API_2_VERSION = LooseVersion("1.5.0")
 
+STACK_VERSION = 'yt:{}|numpy:{}|mpl:{}'.format(
+    get_yt_version(), numpy.version.version, matplotlib.__version__)
+
 if MPL_VERSION < MPL_API_2_VERSION:
     def call_png_write_png(buffer, width, height, filename, dpi):
         _png.write_png(buffer, width, height, filename, dpi)
 else:
     def call_png_write_png(buffer, width, height, filename, dpi):
-        _png.write_png(buffer, filename, dpi)
+        meta = {b('software'): b(get_version_stack_str())}
+        _png.write_png(buffer, filename, dpi=dpi, metadata=meta)
 
 def write_png(buffer, filename, dpi=100):
     width = buffer.shape[1]
