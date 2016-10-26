@@ -239,10 +239,10 @@ class ProfileND(ParallelAnalysisInterface):
         if not np.any(filter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
-            units = chunk.ds.field_info[field].units
+            units = chunk.ds.field_info[field].output_units
             arr[:,i] = chunk[field][filter].in_units(units)
         if self.weight_field is not None:
-            units = chunk.ds.field_info[self.weight_field].units
+            units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
             weight_data = np.ones(filter.size, dtype="float64")
