@@ -229,8 +229,12 @@ class AnswerTestCloudStorage(AnswerTestStorage):
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
-        if self.answer_name is None or \
-                result_storage.get('tainted', False):
+        # The 'tainted' attribute is automatically set to 'True'
+        # if the dataset required for an answer test is missing
+        # (see can_run_ds() and can_run_sim()).
+        # This logic check prevents creating a shelve with empty answers.
+        storage_is_tainted = result_storage.get('tainted', False)
+        if self.answer_name is None or storage_is_tainted:
             return
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
