@@ -2071,6 +2071,7 @@ def points_in_cells(
     # We use brute force since the cells are a relatively unordered collection.
 
     cdef int p, c, n_p, n_c
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
 
     n_p = px.size
     n_c = cx.size
