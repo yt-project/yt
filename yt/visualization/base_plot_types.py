@@ -21,9 +21,7 @@ from yt.funcs import \
     iterable, \
     get_brewer_cmap, \
     matplotlib_style_context, \
-    get_interactivity, \
-    get_version_stack_str
-from yt.extern import six
+    get_interactivity
 import numpy as np
 
 backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
@@ -139,14 +137,10 @@ class PlotMPL(object):
 
         if suffix == ".png":
             canvas = FigureCanvasAgg(self.figure)
-            mpl_kwargs['metadata'] = \
-                {six.b('software'): six.b(get_version_stack_str())}
         elif suffix == ".pdf":
             canvas = FigureCanvasPdf(self.figure)
-            mpl_kwargs['metadata'] = {'Creator': get_version_stack_str()}
         elif suffix in (".eps", ".ps"):
             canvas = FigureCanvasPS(self.figure)
-            mpl_kwargs['metadata'] = {'Creator': get_version_stack_str()}
         else:
             mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
             canvas = self.canvas

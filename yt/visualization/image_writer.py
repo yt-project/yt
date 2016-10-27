@@ -20,8 +20,7 @@ from yt.config import \
 from yt.funcs import \
     mylog, \
     get_image_suffix, \
-    get_brewer_cmap, \
-    get_version_stack_str
+    get_brewer_cmap
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
 from .color_maps import mcm
@@ -29,7 +28,6 @@ from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
 from yt.extern.six.moves import builtins
-import yt.extern.six as six
 
 
 def scale_image(image, mi=None, ma=None):
@@ -417,21 +415,17 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         suffix = '.png'
         filename = "%s%s" % (filename, suffix)
     mylog.info("Saving plot %s", filename)
-    metadata = None
     if suffix == ".png":
         canvas = FigureCanvasAgg(fig)
-        metadata = {six.b('software'): six.b(get_version_stack_str())}
     elif suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)
-        metadata = {'Creator': get_version_stack_str()}
     elif suffix in (".eps", ".ps"):
         canvas = FigureCanvasPS(fig)
-        metadata = {'Creator': get_version_stack_str()}
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas = FigureCanvasAgg(fig)
 
-    canvas.print_figure(filename, dpi=dpi, metadata=metadata)
+    canvas.print_figure(filename, dpi=dpi)
     return filename
 
 def display_in_notebook(image, max_val=None):

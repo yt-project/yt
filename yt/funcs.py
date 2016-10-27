@@ -584,10 +584,6 @@ def get_version_stack():
     version_info['matplotlib'] = matplotlib.__version__
     return version_info
 
-def get_version_stack_str():
-    return 'yt:{}|np:{}|mpl:{}'.format(
-        get_yt_version(), numpy.version.version, matplotlib.__version__)
-
 def get_script_contents():
     top_frame = inspect.stack()[-1]
     finfo = inspect.getframeinfo(top_frame[0])
