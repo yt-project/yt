@@ -226,9 +226,9 @@ def test_add_smoothed_particle_field():
     ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
     fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
     assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
-    ad = ds.all_data()
-    ret = ad[fn]
-    assert_almost_equal(ret.sum(), 3824750.912653606)
+    dd = ds.sphere('center', (500, 'code_length'))
+    ret = dd[fn]
+    assert_almost_equal(ret.sum(), 638.5652315154682)
 
 def test_add_gradient_fields():
     global base_ds
