@@ -84,3 +84,12 @@ gadget_field_specs = dict(
                    ("StellarAge", "Stars")
     ),
 )
+
+gadget_hdf5_ptypes  = (
+    "PartType0",
+    "PartType1",
+    "PartType2",
+    "PartType3",
+    "PartType4",
+    "PartType5"
+)
