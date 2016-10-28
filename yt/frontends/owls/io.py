@@ -172,16 +172,16 @@ class IOHandlerOWLS(BaseIOHandler):
 
             # only want particle data
             #--------------------------------------
-            if not key.startswith("PartType"): continue
+            if not key.startswith("PartType"):
+                continue
 
             # particle data group
             #--------------------------------------
             g = f[key]
-            if cname not in g: continue
+            if cname not in g:
+                continue
 
             # note str => not unicode!
-
-            #ptype = int(key[8:])
             ptype = str(key)
             if ptype not in self.var_mass:
                 fields.append((ptype, mname))
@@ -199,14 +199,14 @@ class IOHandlerOWLS(BaseIOHandler):
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Metallicity_%02i" % i))
-                elif k == "ChemistryAbundances" and len(g[k].shape)>1:
+                elif k == "ChemistryAbundances" and len(g[k].shape) > 1:
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "Chemistry_%03i" % i))
                 else:
                     kk = k
-                    if not hasattr(g[kk], "shape"): continue
+                    if not hasattr(g[kk], "shape"):
+                        continue
                     fields.append((ptype, str(kk)))
-
 
         f.close()
         return fields, {}
