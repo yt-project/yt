@@ -206,6 +206,8 @@ class IOHandlerOWLS(BaseIOHandler):
                     kk = k
                     if not hasattr(g[kk], "shape"):
                         continue
+                    if len(g[kk].shape) > 1:
+                        self._vector_fields[kk] = g[kk].shape[1]
                     fields.append((ptype, str(kk)))
 
         f.close()
