@@ -165,7 +165,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                             aux_fh[afield].seek(0, os.SEEK_SET)
                             sh = aux_fields_offsets[afield][ptype][0] + total
                             sf = aux_fields_offsets[afield][ptype][1] + \
-                                tp[ptype] - count
+                                tp[ptype] - count - total
                             if tp[ptype] > 0:
                                 aux = np.genfromtxt(
                                     aux_fh[afield], skip_header=sh,
