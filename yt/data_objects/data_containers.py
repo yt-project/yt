@@ -1189,7 +1189,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # This is an iterator that will yield the necessary chunks.
         self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
-        for chunk in self.index._chunk(self, chunking_style, **kwargs):
+        chunk_ind = kwargs.pop("chunk_ind", None)
+        if chunk_ind is not None:
+            chunk_ind = ensure_list(chunk_ind)
+        for ci, chunk in enumerate(self.index._chunk(self, chunking_style,
+                                   **kwargs)):
+            if chunk_ind is not None and ci not in chunk_ind:
+                continue
             with self._chunked_read(chunk):
                 self.get_data(fields)
                 # NOTE: we yield before releasing the context
