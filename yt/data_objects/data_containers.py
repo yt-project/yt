@@ -1044,9 +1044,10 @@ class YTDataContainer(object):
         r"""Clone a data object.
 
         This will make a duplicate of a data object; note that the
-        `field_parameters` may not necessarily be deeply-copied, so if you
-        modify any of them in place that modification may be carried through to
-        the cloned object.
+        `field_parameters` may not necessarily be deeply-copied.  If you modify
+        the field parameters in-place, it may or may not be shared between the
+        objects, depending on the type of object that that particular field
+        parameter is.
 
         Notes
         -----
