@@ -1631,7 +1631,9 @@ Specifying Tipsy Cosmological Parameters and Setting Default Units
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Cosmological parameters can be specified to Tipsy to enable computation of
-default units.  The parameters recognized are of this form:
+default units.  For example do the following, to load a Tipsy dataset whose
+path is stored in the variable ``my_filename`` with specified cosmology
+parameters:
 
 .. code-block:: python
 
@@ -1640,14 +1642,21 @@ default units.  The parameters recognized are of this form:
                            'omega_matter': 0.272,
                            'hubble_constant': 0.702}
 
-If you wish to set the default units directly, you can do so by using the
+   ds = yt.load(my_filename,
+                cosmology_parameters=cosmology_parameters)
+
+If you wish to set the unit system directly, you can do so by using the
 ``unit_base`` keyword in the load statement.
 
  .. code-block:: python
 
     import yt
+
     ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
 
+See the documentation for the
+:class:`~yt.frontends.tipsy.data_structures.TipsyDataset` class for more
+information.
 
 Loading Cosmological Simulations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
