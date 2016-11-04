@@ -1217,6 +1217,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # This is an iterator that will yield the necessary chunks.
         self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
+        # chunk_ind can be supplied in the keyword arguments.  If it's a
+        # scalar, that'll be the only chunk that gets returned; if it's a list,
+        # those are the ones that will be.
         chunk_ind = kwargs.pop("chunk_ind", None)
         if chunk_ind is not None:
             chunk_ind = ensure_list(chunk_ind)
