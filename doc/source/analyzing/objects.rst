@@ -64,6 +64,18 @@ dataset you could:
        print("(%f,  %f,  %f)    %f" %
              (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
 
+Data objects can also be cloned; for instance:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("RedshiftOutput0005")
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp_copy = sp.clone()
+
+This can be useful for when manually chunking data or exploring different field
+parameters.
+
 .. _quickly-selecting-data:
 
 Slicing Syntax for Selecting Data
