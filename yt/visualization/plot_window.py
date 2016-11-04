@@ -19,6 +19,7 @@ import types
 import six
 import sys
 
+from collections import defaultdict
 from distutils.version import LooseVersion
 from numbers import Number
 
@@ -189,6 +190,7 @@ class PlotWindow(ImagePlotContainer):
         self._periodic = periodic
         self.oblique = oblique
         self._right_handed = right_handed
+        self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
 
@@ -282,7 +284,11 @@ class PlotWindow(ImagePlotContainer):
             # Restore the old fields
             for key, unit in zip(old_fields, old_units):
                 self._frb[key]
-                self._frb[key].convert_to_units(unit)
+                equiv = self._equivalencies[key]
+                if equiv[0] is None:
+                    self._frb[key].convert_to_units(unit)
+                else:
+                    self.frb.set_unit(key, unit, equiv[0], equiv[1])
 
         # Restore the override fields
         for key in self.override_fields:
@@ -377,12 +383,12 @@ class PlotWindow(ImagePlotContainer):
         new_unit : string or Unit object
            The name of the new unit.
 
-        equivalency : string
+        equivalency : string, optional
            If set, the equivalency to use to convert the current units to
            the new requested unit. If None, the unit conversion will be done
            without an equivelancy
 
-        equivalency_kwargs : string
+        equivalency_kwargs : string, optional
            Keyword arguments to be passed to the equivalency. Only used if
            ``equivalency`` is set.
         """
@@ -396,19 +402,8 @@ class PlotWindow(ImagePlotContainer):
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
-            if equivalency is None:
-                self.frb[f].convert_to_units(u)
-            else:
-                equiv_array = self.frb[f].to_equivalent(
-                    u, equivalency, **equivalency_kwargs)
-                # equiv_array isn't necessarily an ImageArray. This is an issue
-                # inherent to the way the unit system handles YTArray
-                # sublcasses and I don't see how to modify the unit system to
-                # fix this. Instead, we paper over this issue and hard code
-                # that equiv_array is an ImageArray
-                self.frb[f] = ImageArray(
-                    equiv_array, equiv_array.units, equiv_array.units.registry,
-                    self.frb[f].info)
+            self._equivalencies[f] = (equivalency, equivalency_kwargs)
+            self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
         return self
 
     @invalidate_plot

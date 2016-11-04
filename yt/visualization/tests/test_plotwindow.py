@@ -509,6 +509,14 @@ def test_set_unit():
     assert_array_almost_equal(np.array(slc.frb['gas', 'temperature']),
                               np.array(orig_array)*1.8 - 459.67)
 
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+
+    slc.set_buff_size(800)
+
     slc.set_unit('temperature', 'K')
     assert str(slc.frb['gas', 'temperature'].units) == 'K'
     assert_array_almost_equal(slc.frb['gas', 'temperature'], orig_array)
@@ -517,3 +525,9 @@ def test_set_unit():
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
     assert_array_almost_equal(slc.frb['gas', 'temperature'],
                               (orig_array*kboltz).to('keV'))
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit with an equivalency
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
