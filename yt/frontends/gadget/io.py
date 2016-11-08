@@ -32,17 +32,6 @@ from .data_structures import \
 from .definitions import \
     gadget_hdf5_ptypes
 
-def _get_h5_handle(fn):
-    try:
-        f = h5py.File(fn, "r")
-    except IOError:
-        print("ERROR OPENING %s" % (fn))
-        if os.path.exists(fn):
-            print("FILENAME EXISTS")
-        else:
-            print("FILENAME DOES NOT EXIST")
-        raise
-    return f
 
 class IOHandlerGadgetHDF5(BaseIOHandler):
     _dataset_type = "gadget_hdf5"
@@ -74,7 +63,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: x.filename):
-            f = _get_h5_handle(data_file.filename)
+            f = h5py.File(data_file.filename, "r")
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
@@ -92,7 +81,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: x.filename):
-            f = _get_h5_handle(data_file.filename)
+            f = h5py.File(data_file.filename, "r")
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
@@ -127,7 +116,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
 
     def _initialize_index(self, data_file, regions):
         index_ptype = self.index_ptype
-        f = _get_h5_handle(data_file.filename)
+        f = h5py.File(data_file.filename, "r")
         if index_ptype == "all":
             pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
             keys = f.keys()
@@ -156,7 +145,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        f = _get_h5_handle(data_file.filename)
+        f = h5py.File(data_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
@@ -164,7 +153,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
 
 
     def _identify_fields(self, data_file):
-        f = _get_h5_handle(data_file.filename)
+        f = h5py.File(data_file.filename, "r")
         fields = []
         cname = self.ds._particle_coordinates_name  # Coordinates
         mname = self.ds._particle_mass_name  # Mass
