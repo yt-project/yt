@@ -27,7 +27,6 @@ from field_interpolation_tables cimport \
 from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
-from cpython.exc cimport PyErr_CheckSignals
 
 from .image_samplers cimport \
     ImageSampler, \
