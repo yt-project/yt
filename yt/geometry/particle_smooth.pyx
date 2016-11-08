@@ -16,9 +16,11 @@ Particle smoothing in cells
 
 cimport numpy as np
 import numpy as np
+cimport cython
+
+from cpython.exc cimport PyErr_CheckSignals
 from libc.stdlib cimport malloc, free, realloc
 from libc.string cimport memmove
-cimport cython
 from libc.math cimport sqrt, fabs, sin, cos
 
 from oct_container cimport Oct, OctAllocationContainer, \
@@ -208,6 +210,8 @@ cdef class ParticleSmoothOperation:
         cdef DistanceQueue dist_queue = DistanceQueue(self.maxn)
         dist_queue._setup(self.DW, self.periodicity)
         for i in range(oct_positions.shape[0]):
+            if (i % 10000) == 0:
+                PyErr_CheckSignals()
             for j in range(3):
                 pos[j] = oct_positions[i, j]
             oct = mesh_octree.get(pos, &moi)
