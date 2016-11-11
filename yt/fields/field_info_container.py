@@ -161,16 +161,18 @@ class FieldInfoContainer(dict):
                 continue
             if alias_name not in sph_whitelist_fields:
                 continue
-            fn = add_volume_weighted_smoothed_field(
+            add_volume_weighted_smoothed_field(
                 ptype, "particle_position", "particle_mass",
                 sml_name, "density", alias_name, self,
                 num_neighbors)
+            uni_alias_name = alias_name
             if 'particle_' in alias_name:
-                alias_name = alias_name.replace('particle_', '')
-            new_aliases.append(((ftype, alias_name), fn[0]))
-        for alias, source in new_aliases:
-            #print "Aliasing %s => %s" % (alias, source)
-            self.alias(alias, source)
+                uni_alias_name = alias_name.replace('particle_', '')
+            new_aliases.append(
+                ((ftype, uni_alias_name), (ptype, alias_name), )
+            )
+            for alias, source in new_aliases:
+                self.alias(alias, source)
 
     def setup_fluid_aliases(self):
         known_other_fields = dict(self.known_other_fields)

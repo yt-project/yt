@@ -163,6 +163,10 @@ class DerivedField(object):
                       VisibleDeprecationWarning, stacklevel=2)
         return self.sampling_type in ("discrete", "particle")
 
+    @property
+    def local_sampling(self):
+        return self.sampling_type in ('discrete', 'particle', 'local')
+
     def get_units(self):
         if self.ds is not None:
             u = Unit(self.units, registry=self.ds.unit_registry)

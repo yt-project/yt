@@ -1097,7 +1097,8 @@ class YTDataContainer(object):
         if obj is None: obj = self
         old_particle_type = obj._current_particle_type
         old_fluid_type = obj._current_fluid_type
-        if finfo.sampling_type == "particle":
+        fluid_types = self.ds.fluid_types
+        if finfo.sampling_type == "particle" and ftype not in fluid_types:
             obj._current_particle_type = ftype
         else:
             obj._current_fluid_type = ftype
@@ -1145,7 +1146,10 @@ class YTDataContainer(object):
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
             particle_field = finfo.sampling_type == "particle"
-            if particle_field and ftype not in self.ds.particle_types:
+            local_field = finfo.local_sampling
+            if local_field:
+                pass
+            elif particle_field and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
             elif not particle_field and ftype not in self.ds.fluid_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
