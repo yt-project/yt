@@ -1222,6 +1222,7 @@ class Dataset(object):
             sampling_type="cell",
             units=units,
             take_log=take_log,
+            sampling_type='cell',
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 
