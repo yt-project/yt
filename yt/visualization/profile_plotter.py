@@ -326,20 +326,16 @@ class ProfilePlot(object):
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
-        from . import _mpl_imports as mpl
         ret = ''
-        unique = set(self.figures.values())
-        if len(unique) < len(self.figures):
+        unique = set(self.plots.values())
+        if len(unique) < len(self.plots):
             iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.figures)
-        for uid, fig in iters:
-            canvas = mpl.FigureCanvasAgg(fig)
-            f = BytesIO()
+            iters = iteritems(self.plots)
+        for uid, plot in iters:
             with matplotlib_style_context():
-                canvas.print_figure(f)
-            f.seek(0)
-            img = base64.b64encode(f.read()).decode()
+                img = plot._repr_png_()
+            img = base64.b64encode(img).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
                    r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
