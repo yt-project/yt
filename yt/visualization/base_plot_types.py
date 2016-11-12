@@ -118,6 +118,14 @@ class PlotMPL(object):
             if font_color is not None:
                 label.set_color(self.font_color)
 
+    def _repr_png_(self):
+        from ._mpl_imports import FigureCanvasAgg
+        canvas = FigureCanvasAgg(self.figure)
+        f = BytesIO()
+        with matplotlib_style_context():
+            canvas.print_figure(f)
+        f.seek(0)
+        return f.read()
 
 class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
@@ -164,15 +172,6 @@ class ImagePlotMPL(PlotMPL):
             self.cb = self.figure.colorbar(self.image, self.cax)
         for which in ['major', 'minor']:
             self.cax.tick_params(which=which, axis='y', direction='in')
-
-    def _repr_png_(self):
-        from ._mpl_imports import FigureCanvasAgg
-        canvas = FigureCanvasAgg(self.figure)
-        f = BytesIO()
-        with matplotlib_style_context():
-            canvas.print_figure(f)
-        f.seek(0)
-        return f.read()
 
     def _get_best_layout(self):
 
