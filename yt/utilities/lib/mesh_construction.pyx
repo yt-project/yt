@@ -4,6 +4,7 @@ rays will be cast at when rendering finite element data. This class handles
 the interface between the internal representation of the mesh and the pyembree
 representation.
 
+Note - this file is only used for the Embree-accelerated ray-tracer.
 
 """
 
