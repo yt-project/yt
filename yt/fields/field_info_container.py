@@ -17,6 +17,7 @@ native.
 
 import numpy as np
 from numbers import Number as numeric_type
+import warnings
 
 from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
@@ -259,7 +260,18 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        if kwargs.get("particle_type", False):
+        particle_field = False
+        if sampling_type == 'particle':
+            particle_field = True
+
+        if kwargs.get('particle_type', False):
+            warnings.warn(
+                'The particle_type keyword argument of add_field has been '
+                'deprecated. Please set sampling_type="particle" instead.',
+                stacklevel=2)
+            particle_field = True
+
+        if particle_field:
             ftype = 'all'
         else:
             ftype = self.ds.default_fluid_type
