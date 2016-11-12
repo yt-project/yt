@@ -1132,9 +1132,10 @@ class Dataset(object):
                           "force_override=True.", name)
         if kwargs.setdefault('particle_type', False):
             if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError("Clashing definition of 'sampling_type' and "
-                               "'particle_type'. Note that 'particle_type' is "
-                               "deprecated. Please just use 'sampling_type'.")
+                raise RuntimeError(
+                    "Clashing definition of 'sampling_type' and "
+                    "'particle_type'. Note that 'particle_type' is "
+                    "deprecated. Please just use 'sampling_type'.")
             else:
                 sampling_type = "particle"
         if sampling_type is None:
