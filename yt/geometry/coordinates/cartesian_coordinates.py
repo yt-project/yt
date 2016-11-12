@@ -189,11 +189,12 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     "A pixelization routine has not been implemented for %s "
                     "data objects" % str(type(data_source)))
         else:
-            pixelize_cartesian(buff, data_source['px'], data_source['py'],
+            pixelize_cartesian(buff,
+                               data_source['px'], data_source['py'],
                                data_source['pdx'], data_source['pdy'],
-                               data_source[field], size[0], size[1],
+                               data_source[field],
                                bounds, int(antialias),
-                               period, int(periodic)).transpose()
+                               period, int(periodic))
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
