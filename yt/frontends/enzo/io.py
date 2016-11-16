@@ -146,7 +146,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if obj.filename is None: continue
                 if obj.filename != filename:
                     # Note one really important thing here: even if we do
-                    # implement LRU caching in the _read_chunk_obj function,
+                    # implement LRU caching in the _read_obj_field function,
                     # we'll still be doing file opening and whatnot.  This is a
                     # problem, but one we can return to.
                     if fid is not None:
@@ -154,23 +154,20 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
                     filename = obj.filename
                 data = np.empty(obj.ActiveDimensions[::-1], dtype=h5_dtype)
-                data_view = data.swapaxes(0, -1)
                 for field in fields:
-                    yield chunk, obj, field, (fid, data_view, data)
+                    yield chunk, obj, field, (fid, data)
         if fid is not None:
             fid.close()
         
-    def _read_chunk_obj(self, chunk, obj, field,
-            (fid, data_view, data) = (None, None, None)):
+    def _read_obj_field(self, obj, field, (fid, data) = (None, None, None)):
         if fid is None:
             close = True
             fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
         else:
             close = False
-        if data_view is None or data is None:
+        if data is None:
             data = np.empty(obj.ActiveDimensions[::-1],
                             dtype=self._field_dtype)
-            data_view = data.swapaxes(0, -1)
         ftype, fname = field
         try:
             node = "/Grid%08i/%s" % (obj.id, fname)
@@ -182,7 +179,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         dg.close()
         if close:
             fid.close()
-        return data_view
+        return data.T
 
     @contextmanager
     def preload(self, chunk, fields, max_size):

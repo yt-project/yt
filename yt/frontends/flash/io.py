@@ -117,10 +117,9 @@ class IOHandlerFLASH(BaseIOHandler):
                     data = p_fields[start:end, fi]
                     yield (ptype, field), data[mask]
 
-    def _read_chunk_obj(self, chunk, obj, field, (ds, offset) = (None, -1)):
+    def _read_obj_field(self, obj, field, (ds, offset) = (None, -1)):
         # our context here includes datasets and whatnot that are opened in the
         # hdf5 file
-        ds, offset = ctx
         if ds is None:
             ds = self._handle["/%s" % field[1]]
         if offset == -1:

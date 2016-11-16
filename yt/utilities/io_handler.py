@@ -117,7 +117,7 @@ class BaseIOHandler(object):
         rv = {field: np.empty(size, dtype="=f8") for field in fields} 
         ind = {field: 0 for field in fields}
         for chunk, obj, field, ctx in self.io_iter(chunks, fields):
-            d = self._read_chunk_obj(chunk, obj, field, ctx)
+            d = self._read_obj_field(obj, field, ctx)
             if d is None: continue
             ind[field] += obj.select(selector, d, rv[field], ind[field])
         return rv
