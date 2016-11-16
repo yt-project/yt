@@ -108,6 +108,20 @@ class BaseIOHandler(object):
     def _read_data(self, grid, field):
         pass
 
+    def _read_fluid_selection(self, chunks, selector, fields, size):
+        # This function has an interesting history.  It previously was mandate
+        # to be defined by all of the subclasses.  But, to avoid having to
+        # rewrite a whole bunch of IO handlers all at once, and to allow a
+        # better abstraction for grid-based frontends, we're now defining it in
+        # the base class.
+        rv = {field: np.empty(size, dtype="=f8") for field in fields} 
+        ind = {field: 0 for field in fields}
+        for chunk, obj, field, ctx in self.io_iter(chunks, fields):
+            d = self._read_chunk_obj(chunk, obj, field, ctx)
+            if d is None: continue
+            ind[field] += obj.select(selector, d, rv[field], ind[field])
+        return rv
+
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)

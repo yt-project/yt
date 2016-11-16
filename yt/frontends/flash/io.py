@@ -61,6 +61,19 @@ class IOHandlerFLASH(BaseIOHandler):
             count_list, conv_factors):
         pass
 
+    def io_iter(self, chunks, fields):
+        f = self._handle
+        for field in fields:
+            ftype, fname = field
+            ds = f["/%s" % fname]
+            for chunk in chunks:
+                for gs in grid_sequences(chunk.objs):
+                    start = gs[0].id - gs[0]._id_offset
+                    end = gs[-1].id - gs[-1]._id_offset + 1
+                    data = ds[start:end,:,:,:]
+                    for i, g in enumerate(gs):
+                        yield chunk, g, field, (data, i)
+
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
         f_part = self._particle_handle
@@ -104,31 +117,17 @@ class IOHandlerFLASH(BaseIOHandler):
                     data = p_fields[start:end, fi]
                     yield (ptype, field), data[mask]
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        chunks = list(chunks)
-        if any((ftype != "flash" for ftype, fname in fields)):
-            raise NotImplementedError
-        f = self._handle
-        rv = {}
-        for field in fields:
-            ftype, fname = field
-            # Always use *native* 64-bit float.
-            rv[field] = np.empty(size, dtype="=f8")
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [f2 for f1, f2 in fields], ng)
-        for field in fields:
-            ftype, fname = field
-            ds = f["/%s" % fname]
-            ind = 0
-            for chunk in chunks:
-                for gs in grid_sequences(chunk.objs):
-                    start = gs[0].id - gs[0]._id_offset
-                    end = gs[-1].id - gs[-1]._id_offset + 1
-                    data = ds[start:end,:,:,:].transpose()
-                    for i, g in enumerate(gs):
-                        ind += g.select(selector, data[...,i], rv[field], ind)
-        return rv
+    def _read_chunk_obj(self, chunk, obj, field, (ds, offset) = (None, -1)):
+        # our context here includes datasets and whatnot that are opened in the
+        # hdf5 file
+        ds, offset = ctx
+        if ds is None:
+            ds = self._handle["/%s" % field[1]]
+        if offset == -1:
+            data = ds[obj.id - obj._id_offset, :,:,:].transpose()
+        else:
+            data = ds[offset, :,:,:].transpose()
+        return data
 
     def _read_chunk_data(self, chunk, fields):
         f = self._handle

@@ -137,80 +137,52 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         yield (ptype, field), data[mask]
             if f: f.close()
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        rv = {}
-        # Now we have to do something unpleasant
-        chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
-            if not (len(chunks) == len(chunks[0].objs) == 1):
-                raise RuntimeError
-            g = chunks[0].objs[0]
-            f = h5py.File(u(g.filename), 'r')
-            if g.id in self._cached_fields:
-                gf = self._cached_fields[g.id]
-                rv.update(gf)
-            if len(rv) == len(fields): return rv
-            gds = f.get("/Grid%08i" % g.id)
-            for field in fields:
-                if field in rv:
-                    self._hits += 1
-                    continue
-                self._misses += 1
-                ftype, fname = field
-                if fname in gds:
-                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0, -1)
-                else:
-                    rv[(ftype, fname)] = np.zeros(g.ActiveDimensions)
-            if self._cache_on:
-                for gid in rv:
-                    self._cached_fields.setdefault(gid, {})
-                    self._cached_fields[gid].update(rv[gid])
-            f.close()
-            return rv
-        if size is None:
-            size = sum((g.count(selector) for chunk in chunks
-                        for g in chunk.objs))
-        for field in fields:
-            ftype, fname = field
-            fsize = size
-            rv[field] = np.empty(fsize, dtype="float64")
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s grids",
-                   size, [f2 for f1, f2 in fields], ng)
-        ind = 0
-        h5_type = self._field_dtype
+    def io_iter(self, chunks, fields):
+        h5_dtype = self._field_dtype
         for chunk in chunks:
             fid = None
-            for g in chunk.objs:
-                if g.filename is None: continue
-                if fid is None:
-                    fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
-                gf = self._cached_fields.get(g.id, {})
-                data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
+            filename = -1
+            for obj in chunk.objs:
+                if obj.filename is None: continue
+                if obj.filename != filename:
+                    # Note one really important thing here: even if we do
+                    # implement LRU caching in the _read_chunk_obj function,
+                    # we'll still be doing file opening and whatnot.  This is a
+                    # problem, but one we can return to.
+                    if fid is not None:
+                        fid.close()
+                    fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
+                    filename = obj.filename
+                data = np.empty(obj.ActiveDimensions[::-1], dtype=h5_dtype)
                 data_view = data.swapaxes(0, -1)
-                nd = 0
                 for field in fields:
-                    if field in gf:
-                        nd = g.select(selector, gf[field], rv[field], ind)
-                        self._hits += 1
-                        continue
-                    self._misses += 1
-                    ftype, fname = field
-                    try:
-                        node = "/Grid%08i/%s" % (g.id, fname)
-                        dg = h5py.h5d.open(fid, b(node))
-                    except KeyError:
-                        if fname == "Dark_Matter_Density": continue
-                        raise
-                    dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
-                    if self._cache_on:
-                        self._cached_fields.setdefault(g.id, {})
-                        # Copy because it's a view into an empty temp array
-                        self._cached_fields[g.id][field] = data_view.copy()
-                    nd = g.select(selector, data_view, rv[field], ind) # caches
-                ind += nd
-            if fid: fid.close()
-        return rv
+                    yield chunk, obj, field, (fid, data_view, data)
+        if fid is not None:
+            fid.close()
+        
+    def _read_chunk_obj(self, chunk, obj, field,
+            (fid, data_view, data) = (None, None, None)):
+        if fid is None:
+            close = True
+            fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
+        else:
+            close = False
+        if data_view is None or data is None:
+            data = np.empty(obj.ActiveDimensions[::-1],
+                            dtype=self._field_dtype)
+            data_view = data.swapaxes(0, -1)
+        ftype, fname = field
+        try:
+            node = "/Grid%08i/%s" % (obj.id, fname)
+            dg = h5py.h5d.open(fid, b(node))
+        except KeyError:
+            if fname == "Dark_Matter_Density": return None
+            raise
+        dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
+        dg.close()
+        if close:
+            fid.close()
+        return data_view
 
     @contextmanager
     def preload(self, chunk, fields, max_size):
