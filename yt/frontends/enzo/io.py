@@ -176,7 +176,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             if fname == "Dark_Matter_Density": return None
             raise
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
-        dg.close()
+        # I don't know why, but on some installations of h5py this works, but
+        # on others, nope.  Doesn't seem to be a version thing.
+        #dg.close()
         if close:
             fid.close()
         return data.T
