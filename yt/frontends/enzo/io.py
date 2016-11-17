@@ -155,7 +155,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     filename = obj.filename
                 data = np.empty(obj.ActiveDimensions[::-1], dtype=h5_dtype)
                 for field in fields:
-                    yield chunk, obj, field, (fid, data)
+                    yield field, obj, self._read_obj_field(obj, field, (fid, data))
         if fid is not None:
             fid.close()
         

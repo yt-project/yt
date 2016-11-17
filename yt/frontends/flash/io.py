@@ -72,7 +72,7 @@ class IOHandlerFLASH(BaseIOHandler):
                     end = gs[-1].id - gs[-1]._id_offset + 1
                     data = ds[start:end,:,:,:]
                     for i, g in enumerate(gs):
-                        yield chunk, g, field, (data, i)
+                        yield field, g, self._read_obj_field(g, field, (data, i))
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)

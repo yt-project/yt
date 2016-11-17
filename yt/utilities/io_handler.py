@@ -20,16 +20,28 @@ import os
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from yt.extern.six import add_metaclass
+from yt.utilities.lru_cache import \
+    local_lru_cache, _HashedSeq, _make_key
 
 _axis_ids = {0:2,1:1,2:0}
 
 io_registry = {}
+
+use_caching = 0
+
+def _make_io_key( args, *_args, **kwargs):
+    self, obj, field, ctx = args
+    # Ignore self because we have a self-specific cache
+    return _make_key((obj.id, field), *_args, **kwargs)
 
 class RegisteredIOHandler(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if hasattr(cls, "_dataset_type"):
             io_registry[cls._dataset_type] = cls
+        if use_caching and hasattr(cls, "_read_obj_field"):
+            cls._read_obj_field = local_lru_cache(maxsize=use_caching, 
+                    typed=True, make_key=_make_io_key)(cls._read_obj_field)
 
 @add_metaclass(RegisteredIOHandler)
 class BaseIOHandler(object):
@@ -54,7 +66,6 @@ class BaseIOHandler(object):
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets
-
     @contextmanager
     def preload(self, chunk, fields, max_size):
         yield self
@@ -87,7 +98,7 @@ class BaseIOHandler(object):
             return return_val
         else:
             return False
-            
+
     def _read_data_set(self, grid, field):
         # check backup file first. if field not found,
         # call frontend-specific io method
@@ -116,10 +127,9 @@ class BaseIOHandler(object):
         # the base class.
         rv = {field: np.empty(size, dtype="=f8") for field in fields} 
         ind = {field: 0 for field in fields}
-        for chunk, obj, field, ctx in self.io_iter(chunks, fields):
-            d = self._read_obj_field(obj, field, ctx)
-            if d is None: continue
-            ind[field] += obj.select(selector, d, rv[field], ind[field])
+        for field, obj, data in self.io_iter(chunks, fields):
+            if data is None: continue
+            ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
     def _read_data_slice(self, grid, field, axis, coord):
