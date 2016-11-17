@@ -18,7 +18,6 @@ from itertools import groupby
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.utilities.lib.geometry_utils import \
     compute_morton

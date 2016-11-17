@@ -21,7 +21,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 from yt.extern.six import add_metaclass
 from yt.utilities.lru_cache import \
-    local_lru_cache, _HashedSeq, _make_key
+    local_lru_cache, _make_key
 
 _axis_ids = {0:2,1:1,2:0}
 
