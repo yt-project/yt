@@ -17,6 +17,11 @@ import matplotlib.cm as mcm
 from . import _colormap_data as _cm
 from yt.extern.six import string_types
 
+try:
+    import cmocean
+except ImportError:
+    cmocean = None
+
 def is_colormap(cmap):
     return isinstance(cmap,cc.Colormap)
 
@@ -151,6 +156,22 @@ _cubehelix_data = {
 }
 
 add_cmap("cubehelix", _cubehelix_data)
+
+# Add colormaps from cmocean, if it's installed
+if cmocean is not None:
+    for cmname in cmocean.cm.cmapnames:
+        cm = getattr(cmocean.cm, cmname)
+        # cmocean has a colormap named 'algae', so let's avoid overwriting
+        # yt's algae or any other colormap we've already added
+        if cmname in yt_colormaps:
+            cmname = cmname + '_cmocean'
+        yt_colormaps[cmname] = cm
+        try:
+            mcm.register_cmap(cmname, yt_colormaps[cmname])
+        except AttributeError:
+            # for old versions of matplotlib this won't work, so we avoid
+            # erroring out but don't worry about registering with matplotlib
+            pass
 
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0,1,256)
