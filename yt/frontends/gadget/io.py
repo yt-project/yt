@@ -312,7 +312,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         arr = np.fromfile(f, dtype=dt, count = count)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
-            arr = arr.reshape((count/factor, factor), order="C")
+            arr = arr.reshape((count//factor, factor), order="C")
         return arr.astype("float64")
 
     def _initialize_index(self, data_file, regions):
