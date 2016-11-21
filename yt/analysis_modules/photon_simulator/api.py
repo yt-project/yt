@@ -10,6 +10,13 @@ API for yt.analysis_modules.photon_simulator.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from numpy import VisibleDeprecationWarning
+
+import warnings
+warnings.warn("The photon_simulator module is deprecated. "
+              "Please use pyXSIM (http://hea-www.cfa.harvard.edu/~jzuhone/pyxsim) instead.",
+              VisibleDeprecationWarning)
+
 from .photon_models import \
      PhotonModel, \
      ThermalPhotonModel
