@@ -152,7 +152,8 @@ def add_nuclei_density_fields(registry, ftype,
                            units = unit_system["number_density"])
 
     for element in ["H", "He"]:
-        if element in elements: continue
+        if element in elements:
+            continue
         registry.add_field((ftype, "%s_nuclei_density" % element),
                            sampling_type="cell",
                            function = _default_nuclei_density,
@@ -185,7 +186,8 @@ def _nuclei_density(field, data):
         if "_" in species:
             nucleus = species[:species.find("_")]
         num = _get_element_multiple(nucleus, element)
-        if num == 0: continue
+        if num == 0:
+            continue
         field_data += num * data[ftype, "%s_number_density" % species]
     return field_data
 
