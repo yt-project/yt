@@ -176,7 +176,7 @@ def _nuclei_density(field, data):
           ChemicalFormula(element).weight / amu_cgs
     metal_field = "%s_metallicity" % element
     if (ftype, metal_field) in data.ds.field_info:
-        return data[ptype, "density"] * data[(ftype, metal_field)] / \
+        return data[ftype, "density"] * data[(ftype, metal_field)] / \
           ChemicalFormula(element).weight / amu_cgs
 
     field_data = np.zeros_like(data[ftype, "%s_number_density" %
