@@ -185,7 +185,10 @@ def _nuclei_density(field, data):
         nucleus = species
         if "_" in species:
             nucleus = species[:species.find("_")]
+        # num is the number of nuclei contributed by this species.
         num = _get_element_multiple(nucleus, element)
+        # Since this is a loop over all species existing in this dataset,
+        # we will encounter species that contribute nothing, so we skip them.
         if num == 0:
             continue
         field_data += num * data[ftype, "%s_number_density" % species]
