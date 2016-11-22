@@ -14,14 +14,20 @@ Gizmo-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.fields.field_info_container import \
+    FieldInfoContainer
 from yt.fields.particle_fields import \
     add_volume_weighted_smoothed_field
 from yt.fields.species_fields import \
-    add_species_field_by_density
+    add_species_field_by_density, \
+    setup_species_fields
 from yt.frontends.gadget.fields import \
     GadgetFieldInfo
 from yt.frontends.sph.fields import \
     SPHFieldInfo
+
+metal_elements = ["He", "C", "N", "O", "Ne",
+                  "Mg", "Si", "S", "Ca", "Fe"]
 
 class GizmoFieldInfo(GadgetFieldInfo):
     known_particle_fields = (
@@ -58,8 +64,14 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def __init__(self, *args, **kwargs):
         super(SPHFieldInfo, self).__init__(*args, **kwargs)
         if ("PartType0", "Metallicity_00") in self.field_list:
-            self.nuclei_names = ["He", "C", "N", "O", "Ne", "Mg", "Si", "S",
-                                 "Ca", "Fe"]
+            self.nuclei_names = metal_elements
+            self.species_names = ["H", "H_p1"] + metal_elements
+
+    def setup_particle_fields(self, ptype):
+        FieldInfoContainer.setup_particle_fields(self, ptype)
+        if ptype in ("PartType0",):
+            self.setup_gas_particle_fields(ptype)
+            setup_species_fields(self, ptype)
 
     def setup_gas_particle_fields(self, ptype):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
