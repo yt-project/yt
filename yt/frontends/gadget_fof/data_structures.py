@@ -138,10 +138,11 @@ class GadgetFOFDataset(Dataset):
     _field_info_class = GadgetFOFFieldInfo
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
-                 n_ref=16, over_refine_factor=1,
+                 n_ref=16, over_refine_factor=1, index_ptype="all",
                  unit_base=None, units_override=None, unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        self.index_ptype = index_ptype
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.

@@ -10,7 +10,7 @@ sc = yt.create_scene(ds, field=('gas', 'density'))
 # Modify the transfer function
 
 # First get the render source, in this case the entire domain, with field ('gas','density')
-render_source = sc.get_source(0)
+render_source = sc.get_source()
 
 # Clear the transfer function
 render_source.transfer_function.clear()

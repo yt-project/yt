@@ -26,7 +26,7 @@ from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
 from yt.units.unit_object import Unit
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.field_data import YTFieldData
 from yt.utilities.exceptions import \
     YTIllDefinedProfile
 from yt.utilities.lib.misc_utilities import \
@@ -239,10 +239,10 @@ class ProfileND(ParallelAnalysisInterface):
         if not np.any(filter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
-            units = chunk.ds.field_info[field].units
+            units = chunk.ds.field_info[field].output_units
             arr[:,i] = chunk[field][filter].in_units(units)
         if self.weight_field is not None:
-            units = chunk.ds.field_info[self.weight_field].units
+            units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
             weight_data = np.ones(filter.size, dtype="float64")
@@ -372,8 +372,9 @@ class ProfileNDFromDataset(ProfileND):
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
             setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            setattr(self, "%s_field" % ax,
-                    tuple(ds.parameters["%s_field" % ax]))
+            field_name = tuple(ds.parameters["%s_field" % ax])
+            setattr(self, "%s_field" % ax, field_name)
+            self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
             exclude_fields.extend([ax, "%s_bins" % ax,
                                    ds.parameters["%s_field" % ax][1]])
@@ -384,6 +385,7 @@ class ProfileNDFromDataset(ProfileND):
         for field in profile_fields:
             self.field_map[field[1]] = field
             self.field_data[field] = ds.data[field]
+            self.field_info[field] = ds.field_info[field]
             self.field_units[field] = ds.data[field].units
 
 class Profile1D(ProfileND):
@@ -454,6 +456,14 @@ class Profile1D(ProfileND):
     @property
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        with the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import ProfilePlot
+        return ProfilePlot.from_profiles(self)
 
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
@@ -573,6 +583,14 @@ class Profile2D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.PhasePlot with
+        the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import PhasePlot
+        return PhasePlot.from_profile(self)
 
 class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
     """
@@ -930,7 +948,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     data from profile[<field_name>].
 
     >>> ds = load("DD0046/DD0046")
-    >>> ad = ds.h.all_data()
+    >>> ad = ds.all_data()
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])

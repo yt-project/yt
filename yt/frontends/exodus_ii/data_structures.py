@@ -28,7 +28,9 @@ from yt.utilities.logger import ytLogger as mylog
 from .fields import \
     ExodusIIFieldInfo
 from .util import \
-    load_info_records, sanitize_string
+    load_info_records, \
+    sanitize_string, \
+    get_num_pseudo_dims
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
@@ -158,6 +160,12 @@ class ExodusIIDataset(Dataset):
         self.storage_filename = storage_filename
         self.default_field = [f for f in self.field_list 
                               if f[0] == 'connect1'][-1]
+
+        for mesh in self.index.meshes:
+            num_pseudo = get_num_pseudo_dims(mesh.connectivity_coords)
+            if (num_pseudo > 1 or self.dimensionality < 2):
+                raise RuntimeError("1D unstructured mesh data "
+                                   "are currently not supported.")
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various

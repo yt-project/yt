@@ -115,7 +115,12 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        pcount = sum(data_file.total_particles.values())
+        if self.index_ptype == "all":
+            ptypes = self.ds.particle_types_raw
+            pcount = sum(data_file.total_particles.values())
+        else:
+            ptypes = [self.index_ptype]
+            pcount = data_file.total_particles[self.index_ptype]
         morton = np.empty(pcount, dtype='uint64')
         if pcount == 0: return morton
         mylog.debug("Initializing index % 5i (% 7i particles)",
@@ -126,7 +131,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             dx = np.finfo(f["Group"]["GroupPos"].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
 
-            for ptype in data_file.ds.particle_types_raw:
+            for ptype in ptypes:
                 if data_file.total_particles[ptype] == 0: continue
                 pos = f[ptype]["%sPos" % ptype].value.astype("float64")
                 pos = np.resize(pos, (data_file.total_particles[ptype], 3))

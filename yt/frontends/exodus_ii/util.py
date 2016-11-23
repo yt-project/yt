@@ -1,3 +1,4 @@
+import numpy as np
 import sys
 import string
 from itertools import takewhile
@@ -5,6 +6,10 @@ from collections import OrderedDict
 import re
 
 _printable = set([ord(_) for _ in string.printable])
+
+def get_num_pseudo_dims(coords):
+    D = coords.shape[1]
+    return sum([np.all(coords[:, dim] == 0.0) for dim in range(D)])
 
 def sanitize_string(s):
     if sys.version_info > (3, ):

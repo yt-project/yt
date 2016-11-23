@@ -1,3 +1,5 @@
+import numpy as np
+
 from yt.testing import \
     assert_equal, \
     fake_amr_ds, \
@@ -5,6 +7,25 @@ from yt.testing import \
     fake_random_ds
 
 # This will test the "dataset access" method.
+
+def test_box_creation():
+    ds = fake_random_ds(32, length_unit=2)
+    left_edge = ds.arr([0.2, 0.2, 0.2], 'cm')
+    right_edge = ds.arr([0.6, 0.6, 0.6], 'cm')
+    center = (left_edge + right_edge)/2
+
+    boxes = [
+        ds.box(left_edge, right_edge),
+        ds.box(0.5*np.array(left_edge), 0.5*np.array(right_edge)),
+        ds.box((0.5*left_edge).tolist(), (0.5*right_edge).tolist())
+    ]
+
+    region = ds.region(center, left_edge, right_edge)
+
+    for b in boxes:
+        assert_equal(b.left_edge, region.left_edge)
+        assert_equal(b.right_edge, region.right_edge)
+        assert_equal(b.center, region.center)
 
 def test_region_from_d():
     ds = fake_amr_ds(fields=["density"])

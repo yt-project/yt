@@ -110,6 +110,8 @@ class EnzoSimulation(SimulationTimeSeries):
         self.domain_right_edge = self.domain_right_edge * self.length_unit
         self.unit_registry.modify("code_time", self.time_unit)
         self.unit_registry.modify("code_length", self.length_unit)
+        self.unit_registry.add("unitary", float(self.box_size.in_base()),
+                               self.length_unit.units.dimensions)
 
     def get_time_series(self, time_data=True, redshift_data=True,
                         initial_time=None, final_time=None,
@@ -585,6 +587,10 @@ class EnzoSimulation(SimulationTimeSeries):
                      len(potential_outputs))
 
         my_outputs = {}
+        llevel = mylog.level
+        # suppress logging as we load every dataset, unless set to debug
+        if llevel > 10 and llevel < 40:
+            mylog.setLevel(40)
         for my_storage, output in parallel_objects(potential_outputs,
                                                    storage=my_outputs):
             if self.parameters['DataDumpDir'] in output:
@@ -607,6 +613,7 @@ class EnzoSimulation(SimulationTimeSeries):
                             my_storage.result['redshift'] = ds.current_redshift
                 except YTOutputNotIdentified:
                     mylog.error('Failed to load %s', filename)
+        mylog.setLevel(llevel)
         my_outputs = [my_output for my_output in my_outputs.values() \
                       if my_output is not None]
 

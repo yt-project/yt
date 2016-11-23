@@ -80,7 +80,11 @@ class FLASHHierarchy(GridIndex):
             self.num_grids = self.dataset._find_parameter(
                 "integer", "globalnumblocks", True)
         except KeyError:
-            self.num_grids = self._handle["/simulation parameters"][0][0]
+            try:
+                self.num_grids = \
+                    self._handle['simulation parameters']['total blocks'][0]
+            except KeyError:
+                self.num_grids = self._handle["/simulation parameters"][0][0]
         
     def _parse_index(self):
         f = self._handle # shortcut
@@ -214,7 +218,9 @@ class FLASHDataset(Dataset):
             part_time = self._particle_handle.handle.get('real scalars')[0][1]
             plot_time = self._handle.handle.get('real scalars')[0][1]
             if not np.isclose(part_time, plot_time):
-                raise IOError('%s and  %s are not at the same time.' % (self.particle_filename, filename))
+                self._particle_handle = self._handle
+                mylog.warning('%s and %s are not at the same time. ' % (self.particle_filename, filename) +
+                              'This particle file will not be used.')
 
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
@@ -315,11 +321,14 @@ class FLASHDataset(Dataset):
                 if hn not in self._handle:
                     continue
                 if hn is 'simulation parameters':
-                    zipover = zip(self._handle[hn].dtype.names,self._handle[hn][0])
+                    zipover = ((name, self._handle[hn][name][0])
+                               for name in self._handle[hn].dtype.names)
                 else:
                     zipover = zip(self._handle[hn][:,'name'],self._handle[hn][:,'value'])
                 for varname, val in zipover:
                     vn = varname.strip()
+                    if hasattr(vn, 'decode'):
+                        vn = vn.decode("ascii", "ignore")
                     if hn.startswith("string"):
                         pval = val.strip()
                     else:
@@ -329,7 +338,7 @@ class FLASHDataset(Dataset):
                                    "scalar of the same name".format(hn[:-1],vn))
                     if hasattr(pval, 'decode'):
                         pval = pval.decode("ascii", "ignore")
-                    self.parameters[vn.decode("ascii", "ignore")] = pval
+                    self.parameters[vn] = pval
         
         # Determine block size
         try:
