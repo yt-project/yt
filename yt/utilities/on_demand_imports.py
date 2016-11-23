@@ -230,6 +230,19 @@ class h5py_imports(object):
             self._Group = Group
         return self._Group
 
+    _Dataset = None
+    @property
+    def Dataset(self):
+        if self._err:
+            raise self._err
+        if self._Dataset is None:
+            try:
+                from h5py import Dataset
+            except ImportError:
+                Dataset = NotAModule(self._name)
+            self._Dataset = Dataset
+        return self._Dataset
+
     ___version__ = None
     @property
     def __version__(self):

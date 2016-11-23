@@ -19,6 +19,7 @@ import types
 import six
 import sys
 
+from collections import defaultdict
 from distutils.version import LooseVersion
 from numbers import Number
 
@@ -26,7 +27,6 @@ from .base_plot_types import \
     ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
-    ObliqueFixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
 from .plot_modifications import callback_registry
 from .plot_container import \
@@ -156,11 +156,9 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj`
     or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection or a
-        slice.  (For cutting planes, see
-        `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
+        slice or a cutting plane.
     bounds : sequence of floats
         Bounds are the min and max in the image plane that we want our
         image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
@@ -192,6 +190,7 @@ class PlotWindow(ImagePlotContainer):
         self._periodic = periodic
         self.oblique = oblique
         self._right_handed = right_handed
+        self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
 
@@ -272,8 +271,6 @@ class PlotWindow(ImagePlotContainer):
             bounds = self.xlim+self.ylim+self.zlim
         else:
             bounds = self.xlim+self.ylim
-        if self._frb_generator is ObliqueFixedResolutionBuffer:
-            bounds = np.array([b.in_units('code_length') for b in bounds])
 
         # Generate the FRB
         self.frb = self._frb_generator(self.data_source, bounds,
@@ -287,7 +284,11 @@ class PlotWindow(ImagePlotContainer):
             # Restore the old fields
             for key, unit in zip(old_fields, old_units):
                 self._frb[key]
-                self._frb[key].convert_to_units(unit)
+                equiv = self._equivalencies[key]
+                if equiv[0] is None:
+                    self._frb[key].convert_to_units(unit)
+                else:
+                    self.frb.set_unit(key, unit, equiv[0], equiv[1])
 
         # Restore the override fields
         for key in self.override_fields:
@@ -370,7 +371,8 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     @invalidate_plot
-    def set_unit(self, field, new_unit):
+    def set_unit(self, field, new_unit, equivalency=None,
+                 equivalency_kwargs=None):
         """Sets a new unit for the requested field
 
         parameters
@@ -380,7 +382,18 @@ class PlotWindow(ImagePlotContainer):
 
         new_unit : string or Unit object
            The name of the new unit.
+
+        equivalency : string, optional
+           If set, the equivalency to use to convert the current units to
+           the new requested unit. If None, the unit conversion will be done
+           without an equivelancy
+
+        equivalency_kwargs : string, optional
+           Keyword arguments to be passed to the equivalency. Only used if
+           ``equivalency`` is set.
         """
+        if equivalency_kwargs is None:
+            equivalency_kwargs = {}
         field = self.data_source._determine_fields(field)[0]
         field = ensure_list(field)
         new_unit = ensure_list(new_unit)
@@ -389,7 +402,8 @@ class PlotWindow(ImagePlotContainer):
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
-            self.frb[f].convert_to_units(u)
+            self._equivalencies[f] = (equivalency, equivalency_kwargs)
+            self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
         return self
 
     @invalidate_plot
@@ -1032,6 +1046,7 @@ class PWViewerMPL(PlotWindow):
         else:
             del self._callbacks[index]
         self.setup_callbacks()
+        return self
 
     def run_callbacks(self):
         for f in self.fields:
@@ -1577,7 +1592,7 @@ class OffAxisSlicePlot(PWViewerMPL):
     """
 
     _plot_type = 'OffAxisSlice'
-    _frb_generator = ObliqueFixedResolutionBuffer
+    _frb_generator = FixedResolutionBuffer
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, right_handed=True, fontsize=18,

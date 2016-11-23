@@ -22,7 +22,9 @@ from yt.utilities.lib.element_mappings import \
     test_tri_sampler, \
     test_quad_sampler, \
     test_hex20_sampler, \
-    test_wedge_sampler
+    test_wedge_sampler, \
+    test_tri2_sampler, \
+    test_tet2_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
@@ -127,3 +129,34 @@ def test_W1Sampler3D():
     field_values = np.array([1.,  2.,  3.,  4., 5., 6.])
 
     check_all_vertices(test_wedge_sampler, vertices, field_values)
+
+def test_T2Sampler2D():
+
+    vertices = np.array([[0.1 , 0.2 ],
+                         [0.3 , 0.5 ],
+                         [0.2 , 0.9 ],
+                         [0.2 , 0.35],
+                         [0.25, 0.7 ],
+                         [0.15, 0.55]])
+
+    field_values = np.array([15., 37., 49., 32., 46., 24.])
+
+    check_all_vertices(test_tri2_sampler, vertices, field_values)
+
+
+def test_Tet2Sampler3D():
+
+    vertices = np.array([[0.3  , -0.4  , 0.6] ,
+                         [1.7  , -0.7  , 0.8] ,
+                         [0.4  , 1.2   , 0.4] ,
+                         [0.4  , -0.2  , 2.0] ,
+                         [1.0  , -0.55 , 0.7] ,
+                         [1.05 , 0.25  , 0.6] ,
+                         [0.35 , 0.4   , 0.5] ,
+                         [0.35 , -0.3  , 1.3] ,
+                         [1.05 , -0.45 , 1.4] ,
+                         [0.4  , 0.5   , 1.2]])
+
+    field_values = np.array([15., 37., 49., 24., 30., 44., 20., 17., 32., 36.])
+
+    check_all_vertices(test_tet2_sampler, vertices, field_values)

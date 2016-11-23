@@ -1055,8 +1055,8 @@ GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the da
    import yt
    ds = yt.load("InteractingJets/jet_000002")
 
-Currently GAMER does not assume any unit for non-cosmological simulations. To specify the units for yt,
-you need to supply conversions for length, time, and mass to ``load`` using the ``units_override`` functionality:
+For simulations without units (i.e., OPT__UNIT = 0), you can supply conversions for
+length, time, and mass to ``load`` using the ``units_override`` functionality:
 
 .. code-block:: python
 
@@ -1264,23 +1264,37 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
 
 .. code-block:: python
 
-   import yt
-   import numpy
-   from yt.utilities.exodusII_reader import get_data
+    import yt
+    import numpy as np
 
-   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
+    coords = np.array([[0.0, 0.0],
+                       [1.0, 0.0],
+                       [1.0, 1.0],
+                       [0.0, 1.0]], dtype=np.float64)
 
-This uses a publically available `MOOSE <http://mooseframework.org/>`
-dataset along with the get_data function to parse the coords, connectivity,
-and data. Then, these can be loaded as an in-memory dataset as follows:
+     connect = np.array([[0, 1, 3],
+                         [1, 2, 3]], dtype=np.int64)
+
+     data = {}
+     data['connect1', 'test'] = np.array([[0.0, 1.0, 3.0],
+                                          [1.0, 2.0, 3.0]], dtype=np.float64)
+
+Here, we have made up a simple, 2D unstructured mesh dataset consisting of two
+triangles and one node-centered data field. This data can be loaded as an in-memory
+dataset as follows:
 
 .. code-block:: python
 
-    mesh_id = 0
-    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
+    ds = yt.load_unstructured_mesh(connect, coords, data)
 
-Note that load_unstructured_mesh can take either a single or a list of meshes.
-Here, we have selected only the first mesh to load.
+Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
+Here, we only have one mesh. The in-memory dataset can then be visualized as usual,
+e.g.:
+
+.. code-block:: python
+
+    sl = yt.SlicePlot(ds, 'z', 'test')
+    sl.annotate_mesh_lines()
 
 .. rubric:: Caveats
 
@@ -1519,6 +1533,57 @@ information.  At this time, halo member particles cannot be loaded.
    # The halo mass
    print(ad["FOF", "particle_mass"])
 
+.. _loading-openpmd-data:
+
+openPMD Data
+---------
+
+`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+scheme for mesh based data and particle data. It does not actually define a file
+format.
+
+HDF5-containers respecting the minimal set of meta information from
+versions 1.0.0 and 1.0.1 of the standard are compatible.
+Support for the ED-PIC extension is not available. Mesh data in cartesian coordinates
+and particle data can be read by this frontend.
+
+To load the first in-file iteration of a openPMD datasets using the standard HDF5
+output format:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load('example-3d/hdf5/data00000100.h5')
+
+If you operate on large files, you may want to modify the virtual chunking behaviour through
+``open_pmd_virtual_gridsize``. The supplied value is an estimate of the size of a single read request
+for each particle attribute/mesh (in Byte).
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5', open_pmd_virtual_gridsize=10e4)
+  sp = yt.SlicePlot(ds, 'x', 'rho')
+  sp.show()
+
+Particle data is fully supported:
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5')
+  ad = f.all_data()
+  ppp = yt.ParticlePhasePlot(ad, 'particle_position_y', 'particle_momentum_y', 'particle_weighting')
+  ppp.show()
+
+.. rubric:: Caveats
+
+* 1D, 2D and 3D data is compatible, but lower dimensional data might yield
+  strange results since it gets padded and treated as 3D. Extraneous dimensions are
+  set to be of length 1.0m and have a width of one cell.
+* The frontend has hardcoded logic for renaming the openPMD ``position``
+  of particles to ``positionCoarse``
+
 .. _loading-pyne-data:
 
 PyNE Data
@@ -1633,7 +1698,9 @@ Specifying Tipsy Cosmological Parameters and Setting Default Units
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Cosmological parameters can be specified to Tipsy to enable computation of
-default units.  The parameters recognized are of this form:
+default units.  For example do the following, to load a Tipsy dataset whose
+path is stored in the variable ``my_filename`` with specified cosmology
+parameters:
 
 .. code-block:: python
 
@@ -1642,14 +1709,21 @@ default units.  The parameters recognized are of this form:
                            'omega_matter': 0.272,
                            'hubble_constant': 0.702}
 
-If you wish to set the default units directly, you can do so by using the
+   ds = yt.load(my_filename,
+                cosmology_parameters=cosmology_parameters)
+
+If you wish to set the unit system directly, you can do so by using the
 ``unit_base`` keyword in the load statement.
 
  .. code-block:: python
 
     import yt
+
     ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
 
+See the documentation for the
+:class:`~yt.frontends.tipsy.data_structures.TipsyDataset` class for more
+information.
 
 Loading Cosmological Simulations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

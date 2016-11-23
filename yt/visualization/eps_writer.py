@@ -1110,9 +1110,9 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
             else:
                 this_plot = yt_plots
             if j == nrow-1:
-                xaxis = 1
-            elif j == 0:
                 xaxis = 0
+            elif j == 0:
+                xaxis = 1
             else:
                 xaxis = -1
             if i == 0:
@@ -1177,6 +1177,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         for i in range(ncol):
             xpos0 = i*(figsize[0] + margins[0])
             index = j*ncol + i
+            if isinstance(yt_plots, list):
+                this_plot = yt_plots[index]
+            else:
+                this_plot = yt_plots
             if (not _yt and colorbars is not None) or (_yt and not yt_nocbar):
                 if cb_flags is not None:
                     if not cb_flags[index]:
@@ -1228,7 +1232,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         if fields[index] is None:
                             fields[index] = d.return_field(yt_plots[index])
                                               
-                        d.colorbar_yt(yt_plots[index],
+                        d.colorbar_yt(this_plot,
                                       field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,

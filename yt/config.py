@@ -48,6 +48,7 @@ ytcfg_defaults = dict(
     reconstruct_index = 'False',
     test_storage_dir = '/does/not/exist',
     test_data_dir = '/does/not/exist',
+    requires_ds_strict = 'False',
     enzo_db = '',
     hub_url = 'https://girder.hub.yt/api/v1',
     hub_api_key = '',
@@ -117,11 +118,16 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
     with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
         cp.write(new_cfg)
 
-class YTConfigParser(configparser.ConfigParser):
+class YTConfigParser(configparser.ConfigParser, object):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
+
     def __getitem__(self, key):
         self.get(key[0], key[1])
+
+    def get(self, section, option, *args, **kwargs):
+        val = super(YTConfigParser, self).get(section, option, *args, **kwargs)
+        return os.path.expanduser(os.path.expandvars(val))
 
 ytcfg = YTConfigParser(ytcfg_defaults)
 ytcfg.read([_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, 'yt.cfg'])

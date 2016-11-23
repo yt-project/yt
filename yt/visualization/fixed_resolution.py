@@ -18,12 +18,13 @@ from yt.frontends.ytdata.utilities import \
 from yt.funcs import \
     get_output_filename, \
     mylog, \
-    ensure_list
+    ensure_list, \
+    deprecate
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder, pixelize_off_axis_cartesian
+    pixelize_cylinder
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.frontends.stream.api import load_uniform_grid
 
@@ -51,9 +52,8 @@ class FixedResolutionBuffer(object):
     Parameters
     ----------
     data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
-        This is the source to be pixelized, which can be a projection or a
-        slice.  (For cutting planes, see
-        `yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`.)
+        This is the source to be pixelized, which can be a projection, slice or
+        cutting plane.
     bounds : sequence of floats
         Bounds are the min and max in the image plane that we want our
         image to cover.  It's in the order of (xmin, xmax, ymin, ymax),
@@ -66,12 +66,6 @@ class FixedResolutionBuffer(object):
     periodic : boolean
         This can be true or false, and governs whether the pixelization
         will span the domain boundaries.
-
-    See Also
-    --------
-    :class:`yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer` : A similar object,
-                                                     used for cutting
-                                                     planes.
 
     Examples
     --------
@@ -288,6 +282,44 @@ class FixedResolutionBuffer(object):
         dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
         return distance/dpy
 
+    def set_unit(self, field, unit, equivalency=None, equivalency_kwargs=None):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string or field tuple
+           The name of the field that is to be changed.
+
+        unit : string or Unit object
+           The name of the new unit.
+
+        equivalency : string, optional
+           If set, the equivalency to use to convert the current units to
+           the new requested unit. If None, the unit conversion will be done
+           without an equivelancy
+
+        equivalency_kwargs : string, optional
+           Keyword arguments to be passed to the equivalency. Only used if
+           ``equivalency`` is set.
+        """
+        if equivalency_kwargs is None:
+            equivalency_kwargs = {}
+        field = self.data_source._determine_fields(field)[0]
+        if equivalency is None:
+            self[field].convert_to_units(unit)
+        else:
+            equiv_array = self[field].to_equivalent(
+                unit, equivalency, **equivalency_kwargs)
+            # equiv_array isn't necessarily an ImageArray. This is an issue
+            # inherent to the way the unit system handles YTArray
+            # sublcasses and I don't see how to modify the unit system to
+            # fix this. Instead, we paper over this issue and hard code
+            # that equiv_array is an ImageArray
+            self[field] = ImageArray(
+                equiv_array, equiv_array.units, equiv_array.units.registry,
+                self[field].info)
+
+
     def export_hdf5(self, filename, fields = None):
         r"""Export a set of fields to a set of HDF5 datasets.
 
@@ -494,6 +526,11 @@ class FixedResolutionBuffer(object):
             self.__dict__['apply_' + filtername] = \
                 types.MethodType(filt, self)
 
+class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
+    @deprecate("FixedResolutionBuffer")
+    def __init__(self, *args, **kwargs):
+        super(ObliqueFixedResolutionBuffer, self).__init__(*args, **kwargs)
+
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
     """
     This object is a subclass of
@@ -515,40 +552,12 @@ class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):
 
     def __getitem__(self, item) :
         if item in self.data: return self.data[item]
-        buff = pixelize_cylinder(self.data_source["r"], self.data_source["dr"],
-                                 self.data_source["theta"], self.data_source["dtheta"],
-                                 self.buff_size, self.data_source[item].astype("float64"),
-                                 self.radius)
+        buff = np.zeros(self.buff_size, dtype="f8")
+        pixelize_cylinder(buff, self.data_source["r"], self.data_source["dr"],
+                          self.data_source["theta"], self.data_source["dtheta"],
+                          self.data_source[item].astype("float64"), self.radius)
         self[item] = buff
         return buff
-
-class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
-    """
-    This object is a subclass of
-    :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
-    that supports non-aligned input data objects, primarily cutting planes.
-    """
-    def __getitem__(self, item):
-        if item in self.data: return self.data[item]
-        indices = np.argsort(self.data_source['dx'])[::-1]
-        bounds = []
-        for b in self.bounds:
-            if hasattr(b, "in_units"):
-                b = float(b.in_units("code_length"))
-            bounds.append(b)
-        buff = pixelize_off_axis_cartesian(
-                               self.data_source['x'],   self.data_source['y'],   self.data_source['z'],
-                               self.data_source['px'],  self.data_source['py'],
-                               self.data_source['pdx'], self.data_source['pdy'], self.data_source['pdz'],
-                               self.data_source.center, self.data_source._inv_mat, indices,
-                               self.data_source[item],
-                               self.buff_size[0], self.buff_size[1],
-                               bounds).transpose()
-        ia = ImageArray(buff, input_units=self.data_source[item].units,
-                        info=self._get_info(item))
-        self[item] = ia
-        return ia
-
 
 class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     """

@@ -86,9 +86,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
             return velocity
 
         for ax in 'xyz':
-            self.add_field((ptype, "particle_velocity_%s" % ax), 
+            self.add_field((ptype, "particle_velocity_%s" % ax),
+                           sampling_type="particle",
                            function=_get_vel(ax),
-                           sampling_type = "particle",
                            units="code_length/code_time")
 
         super(Orion2FieldInfo, self).setup_particle_fields(ptype)
@@ -130,7 +130,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
             return data['kinetic_energy']/data['density']
 
         def _temperature(field, data):
-            c_v = data.ds.quan(data.ds.parameters['radiation.const_cv'], 
+            c_v = data.ds.quan(data.ds.parameters['radiation.const_cv'],
                                'erg/g/K')
             return (data["thermal_energy"]/c_v)
 
@@ -140,27 +140,28 @@ class Orion2FieldInfo(ChomboFieldInfo):
             return velocity
 
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax), function = _get_vel(ax),
+            self.add_field(("gas", "velocity_%s" % ax), sampling_type="cell",
+                           function = _get_vel(ax),
                            units = unit_system["velocity"])
-        self.add_field(("gas", "thermal_energy"),
+        self.add_field(("gas", "thermal_energy"), sampling_type="cell",
                        function = _thermal_energy,
                        units = unit_system["specific_energy"])
-        self.add_field(("gas", "thermal_energy_density"),
+        self.add_field(("gas", "thermal_energy_density"), sampling_type="cell",
                        function = _thermal_energy_density,
                        units = unit_system["pressure"])
-        self.add_field(("gas", "kinetic_energy"),
+        self.add_field(("gas", "kinetic_energy"), sampling_type="cell",
                        function = _kinetic_energy,
                        units = unit_system["pressure"])
-        self.add_field(("gas", "specific_kinetic_energy"),
+        self.add_field(("gas", "specific_kinetic_energy"), sampling_type="cell",
                        function = _specific_kinetic_energy,
                        units = unit_system["specific_energy"])
-        self.add_field(("gas", "magnetic_energy"),
+        self.add_field(("gas", "magnetic_energy"), sampling_type="cell",
                        function = _magnetic_energy,
                        units = unit_system["pressure"])
-        self.add_field(("gas", "specific_magnetic_energy"),
+        self.add_field(("gas", "specific_magnetic_energy"), sampling_type="cell",
                        function = _specific_magnetic_energy,
                        units = unit_system["specific_energy"])
-        self.add_field(("gas", "temperature"), function=_temperature,
+        self.add_field(("gas", "temperature"), sampling_type="cell",  function=_temperature,
                        units=unit_system["temperature"])
 
         setup_magnetic_field_aliases(self, "chombo", ["%s-magnfield" % ax for ax in "XYZ"])
@@ -199,8 +200,8 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
                 output_units = units
             if (ptype, f) not in self.field_list:
                 continue
-            self.add_output_field((ptype, f),
-                units = units, sampling_type = "particle",
+            self.add_output_field((ptype, f), sampling_type="particle",
+                units = units,
                 display_name = dn, output_units = output_units, take_log=False)
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
@@ -219,9 +220,8 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
-            self.add_output_field(field, 
-                                  units = self.ds.field_units.get(field, ""),
-                                  sampling_type = "particle")
+            self.add_output_field(field, sampling_type="particle",
+                                  units = self.ds.field_units.get(field, ""))
         self.setup_smoothed_fields(ptype,
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
@@ -261,16 +261,17 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
         super(ChomboPICFieldInfo2D, self).__init__(ds, field_list)
 
         for ftype in fluid_field_types:
-            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
+            self.add_field((ftype, 'gravitational_field_z'), sampling_type="cell",
+                            function = _dummy_field,
                             units = "code_length / code_time**2")
 
-        for ptype in particle_field_types:                
-            self.add_field((ptype, "particle_position_z"), function = _dummy_position,
-                           sampling_type = "particle",
+        for ptype in particle_field_types:
+            self.add_field((ptype, "particle_position_z"), sampling_type="particle",
+                           function = _dummy_position,
                            units = "code_length")
 
-            self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
-                           sampling_type = "particle",
+            self.add_field((ptype, "particle_velocity_z"), sampling_type="particle",
+                           function = _dummy_velocity,
                            units = "code_length / code_time")
 
 
@@ -290,24 +291,26 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
         super(ChomboPICFieldInfo1D, self).__init__(ds, field_list)
 
         for ftype in fluid_field_types:
-            self.add_field((ftype, 'gravitational_field_y'), function = _dummy_field, 
+            self.add_field((ftype, 'gravitational_field_y'), sampling_type="cell",
+                            function = _dummy_field,
                             units = "code_length / code_time**2")
 
-            self.add_field((ftype, 'gravitational_field_z'), function = _dummy_field, 
-                    units = "code_length / code_time**2")
+            self.add_field((ftype, 'gravitational_field_z'), sampling_type="cell",
+                            function = _dummy_field,
+                            units = "code_length / code_time**2")
 
         for ptype in particle_field_types:
-            self.add_field((ptype, "particle_position_y"), function = _dummy_position,
-                           sampling_type = "particle",
+            self.add_field((ptype, "particle_position_y"), sampling_type="particle",
+                           function = _dummy_position,
                            units = "code_length")
-            self.add_field((ptype, "particle_position_z"), function = _dummy_position,
-                           sampling_type = "particle",
+            self.add_field((ptype, "particle_position_z"), sampling_type="particle",
+                           function = _dummy_position,
                            units = "code_length")
-            self.add_field((ptype, "particle_velocity_y"), function = _dummy_velocity,
-                           sampling_type = "particle",
+            self.add_field((ptype, "particle_velocity_y"), sampling_type="particle",
+                           function = _dummy_velocity,
                            units = "code_length / code_time")
-            self.add_field((ptype, "particle_velocity_z"), function = _dummy_velocity,
-                           sampling_type = "particle",
+            self.add_field((ptype, "particle_velocity_z"), sampling_type="particle",
+                           function = _dummy_velocity,
                            units = "code_length / code_time")
 
 
@@ -329,4 +332,3 @@ class PlutoFieldInfo(ChomboFieldInfo):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
         setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1,2,3]])
-

@@ -63,11 +63,11 @@ def test_fields_diff_systems_sloshing():
     ytcfg["yt","skip_dataset_cache"] = "True"
 
     ds_cgs = load(gslr)
-    dd_cgs = ds_cgs.sphere("c", (100., "kpc"))
+    dd_cgs = ds_cgs.sphere("c", (15., "kpc"))
 
     for us in test_units:
         ds = load(gslr, unit_system=us)
-        dd = ds.sphere("c", (100.,"kpc"))
+        dd = ds.sphere("c", (15.,"kpc"))
         for field in test_fields:
             if us == "code":
                 # For this dataset code units are cgs

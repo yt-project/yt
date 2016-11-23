@@ -463,12 +463,12 @@ class YTCuttingPlane(YTSelectionContainer2D):
         self.fields = ensure_list(fields) + [k for k in self.field_data.keys()
                                              if k not in self._key_fields]
         from yt.visualization.plot_window import get_oblique_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.ds)
         pw = PWViewerMPL(
             self, bounds, fields=self.fields, origin='center-window', 
             periodic=False, oblique=True,
-            frb_generator=ObliqueFixedResolutionBuffer, 
+            frb_generator=FixedResolutionBuffer, 
             plot_type='OffAxisSlice')
         if axes_unit is not None:
             pw.set_axes_unit(axes_unit)
@@ -476,8 +476,8 @@ class YTCuttingPlane(YTSelectionContainer2D):
         return pw
 
     def to_frb(self, width, resolution, height=None, periodic=False):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
+        r"""This function returns a FixedResolutionBuffer generated from this
+        object.
 
         An ObliqueFixedResolutionBuffer is an object that accepts a
         variable-resolution 2D object and transforms it into an NxM bitmap that
@@ -526,9 +526,9 @@ class YTCuttingPlane(YTSelectionContainer2D):
             height = self.ds.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+        frb = FixedResolutionBuffer(self, bounds, resolution,
                                            periodic=periodic)
         return frb
 
@@ -869,3 +869,75 @@ class YTCutRegion(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
+
+class YTIntersectionContainer3D(YTSelectionContainer3D):
+    """
+    This is a more efficient method of selecting the intersection of multiple
+    data selection objects.
+
+    Creating one of these objects returns the intersection of all of the
+    sub-objects; it is designed to be a faster method than chaining & ("and")
+    operations to create a single, large intersection.
+
+    Parameters
+    ----------
+    data_objects : Iterable of YTSelectionContainer3D
+        The data objects to intersect
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.15)
+    >>> sp2 = ds.sphere((0.38, 0.51, 0.55), 0.1)
+    >>> sp3 = ds.sphere((0.35, 0.5, 0.6), 0.15)
+    >>> new_obj = ds.intersection((sp1, sp2, sp3))
+    >>> print(new_obj.sum("cell_volume"))
+    """
+    _type_name = "intersection"
+    _con_args = ("data_objects",)
+    def __init__(self, data_objects, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        # ensure_list doesn't check for tuples
+        if isinstance(data_objects, tuple):
+            data_objects = list(data_objects)
+        self.data_objects = ensure_list(data_objects)
+
+class YTDataObjectUnion(YTSelectionContainer3D):
+    """
+    This is a more efficient method of selecting the union of multiple
+    data selection objects.
+
+    Creating one of these objects returns the union of all of the sub-objects;
+    it is designed to be a faster method than chaining | (or) operations to
+    create a single, large union.
+
+    Parameters
+    ----------
+    data_objects : Iterable of YTSelectionContainer3D
+        The data objects to union
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.1)
+    >>> sp2 = ds.sphere((0.3, 0.5, 0.15), 0.1)
+    >>> sp3 = ds.sphere((0.5, 0.5, 0.9), 0.1)
+    >>> new_obj = ds.union((sp1, sp2, sp3))
+    >>> print(new_obj.sum("cell_volume"))
+    """
+    _type_name = "union"
+    _con_args = ("data_objects",)
+    def __init__(self, data_objects, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        # ensure_list doesn't check for tuples
+        if isinstance(data_objects, tuple):
+            data_objects = list(data_objects)
+        self.data_objects = ensure_list(data_objects)

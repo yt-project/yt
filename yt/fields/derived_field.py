@@ -91,8 +91,8 @@ class DerivedField(object):
        The dimensions of the field, only needed if units="auto" and only used
        for error checking.
     """
-    def __init__(self, name, function, units=None,
-                 take_log=True, validators=None, sampling_type = "mesh",
+    def __init__(self, name, sampling_type, function, units=None,
+                 take_log=True, validators=None,
                  particle_type=None, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
                  dimensions=None, ds=None):

@@ -633,3 +633,19 @@ class YTIllDefinedProfile(YTException):
             weight_msg = ""
 
         return msg + weight_msg
+
+class YTBooleanObjectError(YTException):
+    def __init__(self, bad_object):
+        self.bad_object = bad_object
+
+    def __str__(self):
+        v  = "Supplied:\n%s\nto a boolean operation" % (self.bad_object)
+        v += " but it is not a YTSelectionContainer3D object."
+        return v
+
+class YTBooleanObjectsWrongDataset(YTException):
+    def __init__(self):
+        pass
+
+    def __str__(self):
+        return "Boolean data objects must share a common dataset object."

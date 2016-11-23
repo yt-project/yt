@@ -100,7 +100,7 @@ cdef class AssignDomainInd(OctVisitor):
 
 cdef class FillFileIndicesO(OctVisitor):
     cdef np.uint8_t[:] levels
-    cdef np.uint8_t[:] file_inds
+    cdef np.int64_t[:] file_inds
     cdef np.uint8_t[:] cell_inds
 
 cdef class FillFileIndicesR(OctVisitor):
