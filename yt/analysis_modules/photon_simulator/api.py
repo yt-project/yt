@@ -15,7 +15,7 @@ from numpy import VisibleDeprecationWarning
 import warnings
 warnings.warn("The photon_simulator module is deprecated. "
               "Please use pyXSIM (http://hea-www.cfa.harvard.edu/~jzuhone/pyxsim) instead.",
-              VisibleDeprecationWarning)
+              VisibleDeprecationWarning, stacklevel=2)
 
 from .photon_models import \
      PhotonModel, \
