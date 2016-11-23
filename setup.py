@@ -295,6 +295,15 @@ class build_py(_build_py):
                 fobj.write("hg_version = '%s'\n" % changeset)
         _build_py.run(self)
 
+    def get_outputs(self):
+        # http://bitbucket.org/yt_analysis/yt/issues/1296
+        outputs = _build_py.get_outputs(self)
+        outputs.append(
+            os.path.join(self.build_lib, 'yt', '__hg_version__.py')
+        )
+        return outputs
+
+
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
