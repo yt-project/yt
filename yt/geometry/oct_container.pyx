@@ -1049,3 +1049,33 @@ cdef void OctList_delete(OctList *olist):
         next = this.next
         free(this)
         this = next
+
+cdef class OctObjectPool(ObjectPool):
+    def __cinit__(self):
+        # Base class will ALSO be called
+        self.itemsize = sizeof(Oct)
+
+    cdef void setup_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
+                         np.int64_t con_id):
+        cdef np.uint64_t i
+        cdef Oct* octs = <Oct *> obj
+        for n in range(n):
+            octs[n].file_ind = oct.domain = - 1
+            octs[n].domain_ind = n + offset
+            octs[n].children = NULL
+
+    cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
+                           np.int64_t con_id):
+        cdef np.uint64_t i, j
+        cdef Oct *my_octs = <Oct *> obj
+        for i in range(n):
+            if my_octs[i].children != NULL:
+                free(my_octs[i].children)
+        free(obj)
+
+    def _con_to_array(self, int i):
+        cdef AllocationContainer *obj = &self.containers[i]
+        cdef OctPadded[:] mm = <OctPadded[:obj.n_assigned]> (
+                <OctPadded*> obj.my_objs)
+        rv = np.asarray(mm)
+        return rv

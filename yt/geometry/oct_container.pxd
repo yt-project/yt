@@ -22,6 +22,8 @@ cimport selection_routines
 from .oct_visitors cimport OctVisitor, Oct, cind
 from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
+from yt.utilities.lib.allocation_container cimport \
+    ObjectPool, AllocationContainer
 
 cdef int ORDER_MAX
 
