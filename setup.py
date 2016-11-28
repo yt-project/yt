@@ -180,7 +180,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "misc_utilities", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "ray_integrators", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
