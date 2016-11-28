@@ -52,13 +52,16 @@ cdef struct OctList:
     OctList *next
     Oct *o
 
+cdef class OctObjectPool(ObjectPool):
+    pass
+
 cdef OctList *OctList_append(OctList *list, Oct *o)
 cdef int OctList_count(OctList *list)
 cdef void OctList_delete(OctList *list)
 
 cdef class OctreeContainer:
     cdef OctAllocationContainer *cont
-    cdef OctAllocationContainer **domains
+    cdef public OctObjectPool domains
     cdef Oct ****root_mesh
     cdef int partial_coverage
     cdef int level_offset
