@@ -21,7 +21,7 @@ cimport cython
 from libc.math cimport sqrt
 
 from yt.utilities.lib.fp_utils cimport *
-from oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from oct_container cimport Oct, OctreeContainer
 from .particle_deposit cimport kernel_func, get_kernel_func, gind
 from yt.utilities.lib.distance_queue cimport NeighborList, Neighbor_compare, \
     r2dist, DistanceQueue

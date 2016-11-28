@@ -29,52 +29,13 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
-cdef OctAllocationContainer *allocate_octs(
-        int n_octs, OctAllocationContainer *prev):
-    cdef OctAllocationContainer *n_cont
-    cdef Oct *oct
-    cdef int n, i, j, k
-    n_cont = <OctAllocationContainer *> malloc(
-        sizeof(OctAllocationContainer))
-    if prev == NULL:
-        n_cont.offset = 0
-    else:
-        n_cont.offset = prev.offset + prev.n
-    n_cont.my_octs = <Oct *> malloc(sizeof(Oct) * n_octs)
-    if n_cont.my_octs == NULL:
-        raise MemoryError
-    n_cont.n = n_octs
-    n_cont.n_assigned = 0
-    n_cont.con_id = -1
-    for n in range(n_octs):
-        oct = &n_cont.my_octs[n]
-        oct.file_ind = oct.domain = -1
-        oct.domain_ind = n + n_cont.offset
-        oct.children = NULL
-    if prev != NULL:
-        prev.next = n_cont
-    n_cont.next = NULL
-    return n_cont
-
-cdef void free_octs(
-        OctAllocationContainer *first):
-    cdef OctAllocationContainer *cur
-    while first != NULL:
-        cur = first
-        for i in range(cur.n):
-            if cur.my_octs[i].children != NULL:
-                free(cur.my_octs[i].children)
-        free(first.my_octs)
-        first = cur.next
-        free(cur)
-
 # Here is the strategy for RAMSES containers:
 #   * Read each domain individually, creating *all* octs found in that domain
 #     file, even if they reside on other CPUs.
 #   * Only allocate octs that reside on >= domain
 #   * For all octs, insert into tree, which may require traversing existing
 #     octs
-#   * Note that this does not allow OctAllocationContainer to exactly be a
+#   * Note that this does not allow AllocationContainer to exactly be a
 #     chunk, but it is close.  For IO chunking, we can theoretically examine
 #     those octs that live inside a given allocator.
 
@@ -86,7 +47,6 @@ cdef class OctreeContainer:
         # This will just initialize the root mesh octs
         self.oref = over_refine
         self.partial_coverage = partial_coverage
-        self.cont = NULL
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
@@ -176,7 +136,6 @@ cdef class OctreeContainer:
         return obj
 
     def __dealloc__(self):
-        free_octs(self.cont)
         if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
             if self.root_mesh[i] == NULL: continue
@@ -670,8 +629,6 @@ cdef class OctreeContainer:
 
     def allocate_domains(self, domain_counts):
         cdef int count, i
-        cdef OctAllocationContainer *cur = self.cont
-        assert(cur == NULL)
         self.num_domains = len(domain_counts) # 1-indexed
         for i, count in enumerate(domain_counts):
             self.domains.append(count)

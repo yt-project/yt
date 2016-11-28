@@ -22,8 +22,8 @@ from libc.math cimport sqrt
 from cpython cimport PyObject
 from yt.utilities.lib.fp_utils cimport *
 
-from oct_container cimport Oct, OctAllocationContainer, \
-    OctreeContainer, OctInfo
+from oct_container cimport \
+    Oct, OctreeContainer, OctInfo
 from cpython.array cimport array, clone
 from cython.view cimport memoryview as cymemview
 from yt.utilities.lib.misc_utilities import OnceIndirect

@@ -21,8 +21,8 @@ from libc.string cimport memmove
 cimport cython
 from libc.math cimport sqrt, fabs, sin, cos
 
-from oct_container cimport Oct, OctAllocationContainer, \
-    OctreeContainer, OctInfo
+from oct_container cimport \
+    Oct, OctreeContainer, OctInfo
 
 
 cdef void spherical_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):

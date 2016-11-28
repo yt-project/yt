@@ -37,15 +37,6 @@ cdef struct OctInfo:
     np.int64_t ipos[3]
     np.int32_t level
 
-cdef struct OctAllocationContainer
-cdef struct OctAllocationContainer:
-    np.int64_t n
-    np.int64_t n_assigned
-    np.int64_t offset
-    np.int64_t con_id
-    OctAllocationContainer *next
-    Oct *my_octs
-
 cdef struct OctList
 
 cdef struct OctList:
@@ -60,7 +51,6 @@ cdef int OctList_count(OctList *list)
 cdef void OctList_delete(OctList *list)
 
 cdef class OctreeContainer:
-    cdef OctAllocationContainer *cont
     cdef public OctObjectPool domains
     cdef Oct ****root_mesh
     cdef int partial_coverage
@@ -78,7 +68,7 @@ cdef class OctreeContainer:
                          Oct *o, bint periodicity[3])
     cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
-    # OctAllocationContainer.offset if such a thing exists.
+    # AllocationContainer.offset if such a thing exists.
     cdef np.int64_t get_domain_offset(self, int domain_id)
     cdef void visit_all_octs(self,
                         selection_routines.SelectorObject selector,
