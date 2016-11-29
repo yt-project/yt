@@ -1016,6 +1016,11 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
+        # pad extrema by epsilon so cells at bin edges are not excluded
+        for i, (mi, ma) in enumerate(ex):
+            mi = mi - np.spacing(mi)
+            ma = ma + np.spacing(ma)
+            ex[i][0], ex[i][1] = mi, ma
     else:
         ex = []
         for bin_field in bin_fields:
