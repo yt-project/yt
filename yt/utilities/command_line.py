@@ -909,10 +909,10 @@ class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
             "weight", "skip", "cmap", "output", "grids", "time", "ds", "max",
             "log", "linear",
-            dict(short="-fu", longname="--field_unit",
-                   action="store", type=str,
-                   dest="field_unit", default='1',
-                   help="Desired field units"))
+            dict(short="-fu", longname="--field-unit",
+                 action="store", type=str,
+                 dest="field_unit", default='1',
+                 help="Desired field units"))
 
     name = "plot"
 
