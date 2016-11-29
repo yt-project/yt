@@ -276,7 +276,13 @@ class ProfileND(ParallelAnalysisInterface):
 
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:
-            return np.logspace(np.log10(mi), np.log10(ma), n+1)
+            ret = np.logspace(np.log10(mi), np.log10(ma), n+1)
+            # at this point ret[0] and ret[-1] are not exactly equal to
+            # mi and ma due to round-off error. Let's force them to be
+            # mi and ma exactly to avoid incorrectly discarding cells near
+            # the edges. See Issue #1300.
+            ret[0], ret[-1] = mi, ma
+            return ret
         else:
             return np.linspace(mi, ma, n+1)
 
