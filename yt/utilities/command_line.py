@@ -272,7 +272,7 @@ _common_options = dict(
     unit    = dict(short="-u", longname="--unit",
                    action="store", type=str,
                    dest="unit", default='1',
-                   help="Desired units"),
+                   help="Desired axes units"),
     center  = dict(short="-c", longname="--center",
                    action="store", type=float,
                    dest="center", default=None,
@@ -908,7 +908,11 @@ class YTNotebookUploadCmd(YTCommand):
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
             "weight", "skip", "cmap", "output", "grids", "time", "ds", "max",
-            "log", "linear")
+            "log", "linear",
+            dict(short="-fu", longname="--field_unit",
+                   action="store", type=str,
+                   dest="field_unit", default='1',
+                   help="Desired field units"))
 
     name = "plot"
 
@@ -959,6 +963,9 @@ class YTPlotCmd(YTCommand):
             if args.time:
                 time = ds.current_time.in_units("yr")
                 plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+
+            if args.field_unit:
+                plt.set_units(args.field, args.field_unit)
 
             plt.set_cmap(args.field, args.cmap)
             plt.set_log(args.field, args.takelog)
