@@ -961,10 +961,10 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                plt.annotate_timestamp(0.2, 0.8)
+                plt.annotate_timestamp()
 
             if args.field_unit:
-                plt.set_units(args.field, args.field_unit)
+                plt.set_unit(args.field, args.field_unit)
 
             plt.set_cmap(args.field, args.cmap)
             plt.set_log(args.field, args.takelog)
