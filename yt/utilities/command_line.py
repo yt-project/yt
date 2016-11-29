@@ -961,8 +961,7 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = ds.current_time.in_units("yr")
-                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+                plt.annotate_timestamp(0.2, 0.8)
 
             if args.field_unit:
                 plt.set_units(args.field, args.field_unit)
