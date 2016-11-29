@@ -765,6 +765,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         self.oref = over_refine
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
+        self.domains = OctObjectPool()
         self.num_domains = 0
         self.level_offset = 0
         self.nocts = 0 # Increment when initialized
