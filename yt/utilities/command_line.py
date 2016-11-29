@@ -911,7 +911,7 @@ class YTPlotCmd(YTCommand):
             "log", "linear",
             dict(short="-fu", longname="--field-unit",
                  action="store", type=str,
-                 dest="field_unit", default='1',
+                 dest="field_unit", default=None,
                  help="Desired field units"))
 
     name = "plot"
