@@ -35,9 +35,10 @@ cdef extern from "stdlib.h":
 #   * Only allocate octs that reside on >= domain
 #   * For all octs, insert into tree, which may require traversing existing
 #     octs
-#   * Note that this does not allow AllocationContainer to exactly be a
-#     chunk, but it is close.  For IO chunking, we can theoretically examine
-#     those octs that live inside a given allocator.
+#   * Note that this does not allow one component of an ObjectPool (an
+#     AllocationContainer) to exactly be a chunk, but it is close.  For IO
+#     chunking, we can theoretically examine those octs that live inside a
+#     given allocator.
 
 cdef class OctreeContainer:
 
@@ -99,11 +100,11 @@ cdef class OctreeContainer:
         for i in range(3):
             dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
         # Pos is the center of the octs
-        cdef AllocationContainer *cur = &obj.domains.containers[0]
+        cdef OctAllocationContainer *cur = obj.domains.get_cont(0)
         cdef Oct *o
         cdef np.uint64_t nfinest = 0
         visitor.ref_mask = ref_mask
-        visitor.octs = <Oct *> cur.my_objs
+        visitor.octs = cur.my_objs
         visitor.nocts = &cur.n_assigned
         visitor.nfinest = &nfinest
         pos[0] = obj.DLE[0] + dds[0]/2.0
@@ -114,7 +115,7 @@ cdef class OctreeContainer:
                 for k in range(obj.nn[2]):
                     if obj.root_mesh[i][j][k] != NULL:
                         raise RuntimeError
-                    o = &((<Oct *> cur.my_objs)[cur.n_assigned])
+                    o = &cur.my_objs[cur.n_assigned]
                     o.domain_ind = o.file_ind = 0
                     o.domain = 1
                     obj.root_mesh[i][j][k] = o
@@ -586,7 +587,7 @@ cdef class OctreeContainer:
         cdef np.float64_t dds[3]
         no = pos.shape[0] #number of octs
         if curdom > self.num_domains: return 0
-        cdef AllocationContainer *cont = &self.domains.containers[curdom - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(curdom - 1)
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
@@ -640,9 +641,9 @@ cdef class OctreeContainer:
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
         if next != NULL: return next
-        cdef AllocationContainer *cont = &self.domains.containers[domain_id - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n: raise RuntimeError
-        next = &((<Oct *> cont.my_objs)[cont.n_assigned])
+        next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         self.root_mesh[ind[0]][ind[1]][ind[2]] = next
         self.nocts += 1
@@ -659,9 +660,9 @@ cdef class OctreeContainer:
             for i in range(8):
                 parent.children[i] = NULL
         if next != NULL: return next
-        cdef AllocationContainer *cont = &self.domains.containers[domain_id - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n: raise RuntimeError
-        next = &((<Oct *> cont.my_objs)[cont.n_assigned])
+        next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         parent.children[cind(ind[0],ind[1],ind[2])] = next
         self.nocts += 1
@@ -853,14 +854,14 @@ cdef class SparseOctreeContainer(OctreeContainer):
         cdef Oct *next = NULL
         self.get_root(ind, &next)
         if next != NULL: return next
-        cdef AllocationContainer *cont = &self.domains.containers[domain_id - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n:
             print "Too many assigned."
             return NULL
         if self.num_root >= self.max_root:
             print "Too many roots."
             return NULL
-        next = &((<Oct *> cont.my_objs)[cont.n_assigned])
+        next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
@@ -972,9 +973,15 @@ cdef void OctList_delete(OctList *olist):
         this = next
 
 cdef class OctObjectPool(ObjectPool):
+    # This is an inherited version of the ObjectPool that provides setup and
+    # teardown functions for the individually allocated objects.  These allow
+    # us to initialize the Octs to default values, and we can also free any
+    # allocated memory in them.  Implementing _con_to_array also provides the
+    # opportunity to supply views of the octs in Python code.
     def __cinit__(self):
         # Base class will ALSO be called
         self.itemsize = sizeof(Oct)
+        assert(sizeof(OctAllocationContainer) == sizeof(AllocationContainer))
 
     cdef void setup_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                          np.int64_t con_id):

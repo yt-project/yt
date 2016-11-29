@@ -15,8 +15,6 @@ from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures
 from yt.utilities.lib.misc_utilities import OnceIndirect
-from yt.utilities.lib.allocation_container cimport \
-    AllocationContainer
 
 cdef extern from "platform_dep.h":
     ctypedef int int32_t

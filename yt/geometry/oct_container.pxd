@@ -43,8 +43,18 @@ cdef struct OctList:
     OctList *next
     Oct *o
 
+# NOTE: This object *has* to be the same size as the AllocationContainer
+# object.  There's an assert in the __cinit__ function.
+cdef struct OctAllocationContainer:
+    np.uint64_t n
+    np.uint64_t n_assigned
+    np.uint64_t offset
+    np.int64_t con_id # container id
+    Oct *my_objs
+
 cdef class OctObjectPool(ObjectPool):
-    pass
+    cdef inline OctAllocationContainer *get_cont(self, int i):
+        return <OctAllocationContainer*> (&self.containers[i])
 
 cdef OctList *OctList_append(OctList *list, Oct *o)
 cdef int OctList_count(OctList *list)
