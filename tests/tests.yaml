@@ -65,7 +65,7 @@ answer_tests:
   local_ramses_001:
     - yt/frontends/ramses/tests/test_outputs.py
 
-  local_ytdata_001:
+  local_ytdata_002:
     - yt/frontends/ytdata
 
   local_absorption_spectrum_005:
