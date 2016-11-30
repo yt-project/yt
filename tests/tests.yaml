@@ -81,8 +81,6 @@ answer_tests:
 
 other_tests:
   unittests:
-     - '-v'
      - '--exclude=test_mesh_slices'  # disable randomly failing test
   cookbook:
-     - '-v'
      - 'doc/source/cookbook/tests/test_cookbook.py'

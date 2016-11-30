@@ -67,7 +67,7 @@ def generate_tasks_input():
                       if DROP_TAG not in line])
     tests = yaml.load(data)
 
-    base_argv = ['--local-dir=%s' % answers_dir, '-v',
+    base_argv = ['--local-dir=%s' % answers_dir,
                  '--with-answer-testing', '--answer-big-data', '--local']
     args = []
 
