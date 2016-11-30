@@ -309,8 +309,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
               axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
-            width = [self.ds.domain_width[self.y_axis[rax]],
-                     self.ds.domain_width[self.x_axis[rax]]]
+            width = [self.ds.domain_width[self.x_axis[rax]],
+                     self.ds.domain_width[self.y_axis[rax]]]
         elif name == 'latitude':
             ri = self.axis_id[self.radial_axis]
             # Remember, in spherical coordinates when we cut in theta,
