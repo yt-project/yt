@@ -1,5 +1,5 @@
 answer_tests:
-  local_artio_000:
+  local_artio_001:
     - yt/frontends/artio/tests/test_outputs.py
 
   local_athena_002:
@@ -14,7 +14,7 @@ answer_tests:
   local_fits_001:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_003:
+  local_flash_004:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
@@ -29,7 +29,7 @@ answer_tests:
   local_gizmo_002:
     - yt/frontends/gizmo/tests/test_outputs.py
 
-  local_halos_000:
+  local_halos_001:
     - yt/analysis_modules/halo_analysis/tests/test_halo_finders.py  # [py2]
     - yt/analysis_modules/halo_finding/tests/test_rockstar.py  # [py2]
     - yt/frontends/owls_subfind/tests/test_outputs.py
