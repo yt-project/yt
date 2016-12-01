@@ -1119,7 +1119,9 @@ class YTSurface(YTSelectionContainer3D):
                 verts.append(my_verts)
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
-        self.vertices = verts
+        # verts is an ndarray here and will always be in code units, so we
+        # expose it in the public API as a YTArray
+        self.vertices = self.ds.arr(verts, 'code_length')
         if fields is not None:
             samples = uconcatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
