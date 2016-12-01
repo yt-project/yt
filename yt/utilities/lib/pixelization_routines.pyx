@@ -393,7 +393,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
 
 cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
                                 np.float64_t *x, np.float64_t *y):
-    cdef np.float64_t z = math.sqrt(1 + math.cos(phi) * math.cos(theta / 2.0))
+    cdef np.float64_t z = math.sqrt(1.0 + math.cos(phi) * math.cos(theta / 2.0))
     x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
     y[0] = math.sin(phi) / z
 
@@ -415,6 +415,15 @@ def pixelize_aitoff(np.float64_t[:] theta,
     # z^2 = 1 + cos(latitude) cos(longitude/2)
     # x = cos(latitude) sin(longitude/2) / z
     # y = sin(latitude) / z
+    #
+    # Our extents work in a fun way.  We will use them to come up with the
+    # bounding box in our coordinate x,y plane, basing this on the
+    # understanding that our latitude (phi) and longitude (theta) reach their
+    # extrema at known areas.  For a given longitude, the x extrema will be at
+    # the equator and the pole (lat is -pi, 0, pi) and for a given latitude the
+    # y extrema will be at (lon is 0, -pi, pi).  Note that the periodicity of
+    # lon means that strictly speaking two of these are equal, but for the
+    # purposes of our extent we need to treat them kind of separately.
     cdef np.ndarray[np.float64_t, ndim=2] img
     cdef int i, j, nf, fi
     cdef np.float64_t x, y, z, zb
@@ -424,6 +433,76 @@ def pixelize_aitoff(np.float64_t[:] theta,
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
     nf = field.shape[0]
+    cdef np.float64_t xbounds[2], ybounds[2], temp_x, temp_y
+    xbounds[0] = 1.0
+    xbounds[1] = -1.0
+    ybounds[0] = 1.0
+    ybounds[1] = -1.0
+    # order of extent is (phi0, phi1, theta0, theta1) although they will need
+    # to be offset by PI and PI/2
+    cdef np.float64_t bounds[4]
+    if extents is not None:
+        bounds[0], bounds[1], bounds[2], bounds[3] = extents
+        bounds[0] -= PI/2.0
+        bounds[1] -= PI/2.0
+        bounds[2] -= PI
+        bounds[3] -= PI
+        # OK!  So now we need to figure out our x, y extents.  We'll do this by
+        # computing the xy values of the corners, then also compute the extrema
+        # for if they cross over either the meridian or the equator.
+        # upper left:
+        aitoff_thetaphi_to_xy(bounds[0], bounds[2], &temp_x, &temp_y)
+        xbounds[0] = fmin(xbounds[0], temp_x)
+        xbounds[1] = fmax(xbounds[1], temp_x)
+        ybounds[0] = fmin(ybounds[0], temp_y)
+        ybounds[1] = fmax(ybounds[1], temp_y)
+        # upper right:
+        aitoff_thetaphi_to_xy(bounds[1], bounds[2], &temp_x, &temp_y)
+        xbounds[0] = fmin(xbounds[0], temp_x)
+        xbounds[1] = fmax(xbounds[1], temp_x)
+        ybounds[0] = fmin(ybounds[0], temp_y)
+        ybounds[1] = fmax(ybounds[1], temp_y)
+        # lower right:
+        aitoff_thetaphi_to_xy(bounds[1], bounds[3], &temp_x, &temp_y)
+        xbounds[0] = fmin(xbounds[0], temp_x)
+        xbounds[1] = fmax(xbounds[1], temp_x)
+        ybounds[0] = fmin(ybounds[0], temp_y)
+        ybounds[1] = fmax(ybounds[1], temp_y)
+        # upper left
+        aitoff_thetaphi_to_xy(bounds[1], bounds[3], &temp_x, &temp_y)
+        xbounds[0] = fmin(xbounds[0], temp_x)
+        xbounds[1] = fmax(xbounds[1], temp_x)
+        ybounds[0] = fmin(ybounds[0], temp_y)
+        ybounds[1] = fmax(ybounds[1], temp_y)
+        if bounds[0] <= 0.0 and bounds[1] >= 0.0:
+            # crosses, so we know that our x extent will have an extrema at the
+            # equator.
+            aitoff_thetaphi_to_xy(bounds[0], 0.0, &temp_x, &temp_y)
+            xbounds[0] = fmin(xbounds[0], temp_x)
+            xbounds[1] = fmax(xbounds[1], temp_x)
+            ybounds[0] = fmin(ybounds[0], temp_y)
+            ybounds[1] = fmax(ybounds[1], temp_y)
+            aitoff_thetaphi_to_xy(bounds[1], 0.0, &temp_x, &temp_y)
+            xbounds[0] = fmin(xbounds[0], temp_x)
+            xbounds[1] = fmax(xbounds[1], temp_x)
+            ybounds[0] = fmin(ybounds[0], temp_y)
+            ybounds[1] = fmax(ybounds[1], temp_y)
+        if bounds[2] <= 0.0 and bounds[3] >= 0.0:
+            # crosses, so we know our y extent will have an extrema at the
+            # meridian.
+            aitoff_thetaphi_to_xy(0.0, bounds[2], &temp_x, &temp_y)
+            xbounds[0] = fmin(xbounds[0], temp_x)
+            xbounds[1] = fmax(xbounds[1], temp_x)
+            ybounds[0] = fmin(ybounds[0], temp_y)
+            ybounds[1] = fmax(ybounds[1], temp_y)
+            aitoff_thetaphi_to_xy(0.0, bounds[3], &temp_x, &temp_y)
+            xbounds[0] = fmin(xbounds[0], temp_x)
+            xbounds[1] = fmax(xbounds[1], temp_x)
+            ybounds[0] = fmin(ybounds[0], temp_y)
+            ybounds[1] = fmax(ybounds[1], temp_y)
+    else:
+        xbounds[0] = ybounds[0] = -1.0
+        xbounds[1] = ybounds[1] = 1.0
 
     if input_img is None:
         img = np.zeros((buff_size[0], buff_size[1]))
@@ -435,8 +514,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
     # within our theta.  This will cost *more* computations of the
     # (x,y)->(theta,phi) calculation, but because we no longer have to search
     # through the theta, phi arrays, it should be faster.
-    dx = 2.0 / (img.shape[0] - 1)
-    dy = 2.0 / (img.shape[1] - 1)
+    dx = (xbounds[1] - xbounds[0]) / (img.shape[0] - 1)
+    dy = (ybounds[1] - ybounds[0]) / (img.shape[1] - 1)
     x = y = 0
     for fi in range(nf):
         theta_p = (theta[fi] + theta_offset) - PI
@@ -465,18 +544,20 @@ def pixelize_aitoff(np.float64_t[:] theta,
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
         # Now we have the (projected rectangular) bounds.
-        xmin = (xmin + 1) # Get this into normalized image coords
-        xmax = (xmax + 1) # Get this into normalized image coords
-        ymin = (ymin + 1) # Get this into normalized image coords
-        ymax = (ymax + 1) # Get this into normalized image coords
-        x0 = <int> (xmin / dx)
-        x1 = <int> (xmax / dx) + 1
-        y0 = <int> (ymin / dy)
-        y1 = <int> (ymax / dy) + 1
+        xmin = (xmin + 0) # Get this into normalized image coords
+        xmax = (xmax + 0) # Get this into normalized image coords
+        ymin = (ymin + 0) # Get this into normalized image coords
+        ymax = (ymax + 0) # Get this into normalized image coords
+        x0 = <int> ((xmin - xbounds[0]) / dx)
+        x1 = <int> ((xmax - xbounds[0]) / dx) + 1
+        y0 = <int> ((ymin - ybounds[0]) / dy)
+        y1 = <int> ((ymax - ybounds[0]) / dy) + 1
         for i in range(x0, x1):
-            x = (-1.0 + i*dx)*s2*2.0
+            if i < 0 or i >= img.shape[0]: continue
+            x = (xbounds[0] + i*dx)*s2*2.0
             for j in range(y0, y1):
-                y = (-1.0 + j * dy)*s2
+                if j < 0 or j >= img.shape[1]: continue
+                y = (ybounds[0] + j * dy)*s2
                 zb = (x*x/8.0 + y*y/2.0 - 1.0)
                 if zb > 0: continue
                 z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)

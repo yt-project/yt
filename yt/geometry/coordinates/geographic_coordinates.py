@@ -180,8 +180,12 @@ class GeographicCoordinateHandler(CoordinateHandler):
         pdy = data_source["pdy"].d * np.pi/180
         # First one in needs to be the equivalent of "theta", which is
         # longitude
+        b = ((bounds[0] + 90) * np.pi/180,
+             (bounds[1] + 90) * np.pi/180,
+             (bounds[2] + 180) * np.pi/180,
+             (bounds[3] + 180) * np.pi/180)
         buff = pixelize_aitoff(py, pdy, px, pdx,
-                               size, data_source[field], None,
+                               size, data_source[field], b,
                                None).transpose()
         return buff
 
