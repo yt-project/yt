@@ -1242,7 +1242,7 @@ class YTSurface(YTSelectionContainer3D):
     def triangles(self):
         if self.vertices is None:
             self.get_data()
-        vv = np.empty((self.vertices.shape[1]/3, 3, 3), dtype="float64")
+        vv = np.empty((self.vertices.shape[1]//3, 3, 3), dtype="float64")
         for i in range(3):
             for j in range(3):
                 vv[:,i,j] = self.vertices[j,i::3]
@@ -1445,16 +1445,16 @@ class YTSurface(YTSelectionContainer3D):
             fmtl.write("# www.yt-project.com\n\n")
         #(0) formulate vertices
         nv = self.vertices.shape[1] # number of groups of vertices
-        f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
+        f = np.empty(nv//self.vertices.shape[0], dtype=ftype) # store sets of face colors
         v = np.empty(nv, dtype=vtype) # stores vertices
         if color_field is not None:
             cs = self[color_field]
         else:
-            cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+            cs = np.empty(self.vertices.shape[1]//self.vertices.shape[0])
         if emit_field is not None:
             em = self[emit_field]
         else:
-            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+            em = np.empty(self.vertices.shape[1]//self.vertices.shape[0])
         self._color_samples_obj(cs, em, color_log, emit_log, color_map, f,
                                 color_field_max, color_field_min,  color_field,
                                 emit_field_max, emit_field_min, emit_field) # map color values to color scheme
