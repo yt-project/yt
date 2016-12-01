@@ -184,9 +184,13 @@ class GeographicCoordinateHandler(CoordinateHandler):
              (bounds[1] + 90) * np.pi/180,
              (bounds[2] + 180) * np.pi/180,
              (bounds[3] + 180) * np.pi/180)
+        # Rotate so that our center (pre-offset) is the new center.
+        theta_offset = -np.pi/180 * (bounds[3]+bounds[2])/2.0
+        phi_offset = -np.pi/180 * (bounds[1]+bounds[0])/2.0
+        b = None
         buff = pixelize_aitoff(py, pdy, px, pdx,
                                size, data_source[field], b,
-                               None).transpose()
+                               None, theta_offset, phi_offset).transpose()
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,

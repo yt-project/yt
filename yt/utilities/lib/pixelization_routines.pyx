@@ -443,10 +443,10 @@ def pixelize_aitoff(np.float64_t[:] theta,
     cdef np.float64_t bounds[4]
     if extents is not None:
         bounds[0], bounds[1], bounds[2], bounds[3] = extents
-        bounds[0] -= PI/2.0
-        bounds[1] -= PI/2.0
-        bounds[2] -= PI
-        bounds[3] -= PI
+        bounds[0] += phi_offset - PI/2.0
+        bounds[1] += phi_offset - PI/2.0
+        bounds[2] += theta_offset - PI
+        bounds[3] += theta_offset - PI
         # OK!  So now we need to figure out our x, y extents.  We'll do this by
         # computing the xy values of the corners, then also compute the extrema
         # for if they cross over either the meridian or the equator.
@@ -544,10 +544,6 @@ def pixelize_aitoff(np.float64_t[:] theta,
         ymin = fmin(ymin, y)
         ymax = fmax(ymax, y)
         # Now we have the (projected rectangular) bounds.
-        xmin = (xmin + 0) # Get this into normalized image coords
-        xmax = (xmax + 0) # Get this into normalized image coords
-        ymin = (ymin + 0) # Get this into normalized image coords
-        ymax = (ymax + 0) # Get this into normalized image coords
         x0 = <int> ((xmin - xbounds[0]) / dx)
         x1 = <int> ((xmax - xbounds[0]) / dx) + 1
         y0 = <int> ((ymin - ybounds[0]) / dy)
