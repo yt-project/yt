@@ -1758,7 +1758,7 @@ class YTSurface(YTSelectionContainer3D):
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
             self._color_samples(cs, color_log, color_map, arr)
         else:
-            arr = np.empty(nv/3, np.dtype(fs[:-3]))
+            arr = np.empty(nv//3, np.dtype(fs[:-3]))
         for i, ax in enumerate("xyz"):
             # Do the bounds first since we cast to f32
             tmp = self.vertices[i,:]
@@ -1771,7 +1771,7 @@ class YTSurface(YTSelectionContainer3D):
         v.tofile(f)
         arr["ni"][:] = 3
         vi = np.arange(nv, dtype="<i")
-        vi.shape = (nv/3, 3)
+        vi.shape = (nv//3, 3)
         arr["v1"][:] = vi[:,0]
         arr["v2"][:] = vi[:,1]
         arr["v3"][:] = vi[:,2]
