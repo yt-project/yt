@@ -1225,11 +1225,18 @@ class YTSurface(YTSelectionContainer3D):
             ff = np.ones_like(vc_data[self.surface_field], dtype="float64")
         else:
             ff = vc_data[fluxing_field]
-
-        return march_cubes_grid_flux(
-            self.field_value, vc_data[self.surface_field], vc_data[field_x],
-            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
-            grid.dds)
+        surf_vals = vc_data[self.surface_field]
+        field_x_vals = vc_data[field_x]
+        field_y_vals = vc_data[field_y]
+        field_z_vals = vc_data[field_z]
+        ret = march_cubes_grid_flux(
+            self.field_value, surf_vals, field_x_vals, field_y_vals, field_z_vals,
+            ff, mask, grid.LeftEdge, grid.dds)
+        # assumes all the fluxing fields have the same units
+        ret_units = field_x_vals.units * ff.units * grid.dds.units**2
+        ret = self.ds.arr(ret, ret_units)
+        ret.convert_to_units(self.ds.unit_system[ret_units.dimensions])
+        return ret
 
     @property
     def triangles(self):
