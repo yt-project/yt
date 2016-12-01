@@ -88,19 +88,19 @@ class GadgetFieldInfo(SPHFieldInfo):
                 ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
-        self.add_field(
-            (ptype, "Temperature"),
-            sampling_type="particle",
-            function=_temperature,
-            units=self.ds.unit_system["temperature"])
+        self.add_field((ptype, "Temperature"),
+                       sampling_type="particle",
+                       function=_temperature,
+                       units=self.ds.unit_system["temperature"])
         self.alias((ptype, 'temperature'), (ptype, 'Temperature'))
+        # need to do this manually since that automatic aliasing that happens
+        # in the FieldInfoContainer base class has already hapenned at this
+        # point
+        self.alias(('gas', 'temperature'), (ptype, 'Temperature'))
 
         # For now, we hardcode num_neighbors.  We should make this configurable
         # in the future.
         num_neighbors = 64
-        fn = add_volume_weighted_smoothed_field(
+        add_volume_weighted_smoothed_field(
             ptype, "particle_position", "particle_mass", "smoothing_length",
             "density", "Temperature", self, num_neighbors)
-
-        # Alias ("gas", "temperature") to the new smoothed Temperature field
-        self.alias(("gas", "temperature"), fn[0])
