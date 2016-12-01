@@ -6,6 +6,8 @@ import nose
 from yt.extern.six import StringIO
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
+import numpy
+numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
 class NoseWorker(multiprocessing.Process):
 
