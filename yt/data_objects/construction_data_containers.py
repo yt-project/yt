@@ -56,6 +56,7 @@ from yt.utilities.minimal_representation import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, communication_system
 from yt.units.unit_object import Unit
+from yt.units.yt_array import uconcatenate
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
@@ -1120,7 +1121,7 @@ class YTSurface(YTSelectionContainer3D):
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         self.vertices = verts
         if fields is not None:
-            samples = np.concatenate(samples)
+            samples = uconcatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
                                 datatype='array')
             if sample_type == "face":
