@@ -1324,7 +1324,8 @@ class YTSurface(YTSelectionContainer3D):
         >>> def _Emissivity(field, data):
         ...     return (data['density']*data['density'] *
         ...             np.sqrt(data['temperature']))
-        >>> ds.add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
+        >>> ds.add_field("emissivity", function=_Emissivity,
+        ...              sampling_type='cell', units=r"g**2*sqrt(K)/cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
