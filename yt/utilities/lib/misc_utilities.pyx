@@ -59,7 +59,7 @@ def new_bin_profile1d(np.ndarray[np.intp_t, ndim=1] bins_x,
             bval = bsource[n,fi]
             bval_mresult = bval - mresult[bin,fi]
             # qresult has to have the previous wresult
-            qresult[bin,fi] += (oldwr * wval * bval_mresult * bval_mresult / \
+            qresult[bin,fi] += oldwr * wval * bval_mresult * bval_mresult / \
                 (oldwr + wval)
             bresult[bin,fi] += wval*bval
             # mresult needs the new wresult
@@ -185,7 +185,7 @@ def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
         bval = bsource[n]
         wval = wsource[n]
         bval_mresult = bval - mresult[bini, binj]
-        qresult[bini, binj] += (wresult[bini, binj] * wval * bval_mresult * bval_mresult / \
+        qresult[bini, binj] += wresult[bini, binj] * wval * bval_mresult * bval_mresult / \
             (wresult[bini, binj] + wval)
         wresult[bini, binj] += wval
         bresult[bini, binj] += wval*bval
