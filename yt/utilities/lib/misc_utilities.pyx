@@ -47,7 +47,7 @@ def new_bin_profile1d(np.ndarray[np.intp_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=2] qresult,
                   np.ndarray[np.uint8_t, ndim=1, cast=True] used):
     cdef int n, fi, bin
-    cdef np.float64_t wval, bval, oldwr
+    cdef np.float64_t wval, bval, oldwr, bval_mresult
     cdef int nb = bins_x.shape[0]
     cdef int nf = bsource.shape[1]
     for n in range(nb):
@@ -57,12 +57,13 @@ def new_bin_profile1d(np.ndarray[np.intp_t, ndim=1] bins_x,
         wresult[bin] += wval
         for fi in range(nf):
             bval = bsource[n,fi]
+            bval_mresult = bval - mresult[bin,fi]
             # qresult has to have the previous wresult
-            qresult[bin,fi] += (oldwr * wval * (bval - mresult[bin,fi])**2) / \
+            qresult[bin,fi] += (oldwr * wval * bval_mresult * bval_mresult / \
                 (oldwr + wval)
             bresult[bin,fi] += wval*bval
             # mresult needs the new wresult
-            mresult[bin,fi] += wval * (bval - mresult[bin,fi]) / wresult[bin]
+            mresult[bin,fi] += wval * bval_mresult / wresult[bin]
         used[bin] = 1
     return
 
@@ -79,7 +80,7 @@ def new_bin_profile2d(np.ndarray[np.intp_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=3] qresult,
                   np.ndarray[np.uint8_t, ndim=2, cast=True] used):
     cdef int n, fi, bin_x, bin_y
-    cdef np.float64_t wval, bval, oldwr
+    cdef np.float64_t wval, bval, oldwr, bval_mresult
     cdef int nb = bins_x.shape[0]
     cdef int nf = bsource.shape[1]
     for n in range(nb):
@@ -90,12 +91,13 @@ def new_bin_profile2d(np.ndarray[np.intp_t, ndim=1] bins_x,
         wresult[bin_x,bin_y] += wval
         for fi in range(nf):
             bval = bsource[n,fi]
+            bval_mresult = bval - mresult[bin_x,bin_y,fi]
             # qresult has to have the previous wresult
-            qresult[bin_x,bin_y,fi] += (oldwr * wval * (bval - mresult[bin_x,bin_y,fi])**2) / \
+            qresult[bin_x,bin_y,fi] += oldwr * wval * bval_mresult * bval_mresult / \
                 (oldwr + wval)
             bresult[bin_x,bin_y,fi] += wval*bval
             # mresult needs the new wresult
-            mresult[bin_x,bin_y,fi] += wval * (bval - mresult[bin_x,bin_y,fi]) / wresult[bin_x,bin_y]
+            mresult[bin_x,bin_y,fi] += wval * bval_mresult / wresult[bin_x,bin_y]
         used[bin_x,bin_y] = 1
     return
 
@@ -113,7 +115,7 @@ def new_bin_profile3d(np.ndarray[np.intp_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=4] qresult,
                   np.ndarray[np.uint8_t, ndim=3, cast=True] used):
     cdef int n, fi, bin_x, bin_y, bin_z
-    cdef np.float64_t wval, bval, oldwr
+    cdef np.float64_t wval, bval, oldwr, bval_mresult
     cdef int nb = bins_x.shape[0]
     cdef int nf = bsource.shape[1]
     for n in range(nb):
@@ -125,14 +127,14 @@ def new_bin_profile3d(np.ndarray[np.intp_t, ndim=1] bins_x,
         wresult[bin_x,bin_y,bin_z] += wval
         for fi in range(nf):
             bval = bsource[n,fi]
+            bval_mresult = bval - mresult[bin_x,bin_y,bin_z,fi]
             # qresult has to have the previous wresult
             qresult[bin_x,bin_y,bin_z,fi] += \
-                (oldwr * wval * (bval - mresult[bin_x,bin_y,bin_z,fi])**2) / \
+                oldwr * wval * bval_mresult * bval_mresult / \
                 (oldwr + wval)
             bresult[bin_x,bin_y,bin_z,fi] += wval*bval
             # mresult needs the new wresult
-            mresult[bin_x,bin_y,bin_z,fi] += wval * \
-                (bval - mresult[bin_x,bin_y,bin_z,fi]) / \
+            mresult[bin_x,bin_y,bin_z,fi] += wval * bval_mresult / \
                  wresult[bin_x,bin_y,bin_z]
         used[bin_x,bin_y,bin_z] = 1
     return
@@ -149,16 +151,17 @@ def bin_profile1d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=1] qresult,
                   np.ndarray[np.float64_t, ndim=1] used):
     cdef int n, bin
-    cdef np.float64_t wval, bval
+    cdef np.float64_t wval, bval, bval_mresult
     for n in range(bins_x.shape[0]):
         bin = bins_x[n]
         bval = bsource[n]
         wval = wsource[n]
-        qresult[bin] += (wresult[bin] * wval * (bval - mresult[bin])**2) / \
+        bval_mresult = bval - mresult[bin]
+        qresult[bin] += wresult[bin] * wval * bval_mresult * bval_mresult / \
             (wresult[bin] + wval)
         wresult[bin] += wval
         bresult[bin] += wval*bval
-        mresult[bin] += wval * (bval - mresult[bin]) / wresult[bin]
+        mresult[bin] += wval * bval_mresult / wresult[bin]
         used[bin] = 1
     return
 
@@ -175,17 +178,18 @@ def bin_profile2d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=2] qresult,
                   np.ndarray[np.float64_t, ndim=2] used):
     cdef int n, bini, binj
-    cdef np.float64_t wval, bval
+    cdef np.float64_t wval, bval, bval_mresult
     for n in range(bins_x.shape[0]):
         bini = bins_x[n]
         binj = bins_y[n]
         bval = bsource[n]
         wval = wsource[n]
-        qresult[bini, binj] += (wresult[bini, binj] * wval * (bval - mresult[bini, binj])**2) / \
+        bval_mresult = bval - mresult[bini, binj]
+        qresult[bini, binj] += (wresult[bini, binj] * wval * bval_mresult * bval_mresult / \
             (wresult[bini, binj] + wval)
         wresult[bini, binj] += wval
         bresult[bini, binj] += wval*bval
-        mresult[bini, binj] += wval * (bval - mresult[bini, binj]) / wresult[bini, binj]
+        mresult[bini, binj] += wval * bval_mresult / wresult[bini, binj]
         used[bini, binj] = 1
     return
 
@@ -203,18 +207,19 @@ def bin_profile3d(np.ndarray[np.int64_t, ndim=1] bins_x,
                   np.ndarray[np.float64_t, ndim=3] qresult,
                   np.ndarray[np.float64_t, ndim=3] used):
     cdef int n, bini, binj, bink
-    cdef np.float64_t wval, bval
+    cdef np.float64_t wval, bval, bval_mresult
     for n in range(bins_x.shape[0]):
         bini = bins_x[n]
         binj = bins_y[n]
         bink = bins_z[n]
         bval = bsource[n]
         wval = wsource[n]
-        qresult[bini, binj, bink] += (wresult[bini, binj, bink] * wval * (bval - mresult[bini, binj, bink])**2) / \
+        bval_mresult = bval - mresult[bini, binj, bink]
+        qresult[bini, binj, bink] += wresult[bini, binj, bink] * wval * bval_mresult * bval_mresult / \
             (wresult[bini, binj, bink] + wval)
         wresult[bini, binj, bink] += wval
         bresult[bini, binj, bink] += wval*bval
-        mresult[bini, binj, bink] += wval * (bval - mresult[bini, binj, bink]) / wresult[bini, binj, bink]
+        mresult[bini, binj, bink] += wval * bval_mresult / wresult[bini, binj, bink]
         used[bini, binj, bink] = 1
     return
 
@@ -344,8 +349,8 @@ def zlines(np.ndarray[np.float64_t, ndim=3] image,
         z1 = zs[j+1]
         dx = abs(x1-x0)
         dy = abs(y1-y0)
-        dzx = (z1-z0) / (dx**2 + dy**2) * dx
-        dzy = (z1-z0) / (dx**2 + dy**2) * dy
+        dzx = (z1-z0) / (dx * dx + dy * dy) * dx
+        dzy = (z1-z0) / (dx * dx + dy * dy) * dy
         err = dx - dy
         if crop == 1 and (dx > nx/2.0 or dy > ny/2.0):
             continue
@@ -1016,7 +1021,7 @@ def gravitational_binding_energy(
     i = 0
     n_q = mass.size
     pbar = get_pbar("Calculating potential for %d cells" % n_q,
-                    0.5 * (n_q**2 - n_q))
+                    0.5 * (n_q * n_q - n_q))
     for q_outer in range(n_q - 1):
         this_potential = 0.
         mass_o = mass[q_outer]

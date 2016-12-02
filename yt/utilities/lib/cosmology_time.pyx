@@ -1,12 +1,14 @@
 cimport numpy as np
 import numpy as np
-
+from libc.math cimport sqrt
 
 cdef double dadtau(double aexp_tau,double O_mat_0,double O_vac_0,double O_k_0):
-    return ( aexp_tau**3 * (O_mat_0 + O_vac_0*aexp_tau**3 + O_k_0*aexp_tau) )**0.5
+    double aexp_tau3 = aexp_tau * aexp_tau * aexp_tau
+    return sqrt( aexp_tau3 * (O_mat_0 + O_vac_0*aexp_tau3 + O_k_0*aexp_tau) )
 
 cdef double dadt(double aexp_t,double O_mat_0,double O_vac_0,double O_k_0):
-    return ( (1./aexp_t)*(O_mat_0 + O_vac_0*aexp_t**3 + O_k_0*aexp_t) )**0.5
+    double aexp_t3 = aexp_t * aexp_t * aexp_t
+    return sqrt( (1./aexp_t)*(O_mat_0 + O_vac_0*aexp_t3 + O_k_0*aexp_t) )
 
 
 cdef step_cosmo(double alpha,double tau,double aexp_tau,double t,double aexp_t,double O_mat_0,double O_vac_0,double O_k_0):

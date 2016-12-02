@@ -117,12 +117,12 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     zleft = left_edges[:,1]
     zright = right_edges[:,1]
 
-    a = (dpcart[0]**2) + (dpcart[1]**2)
-    b = (2*dpcart[0]*p1cart[0]) + (2*dpcart[1]*p1cart[1])
-    cleft = ((p1cart[0]**2) + (p1cart[1]**2)) - rleft**2
-    cright = ((p1cart[0]**2) + (p1cart[1]**2)) - rright**2
-    twoa = 2*a
-    bsqrd = b**2
+    a = dpcart[0] * dpcart[0] + dpcart[1] * dpcart[1]
+    b = 2 * dpcart[0] * p1cart[0] + 2 * dpcart[1] * p1cart[1]
+    cleft = p1cart[0] * p1cart[0] + p1cart[1] * p1cart[1] - rleft * rleft
+    cright = p1cart[0] * p1cart[0] + p1cart[1] * p1cart[1] - rright * rright
+    twoa = 2 * a
+    bsqrd = b * b
 
     # Compute positive and negative times and associated masks
     I = np.intp(left_edges.shape[0])
@@ -203,17 +203,17 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     tsect, tinds = np.unique(tsect[tmask], return_index=True)
     inds = inds[tmask][tinds]
     xyz = dsect[tmask][tinds]
-    s = np.sqrt(((xyz - p1cart)**2).sum(axis=1))
+    s = np.sqrt(((xyz - p1cart) * (xyz - p1cart)).sum(axis=1))
     s, sinds = np.unique(s, return_index=True)
     inds = inds[sinds]
     xyz = xyz[sinds]
-    t = s/np.sqrt((dpcart**2).sum())
+    t = s/np.sqrt((dpcart*dpcart).sum())
     sinds = s.argsort()
     s = s[sinds]
     t = t[sinds]
     inds = inds[sinds]
     xyz = xyz[sinds]
-    rztheta = np.concatenate([np.sqrt(xyz[:,0]**2 + xyz[:,1]**2)[:,np.newaxis], 
+    rztheta = np.concatenate([np.sqrt(xyz[:,0] * xyz[:,0] + xyz[:,1] * xyz[:,1])[:,np.newaxis], 
                               xyz[:,2:3],
                               np.arctan2(xyz[:,1], xyz[:,0])[:,np.newaxis]], axis=1)
     return t, s, rztheta, inds
