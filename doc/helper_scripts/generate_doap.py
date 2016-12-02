@@ -75,47 +75,47 @@ name_ignores = ["convert-repo"]
 lastname_sort = lambda a: a.rsplit(None, 1)[-1]
 
 def get_release_tags():
-    c = hglib.open(yt_path)
-    releases = {}
-    for name, rev, node, islocal in c.tags():
-        if name.startswith("yt-"):
-            releases[name] = node
-    rr = []
-    for name, node in sorted(releases.items()):
-        date = c.log(node)[-1][-1]
-        rr.append((date, name[3:]))
+    with hglib.open(yt_path) as c:
+        releases = {}
+        for name, rev, node, islocal in c.tags():
+            if name.startswith("yt-"):
+                releases[name] = node
+        rr = []
+        for name, node in sorted(releases.items()):
+            date = c.log(node)[-1][-1]
+            rr.append((date, name[3:]))
     rr.sort()
     return [(_[1], _[0].strftime("%Y-%M-%d")) for _ in rr]
 
 def developer_names():
     cmd = hglib.util.cmdbuilder("churn", "-c")
-    c = hglib.open(yt_path)
-    emails = set([])
-    for dev in c.rawcommand(cmd).split("\n"):
-        if len(dev.strip()) == 0: continue
-        emails.add(dev.rsplit(None, 2)[0])
-    print("Generating real names for {0} emails".format(len(emails)))
-    names = set([])
-    for email in sorted(emails):
-        if email in name_ignores:
-            continue
-        if email in name_mappings:
-            names.add(name_mappings[email])
-            continue
-        cset = c.log(revrange="last(author('%s'))" % email)
-        if len(cset) == 0:
-            print("Error finding {0}".format(email))
-            realname = email
-        else:
-            realname, addr = parseaddr(cset[0][4])
-        if realname == '':
-            realname = email
-        if realname in name_mappings:
-            names.add(name_mappings[realname])
-            continue
-        realname = realname.decode('utf-8')
-        realname = realname.encode('ascii', 'xmlcharrefreplace')
-        names.add(realname)
+    with hglib.open(yt_path) as c:
+        emails = set([])
+        for dev in c.rawcommand(cmd).split("\n"):
+            if len(dev.strip()) == 0: continue
+            emails.add(dev.rsplit(None, 2)[0])
+        print("Generating real names for {0} emails".format(len(emails)))
+        names = set([])
+        for email in sorted(emails):
+            if email in name_ignores:
+                continue
+            if email in name_mappings:
+                names.add(name_mappings[email])
+                continue
+            cset = c.log(revrange="last(author('%s'))" % email)
+            if len(cset) == 0:
+                print("Error finding {0}".format(email))
+                realname = email
+            else:
+                realname, addr = parseaddr(cset[0][4])
+            if realname == '':
+                realname = email
+            if realname in name_mappings:
+                names.add(name_mappings[realname])
+                continue
+            realname = realname.decode('utf-8')
+            realname = realname.encode('ascii', 'xmlcharrefreplace')
+            names.add(realname)
     #with open("devs.txt", "w") as f:
     #    for name in sorted(names, key=lastname_sort):
     #        f.write("%s\n" % name)
