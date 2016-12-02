@@ -51,7 +51,7 @@ def full_szpack3d(ds, xo):
     dn = np.zeros((nx,ny,nz))
     Dtau = np.array(sigma_thompson*data["density"]/(mh*mue)*dz)
     Te = data["kT"].ndarray_view()
-    betac = -np.array(data["velocity_z"]/clight)
+    betac = np.array(data["velocity_z"]/clight)
     pbar = get_pbar("Computing 3-D cell-by-cell S-Z signal for comparison.", nx)
     for i in range(nx):
         pbar.update(i)
