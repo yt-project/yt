@@ -360,7 +360,7 @@ class FITSImageData(object):
                        ctype=["RA---TAN","DEC--TAN"],
                        crota=None, cd=None, pc=None,
                        wcsname="celestial",
-                       clobber_old_wcs=True):
+                       replace_old_wcs=True):
         """
         Takes a Cartesian WCS and converts it to one in a
         celestial coordinate system.
@@ -381,7 +381,7 @@ class FITSImageData(object):
             Dimensioned coordinate transformation matrix.
         pc : 2x2-element ndarray, optional
             Coordinate transformation matrix.
-        clobber_old_wcs : boolean, optional
+        replace_old_wcs : boolean, optional
             Whether or not to overwrite the default WCS of the 
             FITSImageData instance. If false, a second WCS will 
             be added to the header. Default: True.
@@ -418,7 +418,7 @@ class FITSImageData(object):
             new_wcs.wcs.cd = cd
         if pc is not None:
             new_wcs.wcs.cd = pc
-        if clobber_old_wcs:
+        if replace_old_wcs:
             self.set_wcs(new_wcs, wcsname=wcsname)
         else:
             self.set_wcs(new_wcs, wcsname=wcsname, suffix="a")
