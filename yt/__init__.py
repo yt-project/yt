@@ -119,7 +119,8 @@ from yt.fields.api import \
     ValidateSpatial, \
     ValidateGridType, \
     add_field, \
-    derived_field
+    derived_field, \
+    add_xray_emissivity_field
 
 from yt.data_objects.api import \
     DatasetSeries, ImageArray, \

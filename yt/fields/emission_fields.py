@@ -35,9 +35,11 @@ from yt.utilities.physical_ratios import \
 
 xray_data_version = 1
 
-def _get_data_file(data_file=None):
-    if data_file is None:
+def _get_data_file(table_type):
+    if table_type == "cloudy":
         data_file = "cloudy_emissivity.h5"
+    else:
+        data_file = "apec_emissivity.h5"
     data_url = "http://yt-project.org/data"
     if "YT_DEST" in os.environ and \
       os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
@@ -67,11 +69,11 @@ class ObsoleteDataException(YTException):
         return "X-ray emissivity data is out of date.\n" + \
                "Download the latest data from http://yt-project.org/data/cloudy_emissivity.h5 and move it to %s." % \
           os.path.join(os.environ["YT_DEST"], "data", "cloudy_emissivity.h5")
-          
+
 class EmissivityIntegrator(object):
-    r"""Class for making X-ray emissivity fields with hdf5 data tables 
-    from Cloudy.
-    
+    r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
+    generated from Cloudy and AtomDB.
+
     Initialize an EmissivityIntegrator object.
 
     Parameters
@@ -84,24 +86,16 @@ class EmissivityIntegrator(object):
         These files contain emissivity tables for primordial elements and
         for metals at solar metallicity for the energy range 0.1 to 100 keV.
         Default: None.
-        
+
     """
-    def __init__(self, filename=None):
+    def __init__(self, table_type):
 
-        default_filename = False
-        if filename is None:
-            filename = _get_data_file()
-            default_filename = True
-
-        if not os.path.exists(filename):
-            mylog.warning("File %s does not exist, will attempt to find it." % filename)
-            filename = _get_data_file(data_file=filename)
+        filename = _get_data_file(table_type)
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
         in_file = h5py.File(filename, "r")
         if "info" in in_file.attrs:
             only_on_root(mylog.info, in_file.attrs["info"])
-        if default_filename and \
-          in_file.attrs["version"] < xray_data_version:
+        if in_file.attrs["version"] < xray_data_version:
             raise ObsoleteDataException()
         else:
             only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
@@ -149,18 +143,19 @@ class EmissivityIntegrator(object):
 
         return emiss
 
-def add_xray_emissivity_field(ds, e_min, e_max,
-                              filename=None,
-                              with_metals=True,
-                              constant_metallicity=None):
+def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy", 
+                              with_metals=True, constant_metallicity=None):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
     ----------
-    e_min: float
-        the minimum energy in keV for the energy band.
-    e_min: float
-        the maximum energy in keV for the energy band.
+    e_min : float
+        The minimum energy in keV for the energy band.
+    e_min : float
+        The maximum energy in keV for the energy band.
+    table_type : string, optional
+        The type of emissivity table to be used when creating the fields. 
+        
     filename: string, optional
         Path to data file containing emissivity values.  If None,
         a file called "cloudy_emissivity.h5" is used, for photoionized
@@ -169,11 +164,11 @@ def add_xray_emissivity_field(ds, e_min, e_max,
         These files contain emissivity tables for primordial elements and
         for metals at solar metallicity for the energy range 0.1 to 100 keV.
         Default: None.
-    with_metals: bool, optional
+    with_metals : bool, optional
         If True, use the metallicity field to add the contribution from 
         metals.  If False, only the emission from H/He is considered.
         Default: True.
-    constant_metallicity: float, optional
+    constant_metallicity : float, optional
         If specified, assume a constant metallicity for the emission 
         from metals.  The *with_metals* keyword must be set to False 
         to use this. It should be given in unit of solar metallicity.
@@ -188,15 +183,12 @@ def add_xray_emissivity_field(ds, e_min, e_max,
     Examples
     --------
 
-    >>> from yt.mods import *
-    >>> from yt.analysis_modules.spectral_integrator.api import *
-    >>> ds = load(dataset)
-    >>> add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
+    >>> import yt
+    >>> ds = yt.load(dataset)
+    >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
+    >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
     >>> p.save()
-
     """
-
     if with_metals:
         try:
             ds._get_field_info("metal_density")
@@ -204,7 +196,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
             raise RuntimeError("Your dataset does not have a \"metal_density\" field! " +
                                "Perhaps you should specify a constant metallicity?")
 
-    my_si = EmissivityIntegrator(filename=filename)
+    my_si = EmissivityIntegrator(table_type)
 
     em_0 = my_si.get_interpolator(my_si.emissivity_primordial, e_min, e_max)
     em_Z = None

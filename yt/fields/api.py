@@ -43,3 +43,5 @@ from .field_detector import \
     FieldDetector
 from .field_info_container import \
     FieldInfoContainer
+from .emission_fields import \
+    add_xray_emissivity_field
