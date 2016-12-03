@@ -35,7 +35,7 @@ from yt.utilities.physical_ratios import \
 
 xray_data_version = 1
 
-def _get_data_file(table_type):
+def _get_data_file(table_type, download=False):
     if table_type == "cloudy":
         data_file = "cloudy_emissivity.h5"
     else:
@@ -47,7 +47,7 @@ def _get_data_file(table_type):
     else:
         data_dir = "."
     data_path = os.path.join(data_dir, data_file)
-    if not os.path.exists(data_path):
+    if not os.path.exists(data_path) or download:
         mylog.info("Attempting to download supplementary data from %s to %s." % 
                    (data_url, data_dir))
         fn = download_file(os.path.join(data_url, data_file), data_path)
@@ -64,12 +64,6 @@ class EnergyBoundsException(YTException):
         return "Energy bounds are %e to %e keV." % \
           (self.lower, self.upper)
 
-class ObsoleteDataException(YTException):
-    def __str__(self):
-        return "X-ray emissivity data is out of date.\n" + \
-               "Download the latest data from http://yt-project.org/data/cloudy_emissivity.h5 and move it to %s." % \
-          os.path.join(os.environ["YT_DEST"], "data", "cloudy_emissivity.h5")
-
 class EmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
     generated from Cloudy and AtomDB.
@@ -78,15 +72,14 @@ class EmissivityIntegrator(object):
 
     Parameters
     ----------
-    filename: string, default None
-        Path to data file containing emissivity values.  If None,
+    table_type: string
+        The type of data to use when computing the emissivity values. If "cloudy",
         a file called "cloudy_emissivity.h5" is used, for photoionized
         plasmas. A second option, for collisionally ionized plasmas, is
-        in the file "apec_emissivity.h5", available at http://yt-project.org/data.
-        These files contain emissivity tables for primordial elements and
-        for metals at solar metallicity for the energy range 0.1 to 100 keV.
-        Default: None.
-
+        in the file "apec_emissivity.h5".These files contain emissivity tables 
+        for primordial elements and for metals at solar metallicity for the 
+        energy range 0.1 to 100 keV. If the files are not available or out of date
+        they will be downloaded.
     """
     def __init__(self, table_type):
 
@@ -96,7 +89,12 @@ class EmissivityIntegrator(object):
         if "info" in in_file.attrs:
             only_on_root(mylog.info, in_file.attrs["info"])
         if in_file.attrs["version"] < xray_data_version:
-            raise ObsoleteDataException()
+            msg = "X-ray emissivity data is out of date.\n" + \
+                  "Downloading the latest data from http://yt-project.org/data."
+            only_on_root(mylog.warning, msg)
+            filename = _get_data_file(table_type, download=True)
+            in_file.close()
+            in_file = h5py.File(filename, "r")
         else:
             only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
                          in_file.attrs["version"])
@@ -108,11 +106,10 @@ class EmissivityIntegrator(object):
         in_file.close()
 
         E_diff = np.diff(self.log_E)
-        self.E_bins = \
-                  YTArray(np.power(10, np.concatenate([self.log_E[:-1] - 0.5 * E_diff,
-                                                      [self.log_E[-1] - 0.5 * E_diff[-1],
-                                                       self.log_E[-1] + 0.5 * E_diff[-1]]])),
-                          "keV")
+        E_bins = np.concatenate([self.log_E[:-1] - 0.5 * E_diff,
+                                [self.log_E[-1] - 0.5 * E_diff[-1],
+                                 self.log_E[-1] + 0.5 * E_diff[-1]]])
+        self.E_bins = YTArray(np.power(10, E_bins), "keV")
         self.dnu = (np.diff(self.E_bins)/hcgs).in_units("Hz")
 
     def get_interpolator(self, data, e_min, e_max):
@@ -155,15 +152,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
         The maximum energy in keV for the energy band.
     table_type : string, optional
         The type of emissivity table to be used when creating the fields. 
-        
-    filename: string, optional
-        Path to data file containing emissivity values.  If None,
-        a file called "cloudy_emissivity.h5" is used, for photoionized
-        plasmas. A second option, for collisionally ionized plasmas, is
-        in the file "apec_emissivity.h5", available at http://yt-project.org/data.
-        These files contain emissivity tables for primordial elements and
-        for metals at solar metallicity for the energy range 0.1 to 100 keV.
-        Default: None.
+        Options are "cloudy" or "atomdb". Default: "cloudy"
     with_metals : bool, optional
         If True, use the metallicity field to add the contribution from 
         metals.  If False, only the emission from H/He is considered.
@@ -184,7 +173,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
     --------
 
     >>> import yt
-    >>> ds = yt.load(dataset)
+    >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
     >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
     >>> p.save()
@@ -214,8 +203,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
     try:
         ds._get_field_info("H_number_density")
     except YTFieldNotFound:
-        mylog.warning("Could not find a field for \"H_number_density\". Assuming primordial H " +
-                      "mass fraction.")
+        mylog.warning("Could not find a field for \"H_number_density\". "
+                      "Assuming primordial H mass fraction.")
         def _nh(field, data):
             return primordial_H_mass_fraction*data["gas","density"]/mp
         ds.add_field(("gas", "H_number_density"), function=_nh, units="cm**-3")
