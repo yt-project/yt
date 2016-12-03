@@ -19,7 +19,6 @@ import numpy as np
 import os
 
 from yt.funcs import \
-     download_file, \
      mylog, \
      only_on_root
 
@@ -33,26 +32,22 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_ratios import \
     primordial_H_mass_fraction, erg_per_keV
 
-xray_data_version = 1
-
-def _get_data_file(table_type, download=False):
+def _get_data_file(table_type, data_dir=None):
     if table_type == "cloudy":
         data_file = "cloudy_emissivity.h5"
-    else:
+    elif table_type == "apec":
         data_file = "apec_emissivity.h5"
-    data_url = "http://yt-project.org/data"
-    if "YT_DEST" in os.environ and \
-      os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
-        data_dir = os.path.join(os.environ["YT_DEST"], "data")
-    else:
-        data_dir = "."
+    if data_dir is None:
+        if "YT_DEST" in os.environ and \
+            os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
+            # Try in default path
+            data_dir = os.path.join(os.environ["YT_DEST"], "data")
+        else:
+            # Try in current working directory
+            data_dir = "."
     data_path = os.path.join(data_dir, data_file)
-    if not os.path.exists(data_path) or download:
-        mylog.info("Attempting to download supplementary data from %s to %s." % 
-                   (data_url, data_dir))
-        fn = download_file(os.path.join(data_url, data_file), data_path)
-        if fn != data_path:
-            raise RuntimeError("Failed to download supplementary data.")
+    if not os.path.exists(data_path):
+        raise IOError("Failed to find emissivity data file %s!" % data_file)
     return data_path
 
 class EnergyBoundsException(YTException):
@@ -81,23 +76,15 @@ class EmissivityIntegrator(object):
         energy range 0.1 to 100 keV. If the files are not available or out of date
         they will be downloaded.
     """
-    def __init__(self, table_type):
+    def __init__(self, table_type, data_dir=None):
 
-        filename = _get_data_file(table_type)
+        filename = _get_data_file(table_type, data_dir=data_dir)
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
         in_file = h5py.File(filename, "r")
         if "info" in in_file.attrs:
             only_on_root(mylog.info, in_file.attrs["info"])
-        if in_file.attrs["version"] < xray_data_version:
-            msg = "X-ray emissivity data is out of date.\n" + \
-                  "Downloading the latest data from http://yt-project.org/data."
-            only_on_root(mylog.warning, msg)
-            filename = _get_data_file(table_type, download=True)
-            in_file.close()
-            in_file = h5py.File(filename, "r")
-        else:
-            only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
-                         in_file.attrs["version"])
+        only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
+                     in_file.attrs["version"])
 
         for field in ["emissivity_primordial", "emissivity_metals",
                       "log_nH", "log_T", "log_E"]:
