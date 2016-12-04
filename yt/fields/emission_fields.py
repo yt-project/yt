@@ -18,25 +18,21 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
+from yt.fields.derived_field import DerivedField
 from yt.funcs import \
      mylog, \
      only_on_root
-
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, BilinearFieldInterpolator
-from yt.utilities.physical_constants import \
-    hcgs, mp
+from yt.utilities.physical_constants import mp
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.physical_ratios import \
     primordial_H_mass_fraction, erg_per_keV
 
 def _get_data_file(table_type, data_dir=None):
-    if table_type == "cloudy":
-        data_file = "cloudy_emissivity.h5"
-    elif table_type == "apec":
-        data_file = "apec_emissivity.h5"
+    data_file = "%s_emissivity.h5" % table_type
     if data_dir is None:
         if "YT_DEST" in os.environ and \
             os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
@@ -61,7 +57,7 @@ class EnergyBoundsException(YTException):
 
 class EmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
-    generated from Cloudy and AtomDB.
+    generated from Cloudy and AtomDB/APEC.
 
     Initialize an EmissivityIntegrator object.
 
@@ -70,11 +66,13 @@ class EmissivityIntegrator(object):
     table_type: string
         The type of data to use when computing the emissivity values. If "cloudy",
         a file called "cloudy_emissivity.h5" is used, for photoionized
-        plasmas. A second option, for collisionally ionized plasmas, is
-        in the file "apec_emissivity.h5".These files contain emissivity tables 
+        plasmas. If, "apec", a file called "apec_emissivity.h5" is used for 
+        collisionally ionized plasmas. These files contain emissivity tables 
         for primordial elements and for metals at solar metallicity for the 
-        energy range 0.1 to 100 keV. If the files are not available or out of date
-        they will be downloaded.
+        energy range 0.1 to 100 keV.
+    data_dir : string, optional
+        The location to look for the data table in. If not supplied, the file
+        will be looked for in the 
     """
     def __init__(self, table_type, data_dir=None):
 
@@ -87,34 +85,30 @@ class EmissivityIntegrator(object):
                      in_file.attrs["version"])
 
         for field in ["emissivity_primordial", "emissivity_metals",
-                      "log_nH", "log_T", "log_E"]:
+                      "log_nH", "log_T"]:
             if field in in_file:
                 setattr(self, field, in_file[field][:])
+        self.ebin = YTArray(in_file["ebin"], "keV")
         in_file.close()
-
-        E_diff = np.diff(self.log_E)
-        E_bins = np.concatenate([self.log_E[:-1] - 0.5 * E_diff,
-                                [self.log_E[-1] - 0.5 * E_diff[-1],
-                                 self.log_E[-1] + 0.5 * E_diff[-1]]])
-        self.E_bins = YTArray(np.power(10, E_bins), "keV")
-        self.dnu = (np.diff(self.E_bins)/hcgs).in_units("Hz")
+        self.dE = np.diff(self.ebin)
+        self.emid = 0.5*(self.ebin[1:]+self.ebin[:-1])
 
     def get_interpolator(self, data, e_min, e_max):
         e_min = YTQuantity(e_min, "keV")
         e_max = YTQuantity(e_max, "keV")
-        if (e_min - self.E_bins[0]) / e_min < -1e-3 or \
-          (e_max - self.E_bins[-1]) / e_max > 1e-3:
-            raise EnergyBoundsException(self.E_bins[0], self.E_bins[-1])
-        e_is, e_ie = np.digitize([e_min, e_max], self.E_bins)
-        e_is = np.clip(e_is - 1, 0, self.E_bins.size - 1)
-        e_ie = np.clip(e_ie, 0, self.E_bins.size - 1)
+        if (e_min - self.ebin[0]) / e_min < -1e-3 or \
+          (e_max - self.ebin[-1]) / e_max > 1e-3:
+            raise EnergyBoundsException(self.ebin[0], self.ebin[-1])
+        e_is, e_ie = np.digitize([e_min, e_max], self.ebin)
+        e_is = np.clip(e_is - 1, 0, self.ebin.size - 1)
+        e_ie = np.clip(e_ie, 0, self.ebin.size - 1)
 
-        my_dnu = self.dnu[e_is: e_ie].copy()
+        my_dE = self.dE[e_is: e_ie].copy()
         # clip edge bins if the requested range is smaller
-        my_dnu[0] -= ((e_min - self.E_bins[e_is])/hcgs).in_units("Hz")
-        my_dnu[-1] -= ((self.E_bins[e_ie] - e_max)/hcgs).in_units("Hz")
+        my_dE[0] -= e_min - self.ebin[e_is]
+        my_dE[-1] -= self.ebin[e_ie] - e_max
 
-        interp_data = (data[..., e_is:e_ie] * my_dnu).sum(axis=-1)
+        interp_data = (data[..., e_is:e_ie]*my_dE).sum(axis=-1)
         if len(data.shape) == 2:
             emiss = UnilinearFieldInterpolator(np.log10(interp_data),
                                                [self.log_T[0],  self.log_T[-1]],
@@ -127,8 +121,9 @@ class EmissivityIntegrator(object):
 
         return emiss
 
-def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy", 
-                              with_metals=True, constant_metallicity=None):
+def add_xray_emissivity_field(ds, e_min, e_max, 
+                              metallicity=("gas", "metallicity"), 
+                              table_type="cloudy"):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -137,18 +132,14 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
         The minimum energy in keV for the energy band.
     e_min : float
         The maximum energy in keV for the energy band.
+    metallicity : field or float, optional
+        Either the name of a metallicity field or a single floating-point
+        number specifying a spatially constant metallicity. Must be in
+        solar units. If set to None, no metals will be assumed. Default: 
+        ("gas", "metallicity")
     table_type : string, optional
         The type of emissivity table to be used when creating the fields. 
-        Options are "cloudy" or "atomdb". Default: "cloudy"
-    with_metals : bool, optional
-        If True, use the metallicity field to add the contribution from 
-        metals.  If False, only the emission from H/He is considered.
-        Default: True.
-    constant_metallicity : float, optional
-        If specified, assume a constant metallicity for the emission 
-        from metals.  The *with_metals* keyword must be set to False 
-        to use this. It should be given in unit of solar metallicity.
-        Default: None.
+        Options are "cloudy" or "apec". Default: "cloudy"
 
     This will create three fields:
 
@@ -165,25 +156,23 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
     >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
     >>> p.save()
     """
-    if with_metals:
+    if not isinstance(metallicity, float) and metallicity is not None:
         try:
-            ds._get_field_info("metal_density")
+            metallicity = ds._get_field_info(metallicity)
         except YTFieldNotFound:
-            raise RuntimeError("Your dataset does not have a \"metal_density\" field! " +
+            raise RuntimeError("Your dataset does not have a %s field! " % metallicity +
                                "Perhaps you should specify a constant metallicity?")
 
     my_si = EmissivityIntegrator(table_type)
 
     em_0 = my_si.get_interpolator(my_si.emissivity_primordial, e_min, e_max)
-    em_Z = None
-    if with_metals or constant_metallicity is not None:
+    if metallicity is not None:
         em_Z = my_si.get_interpolator(my_si.emissivity_metals, e_min, e_max)
 
-    energy_erg = np.power(10, my_si.log_E) * erg_per_keV
+    energy_erg = my_si.emid.v * erg_per_keV
     emp_0 = my_si.get_interpolator((my_si.emissivity_primordial[..., :] / energy_erg),
                                    e_min, e_max)
-    emp_Z = None
-    if with_metals or constant_metallicity is not None:
+    if metallicity is not None:
         emp_Z = my_si.get_interpolator((my_si.emissivity_metals[..., :] / energy_erg),
                                        e_min, e_max)
 
@@ -193,19 +182,19 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
         mylog.warning("Could not find a field for \"H_number_density\". "
                       "Assuming primordial H mass fraction.")
         def _nh(field, data):
-            return primordial_H_mass_fraction*data["gas","density"]/mp
+            return primordial_H_mass_fraction*data["gas", "density"]/mp
         ds.add_field(("gas", "H_number_density"), function=_nh, units="cm**-3")
 
     def _emissivity_field(field, data):
-        dd = {"log_nH" : np.log10(data["gas","H_number_density"]),
-              "log_T"   : np.log10(data["gas","temperature"])}
+        dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
+              "log_T": np.log10(data["gas", "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
-        if em_Z is not None:
-            if with_metals:
-                my_Z = data["gas","metallicity"]
-            elif constant_metallicity is not None:
-                my_Z = constant_metallicity
+        if metallicity is not None:
+            if isinstance(metallicity, DerivedField):
+                my_Z = data[metallicity]
+            else:
+                my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
 
         return data["gas","H_number_density"]**2 * \
@@ -225,18 +214,18 @@ def add_xray_emissivity_field(ds, e_min, e_max, table_type="cloudy",
                  units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH" : np.log10(data["gas","H_number_density"]),
-              "log_T"   : np.log10(data["gas","temperature"])}
+        dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
+              "log_T": np.log10(data["gas", "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
-        if emp_Z is not None:
-            if with_metals:
-                my_Z = data["gas","metallicity"]
-            elif constant_metallicity is not None:
-                my_Z = constant_metallicity
+        if metallicity is not None:
+            if isinstance(metallicity, DerivedField):
+                my_Z = data[metallicity]
+            else:
+                my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data["gas","H_number_density"]**2 * \
+        return data["gas", "H_number_density"]**2 * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
