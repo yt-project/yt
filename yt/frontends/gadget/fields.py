@@ -93,6 +93,7 @@ class GadgetFieldInfo(SPHFieldInfo):
             function=_temperature,
             particle_type=True,
             units=self.ds.unit_system["temperature"])
+        self.alias((ptype, 'temperature'), (ptype, 'Temperature'))
 
         # For now, we hardcode num_neighbors.  We should make this configurable
         # in the future.
