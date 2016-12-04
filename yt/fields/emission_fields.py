@@ -19,9 +19,7 @@ import numpy as np
 import os
 
 from yt.fields.derived_field import DerivedField
-from yt.funcs import \
-     mylog, \
-     only_on_root
+from yt.funcs import mylog, only_on_root
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
