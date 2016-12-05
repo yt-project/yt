@@ -6,4 +6,5 @@ issue_deprecation_warning("The fits_image classes have been moved to yt.visualiz
 
 from yt.visualization.fits_image import \
     FITSImageData, FITSSlice, FITSProjection, \
-    FITSOffAxisSlice, FITSOffAxisProjection
+    FITSOffAxisSlice, FITSOffAxisProjection, \
+    assert_same_wcs, sanitize_fits_unit
