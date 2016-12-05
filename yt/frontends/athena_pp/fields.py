@@ -32,9 +32,9 @@ class AthenaPPFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("rho", (rho_units, ["density"], None)),
         ("dens", (rho_units, ["density"], None)),
-        ("B1", (b_units, [], None)),
-        ("B2", (b_units, [], None)),
-        ("B3", (b_units, [], None)),
+        ("Bcc1", (b_units, [], None)),
+        ("Bcc2", (b_units, [], None)),
+        ("Bcc3", (b_units, [], None)),
     )
 
     def setup_fluid_fields(self):
@@ -56,14 +56,17 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 self.add_field(("gas","%s_%s" % (vel_prefix, comp)), sampling_type="cell",
                                function=velocity_field(i+1), units=unit_system["velocity"])
         # Figure out thermal energy field
-        if ("athena_pp","pgas") in self.field_list:
-            self.add_output_field(("athena_pp","pgas"), sampling_type="cell",
+        if ("athena_pp","press") in self.field_list:
+            self.add_output_field(("athena_pp","press"), sampling_type="cell",
                                   units=pres_units)
-            self.alias(("gas","pressure"),("athena_pp","pgas"),
+            self.alias(("gas","pressure"),("athena_pp","press"),
                        units=unit_system["pressure"])
             def _thermal_energy(field, data):
-                return data["athena++","pgas"] / \
+                return data["athena++","press"] / \
                        (data.ds.gamma-1.)/data["athena++","rho"]
+            self.add_field(("gas","thermal_energy"), sampling_type="cell",
+                           function=_thermal_energy,
+                           units=unit_system["specific_energy"])
         elif ("athena_pp","Etot") in self.field_list:
             self.add_output_field(("athena++","Etot"), sampling_type="cell",
                                   units=pres_units)
@@ -72,9 +75,9 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 if ("athena_pp", "B1") in self.field_list:
                     eint -= data["gas","magnetic_energy"]
                 return eint/data["athena_pp","dens"]
-        self.add_field(("gas","thermal_energy"), sampling_type="cell",
-                       function=_thermal_energy,
-                       units=unit_system["specific_energy"])
+            self.add_field(("gas","thermal_energy"), sampling_type="cell",
+                           function=_thermal_energy,
+                           units=unit_system["specific_energy"])
         # Add temperature field
         def _temperature(field, data):
             if data.has_field_parameter("mu"):
@@ -85,4 +88,4 @@ class AthenaPPFieldInfo(FieldInfoContainer):
         self.add_field(("gas","temperature"), sampling_type="cell", function=_temperature,
                        units=unit_system["temperature"])
 
-        setup_magnetic_field_aliases(self, "athena_pp", ["B%d" % ax for ax in (1,2,3)])
+        setup_magnetic_field_aliases(self, "athena_pp", ["Bcc%d" % ax for ax in (1,2,3)])
