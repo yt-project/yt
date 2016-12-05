@@ -352,8 +352,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     for i in range(8):
         rbounds[0] = fmin(rbounds[0], corners[i])
         rbounds[1] = fmax(rbounds[1], corners[i])
-    rbounds[0] = rbounds[0]**0.5
-    rbounds[1] = rbounds[1]**0.5
+    rbounds[0] = math.sqrt(rbounds[0])
+    rbounds[1] = math.sqrt(rbounds[1])
     # If we include the origin in either direction, we need to have radius of
     # zero as our lower bound.
     if x0 < 0 and x1 > 0:
@@ -479,8 +479,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
                 y = (-1.0 + j * dy)*s2
                 zb = (x*x/8.0 + y*y/2.0 - 1.0)
                 if zb > 0: continue
-                z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
-                z = z**0.5
+                z = (1.0 - (x * 0.25) * (x * 0.25) - (y * 0.5) * (y * 0.5))
+                z = math.sqrt(z)
                 # Longitude
                 theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
                 # Latitude

@@ -140,8 +140,9 @@ cdef int calculate_extent_perspective(ImageContainer *image,
         if acos(sight_angle_cos) < 0.5 * M_PI and sight_angle_cos != 0.0:
             sight_length = cam_width[2] / sight_angle_cos
         else:
-            sight_length = sqrt(cam_width[0]**2 + cam_width[1]**2)
-            sight_length = sight_length / sqrt(1.0 - sight_angle_cos**2)
+            sight_length = sqrt(cam_width[0] * cam_width[0] +
+                                cam_width[1] * cam_width[1])
+            sight_length /= sqrt(1.0 - sight_angle_cos * sight_angle_cos)
 
         fma(sight_length, sight_vector, cam_pos, pos1)
         subtract(pos1, sight_center, pos1)
