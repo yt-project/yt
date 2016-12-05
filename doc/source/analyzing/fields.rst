@@ -64,6 +64,24 @@ this:::
 You can use this to easily explore available fields, particularly through
 tab-completion in Jupyter/IPython.
 
+It's also possible to iterate over the list of fields associated with each
+field type. For example, to print all of the ``'gas'`` fields, one might do:
+
+.. code-block:: python
+
+   for field in ds.fields.gas:
+       print(field)
+
+You can also check if a given field is associated with a field type using
+standard python syntax:
+
+.. code-block:: python
+
+   # these examples evaluate to True for a dataset that has ('gas', 'density')
+   'density' in ds.fields.gas
+   ('gas', 'density') in ds.fields.gas
+   ds.fields.gas.density in ds.fields.gas
+
 For a more programmatic method of accessing fields, you can utilize the
 ``ds.field_list``, ``ds.derived_field_list`` and some accessor methods to gain
 information about fields.  The full list of fields available for a dataset can
