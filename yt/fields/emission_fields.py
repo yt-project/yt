@@ -19,7 +19,7 @@ import numpy as np
 import os
 
 from yt.fields.derived_field import DerivedField
-from yt.funcs import mylog, only_on_root
+from yt.funcs import mylog, only_on_root, download_file
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
@@ -31,6 +31,7 @@ from yt.utilities.physical_ratios import \
 
 def _get_data_file(table_type, data_dir=None):
     data_file = "%s_emissivity.h5" % table_type
+    data_url = "http://yt-project.org/data"
     if data_dir is None:
         if "YT_DEST" in os.environ and \
             os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
@@ -41,7 +42,12 @@ def _get_data_file(table_type, data_dir=None):
             data_dir = "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        raise IOError("Failed to find emissivity data file %s!" % data_file)
+        mylog.info("Attempting to download supplementary data from %s to %s." %
+                   (data_url, data_dir))
+        fn = download_file(os.path.join(data_url, data_file), data_path)
+        if fn != data_path:
+            mylog.error("Failed to download supplementary data.")
+            raise IOError("Failed to find emissivity data file %s!" % data_file)
     return data_path
 
 class EnergyBoundsException(YTException):
