@@ -183,7 +183,6 @@ class Dataset(object):
     particle_types_raw = ("io",)
     geometry = "cartesian"
     coordinates = None
-    max_level = 99
     storage_filename = None
     particle_unions = None
     known_filters = None
@@ -1273,6 +1272,18 @@ class Dataset(object):
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)
         return grad_fields
+
+    _max_level = None
+    @property
+    def max_level(self):
+        if self._max_level is None:
+            self._max_level = self.index.max_level
+
+        return self._max_level
+
+    @max_level.setter
+    def max_level(self, value):
+        self._max_level = value
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
