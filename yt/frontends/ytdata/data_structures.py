@@ -218,10 +218,49 @@ class YTDataContainerDataset(YTDataset):
             cont_type = parse_h5_attr(f, "container_type")
             if data_type is None:
                 return False
-            if data_type in ["yt_light_ray"]:
-                return True
             if data_type == "yt_data_container" and \
                 cont_type not in _grid_data_containers:
+                return True
+        return False
+
+class YTDataLightRayDataset(YTDataContainerDataset):
+    """Dataset for saved LightRay objects."""
+
+    def _parse_parameter_file(self):
+        super(YTDataLightRayDataset, self)._parse_parameter_file()
+        self._restore_light_ray_solution()
+
+    def _restore_light_ray_solution(self):
+        """
+        Restore all information asssociate with the light ray solution
+        to its original form.
+        """
+        key = "light_ray_solution"
+        self.light_ray_solution = []
+        lrs_fields = [par for par in self.parameters \
+                      if key in par]
+        if len(lrs_fields) == 0:
+            return
+        self.light_ray_solution = \
+          [{} for val in self.parameters[lrs_fields[0]]]
+        for field in lrs_fields:
+            if field.endswith("_units"):
+                continue
+            field_name = field[len(key)+1:]
+            for i in range(self.parameters[field].shape[0]):
+                self.light_ray_solution[i][field_name] = self.parameters[field][i]
+                if "%s_units" % field in lrs_fields:
+                    self.light_ray_solution[i][field_name] = \
+                      self.arr(self.light_ray_solution[i][field_name],
+                               self.parameters["%s_units" % field])
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = parse_h5_attr(f, "data_type")
+            cont_type = parse_h5_attr(f, "container_type")
+            if data_type in ["yt_light_ray"]:
                 return True
         return False
 
