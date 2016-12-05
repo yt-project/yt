@@ -98,7 +98,7 @@ class Scene(object):
         # pass kwargs into _repr_png_()
         self._sigma_clip = None
 
-    def get_source(self, source_num):
+    def get_source(self, source_num=0):
         """Returns the volume rendering source indexed by ``source_num``"""
         return list(itervalues(self.sources))[source_num]
 
@@ -778,8 +778,9 @@ class Scene(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
+            from IPython.display import display
             self._sigma_clip = sigma_clip
-            return self
+            display(self)
         else:
             raise YTNotInsideNotebook
 

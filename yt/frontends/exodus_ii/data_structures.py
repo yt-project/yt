@@ -14,6 +14,8 @@ Exodus II data structures
 #-----------------------------------------------------------------------------
 import numpy as np
 
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
 from yt.data_objects.unstructured_mesh import \
@@ -26,7 +28,9 @@ from yt.utilities.logger import ytLogger as mylog
 from .fields import \
     ExodusIIFieldInfo
 from .util import \
-    load_info_records, sanitize_string
+    load_info_records, \
+    sanitize_string, \
+    get_num_pseudo_dims
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
@@ -157,15 +161,21 @@ class ExodusIIDataset(Dataset):
         self.default_field = [f for f in self.field_list 
                               if f[0] == 'connect1'][-1]
 
+        for mesh in self.index.meshes:
+            num_pseudo = get_num_pseudo_dims(mesh.connectivity_coords)
+            if (num_pseudo > 1 or self.dimensionality < 2):
+                raise RuntimeError("1D unstructured mesh data "
+                                   "are currently not supported.")
+
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")

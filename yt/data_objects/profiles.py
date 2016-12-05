@@ -26,7 +26,9 @@ from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
 from yt.units.unit_object import Unit
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.field_data import YTFieldData
+from yt.utilities.exceptions import \
+    YTIllDefinedProfile
 from yt.utilities.lib.misc_utilities import \
     new_bin_profile1d, \
     new_bin_profile2d, \
@@ -237,10 +239,10 @@ class ProfileND(ParallelAnalysisInterface):
         if not np.any(filter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
-            units = chunk.ds.field_info[field].units
+            units = chunk.ds.field_info[field].output_units
             arr[:,i] = chunk[field][filter].in_units(units)
         if self.weight_field is not None:
-            units = chunk.ds.field_info[self.weight_field].units
+            units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
             weight_data = np.ones(filter.size, dtype="float64")
@@ -274,7 +276,13 @@ class ProfileND(ParallelAnalysisInterface):
 
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:
-            return np.logspace(np.log10(mi), np.log10(ma), n+1)
+            ret = np.logspace(np.log10(mi), np.log10(ma), n+1)
+            # at this point ret[0] and ret[-1] are not exactly equal to
+            # mi and ma due to round-off error. Let's force them to be
+            # mi and ma exactly to avoid incorrectly discarding cells near
+            # the edges. See Issue #1300.
+            ret[0], ret[-1] = mi, ma
+            return ret
         else:
             return np.linspace(mi, ma, n+1)
 
@@ -370,8 +378,9 @@ class ProfileNDFromDataset(ProfileND):
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
             setattr(self, "%s_bins" % ax, ds.data["%s_bins" % ax])
-            setattr(self, "%s_field" % ax,
-                    tuple(ds.parameters["%s_field" % ax]))
+            field_name = tuple(ds.parameters["%s_field" % ax])
+            setattr(self, "%s_field" % ax, field_name)
+            self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, "%s_log" % ax, ds.parameters["%s_log" % ax])
             exclude_fields.extend([ax, "%s_bins" % ax,
                                    ds.parameters["%s_field" % ax][1]])
@@ -382,6 +391,7 @@ class ProfileNDFromDataset(ProfileND):
         for field in profile_fields:
             self.field_map[field[1]] = field
             self.field_data[field] = ds.data[field]
+            self.field_info[field] = ds.field_info[field]
             self.field_units[field] = ds.data[field].units
 
 class Profile1D(ProfileND):
@@ -452,6 +462,14 @@ class Profile1D(ProfileND):
     @property
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        with the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import ProfilePlot
+        return ProfilePlot.from_profiles(self)
 
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
@@ -571,6 +589,14 @@ class Profile2D(ProfileND):
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.PhasePlot with
+        the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import PhasePlot
+        return PhasePlot.from_profile(self)
 
 class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
     """
@@ -928,7 +954,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     data from profile[<field_name>].
 
     >>> ds = load("DD0046/DD0046")
-    >>> ad = ds.h.all_data()
+    >>> ad = ds.all_data()
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
@@ -940,10 +966,18 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     fields = ensure_list(fields)
     is_pfield = [data_source.ds._get_field_info(f).particle_type
                  for f in bin_fields + fields]
+    wf = None
+    if weight_field is not None:
+        wf = data_source.ds._get_field_info(weight_field)
+        is_pfield.append(wf.particle_type)
+        wf = wf.name
 
-    if len(bin_fields) == 1:
+    if any(is_pfield) and not all(is_pfield):
+        raise YTIllDefinedProfile(
+            bin_fields, data_source._determine_fields(fields), wf, is_pfield)
+    elif len(bin_fields) == 1:
         cls = Profile1D
-    elif len(bin_fields) == 2 and np.all(is_pfield):
+    elif len(bin_fields) == 2 and all(is_pfield):
         # log bin_fields set to False for Particle Profiles.
         # doesn't make much sense for CIC deposition.
         # accumulation and fractional set to False as well.
@@ -982,6 +1016,11 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
+        # pad extrema by epsilon so cells at bin edges are not excluded
+        for i, (mi, ma) in enumerate(ex):
+            mi = mi - np.spacing(mi)
+            ma = ma + np.spacing(ma)
+            ex[i][0], ex[i][1] = mi, ma
     else:
         ex = []
         for bin_field in bin_fields:

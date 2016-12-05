@@ -131,3 +131,11 @@ def test_octree_cg():
     cgrid = ds.covering_grid(0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions)
     density_field = cgrid["density"]
     assert_equal((density_field == 0.0).sum(), 0)
+
+ekh = 'EnzoKelvinHelmholtz/DD0011/DD0011'
+@requires_file(ekh)
+def test_smoothed_covering_grid_2d_dataset():
+    ds = load(ekh)
+    ds.periodicity = (True, True, True)
+    scg = ds.smoothed_covering_grid(1, [0, 0, 0], [128, 128, 1])
+    assert_equal(scg['density'].shape, [128, 128, 1])

@@ -4,7 +4,7 @@ Planning Simulations to use LightCones or LightRays
 ===================================================
 
 If you want to run a cosmological simulation that will have just enough data
-outputs to create a cosmology splice, the
+outputs to create a light cone or light ray, the
 :meth:`~yt.analysis_modules.cosmological_observation.cosmology_splice.CosmologySplice.plan_cosmology_splice`
 function will calculate a list of redshifts outputs that will minimally
 connect a redshift interval.

@@ -28,7 +28,8 @@ from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer1D, \
     YTSelectionContainer2D, \
-    YTSelectionContainer3D, \
+    YTSelectionContainer3D
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.funcs import \
     ensure_list, \
@@ -940,8 +941,12 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             if level < min_level:
                 self._update_level_state(ls)
                 continue
-            domain_dims = self.ds.domain_dimensions.astype("int64") \
-                        * self.ds.relative_refinement(0, ls.current_level)
+            nd = self.ds.dimensionality
+            refinement = np.zeros_like(ls.base_dx)
+            refinement += self.ds.relative_refinement(0, ls.current_level)
+            refinement[nd:] = 1
+            domain_dims = self.ds.domain_dimensions * refinement
+            domain_dims = domain_dims.astype("int64")
             tot = ls.current_dims.prod()
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
@@ -955,7 +960,8 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 raise RuntimeError
             self._update_level_state(ls)
         for name, v in zip(fields, ls.fields):
-            if self.level > 0: v = v[1:-1,1:-1,1:-1]
+            if self.level > 0:
+                v = v[1:-1, 1:-1, 1:-1]
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
 
@@ -1009,8 +1015,11 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         rf = float(self.ds.relative_refinement(
                     ls.current_level, ls.current_level + 1))
         ls.current_level += 1
-        ls.current_dx = ls.base_dx / \
-            self.ds.relative_refinement(0, ls.current_level)
+        nd = self.ds.dimensionality
+        refinement = np.zeros_like(ls.base_dx)
+        refinement += self.ds.relative_refinement(0, ls.current_level)
+        refinement[nd:] = 1
+        ls.current_dx = ls.base_dx / refinement
         ls.old_global_startindex = ls.global_startindex
         ls.global_startindex, end_index, ls.current_dims = \
             self._minimal_box(ls.current_dx)
@@ -1123,12 +1132,15 @@ class YTSurface(YTSelectionContainer3D):
                                        mask, sample_values = None,
                                        sample_type = "face",
                                        no_ghost = False):
-        vals = grid.get_vertex_centered_data(field, no_ghost = no_ghost)
+        # TODO: check if multiple fields can be passed here
+        vals = grid.get_vertex_centered_data([field], no_ghost=no_ghost)[field]
         if sample_values is not None:
-            svals = grid.get_vertex_centered_data(sample_values)
+            # TODO: is no_ghost=False correct here?
+            svals = grid.get_vertex_centered_data([sample_values])[sample_values]
         else:
             svals = None
-        sample_type = {"face":1, "vertex":2}[sample_type]
+
+        sample_type = {"face": 1, "vertex": 2}[sample_type]
         my_verts = march_cubes_grid(value, vals, mask, grid.LeftEdge,
                                     grid.dds, svals, sample_type)
         return my_verts
@@ -1200,15 +1212,21 @@ class YTSurface(YTSelectionContainer3D):
 
     def _calculate_flux_in_grid(self, grid, mask,
             field_x, field_y, field_z, fluxing_field = None):
-        vals = grid.get_vertex_centered_data(self.surface_field)
+
+        vc_fields = [self.surface_field, field_x, field_y, field_z]
+        if fluxing_field is not None:
+            vc_fields.append(fluxing_field)
+
+        vc_data = grid.get_vertex_centered_data(vc_fields)
         if fluxing_field is None:
-            ff = np.ones(vals.shape, dtype="float64")
+            ff = np.ones_like(vc_data[self.surface_field], dtype="float64")
         else:
-            ff = grid.get_vertex_centered_data(fluxing_field)
-        xv, yv, zv = [grid.get_vertex_centered_data(f)
-                      for f in [field_x, field_y, field_z]]
-        return march_cubes_grid_flux(self.field_value, vals, xv, yv, zv,
-                    ff, mask, grid.LeftEdge, grid.dds)
+            ff = vc_data[fluxing_field]
+
+        return march_cubes_grid_flux(
+            self.field_value, vc_data[self.surface_field], vc_data[field_x],
+            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
+            grid.dds)
 
     @property
     def triangles(self):

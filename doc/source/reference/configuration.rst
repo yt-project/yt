@@ -5,7 +5,7 @@ yt features ways to customize it to your personal preferences in terms of
 how much output it displays, loading custom fields, loading custom colormaps,
 accessing test datasets regardless of where you are in the file system, etc.
 This customization is done through :ref:`configuration-file` and
-:ref:`plugin-file` both of which exist in your ``$HOME/.yt`` directory.
+:ref:`plugin-file` both of which exist in your ``$HOME/.config/yt`` directory.
 
 .. _configuration-file:
 
@@ -18,9 +18,9 @@ custom default values to be used in future sessions.
 Configuration File Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.yt/config`` as a configuration
+yt will look for and recognize the file ``$HOME/.config/yt/ytrc`` as a configuration
 file, containing several options that can be modified and adjusted to control
-runtime behavior.  For example, a sample ``$HOME/.yt/config`` file could look
+runtime behavior.  For example, a sample ``$HOME/.config/yt/ytrc`` file could look
 like:
 
 .. code-block:: none
@@ -31,7 +31,17 @@ like:
 
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
-datasets tracked between instantiations of yt.
+datasets tracked between instantiations of yt. The configuration file can be
+managed using the ``yt config`` helper. It can list, add, modify and remove
+options from the configuration file, e.g.:
+
+.. code-block:: none
+
+   $ yt config -h
+   $ yt config list
+   $ yt config set yt loglevel 1
+   $ yt config rm yt maximumstoreddatasets
+
 
 Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -62,27 +72,6 @@ This has the same effect as setting ``loglevel = 1`` in the configuration
 file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
-Setting Configuration On the Command Line
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Options can also be set directly on the command line by specifying a
-command-line option.  For instance, if you are running the script
-``my_script.py`` you can specify a configuration option with the ``--config``
-argument.  As an example, to lower the log level (thus making it more verbose)
-you can specify:
-
-.. code-block:: bash
-
-   $ python2.7 my_script.py --config loglevel=1
-
-Any configuration option specific to yt can be specified in this manner.  One
-common configuration option would be to disable serialization:
-
-.. code-block:: bash
-
-   $ python2.7 my_script.py --config serialize=False
-
-This way projections are always re-created.
 
 Available Configuration Options
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -106,6 +95,10 @@ used internally.
   IPython notebook created by ``yt notebook``.  Note that this should be an
   sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
   setting will provide instructions for setting this.
+* ``requires_ds_strict`` (default: ``'True'``): If true, answer tests wrapped
+  with :func:`~yt.utilities.answer_testing.framework.requires_ds` will raise
+  :class:`~yt.utilities.exceptions.YTOutputNotIdentified` rather than consuming
+  it if required dataset is not present.
 * ``serialize`` (default: ``'False'``): If true, perform automatic
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
@@ -139,9 +132,10 @@ To force the plugin file to be parsed, call the function
 Plugin File Format
 ^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.yt/my_plugins.py`` as a plugin
-file, which should contain python code.  If accessing yt functions and classes
-they will not require the ``yt.`` prefix, because of how they are loaded.
+yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
+plugin file, which should contain python code.  If accessing yt functions and
+classes they will not require the ``yt.`` prefix, because of how they are
+loaded.
 
 For example, if I created a plugin file containing:
 
@@ -149,7 +143,8 @@ For example, if I created a plugin file containing:
 
    def _myfunc(field, data):
        return np.random.random(data["density"].shape)
-   add_field("random", function=_myfunc, units='auto')
+   add_field('random', function=_myfunc,
+             dimensions='dimensionless', units='auto')
 
 then all of my data objects would have access to the field ``random``.
 

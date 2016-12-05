@@ -270,7 +270,7 @@ def cached_property(func):
         else:
             tr = func(self)
         if self._cache:
-        
+
             setattr(self, n, tr)
         return tr
     return property(cached_func)
@@ -397,7 +397,9 @@ class YTDataChunk(object):
 
     @cached_property
     def fcoords_vertex(self):
-        ci = np.empty((self.data_size, 8, 3), dtype='float64')
+        nodes_per_elem = self.dobj.index.meshes[0].connectivity_indices.shape[1]
+        dim = self.dobj.ds.dimensionality
+        ci = np.empty((self.data_size, nodes_per_elem, dim), dtype='float64')
         ci = YTArray(ci, input_units = "code_length",
                      registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
@@ -426,10 +428,10 @@ class ChunkDataCache(object):
 
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         return self.next()
-        
+
     def next(self):
         if len(self.queue) == 0:
             for i in range(self.max_length):
@@ -445,4 +447,3 @@ class ChunkDataCache(object):
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
-

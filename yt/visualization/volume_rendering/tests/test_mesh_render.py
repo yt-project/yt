@@ -55,7 +55,7 @@ def surface_mesh_render():
         images.append(im)
 
     return images
-    
+
 @requires_module("pyembree")
 def test_surface_mesh_render_pyembree():
     ytcfg["yt", "ray_tracing_engine"] = "embree"
@@ -145,7 +145,7 @@ def wedge6_render(engine, field):
     im = sc.render()
     return compare(ds, im, "%s_render_answers_wedge6_%s_%s" %
                    (engine, field[0], field[1]))
-    
+
 @requires_ds(wedge6)
 @requires_module("pyembree")
 def test_wedge6_render_pyembree():
@@ -156,6 +156,28 @@ def test_wedge6_render_pyembree():
 def test_wedge6_render():
     for field in wedge6_fields:
         yield wedge6_render("yt", field)
+
+tet10 = "SecondOrderTets/tet10_unstructured_out.e"
+tet10_fields = [('connect1', 'uz')]
+
+def tet10_render(engine, field):
+    ytcfg["yt", "ray_tracing_engine"] = engine
+    ds = data_dir_load(tet10, kwargs={'step':-1})
+    sc = create_scene(ds, field)
+    im = sc.render()
+    return compare(ds, im, "%s_render_answers_tet10_%s_%s" %
+                   (engine, field[0], field[1]))
+
+@requires_ds(tet10)
+@requires_module("pyembree")
+def test_tet10_render_pyembree():
+    for field in tet10_fields:
+        yield tet10_render("embree", field)
+
+@requires_ds(tet10)
+def test_tet10_render():
+    for field in tet10_fields:
+        yield tet10_render("yt", field)
 
 def perspective_mesh_render(engine):
     ytcfg["yt", "ray_tracing_engine"] = engine
@@ -169,7 +191,7 @@ def perspective_mesh_render(engine):
     cam.resolution = (800, 800)
     im = sc.render()
     return compare(ds, im, "%s_perspective_mesh_render" % engine)
-    
+
 @requires_ds(hex8)
 @requires_module("pyembree")
 def test_perspective_mesh_render_pyembree():
@@ -195,7 +217,7 @@ def composite_mesh_render(engine):
     sc.add_source(ms2)
     im = sc.render()
     return compare(ds, im, "%s_composite_mesh_render" % engine)
-    
+
 @requires_ds(hex8)
 @requires_module("pyembree")
 def test_composite_mesh_render_pyembree():

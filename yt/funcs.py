@@ -16,7 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
-from yt.extern.six.moves import input
+from yt.extern.six.moves import input, builtins
 import time
 import inspect
 import traceback
@@ -519,33 +519,34 @@ def update_hg(path, skip_rebuild = False):
         print("Try: pip install python-hglib")
         return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
-    repo = hglib.open(path)
-    repo.pull()
-    ident = repo.identify().decode("utf-8")
-    if "+" in ident:
-        print("Can't rebuild modules by myself.")
-        print("You will have to do this yourself.  Here's a sample commands:")
-        print("")
-        print("    $ cd %s" % (path))
-        print("    $ hg up")
-        print("    $ %s setup.py develop" % (sys.executable))
-        return 1
-    print("Updating the repository")
-    f.write("Updating the repository\n\n")
-    repo.update(check=True)
-    f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
-    if skip_rebuild: return
-    f.write("Rebuilding modules\n\n")
-    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
-                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout.decode('utf-8'))
-    f.write("\n\n")
-    if p.returncode:
-        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
-        sys.exit(1)
-    f.write("Successful!\n")
-    print("Updated successfully.")
+    with hglib.open(path) as repo:
+        repo.pull()
+        ident = repo.identify().decode("utf-8")
+        if "+" in ident:
+            print("Can't rebuild modules by myself.")
+            print("You will have to do this yourself.  Here's a sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ hg up")
+            print("    $ %s setup.py develop" % (sys.executable))
+            return 1
+        print("Updating the repository")
+        f.write("Updating the repository\n\n")
+        repo.update(check=True)
+        f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
+        if skip_rebuild: return
+        f.write("Rebuilding modules\n\n")
+        p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
+                             cwd=path, stdout = subprocess.PIPE,
+                             stderr = subprocess.STDOUT)
+        stdout, stderr = p.communicate()
+        f.write(stdout.decode('utf-8'))
+        f.write("\n\n")
+        if p.returncode:
+            print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+            sys.exit(1)
+        f.write("Successful!\n")
+        print("Updated successfully.")
 
 def get_hg_version(path):
     try:
@@ -556,8 +557,8 @@ def get_hg_version(path):
         print("Try: pip install python-hglib")
         return None
     try:
-        repo = hglib.open(path)
-        return repo.identify()
+        with hglib.open(path) as repo:
+            return repo.identify()
     except hglib.error.ServerError:
         # path is not an hg repository
         return None
@@ -854,21 +855,32 @@ def enable_plugins():
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    The file must be located at ``$HOME/.yt/my_plugins.py``.
+    The file must be located at ``$HOME/.config/yt/my_plugins.py``.
 
     Warning: when you use this function, your script will only be reproducible
     if you also provide the ``my_plugins.py`` file.
     """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
-    from yt.config import ytcfg
-    my_plugin_name = ytcfg.get("yt","pluginfilename")
-    # We assume that it is with respect to the $HOME/.yt directory
-    if os.path.isfile(my_plugin_name):
-        _fn = my_plugin_name
-    else:
-        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
-    if os.path.isfile(_fn):
+    from yt.config import ytcfg, CONFIG_DIR
+    my_plugin_name = ytcfg.get("yt", "pluginfilename")
+
+    # In the following order if pluginfilename is: an absolute path, located in
+    # the CONFIG_DIR, located in an obsolete config dir.
+    _fn = None
+    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
+    for base_prefix in ('', CONFIG_DIR, old_config_dir):
+        if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
+            _fn = os.path.join(base_prefix, my_plugin_name)
+            break
+
+    if _fn is not None and os.path.isfile(_fn):
+        if _fn.startswith(old_config_dir):
+            mylog.warn(
+                'Your plugin file is located in a deprecated directory. '
+                'Please move it from %s to %s',
+                os.path.join(old_config_dir, my_plugin_name),
+                os.path.join(CONFIG_DIR, my_plugin_name))
         mylog.info("Loading plugins from %s", _fn)
         execdict = yt.__dict__.copy()
         execdict['add_field'] = my_plugins_fields.add_field
@@ -986,3 +998,41 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     except ImportError:
         pass
     return dummy_context_manager()
+
+interactivity = False
+
+"""Sets the condition that interactive backends can be used."""
+def toggle_interactivity():
+    global interactivity
+    interactivity = not interactivity
+    if interactivity is True:
+        if '__IPYTHON__' in dir(builtins):
+            import IPython
+            shell = IPython.get_ipython()
+            shell.magic('matplotlib')
+        else:
+            import matplotlib
+            matplotlib.interactive(True)
+
+def get_interactivity():
+    return interactivity
+
+def setdefaultattr(obj, name, value):
+    """Set attribute with *name* on *obj* with *value* if it doesn't exist yet
+
+    Analogous to dict.setdefault
+    """
+    if not hasattr(obj, name):
+        setattr(obj, name, value)
+    return getattr(obj, name)
+
+def parse_h5_attr(f, attr):
+    """A Python3-safe function for getting hdf5 attributes.
+
+    If an attribute is supposed to be a string, this will return it as such.
+    """
+    val = f.attrs.get(attr, None)
+    if isinstance(val, bytes):
+        return val.decode('utf8')
+    else:
+        return val

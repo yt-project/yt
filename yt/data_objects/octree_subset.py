@@ -17,8 +17,9 @@ Subsets of octrees
 import numpy as np
 
 from yt.data_objects.data_containers import \
-    YTFieldData, \
     YTSelectionContainer
+from yt.data_objects.field_data import \
+    YTFieldData
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 
@@ -92,7 +93,7 @@ class OctreeSubset(YTSelectionContainer):
     def _reshape_vals(self, arr):
         nz = self.nz
         if len(arr.shape) <= 2:
-            n_oct = arr.shape[0] / (nz**3)
+            n_oct = arr.shape[0] // (nz**3)
         else:
             n_oct = max(arr.shape)
         if arr.size == nz*nz*nz*n_oct:

@@ -229,7 +229,13 @@ class AnswerTestCloudStorage(AnswerTestStorage):
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
-        if self.answer_name is None: return
+        # The 'tainted' attribute is automatically set to 'True'
+        # if the dataset required for an answer test is missing
+        # (see can_run_ds() and can_run_sim()).
+        # This logic check prevents creating a shelve with empty answers.
+        storage_is_tainted = result_storage.get('tainted', False)
+        if self.answer_name is None or storage_is_tainted:
+            return
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
         for ds_name in result_storage:
@@ -259,34 +265,44 @@ def temp_cwd(cwd):
     os.chdir(oldcwd)
 
 def can_run_ds(ds_fn, file_check = False):
+    result_storage = AnswerTestingTest.result_storage
     if isinstance(ds_fn, Dataset):
-        return AnswerTestingTest.result_storage is not None
+        return result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     if file_check:
         return os.path.isfile(os.path.join(path, ds_fn)) and \
-            AnswerTestingTest.result_storage is not None
+            result_storage is not None
     try:
         load(ds_fn)
     except YTOutputNotIdentified:
+        if ytcfg.getboolean("yt", "requires_ds_strict"):
+            if result_storage is not None:
+                result_storage['tainted'] = True
+            raise
         return False
-    return AnswerTestingTest.result_storage is not None
+    return result_storage is not None
 
 def can_run_sim(sim_fn, sim_type, file_check = False):
+    result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
-        return AnswerTestingTest.result_storage is not None
+        return result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn)) and \
-            AnswerTestingTest.result_storage is not None
+            result_storage is not None
     try:
         simulation(sim_fn, sim_type)
     except YTOutputNotIdentified:
+        if ytcfg.getboolean("yt", "requires_ds_strict"):
+            if result_storage is not None:
+                result_storage['tainted'] = True
+            raise
         return False
-    return AnswerTestingTest.result_storage is not None
+    return result_storage is not None
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     args = args or ()
@@ -324,6 +340,8 @@ class AnswerTestingTest(object):
             self.ds = data_dir_load(ds_fn)
 
     def __call__(self):
+        if AnswerTestingTest.result_storage is None:
+            return
         nv = self.run()
         if self.reference_storage.reference_name is not None:
             dd = self.reference_storage.get(self.storage_name)
@@ -712,7 +730,7 @@ class VRImageComparisonTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
-        
+
 class PlotWindowAttributeTest(AnswerTestingTest):
     _type_name = "PlotWindowAttribute"
     _attrs = ('plot_type', 'plot_field', 'plot_axis', 'attr_name', 'attr_args',
@@ -756,7 +774,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
     _type_name = "PhasePlotAttribute"
     _attrs = ('plot_type', 'x_field', 'y_field', 'z_field',
               'attr_name', 'attr_args')
-    def __init__(self, ds_fn, x_field, y_field, z_field, 
+    def __init__(self, ds_fn, x_field, y_field, z_field,
                  attr_name, attr_args, decimals, plot_type='PhasePlot'):
         super(PhasePlotAttributeTest, self).__init__(ds_fn)
         self.data_source = self.ds.all_data()
@@ -769,7 +787,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         self.attr_args = attr_args
         self.decimals = decimals
 
-    def create_plot(self, data_source, x_field, y_field, z_field, 
+    def create_plot(self, data_source, x_field, y_field, z_field,
                     plot_type, plot_kwargs=None):
         # plot_type should be a string
         # plot_kwargs should be a dict
@@ -817,6 +835,10 @@ class GenericArrayTest(AnswerTestingTest):
             kwargs = self.kwargs
         return self.array_func(*args, **kwargs)
     def compare(self, new_result, old_result):
+        if not isinstance(new_result, dict):
+            new_result = {'answer': new_result}
+            old_result = {'answer': old_result}
+
         assert_equal(len(new_result), len(old_result),
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
@@ -860,6 +882,47 @@ class GenericImageTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         compare_image_lists(new_result, old_result, self.decimals)
 
+class AxialPixelizationTest(AnswerTestingTest):
+    # This test is typically used once per geometry or coordinates type.
+    # Feed it a dataset, and it checks that the results of basic pixelization
+    # don't change.
+    _type_name = "AxialPixelization"
+    _attrs = ('geometry',)
+    def __init__(self, ds_fn, decimals=None):
+        super(AxialPixelizationTest, self).__init__(ds_fn)
+        self.decimals = decimals
+        self.geometry = self.ds.coordinates.name
+
+    def run(self):
+        rv = {}
+        ds = self.ds
+        for i, axis in enumerate(ds.coordinates.axis_order):
+            (bounds, center, display_center) = \
+                    pw.get_window_parameters(axis, ds.domain_center, None, ds)
+            slc = ds.slice(axis, center[i])
+            xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
+            yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
+            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            # Wipe out all NaNs
+            pix_x[np.isnan(pix_x)] = 0.0
+            pix_y[np.isnan(pix_y)] = 0.0
+            rv['%s_x' % axis] = pix_x
+            rv['%s_y' % axis] = pix_y
+        return rv
+
+    def compare(self, new_result, old_result):
+        assert_equal(len(new_result), len(old_result),
+                                          err_msg="Number of outputs not equal.",
+                                          verbose=True)
+        for k in new_result:
+            if self.decimals is None:
+                assert_almost_equal(new_result[k], old_result[k])
+            else:
+                assert_allclose_units(new_result[k], old_result[k],
+                                      10**(-self.decimals))
+
+
 def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None
@@ -881,7 +944,7 @@ def requires_answer_testing():
         return ftrue
     else:
         return ffalse
-    
+
 def requires_ds(ds_fn, big_data = False, file_check = False):
     def ffalse(func):
         return lambda: None

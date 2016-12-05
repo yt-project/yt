@@ -26,7 +26,7 @@ from yt.funcs import \
     iterable, \
     ensure_list
 from yt.utilities.io_handler import io_registry
-from yt.data_objects.data_containers import \
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.data_objects.particle_unions import \
     ParticleUnion
@@ -69,6 +69,8 @@ from yt.data_objects.unstructured_mesh import \
 from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
+from yt.frontends.exodus_ii.util import \
+    get_num_pseudo_dims
 
 class StreamGrid(AMRGridPatch):
     """
@@ -668,7 +670,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         sfh.update({0:data})
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
-        grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+        grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if length_unit is None:
         length_unit = 'code_length'
@@ -1497,10 +1499,13 @@ def load_octree(octree_mask, data,
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.  It should be of
-        size n_octs * 8, where each item is 1 for an oct-cell being refined and
-        0 for it not being refined.  Note that for over_refine_factors != 1,
-        the children count will still be 8, so this is always 8.
+        This is a depth-first refinement mask for an Octree.  It should be 
+        of size n_octs * 8 (but see note about the root oct below), where 
+        each item is 1 for an oct-cell being refined and 0 for it not being
+        refined.  For over_refine_factors != 1, the children count will 
+        still be 8, so there will stil be n_octs * 8 entries. Note that if 
+        the root oct is not refined, there will be only one entry
+        for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
@@ -1522,8 +1527,29 @@ def load_octree(octree_mask, data,
         Determines whether the data will be treated as periodic along
         each axis
     partial_coverage : boolean
-        Whether or not an oct can be refined cell-by-cell, or whether all 8 get
-        refined.
+        Whether or not an oct can be refined cell-by-cell, or whether all 
+        8 get refined.
+
+    Example
+    -------
+
+    >>> import yt
+    >>> import numpy as np
+    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
+    ...             0, 0, 0, 0, 0, 0, 0, 0,
+    ...             8, 0, 0, 0, 0, 0, 0, 0,
+    ...             0]
+    >>>
+    >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
+    >>> quantities = {}
+    >>> quantities['gas', 'density'] = np.random.random((22, 1), dtype='f8')
+    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
+    >>>
+    >>> ds = yt.load_octree(octree_mask=octree_mask,
+    ...                     data=quantities,
+    ...                     bbox=bbox,
+    ...                     over_refine_factor=0,
+    ...                     partial_coverage=0)
 
     """
 
@@ -1659,9 +1685,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         connectivity length and should be of shape (N,M) where N is the number
         of elements and M is the number of vertices per element.
     coordinates : array_like
-        The 3D coordinates of mesh vertices. This should be of size (L,3) where
-        L is the number of vertices. When loading more than one mesh, the data
-        for each mesh should be concatenated into a single coordinates array.
+        The 3D coordinates of mesh vertices. This should be of size (L, D) where
+        L is the number of vertices and D is the number of coordinates per vertex
+        (the spatial dimensions of the dataset). Currently this must be either 2 or 3.
+        When loading more than one mesh, the data for each mesh should be concatenated
+        into a single coordinates array.
     node_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 2D numpy arrays,
         representing data defined at element vertices. For multiple meshes,
@@ -1720,6 +1748,12 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     """
 
+    dimensionality = coordinates.shape[1]
+    num_pseudo = get_num_pseudo_dims(coordinates)
+    if (num_pseudo > 1 or dimensionality < 2):
+        raise RuntimeError("1D unstructured mesh data "
+                           "are currently not supported.")
+
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
 
@@ -1750,9 +1784,14 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     data = ensure_list(data)
 
     if bbox is None:
-        bbox = np.array([[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
-                          coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
-                          for i in range(3)], "float64")
+        bbox = [[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
+                 coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
+                for i in range(dimensionality)]
+
+    if dimensionality == 2:
+        bbox.append([0.0, 1.0])
+
+    bbox = np.array(bbox, dtype=np.float64)
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
@@ -1778,7 +1817,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
             raise RuntimeError
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
-    grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+    grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if length_unit is None:
         length_unit = 'code_length'
@@ -1811,7 +1850,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
-    handler.dimensionality = 3
+    handler.dimensionality = dimensionality
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0

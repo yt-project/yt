@@ -68,7 +68,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
-        ds.add_field((ftype,fname), function=cfunc,
+        ds.add_field((ftype,fname), sampling_type="cell",  function=cfunc,
                      units="counts/pixel",
                      validators = [ValidateSpatial()],
                      display_name="Counts (%s-%s keV)" % (emin, emax))
@@ -171,14 +171,18 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
     mask = filter.mask((ny,nx)).transpose()
+    if ds.events_data:
+        prefix = "event_"
+    else:
+        prefix = ""
     def _reg_field(field, data):
-        i = data["xyz"[ds.lon_axis]].ndarray_view().astype("int")-1
-        j = data["xyz"[ds.lat_axis]].ndarray_view().astype("int")-1
+        i = data[prefix+"xyz"[ds.lon_axis]].d.astype("int")-1
+        j = data[prefix+"xyz"[ds.lat_axis]].d.astype("int")-1
         new_mask = mask[i,j]
-        ret = data["zeros"].copy()
+        ret = np.zeros(data[prefix+"x"].shape)
         ret[new_mask] = 1.
         return ret
-    ds.add_field(("gas",reg_name), function=_reg_field)
+    ds.add_field(("gas", reg_name), sampling_type="cell",  function=_reg_field)
     if obj is None:
         obj = ds.all_data()
     if field_parameters is not None:

@@ -18,7 +18,9 @@ import stat
 import numpy as np
 import weakref
 
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -50,33 +52,39 @@ class GAMERGrid(AMRGridPatch):
 class GAMERHierarchy(GridIndex):
     grid                 = GAMERGrid
     _preload_implemented = True # since gamer defines "_read_chunk_data" in io.py
-    
+
     def __init__(self, ds, dataset_type = 'gamer'):
         self.dataset_type     = dataset_type
         self.dataset          = weakref.proxy(ds)
         self.index_filename   = self.dataset.parameter_filename
         self.directory        = os.path.dirname(self.index_filename)
         self._handle          = ds._handle
+        self._group_grid      = ds._group_grid
+        self._group_particle  = ds._group_particle
         self.float_type       = 'float64' # fixed even when FLOAT8 is off
         self._particle_handle = ds._particle_handle
         GridIndex.__init__(self, ds, dataset_type)
 
     def _detect_output_fields(self):
         # find all field names in the current dataset
-        self.field_list = [ ('gamer', v) for v in self._handle['Data'].keys() ]
-    
+        # grid fields
+        self.field_list = [ ('gamer', v) for v in self._group_grid.keys() ]
+
+        # particle fields
+        if self._group_particle is not None:
+            self.field_list += [ ('io', v) for v in self._group_particle.keys() ]
+
     def _count_grids(self):
-        # count the total number of patches at all levels  
+        # count the total number of patches at all levels
         self.num_grids = self.dataset.parameters['NPatch'].sum()
-        
+
     def _parse_index(self):
         parameters       = self.dataset.parameters
         gid0             = 0
         grid_corner      = self._handle['Tree/Corner'].value
         convert2physical = self._handle['Tree/Corner'].attrs['Cvt2Phy']
 
-        self.grid_dimensions    [:] = parameters['PatchSize']
-        self.grid_particle_count[:] = 0
+        self.grid_dimensions[:] = parameters['PatchSize']
 
         for lv in range(0, parameters['NLevel']):
             num_grids_level = parameters['NPatch'][lv]
@@ -101,7 +109,19 @@ class GAMERHierarchy(GridIndex):
 
         # maximum level with patches (which can be lower than MAX_LEVEL)
         self.max_level = self.grid_levels.max()
-        
+
+        # number of particles in each grid
+        try:
+            self.grid_particle_count[:] = self._handle['Tree/NPar'].value[:,None]
+        except KeyError:
+            self.grid_particle_count[:] = 0.0
+
+        # calculate the starting particle indices for each grid (starting from 0)
+        # --> note that the last element must store the total number of particles
+        #    (see _read_particle_coords and _read_particle_fields in io.py)
+        self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
+        np.add.accumulate(self.grid_particle_count.squeeze(), out=self._particle_indices[1:])
+
     def _populate_grid_objects(self):
         son_list = self._handle["Tree/Son"].value
 
@@ -142,7 +162,7 @@ class GAMERHierarchy(GridIndex):
                        'Grid %d, Children %d, Children->Parent %d' % \
                        (grid.id, c.id, c.Parent.id)
 
-            # all refinement grids should have parent 
+            # all refinement grids should have parent
             if grid.Level > 0:
                 assert grid.Parent is not None and grid.Parent.id >= 0, \
                        'Grid %d, Level %d, Parent %d' % \
@@ -161,18 +181,20 @@ class GAMERHierarchy(GridIndex):
                 assert_equal(grid.LeftEdge,  grid.Children[0].LeftEdge )
                 assert_equal(grid.RightEdge, grid.Children[7].RightEdge)
         mylog.info('Check passed')
-               
+
 
 class GAMERDataset(Dataset):
     _index_class      = GAMERHierarchy
     _field_info_class = GAMERFieldInfo
     _handle           = None
+    _group_grid       = None
+    _group_particle   = None
     _debug            = False # debug mode for the GAMER frontend
-    
+
     def __init__(self, filename,
                  dataset_type      = 'gamer',
                  storage_filename  = None,
-                 particle_filename = None, 
+                 particle_filename = None,
                  units_override    = None,
                  unit_system       = "cgs"):
 
@@ -181,6 +203,15 @@ class GAMERDataset(Dataset):
         self.fluid_types      += ('gamer',)
         self._handle           = HDF5FileHandler(filename)
         self.particle_filename = particle_filename
+
+        # to catch both the new and old data formats for the grid data
+        try:
+            self._group_grid = self._handle['GridData']
+        except KeyError:
+            self._group_grid = self._handle['Data']
+
+        if 'Particle' in self._handle:
+            self._group_particle = self._handle['Particle']
 
         if self.particle_filename is None:
             self._particle_handle = self._handle
@@ -197,47 +228,66 @@ class GAMERDataset(Dataset):
                          units_override = units_override,
                          unit_system    = unit_system)
         self.storage_filename = storage_filename
-        
+
     def _set_code_unit_attributes(self):
-        # GAMER does not assume any unit yet ...
-        if len(self.units_override) == 0:
-            mylog.warning("GAMER does not assume any unit ==> " +
-                          "Use units_override to specify the units")
+        if self.parameters['Opt__Unit']:
+            # GAMER units are always in CGS
+            setdefaultattr( self, 'length_unit', self.quan(self.parameters['Unit_L'], 'cm') )
+            setdefaultattr( self, 'mass_unit',   self.quan(self.parameters['Unit_M'], 'g' ) )
+            setdefaultattr( self, 'time_unit',   self.quan(self.parameters['Unit_T'], 's' ) )
 
-        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-            setattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
-
+        else:
             if len(self.units_override) == 0:
-                mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-        
+                mylog.warning("Cannot determine code units ==> " +
+                              "Use units_override to specify the units")
+
+            for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
+                setdefaultattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
+
+                if len(self.units_override) == 0:
+                    mylog.warning("Assuming %s unit = 1.0 %s", unit, cgs)
+
     def _parse_parameter_file(self):
         self.unique_identifier = \
             int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
-        # shortcuts for different simulation information
-        KeyInfo   = self._handle['Info']['KeyInfo']
-        InputPara = self._handle['Info']['InputPara']
-        Makefile  = self._handle['Info']['Makefile']
-        SymConst  = self._handle['Info']['SymConst']
+        # code-specific parameters
+        for t in self._handle['Info']:
+            info_category = self._handle['Info'][t]
+            for v in info_category.dtype.names: self.parameters[v] = info_category[v]
+
+        # shortcut for self.parameters
+        parameters = self.parameters
+
+        # reset 'Model' to be more readable
+        if parameters['Model'] == 1:
+            parameters['Model'] = 'Hydro'
+        elif parameters['Model'] == 2:
+            parameters['Model'] = 'MHD'
+        elif parameters['Model'] == 3:
+            parameters['Model'] = 'ELBDM'
+        else:
+            parameters['Model'] = 'Unknown'
 
         # simulation time and domain
-        self.current_time      = KeyInfo['Time'][0]
+        self.current_time      = parameters['Time'][0]
         self.dimensionality    = 3  # always 3D
         self.domain_left_edge  = np.array([0.,0.,0.], dtype='float64')
-        self.domain_right_edge = KeyInfo['BoxSize'].astype('float64')
-        self.domain_dimensions = KeyInfo['NX0'].astype('int64')
+        self.domain_right_edge = parameters['BoxSize'].astype('float64')
+        self.domain_dimensions = parameters['NX0'].astype('int64')
 
         # periodicity
-        periodic         = InputPara['Opt__BC_Flu'][0] == 0
+        periodic         = parameters['Opt__BC_Flu'][0] == 0
         self.periodicity = (periodic,periodic,periodic)
 
         # cosmological parameters
-        if Makefile['Comoving']:
+        if parameters['Comoving']:
             self.cosmological_simulation = 1
             self.current_redshift        = 1.0/self.current_time - 1.0
-            self.omega_matter            = InputPara['OmegaM0'] 
+            self.omega_matter            = parameters['OmegaM0']
             self.omega_lambda            = 1.0 - self.omega_matter
-            self.hubble_constant         = 0.6955   # H0 is not set in GAMER
+            # default to 0.7 for old data format
+            self.hubble_constant         = parameters.get('Hubble0', 0.7)
         else:
             self.cosmological_simulation = 0
             self.current_redshift        = 0.0
@@ -245,25 +295,14 @@ class GAMERDataset(Dataset):
             self.omega_lambda            = 0.0
             self.hubble_constant         = 0.0
 
-        # code-specific parameters
-        for t in KeyInfo, InputPara, Makefile, SymConst:
-            for v in t.dtype.names: self.parameters[v] = t[v]
-
-        # reset 'Model' to be more readable
-        if KeyInfo['Model'] == 1:
-            self.parameters['Model'] = 'Hydro'
-        elif KeyInfo['Model'] == 2:
-            self.parameters['Model'] = 'MHD'
-        elif KeyInfo['Model'] == 3:
-            self.parameters['Model'] = 'ELBDM'
-        else:
-            self.parameters['Model'] = 'Unknown'
-
         # make aliases to some frequently used variables
-        if self.parameters['Model'] == 'Hydro' or \
-           self.parameters['Model'] == 'MHD':
-            self.gamma = self.parameters["Gamma"]
-            self.mu    = self.parameters.get("mu",0.6) # mean molecular weight
+        if parameters['Model'] == 'Hydro' or parameters['Model'] == 'MHD':
+            self.gamma = parameters["Gamma"]
+            # default to 0.6 for old data format
+            self.mu    = parameters.get('MolecularWeight', 0.6)
+
+        # old data format (version < 2210) does not contain any information of code units
+        self.parameters.setdefault('Opt__Unit', 0)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

@@ -17,6 +17,24 @@ taking a quick look at simulation outputs.  Simple mechanisms exist for making
 plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
 which are described below.
 
+.. _viewing-plots:
+
+Viewing Plots
+-------------
+
+YT uses an environment neutral plotting mechanism that detects the appropriate
+matplotlib configuration for a given environment, however it defaults to a basic
+renderer. To utilize interactive plots in matplotlib supported
+environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` function. Below is an
+example in a jupyter notebook environment, but the same command should work
+in other environments as well:
+
+.. code-block:: python
+ 
+   %matplotlib notebook
+   import yt
+   yt.toggle_interactivity()
+
 .. _simple-inspection:
 
 Slices & Projections
@@ -504,6 +522,33 @@ the axes unit labels.
 The same result could have been accomplished by explicitly setting the ``width``
 to ``(.01, 'Mpc')``.
 
+Set image units
+~~~~~~~~~~~~~~~
+
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_axes_unit` allows
+the customization of the units used for the image and colorbar.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.set_unit('density', 'Msun/pc**3')
+   slc.save()
+
+If the unit you would like to convert to needs an equivalency, this can be
+specified via the ``equivalency`` keyword argument of ``set_unit``. For
+example, let's make a plot of the temperature field, but present it using
+an energy unit instead of a temperature unit:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'temperature', width=(10,'kpc'))
+   slc.set_unit('temperature', 'keV', equivalency='thermal')
+   slc.save()
+
 Set the plot center
 ~~~~~~~~~~~~~~~~~~~
 
@@ -519,6 +564,27 @@ two element tuples.
    slc.set_center((0.5, 0.503))
    slc.save()
 
+Flipping the plot view axes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
+with the assumption that the eastern direction on the plot forms a right handed
+coordinate system with the ``normal`` and ``north_vector`` for the system, whether
+explicitly or implicitly defined. This setting can be toggled or explicitly defined
+by the user at initialization:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   #slicing with non right-handed coordinates
+   slc = yt.SlicePlot(ds, 'x', 'velocity_x', right_handed=False)
+   slc.annotate_title('Not Right Handed')
+   slc.save("NotRightHanded.png")
+
+   #switching to right-handed coordinates
+   slc.toggle_right_handed()
+   slc.annotate_title('Right Handed')
+   slc.save("Standard.png")
 
 .. _hiding-colorbar-and-axes:
 
@@ -685,6 +751,7 @@ function for the colorbar axis.
    slc.set_minorticks('all', 'off')
    slc.set_cbar_minorticks('all', 'off')
    slc.save()
+
 
 .. _matplotlib-customization:
 

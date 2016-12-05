@@ -20,8 +20,9 @@ from .image_samplers cimport ImageContainer
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void calculate_extent_plane_parallel(ImageContainer *image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+@cython.cdivision(True)
+cdef int calculate_extent_plane_parallel(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
     # We do this for all eight corners
     cdef np.float64_t temp
     cdef np.float64_t *edges[2]
@@ -53,11 +54,13 @@ cdef void calculate_extent_plane_parallel(ImageContainer *image,
     rv[1] = rv[0] + lrint((extrema[1] - extrema[0])/image.pdx)
     rv[2] = lrint((extrema[2] - cy - image.bounds[2])/image.pdy)
     rv[3] = rv[2] + lrint((extrema[3] - extrema[2])/image.pdy)
+    return 0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void calculate_extent_perspective(ImageContainer *image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+@cython.cdivision(True)
+cdef int calculate_extent_perspective(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
 
     cdef np.float64_t cam_pos[3]
     cdef np.float64_t cam_width[3]
@@ -156,19 +159,21 @@ cdef void calculate_extent_perspective(ImageContainer *image,
     rv[1] = min(max_px, image.nv[0])
     rv[2] = max(min_py, 0)
     rv[3] = min(max_py, image.nv[1])
-
+    return 0
 
 # We do this for a bunch of lenses.  Fallback is to grab them from the vector
 # info supplied.
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void calculate_extent_null(ImageContainer *image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil:
+@cython.cdivision(True)
+cdef int calculate_extent_null(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
     rv[0] = 0
     rv[1] = image.nv[0]
     rv[2] = 0
     rv[3] = image.nv[1]
+    return 0
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

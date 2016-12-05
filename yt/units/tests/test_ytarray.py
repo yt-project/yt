@@ -28,7 +28,8 @@ from numpy.testing import \
     assert_array_equal, \
     assert_equal, assert_raises, \
     assert_array_almost_equal_nulp, \
-    assert_array_almost_equal
+    assert_array_almost_equal, \
+    assert_almost_equal
 from numpy import array
 from yt.units.yt_array import \
     YTArray, YTQuantity, \
@@ -718,7 +719,7 @@ def unary_ufunc_comparison(ufunc, a):
         assert_true(hasattr(out, 'units'))
         assert_true(not hasattr(ret, 'units'))
     elif ufunc in (np.absolute, np.fabs, np.conjugate, np.floor, np.ceil,
-                   np.trunc, np.negative):
+                   np.trunc, np.negative, np.spacing):
         ret = ufunc(a, out=out)
 
         assert_array_equal(ret, out)
@@ -926,12 +927,12 @@ def test_pint():
     yt_quan2 = YTQuantity.from_pint(p_quan)
 
     yield assert_array_equal, p_arr, yt_arr.to_pint()
-    assert p_quan.units == yt_quan.to_pint().units
+    assert_equal(p_quan, yt_quan.to_pint())
     yield assert_array_equal, yt_arr, YTArray.from_pint(p_arr)
     yield assert_array_equal, yt_arr, yt_arr2
 
     yield assert_equal, p_quan.magnitude, yt_quan.to_pint().magnitude
-    assert p_quan.units == yt_quan.to_pint().units
+    assert_equal(p_quan, yt_quan.to_pint())
     yield assert_equal, yt_quan, YTQuantity.from_pint(p_quan)
     yield assert_equal, yt_quan, yt_quan2
 
@@ -1221,3 +1222,16 @@ def test_builtin_sum():
     arr = [1, 2, 3]*km
     assert_equal(sum(arr), 6*km)
 
+def test_initialization_different_registries():
+    from yt.testing import fake_random_ds
+
+    ds1 = fake_random_ds(32, length_unit=1)
+    ds2 = fake_random_ds(32, length_unit=3)
+
+    l1 = ds1.quan(0.3, 'unitary')
+    l2 = ds2.quan(l1, 'unitary')
+
+    assert_almost_equal(float(l1.in_cgs()), 0.3)
+    assert_almost_equal(float(l2.in_cgs()), 0.9)
+    assert_almost_equal(float(ds1.quan(0.3, 'unitary').in_cgs()), 0.3)
+    assert_almost_equal(float(ds2.quan(0.3, 'unitary').in_cgs()), 0.9)

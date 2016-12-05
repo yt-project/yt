@@ -27,7 +27,7 @@ from numpy import \
     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
     logical_or, logical_xor, logical_not, maximum, minimum, fmax, fmin, \
     isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
-    modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs
+    modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs, spacing
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
@@ -205,7 +205,7 @@ unary_operators = (
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
     rad2deg, invert, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
-    signbit, floor, ceil, trunc, modf, frexp, fabs
+    signbit, floor, ceil, trunc, modf, frexp, fabs, spacing
 )
 
 binary_operators = (
@@ -365,6 +365,7 @@ class YTArray(np.ndarray):
         floor: passthrough_unit,
         ceil: passthrough_unit,
         trunc: passthrough_unit,
+        spacing: passthrough_unit,
     }
 
     __array_priority__ = 2.0
@@ -389,17 +390,18 @@ class YTArray(np.ndarray):
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
         if isinstance(input_array, YTArray):
+            ret = input_array.view(cls)
             if input_units is None:
                 if registry is None:
                     pass
                 else:
                     units = Unit(str(input_array.units), registry=registry)
-                    input_array.units = units
+                    ret.units = units
             elif isinstance(input_units, Unit):
-                input_array.units = input_units
+                ret.units = input_units
             else:
-                input_array.units = Unit(input_units, registry=registry)
-            return input_array.view(cls)
+                ret.units = Unit(input_units, registry=registry)
+            return ret
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array) and input_array:
@@ -613,7 +615,7 @@ class YTArray(np.ndarray):
                 self, conv_unit.dimensions, **kwargs)
             if isinstance(new_arr, tuple):
                 try:
-                    return YTArray(new_arr[0], new_arr[1]).in_units(unit)
+                    return type(self)(new_arr[0], new_arr[1]).in_units(unit)
                 except YTUnitConversionError:
                     raise YTInvalidUnitEquivalence(equiv, self.units, unit)
             else:
@@ -713,7 +715,7 @@ class YTArray(np.ndarray):
         >>> c = yt.YTArray.from_pint(b)
         """
         p_units = []
-        for base, exponent in arr.units.items():
+        for base, exponent in arr._units.items():
             bs = convert_pint_units(base)
             p_units.append("%s**(%s)" % (bs, Rational(exponent)))
         p_units = "*".join(p_units)

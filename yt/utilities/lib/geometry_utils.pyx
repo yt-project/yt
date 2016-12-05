@@ -499,6 +499,7 @@ cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
         p.points[p.count][j] = p0[j] + vec[j] * t
     p.count += 1
 
+@cython.cdivision(True)
 def triangle_plane_intersect(int ax, np.float64_t coord,
                              np.ndarray[np.float64_t, ndim=3] triangles):
     cdef np.float64_t p0[3]

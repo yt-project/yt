@@ -35,8 +35,8 @@ from yt.frontends.sph.fields import \
 class OWLSFieldInfo(SPHFieldInfo):
 
     _ions = ("c1", "c2", "c3", "c4", "c5", "c6",
-             "fe2", "fe17", "h1", "he1", "he2", "mg1", "mg2", "n2", 
-             "n3", "n4", "n5", "n6", "n7", "ne8", "ne9", "ne10", "o1", 
+             "fe2", "fe17", "h1", "he1", "he2", "mg1", "mg2", "n2",
+             "n3", "n4", "n5", "n6", "n7", "ne8", "ne9", "ne10", "o1",
              "o6", "o7", "o8", "si2", "si3", "si4", "si13")
 
     _elements = ("H", "He", "C", "N", "O", "Ne", "Mg", "Si", "Fe")
@@ -49,7 +49,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
 
     def __init__(self, *args, **kwargs):
-        
+
         new_particle_fields = (
             ("Hydrogen", ("", ["H_fraction"], None)),
             ("Helium", ("", ["He_fraction"], None)),
@@ -72,7 +72,7 @@ class OWLSFieldInfo(SPHFieldInfo):
     def setup_particle_fields(self, ptype):
         """ additional particle fields derived from those in snapshot.
         we also need to add the smoothed fields here b/c setup_fluid_fields
-        is called before setup_particle_fields. """ 
+        is called before setup_particle_fields. """
 
         smoothed_suffixes = ("_number_density", "_density", "_mass")
 
@@ -90,9 +90,9 @@ class OWLSFieldInfo(SPHFieldInfo):
                 add_species_field_by_fraction(self, ptype, s,
                                               particle_type=True)
 
-        # this needs to be called after the call to 
+        # this needs to be called after the call to
         # add_species_field_by_fraction for some reason ...
-        # not sure why yet. 
+        # not sure why yet.
         #-------------------------------------------------------
         if ptype == 'PartType0':
             ftype='gas'
@@ -108,7 +108,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             ftype='BH'
         elif ptype == 'all':
             ftype='all'
-        
+
         super(OWLSFieldInfo,self).setup_particle_fields(
             ptype, num_neighbors=self._num_neighbors, ftype=ftype)
 
@@ -117,11 +117,11 @@ class OWLSFieldInfo(SPHFieldInfo):
         #-----------------------------------------------------
         if ptype == 'PartType0':
 
-            # we only add ion fields for gas.  this takes some 
+            # we only add ion fields for gas.  this takes some
             # time as the ion abundances have to be interpolated
             # from cloudy tables (optically thin)
             #-----------------------------------------------------
-    
+
 
             # this defines the ion density on particles
             # X_density for all items in self._ions
@@ -176,7 +176,7 @@ class OWLSFieldInfo(SPHFieldInfo):
                 loaded = []
                 for sfx in smoothed_suffixes:
                     fname = yt_ion + sfx
-                    fn = add_volume_weighted_smoothed_field( 
+                    fn = add_volume_weighted_smoothed_field(
                         ptype, "particle_position", "particle_mass",
                         "smoothing_length", "density", fname, self,
                         self._num_neighbors)
@@ -190,7 +190,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
 
     def setup_gas_ion_density_particle_fields( self, ptype ):
-        """ Sets up particle fields for gas ion densities. """ 
+        """ Sets up particle fields for gas ion densities. """
 
         # loop over all ions and make fields
         #----------------------------------------------
@@ -217,22 +217,22 @@ class OWLSFieldInfo(SPHFieldInfo):
             fname = yt_ion + '_density'
             dens_func = self._create_ion_density_func( ftype, ion )
             self.add_field( (ftype, fname),
-                            function = dens_func, 
-                            units=self.ds.unit_system["density"],
-                            particle_type=True )            
+                            sampling_type="particle",
+                            function = dens_func,
+                            units=self.ds.unit_system["density"])
             self._show_field_errors.append( (ftype,fname) )
 
 
 
-        
+
     def _create_ion_density_func( self, ftype, ion ):
-        """ returns a function that calculates the ion density of a particle. 
-        """ 
+        """ returns a function that calculates the ion density of a particle.
+        """
 
         def get_owls_ion_density_field(ion, ftype, itab):
             def _func(field, data):
 
-                # get element symbol from ion string. ion string will 
+                # get element symbol from ion string. ion string will
                 # be a member of the tuple _ions (i.e. si13)
                 #--------------------------------------------------------
                 if ion[0:2].isalpha():
@@ -256,9 +256,9 @@ class OWLSFieldInfo(SPHFieldInfo):
                 # find ion balance using log nH and log T
                 #--------------------------------------------------------
                 i_frac = itab.interp( log_nH, log_T )
-                return data[ftype,"Density"] * m_frac * i_frac 
+                return data[ftype,"Density"] * m_frac * i_frac
             return _func
-            
+
         ion_path = self._get_owls_ion_data_dir()
         fname = os.path.join( ion_path, ion+".hdf5" )
         itab = oit.IonTableOWLS( fname )
@@ -295,7 +295,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         if tdir == "/does/not/exist":
             data_dir = "./"
         else:
-            data_dir = tdir            
+            data_dir = tdir
 
 
         # check for owls_ion_data directory in data_dir

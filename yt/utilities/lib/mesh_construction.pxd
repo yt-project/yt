@@ -18,3 +18,9 @@ ctypedef struct Patch:
     unsigned int geomID
     np.float64_t* vertices
     np.float64_t* field_data
+
+ctypedef struct Tet_Patch:
+    float[6][3] v
+    unsigned int geomID
+    np.float64_t* vertices
+    np.float64_t* field_data
