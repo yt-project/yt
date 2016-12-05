@@ -12,7 +12,6 @@ from __future__ import print_function
 #-----------------------------------------------------------------------------
 
 from yt.data_objects.field_data import YTFieldData
-from yt.data_objects.time_series import DatasetSeries
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
@@ -28,30 +27,24 @@ class ParticleTrajectories(object):
     r"""A collection of particle trajectories in time over a series of
     datasets. 
 
-    The ParticleTrajectories object contains a collection of
-    particle trajectories for a specified set of particle indices. 
-    
     Parameters
     ----------
-    outputs : `yt.data_objects.time_series.DatasetSeries` or list of strings
-        DatasetSeries object, or a time-sorted list of filenames to
-        construct a new DatasetSeries object.
+    outputs : `yt.data_objects.time_series.DatasetSeries`
+        DatasetSeries object from which to draw the particles.
     indices : array_like
         An integer array of particle indices whose trajectories we
         want to track. If they are not sorted they will be sorted.
     fields : list of strings, optional
         A set of fields that is retrieved when the trajectory
-        collection is instantiated.
-        Default : None (will default to the fields 'particle_position_x',
-        'particle_position_y', 'particle_position_z')
+        collection is instantiated. Default: None (will default
+        to the fields 'particle_position_x', 'particle_position_y',
+        'particle_position_z')
     suppress_logging : boolean
         Suppress yt's logging when iterating over the simulation time
-        series.
-        Default : False
+        series. Default: False
 
     Examples
-    ________
-    >>> from yt.mods import *
+    --------
     >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
     >>> my_fns.sort()
     >>> fields = ["particle_position_x", "particle_position_y",
@@ -60,7 +53,8 @@ class ParticleTrajectories(object):
     >>> ds = load(my_fns[0])
     >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
     >>> indices = init_sphere["particle_index"].astype("int")
-    >>> trajs = ParticleTrajectories(my_fns, indices, fields=fields)
+    >>> ts = DatasetSeries(my_fns)
+    >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs :
     >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
     """
@@ -68,10 +62,7 @@ class ParticleTrajectories(object):
 
         indices.sort() # Just in case the caller wasn't careful
         self.field_data = YTFieldData()
-        if isinstance(outputs, DatasetSeries):
-            self.data_series = outputs
-        else:
-            self.data_series = DatasetSeries(outputs)
+        self.data_series = outputs
         self.masks = []
         self.sorts = []
         self.array_indices = []
@@ -233,7 +224,7 @@ class ParticleTrajectories(object):
         grid_fields = [field for field in missing_fields
                        if field not in self.particle_fields]
         step = int(0)
-        pbar = get_pbar("Generating [%s] fields in trajectories." %
+        pbar = get_pbar("Generating [%s] fields in trajectories" %
                         ", ".join(missing_fields), self.num_steps)
         my_storage = {}
         
@@ -335,7 +326,6 @@ class ParticleTrajectories(object):
 
         Examples
         --------
-        >>> from yt.mods import *
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.write_out("orbit_trajectory")       
         """
@@ -368,8 +358,6 @@ class ParticleTrajectories(object):
 
         Examples
         --------
-
-        >>> from yt.mods import *
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.write_out_h5("orbit_trajectories")                
         """
