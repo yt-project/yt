@@ -362,7 +362,7 @@ class FixedResolutionBuffer(object):
             the length units that the coordinates are written in, default 'cm'.
         """
 
-        from yt.utilities.fits_image import FITSImageData
+        from yt.visualization.fits_image import FITSImageData
 
         if fields is None:
             fields = list(self.data.keys())
