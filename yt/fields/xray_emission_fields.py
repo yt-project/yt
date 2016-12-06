@@ -26,6 +26,7 @@ from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, BilinearFieldInterpolator
 from yt.utilities.physical_constants import mp
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.cosmology import Cosmology
 from yt.utilities.physical_ratios import \
     primordial_H_mass_fraction, erg_per_keV
 
@@ -76,9 +77,12 @@ class XrayEmissivityIntegrator(object):
         energy range 0.1 to 100 keV.
     data_dir : string, optional
         The location to look for the data table in. If not supplied, the file
-        will be looked for in the 
+        will be looked for in the location of the YT_DEST environment variable
+        or in the current working directory.
+    redshift : float, optional
+        The cosmological redshift of the source of the field. Default: 0.0.
     """
-    def __init__(self, table_type, data_dir=None):
+    def __init__(self, table_type, data_dir=None, redshift=0.0):
 
         filename = _get_data_file(table_type, data_dir=data_dir)
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
@@ -96,10 +100,11 @@ class XrayEmissivityIntegrator(object):
         in_file.close()
         self.dE = np.diff(self.ebin)
         self.emid = 0.5*(self.ebin[1:]+self.ebin[:-1])
+        self.redshift = redshift
 
     def get_interpolator(self, data, e_min, e_max):
-        e_min = YTQuantity(e_min, "keV")
-        e_max = YTQuantity(e_max, "keV")
+        e_min = YTQuantity(e_min, "keV")*(1.0+self.redshift)
+        e_max = YTQuantity(e_max, "keV")*(1.0+self.redshift)
         if (e_min - self.ebin[0]) / e_min < -1e-3 or \
           (e_max - self.ebin[-1]) / e_max > 1e-3:
             raise EnergyBoundsException(self.ebin[0], self.ebin[-1])
@@ -127,7 +132,8 @@ class XrayEmissivityIntegrator(object):
 
 def add_xray_emissivity_field(ds, e_min, e_max, 
                               metallicity=("gas", "metallicity"), 
-                              table_type="cloudy"):
+                              table_type="cloudy", data_dir=None, redshift=0.0,
+                              cosmology=None):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -144,6 +150,12 @@ def add_xray_emissivity_field(ds, e_min, e_max,
     table_type : string, optional
         The type of emissivity table to be used when creating the fields. 
         Options are "cloudy" or "apec". Default: "cloudy"
+    data_dir : string, optional
+        The location to look for the data table in. If not supplied, the file
+        will be looked for in the location of the YT_DEST environment variable
+        or in the current working directory.
+    redshift : float, optional
+        The cosmological redshift of the source of the field. Default: 0.0.
 
     This will create three fields:
 
@@ -167,7 +179,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
             raise RuntimeError("Your dataset does not have a %s field! " % metallicity +
                                "Perhaps you should specify a constant metallicity?")
 
-    my_si = XrayEmissivityIntegrator(table_type)
+    my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, redshift=redshift)
 
     em_0 = my_si.get_interpolator(my_si.emissivity_primordial, e_min, e_max)
     if metallicity is not None:
@@ -188,6 +200,15 @@ def add_xray_emissivity_field(ds, e_min, e_max,
         def _nh(field, data):
             return primordial_H_mass_fraction*data["gas", "density"]/mp
         ds.add_field(("gas", "H_number_density"), function=_nh, units="cm**-3")
+
+    if cosmology is None:
+        if hasattr(ds, "cosmology"):
+            cosmology = ds.cosmology
+        else:
+            cosmology = Cosmology()
+    D_L = cosmology.luminosity_distance(0.0, redshift)
+    angular_scale = cosmology.angular_scale(0.0, redshift)
+    dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
 
     def _emissivity_field(field, data):
         dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
@@ -237,4 +258,26 @@ def add_xray_emissivity_field(ds, e_min, e_max,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
                  units="photons/cm**3/s")
 
-    return emiss_name, lum_name, phot_name
+    fields = [emiss_name, lum_name, phot_name]
+
+    if redshift > 0.0:
+
+        ei_name = "xray_intensity_%s_%s_keV" % (e_min, e_max)
+        def _intensity_field(field, data):
+            I = dist_fac*data[emiss_name]
+            return I.in_units("erg/cm**2/s/arcsec**2")
+        ds.add_field(("gas", ei_name), function=_intensity_field,
+                     display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
+                     units="erg/cm**2/s/arcsec**2")
+
+        i_name = "xray_photon_intensity_%s_%s_keV" % (e_min, e_max)
+        def _photon_intensity_field(field, data):
+            I = (1.0+redshift)*dist_fac*data[phot_name]
+            return I.in_units("photons/cm**2/s/arcsec**2")
+        ds.add_field(("gas", i_name), function=_intensity_field,
+                     display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
+                     units="photons/cm**2/s/arcsec**2")
+
+        fields += [ei_name, i_name]
+
+    return fields
