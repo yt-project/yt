@@ -19,7 +19,7 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
-from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.volume_container cimport \
