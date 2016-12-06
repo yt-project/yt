@@ -413,7 +413,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                                         registry=self.ds.unit_registry)
                 # Only convert to CGS for path elements that aren't angles
                 if not path_length_unit.is_dimensionless:
-                    path_length_unit = path_length_unit.get_cgs_equivalent()
+                    path_length_unit = path_length_unit.get_base_equivalent(
+                        unit_system=self.ds.unit_system)
             if self.weight_field is None:
                 self._projected_units[field] = field_unit*path_length_unit
             else:
