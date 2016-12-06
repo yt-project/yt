@@ -35,7 +35,7 @@ def compare_light_ray_solutions(lr1, lr2):
             if field in ["next", "previous"]:
                 continue
             if isinstance(s1[field], np.ndarray):
-                assert_array_equal(s1[field], s1[field])
+                assert_array_equal(s1[field], s2[field])
             else:
                 assert s1[field] == s2[field]
 
