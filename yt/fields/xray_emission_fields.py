@@ -201,15 +201,6 @@ def add_xray_emissivity_field(ds, e_min, e_max,
             return primordial_H_mass_fraction*data["gas", "density"]/mp
         ds.add_field(("gas", "H_number_density"), function=_nh, units="cm**-3")
 
-    if cosmology is None:
-        if hasattr(ds, "cosmology"):
-            cosmology = ds.cosmology
-        else:
-            cosmology = Cosmology()
-    D_L = cosmology.luminosity_distance(0.0, redshift)
-    angular_scale = cosmology.angular_scale(0.0, redshift)
-    dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
-
     def _emissivity_field(field, data):
         dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
               "log_T": np.log10(data["gas", "temperature"])}
@@ -261,6 +252,16 @@ def add_xray_emissivity_field(ds, e_min, e_max,
     fields = [emiss_name, lum_name, phot_name]
 
     if redshift > 0.0:
+
+        if cosmology is None:
+            if hasattr(ds, "cosmology"):
+                cosmology = ds.cosmology
+            else:
+                cosmology = Cosmology()
+
+        D_L = cosmology.luminosity_distance(0.0, redshift)
+        angular_scale = cosmology.angular_scale(0.0, redshift)
+        dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
 
         ei_name = "xray_intensity_%s_%s_keV" % (e_min, e_max)
         def _intensity_field(field, data):
