@@ -59,11 +59,11 @@ class EnergyBoundsException(YTException):
         return "Energy bounds are %e to %e keV." % \
           (self.lower, self.upper)
 
-class EmissivityIntegrator(object):
+class XrayEmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
     generated from Cloudy and AtomDB/APEC.
 
-    Initialize an EmissivityIntegrator object.
+    Initialize an XrayEmissivityIntegrator object.
 
     Parameters
     ----------
@@ -167,7 +167,7 @@ def add_xray_emissivity_field(ds, e_min, e_max,
             raise RuntimeError("Your dataset does not have a %s field! " % metallicity +
                                "Perhaps you should specify a constant metallicity?")
 
-    my_si = EmissivityIntegrator(table_type)
+    my_si = XrayEmissivityIntegrator(table_type)
 
     em_0 = my_si.get_interpolator(my_si.emissivity_primordial, e_min, e_max)
     if metallicity is not None:
