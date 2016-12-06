@@ -263,7 +263,6 @@ class YTDataLightRayDataset(YTDataContainerDataset):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
             data_type = parse_h5_attr(f, "data_type")
-            cont_type = parse_h5_attr(f, "container_type")
             if data_type in ["yt_light_ray"]:
                 return True
         return False
