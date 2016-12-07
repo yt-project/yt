@@ -161,7 +161,10 @@ class FieldInfoContainer(dict):
             if ptype2 != ptype:
                 continue
             if alias_name not in sph_whitelist_fields:
-                continue
+                if alias_name.startswith('particle_'):
+                    pass
+                else:
+                    continue
             add_volume_weighted_smoothed_field(
                 ptype, "particle_position", "particle_mass",
                 sml_name, "density", alias_name, self,
