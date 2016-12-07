@@ -315,11 +315,11 @@ def create_vector_fields(registry, basename, field_units,
 
     def _cylindrical_tangential(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return data["%s_cylindrical_theta" % basename]
+        return data[ftype, "%s_cylindrical_theta" % basename]
 
     def _cylindrical_tangential_absolute(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return np.abs(data['cylindrical_tangential_%s' % basename])
+        return np.abs(data[ftype, 'cylindrical_tangential_%s' % basename])
 
     registry.add_field((ftype, "cylindrical_tangential_%s" % basename),
                        sampling_type="local",
