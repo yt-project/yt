@@ -43,7 +43,7 @@ def _get_data_file(table_type, data_dir=None):
             data_dir = "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        mylog.info("Attempting to download supplementary data from %s to %s." %
+        mylog.info("Attempting to download supplementary data from %s to '%s'." %
                    (data_url, data_dir))
         fn = download_file(os.path.join(data_url, data_file), data_path)
         if fn != data_path:
