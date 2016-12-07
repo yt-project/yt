@@ -88,7 +88,7 @@ class XrayEmissivityIntegrator(object):
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
         in_file = h5py.File(filename, "r")
         if "info" in in_file.attrs:
-            only_on_root(mylog.info, in_file.attrs["info"])
+            only_on_root(mylog.info, in_file.attrs["info"].decode('utf8'))
         only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
                      in_file.attrs["version"])
 
