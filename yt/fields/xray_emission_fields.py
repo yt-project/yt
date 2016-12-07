@@ -28,11 +28,15 @@ from yt.utilities.physical_constants import mp
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.physical_ratios import \
-    primordial_H_mass_fraction, erg_per_keV
+    primordial_H_mass_fraction
+
+data_version = {"cloudy": 2,
+                "apec": 2}
+
+data_url = "http://yt-project.org/data"
 
 def _get_data_file(table_type, data_dir=None):
     data_file = "%s_emissivity.h5" % table_type
-    data_url = "http://yt-project.org/data"
     if data_dir is None:
         if "YT_DEST" in os.environ and \
             os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
@@ -59,6 +63,14 @@ class EnergyBoundsException(YTException):
     def __str__(self):
         return "Energy bounds are %e to %e keV." % \
           (self.lower, self.upper)
+
+class ObsoleteDataException(YTException):
+    def __init__(self, table_type):
+        self.msg = "X-ray emissivity data is out of date.\n"
+        self.msg += "Download the latest data from %s/%s_emissivity.h5." % (data_url, table_type)
+
+    def __str__(self):
+        return self.msg
 
 class XrayEmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
@@ -89,8 +101,11 @@ class XrayEmissivityIntegrator(object):
         in_file = h5py.File(filename, "r")
         if "info" in in_file.attrs:
             only_on_root(mylog.info, in_file.attrs["info"].decode('utf8'))
-        only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
-                     in_file.attrs["version"])
+        if in_file.attrs["version"] != data_version[table_type]:
+            raise ObsoleteDataException(table_type)
+        else:
+            only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
+                         in_file.attrs["version"])
 
         self.log_T = in_file["log_T"][:]
         self.emissivity_primordial = in_file["emissivity_primordial"][:]
