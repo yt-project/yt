@@ -118,7 +118,7 @@ class FieldTypeContainer(object):
         return list(self.field_types)
 
     def __iter__(self):
-        for ft in self.field_types:
+        for ft in sorted(list(self.field_types)):
             fnc = FieldNameContainer(self.ds, ft)
             if len(dir(fnc)) == 0:
                 yield self.__getattribute__(ft)
@@ -146,14 +146,17 @@ class FieldNameContainer(object):
             return self.__getattribute__(attr)
         return ds.field_info[ft, attr]
 
+    @property
+    def _field_names(self):
+        return set(
+            (t, n) for t, n in self.ds.field_info if t == self.field_type)
+
     def __dir__(self):
-        return [n for t, n in self.ds.field_info
-                if t == self.field_type]
+        return [f[1] for f in sorted(list(self._field_names))]
 
     def __iter__(self):
-        for t, n in self.ds.field_info:
-            if t == self.field_type:
-                yield self.ds.field_info[t, n]
+        for field_name in sorted(self._field_names):
+            yield self.ds.field_info[field_name]
 
     def __contains__(self, obj):
         if isinstance(obj, DerivedField):
