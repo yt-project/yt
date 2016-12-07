@@ -26,8 +26,6 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.utilities.file_handler import \
@@ -37,7 +35,6 @@ from yt.geometry.unstructured_mesh_handler import \
 from yt.data_objects.unstructured_mesh import \
     SemiStructuredMesh
 from itertools import chain, product
-
 from .fields import AthenaPPFieldInfo
 
 geom_map = {"cartesian": "cartesian",
@@ -83,6 +80,9 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         nbx, nby, nbz = tuple(np.max(log_loc, axis=0)+1)
         nlevel = self._handle.attrs["MaxLevel"]+1
 
+        nb = np.array([nbx, nby, nbz], dtype='int')
+        self.mesh_factors = np.ones(3, dtype='int')*((nb > 1).astype("int")+1)
+
         block_grid = -np.ones((nbx,nby,nbz,nlevel), dtype=np.int)
         block_grid[log_loc[:,0],log_loc[:,1],log_loc[:,2],levels[:]] = np.arange(num_blocks)
 
@@ -105,18 +105,16 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         self.meshes = []
         pbar = get_pbar("Constructing meshes", num_meshes)
         for i in range(num_meshes):
-            if bc[i].size > 1:
-                ob = bc[i][0]
-                xb = bc[i][1]
-                yb = bc[i][2]
-                zb = bc[i][4]
-                x = np.concatenate([x1f[ob,:-1], x1f[xb,:]])
-                y = np.concatenate([x2f[ob,:-1], x2f[yb,:]])
-                z = np.concatenate([x3f[ob,:-1], x3f[zb,:]])
-            else:
-                x = x1f[bc[i],:]
-                y = x2f[bc[i],:]
-                z = x3f[bc[i],:]
+            ob = bc[i][0]
+            x = x1f[ob,:]
+            y = x2f[ob,:]
+            z = x3f[ob,:]
+            if nbx > 1:
+                x = np.concatenate([x, x1f[bc[i][1]+1,:]])
+            if nby > 1:
+                y = np.concatenate([y, x2f[bc[i][2]+1,:]])
+            if nbz > 1:
+                z = np.concatenate([z, x3f[bc[i][4]+1,:]])
             nxm = x.size
             nym = y.size
             nzm = z.size
