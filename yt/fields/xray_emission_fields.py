@@ -104,8 +104,8 @@ class XrayEmissivityIntegrator(object):
         if in_file.attrs["version"] != data_version[table_type]:
             raise ObsoleteDataException(table_type)
         else:
-            only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
-                         in_file.attrs["version"])
+            only_on_root(mylog.info, "X-ray emissivity data version: '%s'/%s." % \
+                         (table_type, in_file.attrs["version"]))
 
         self.log_T = in_file["log_T"][:]
         self.emissivity_primordial = in_file["emissivity_primordial"][:]
