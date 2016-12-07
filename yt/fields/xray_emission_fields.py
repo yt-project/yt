@@ -98,7 +98,7 @@ class XrayEmissivityIntegrator(object):
             self.log_nH = in_file["log_nH"][:]
         if use_metals:
             self.emissivity_metals = in_file["emissivity_metals"][:]
-        self.ebin = YTArray(in_file["ebin"], "keV")
+        self.ebin = YTArray(in_file["E"], "keV")
         in_file.close()
         self.dE = np.diff(self.ebin)
         self.emid = 0.5*(self.ebin[1:]+self.ebin[:-1]).to("erg")
@@ -280,5 +280,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                      units="photons/cm**2/s/arcsec**2")
 
         fields += [ei_name, i_name]
+
+    [mylog.info("Adding %s field." % field) for field in fields]
 
     return fields
