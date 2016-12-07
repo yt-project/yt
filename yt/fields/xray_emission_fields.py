@@ -214,7 +214,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                       "Assuming primordial H mass fraction.")
         def _nh(field, data):
             return primordial_H_mass_fraction*data["gas", "density"]/mp
-        ds.add_field(("gas", "H_number_density"), function=_nh, units="cm**-3")
+        ds.add_field(("gas", "H_number_density"), function=_nh, 
+                     sampling_type="cell", units="cm**-3")
 
     def _emissivity_field(field, data):
         dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
@@ -234,7 +235,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(("gas", emiss_name), function=_emissivity_field,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
-                 units="erg/cm**3/s")
+                 sampling_type="cell", units="erg/cm**3/s")
 
     def _luminosity_field(field, data):
         return data[emiss_name] * data["cell_volume"]
@@ -242,7 +243,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     lum_name = "xray_luminosity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(("gas", lum_name), function=_luminosity_field,
                  display_name=r"\rm{L}_{X} (%s-%s keV)" % (e_min, e_max),
-                 units="erg/s")
+                 sampling_type="cell", units="erg/s")
 
     def _photon_emissivity_field(field, data):
         dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
@@ -262,7 +263,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
     ds.add_field(("gas", phot_name), function=_photon_emissivity_field,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
-                 units="photons/cm**3/s")
+                 sampling_type="cell", units="photons/cm**3/s")
 
     fields = [emiss_name, lum_name, phot_name]
 
@@ -284,7 +285,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             return I.in_units("erg/cm**2/s/arcsec**2")
         ds.add_field(("gas", ei_name), function=_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
-                     units="erg/cm**2/s/arcsec**2")
+                     sampling_type="cell", units="erg/cm**2/s/arcsec**2")
 
         i_name = "xray_photon_intensity_%s_%s_keV" % (e_min, e_max)
         def _photon_intensity_field(field, data):
@@ -292,7 +293,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             return I.in_units("photons/cm**2/s/arcsec**2")
         ds.add_field(("gas", i_name), function=_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
-                     units="photons/cm**2/s/arcsec**2")
+                     sampling_type="cell", units="photons/cm**2/s/arcsec**2")
 
         fields += [ei_name, i_name]
 
