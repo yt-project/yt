@@ -179,9 +179,9 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     """
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
-            metallicity = ds._get_field_info(metallicity)
+            metallicity = ds._get_field_info(*metallicity)
         except YTFieldNotFound:
-            raise RuntimeError("Your dataset does not have a %s field! " % metallicity +
+            raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
                                "Perhaps you should specify a constant metallicity?")
 
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, redshift=redshift)
