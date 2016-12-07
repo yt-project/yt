@@ -75,14 +75,14 @@ class XrayEmissivityIntegrator(object):
         collisionally ionized plasmas. These files contain emissivity tables 
         for primordial elements and for metals at solar metallicity for the 
         energy range 0.1 to 100 keV.
+    redshift : float, optional
+        The cosmological redshift of the source of the field. Default: 0.0.
     data_dir : string, optional
         The location to look for the data table in. If not supplied, the file
         will be looked for in the location of the YT_DEST environment variable
         or in the current working directory.
-    redshift : float, optional
-        The cosmological redshift of the source of the field. Default: 0.0.
     """
-    def __init__(self, table_type, data_dir=None, redshift=0.0):
+    def __init__(self, table_type, redshift=0.0, data_dir=None, use_metals=True):
 
         filename = _get_data_file(table_type, data_dir=data_dir)
         only_on_root(mylog.info, "Loading emissivity data from %s." % filename)
@@ -92,17 +92,22 @@ class XrayEmissivityIntegrator(object):
         only_on_root(mylog.info, "X-ray emissivity data version: %s." % \
                      in_file.attrs["version"])
 
-        for field in ["emissivity_primordial", "emissivity_metals",
-                      "log_nH", "log_T"]:
-            if field in in_file:
-                setattr(self, field, in_file[field][:])
+        self.log_T = in_file["log_T"][:]
+        self.emissivity_primordial = in_file["emissivity_primordial"][:]
+        if "log_nH" in in_file:
+            self.log_nH = in_file["log_nH"][:]
+        if use_metals:
+            self.emissivity_metals = in_file["emissivity_metals"][:]
         self.ebin = YTArray(in_file["ebin"], "keV")
         in_file.close()
         self.dE = np.diff(self.ebin)
-        self.emid = 0.5*(self.ebin[1:]+self.ebin[:-1])
+        self.emid = 0.5*(self.ebin[1:]+self.ebin[:-1]).to("erg")
         self.redshift = redshift
 
-    def get_interpolator(self, data, e_min, e_max):
+    def get_interpolator(self, data_type, e_min, e_max, energy=True):
+        data = getattr(self, "emissivity_%s" % data_type)
+        if not energy:
+            data = data[..., :] / self.emid.v
         e_min = YTQuantity(e_min, "keV")*(1.0+self.redshift)
         e_max = YTQuantity(e_max, "keV")*(1.0+self.redshift)
         if (e_min - self.ebin[0]) / e_min < -1e-3 or \
@@ -118,7 +123,7 @@ class XrayEmissivityIntegrator(object):
         my_dE[-1] -= self.ebin[e_ie] - e_max
 
         interp_data = (data[..., e_is:e_ie]*my_dE).sum(axis=-1)
-        if len(data.shape) == 2:
+        if data.ndim == 2:
             emiss = UnilinearFieldInterpolator(np.log10(interp_data),
                                                [self.log_T[0],  self.log_T[-1]],
                                                "log_T", truncate=True)
@@ -130,9 +135,9 @@ class XrayEmissivityIntegrator(object):
 
         return emiss
 
-def add_xray_emissivity_field(ds, e_min, e_max, 
+def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                               metallicity=("gas", "metallicity"), 
-                              table_type="cloudy", data_dir=None, redshift=0.0,
+                              table_type="cloudy", data_dir=None,
                               cosmology=None):
     r"""Create X-ray emissivity fields for a given energy range.
 
@@ -142,6 +147,8 @@ def add_xray_emissivity_field(ds, e_min, e_max,
         The minimum energy in keV for the energy band.
     e_min : float
         The maximum energy in keV for the energy band.
+    redshift : float, optional
+        The cosmological redshift of the source of the field. Default: 0.0.
     metallicity : field or float, optional
         Either the name of a metallicity field or a single floating-point
         number specifying a spatially constant metallicity. Must be in
@@ -154,8 +161,6 @@ def add_xray_emissivity_field(ds, e_min, e_max,
         The location to look for the data table in. If not supplied, the file
         will be looked for in the location of the YT_DEST environment variable
         or in the current working directory.
-    redshift : float, optional
-        The cosmological redshift of the source of the field. Default: 0.0.
 
     This will create three fields:
 
@@ -181,16 +186,11 @@ def add_xray_emissivity_field(ds, e_min, e_max,
 
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, redshift=redshift)
 
-    em_0 = my_si.get_interpolator(my_si.emissivity_primordial, e_min, e_max)
+    em_0 = my_si.get_interpolator("primordial", e_min, e_max)
+    emp_0 = my_si.get_interpolator("primordial", e_min, e_max, energy=False)
     if metallicity is not None:
-        em_Z = my_si.get_interpolator(my_si.emissivity_metals, e_min, e_max)
-
-    energy_erg = my_si.emid.v * erg_per_keV
-    emp_0 = my_si.get_interpolator((my_si.emissivity_primordial[..., :] / energy_erg),
-                                   e_min, e_max)
-    if metallicity is not None:
-        emp_Z = my_si.get_interpolator((my_si.emissivity_metals[..., :] / energy_erg),
-                                       e_min, e_max)
+        em_Z = my_si.get_interpolator("metals", e_min, e_max)
+        emp_Z = my_si.get_interpolator("metals", e_min, e_max, energy=False)
 
     try:
         ds._get_field_info("H_number_density")
