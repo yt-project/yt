@@ -309,12 +309,13 @@ class ImagePlotContainer(object):
             the color map
 
         """
+        actual_field = self.data_source._determine_fields(field)[0]
         if color is None:
-            cmap = self._colormaps[field]
+            cmap = self._colormaps[actual_field]
             if isinstance(cmap, string_types): 
                 cmap = yt_colormaps[cmap]
             color = cmap(0)
-        self.plots[field].axes.set_axis_bgcolor(color)
+        self.plots[actual_field].axes.set_axis_bgcolor(color)
         return self
 
     @invalidate_plot

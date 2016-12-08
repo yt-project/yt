@@ -499,6 +499,7 @@ def test_frb_regen():
 def test_set_background_color():
     ds = fake_random_ds(32)
     plot = SlicePlot(ds, 2, 'density')
-    plot.set_background_color('density', 'red')
-    ax = plot.plots['density'].axes
-    assert_equal(ax.get_axis_bgcolor(), 'red')
+    for field in ['density', ('gas', 'density')]:
+        plot.set_background_color(field, 'red')
+        ax = plot.plots[field].axes
+        assert_equal(ax.get_axis_bgcolor(), 'red')
