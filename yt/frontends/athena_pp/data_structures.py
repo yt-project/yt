@@ -110,11 +110,11 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
             y = x2f[ob,:]
             z = x3f[ob,:]
             if nbx > 1:
-                x = np.concatenate([x, x1f[bc[i][1]+1,:]])
+                x = np.concatenate([x, x1f[bc[i][1],1:]])
             if nby > 1:
-                y = np.concatenate([y, x2f[bc[i][2]+1,:]])
+                y = np.concatenate([y, x2f[bc[i][2],1:]])
             if nbz > 1:
-                z = np.concatenate([z, x3f[bc[i][4]+1,:]])
+                z = np.concatenate([z, x3f[bc[i][4],1:]])
             nxm = x.size
             nym = y.size
             nzm = z.size
