@@ -66,11 +66,13 @@ class SphericalCoordinateHandler(CoordinateHandler):
                            units = "")
 
         def _SphericalVolume(field, data):
-            # r**2 sin theta dr dtheta dphi
-            vol = data["index", "r"]**2.0
-            vol *= data["index", "dr"]
-            vol *= np.sin(data["index", "theta"])
-            vol *= data["index", "dtheta"]
+            # Here we compute the spherical volume element exactly
+            r = data["index", "r"]
+            dr = data["index", "dr"]
+            theta = data["index", "theta"]
+            dtheta = data["index", "dtheta"]
+            vol = ((r+0.5*dr)**3-(r-0.5*dr)**3)/3.0
+            vol *= np.cos(theta-0.5*dtheta)-np.cos(theta+0.5*dtheta)
             vol *= data["index", "dphi"]
             return vol
         registry.add_field(("index", "cell_volume"), sampling_type="cell", 
