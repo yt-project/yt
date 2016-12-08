@@ -243,6 +243,9 @@ class YTDataLightRayDataset(YTDataContainerDataset):
             return
         self.light_ray_solution = \
           [{} for val in self.parameters[lrs_fields[0]]]
+        sp3 = "light_ray_solution_unique_identifier"
+        if sp3 in lrs_fields:
+            self.parameters[sp3] = self.parameters[sp3].astype(str)
         for field in lrs_fields:
             field_name = field[len(key)+1:]
             for i in range(self.parameters[field].shape[0]):
