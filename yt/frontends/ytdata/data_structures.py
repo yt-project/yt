@@ -238,14 +238,12 @@ class YTDataLightRayDataset(YTDataContainerDataset):
         key = "light_ray_solution"
         self.light_ray_solution = []
         lrs_fields = [par for par in self.parameters \
-                      if key in par and not key.endswith("_units")]
+                      if key in par and not par.endswith("_units")]
         if len(lrs_fields) == 0:
             return
         self.light_ray_solution = \
           [{} for val in self.parameters[lrs_fields[0]]]
         for field in lrs_fields:
-            if field.endswith("_units"):
-                continue
             field_name = field[len(key)+1:]
             for i in range(self.parameters[field].shape[0]):
                 self.light_ray_solution[i][field_name] = self.parameters[field][i]
