@@ -1,7 +1,8 @@
 """
-This file contains functions used for performing ray-tracing with 2nd-order Lagrange
-Elements.
+This file contains functions used for performing ray-tracing with Embree
+for 2nd-order Lagrange Elements.
 
+Note - this file is only used for the Embree-accelerated ray-tracer.
 
 """
 

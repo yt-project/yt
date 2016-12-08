@@ -30,6 +30,7 @@ from yt.utilities.exceptions import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
 from collections import OrderedDict
 
@@ -503,3 +504,38 @@ def test_set_background_color():
         plot.set_background_color(field, 'red')
         ax = plot.plots[field].axes
         assert_equal(ax.get_axis_bgcolor(), 'red')
+
+def test_set_unit():
+    ds = fake_random_ds(32, fields=('temperature',), units=('K',))
+    slc = SlicePlot(ds, 2, 'temperature')
+
+    orig_array = slc.frb['gas', 'temperature'].copy()
+
+    slc.set_unit('temperature', 'degF')
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert_array_almost_equal(np.array(slc.frb['gas', 'temperature']),
+                              np.array(orig_array)*1.8 - 459.67)
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+
+    slc.set_buff_size(800)
+
+    slc.set_unit('temperature', 'K')
+    assert str(slc.frb['gas', 'temperature'].units) == 'K'
+    assert_array_almost_equal(slc.frb['gas', 'temperature'], orig_array)
+
+    slc.set_unit('temperature', 'keV', equivalency='thermal')
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+    assert_array_almost_equal(slc.frb['gas', 'temperature'],
+                              (orig_array*kboltz).to('keV'))
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit with an equivalency
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'

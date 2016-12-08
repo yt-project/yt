@@ -522,6 +522,33 @@ the axes unit labels.
 The same result could have been accomplished by explicitly setting the ``width``
 to ``(.01, 'Mpc')``.
 
+Set image units
+~~~~~~~~~~~~~~~
+
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_axes_unit` allows
+the customization of the units used for the image and colorbar.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.set_unit('density', 'Msun/pc**3')
+   slc.save()
+
+If the unit you would like to convert to needs an equivalency, this can be
+specified via the ``equivalency`` keyword argument of ``set_unit``. For
+example, let's make a plot of the temperature field, but present it using
+an energy unit instead of a temperature unit:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'temperature', width=(10,'kpc'))
+   slc.set_unit('temperature', 'keV', equivalency='thermal')
+   slc.save()
+
 Set the plot center
 ~~~~~~~~~~~~~~~~~~~
 

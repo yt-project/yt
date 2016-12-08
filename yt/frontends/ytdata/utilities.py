@@ -232,5 +232,5 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if iterable(val):
         val = np.array(val)
         if val.dtype.kind == 'U':
-            val = val.astype('|S40')
+            val = val.astype('|S')
     fh.attrs[str(attr)] = val

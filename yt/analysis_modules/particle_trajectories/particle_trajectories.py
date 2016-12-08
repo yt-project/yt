@@ -99,7 +99,7 @@ class ParticleTrajectories(object):
         pbar = get_pbar("Constructing trajectory information", len(self.data_series))
         for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
             dd = ds.all_data()
-            newtags = dd[idx_field].ndarray_view().astype("int64")
+            newtags = dd[idx_field].d.astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
             sort = np.argsort(newtags[mask])
             array_indices = np.where(np.in1d(indices, newtags, assume_unique=True))[0]
@@ -197,7 +197,6 @@ class ParticleTrajectories(object):
 
         Examples
         ________
-        >>> from yt.mods import *
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.add_fields(["particle_mass", "particle_gpot"])
         """
@@ -247,15 +246,15 @@ class ParticleTrajectories(object):
                 dd = ds.all_data()
                 for field in new_particle_fields:
                     # This is easy... just get the particle fields
-                    pfield[field] = dd[fds[field]].ndarray_view()[mask][sort]
+                    pfield[field] = dd[fds[field]].d[mask][sort]
 
             if grid_fields:
                 # This is hard... must loop over grids
                 for field in grid_fields:
-                    pfield[field] = np.zeros((self.num_indices))
-                x = self["particle_position_x"][:,step].ndarray_view()
-                y = self["particle_position_y"][:,step].ndarray_view()
-                z = self["particle_position_z"][:,step].ndarray_view()
+                    pfield[field] = np.zeros(self.num_indices)
+                x = self["particle_position_x"][:,step].d
+                y = self["particle_position_y"][:,step].d
+                z = self["particle_position_z"][:,step].d
                 particle_grids, particle_grid_inds = ds.index._find_points(x,y,z)
 
                 # This will fail for non-grid index objects
@@ -375,10 +374,10 @@ class ParticleTrajectories(object):
         >>> trajs.write_out_h5("orbit_trajectories")                
         """
         fid = h5py.File(filename, "w")
-        fields = [field for field in sorted(self.field_data.keys())]
         fid.create_dataset("particle_indices", dtype=np.int64,
                            data=self.indices)
-        fid.create_dataset("particle_time", data=self.times)
-        for field in fields:
-            fid.create_dataset("%s" % field, data=self[field])
         fid.close()
+        self.times.write_hdf5(filename, dataset_name="particle_times")
+        fields = [field for field in sorted(self.field_data.keys())]
+        for field in fields:
+            self[field].write_hdf5(filename, dataset_name="%s" % field)

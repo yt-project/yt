@@ -17,6 +17,7 @@ Checks for points contained in a volume
 import numpy as np
 cimport numpy as np
 cimport cython
+from libc.math cimport sqrt
 
 cdef extern from "math.h":
     double fabs(double x)
@@ -123,7 +124,7 @@ cdef void normalize_vector(np.float64_t vec[3]):
     cdef np.float64_t norm = 0.0
     for i in range(3):
         norm += vec[i]*vec[i]
-    norm = norm**0.5
+    norm = sqrt(norm)
     for i in range(3):
         vec[i] /= norm
 

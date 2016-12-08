@@ -2,6 +2,7 @@
 This file contains functions that sample a surface mesh at the point hit by
 a ray. These can be used with pyembree in the form of "filter feedback functions."
 
+Note - this file is only used for the Embree-accelerated ray-tracer.
 
 """
 

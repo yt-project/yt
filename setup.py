@@ -180,7 +180,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "misc_utilities", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "ray_integrators", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
@@ -297,6 +297,15 @@ class build_py(_build_py):
             with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
                 fobj.write("hg_version = '%s'\n" % changeset)
         _build_py.run(self)
+
+    def get_outputs(self):
+        # http://bitbucket.org/yt_analysis/yt/issues/1296
+        outputs = _build_py.get_outputs(self)
+        outputs.append(
+            os.path.join(self.build_lib, 'yt', '__hg_version__.py')
+        )
+        return outputs
+
 
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy

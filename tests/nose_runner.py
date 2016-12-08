@@ -6,6 +6,8 @@ import nose
 from yt.extern.six import StringIO
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
+import numpy
+numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
 class NoseWorker(multiprocessing.Process):
 
@@ -67,7 +69,7 @@ def generate_tasks_input():
                       if DROP_TAG not in line])
     tests = yaml.load(data)
 
-    base_argv = ['--local-dir=%s' % answers_dir, '-v',
+    base_argv = ['--local-dir=%s' % answers_dir,
                  '--with-answer-testing', '--answer-big-data', '--local']
     args = []
 
