@@ -2286,8 +2286,8 @@ class RayCallback(PlotCallback):
 
         for ray_ds in self.ray.light_ray_solution:
             if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
-                start_coord = ray_ds['start']
-                end_coord = ray_ds['end']
+                start_coord = plot.ds.arr(ray_ds['start'])
+                end_coord = plot.ds.arr(ray_ds['end'])
                 return (start_coord, end_coord)
         # if no intersection between the plotted dataset and the LightRay
         # return a false tuple to pass to start_coord
@@ -2317,9 +2317,11 @@ class RayCallback(PlotCallback):
         # if possible, break periodic ray into non-periodic
         # segments and add each of them individually
         if any(plot.ds.periodicity):
-            segments = periodic_ray(start_coord, end_coord,
-                                    left=plot.ds.domain_left_edge,
-                                    right=plot.ds.domain_right_edge)
+            segments = periodic_ray(
+                start_coord.to("code_length"),
+                end_coord.to("code_length"),
+                left=plot.ds.domain_left_edge.to("code_length"),
+                right=plot.ds.domain_right_edge.to("code_length"))
         else:
             segments = [[start_coord, end_coord]]
 
