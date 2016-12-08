@@ -17,7 +17,6 @@ from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
-from yt.utilities.fits_image import FITSImageData
 if PY3:
     from io import BytesIO as IO
 else:
@@ -109,6 +108,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     ...                            nan_mask=0.0)
     """
     from spectral_cube import SpectralCube
+    from yt.visualization.fits_image import FITSImageData
     from yt.frontends.fits.api import FITSDataset
     cube = SpectralCube.read(filename)
     if not isinstance(slab_width, YTQuantity):
