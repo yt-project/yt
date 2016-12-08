@@ -64,15 +64,10 @@ class IOHandlerAthenaPP(BaseIOHandler):
                 if self.ds.logarithmic:
                     for mesh in chunk.objs:
                         nx, ny, nz = mesh.mesh_dims // self.ds.index.mesh_factors
-                        #if mesh.mesh_blocks.size == 1:
-                        #    data = ds[fdi,mesh.mesh_blocks,:,:,:].transpose()
-                        #else:
-                            #nx, ny, nz = mesh.mesh_dims//2
                         data = np.empty(mesh.mesh_dims, dtype="=f8")
-                        ids = mesh.mesh_blocks
-                        for n in range(len(ids)):
+                        for n, id in enumerate(mesh.mesh_blocks):
                             data[ii[n]*nx:(ii[n]+1)*nx,jj[n]*ny:(jj[n]+1)*ny,kk[n]*nz:(kk[n]+1)*nz] = \
-                                 ds[fdi,ids[n],:,:,:].transpose()
+                                 ds[fdi,id,:,:,:].transpose()
                         ind += mesh.select(selector, data, rv[field], ind)  # caches
                 else:
                     for gs in grid_sequences(chunk.objs):
