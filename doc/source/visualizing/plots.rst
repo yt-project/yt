@@ -679,9 +679,11 @@ value of the color map.
 
    import yt
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   slc = yt.SlicePlot(ds, 'z', 'x-velocity', width=(30,'kpc'))
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(1.5, 'Mpc'))
    slc.set_background_color('density')
-   slc.save()
+   slc.save('bottom_colormap_background')
+   slc.set_background_color('density', color='black')
+   slc.save('black_background')
 
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
