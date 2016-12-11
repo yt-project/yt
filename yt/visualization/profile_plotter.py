@@ -23,7 +23,6 @@ import os
 
 import matplotlib
 import numpy as np
-from io import BytesIO
 
 
 from .base_plot_types import \
