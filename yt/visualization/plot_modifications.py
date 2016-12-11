@@ -2285,7 +2285,7 @@ class RayCallback(PlotCallback):
         """
 
         for ray_ds in self.ray.light_ray_solution:
-            if ray_ds['unique_identifier'] == plot.ds.unique_identifier:
+            if ray_ds['unique_identifier'] == str(plot.ds.unique_identifier):
                 start_coord = plot.ds.arr(ray_ds['start'])
                 end_coord = plot.ds.arr(ray_ds['end'])
                 return (start_coord, end_coord)
