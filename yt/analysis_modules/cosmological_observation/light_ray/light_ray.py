@@ -683,7 +683,7 @@ class LightRay(CosmologySplice):
                     if isinstance(s[f], YTArray):
                         s[f].convert_to_base()
             for key in self.light_ray_solution[0]:
-                if key in ["next", "previous"]:
+                if key in ["next", "previous", "index"]:
                     continue
                 lrsa = [sol[key] for sol in self.light_ray_solution]
                 if isinstance(lrsa[-1], YTArray):
