@@ -1,3 +1,18 @@
+"""
+
+This file contains code for triangulating unstructured meshes. That is, for
+every element in the mesh, it breaks up the element into some number of
+triangles, returning a triangle mesh instead.
+
+It also contains code for removing duplicate triangles from the resulting
+mesh using a hash-table approach, so that we don't waste time rendering
+impossible-to-see triangles.
+
+This code is currently used by the OpenGL-accelerated unstructured mesh
+renderer, as well as when annotating mesh lines on regular slices.
+
+"""
+
 import numpy as np
 cimport numpy as np
 cimport cython

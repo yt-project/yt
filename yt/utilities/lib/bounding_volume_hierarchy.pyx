@@ -47,10 +47,24 @@ cdef class BVH:
     This class implements a bounding volume hierarchy (BVH), a spatial acceleration
     structure for fast ray-tracing. A BVH is like a kd-tree, except that instead of 
     partitioning the *volume* of the parent to create the children, we partition the 
-    triangles themselves into 'left' or 'right' sub-trees. The bounding volume for a
-    node is then determined by computing the bounding volume of the triangles that
-    belong to it. This allows us to quickly discard triangles that are not close 
+    primitives themselves into 'left' or 'right' sub-trees. The bounding volume for a
+    node is then determined by computing the bounding volume of the primitives that
+    belong to it. This allows us to quickly discard primitives that are not close 
     to intersecting a given ray.
+
+    This class is currently used to provide software 3D rendering support for
+    finite element datasets. For 1st-order meshes, every element of the mesh is
+    triangulated, and this set of triangles forms the primitives that will be used
+    for the ray-trace. The BVH can then quickly determine which element is hit by
+    each ray associated with the image plane, and the appropriate interpolation can
+    be performed to sample the finite element solution at that hit position.
+
+    Currently, 2nd-order meshes are only supported for 20-node hexahedral elements.
+    There, the primitive type is a bi-quadratic patch instead of a triangle, and
+    each intersection involves computing a Netwon-Raphson solve.
+
+    See yt/utilities/lib/primitives.pyx for the definitions of both of these primitive
+    types.
 
     '''
 
