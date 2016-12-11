@@ -18,6 +18,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
+from yt.config import ytcfg
 from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, only_on_root
 from yt.utilities.exceptions import YTFieldNotFound
@@ -38,17 +39,14 @@ data_url = "http://yt-project.org/data"
 def _get_data_file(table_type, data_dir=None):
     data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
     if data_dir is None:
-        if "YT_DEST" in os.environ and \
-            os.path.isdir(os.path.join(os.environ["YT_DEST"], "data")):
-            # Try in default path
-            data_dir = os.path.join(os.environ["YT_DEST"], "data")
-        else:
-            # Try in current working directory
-            data_dir = "."
+        supp_data_dir = ytcfg.get("yt", "supp_data_dir")
+        data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        mylog.error("Failed to find emissivity data file %s!" % data_file)
-        raise IOError("Failed to find emissivity data file %s!" % data_file)
+        msg = "Failed to find emissivity data file %s! " % data_file + \
+            "Please download from http://yt-project.org/data!"
+        mylog.error(msg)
+        raise IOError(msg)
     return data_path
 
 class EnergyBoundsException(YTException):
