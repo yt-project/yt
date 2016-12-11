@@ -1325,8 +1325,10 @@ class YTDownloadData(YTCommand):
         """
         Download a file from http://yt-project.org/data and 
         save it to a particular location. Options are:
-        * "test_data_dir": Save the file to the location
-        * "supp_data_dir": Save the file to the location
+        * "test_data_dir": Save the file to the location specified
+        in the ``"test_data_dir"`` configuration entry for test data.
+        * "supp_data_dir": Save the file to the location specified
+        in the ``"supp_data_dir"`` configuration entry for supplemental data.
         * Any valid path to a location on disk.
         """
     name = "download"
