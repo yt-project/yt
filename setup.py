@@ -322,9 +322,7 @@ class sdist(_sdist):
 setup(
     name="yt",
     version=VERSION,
-    description="An analysis and visualization toolkit for Astrophysical "
-                + "simulations, focusing on Adaptive Mesh Refinement data "
-                  "from Enzo, Orion, FLASH, and others.",
+    description="An analysis and visualization toolkit for volumetric data",
     classifiers=["Development Status :: 5 - Production/Stable",
                  "Environment :: Console",
                  "Intended Audience :: Science/Research",
