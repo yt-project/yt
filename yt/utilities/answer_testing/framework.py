@@ -229,7 +229,13 @@ class AnswerTestCloudStorage(AnswerTestStorage):
 
 class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
-        if self.answer_name is None: return
+        # The 'tainted' attribute is automatically set to 'True'
+        # if the dataset required for an answer test is missing
+        # (see can_run_ds() and can_run_sim()).
+        # This logic check prevents creating a shelve with empty answers.
+        storage_is_tainted = result_storage.get('tainted', False)
+        if self.answer_name is None or storage_is_tainted:
+            return
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
         for ds_name in result_storage:
@@ -259,34 +265,44 @@ def temp_cwd(cwd):
     os.chdir(oldcwd)
 
 def can_run_ds(ds_fn, file_check = False):
+    result_storage = AnswerTestingTest.result_storage
     if isinstance(ds_fn, Dataset):
-        return AnswerTestingTest.result_storage is not None
+        return result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     if file_check:
         return os.path.isfile(os.path.join(path, ds_fn)) and \
-            AnswerTestingTest.result_storage is not None
+            result_storage is not None
     try:
         load(ds_fn)
     except YTOutputNotIdentified:
+        if ytcfg.getboolean("yt", "requires_ds_strict"):
+            if result_storage is not None:
+                result_storage['tainted'] = True
+            raise
         return False
-    return AnswerTestingTest.result_storage is not None
+    return result_storage is not None
 
 def can_run_sim(sim_fn, sim_type, file_check = False):
+    result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
-        return AnswerTestingTest.result_storage is not None
+        return result_storage is not None
     path = ytcfg.get("yt", "test_data_dir")
     if not os.path.isdir(path):
         return False
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn)) and \
-            AnswerTestingTest.result_storage is not None
+            result_storage is not None
     try:
         simulation(sim_fn, sim_type)
     except YTOutputNotIdentified:
+        if ytcfg.getboolean("yt", "requires_ds_strict"):
+            if result_storage is not None:
+                result_storage['tainted'] = True
+            raise
         return False
-    return AnswerTestingTest.result_storage is not None
+    return result_storage is not None
 
 def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     args = args or ()
@@ -389,7 +405,7 @@ class AnswerTestingTest(object):
             oname = "_".join((str(s) for s in obj_type))
         args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
-        return "_".join(args)
+        return "_".join(args).replace('.', '_')
 
 class FieldValuesTest(AnswerTestingTest):
     _type_name = "FieldValues"

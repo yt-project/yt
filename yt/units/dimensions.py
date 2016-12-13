@@ -32,6 +32,8 @@ base_dimensions = [mass, length, time, temperature, angle, current_mks,
 rate = 1 / time
 frequency = rate
 
+solid_angle = angle * angle
+
 velocity     = length / time
 acceleration = length / time**2
 jerk         = length / time**3
@@ -53,6 +55,8 @@ density = mass * number_density
 angular_momentum = mass*length*velocity
 specific_angular_momentum = angular_momentum / mass
 specific_energy = energy / mass
+count_flux = 1 / (area*time)
+count_intensity = count_flux / solid_angle
 
 # Gaussian electromagnetic units
 charge_cgs  = (energy * length)**Rational(1, 2)  # proper 1/2 power
@@ -76,8 +80,6 @@ magnetic_field = magnetic_field_cgs
 electric_potential = electric_potential_cgs
 resistance = resistance_cgs
 current = current_cgs
-
-solid_angle = angle * angle
 
 derived_dimensions = [rate, velocity, acceleration, jerk, snap, crackle, pop, 
                       momentum, force, energy, power, charge_cgs, electric_field_cgs,

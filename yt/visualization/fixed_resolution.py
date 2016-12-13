@@ -282,6 +282,44 @@ class FixedResolutionBuffer(object):
         dpy = (self.bounds[3]-self.bounds[2])/self.buff_size[1]
         return distance/dpy
 
+    def set_unit(self, field, unit, equivalency=None, equivalency_kwargs=None):
+        """Sets a new unit for the requested field
+
+        parameters
+        ----------
+        field : string or field tuple
+           The name of the field that is to be changed.
+
+        unit : string or Unit object
+           The name of the new unit.
+
+        equivalency : string, optional
+           If set, the equivalency to use to convert the current units to
+           the new requested unit. If None, the unit conversion will be done
+           without an equivelancy
+
+        equivalency_kwargs : string, optional
+           Keyword arguments to be passed to the equivalency. Only used if
+           ``equivalency`` is set.
+        """
+        if equivalency_kwargs is None:
+            equivalency_kwargs = {}
+        field = self.data_source._determine_fields(field)[0]
+        if equivalency is None:
+            self[field].convert_to_units(unit)
+        else:
+            equiv_array = self[field].to_equivalent(
+                unit, equivalency, **equivalency_kwargs)
+            # equiv_array isn't necessarily an ImageArray. This is an issue
+            # inherent to the way the unit system handles YTArray
+            # sublcasses and I don't see how to modify the unit system to
+            # fix this. Instead, we paper over this issue and hard code
+            # that equiv_array is an ImageArray
+            self[field] = ImageArray(
+                equiv_array, equiv_array.units, equiv_array.units.registry,
+                self[field].info)
+
+
     def export_hdf5(self, filename, fields = None):
         r"""Export a set of fields to a set of HDF5 datasets.
 
@@ -324,7 +362,7 @@ class FixedResolutionBuffer(object):
             the length units that the coordinates are written in, default 'cm'.
         """
 
-        from yt.utilities.fits_image import FITSImageData
+        from yt.visualization.fits_image import FITSImageData
 
         if fields is None:
             fields = list(self.data.keys())

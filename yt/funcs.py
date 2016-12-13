@@ -519,33 +519,34 @@ def update_hg(path, skip_rebuild = False):
         print("Try: pip install python-hglib")
         return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
-    repo = hglib.open(path)
-    repo.pull()
-    ident = repo.identify().decode("utf-8")
-    if "+" in ident:
-        print("Can't rebuild modules by myself.")
-        print("You will have to do this yourself.  Here's a sample commands:")
-        print("")
-        print("    $ cd %s" % (path))
-        print("    $ hg up")
-        print("    $ %s setup.py develop" % (sys.executable))
-        return 1
-    print("Updating the repository")
-    f.write("Updating the repository\n\n")
-    repo.update(check=True)
-    f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
-    if skip_rebuild: return
-    f.write("Rebuilding modules\n\n")
-    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"], cwd=path,
-                        stdout = subprocess.PIPE, stderr = subprocess.STDOUT)
-    stdout, stderr = p.communicate()
-    f.write(stdout.decode('utf-8'))
-    f.write("\n\n")
-    if p.returncode:
-        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
-        sys.exit(1)
-    f.write("Successful!\n")
-    print("Updated successfully.")
+    with hglib.open(path) as repo:
+        repo.pull()
+        ident = repo.identify().decode("utf-8")
+        if "+" in ident:
+            print("Can't rebuild modules by myself.")
+            print("You will have to do this yourself.  Here's a sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ hg up")
+            print("    $ %s setup.py develop" % (sys.executable))
+            return 1
+        print("Updating the repository")
+        f.write("Updating the repository\n\n")
+        repo.update(check=True)
+        f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
+        if skip_rebuild: return
+        f.write("Rebuilding modules\n\n")
+        p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
+                             cwd=path, stdout = subprocess.PIPE,
+                             stderr = subprocess.STDOUT)
+        stdout, stderr = p.communicate()
+        f.write(stdout.decode('utf-8'))
+        f.write("\n\n")
+        if p.returncode:
+            print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+            sys.exit(1)
+        f.write("Successful!\n")
+        print("Updated successfully.")
 
 def get_hg_version(path):
     try:
@@ -556,8 +557,8 @@ def get_hg_version(path):
         print("Try: pip install python-hglib")
         return None
     try:
-        repo = hglib.open(path)
-        return repo.identify()
+        with hglib.open(path) as repo:
+            return repo.identify()
     except hglib.error.ServerError:
         # path is not an hg repository
         return None
@@ -1035,3 +1036,7 @@ def parse_h5_attr(f, attr):
         return val.decode('utf8')
     else:
         return val
+
+def issue_deprecation_warning(msg):
+    from numpy import VisibleDeprecationWarning
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)

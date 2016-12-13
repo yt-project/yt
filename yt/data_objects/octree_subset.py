@@ -93,7 +93,7 @@ class OctreeSubset(YTSelectionContainer):
     def _reshape_vals(self, arr):
         nz = self.nz
         if len(arr.shape) <= 2:
-            n_oct = arr.shape[0] / (nz**3)
+            n_oct = arr.shape[0] // (nz**3)
         else:
             n_oct = max(arr.shape)
         if arr.size == nz*nz*nz*n_oct:

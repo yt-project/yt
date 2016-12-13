@@ -445,18 +445,18 @@ cdef class S2Sampler3D(NonlinearSolveSampler3D):
           + rp*sm*tp*( r - s + t - 2.0)*vals[5] \
           + rp*sp*tp*( r + s + t - 2.0)*vals[6] \
           + rm*sp*tp*(-r + s + t - 2.0)*vals[7] \
-          + 2.0*(1.0 - r**2)*sm*tm*vals[8]  \
-          + 2.0*rp*(1.0 - s**2)*tm*vals[9]  \
-          + 2.0*(1.0 - r**2)*sp*tm*vals[10] \
-          + 2.0*rm*(1.0 - s**2)*tm*vals[11] \
-          + 2.0*rm*sm*(1.0 - t**2)*vals[12] \
-          + 2.0*rp*sm*(1.0 - t**2)*vals[13] \
-          + 2.0*rp*sp*(1.0 - t**2)*vals[14] \
-          + 2.0*rm*sp*(1.0 - t**2)*vals[15] \
-          + 2.0*(1.0 - r**2)*sm*tp*vals[16] \
-          + 2.0*rp*(1.0 - s**2)*tp*vals[17] \
-          + 2.0*(1.0 - r**2)*sp*tp*vals[18] \
-          + 2.0*rm*(1.0 - s**2)*tp*vals[19]
+          + 2.0*(1.0 - r*r)*sm*tm*vals[8]  \
+          + 2.0*rp*(1.0 - s*s)*tm*vals[9]  \
+          + 2.0*(1.0 - r*r)*sp*tm*vals[10] \
+          + 2.0*rm*(1.0 - s*s)*tm*vals[11] \
+          + 2.0*rm*sm*(1.0 - t*t)*vals[12] \
+          + 2.0*rp*sm*(1.0 - t*t)*vals[13] \
+          + 2.0*rp*sp*(1.0 - t*t)*vals[14] \
+          + 2.0*rm*sp*(1.0 - t*t)*vals[15] \
+          + 2.0*(1.0 - r*r)*sm*tp*vals[16] \
+          + 2.0*rp*(1.0 - s*s)*tp*vals[17] \
+          + 2.0*(1.0 - r*r)*sp*tp*vals[18] \
+          + 2.0*rm*(1.0 - s*s)*tp*vals[19]
         return 0.125*F
 
     @cython.boundscheck(False)
@@ -517,18 +517,18 @@ cdef inline void S2Function3D(double* fx,
                   + rp*sm*tp*( r - s + t - 2.0)*vertices[15 + i] \
                   + rp*sp*tp*( r + s + t - 2.0)*vertices[18 + i] \
                   + rm*sp*tp*(-r + s + t - 2.0)*vertices[21 + i] \
-                  + 2.0*(1.0 - r**2)*sm*tm*vertices[24 + i] \
-                  + 2.0*rp*(1.0 - s**2)*tm*vertices[27 + i] \
-                  + 2.0*(1.0 - r**2)*sp*tm*vertices[30 + i] \
-                  + 2.0*rm*(1.0 - s**2)*tm*vertices[33 + i] \
-                  + 2.0*rm*sm*(1.0 - t**2)*vertices[36 + i] \
-                  + 2.0*rp*sm*(1.0 - t**2)*vertices[39 + i] \
-                  + 2.0*rp*sp*(1.0 - t**2)*vertices[42 + i] \
-                  + 2.0*rm*sp*(1.0 - t**2)*vertices[45 + i] \
-                  + 2.0*(1.0 - r**2)*sm*tp*vertices[48 + i] \
-                  + 2.0*rp*(1.0 - s**2)*tp*vertices[51 + i] \
-                  + 2.0*(1.0 - r**2)*sp*tp*vertices[54 + i] \
-                  + 2.0*rm*(1.0 - s**2)*tp*vertices[57 + i] \
+                  + 2.0*(1.0 - r*r)*sm*tm*vertices[24 + i] \
+                  + 2.0*rp*(1.0 - s*s)*tm*vertices[27 + i] \
+                  + 2.0*(1.0 - r*r)*sp*tm*vertices[30 + i] \
+                  + 2.0*rm*(1.0 - s*s)*tm*vertices[33 + i] \
+                  + 2.0*rm*sm*(1.0 - t*t)*vertices[36 + i] \
+                  + 2.0*rp*sm*(1.0 - t*t)*vertices[39 + i] \
+                  + 2.0*rp*sp*(1.0 - t*t)*vertices[42 + i] \
+                  + 2.0*rm*sp*(1.0 - t*t)*vertices[45 + i] \
+                  + 2.0*(1.0 - r*r)*sm*tp*vertices[48 + i] \
+                  + 2.0*rp*(1.0 - s*s)*tp*vertices[51 + i] \
+                  + 2.0*(1.0 - r*r)*sp*tp*vertices[54 + i] \
+                  + 2.0*rm*(1.0 - s*s)*tp*vertices[57 + i] \
                   - 8.0*phys_x[i]
 
 
@@ -566,17 +566,17 @@ cdef inline void S2Jacobian3D(double* rcol,
                     + (sp*tp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
                     + (sp*tp*(r - s - t + 2.0) - rm*sp*tp)*vertices[21 + i] \
                     - 4.0*r*sm*tm*vertices[24 + i] \
-                    + 2.0*(1.0 - s**2)*tm*vertices[27 + i] \
+                    + 2.0*(1.0 - s*s)*tm*vertices[27 + i] \
                     - 4.0*r*sp*tm*vertices[30 + i] \
-                    - 2.0*(1.0 - s**2)*tm*vertices[33 + i] \
-                    - 2.0*sm*(1.0 - t**2)*vertices[36 + i] \
-                    + 2.0*sm*(1.0 - t**2)*vertices[39 + i] \
-                    + 2.0*sp*(1.0 - t**2)*vertices[42 + i] \
-                    - 2.0*sp*(1.0 - t**2)*vertices[45 + i] \
+                    - 2.0*(1.0 - s*s)*tm*vertices[33 + i] \
+                    - 2.0*sm*(1.0 - t*t)*vertices[36 + i] \
+                    + 2.0*sm*(1.0 - t*t)*vertices[39 + i] \
+                    + 2.0*sp*(1.0 - t*t)*vertices[42 + i] \
+                    - 2.0*sp*(1.0 - t*t)*vertices[45 + i] \
                     - 4.0*r*sm*tp*vertices[48 + i] \
-                    + 2.0*(1.0 - s**2)*tp*vertices[51 + i] \
+                    + 2.0*(1.0 - s*s)*tp*vertices[51 + i] \
                     - 4.0*r*sp*tp*vertices[54 + i] \
-                    - 2.0*(1.0 - s**2)*tp*vertices[57 + i]
+                    - 2.0*(1.0 - s*s)*tp*vertices[57 + i]
             scol[i] = ( rm*tm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
                     + (-rp*tm*(r - s - t - 2.0) - rp*sm*tm)*vertices[3  + i] \
                     + ( rp*tm*(r + s - t - 2.0) + rp*sp*tm)*vertices[6  + i] \
@@ -585,17 +585,17 @@ cdef inline void S2Jacobian3D(double* rcol,
                     + (-rp*tp*(r - s + t - 2.0) - rp*sm*tp)*vertices[15 + i] \
                     + ( rp*tp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
                     + (-rm*tp*(r - s - t + 2.0) + rm*sp*tp)*vertices[21 + i] \
-                    - 2.0*(1.0 - r**2)*tm*vertices[24 + i] \
+                    - 2.0*(1.0 - r*r)*tm*vertices[24 + i] \
                     - 4.0*rp*s*tm*vertices[27 + i] \
-                    + 2.0*(1.0 - r**2)*tm*vertices[30 + i] \
+                    + 2.0*(1.0 - r*r)*tm*vertices[30 + i] \
                     - 4.0*rm*s*tm*vertices[33 + i] \
-                    - 2.0*rm*(1.0 - t**2)*vertices[36 + i] \
-                    - 2.0*rp*(1.0 - t**2)*vertices[39 + i] \
-                    + 2.0*rp*(1.0 - t**2)*vertices[42 + i] \
-                    + 2.0*rm*(1.0 - t**2)*vertices[45 + i] \
-                    - 2.0*(1.0 - r**2)*tp*vertices[48 + i] \
+                    - 2.0*rm*(1.0 - t*t)*vertices[36 + i] \
+                    - 2.0*rp*(1.0 - t*t)*vertices[39 + i] \
+                    + 2.0*rp*(1.0 - t*t)*vertices[42 + i] \
+                    + 2.0*rm*(1.0 - t*t)*vertices[45 + i] \
+                    - 2.0*(1.0 - r*r)*tp*vertices[48 + i] \
                     - 4.0*rp*s*tp*vertices[51 + i] \
-                    + 2.0*(1.0 - r**2)*tp*vertices[54 + i] \
+                    + 2.0*(1.0 - r*r)*tp*vertices[54 + i] \
                     - 4.0*rm*s*tp*vertices[57 + i]
             tcol[i] = ( rm*sm*(r + s + t + 2.0) - rm*sm*tm)*vertices[0  + i] \
                     + (-rp*sm*(r - s - t - 2.0) - rp*sm*tm)*vertices[3  + i] \
@@ -605,18 +605,18 @@ cdef inline void S2Jacobian3D(double* rcol,
                     + ( rp*sm*(r - s + t - 2.0) + rp*sm*tp)*vertices[15 + i] \
                     + ( rp*sp*(r + s + t - 2.0) + rp*sp*tp)*vertices[18 + i] \
                     + (-rm*sp*(r - s - t + 2.0) + rm*sp*tp)*vertices[21 + i] \
-                    - 2.0*(1.0 - r**2)*sm*vertices[24 + i] \
-                    - 2.0*rp*(1.0 - s**2)*vertices[27 + i] \
-                    - 2.0*(1.0 - r**2)*sp*vertices[30 + i] \
-                    - 2.0*rm*(1.0 - s**2)*vertices[33 + i] \
+                    - 2.0*(1.0 - r*r)*sm*vertices[24 + i] \
+                    - 2.0*rp*(1.0 - s*s)*vertices[27 + i] \
+                    - 2.0*(1.0 - r*r)*sp*vertices[30 + i] \
+                    - 2.0*rm*(1.0 - s*s)*vertices[33 + i] \
                     - 4.0*rm*sm*t*vertices[36 + i] \
                     - 4.0*rp*sm*t*vertices[39 + i] \
                     - 4.0*rp*sp*t*vertices[42 + i] \
                     - 4.0*rm*sp*t*vertices[45 + i] \
-                    + 2.0*(1.0 - r**2)*sm*vertices[48 + i] \
-                    + 2.0*rp*(1.0 - s**2)*vertices[51 + i] \
-                    + 2.0*(1.0 - r**2)*sp*vertices[54 + i] \
-                    + 2.0*rm*(1.0 - s**2)*vertices[57 + i]
+                    + 2.0*(1.0 - r*r)*sm*vertices[48 + i] \
+                    + 2.0*rp*(1.0 - s*s)*vertices[51 + i] \
+                    + 2.0*(1.0 - r*r)*sp*vertices[54 + i] \
+                    + 2.0*rm*(1.0 - s*s)*vertices[57 + i]
 
 
 cdef class W1Sampler3D(NonlinearSolveSampler3D):
@@ -815,15 +815,19 @@ cdef class T2Sampler2D(NonlinearSolveSampler2D):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
-        cdef double phi0, phi1, phi2, phi3, phi4, phi5
+        cdef double phi0, phi1, phi2, phi3, phi4, phi5, c0sq, c1sq, c0c1
 
-        phi0 = 1 - 3 * coord[0] + 2 * coord[0]**2 - 3 * coord[1] + \
-               2 * coord[1]**2 + 4 * coord[0] * coord[1]
-        phi1 = -coord[0] + 2 * coord[0]**2
-        phi2 = -coord[1] + 2 * coord[1]**2
-        phi3 = 4 * coord[0] - 4 * coord[0]**2 - 4 * coord[0] * coord[1]
-        phi4 = 4 * coord[0] * coord[1]
-        phi5 = 4 * coord[1] - 4 * coord[1]**2 - 4 * coord[0] * coord[1]
+        c0sq = coord[0] * coord[0]
+        c1sq = coord[1] * coord[1]
+        c0c1 = coord[0] * coord[1]
+
+        phi0 = 1 - 3 * coord[0] + 2 * c0sq - 3 * coord[1] + \
+               2 * c1sq + 4 * c0c1
+        phi1 = -coord[0] + 2 * c0sq
+        phi2 = -coord[1] + 2 * c1sq
+        phi3 = 4 * coord[0] - 4 * c0sq - 4 * c0c1
+        phi4 = 4 * c0c1
+        phi5 = 4 * coord[1] - 4 * c1sq - 4 * c0c1
 
         return vals[0]*phi0 + vals[1]*phi1 + vals[2]*phi2 + vals[3]*phi3 + \
                vals[4]*phi4 + vals[5]*phi5
@@ -834,11 +838,10 @@ cdef class T2Sampler2D(NonlinearSolveSampler2D):
     cdef int check_inside(self, double* mapped_coord) nogil:
         # for canonical tris, we check whether the mapped_coords are between
         # 0 and 1.
-        cdef int i
-        for i in range(2):
-            if (mapped_coord[i] < -self.inclusion_tol or
-                mapped_coord[i] - 1.0 > self.inclusion_tol):
-                return 0
+        if (mapped_coord[0] < -self.inclusion_tol or \
+            mapped_coord[1] < -self.inclusion_tol or \
+            mapped_coord[0] + mapped_coord[1] - 1.0 > self.inclusion_tol):
+            return 0
         return 1
 
 cdef class Tet2Sampler3D(NonlinearSolveSampler3D):
@@ -862,22 +865,26 @@ cdef class Tet2Sampler3D(NonlinearSolveSampler3D):
     @cython.cdivision(True)
     cdef double sample_at_unit_point(self, double* coord, double* vals) nogil:
         cdef double[10] phi
+        cdef double coordsq[3]
         cdef int i
         cdef double return_value = 0
 
-        phi[0] = 1 - 3 * coord[0] + 2 * coord[0]**2 - 3 * coord[1] + \
-                 2 * coord[1]**2 - 3 * coord[2] + 2 * coord[2]**2 + \
+        for i in range(3):
+            coordsq[i] = coord[i] * coord[i]
+
+        phi[0] = 1 - 3 * coord[0] + 2 * coordsq[0] - 3 * coord[1] + \
+                 2 * coordsq[1] - 3 * coord[2] + 2 * coordsq[2] + \
                  4 * coord[0] * coord[1] + 4 * coord[0] * coord[2] + \
                  4 * coord[1] * coord[2]
-        phi[1] = -coord[0] + 2 * coord[0]**2
-        phi[2] = -coord[1] + 2 * coord[1]**2
-        phi[3] = -coord[2] + 2 * coord[2]**2
-        phi[4] = 4 * coord[0] - 4 * coord[0]**2 - 4 * coord[0] * coord[1] - \
+        phi[1] = -coord[0] + 2 * coordsq[0]
+        phi[2] = -coord[1] + 2 * coordsq[1]
+        phi[3] = -coord[2] + 2 * coordsq[2]
+        phi[4] = 4 * coord[0] - 4 * coordsq[0] - 4 * coord[0] * coord[1] - \
                  4 * coord[0] * coord[2]
         phi[5] = 4 * coord[0] * coord[1]
-        phi[6] = 4 * coord[1] - 4 * coord[1]**2 - 4 * coord[0] * coord[1] - \
+        phi[6] = 4 * coord[1] - 4 * coordsq[1] - 4 * coord[0] * coord[1] - \
                  4 * coord[1] * coord[2]
-        phi[7] = 4 * coord[2] - 4 * coord[2]**2 - 4 * coord[2] * coord[0] - \
+        phi[7] = 4 * coord[2] - 4 * coordsq[2] - 4 * coord[2] * coord[0] - \
                  4 * coord[2] * coord[1]
         phi[8] = 4 * coord[0] * coord[2]
         phi[9] = 4 * coord[1] * coord[2]
@@ -893,12 +900,38 @@ cdef class Tet2Sampler3D(NonlinearSolveSampler3D):
     cdef int check_inside(self, double* mapped_coord) nogil:
         # for canonical tets, we check whether the mapped_coords are between
         # 0 and 1.
-        cdef int i
-        for i in range(3):
-            if (mapped_coord[i] < -self.inclusion_tol or
-                mapped_coord[i] - 1.0 > self.inclusion_tol):
-                return 0
+        if (mapped_coord[0] < -self.inclusion_tol or \
+            mapped_coord[1] < -self.inclusion_tol or \
+            mapped_coord[2] < -self.inclusion_tol or \
+            mapped_coord[0] + mapped_coord[1] + mapped_coord[2] - 1.0 > \
+            self.inclusion_tol):
+            return 0
         return 1
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef int check_mesh_lines(self, double* mapped_coord) nogil:
+        cdef double u, v
+        cdef double thresh = 2.0e-2
+        if mapped_coord[0] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+        elif mapped_coord[1] == 0:
+            u = mapped_coord[2]
+            v = mapped_coord[0]
+        elif mapped_coord[2] == 0:
+            u = mapped_coord[1]
+            v = mapped_coord[0]
+        else:
+            u = mapped_coord[1]
+            v = mapped_coord[2]
+        if ((u < thresh) or
+            (v < thresh) or
+            (fabs(u - 1) < thresh) or
+            (fabs(v - 1) < thresh)):
+            return 1
+        return -1
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

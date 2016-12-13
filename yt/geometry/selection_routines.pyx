@@ -19,7 +19,7 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
-from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.volume_container cimport \
@@ -1711,10 +1711,13 @@ cdef class EllipsoidSelector(SelectorObject):
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         # this is the sphere selection
         cdef int i
-        cdef np.float64_t dist2 = 0
+        cdef np.float64_t dist, dist2_max, dist2 = 0
         for i in range(3):
-            dist2 += self.difference(pos[i], self.center[i], i)**2
-        if dist2 <= (self.mag[0]+radius)**2: return 1
+            dist = self.difference(pos[i], self.center[i], i)
+            dist2 += dist * dist
+        dist2_max = (self.mag[0] + radius) * (self.mag[0] + radius)
+        if dist2 <= dist2_max:
+            return 1
         return 0
 
     @cython.boundscheck(False)
@@ -1724,7 +1727,7 @@ cdef class EllipsoidSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         # This is the sphere selection
         cdef int i
-        cdef np.float64_t box_center, relcenter, closest, dist, edge
+        cdef np.float64_t box_center, relcenter, closest, dist, edge, dist_max
         if left_edge[0] <= self.center[0] <= right_edge[0] and \
            left_edge[1] <= self.center[1] <= right_edge[1] and \
            left_edge[2] <= self.center[2] <= right_edge[2]:
@@ -1737,7 +1740,9 @@ cdef class EllipsoidSelector(SelectorObject):
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
-        if dist <= self.mag[0]**2: return 1
+        dist_max = self.mag[0] * self.mag[0]
+        if dist <= dist_max:
+            return 1
         return 0
 
     def _hash_vals(self):
@@ -2071,6 +2076,7 @@ def points_in_cells(
     # We use brute force since the cells are a relatively unordered collection.
 
     cdef int p, c, n_p, n_c
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask
 
     n_p = px.size
     n_c = cx.size

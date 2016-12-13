@@ -145,32 +145,53 @@ def add_nuclei_density_fields(registry, ftype,
     unit_system = registry.ds.unit_system
     elements = _get_all_elements(registry.species_names)
     for element in elements:
-        registry.add_field((ftype, "%s_nuclei_density" % element), sampling_type="cell", 
+        registry.add_field((ftype, "%s_nuclei_density" % element),
+                           sampling_type="cell",
                            function = _nuclei_density,
                            particle_type = particle_type,
                            units = unit_system["number_density"])
-    if len(elements) == 0:
-        for element in ["H", "He"]:
-            registry.add_field((ftype, "%s_nuclei_density" % element), sampling_type="cell", 
-                               function = _default_nuclei_density,
-                               particle_type = particle_type,
-                               units = unit_system["number_density"])
+
+    for element in ["H", "He"]:
+        if element in elements:
+            continue
+        registry.add_field((ftype, "%s_nuclei_density" % element),
+                           sampling_type="cell",
+                           function = _default_nuclei_density,
+                           particle_type = particle_type,
+                           units = unit_system["number_density"])
 
 def _default_nuclei_density(field, data):
+    ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
-    return data["gas", "density"] * _primordial_mass_fraction[element] / \
+    return data[ftype, "density"] * _primordial_mass_fraction[element] / \
       ChemicalFormula(element).weight / amu_cgs
         
 def _nuclei_density(field, data):
+    ftype = field.name[0]
     element = field.name[1][:field.name[1].find("_")]
-    field_data = np.zeros_like(data["gas", "%s_number_density" % 
+
+    nuclei_mass_field = "%s_nuclei_mass_density" % element
+    if (ftype, nuclei_mass_field) in data.ds.field_info:
+        return data[(ftype, nuclei_mass_field)] / \
+          ChemicalFormula(element).weight / amu_cgs
+    metal_field = "%s_metallicity" % element
+    if (ftype, metal_field) in data.ds.field_info:
+        return data[ftype, "density"] * data[(ftype, metal_field)] / \
+          ChemicalFormula(element).weight / amu_cgs
+
+    field_data = np.zeros_like(data[ftype, "%s_number_density" %
                                     data.ds.field_info.species_names[0]])
     for species in data.ds.field_info.species_names:
         nucleus = species
         if "_" in species:
             nucleus = species[:species.find("_")]
+        # num is the number of nuclei contributed by this species.
         num = _get_element_multiple(nucleus, element)
-        field_data += num * data["gas", "%s_number_density" % species]
+        # Since this is a loop over all species existing in this dataset,
+        # we will encounter species that contribute nothing, so we skip them.
+        if num == 0:
+            continue
+        field_data += num * data[ftype, "%s_number_density" % species]
     return field_data
 
 def _get_all_elements(species_list):

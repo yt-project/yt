@@ -239,10 +239,10 @@ class ProfileND(ParallelAnalysisInterface):
         if not np.any(filter): return None
         arr = np.zeros((bin_fields[0].size, len(fields)), dtype="float64")
         for i, field in enumerate(fields):
-            units = chunk.ds.field_info[field].units
+            units = chunk.ds.field_info[field].output_units
             arr[:,i] = chunk[field][filter].in_units(units)
         if self.weight_field is not None:
-            units = chunk.ds.field_info[self.weight_field].units
+            units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
             weight_data = np.ones(filter.size, dtype="float64")
@@ -276,7 +276,13 @@ class ProfileND(ParallelAnalysisInterface):
 
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:
-            return np.logspace(np.log10(mi), np.log10(ma), n+1)
+            ret = np.logspace(np.log10(mi), np.log10(ma), n+1)
+            # at this point ret[0] and ret[-1] are not exactly equal to
+            # mi and ma due to round-off error. Let's force them to be
+            # mi and ma exactly to avoid incorrectly discarding cells near
+            # the edges. See Issue #1300.
+            ret[0], ret[-1] = mi, ma
+            return ret
         else:
             return np.linspace(mi, ma, n+1)
 
@@ -1010,6 +1016,11 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     if extrema is None:
         ex = [data_source.quantities["Extrema"](f, non_zero=l)
               for f, l in zip(bin_fields, logs)]
+        # pad extrema by epsilon so cells at bin edges are not excluded
+        for i, (mi, ma) in enumerate(ex):
+            mi = mi - np.spacing(mi)
+            ma = ma + np.spacing(ma)
+            ex[i][0], ex[i][1] = mi, ma
     else:
         ex = []
         for bin_field in bin_fields:

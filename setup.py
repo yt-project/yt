@@ -32,24 +32,6 @@ try:
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
-MAPSERVER_FILES = []
-MAPSERVER_DIRS = [
-    "",
-    "leaflet",
-    "leaflet/images"
-]
-
-for subdir in MAPSERVER_DIRS:
-    dir_name = os.path.join("yt", "visualization", "mapserver", "html", subdir)
-    files = []
-    for ext in ["js", "html", "css", "png", "ico", "gif"]:
-        files += glob.glob("%s/*.%s" % (dir_name, ext))
-    MAPSERVER_FILES.append((dir_name, files))
-
-SHADERS_DIR = os.path.join("yt", "visualization", "volume_rendering", "shaders")
-SHADERS_FILES = glob.glob(os.path.join(SHADERS_DIR, "*.vertexshader")) + \
-    glob.glob(os.path.join(SHADERS_DIR, "*.fragmentshader"))
-
 VERSION = "3.4.dev0"
 
 if os.path.exists('MANIFEST'):
@@ -198,7 +180,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "misc_utilities", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "ray_integrators", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
@@ -316,6 +298,15 @@ class build_py(_build_py):
                 fobj.write("hg_version = '%s'\n" % changeset)
         _build_py.run(self)
 
+    def get_outputs(self):
+        # http://bitbucket.org/yt_analysis/yt/issues/1296
+        outputs = _build_py.get_outputs(self)
+        outputs.append(
+            os.path.join(self.build_lib, 'yt', '__hg_version__.py')
+        )
+        return outputs
+
+
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
@@ -372,7 +363,7 @@ setup(
     ]
     },
     packages=find_packages(),
-    package_data = {'':['*.pxd']},
+    include_package_data = True,
     setup_requires=[
         'numpy',
         'cython>=0.24',
@@ -395,7 +386,6 @@ setup(
     license="BSD",
     zip_safe=False,
     scripts=["scripts/iyt"],
-    data_files=MAPSERVER_FILES + [(SHADERS_DIR, SHADERS_FILES)],
     ext_modules=cython_extensions + extensions,
 )
 
