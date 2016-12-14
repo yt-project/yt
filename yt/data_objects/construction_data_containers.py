@@ -668,7 +668,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         refine_by = self.ds.refine_by
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
-        refine_by = np.ndarray(refine_by, dtype="i8")
+        refine_by = np.array(refine_by, dtype="i8")
         for chunk in self._data_source.chunks(fields, "io"):
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
@@ -948,7 +948,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         refine_by = self.ds.refine_by
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
-        refine_by = np.ndarray(refine_by, dtype="i8")
+        refine_by = np.array(refine_by, dtype="i8")
         for level in range(self.level + 1):
             if level < min_level:
                 self._update_level_state(ls)
