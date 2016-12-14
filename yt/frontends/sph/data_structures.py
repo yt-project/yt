@@ -58,7 +58,10 @@ class ParticleDataset(Dataset):
 
         The field name tuple for the newly created field.
         """
+        # The magical step
         self.index
+
+        # Parse arguments
         if isinstance(smooth_field, tuple):
             ptype, smooth_field = smooth_field[0], smooth_field[1]
         else:
@@ -69,6 +72,7 @@ class ParticleDataset(Dataset):
         if kernel_name is None:
             kernel_name = self.default_kernel
 
+        # Prepare field names and registry to be used later
         coord_name = "particle_position"
         mass_name = "particle_mass"
         smoothing_length_name = "smoothing_length"
@@ -78,6 +82,7 @@ class ParticleDataset(Dataset):
         density_name = "density"
         registry = self.field_info
 
+        # Do the actual work
         return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                    smoothing_length_name, density_name, smooth_field, registry,
                    nneighbors=nneighbors, kernel_name=kernel_name)[0]
