@@ -26,9 +26,11 @@ class ParticleDataset(Dataset):
     over_refine_factor = 1
     filter_bbox = False
 
+    default_kernel = "cubic"
+
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,
-                                    kernel_name="cubic"):
+                                    kernel_name=None):
         """Add a new smoothed particle field
 
         Creates a new smoothed field based on the particle *smooth_field*.
@@ -45,10 +47,11 @@ class ParticleDataset(Dataset):
            for now.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
-        kernel_name : string, default 'cubic'
+        kernel_name : string or None, default None
             This is the name of the smoothing kernel to use. Current supported
             kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
-            `wendland4`, and `wendland6`.
+            `wendland4`, and `wendland6`. If left as None,
+            :attr:`ParticleDataset.default_kernel` will be used.
 
         Returns
         -------
@@ -63,6 +66,8 @@ class ParticleDataset(Dataset):
                                smooth_field)
         if method != "volume_weighted":
             raise NotImplementedError("method must be 'volume_weighted'")
+        if kernel_name is None:
+            kernel_name = self.default_kernel
 
         coord_name = "particle_position"
         mass_name = "particle_mass"
