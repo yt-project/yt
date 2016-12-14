@@ -26,8 +26,9 @@ class ParticleDataset(Dataset):
     over_refine_factor = 1
     filter_bbox = False
 
-    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
-                                    nneighbors=64, kernel_name="cubic"):
+    def add_smoothed_particle_field(self, smooth_field,
+                                    method="volume_weighted", nneighbors=64,
+                                    kernel_name="cubic"):
         """Add a new smoothed particle field
 
         Creates a new smoothed field based on the particle *smooth_field*.
