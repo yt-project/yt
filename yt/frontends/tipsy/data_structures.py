@@ -22,7 +22,7 @@ import glob
 import os
 
 from yt.frontends.sph.data_structures import \
-    ParticleDataset
+    SPHDataset
 from yt.funcs import deprecate
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
@@ -54,7 +54,7 @@ class TipsyFile(ParticleFile):
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_particle_offsets(self)
 
-class TipsyDataset(ParticleDataset):
+class TipsyDataset(SPHDataset):
     _index_class = ParticleIndex
     _file_class = TipsyFile
     _field_info_class = TipsyFieldInfo

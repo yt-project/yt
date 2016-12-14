@@ -26,7 +26,7 @@ import os
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
-    ParticleDataset
+    SPHDataset
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -76,7 +76,7 @@ class GadgetBinaryFile(ParticleFile):
             field_list, self.total_particles,
             self._position_offset, self._file_size)
 
-class GadgetDataset(ParticleDataset):
+class GadgetDataset(SPHDataset):
     _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _field_info_class = GadgetFieldInfo
