@@ -23,10 +23,9 @@ from yt.fields.particle_fields import \
 
 class ParticleDataset(Dataset):
     _unit_base = None
-    over_refine_factor = 1
-    filter_bbox = False
-
     default_kernel = "cubic"
+    filter_bbox = False
+    over_refine_factor = 1
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,
