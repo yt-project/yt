@@ -17,6 +17,9 @@ from __future__ import print_function
 
 from yt.data_objects.static_output import \
     Dataset
+from yt.fields.particle_fields import \
+    add_volume_weighted_smoothed_field
+
 
 class ParticleDataset(Dataset):
     _unit_base = None

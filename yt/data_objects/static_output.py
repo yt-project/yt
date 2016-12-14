@@ -51,8 +51,6 @@ from yt.fields.derived_field import \
     ValidateSpatial
 from yt.fields.fluid_fields import \
     setup_gradient_fields
-from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
 from yt.data_objects.particle_filters import \
     filter_registry
 from yt.data_objects.particle_unions import \
