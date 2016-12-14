@@ -82,8 +82,6 @@ class TipsyDataset(SPHDataset):
         # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
             field_dtypes = {}
         success, self.endian = self._validate_header(filename)
@@ -113,8 +111,9 @@ class TipsyDataset(SPHDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
-        super(TipsyDataset, self).__init__(filename, dataset_type,
-                                           unit_system=unit_system)
+        super(TipsyDataset, self).__init__(
+            filename, dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)

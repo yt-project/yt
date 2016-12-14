@@ -24,11 +24,27 @@ from yt.fields.particle_fields import \
 class ParticleDataset(Dataset):
     _unit_base = None
     filter_bbox = False
-    over_refine_factor = 1
+
+    def __init__(self, filename, dataset_type=None, file_style=None,
+                 units_override=None, unit_system="cgs",
+                 n_ref=64, over_refine_factor=1):
+        self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
+        super(ParticleDataset, self).__init__(
+            filename, dataset_type=dataset_type, file_style=file_style,
+            units_override=units_override, unit_system=unit_system)
 
 
 class SPHDataset(ParticleDataset):
-    default_kernel = "cubic"
+    def __init__(self, filename, dataset_type=None, file_style=None,
+                 units_override=None, unit_system="cgs",
+                 n_ref=64, over_refine_factor=1,
+                 default_kernel="cubic"):
+        self.default_kernel = default_kernel
+        super(SPHDataset, self).__init__(
+            filename, dataset_type=dataset_type, file_style=file_style,
+            units_override=units_override, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor)
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,

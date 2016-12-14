@@ -103,8 +103,6 @@ class GadgetDataset(SPHDataset):
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
         self.index_ptype = index_ptype
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
@@ -123,7 +121,9 @@ class GadgetDataset(SPHDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
-        super(GadgetDataset, self).__init__(filename, dataset_type, unit_system=unit_system)
+        super(GadgetDataset, self).__init__(
+            filename, dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
             self.length_unit.convert_to_units('kpccm/h')
