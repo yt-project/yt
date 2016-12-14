@@ -317,7 +317,12 @@ class build_ext(_build_ext):
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
-        __builtins__.__NUMPY_SETUP__ = False
+        if isinstance(__builtins__, dict):
+            # sometimes this is a dict so we need to check for that
+            # https://docs.python.org/3/library/builtins.html
+            __builtins__["__NUMPY_SETUP__"] = False
+        else:
+            __builtins__.__NUMPY_SETUP__ = False
         import numpy
         self.include_dirs.append(numpy.get_include())
 
