@@ -51,7 +51,8 @@ class ParticleDataset(Dataset):
             This is the name of the smoothing kernel to use. Current supported
             kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
             `wendland4`, and `wendland6`. If left as None,
-            :attr:`ParticleDataset.default_kernel` will be used.
+            :attr:`~yt.frontends.sph.data_structures.ParticleDataset.default_kernel`
+            will be used.
 
         Returns
         -------
