@@ -1,5 +1,4 @@
 from yt.testing import \
-    fake_amr_ds, \
     assert_array_equal, \
     assert_equal
 import yt
