@@ -43,7 +43,7 @@ class HTTPStreamDataset(ParticleDataset):
     filename_template = ""
     
     def __init__(self, base_url,
-                 dataset_type = "http_particle_stream", unit_system="cgs",
+                 dataset_type="http_particle_stream", unit_system="cgs",
                  n_ref=64, over_refine_factor=1):
         if get_requests() is None:
             raise ImportError(
