@@ -138,7 +138,7 @@ class FixedResolutionBuffer(object):
         for name, (args, kwargs) in self._filters:
             buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
 
-        # self._period, int(self.periodic)
+        # FIXME DO NOT MERGE PR WITH THIS
         ia = ImageArray(buff, input_units='g/cm**2',
                         info=self._get_info(item))
         self.data[item] = ia
