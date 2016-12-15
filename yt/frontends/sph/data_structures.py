@@ -7,32 +7,10 @@ Data structures for SPH frontends.
 """
 from __future__ import print_function
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.data_objects.static_output import \
-    Dataset
+    ParticleDataset
 from yt.fields.particle_fields import \
     add_volume_weighted_smoothed_field
-
-
-class ParticleDataset(Dataset):
-    _unit_base = None
-    filter_bbox = False
-
-    def __init__(self, filename, dataset_type=None, file_style=None,
-                 units_override=None, unit_system="cgs",
-                 n_ref=64, over_refine_factor=1):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        super(ParticleDataset, self).__init__(
-            filename, dataset_type=dataset_type, file_style=file_style,
-            units_override=units_override, unit_system=unit_system)
 
 
 class SPHDataset(ParticleDataset):

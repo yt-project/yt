@@ -26,9 +26,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
+    ParticleDataset, \
     ParticleFile
-from yt.frontends.sph.data_structures import \
-    ParticleDataset
 from yt.funcs import \
     get_requests, \
     setdefaultattr

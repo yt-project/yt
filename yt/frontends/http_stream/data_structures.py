@@ -20,9 +20,8 @@ import numpy as np
 import time
 
 from yt.data_objects.static_output import \
+    ParticleDataset, \
     ParticleFile
-from yt.frontends.sph.data_structures import \
-    ParticleDataset
 from yt.frontends.sph.fields import \
     SPHFieldInfo
 from yt.funcs import \
