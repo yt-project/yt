@@ -3,6 +3,7 @@
 import numpy as np
 cimport numpy as np
 cimport libc.stdlib as stdlib
+from libc.math cimport sqrt
 cimport cython
 
 import kdtree
@@ -700,7 +701,7 @@ cdef class cKDTree:
             for j in range(num_neighbors):
                 pj = tags_temp[j]
                 r2 = dist_temp[j] * ih2
-                rs = 2.0 - (r2**0.5)
+                rs = 2.0 - sqrt(r2)
                 if (r2 < 1.0):
                     rs = (1.0 - 0.75*rs*r2)
                 else:

@@ -497,6 +497,14 @@ def test_frb_regen():
     slc.set_buff_size(1200)
     assert_equal(slc.frb['density'].shape, (1200, 1200))
 
+def test_set_background_color():
+    ds = fake_random_ds(32)
+    plot = SlicePlot(ds, 2, 'density')
+    for field in ['density', ('gas', 'density')]:
+        plot.set_background_color(field, 'red')
+        ax = plot.plots[field].axes
+        assert_equal(ax.get_axis_bgcolor(), 'red')
+
 def test_set_unit():
     ds = fake_random_ds(32, fields=('temperature',), units=('K',))
     slc = SlicePlot(ds, 2, 'temperature')

@@ -13,7 +13,9 @@ A base class for "image" plots with colorbars.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 from yt.extern.six.moves import builtins
-from yt.extern.six import iteritems
+from yt.extern.six import  \
+    iteritems, \
+    string_types
 
 import base64
 import errno
@@ -34,6 +36,8 @@ from yt.funcs import \
     ensure_list
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
+from yt.visualization.color_maps import \
+    yt_colormaps
 
 def invalidate_data(f):
     @wraps(f)
@@ -288,6 +292,30 @@ class ImagePlotContainer(object):
         for field in self.data_source._determine_fields(fields):
             self._colorbar_valid = False
             self._colormaps[field] = cmap
+        return self
+
+    @invalidate_plot
+    def set_background_color(self, field, color=None):
+        """set the background color to match provided color
+
+        Parameters
+        ----------
+        field : string
+            the field to set the colormap
+            if field == 'all', applies to all plots.
+        color : string or RGBA tuple (optional)
+            if set, set the background color to this color
+            if unset, background color is set to the bottom value of 
+            the color map
+
+        """
+        actual_field = self.data_source._determine_fields(field)[0]
+        if color is None:
+            cmap = self._colormaps[actual_field]
+            if isinstance(cmap, string_types): 
+                cmap = yt_colormaps[cmap]
+            color = cmap(0)
+        self.plots[actual_field].axes.set_axis_bgcolor(color)
         return self
 
     @invalidate_plot

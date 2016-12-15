@@ -180,7 +180,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "misc_utilities", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "ray_integrators", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
@@ -298,6 +298,15 @@ class build_py(_build_py):
                 fobj.write("hg_version = '%s'\n" % changeset)
         _build_py.run(self)
 
+    def get_outputs(self):
+        # http://bitbucket.org/yt_analysis/yt/issues/1296
+        outputs = _build_py.get_outputs(self)
+        outputs.append(
+            os.path.join(self.build_lib, 'yt', '__hg_version__.py')
+        )
+        return outputs
+
+
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
@@ -308,7 +317,12 @@ class build_ext(_build_ext):
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
-        __builtins__.__NUMPY_SETUP__ = False
+        if isinstance(__builtins__, dict):
+            # sometimes this is a dict so we need to check for that
+            # https://docs.python.org/3/library/builtins.html
+            __builtins__["__NUMPY_SETUP__"] = False
+        else:
+            __builtins__.__NUMPY_SETUP__ = False
         import numpy
         self.include_dirs.append(numpy.get_include())
 
@@ -325,9 +339,7 @@ class sdist(_sdist):
 setup(
     name="yt",
     version=VERSION,
-    description="An analysis and visualization toolkit for Astrophysical "
-                + "simulations, focusing on Adaptive Mesh Refinement data "
-                  "from Enzo, Orion, FLASH, and others.",
+    description="An analysis and visualization toolkit for volumetric data",
     classifiers=["Development Status :: 5 - Production/Stable",
                  "Environment :: Console",
                  "Intended Audience :: Science/Research",

@@ -20,7 +20,7 @@ from yt.testing import fake_random_ds, requires_module
 from yt.convenience import load
 from numpy.testing import \
     assert_equal
-from yt.utilities.fits_image import \
+from yt.visualization.fits_image import \
     FITSImageData, FITSProjection, \
     FITSSlice, FITSOffAxisSlice, \
     FITSOffAxisProjection, \

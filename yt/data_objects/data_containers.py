@@ -1040,6 +1040,35 @@ class YTDataContainer(object):
                      [self.field_parameters])
         return (_reconstruct_object, args)
 
+    def clone(self):
+        r"""Clone a data object.
+
+        This will make a duplicate of a data object; note that the
+        `field_parameters` may not necessarily be deeply-copied.  If you modify
+        the field parameters in-place, it may or may not be shared between the
+        objects, depending on the type of object that that particular field
+        parameter is.
+
+        Notes
+        -----
+        One use case for this is to have multiple identical data objects that
+        are being chunked over in different orders.
+
+        Examples
+        --------
+
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> sp = ds.sphere("c", 0.1)
+        >>> sp_clone = sp.clone()
+        >>> sp["density"]
+        >>> print sp.field_data.keys()
+        [("gas", "density")]
+        >>> print sp_clone.field_data.keys()
+        []
+        """
+        args = self.__reduce__()
+        return args[0](self.ds, *args[1][1:])[1]
+
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
         s = "%s (%s): " % (self.__class__.__name__, self.ds)
@@ -1189,7 +1218,16 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # This is an iterator that will yield the necessary chunks.
         self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
-        for chunk in self.index._chunk(self, chunking_style, **kwargs):
+        # chunk_ind can be supplied in the keyword arguments.  If it's a
+        # scalar, that'll be the only chunk that gets returned; if it's a list,
+        # those are the ones that will be.
+        chunk_ind = kwargs.pop("chunk_ind", None)
+        if chunk_ind is not None:
+            chunk_ind = ensure_list(chunk_ind)
+        for ci, chunk in enumerate(self.index._chunk(self, chunking_style,
+                                   **kwargs)):
+            if chunk_ind is not None and ci not in chunk_ind:
+                continue
             with self._chunked_read(chunk):
                 self.get_data(fields)
                 # NOTE: we yield before releasing the context
@@ -1978,6 +2016,9 @@ def _check_nested_args(arg, ref_ds):
     return narg
 
 def _get_ds_by_hash(hash):
+    from yt.data_objects.static_output import Dataset
+    if isinstance(hash, Dataset):
+        return hash
     from yt.data_objects.static_output import _cached_datasets
     for ds in _cached_datasets.values():
         if ds._hash() == hash: return ds
