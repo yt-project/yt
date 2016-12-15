@@ -16,11 +16,12 @@ Fields based on species of molecules or atoms.
 import numpy as np
 import re
 
+from yt.frontends.sph.data_structures import \
+    ParticleDataset
 from yt.utilities.physical_constants import \
     amu_cgs
 from yt.utilities.physical_ratios import \
     primordial_H_mass_fraction
-
 from yt.utilities.chemical_formulas import \
     ChemicalFormula
 from .field_plugin_registry import \
@@ -45,10 +46,16 @@ def _create_fraction_func(ftype, species):
              / data[ftype, "density"]
     return _frac
 
-def _create_mass_func(ftype, species):
+def _mass_from_cell_volume_and_density(ftype, species):
     def _mass(field, data):
         return data[ftype, "%s_density" % species] \
              * data["index", "cell_volume"]
+    return _mass
+
+def _mass_from_particle_mass_and_fraction(ftype, species):
+    def _mass(field, data):
+        return data[ftype, "%s_fraction" % species] \
+            * data[ftype, 'particle_mass']
     return _mass
 
 def _create_number_density_func(ftype, species):
@@ -79,6 +86,10 @@ def add_species_field_by_density(registry, ftype, species):
                        function = _create_fraction_func(ftype, species),
                        units = "")
 
+    if isinstance(registry.ds, ParticleDataset):
+        _create_mass_func = _mass_from_particle_mass_and_fraction
+    else:
+        _create_mass_func = _mass_from_cell_volume_and_density
     registry.add_field((ftype, "%s_mass" % species),
                        sampling_type="local",
                        function = _create_mass_func(ftype, species),
@@ -106,6 +117,10 @@ def add_species_field_by_fraction(registry, ftype, species):
                        function = _create_density_func(ftype, species),
                        units = unit_system["density"])
 
+    if isinstance(registry.ds, ParticleDataset):
+        _create_mass_func = _mass_from_particle_mass_and_fraction
+    else:
+        _create_mass_func = _mass_from_cell_volume_and_density
     registry.add_field((ftype, "%s_mass" % species),
                        sampling_type="local",
                        function = _create_mass_func(ftype, species),

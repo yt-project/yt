@@ -31,6 +31,34 @@ from yt.frontends.sph.fields import \
     SPHFieldInfo
 
 
+def _get_ion_mass_frac(ion, ftype, itab, data):
+    # get element symbol from ion string. ion string will
+    # be a member of the tuple _ions (i.e. si13)
+    #--------------------------------------------------------
+    if ion[0:2].isalpha():
+        symbol = ion[0:2].capitalize()
+    else:
+        symbol = ion[0:1].capitalize()
+
+    # mass fraction for the element
+    #--------------------------------------------------------
+    m_frac = data[ftype, symbol+"_fraction"]
+
+    # get nH and T for lookup
+    #--------------------------------------------------------
+    log_nH = np.log10( data["PartType0", "H_number_density"] )
+    log_T = np.log10( data["PartType0", "Temperature"] )
+
+    # get name of owls_ion_file for given ion
+    #--------------------------------------------------------
+    itab.set_iz( data.ds.current_redshift )
+
+    # find ion balance using log nH and log T
+    #--------------------------------------------------------
+    i_frac = itab.interp( log_nH, log_T )
+
+    return i_frac, m_frac
+
 
 class OWLSFieldInfo(SPHFieldInfo):
 
@@ -87,7 +115,10 @@ class OWLSFieldInfo(SPHFieldInfo):
             # X_fraction are defined in snapshot
             #-----------------------------------------------
             for s in self._elements:
-                add_species_field_by_fraction(self, ptype, s)
+                field_names = add_species_field_by_fraction(self, ptype, s)
+                if ptype == self.ds._sph_ptype:
+                    for fn in field_names:
+                        self.alias(("gas", fn[1]), fn)
 
         # this needs to be called after the call to
         # add_species_field_by_fraction for some reason ...
@@ -125,7 +156,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             # this defines the ion density on particles
             # X_density for all items in self._ions
             #-----------------------------------------------
-            self.setup_gas_ion_density_particle_fields( ptype )
+            self.setup_gas_ion_particle_fields( ptype )
 
             # this adds the rest of the ion particle fields
             # X_fraction, X_mass, X_number_density
@@ -180,14 +211,14 @@ class OWLSFieldInfo(SPHFieldInfo):
                         self._num_neighbors)
                     loaded += fn
 
-                    self.alias(("gas", fname), fn[0])
+                    self.alias(("gas", fname), (ptype, fname))
 
                 self._show_field_errors += loaded
                 self.find_dependencies(loaded)
 
 
 
-    def setup_gas_ion_density_particle_fields( self, ptype ):
+    def setup_gas_ion_particle_fields( self, ptype ):
         """ Sets up particle fields for gas ion densities. """
 
         # loop over all ions and make fields
@@ -210,8 +241,8 @@ class OWLSFieldInfo(SPHFieldInfo):
             yt_ion = symbol + pstr
             ftype = ptype
 
-            # add ion density field for particles
-            #---------------------------------------------------
+            # add ion density and mass field for this species
+            #------------------------------------------------
             fname = yt_ion + '_density'
             dens_func = self._create_ion_density_func( ftype, ion )
             self.add_field((ftype, fname),
@@ -220,7 +251,13 @@ class OWLSFieldInfo(SPHFieldInfo):
                            units=self.ds.unit_system["density"])
             self._show_field_errors.append( (ftype,fname) )
 
-
+            fname = yt_ion + '_mass'
+            mass_func = self._create_ion_mass_func( ftype, ion )
+            self.add_field((ftype, fname),
+                           sampling_type="particle",
+                           function = mass_func,
+                           units=self.ds.unit_system["mass"])
+            self._show_field_errors.append( (ftype,fname) )
 
 
     def _create_ion_density_func( self, ftype, ion ):
@@ -229,31 +266,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         def get_owls_ion_density_field(ion, ftype, itab):
             def _func(field, data):
-
-                # get element symbol from ion string. ion string will
-                # be a member of the tuple _ions (i.e. si13)
-                #--------------------------------------------------------
-                if ion[0:2].isalpha():
-                    symbol = ion[0:2].capitalize()
-                else:
-                    symbol = ion[0:1].capitalize()
-
-                # mass fraction for the element
-                #--------------------------------------------------------
-                m_frac = data[ftype, symbol+"_fraction"]
-
-                # get nH and T for lookup
-                #--------------------------------------------------------
-                log_nH = np.log10( data["PartType0", "H_number_density"] )
-                log_T = np.log10( data["PartType0", "Temperature"] )
-
-                # get name of owls_ion_file for given ion
-                #--------------------------------------------------------
-                itab.set_iz( data.ds.current_redshift )
-
-                # find ion balance using log nH and log T
-                #--------------------------------------------------------
-                i_frac = itab.interp( log_nH, log_T )
+                m_frac, i_frac = _get_ion_mass_frac(ion, ftype, itab, data)
                 return data[ftype,"Density"] * m_frac * i_frac
             return _func
 
@@ -262,7 +275,20 @@ class OWLSFieldInfo(SPHFieldInfo):
         itab = oit.IonTableOWLS( fname )
         return get_owls_ion_density_field(ion, ftype, itab)
 
+    def _create_ion_mass_func( self, ftype, ion ):
+        """ returns a function that calculates the ion mass of a particle
+        """
 
+        def get_owls_ion_mass_field(ion, ftype, itab):
+            def _func(field,data):
+                m_frac, i_frac = _get_ion_mass_frac(ion, ftype, itab, data)
+                return data[ftype, "particle_mass"] * m_frac * i_frac
+            return _func
+
+        ion_path = self._get_owls_ion_data_dir()
+        fname = os.path.join(ion_path, ion+".hdf5")
+        itab = oit.IonTableOWLS(fname)
+        return get_owls_ion_mass_field(ion, ftype, itab)
 
 
 
