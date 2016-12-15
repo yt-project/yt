@@ -86,7 +86,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
                        sampling_type="particle",
                        function=_h_density,
                        units=self.ds.unit_system["density"])
-        add_species_field_by_density(self, ptype, "H", particle_type=True)
+        add_species_field_by_density(self, ptype, "H")
         for suffix in ["density", "fraction", "mass", "number_density"]:
             self.alias((ptype, "H_p0_%s" % suffix), (ptype, "H_%s" % suffix))
 
@@ -100,7 +100,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
                        sampling_type="particle",
                        function=_h_p1_density,
                        units=self.ds.unit_system["density"])
-        add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
+        add_species_field_by_density(self, ptype, "H_p1")
 
         def _nuclei_mass_density_field(field, data):
             species = field.name[1][:field.name[1].find("_")]
@@ -111,11 +111,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
         for species in ['H', 'H_p0', 'H_p1']:
             for suf in ["_density", "_number_density"]:
                 field = "%s%s" % (species, suf)
-                fn = add_volume_weighted_smoothed_field(
+                add_volume_weighted_smoothed_field(
                     ptype, "particle_position", "particle_mass",
                     "smoothing_length", "density", field,
                     self, num_neighbors)
-                self.alias(("gas", field), fn[0])
+                self.alias(("gas", field), (ptype, field))
 
         for species in self.nuclei_names:
             self.add_field((ptype, "%s_nuclei_mass_density" % species),
@@ -125,9 +125,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
             for suf in ["_nuclei_mass_density", "_metallicity"]:
                 field = "%s%s" % (species, suf)
-                fn = add_volume_weighted_smoothed_field(
+                add_volume_weighted_smoothed_field(
                     ptype, "particle_position", "particle_mass",
                     "smoothing_length", "density", field,
                     self, num_neighbors)
-
-                self.alias(("gas", field), fn[0])
+                self.alias(("gas", field), (ptype, field))
