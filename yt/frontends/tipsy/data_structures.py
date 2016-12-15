@@ -74,6 +74,7 @@ class TipsyDataset(SPHDataset):
                  parameter_file=None,
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
+                 kernel_name=None,
                  bounding_box=None,
                  units_override=None,
                  unit_system="cgs"):
@@ -113,7 +114,8 @@ class TipsyDataset(SPHDataset):
                                "Use unit_base instead.")
         super(TipsyDataset, self).__init__(
             filename, dataset_type=dataset_type, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor)
+            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            kernel_name=kernel_name)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)
