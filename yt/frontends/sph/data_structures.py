@@ -22,11 +22,16 @@ from yt.fields.particle_fields import \
 
 
 class SPHDataset(ParticleDataset):
+    default_kernel_name = "cubic"
+
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
                  n_ref=64, over_refine_factor=1,
-                 default_kernel="cubic"):
-        self.default_kernel = default_kernel
+                 kernel_name=None):
+        if kernel_name is None:
+            self.kernel_name = self.default_kernel_name
+        else:
+            self.kernel_name = kernel_name
         super(SPHDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
@@ -55,7 +60,7 @@ class SPHDataset(ParticleDataset):
             This is the name of the smoothing kernel to use. Current supported
             kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
             `wendland4`, and `wendland6`. If left as None,
-            :attr:`~yt.frontends.sph.data_structures.ParticleDataset.default_kernel`
+            :attr:`~yt.frontends.sph.data_structures.SPHDataset.kernel_name`
             will be used.
 
         Returns
@@ -75,7 +80,7 @@ class SPHDataset(ParticleDataset):
         if method != "volume_weighted":
             raise NotImplementedError("method must be 'volume_weighted'")
         if kernel_name is None:
-            kernel_name = self.default_kernel
+            kernel_name = self.kernel_name
 
         # Prepare field names and registry to be used later
         coord_name = "particle_position"
