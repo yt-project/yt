@@ -454,25 +454,25 @@ def pixelize_aitoff(np.float64_t[:] theta,
         # computing the xy values of the corners, then also compute the extrema
         # for if they cross over either the meridian or the equator.
         # upper left:
-        aitoff_thetaphi_to_xy(bounds[0], bounds[2], &temp_x, &temp_y)
+        aitoff_thetaphi_to_xy(bounds[2], bounds[0], &temp_x, &temp_y)
         xbounds[0] = fmin(xbounds[0], temp_x)
         xbounds[1] = fmax(xbounds[1], temp_x)
         ybounds[0] = fmin(ybounds[0], temp_y)
         ybounds[1] = fmax(ybounds[1], temp_y)
         # upper right:
-        aitoff_thetaphi_to_xy(bounds[1], bounds[2], &temp_x, &temp_y)
+        aitoff_thetaphi_to_xy(bounds[2], bounds[1], &temp_x, &temp_y)
         xbounds[0] = fmin(xbounds[0], temp_x)
         xbounds[1] = fmax(xbounds[1], temp_x)
         ybounds[0] = fmin(ybounds[0], temp_y)
         ybounds[1] = fmax(ybounds[1], temp_y)
         # lower right:
-        aitoff_thetaphi_to_xy(bounds[1], bounds[3], &temp_x, &temp_y)
+        aitoff_thetaphi_to_xy(bounds[3], bounds[1], &temp_x, &temp_y)
         xbounds[0] = fmin(xbounds[0], temp_x)
         xbounds[1] = fmax(xbounds[1], temp_x)
         ybounds[0] = fmin(ybounds[0], temp_y)
         ybounds[1] = fmax(ybounds[1], temp_y)
         # upper left
-        aitoff_thetaphi_to_xy(bounds[1], bounds[3], &temp_x, &temp_y)
+        aitoff_thetaphi_to_xy(bounds[3], bounds[0], &temp_x, &temp_y)
         xbounds[0] = fmin(xbounds[0], temp_x)
         xbounds[1] = fmax(xbounds[1], temp_x)
         ybounds[0] = fmin(ybounds[0], temp_y)
@@ -480,12 +480,12 @@ def pixelize_aitoff(np.float64_t[:] theta,
         if bounds[0] <= 0.0 and bounds[1] >= 0.0:
             # crosses, so we know that our x extent will have an extrema at the
             # equator.
-            aitoff_thetaphi_to_xy(bounds[0], 0.0, &temp_x, &temp_y)
+            aitoff_thetaphi_to_xy(0.0, bounds[0], &temp_x, &temp_y)
             xbounds[0] = fmin(xbounds[0], temp_x)
             xbounds[1] = fmax(xbounds[1], temp_x)
             ybounds[0] = fmin(ybounds[0], temp_y)
             ybounds[1] = fmax(ybounds[1], temp_y)
-            aitoff_thetaphi_to_xy(bounds[1], 0.0, &temp_x, &temp_y)
+            aitoff_thetaphi_to_xy(0.0, bounds[1], &temp_x, &temp_y)
             xbounds[0] = fmin(xbounds[0], temp_x)
             xbounds[1] = fmax(xbounds[1], temp_x)
             ybounds[0] = fmin(ybounds[0], temp_y)
@@ -493,12 +493,12 @@ def pixelize_aitoff(np.float64_t[:] theta,
         if bounds[2] <= 0.0 and bounds[3] >= 0.0:
             # crosses, so we know our y extent will have an extrema at the
             # meridian.
-            aitoff_thetaphi_to_xy(0.0, bounds[2], &temp_x, &temp_y)
+            aitoff_thetaphi_to_xy(bounds[2], 0.0, &temp_x, &temp_y)
             xbounds[0] = fmin(xbounds[0], temp_x)
             xbounds[1] = fmax(xbounds[1], temp_x)
             ybounds[0] = fmin(ybounds[0], temp_y)
             ybounds[1] = fmax(ybounds[1], temp_y)
-            aitoff_thetaphi_to_xy(0.0, bounds[3], &temp_x, &temp_y)
+            aitoff_thetaphi_to_xy(bounds[3], 0.0, &temp_x, &temp_y)
             xbounds[0] = fmin(xbounds[0], temp_x)
             xbounds[1] = fmax(xbounds[1], temp_x)
             ybounds[0] = fmin(ybounds[0], temp_y)
