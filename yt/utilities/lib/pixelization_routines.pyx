@@ -17,7 +17,8 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math as math
-from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, imax, fabs
+from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
+    imax, fabs, fclip
 from yt.utilities.exceptions import \
     YTPixelizeError, \
     YTElementTypeNotRecognized
@@ -392,7 +393,9 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
             theta_i += dthetamin
 
 cdef void aitoff_thetaphi_to_xy(np.float64_t theta, np.float64_t phi,
-                                np.float64_t *x, np.float64_t *y):
+                                np.float64_t *x, np.float64_t *y) except *:
+    phi = fclip(phi, -math.M_PI/2.0 + 1e-15, math.M_PI/2.0 - 1e-15)
+    theta = fclip(theta, -math.M_PI + 1e-15, math.M_PI - 1e-15)
     cdef np.float64_t z = math.sqrt(1.0 + math.cos(phi) * math.cos(theta / 2.0))
     x[0] = math.cos(phi) * math.sin(theta / 2.0) / z
     y[0] = math.sin(phi) / z

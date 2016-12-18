@@ -202,6 +202,10 @@ class CoordinateHandler(object):
                 w = self.ds.domain_width[[mi,mi]]
             width = (w[0], w[1])
         elif iterable(width):
+            if len(width) == 3:
+                xax = self.x_axis[axis]
+                yax = self.y_axis[axis]
+                width = (width[xax], width[yax])
             width = validate_iterable_width(width, self.ds)
         elif isinstance(width, YTQuantity):
             width = (width, width)

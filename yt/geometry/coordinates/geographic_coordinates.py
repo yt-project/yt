@@ -173,22 +173,23 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
-        # For axis=2, x axis will be latitude, y axis will be longitude
-        px = (data_source["px"].d + 90) * np.pi/180
+        # For axis=2, x axis will be longitude, y axis will be latitude
+        px = (data_source["px"].d + 180) * np.pi/180
         pdx = data_source["pdx"].d * np.pi/180
-        py = (data_source["py"].d + 180) * np.pi/180
+        py = (data_source["py"].d + 90) * np.pi/180
         pdy = data_source["pdy"].d * np.pi/180
         # First one in needs to be the equivalent of "theta", which is
         # longitude
-        b = ((bounds[0] + 90) * np.pi/180,
-             (bounds[1] + 90) * np.pi/180,
-             (bounds[2] + 180) * np.pi/180,
-             (bounds[3] + 180) * np.pi/180)
+        b = ((bounds[2] + 90) * np.pi/180,
+             (bounds[3] + 90) * np.pi/180,
+             (bounds[0] + 180) * np.pi/180,
+             (bounds[1] + 180) * np.pi/180)
         # Rotate so that our center (pre-offset) is the new center.
-        theta_offset = -np.pi/180 * (bounds[3]+bounds[2])/2.0
-        phi_offset = -np.pi/180 * (bounds[1]+bounds[0])/2.0
-        b = None
-        buff = pixelize_aitoff(py, pdy, px, pdx,
+        phi_offset = -np.pi/180 * (bounds[3]+bounds[2])/2.0
+        theta_offset = -np.pi/180 * (bounds[1]+bounds[0])/2.0
+        #theta_offset = phi_offset = 0.0
+        #b = None
+        buff = pixelize_aitoff(px, pdx, py, pdy,
                                size, data_source[field], b,
                                None, theta_offset, phi_offset).transpose()
         return buff
@@ -280,11 +281,11 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
     _x_pairs = (('latitude', 'longitude'),
                 ('longitude', 'latitude'),
-                ('altitude', 'latitude'))
+                ('altitude', 'longitude'))
 
     _y_pairs = (('latitude', 'altitude'),
                 ('longitude', 'altitude'),
-                ('altitude', 'longitude'))
+                ('altitude', 'latitude'))
 
     @property
     def period(self):
