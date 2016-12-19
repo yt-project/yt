@@ -1582,8 +1582,36 @@ cdef class RaySelector(SelectorObject):
         # two 0-volume constructs don't intersect
         return 0
 
+    # Due to limited knowledge of Cython, the codes below (until select_sphere)
+    # might need refactoring. - Bili
+
+    cdef np.float64_t* _diff(self, np.float64_t v1[3], np.float64_t v2[3]) nogil:
+        cdef int i
+        cdef np.float64_t v_diff[3]
+        for i in range(3):
+            v_diff[i] = self.difference(v1[i], v2[i], i)
+        return v_diff
+
+    cdef np.float64_t _dot(self, np.float64_t v1[3], np.float64_t v2[3]) nogil:
+        return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+
+    cdef np.float64_t _norm(self, np.float64_t v[3]) nogil:
+        return self._dot(v, v)**0.5
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
-        # not implemented
+        cdef np.float64_t length = self._norm(self.vec)
+        cdef np.float64_t* r = self._diff(pos, self.p1)
+        cdef np.float64_t l = self._dot(r, self.vec) / length
+        # Note that `dl` here is the geometric intersection.
+        cdef np.float64_t dl_hlf_sqr = radius**2 + l**2 - self._dot(r, r)
+        cdef np.float64_t dl_hlf
+        if dl_hlf_sqr > 0:
+            dl_hlf = dl_hlf_sqr**0.5
+            if (l + dl_hlf > 0) and (l - dl_hlf < length):
+                return 1
         return 0
 
     @cython.boundscheck(False)

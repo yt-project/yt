@@ -19,6 +19,8 @@ import numpy as np
 from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
     YTSelectionContainer2D, YTSelectionContainer3D
+from yt.frontends.sph.data_structures import \
+    SPHDataset
 from yt.funcs import \
     ensure_list, \
     iterable, \
@@ -32,6 +34,8 @@ from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
     YTEllipsoidOrdering
+from yt.utilities.lib.pixelization_routines import \
+    SPHKernelInterpolationTable
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
@@ -217,12 +221,42 @@ class YTRay(YTSelectionContainer1D):
         self._dts, self._ts = None, None
 
     def _generate_container_field(self, field):
+        # What should we do with `ParticleDataset`?
+        if isinstance(self.ds, SPHDataset):
+            return self._generate_container_field_sph(field)
+        else:
+            return self._generate_container_field_grid(field)
+
+    def _generate_container_field_grid(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "dts":
             return self._current_chunk.dtcoords
         elif field == "t":
             return self._current_chunk.tcoords
+        else:
+            raise KeyError(field)
+
+    def _generate_container_field_sph(self, field):
+        if field in ["dts", "t"]:
+            length = np.sqrt(np.sum(self.vec ** 2))
+            pos = self[self.ds._sph_ptype, "particle_position"]
+            r = pos - self.start_point
+            if field == "dts":
+                hsml = self[self.ds._sph_ptype, "smoothing_length"]
+                mass = self[self.ds._sph_ptype, "particle_mass"]
+                dens = self[self.ds._sph_ptype, "density"]
+                l = self["t"] * length
+                b = np.sqrt(((r ** 2).sum(axis=1) - l ** 2))
+                # Use an interpolation table to evaluate the integrated 2D
+                # kernel from the dimensionless impact parameter b/hsml.
+                # Note that `dl` here is the kernel weighted intersection.
+                itab = SPHKernelInterpolationTable(self.ds.kernel_name)
+                dl = itab.interpolate(b / hsml) * mass / dens / hsml ** 2
+                return self.ds.arr(dl / length).to("dimensionless")
+            elif field == "t":
+                l = np.sum(r * self.vec, axis=1) / length
+                return self.ds.arr(l / length).to("dimensionless")
         else:
             raise KeyError(field)
 
