@@ -21,6 +21,7 @@ import numpy as np
 import matplotlib
 import os
 
+from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 

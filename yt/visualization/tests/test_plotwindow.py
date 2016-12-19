@@ -13,12 +13,16 @@ Testsuite for PlotWindow class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import itertools
+import matplotlib
 import numpy as np
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
+
+from distutils.version import LooseVersion
 from nose.tools import assert_true
+
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
