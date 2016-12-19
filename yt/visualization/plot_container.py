@@ -23,6 +23,7 @@ import numpy as np
 import matplotlib
 import os
 
+from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 
@@ -315,7 +316,10 @@ class ImagePlotContainer(object):
             if isinstance(cmap, string_types): 
                 cmap = yt_colormaps[cmap]
             color = cmap(0)
-        self.plots[actual_field].axes.set_axis_bgcolor(color)
+        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+            self.plots[actual_field].axes.set_axis_bgcolor(color)
+        else:
+            self.plots[actual_field].axes.set_facecolor(color)
         return self
 
     @invalidate_plot

@@ -13,8 +13,12 @@ from __future__ import absolute_import
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from io import BytesIO
 import matplotlib
+import numpy as np
+
+from distutils.version import LooseVersion
+from io import BytesIO
+
 from yt.funcs import \
     get_image_suffix, \
     mylog, \
@@ -22,7 +26,7 @@ from yt.funcs import \
     get_brewer_cmap, \
     matplotlib_style_context, \
     get_interactivity
-import numpy as np
+
 
 backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                        'FigureManagerGTK'],
@@ -213,8 +217,14 @@ class ImagePlotMPL(PlotMPL):
                                       aspect=aspect, vmax=self.zmax, cmap=cmap,
                                       interpolation='nearest')
         if (cbnorm == 'symlog'):
-            formatter = matplotlib.ticker.LogFormatterMathtext()
-            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
+            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+                formatter_kwargs = {}
+            else:
+                formatter_kwargs = dict(linthresh=cblinthresh)
+            formatter = matplotlib.ticker.LogFormatterMathtext(
+                **formatter_kwargs)
+            self.cb = self.figure.colorbar(
+                self.image, self.cax, format=formatter)
             yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
                           np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
                      list(10**np.arange(np.rint(np.log10(cblinthresh)),\
