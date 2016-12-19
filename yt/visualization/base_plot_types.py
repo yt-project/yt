@@ -98,7 +98,9 @@ class PlotMPL(object):
             self.manager = canvas_classes[1](self.canvas, 1)
         for which in ['major', 'minor']:
             for axis in 'xy':
-                self.axes.tick_params(which=which, axis=axis, direction='in')
+                self.axes.tick_params(
+                    which=which, axis=axis, direction='in', top=True, right=True
+                )
 
     def _set_canvas(self):
         self.interactivity = get_interactivity()
