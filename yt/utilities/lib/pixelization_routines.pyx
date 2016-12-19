@@ -412,6 +412,9 @@ def pixelize_aitoff(np.float64_t[:] theta,
                     extents, input_img = None,
                     np.float64_t theta_offset = 0.0,
                     np.float64_t phi_offset = 0.0):
+    #
+    # NOTE: This is Hammer-Aitoff, not strict Aitoff.
+    #
     # http://paulbourke.net/geometry/transformationprojection/
     # longitude is -pi to pi
     # latitude is -pi/2 to pi/2
