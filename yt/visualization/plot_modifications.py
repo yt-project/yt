@@ -393,8 +393,8 @@ class QuiverCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
-        nx = plot.image._A.shape[1] / self.factor
-        ny = plot.image._A.shape[0] / self.factor
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         # periodicity
         ax = plot.data.axis
         ds = plot.data.ds
@@ -714,8 +714,8 @@ class StreamlineCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
-        nx = plot.image._A.shape[1] / self.factor
-        ny = plot.image._A.shape[0] / self.factor
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
@@ -873,8 +873,8 @@ class CuttingQuiverCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        nx = plot.image._A.shape[1] / self.factor
-        ny = plot.image._A.shape[0] / self.factor
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
 
         pixX = np.zeros((ny, nx), dtype="f8")
