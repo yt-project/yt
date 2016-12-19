@@ -21,6 +21,8 @@ from libc.stdlib cimport malloc, free, abs
 from libc.math cimport sqrt
 from fixed_interpolator cimport *
 
+from yt.units.yt_array import YTArray
+
 cdef extern from "marching_cubes.h":
     int tri_table[256][16]
     int edge_table[256]
@@ -261,6 +263,8 @@ def march_cubes_grid(np.float64_t isovalue,
     sampled = np.zeros(triangles.count * nskip, dtype='float64')
     FillTriangleValues(sampled, triangles.first, nskip)
     FillAndWipeTriangles(vertices, triangles.first)
+    if hasattr(obj_sample, 'units'):
+        sampled = YTArray(sampled, obj_sample.units)
     return vertices, sampled
 
 @cython.boundscheck(False)

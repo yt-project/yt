@@ -268,8 +268,9 @@ class AMRGridPatch(YTSelectionContainer):
         fields = list(set(fields))
         new_fields = {}
         for field in fields:
-            new_fields[field] = np.zeros(self.ActiveDimensions + 1, dtype='float64')
-
+            finfo = self.ds._get_field_info(field)
+            new_fields[field] = self.ds.arr(
+                np.zeros(self.ActiveDimensions + 1), finfo.units)
         if no_ghost:
             for field in fields:
                 # Ensure we have the native endianness in this array.  Avoid making
