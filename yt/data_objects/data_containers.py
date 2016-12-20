@@ -1390,6 +1390,43 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)
 
+    def __or__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        # Should maybe do something with field parameters here
+        return YTBooleanContainer("OR", self, other, ds = self.ds)
+
+    def __invert__(self):
+        # ~obj
+        asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
+        return YTBooleanContainer("NOT", self, asel, ds = self.ds)
+
+    def __xor__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("XOR", self, other, ds = self.ds)
+
+    def __and__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("AND", self, other, ds = self.ds)
+
+    def __add__(self, other):
+        return self.__or__(other)
+
+    def __sub__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("NEG", self, other, ds = self.ds)
+
     @contextmanager
     def _field_lock(self):
         self._locked = True
@@ -1473,6 +1510,13 @@ class YTSelectionContainer1D(YTSelectionContainer):
         self._grids = None
         self._sortkey = None
         self._sorted = {}
+
+    def __and__(self, other):
+        #if not isinstance(other, YTSelectionContainer3D):
+        #    raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("AND", self, other, ds = self.ds)
 
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
@@ -1913,42 +1957,6 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         return self.quantities.total_quantity(("index", "cell_volume"))
 
-    def __or__(self, other):
-        if not isinstance(other, YTSelectionContainer3D):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        # Should maybe do something with field parameters here
-        return YTBooleanContainer("OR", self, other, ds = self.ds)
-
-    def __invert__(self):
-        # ~obj
-        asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
-        return YTBooleanContainer("NOT", self, asel, ds = self.ds)
-
-    def __xor__(self, other):
-        if not isinstance(other, YTSelectionContainer3D):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("XOR", self, other, ds = self.ds)
-
-    def __and__(self, other):
-        if not isinstance(other, YTSelectionContainer3D):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("AND", self, other, ds = self.ds)
-
-    def __add__(self, other):
-        return self.__or__(other)
-
-    def __sub__(self, other):
-        if not isinstance(other, YTSelectionContainer3D):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("NEG", self, other, ds = self.ds)
 
 class YTBooleanContainer(YTSelectionContainer3D):
     """
@@ -1964,9 +1972,9 @@ class YTBooleanContainer(YTSelectionContainer3D):
     ----------
     op : string
         Can be AND, OR, XOR, NOT or NEG.
-    dobj1 : YTSelectionContainer3D
+    dobj1 : YTSelectionContainer
         The first selection object
-    dobj2 : YTSelectionContainer3D
+    dobj2 : YTSelectionContainer
         The second object
 
     Examples
