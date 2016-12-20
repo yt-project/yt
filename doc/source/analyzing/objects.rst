@@ -630,7 +630,7 @@ Combining Objects: Boolean Data Objects
 ---------------------------------------
 
 A special type of data object is the *boolean* data object, which works with
-three-dimensional data selection.  It is built by relating already existing
+data selection objects of any dimension.  It is built by relating already existing
 data objects with the bitwise operators for AND, OR and XOR, as well as the
 subtraction operator.  These are created by using the operators ``&`` for an
 intersection ("AND"), ``|`` for a union ("OR"), ``^`` for an exclusive or
