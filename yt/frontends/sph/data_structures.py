@@ -68,7 +68,7 @@ class SPHDataset(ParticleDataset):
         """
         if kernel_name is None:
             kernel_name = self.kernel_name
-        super(SPHDataset, self).add_smoothed_particle_field(
+        return super(SPHDataset, self).add_smoothed_particle_field(
             smooth_field=smooth_field, method=method, nneighbors=nneighbors,
             kernel_name=kernel_name
         )
