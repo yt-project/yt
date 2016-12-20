@@ -62,6 +62,7 @@ class CallbackWrapper(object):
         self.ds = frb.ds
         self.xlim = viewer.xlim
         self.ylim = viewer.ylim
+        self.bounds = viewer.bounds
         if 'OffAxisSlice' in viewer._plot_type:
             self._type_name = "CuttingPlane"
         else:

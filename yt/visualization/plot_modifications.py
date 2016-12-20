@@ -32,7 +32,8 @@ from yt.visualization.image_writer import apply_colormap
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.pixelization_routines import \
     pixelize_off_axis_cartesian, \
-    pixelize_cartesian
+    pixelize_cartesian, \
+    pixelize_aitoff
 from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
     periodic_ray
 from yt.utilities.lib.line_integral_convolution import \
@@ -2539,6 +2540,97 @@ class CellEdgesCallback(PlotCallback):
                                 plot.data['px'], # dummy field
                                 (x0, x1, y0, y1),
                                 line_width=line_width)
+        # New image:
+        im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
+        im_buffer[im > 0, 3] = 255
+        im_buffer[im > 0, :3] = self.color
+        plot._axes.imshow(im_buffer, origin='lower',
+                          interpolation='bilinear',
+                          extent=[xx0, xx1, yy0, yy1],
+                          alpha=self.alpha)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+        plot._axes.hold(False)
+
+
+class GeographicCoordinatesCallback(PlotCallback):
+    """
+    annotate_geographic_lines(line_width=0.2, interval = (5.0, 5.0),
+                              alpha = 1.0, color = 'black')
+
+    Annotate latitude and longitude coordinate lines.  This is done by calling
+    the pixelize routine a second time.
+
+    Parameters
+    ----------
+    line_width : float
+        The width of the lines, specified in degrees.
+    interval : float or tuple of floats
+        The interval between latitude and longitude (in that order) lines drawn
+        on the plot.
+    alpha : float
+        When the second image is overlaid, it will have this level of alpha
+        transparency.  Default is 1.0 (fully-opaque).
+    color : tuple of three floats or matplotlib color name
+        This is the color of the cell edge values.  It defaults to black.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load('geographic_data/geo.nc")
+    >>> s = yt.SlicePlot(ds, 'altitude', 'value')
+    >>> s.annotate_geographic_lines()
+    >>> s.save()
+    """
+    _type_name = "geographic_lines"
+    _supported_geometries = ("geographic","internal_geographic")
+    def __init__(self, line_width=0.2, interval = (5.0, 5.0),
+                alpha = 1.0, color='black'):
+        from matplotlib.colors import ColorConverter
+        conv = ColorConverter()
+        PlotCallback.__init__(self)
+        self.line_width = line_width
+        if not iterable(interval):
+            interval = (interval, interval)
+        self.interval = interval
+        self.alpha = alpha
+        self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
+
+    def __call__(self, plot):
+        axis = plot.data.axis
+        ds = plot.data.ds
+        coords = ds.coordinates
+        if coords.axis_name[axis] != coords.radial_axis:
+            # We only support this for the radial axis at present
+            return
+        plot._axes.hold(True)
+        nx = plot.image._A.shape[1]
+        ny = plot.image._A.shape[0]
+        xx0, xx1 = plot._axes.get_xlim()
+        yy0, yy1 = plot._axes.get_ylim()
+        # Note that because we're creating a false grid here, and we
+        # specifically use lat/lon coordinates for the interval, we're okay
+        # with the aspect ratio even in extreme cases.  For cell edges this is
+        # not the case.
+        b, theta_offset, phi_offset = coords._recenter_bounds(plot.bounds)
+        # We set up a grid of cells; note that because these are to be
+        # "centers" and with "half-widths", we need to adjust them
+        # appropriately.
+        # interval[0] is latitude, interval[1] is longitude.
+        # But note that px is longitude, py is latitude.
+        py, px = (_.ravel() * np.pi/180 for _ in
+                  np.mgrid[0:180:self.interval[0],
+                           0:360:self.interval[1]])
+        # Adjust half a cell to the right
+        px += np.pi/180 * (self.interval[1] / 2.0)
+        py += np.pi/180 * (self.interval[0] / 2.0)
+        pdx = np.zeros_like(px) + self.interval[1]/2.0 * np.pi/180
+        pdy = np.zeros_like(py) + self.interval[0]/2.0 * np.pi/180
+        vals = pdx * np.nan
+        lw = self.line_width * np.pi/180
+        im = pixelize_aitoff(px, pdx, py, pdy, (nx, ny), vals, b, None,
+                        theta_offset, phi_offset, lw).transpose()
         # New image:
         im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
         im_buffer[im > 0, 3] = 255

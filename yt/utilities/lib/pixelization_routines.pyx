@@ -411,7 +411,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
                     np.float64_t[:] field,
                     extents, input_img = None,
                     np.float64_t theta_offset = 0.0,
-                    np.float64_t phi_offset = 0.0):
+                    np.float64_t phi_offset = 0.0,
+                    np.float64_t line_width = 0.0):
     #
     # NOTE: This is Hammer-Aitoff, not strict Aitoff.
     #
@@ -435,6 +436,7 @@ def pixelize_aitoff(np.float64_t[:] theta,
     cdef np.float64_t x, y, z, zb
     cdef np.float64_t dx, dy
     cdef np.float64_t theta0, phi0, theta_p, dtheta_p, phi_p, dphi_p
+    cdef np.float64_t theta_dist, phi_dist
     cdef np.float64_t PI = np.pi
     cdef np.float64_t s2 = math.sqrt(2.0)
     cdef np.float64_t xmax, ymax, xmin, ymin
@@ -575,7 +577,17 @@ def pixelize_aitoff(np.float64_t[:] theta,
                     continue
                 if not (phi_p - dphi_p <= phi0 <= phi_p + dphi_p):
                     continue
-                img[i, j] = field[fi]
+                if line_width > 0:
+                    # Let's see if we're close enough to the edge to set the
+                    # value or not.
+                    theta_dist = fmin(fabs(theta0 - (theta_p - dtheta_p)),
+                                      fabs(theta0 - (theta_p + dtheta_p)))
+                    phi_dist = fmin(fabs(phi0 - (phi_p - dphi_p)),
+                                    fabs(phi0 - (phi_p + dphi_p)))
+                    if theta_dist <= line_width or phi_dist <= line_width:
+                        img[i,j] = 1.0
+                else:
+                    img[i, j] = field[fi]
     return img
 
 

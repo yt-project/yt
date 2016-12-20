@@ -174,6 +174,12 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def _recenter_bounds(self, bounds):
         # First one in needs to be the equivalent of "theta", which is
         # longitude
+        _bounds = []
+        for b in bounds:
+            if hasattr(b, "in_units"):
+                b = float(b.in_units("code_length"))
+            _bounds.append(b)
+        bounds = _bounds
         b = ((bounds[2] + 90) * np.pi/180,
              (bounds[3] + 90) * np.pi/180,
              (bounds[0] + 180) * np.pi/180,
