@@ -21,7 +21,8 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
-    data_dir_load
+    data_dir_load, \
+    GenericArrayTest
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.convenience import load
 
@@ -37,9 +38,14 @@ def test_disk():
     vol *= np.cos(ds.domain_left_edge[1])-np.cos(ds.domain_right_edge[1])
     vol *= ds.domain_right_edge[2].v-ds.domain_left_edge[2].v
     yield assert_equal, dd.quantities.total_quantity("cell_volume") == vol
-    for test in small_patch_amr(ds, _fields_disk):
-        test_disk.__name__ = test.description
-        yield test
+    for mesh in ds.index.meshes:
+        def array_func():
+            return mesh.connectivity_coords
+        yield GenericArrayTest(ds, array_func, 12)
+    for field in _fields_disk:
+        def field_func():
+            return dd[field]
+        yield GenericArrayTest(ds, field_func, 12)
 
 _fields_AM06 = ("temperature", "density", "velocity_magnitude", "magnetic_field_x")
 
