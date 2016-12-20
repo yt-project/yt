@@ -495,8 +495,8 @@ class AbsorptionSpectrum(object):
                 window_width_in_bins = 2
 
                 while True:
-                    left_index = (center_index[i] - window_width_in_bins/2)
-                    right_index = (center_index[i] + window_width_in_bins/2)
+                    left_index = (center_index[i] - window_width_in_bins//2)
+                    right_index = (center_index[i] + window_width_in_bins//2)
                     n_vbins = (right_index - left_index) * n_vbins_per_bin[i]
 
                     # the array of virtual bins in lambda space
