@@ -758,7 +758,7 @@ def test_boolean_ray_slice_no_overlap():
     b6.sort()
     assert_array_equal(b6, np.setxor1d(i1, i2))
 
-def test_boolean_slices_overlap():
+def test_boolean_ray_slice_overlap():
     r"""Test to make sure that boolean objects (rays and slices, overlap)
     behave the way we expect.
 
