@@ -171,13 +171,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         else:
             raise NotImplementedError
 
-    def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
-                        dim, periodic, annotate_vertices = False):
-        # For axis=2, x axis will be longitude, y axis will be latitude
-        px = (data_source["px"].d + 180) * np.pi/180
-        pdx = data_source["pdx"].d * np.pi/180
-        py = (data_source["py"].d + 90) * np.pi/180
-        pdy = data_source["pdy"].d * np.pi/180
+    def _recenter_bounds(self, bounds):
         # First one in needs to be the equivalent of "theta", which is
         # longitude
         b = ((bounds[2] + 90) * np.pi/180,
@@ -186,20 +180,22 @@ class GeographicCoordinateHandler(CoordinateHandler):
              (bounds[1] + 180) * np.pi/180)
         # Rotate so that our center (pre-offset) is the new center.  This
         # rotates the whole plot to center on it.
-        phi_offset = -np.pi/180 * (bounds[3]+bounds[2])/2.0
         theta_offset = -np.pi/180 * (bounds[1]+bounds[0])/2.0
+        phi_offset = -np.pi/180 * (bounds[3]+bounds[2])/2.0
+        return b, theta_offset, phi_offset
+
+    def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
+                        dim, periodic, return_setup = False):
+        # For axis=2, x axis will be longitude, y axis will be latitude
+        px = (data_source["px"].d + 180) * np.pi/180
+        pdx = data_source["pdx"].d * np.pi/180
+        py = (data_source["py"].d + 90) * np.pi/180
+        pdy = data_source["pdy"].d * np.pi/180
+        b, theta_offset, phi_offset = self._recenter_bounds(bounds)
+        # If this ever needs to change, also see the geographic_lines callback
         buff = pixelize_aitoff(px, pdx, py, pdy,
                                size, data_source[field], b,
                                None, theta_offset, phi_offset).transpose()
-        if annotate_vertices:
-            # This adds a little NaN dot at lat/lon vertices.
-            px, py = (_.ravel() * np.pi/180 for _ in
-                      np.mgrid[0:180:37j, 0:360:73j])
-            pdx = np.zeros_like(px) + 0.1 * np.pi/180
-            pdy = np.zeros_like(px) + 0.1 * np.pi/180
-            vals = pdx * np.nan
-            pixelize_aitoff(px, pdx, py, pdy, size, vals, b, buff.transpose(),
-                            theta_offset, phi_offset)
         return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
