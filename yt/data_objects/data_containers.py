@@ -1511,13 +1511,6 @@ class YTSelectionContainer1D(YTSelectionContainer):
         self._sortkey = None
         self._sorted = {}
 
-    def __and__(self, other):
-        #if not isinstance(other, YTSelectionContainer3D):
-        #    raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("AND", self, other, ds = self.ds)
-
 class YTSelectionContainer2D(YTSelectionContainer):
     _key_fields = ['px','py','pdx','pdy']
     _dimensionality = 2
