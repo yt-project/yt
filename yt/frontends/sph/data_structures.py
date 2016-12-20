@@ -17,8 +17,6 @@ from __future__ import print_function
 
 from yt.data_objects.static_output import \
     ParticleDataset
-from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
 
 
 class SPHDataset(ParticleDataset):
@@ -68,31 +66,9 @@ class SPHDataset(ParticleDataset):
 
         The field name tuple for the newly created field.
         """
-        # The magical step
-        self.index
-
-        # Parse arguments
-        if isinstance(smooth_field, tuple):
-            ptype, smooth_field = smooth_field[0], smooth_field[1]
-        else:
-            raise RuntimeError("smooth_field must be a tuple, received %s" %
-                               smooth_field)
-        if method != "volume_weighted":
-            raise NotImplementedError("method must be 'volume_weighted'")
         if kernel_name is None:
             kernel_name = self.kernel_name
-
-        # Prepare field names and registry to be used later
-        coord_name = "particle_position"
-        mass_name = "particle_mass"
-        smoothing_length_name = "smoothing_length"
-        if (ptype, smoothing_length_name) not in self.derived_field_list:
-            raise ValueError("%s not in derived_field_list" %
-                             ((ptype, smoothing_length_name),))
-        density_name = "density"
-        registry = self.field_info
-
-        # Do the actual work
-        return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
-                   smoothing_length_name, density_name, smooth_field, registry,
-                   nneighbors=nneighbors, kernel_name=kernel_name)[0]
+        super(SPHDataset, self).add_smoothed_particle_field(
+            smooth_field=smooth_field, method=method, nneighbors=nneighbors,
+            kernel_name=kernel_name
+        )
