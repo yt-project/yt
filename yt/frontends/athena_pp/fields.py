@@ -62,13 +62,13 @@ class AthenaPPFieldInfo(FieldInfoContainer):
             self.alias(("gas","pressure"),("athena_pp","press"),
                        units=unit_system["pressure"])
             def _thermal_energy(field, data):
-                return data["athena++","press"] / \
-                       (data.ds.gamma-1.)/data["athena++","rho"]
+                return data["athena_pp","press"] / \
+                       (data.ds.gamma-1.)/data["athena_pp","rho"]
             self.add_field(("gas","thermal_energy"), sampling_type="cell",
                            function=_thermal_energy,
                            units=unit_system["specific_energy"])
         elif ("athena_pp","Etot") in self.field_list:
-            self.add_output_field(("athena++","Etot"), sampling_type="cell",
+            self.add_output_field(("athena_pp","Etot"), sampling_type="cell",
                                   units=pres_units)
             def _thermal_energy(field, data):
                 eint = data["athena_pp", "Etot"] - data["gas","kinetic_energy"]
@@ -85,7 +85,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
             else:
                 mu = 0.6
             return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
-        self.add_field(("gas","temperature"), sampling_type="cell", function=_temperature,
+        self.add_field(("gas", "temperature"), sampling_type="cell", function=_temperature,
                        units=unit_system["temperature"])
 
         setup_magnetic_field_aliases(self, "athena_pp", ["Bcc%d" % ax for ax in (1,2,3)])
