@@ -84,7 +84,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 mu = data.get_field_parameter("mu")
             else:
                 mu = 0.6
-            return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
+            return (data["gas","pressure"]/data["gas","density"])*mu*mh/kboltz
         self.add_field(("gas", "temperature"), sampling_type="cell", function=_temperature,
                        units=unit_system["temperature"])
 
