@@ -1218,6 +1218,7 @@ class Dataset(object):
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
+            sampling_type="cell",
             units=units,
             take_log=take_log,
             validators=[ValidateSpatial()])
