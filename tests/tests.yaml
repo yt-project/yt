@@ -5,6 +5,9 @@ answer_tests:
   local_athena_002:
     - yt/frontends/athena
 
+  local_athena_pp_000:
+    - yt/frontends/athena_pp
+
   local_chombo_002:
     - yt/frontends/chombo/tests/test_outputs.py
 
