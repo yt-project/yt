@@ -1,5 +1,5 @@
 """
-Athena frontend tests
+Athena++ frontend tests
 
 
 
@@ -33,12 +33,12 @@ disk = "KeplerianDisk/disk.out1.00000.athdf"
 @requires_ds(disk)
 def test_disk():
     ds = data_dir_load(disk)
-    yield assert_equal, str(ds), "disk.out1.00000"
+    assert_equal(str(ds), "disk.out1.00000")
     dd = ds.all_data()
     vol = (ds.domain_right_edge[0]**3-ds.domain_left_edge[0]**3)/3.0
     vol *= np.cos(ds.domain_left_edge[1])-np.cos(ds.domain_right_edge[1])
     vol *= ds.domain_right_edge[2].v-ds.domain_left_edge[2].v
-    yield assert_allclose, dd.quantities.total_quantity("cell_volume"), vol
+    assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
     for mesh in ds.index.meshes:
         def array_func():
             return mesh.connectivity_coords
@@ -54,7 +54,7 @@ AM06 = "AM06/AM06.out1.00400.athdf"
 @requires_ds(AM06)
 def test_AM06():
     ds = data_dir_load(AM06)
-    yield assert_equal, str(ds), "AM06.out1.00400"
+    assert_equal(str(ds), "AM06.out1.00400")
     for test in small_patch_amr(ds, _fields_AM06):
         test_AM06.__name__ = test.description
         yield test
