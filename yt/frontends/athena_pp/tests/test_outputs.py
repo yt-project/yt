@@ -17,7 +17,8 @@ import numpy as np
 from yt.testing import \
     assert_equal, \
     requires_file, \
-    units_override_check
+    units_override_check, \
+    assert_allclose
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
@@ -37,7 +38,7 @@ def test_disk():
     vol = (ds.domain_right_edge[0]**3-ds.domain_left_edge[0]**3)/3.0
     vol *= np.cos(ds.domain_left_edge[1])-np.cos(ds.domain_right_edge[1])
     vol *= ds.domain_right_edge[2].v-ds.domain_left_edge[2].v
-    yield assert_equal, dd.quantities.total_quantity("cell_volume") == vol
+    yield assert_allclose, dd.quantities.total_quantity("cell_volume"), vol
     for mesh in ds.index.meshes:
         def array_func():
             return mesh.connectivity_coords
