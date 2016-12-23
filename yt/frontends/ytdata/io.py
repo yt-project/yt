@@ -236,8 +236,8 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
-                np.clip(pos, self.ds.domain_left_edge + dx,
-                             self.ds.domain_right_edge - dx, pos)
+                np.clip(pos,  self.ds.domain_left_edge.to("code_length") + dx,
+                             self.ds.domain_right_edge.to("code_length") - dx, pos)
                 if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                    np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                     raise YTDomainOverflow(pos.min(axis=0),
@@ -333,8 +333,8 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
-                np.clip(pos, self.ds.domain_left_edge + dx,
-                             self.ds.domain_right_edge - dx, pos)
+                np.clip(pos,  self.ds.domain_left_edge.to("code_length") + dx,
+                             self.ds.domain_right_edge.to("code_length") - dx, pos)
                 if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
                    np.any(pos.max(axis=0) > self.ds.domain_right_edge):
                     raise YTDomainOverflow(pos.min(axis=0),
