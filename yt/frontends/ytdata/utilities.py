@@ -95,7 +95,9 @@ def save_as_dataset(ds, filename, data, field_types=None,
                    "current_redshift", "current_time",
                    "domain_dimensions", "periodicity",
                    "cosmological_simulation", "omega_lambda",
-                   "omega_matter", "hubble_constant"]
+                   "omega_matter", "hubble_constant",
+                   "length_unit", "mass_unit", "time_unit",
+                   "velocity_unit", "magnetic_unit"]
 
     fh = h5py.File(filename, "w")
     if ds is None: ds = {}
@@ -103,6 +105,10 @@ def save_as_dataset(ds, filename, data, field_types=None,
     if hasattr(ds, "parameters") and isinstance(ds.parameters, dict):
         for attr, val in ds.parameters.items():
             _yt_array_hdf5_attr(fh, attr, val)
+
+    if hasattr(ds, "unit_registry"):
+        _yt_array_hdf5_attr(fh, "unit_registry_json",
+                            ds.unit_registry.to_json())
 
     for attr in base_attrs:
         if isinstance(ds, dict):
