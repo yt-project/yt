@@ -47,6 +47,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.units.unit_registry import \
+    UnitRegistry
 from yt.units.yt_array import \
     YTQuantity
 from yt.utilities.logger import \
@@ -81,6 +83,29 @@ class YTDataset(Dataset):
             self.num_particles = \
               dict([(group, parse_h5_attr(f[group], "num_elements"))
                     for group in f if group != self.default_fluid_type])
+
+        # restore unit system from the json string
+        self.unit_registry = UnitRegistry.from_json(
+            self.parameters["unit_registry_json"])
+        # reset self.arr and self.quan to use new unit_registry
+        self._arr = None
+        self._quan = None
+
+        # assign units to parameters that have associated unit string
+        del_pars = []
+        for par in self.parameters:
+            ustr = "%s_units" % par
+            if ustr in self.parameters:
+                if isinstance(self.parameters[par], np.ndarray):
+                    to_u = self.arr
+                else:
+                    to_u = self.quan
+                self.parameters[par] = to_u(
+                    self.parameters[par], self.parameters[ustr])
+                del_pars.append(ustr)
+        for par in del_pars:
+            del self.parameters[par]
+
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
                      "dimensionality", "domain_dimensions", "periodicity",
@@ -119,13 +144,28 @@ class YTDataset(Dataset):
     def _setup_override_fields(self):
         pass
 
+    def set_units(self):
+        if "unit_registry_json" in self.parameters:
+            self._set_code_unit_attributes()
+        else:
+            super(YTDataset, self).set_units()
+
     def _set_code_unit_attributes(self):
         attrs = ('length_unit', 'mass_unit', 'time_unit',
                  'velocity_unit', 'magnetic_unit')
         cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
         base_units = np.ones(len(attrs))
         for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, string_types):
+            if attr in self.parameters and \
+              isinstance(self.parameters[attr], YTQuantity):
+                uq = self.parameters[attr]
+            elif attr in self.parameters and \
+              "%s_units" % attr in self.parameters:
+                uq = self.quan(self.parameters[attr],
+                               self.parameters["%s_units" % attr])
+                del self.parameters[attr]
+                del self.parameters["%s_units" % attr]
+            elif isinstance(unit, string_types):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
