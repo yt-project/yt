@@ -132,19 +132,16 @@ def save_as_dataset(ds, filename, data, field_types=None,
             field_type = field_types[field]
         if field_type not in fh:
             fh.create_group(field_type)
-        # for now, let's avoid writing "code" units
-        if hasattr(data[field], "units"):
-            for atom in data[field].units.expr.atoms():
-                if str(atom).startswith("code"):
-                    data[field].convert_to_base()
-                    break
+
         if isinstance(field, tuple):
             field_name = field[1]
         else:
             field_name = field
-        # thanks, python3
+
+        # for python3
         if data[field].dtype.kind == 'U':
-            data[field] = data[field].astype('|S40')
+            data[field] = data[field].astype('|S')
+
         _yt_array_hdf5(fh[field_type], field_name, data[field])
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
