@@ -284,7 +284,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                     x = _get_position_array(ptype, f, "px")
                     y = _get_position_array(ptype, f, "py")
                     z = np.zeros(x.size, dtype="float64") + \
-                      self.ds.domain_left_edge[2].in_cgs().d
+                      self.ds.domain_left_edge[2].to("code_length").d
                     yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -301,7 +301,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                     x = _get_position_array(ptype, f, "px")
                     y = _get_position_array(ptype, f, "py")
                     z = np.zeros(all_count[ptype], dtype="float64") + \
-                      self.ds.domain_left_edge[2].in_cgs().d
+                      self.ds.domain_left_edge[2].to("code_length").d
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
@@ -329,7 +329,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 pos[:,0] = _get_position_array(ptype, f, "px")
                 pos[:,1] = _get_position_array(ptype, f, "py")
                 pos[:,2] = np.zeros(all_count[ptype], dtype="float64") + \
-                  self.ds.domain_left_edge[2].in_cgs().d
+                  self.ds.domain_left_edge[2].to("code_length").d
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
