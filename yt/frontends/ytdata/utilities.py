@@ -110,6 +110,10 @@ def save_as_dataset(ds, filename, data, field_types=None,
         _yt_array_hdf5_attr(fh, "unit_registry_json",
                             ds.unit_registry.to_json())
 
+    if hasattr(ds, "unit_system"):
+        _yt_array_hdf5_attr(fh, "unit_system_name",
+                            ds.unit_system.name)
+
     for attr in base_attrs:
         if isinstance(ds, dict):
             my_val = ds.get(attr, None)

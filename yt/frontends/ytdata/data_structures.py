@@ -84,12 +84,21 @@ class YTDataset(Dataset):
               dict([(group, parse_h5_attr(f[group], "num_elements"))
                     for group in f if group != self.default_fluid_type])
 
-        # restore unit system from the json string
-        self.unit_registry = UnitRegistry.from_json(
-            self.parameters["unit_registry_json"])
-        # reset self.arr and self.quan to use new unit_registry
-        self._arr = None
-        self._quan = None
+        # if saved, restore unit registry from the json string
+        if "unit_registry_json" in self.parameters:
+            self.unit_registry = UnitRegistry.from_json(
+                self.parameters["unit_registry_json"])
+            del self.parameters["unit_registry_json"]
+            # reset self.arr and self.quan to use new unit_registry
+            self._arr = None
+            self._quan = None
+
+        # if saved, set unit system
+        if "unit_system_name" in self.parameters:
+            unit_system = self.parameters["unit_system_name"]
+            del self.parameters["unit_system_name"]
+        # reset unit system since we may have a new unit registry
+        self._assign_unit_system(unit_system)
 
         # assign units to parameters that have associated unit string
         del_pars = []

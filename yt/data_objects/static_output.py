@@ -298,14 +298,7 @@ class Dataset(object):
         self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
-
-        create_code_unit_system(self)
-        if unit_system == "code":
-            unit_system = str(self)
-        else:
-            unit_system = str(unit_system).lower()
-
-        self.unit_system = unit_system_registry[unit_system]
+        self._assign_unit_system(unit_system)
 
         self._parse_parameter_file()
         self.set_units()
@@ -879,6 +872,14 @@ class Dataset(object):
 
     def relative_refinement(self, l0, l1):
         return self.refine_by**(l1-l0)
+
+    def _assign_unit_system(self, unit_system):
+        create_code_unit_system(self)
+        if unit_system == "code":
+            unit_system = str(self)
+        else:
+            unit_system = str(unit_system).lower()
+        self.unit_system = unit_system_registry[unit_system]
 
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
