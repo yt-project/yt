@@ -130,6 +130,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
+        pn = "particle_position_%s"
         chunks = list(chunks)
         for chunk in chunks:
             f = None
@@ -140,9 +141,10 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    pn = "particle_position_%s"
-                    x, y, z = (np.asarray(f[ptype][pn % ax].value, dtype="=f8")
-                               for ax in 'xyz')
+                    units = f[pn % "x"].attrs["units"]
+                    x, y, z = \
+                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
+                       for ax in "xyz")
                     for field in field_list:
                         if np.asarray(f[ptype][field]).ndim > 1:
                             self._array_fields[field] = f[ptype][field].shape
@@ -150,6 +152,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             if f: f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
+        pn = "particle_position_%s"
         chunks = list(chunks)
         for chunk in chunks: # These should be organized by grid filename
             f = None
@@ -160,9 +163,10 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    pn = "particle_position_%s"
-                    x, y, z = (np.asarray(f[ptype][pn % ax].value, dtype="=f8")
-                               for ax in 'xyz')
+                    units = f[pn % "x"].attrs["units"]
+                    x, y, z = \
+                      (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
+                       for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
@@ -188,9 +192,10 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0: continue
-                    x = _get_position_array(ptype, f, "x")
-                    y = _get_position_array(ptype, f, "y")
-                    z = _get_position_array(ptype, f, "z")
+                    units = _get_position_array_units(ptype, f, "x")
+                    x, y, z = \
+                      (self.ds.arr(_get_position_array(ptype, f, ax), units)
+                       for ax in "xyz")
                     yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -203,9 +208,10 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    x = _get_position_array(ptype, f, "x")
-                    y = _get_position_array(ptype, f, "y")
-                    z = _get_position_array(ptype, f, "z")
+                    units = _get_position_array_units(ptype, f, "x")
+                    x, y, z = \
+                      (self.ds.arr(_get_position_array(ptype, f, ax), units)
+                       for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
@@ -224,7 +230,6 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for ptype in all_count:
                 if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
-                pos = data_file.ds.arr(pos, "code_length")
                 if ptype == "grid":
                     dx = f["grid"]["dx"].value.min()
                 else:
@@ -233,6 +238,9 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 pos[:,0] = _get_position_array(ptype, f, "x")
                 pos[:,1] = _get_position_array(ptype, f, "y")
                 pos[:,2] = _get_position_array(ptype, f, "z")
+                units = _get_position_array_units(ptype, f, "x")
+                pos = data_file.ds.arr(pos, units).to("code_length")
+
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.
@@ -355,3 +363,10 @@ def _get_position_array(ptype, f, ax):
     else:
         pos_name = "particle_position_"
     return f[ptype][pos_name + ax].value.astype("float64")
+
+def _get_position_array_units(ptype, f, ax):
+    if ptype == "grid":
+        pos_name = ""
+    else:
+        pos_name = "particle_position_"
+    return f[ptype][pos_name + ax].attrs["units"]
