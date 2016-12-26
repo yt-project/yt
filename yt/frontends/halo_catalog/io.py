@@ -42,11 +42,13 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+        pn = "particle_position_%s"
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
-                x = f['particle_position_x'].value.astype("float64")
-                y = f['particle_position_y'].value.astype("float64")
-                z = f['particle_position_z'].value.astype("float64")
+                units = f[pn % "x"].attrs["units"]
+                x, y, z = \
+                  (self.ds.arr(f[pn % ax].value.astype("float64"), units)
+                   for ax in "xyz")
                 yield "halos", (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -59,12 +61,14 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+        pn = "particle_position_%s"
         for data_file in sorted(data_files):
             with h5py.File(data_file.filename, "r") as f:
                 for ptype, field_list in sorted(ptf.items()):
-                    x = f['particle_position_x'].value.astype("float64")
-                    y = f['particle_position_y'].value.astype("float64")
-                    z = f['particle_position_z'].value.astype("float64")
+                    units = f[pn % "x"].attrs["units"]
+                    x, y, z = \
+                      (self.ds.arr(f[pn % ax].value.astype("float64"), units)
+                       for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
                     if mask is None: continue
@@ -82,28 +86,27 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
             pos = np.empty((pcount, 3), dtype="float64")
-            pos = data_file.ds.arr(pos, "code_length")
             dx = np.finfo(f['particle_position_x'].dtype).eps
-            dx = 2.0*self.ds.quan(dx, "code_length")
+            dx = 2.0 * self.ds.quan(dx, "code_length")
+            units = f["particle_position_x"].attrs["units"]
             pos[:,0] = f["particle_position_x"].value
             pos[:,1] = f["particle_position_y"].value
             pos[:,2] = f["particle_position_z"].value
+            pos = data_file.ds.arr(pos, units). to("code_length")
+            dle = self.ds.domain_left_edge.to("code_length")
+            dre = self.ds.domain_right_edge.to("code_length")
             # These are 32 bit numbers, so we give a little lee-way.
             # Otherwise, for big sets of particles, we often will bump into the
             # domain edges.  This helps alleviate that.
-            np.clip(pos, self.ds.domain_left_edge + dx,
-                         self.ds.domain_right_edge - dx, pos)
-            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
-               np.any(pos.max(axis=0) > self.ds.domain_right_edge):
+            np.clip(pos, dle + dx, dre - dx, pos)
+            if np.any(pos.min(axis=0) < dle) or \
+               np.any(pos.max(axis=0) > dre):
                 raise YTDomainOverflow(pos.min(axis=0),
                                        pos.max(axis=0),
-                                       self.ds.domain_left_edge,
-                                       self.ds.domain_right_edge)
+                                       dle, dre)
             regions.add_data_file(pos, data_file.file_id)
             morton[ind:ind+pos.shape[0]] = compute_morton(
-                pos[:,0], pos[:,1], pos[:,2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge)
+                pos[:,0], pos[:,1], pos[:,2], dle, dre)
         return morton
 
     def _count_particles(self, data_file):
