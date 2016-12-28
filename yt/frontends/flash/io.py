@@ -62,10 +62,13 @@ class IOHandlerFLASH(BaseIOHandler):
 
     def io_iter(self, chunks, fields):
         f = self._handle
-        for field in fields:
-            ftype, fname = field
-            ds = f["/%s" % fname]
-            for chunk in chunks:
+        for chunk in chunks:
+            for field in fields:
+                # Note that we *prefer* to iterate over the fields on the
+                # outside; here, though, we're iterating over them on the
+                # inside because we may exhaust our chunks.
+                ftype, fname = field
+                ds = f["/%s" % fname]
                 for gs in grid_sequences(chunk.objs):
                     start = gs[0].id - gs[0]._id_offset
                     end = gs[-1].id - gs[-1]._id_offset + 1
