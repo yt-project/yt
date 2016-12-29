@@ -159,7 +159,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         if fid is not None:
             fid.close()
         
-    def _read_obj_field(self, obj, field, (fid, data) = (None, None, None)):
+    def _read_obj_field(self, obj, field, (fid, data) = (None, None)):
         if fid is None:
             close = True
             fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
