@@ -70,8 +70,12 @@ _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
-class YTDataset(Dataset):
-    """Base dataset class for all ytdata datasets."""
+class SavedDataset(Dataset):
+    """
+    Base dataset class for products of calling save_as_dataset.
+    """
+    _con_attrs = ()
+
     def _parse_parameter_file(self):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
@@ -80,9 +84,7 @@ class YTDataset(Dataset):
                 if key == "con_args":
                     v = v.astype("str")
                 self.parameters[key] = v
-            self.num_particles = \
-              dict([(group, parse_h5_attr(f[group], "num_elements"))
-                    for group in f if group != self.default_fluid_type])
+            self._with_parameter_file_open(f)
 
         # if saved, restore unit registry from the json string
         if "unit_registry_json" in self.parameters:
@@ -115,14 +117,62 @@ class YTDataset(Dataset):
         for par in del_pars:
             del self.parameters[par]
 
-        for attr in ["cosmological_simulation", "current_time", "current_redshift",
-                     "hubble_constant", "omega_matter", "omega_lambda",
-                     "dimensionality", "domain_dimensions", "periodicity",
-                     "domain_left_edge", "domain_right_edge",
-                     "container_type", "data_type"]:
+        for attr in self._con_attrs:
             setattr(self, attr, self.parameters.get(attr))
         self.unique_identifier = \
           int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+    def _with_parameter_file_open(self, f):
+        pass
+
+    def set_units(self):
+        if "unit_registry_json" in self.parameters:
+            self._set_code_unit_attributes()
+        else:
+            super(SavedDataset, self).set_units()
+
+    def _set_code_unit_attributes(self):
+        attrs = ('length_unit', 'mass_unit', 'time_unit',
+                 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
+        base_units = np.ones(len(attrs))
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+            if attr in self.parameters and \
+              isinstance(self.parameters[attr], YTQuantity):
+                uq = self.parameters[attr]
+            elif attr in self.parameters and \
+              "%s_units" % attr in self.parameters:
+                uq = self.quan(self.parameters[attr],
+                               self.parameters["%s_units" % attr])
+                del self.parameters[attr]
+                del self.parameters["%s_units" % attr]
+            elif isinstance(unit, string_types):
+                uq = self.quan(1.0, unit)
+            elif isinstance(unit, numeric_type):
+                uq = self.quan(unit, cgs_unit)
+            elif isinstance(unit, YTQuantity):
+                uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
+            else:
+                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+            setattr(self, attr, uq)
+
+class YTDataset(SavedDataset):
+    """Base dataset class for all ytdata datasets."""
+
+    _con_attrs = ("cosmological_simulation", "current_time",
+                  "current_redshift", "hubble_constant",
+                  "omega_matter", "omega_lambda",
+                  "dimensionality", "domain_dimensions",
+                  "periodicity",
+                  "domain_left_edge", "domain_right_edge",
+                  "container_type", "data_type")
+
+    def _with_parameter_file_open(self, f):
+        self.num_particles = \
+          dict([(group, parse_h5_attr(f[group], "num_elements"))
+                for group in f if group != self.default_fluid_type])
 
     def create_field_info(self):
         self.field_dependencies = {}
@@ -152,39 +202,6 @@ class YTDataset(Dataset):
 
     def _setup_override_fields(self):
         pass
-
-    def set_units(self):
-        if "unit_registry_json" in self.parameters:
-            self._set_code_unit_attributes()
-        else:
-            super(YTDataset, self).set_units()
-
-    def _set_code_unit_attributes(self):
-        attrs = ('length_unit', 'mass_unit', 'time_unit',
-                 'velocity_unit', 'magnetic_unit')
-        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
-        base_units = np.ones(len(attrs))
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if attr in self.parameters and \
-              isinstance(self.parameters[attr], YTQuantity):
-                uq = self.parameters[attr]
-            elif attr in self.parameters and \
-              "%s_units" % attr in self.parameters:
-                uq = self.quan(self.parameters[attr],
-                               self.parameters["%s_units" % attr])
-                del self.parameters[attr]
-                del self.parameters["%s_units" % attr]
-            elif isinstance(unit, string_types):
-                uq = self.quan(1.0, unit)
-            elif isinstance(unit, numeric_type):
-                uq = self.quan(unit, cgs_unit)
-            elif isinstance(unit, YTQuantity):
-                uq = unit
-            elif isinstance(unit, tuple):
-                uq = self.quan(unit[0], unit[1])
-            else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
-            setattr(self, attr, uq)
 
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
