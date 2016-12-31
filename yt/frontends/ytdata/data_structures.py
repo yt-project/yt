@@ -123,6 +123,8 @@ class SavedDataset(Dataset):
           int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
     def _with_parameter_file_open(self, f):
+        # This allows subclasses to access the parameter file
+        # while it's still open to get additional information.
         pass
 
     def set_units(self):
