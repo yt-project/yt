@@ -348,7 +348,7 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil:
+    cdef np.float64_t periodic_difference(self, np.float64_t x1, np.float64_t x2, int d) nogil:
         # domain_width is already in code units, and we assume what is fed in
         # is too.
         cdef np.float64_t rel = x1 - x2
@@ -682,7 +682,7 @@ cdef class PointSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference(pos[i], self.p[i], i)
+            dist = self.periodic_difference(pos[i], self.p[i], i)
             dist2 += dist*dist
         if dist2 <= radius*radius: return 1
         return 0
@@ -767,7 +767,7 @@ cdef class SphereSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2 = 0
         for i in range(3):
-            dist = self.difference(pos[i], self.center[i], i)
+            dist = self.periodic_difference(pos[i], self.center[i], i)
             dist2 += dist*dist
         dist = self.radius+radius
         if dist2 <= dist*dist: return 1
@@ -794,7 +794,7 @@ cdef class SphereSelector(SelectorObject):
         for i in range(3):
             # Early terminate
             box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.difference(box_center, self.center[i], i)
+            relcenter = self.periodic_difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest*closest
@@ -1052,7 +1052,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         h = d = 0
         for i in range(3):
-            temp = self.difference(pos[i], self.center[i], i)
+            temp = self.periodic_difference(pos[i], self.center[i], i)
             h += temp * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
@@ -1067,7 +1067,7 @@ cdef class DiskSelector(SelectorObject):
         cdef int i
         h = d = 0
         for i in range(3):
-            temp = self.difference(pos[i], self.center[i], i)
+            temp = self.periodic_difference(pos[i], self.center[i], i)
             h += pos[i] * self.norm_vec[i]
             d += temp*temp
         r2 = (d - h*h)
@@ -1287,7 +1287,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
-        cdef np.float64_t dist = self.difference(pos[self.axis], self.coord, self.axis)
+        cdef np.float64_t dist = self.periodic_difference(
+            pos[self.axis], self.coord, self.axis)
         if dist*dist < radius*radius:
             return 1
         return 0
@@ -1384,8 +1385,10 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
-        cdef np.float64_t dx = self.difference(pos[self.px_ax], self.px, self.px_ax)
-        cdef np.float64_t dy = self.difference(pos[self.py_ax], self.py, self.py_ax)
+        cdef np.float64_t dx = self.periodic_difference(
+            pos[self.px_ax], self.px, self.px_ax)
+        cdef np.float64_t dy = self.periodic_difference(
+            pos[self.py_ax], self.py, self.py_ax)
         if dx*dx + dy*dy < radius*radius:
             return 1
         return 0
@@ -1744,7 +1747,7 @@ cdef class EllipsoidSelector(SelectorObject):
         dot_evec[0] = dot_evec[1] = dot_evec[2] = 0
         # Calculate the rotated dot product
         for i in range(3): # axis
-            dist = self.difference(pos[i], self.center[i], i)
+            dist = self.periodic_difference(pos[i], self.center[i], i)
             for j in range(3):
                 dot_evec[j] += dist * self.vec[j][i]
         dist = 0.0
@@ -1761,7 +1764,7 @@ cdef class EllipsoidSelector(SelectorObject):
         cdef int i
         cdef np.float64_t dist, dist2_max, dist2 = 0
         for i in range(3):
-            dist = self.difference(pos[i], self.center[i], i)
+            dist = self.periodic_difference(pos[i], self.center[i], i)
             dist2 += dist * dist
         dist2_max = (self.mag[0] + radius) * (self.mag[0] + radius)
         if dist2 <= dist2_max:
@@ -1784,7 +1787,7 @@ cdef class EllipsoidSelector(SelectorObject):
         dist = 0
         for i in range(3):
             box_center = (right_edge[i] + left_edge[i])/2.0
-            relcenter = self.difference(box_center, self.center[i], i)
+            relcenter = self.periodic_difference(box_center, self.center[i], i)
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
