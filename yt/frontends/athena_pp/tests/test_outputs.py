@@ -71,7 +71,7 @@ def test_AM06_override():
     # see issue #1259
     ds = load(AM06, units_override=uo_AM06)
     assert_equal(float(ds.magnetic_unit.in_units('gauss')),
-                 9.01735778343e-08)
+                 9.01735778342523e-08)
 
 @requires_file(AM06)
 def test_units_override():
