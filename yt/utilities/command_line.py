@@ -1316,20 +1316,19 @@ class YTDownloadData(YTCommand):
     args = (dict(short="filename", action="store", type=str,
                  help="The name of the file to download"), 
             dict(short="location", action="store", type=str,
-                 help="The location in which to place downloaded file"),
+                 help="The location in which to place the file, can be "
+                      "\"supp_data_dir\", \"test_data_dir\", or any valid "
+                      "path on disk. "),
             dict(longname="--clobber", short="-c",
                  help="Output full contents of parameter file",
                  action="store_true", default=False),
             )
     description = \
         """
-        Download a file from http://yt-project.org/data and 
-        save it to a particular location. Options are:
-        * "test_data_dir": Save the file to the location specified
-        in the ``"test_data_dir"`` configuration entry for test data.
-        * "supp_data_dir": Save the file to the location specified
-        in the ``"supp_data_dir"`` configuration entry for supplemental data.
-        * Any valid path to a location on disk.
+        Download a file from http://yt-project.org/data and save it to a 
+        particular location. Files can be saved to the locations provided 
+        by the "test_data_dir" or "supp_data_dir" configuration entries, or
+        any valid path to a location on disk.
         """
     name = "download"
 
