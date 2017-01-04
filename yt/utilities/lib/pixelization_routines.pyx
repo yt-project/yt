@@ -774,6 +774,13 @@ cdef class SPHKernelInterpolationTable:
                *(qxy2 - self.qxy2_vals[index])*self.iqxy2_range)
         return F_interpolate
 
+    def interpolate_array(self, np.float64_t[:] qxy2_vals):
+        cdef np.float64_t[:] ret = np.empty(qxy2_vals.shape[0])
+        cdef int i
+        for i in range(qxy2_vals.shape[0]):
+            ret[i] = self.interpolate(qxy2_vals[i])
+        return np.array(ret)
+
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
