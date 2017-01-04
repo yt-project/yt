@@ -1342,7 +1342,8 @@ class YTDownloadData(YTCommand):
         else:
             data_dir = args.location
         if not os.path.exists(data_dir):
-            raise IOError("The directory '%s' does not exist!!" % data_dir)
+            print("The directory '%s' does not exist. Creating..." % data_dir)
+            os.mkdir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.clobber:
             raise IOError("File '%s' exists and clobber=False!" % data_file)
