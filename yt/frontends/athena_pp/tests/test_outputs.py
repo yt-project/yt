@@ -42,11 +42,11 @@ def test_disk():
     for mesh in ds.index.meshes:
         def array_func():
             return mesh.connectivity_coords
-        yield GenericArrayTest(ds, array_func, 12)
+        yield GenericArrayTest(ds, array_func, args=[str(mesh)])
     for field in _fields_disk:
         def field_func():
             return dd[field]
-        yield GenericArrayTest(ds, field_func, 12)
+        yield GenericArrayTest(ds, field_func, args=[field])
 
 _fields_AM06 = ("temperature", "density", "velocity_magnitude", "magnetic_field_x")
 
