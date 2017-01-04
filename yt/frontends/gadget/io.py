@@ -96,7 +96,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 else:
                     hsmls = 0.0
                 mask = selector.select_points(
-                            coords[:,0], coords[:,1], coords[:,2], hsmls)
+                    coords[:,0], coords[:,1], coords[:,2], 2*hsmls)
                 del coords
                 if mask is None:
                     continue
