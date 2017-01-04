@@ -40,7 +40,7 @@ def test_disk():
     vol *= ds.domain_right_edge[2].v-ds.domain_left_edge[2].v
     assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
     for field in _fields_disk:
-        def field_func():
+        def field_func(name):
             return dd[field]
         yield GenericArrayTest(ds, field_func, args=[field])
 
