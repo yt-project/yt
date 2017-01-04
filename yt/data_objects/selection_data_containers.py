@@ -252,7 +252,7 @@ class YTRay(YTSelectionContainer1D):
                 # kernel from the dimensionless impact parameter b/hsml.
                 # Note that `dl` here is the kernel weighted intersection.
                 itab = SPHKernelInterpolationTable(self.ds.kernel_name)
-                dl = itab.interpolate(b / hsml) * mass / dens / hsml ** 2
+                dl = itab.interpolate_array(b / (2*hsml)) * mass / dens / (2*hsml) ** 2
                 return self.ds.arr(dl / length).to("dimensionless")
             elif field == "t":
                 l = np.sum(r * self.vec, axis=1) / length
