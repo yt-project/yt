@@ -766,9 +766,9 @@ cdef class SPHKernelInterpolationTable:
     cdef inline np.float64_t interpolate(self, np.float64_t qxy2) nogil:
         cdef int index
         cdef np.float64_t F_interpolate
-        index = <int> ((qxy2 - self.qxy2_vals[0])*self.iqxy2_range)
+        index = (<int>((qxy2 - self.qxy2_vals[0])*self.iqxy2_range)) - 1
         if index >= TABLE_NVALS:
-            index = TABLE_NVALS - 1
+            return 0.0
         F_interpolate = self.table[index] + (
                 (self.table[index+1] - self.table[index])
                *(qxy2 - self.qxy2_vals[index])*self.iqxy2_range)
