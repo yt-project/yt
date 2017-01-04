@@ -39,10 +39,6 @@ def test_disk():
     vol *= np.cos(ds.domain_left_edge[1])-np.cos(ds.domain_right_edge[1])
     vol *= ds.domain_right_edge[2].v-ds.domain_left_edge[2].v
     assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
-    for mesh in ds.index.meshes:
-        def array_func():
-            return mesh.connectivity_coords
-        yield GenericArrayTest(ds, array_func, args=[str(mesh)])
     for field in _fields_disk:
         def field_func():
             return dd[field]
