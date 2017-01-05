@@ -27,7 +27,7 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.convenience import load
 
-_fields_disk = ("density", "momentum_x", "velocity_magnitude")
+_fields_disk = ("density", "velocity_r")
 
 disk = "KeplerianDisk/disk.out1.00000.athdf"
 @requires_ds(disk)

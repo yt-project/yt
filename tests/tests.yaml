@@ -5,7 +5,7 @@ answer_tests:
   local_athena_003:
     - yt/frontends/athena
 
-  local_athena_pp_003:
+  local_athena_pp_004:
     - yt/frontends/athena_pp
 
   local_chombo_002:
