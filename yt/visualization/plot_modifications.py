@@ -391,11 +391,10 @@ class QuiverCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
-        nx = plot.image._A.shape[1] / self.factor
-        ny = plot.image._A.shape[0] / self.factor
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         # periodicity
         ax = plot.data.axis
         ds = plot.data.ds
@@ -433,7 +432,6 @@ class QuiverCallback(PlotCallback):
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class ContourCallback(PlotCallback):
     """
@@ -480,8 +478,6 @@ class ContourCallback(PlotCallback):
         # These are in plot coordinates, which may not be code coordinates.
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-
-        plot._axes.hold(True)
 
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
@@ -558,7 +554,6 @@ class ContourCallback(PlotCallback):
         cset = plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
         if self.label:
             plot._axes.clabel(cset, **self.text_args)
@@ -675,7 +670,6 @@ class GridBoundaryCallback(PlotCallback):
             grid_collection = matplotlib.collections.PolyCollection(
                 verts, facecolors="none", edgecolors=edgecolors,
                 linewidth=self.linewidth)
-            plot._axes.hold(True)
             plot._axes.add_collection(grid_collection)
 
             if self.draw_ids:
@@ -688,7 +682,6 @@ class GridBoundaryCallback(PlotCallback):
                         left_edge_x[i] + (2 * (xx1 - xx0) / xpix),
                         left_edge_y[i] + (2 * (yy1 - yy0) / ypix),
                         "%d" % block_ids[i], clip_on=True)
-            plot._axes.hold(False)
 
 class StreamlineCallback(PlotCallback):
     """
@@ -719,11 +712,10 @@ class StreamlineCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
         # See the note about rows/columns in the pixelizer for more information
         # on why we choose the bounds we do
-        nx = plot.image._A.shape[1] / self.factor
-        ny = plot.image._A.shape[0] / self.factor
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
@@ -751,7 +743,6 @@ class StreamlineCallback(PlotCallback):
         plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class LinePlotCallback(PlotCallback):
     """
@@ -829,12 +820,10 @@ class LinePlotCallback(PlotCallback):
                             coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
         plot._axes.plot([p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform,
                         **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class ImageLineCallback(LinePlotCallback):
     """
@@ -884,9 +873,8 @@ class CuttingQuiverCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
-        nx = plot.image._A.shape[1] / self.factor
-        ny = plot.image._A.shape[0] / self.factor
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         indices = np.argsort(plot.data['dx'])[::-1]
 
         pixX = np.zeros((ny, nx), dtype="f8")
@@ -916,7 +904,6 @@ class CuttingQuiverCallback(PlotCallback):
         plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale, scale_units=self.scale_units)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class ClumpContourCallback(PlotCallback):
     """
@@ -938,8 +925,6 @@ class ClumpContourCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
 
         extent = [xx0,xx1,yy0,yy1]
-
-        plot._axes.hold(True)
 
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
@@ -967,7 +952,6 @@ class ClumpContourCallback(PlotCallback):
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent, **self.plot_args)
-        plot._axes.hold(False)
 
 class ArrowCallback(PlotCallback):
     """
@@ -1106,7 +1090,6 @@ class ArrowCallback(PlotCallback):
         if dx == dy == 0:
             warnings.warn("The arrow has zero length.  Not annotating.")
             return
-        plot._axes.hold(True)
         plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width,
                          head_width=self.head_width,
                          head_length=self.head_length,
@@ -1114,7 +1097,6 @@ class ArrowCallback(PlotCallback):
                          length_includes_head=True, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class MarkerAnnotateCallback(PlotCallback):
     """
@@ -1185,12 +1167,10 @@ class MarkerAnnotateCallback(PlotCallback):
                                coord_system=self.coord_system)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
         plot._axes.scatter(x, y, marker = self.marker,
                            transform=self.transform, **self.plot_args)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class SphereCallback(PlotCallback):
     """
@@ -1283,7 +1263,6 @@ class SphereCallback(PlotCallback):
                      **self.circle_args)
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
 
         plot._axes.add_patch(cir)
         if self.text is not None:
@@ -1293,7 +1272,6 @@ class SphereCallback(PlotCallback):
 
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 
 class TextLabelCallback(PlotCallback):
@@ -1386,13 +1364,11 @@ class TextLabelCallback(PlotCallback):
         # consistent with other text labels in this figure
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
         label = plot._axes.text(x, y, self.text, transform=self.transform,
                                 bbox=self.inset_box_args, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
 class PointAnnotateCallback(TextLabelCallback):
     """
@@ -1489,7 +1465,6 @@ class HaloCatalogCallback(PlotCallback):
         field_x = "particle_position_%s" % axis_names[xax]
         field_y = "particle_position_%s" % axis_names[yax]
         field_z = "particle_position_%s" % axis_names[data.axis]
-        plot._axes.hold(True)
 
         # Set up scales for pixel size and original data
         pixel_scale = self.pixel_scale(plot)[0]
@@ -1527,7 +1502,6 @@ class HaloCatalogCallback(PlotCallback):
 
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
@@ -1606,7 +1580,6 @@ class ParticleCallback(PlotCallback):
         if self.minimum_mass is not None:
             gg &= (reg[pt, "particle_mass"] >= self.minimum_mass)
             if gg.sum() == 0: return
-        plot._axes.hold(True)
         px, py = self.convert_to_plot(plot,
                     [np.array(particle_x[gg][::self.stride]),
                      np.array(particle_y[gg][::self.stride])])
@@ -1614,7 +1587,6 @@ class ParticleCallback(PlotCallback):
                            s=self.p_size, c=self.color,alpha=self.alpha)
         plot._axes.set_xlim(xx0,xx1)
         plot._axes.set_ylim(yy0,yy1)
-        plot._axes.hold(False)
 
     def _enforce_periodic(self,
                           particle_x,
@@ -1770,7 +1742,6 @@ class TriangleFacetsCallback(PlotCallback):
         self.vertices = triangle_vertices
 
     def __call__(self, plot):
-        plot._axes.hold(True)
         ax = plot.data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
@@ -1792,7 +1763,6 @@ class TriangleFacetsCallback(PlotCallback):
         # create line collection and add it to the plot
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
-        plot._axes.hold(False)
 
 class TimestampCallback(PlotCallback):
     """
@@ -2419,7 +2389,6 @@ class LineIntegralConvolutionCallback(PlotCallback):
         bounds = [x0,x1,y0,y1]
         extent = [xx0,xx1,yy0,yy1]
 
-        plot._axes.hold(True)
         # We are feeding this size into the pixelizer, where it will properly
         # set it in reverse order
         nx = plot.image._A.shape[1]
@@ -2462,7 +2431,6 @@ class LineIntegralConvolutionCallback(PlotCallback):
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
             plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap,
                               origin='lower')
-        plot._axes.hold(False)
 
         return plot
 
@@ -2511,7 +2479,6 @@ class CellEdgesCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        plot._axes.hold(True)
         nx = plot.image._A.shape[1]
         ny = plot.image._A.shape[0]
         aspect = float((y1 - y0) / (x1 - x0))
@@ -2551,4 +2518,3 @@ class CellEdgesCallback(PlotCallback):
                           alpha=self.alpha)
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)
-        plot._axes.hold(False)
