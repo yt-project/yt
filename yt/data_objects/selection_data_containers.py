@@ -29,6 +29,8 @@ from yt.funcs import \
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
+    udot, \
+    unorm, \
     YTArray
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
@@ -238,27 +240,28 @@ class YTRay(YTSelectionContainer1D):
             raise KeyError(field)
 
     def _generate_container_field_sph(self, field):
-        if field in ["dts", "t"]:
-            length = np.sqrt(np.sum(self.vec ** 2))
-            pos = self[self.ds._sph_ptype, "particle_position"]
-            r = pos - self.start_point
-            if field == "dts":
-                hsml = self[self.ds._sph_ptype, "smoothing_length"]
-                mass = self[self.ds._sph_ptype, "particle_mass"]
-                dens = self[self.ds._sph_ptype, "density"]
-                l = self["t"] * length
-                b = np.sqrt(((r ** 2).sum(axis=1) - l ** 2))
-                # Use an interpolation table to evaluate the integrated 2D
-                # kernel from the dimensionless impact parameter b/hsml.
-                # Note that `dl` here is the kernel weighted intersection.
-                itab = SPHKernelInterpolationTable(self.ds.kernel_name)
-                dl = itab.interpolate_array(b / hsml) * mass / dens / hsml**2
-                return self.ds.arr(dl / length).to("dimensionless")
-            elif field == "t":
-                l = np.sum(r * self.vec, axis=1) / length
-                return self.ds.arr(l / length).to("dimensionless")
-        else:
+        if field not in ["dts", "t"]:
             raise KeyError(field)
+
+        length = unorm(self.vec)
+        pos = self[self.ds._sph_ptype, "particle_position"]
+        r = pos - self.start_point
+        l = udot(r, self.vec/length)
+
+        if field == "t":
+            return l / length
+
+        hsml = self[self.ds._sph_ptype, "smoothing_length"]
+        mass = self[self.ds._sph_ptype, "particle_mass"]
+        dens = self[self.ds._sph_ptype, "density"]
+        # impact parameter from particle to ray
+        b = np.sqrt(np.sum(r**2, axis=1) - l**2)
+
+        # Use an interpolation table to evaluate the integrated 2D
+        # kernel from the dimensionless impact parameter b/hsml.
+        itab = SPHKernelInterpolationTable(self.ds.kernel_name)
+        dl = itab.interpolate_array(b / hsml) * mass / dens / hsml**2
+        return dl / length
 
 class YTSlice(YTSelectionContainer2D):
     """
