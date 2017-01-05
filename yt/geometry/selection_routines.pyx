@@ -1599,18 +1599,16 @@ cdef class RaySelector(SelectorObject):
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
 
         cdef int i
-        cdef np.float64_t length = norm(self.vec)
         cdef np.float64_t r[3]
         for i in range(3):
             r[i] = self.periodic_difference(pos[i], self.p1[i], i)
-        cdef np.float64_t l = dot(r, self.vec) / length
-        # Note that `dl` here is the geometric intersection.
-        cdef np.float64_t dl_hlf_sqr = radius**2 + l*l - dot(r, r)
-        cdef np.float64_t dl_hlf
+        cdef np.float64_t l = dot(r, self.vec) / norm(self.vec)
+        # here b_sqr is the square of the impact parameter
+        cdef np.float64_t b_sqr = dot(r, r) - l*l
+        cdef np.float64_t b
 
-        if dl_hlf_sqr > 0:
-            dl_hlf = dl_hlf_sqr**0.5
-            if (l + dl_hlf > 0) and (l - dl_hlf < length):
+        if b_sqr > 0:
+            if b_sqr < radius*radius:
                 return 1
         return 0
 
