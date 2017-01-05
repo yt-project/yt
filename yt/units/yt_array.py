@@ -1390,17 +1390,16 @@ def uconcatenate(arrs, axis=0):
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
-def ucross(arr1,arr2, registry=None):
+def ucross(arr1, arr2, registry=None, axisa=-1, axisb=-1, axisc=-1, axis=None):
     """Applies the cross product to two YT arrays.
 
     This wrapper around numpy.cross preserves units.
     See the documentation of numpy.cross for full
     details.
     """
-
-    v = np.cross(arr1,arr2)
+    v = np.cross(arr1, arr2, axisa=axisa, axisb=axisb, axisc=axisc, axis=axis)
     units = arr1.units * arr2.units
-    arr = YTArray(v,units, registry=registry)
+    arr = YTArray(v, units, registry=registry)
     return arr
 
 def uintersect1d(arr1, arr2, assume_unique=False):
@@ -1441,12 +1440,14 @@ def uunion1d(arr1, arr2):
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
-def unorm(data):
+def unorm(data, ord=None, axis=None, keepdims=False):
     """Matrix or vector norm that preserves units
 
-    This is a wrapper around np.linalg.norm that preserves units.
+    This is a wrapper around np.linalg.norm that preserves units. See
+    the documentation for that function for descriptions of the keyword
+    arguments.
     """
-    return YTArray(np.linalg.norm(data), data.units)
+    return YTArray(np.linalg.norm(data, ord, axis, keepdims), data.units)
 
 def udot(op1, op2):
     """Matrix or vector dot product that preservs units
