@@ -757,7 +757,7 @@ cdef class SPHKernelInterpolationTable:
             self.table[i] = self.integrate_qxy2(self.qxy2_vals[i])
 
         self.qxy2_range = self.qxy2_vals[TABLE_NVALS-1] - self.qxy2_vals[0]
-        self.iqxy2_range = TABLE_NVALS/self.qxy2_range
+        self.iqxy2_range = (TABLE_NVALS-1)/self.qxy2_range
 
     @cython.initializedcheck(False)
     @cython.boundscheck(False)
@@ -766,7 +766,7 @@ cdef class SPHKernelInterpolationTable:
     cdef inline np.float64_t interpolate(self, np.float64_t qxy2) nogil:
         cdef int index
         cdef np.float64_t F_interpolate
-        index = (<int>((qxy2 - self.qxy2_vals[0])*self.iqxy2_range)) - 1
+        index = <int>((qxy2 - self.qxy2_vals[0])*(self.iqxy2_range))
         if index >= TABLE_NVALS:
             return 0.0
         F_interpolate = self.table[index] + (
