@@ -105,6 +105,7 @@ from yt.units.yt_array import \
     uconcatenate, \
     uintersect1d, \
     uunion1d, \
+    udot, \
     loadtxt, \
     savetxt
 

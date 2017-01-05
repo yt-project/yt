@@ -1448,6 +1448,13 @@ def unorm(data):
     """
     return YTArray(np.linalg.norm(data), data.units)
 
+def udot(op1, op2):
+    """Matrix or vector dot product that preservs units
+
+    This is a wrapper around np.dot that preserves units.
+    """
+    return YTArray(np.dot(op1.d, op2.d), op1.units*op2.units)
+
 def uvstack(arrs):
     """Stack arrays in sequence vertically (row wise) while preserving units
 
