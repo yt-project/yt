@@ -1442,10 +1442,10 @@ class YTSurface(YTSelectionContainer3D):
         vtype = [("x","float"),("y","float"), ("z","float")]
         if plot_index == 0:
             fobj.write("# yt OBJ file\n")
-            fobj.write("# www.yt-project.com\n")
+            fobj.write("# www.yt-project.org\n")
             fobj.write("mtllib " + filename + '.mtl\n\n')  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
-            fmtl.write("# www.yt-project.com\n\n")
+            fmtl.write("# www.yt-project.org\n\n")
         #(0) formulate vertices
         nv = self.vertices.shape[1] # number of groups of vertices
         f = np.empty(nv//self.vertices.shape[0], dtype=ftype) # store sets of face colors
