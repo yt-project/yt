@@ -20,7 +20,7 @@ import os
 
 from yt.config import ytcfg
 from yt.fields.derived_field import DerivedField
-from yt.funcs import mylog, only_on_root
+from yt.funcs import mylog, only_on_root, issue_deprecation_warning
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
@@ -148,7 +148,8 @@ class XrayEmissivityIntegrator(object):
 def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                               metallicity=("gas", "metallicity"), 
                               table_type="cloudy", data_dir=None,
-                              cosmology=None):
+                              cosmology=None, with_metals=True,
+                              constant_metallicity=None):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -171,6 +172,17 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         The location to look for the data table in. If not supplied, the file
         will be looked for in the location of the YT_DEST environment variable
         or in the current working directory.
+    cosmology : :class:`~yt.utilities.cosmology.Cosmology`, optional
+        If set and redshift > 0.0, this cosmology will be used when computing the
+        cosmological dependence of the emission fields. If not set, yt's default
+        LCDM cosmology will be used.
+    with_metals : boolean, optional
+        True if the dataset's metallicity field should be used, False if a constant
+        metallicity should be used. NOTE: This parameter is deprecated; simply set
+        the ``metallicity`` parameter to the correct field name instead.
+    constant_metallicity : float, optional
+        Set this to a floating-point value to use a constant metallicity. NOTE: This
+        parameter is deprecated, set ``metallicity`` to a floating-point value instead.
 
     This will create three fields:
 
@@ -187,6 +199,14 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
     >>> p.save()
     """
+    if constant_metallicity is not None:
+        issue_deprecation_warning("The \"constant_metallicity\" parameter is deprecated. Set "
+                                  "the \"metallicity\" parameter to a constant float value instead.")
+        metallicity = constant_metallicity
+    if not with_metals and not isinstance(metallicity, float):
+        issue_deprecation_warning("The \"with_metals\" parameter is deprecated. You have set "
+                                  "it to False but did not specify a constant metallicity. "
+                                  "Proceeding to use the %s field for the metallicity." % metallicity)
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
             metallicity = ds._get_field_info(*metallicity)
