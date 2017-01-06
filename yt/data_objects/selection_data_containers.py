@@ -217,6 +217,13 @@ class YTRay(YTSelectionContainer1D):
             self.end_point = \
               self.ds.arr(end_point, 'code_length',
                           dtype='float64')
+        # FIXME FIXME FIXME don't merge this code if this comment is still here
+        # Right now we don't handle periodic offsets correctly for particle rays
+        # need to check if we do handle it correctly for grid codes and how we
+        # handle it there.
+        if ((self.start_point < self.ds.domain_left_edge).any() or
+            (self.end_point > self.ds.domain_right_edge).any()):
+            raise RuntimeError("Need to fix case of ray extending beyond edge of domain")
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)

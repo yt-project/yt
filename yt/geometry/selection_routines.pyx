@@ -1602,11 +1602,11 @@ cdef class RaySelector(SelectorObject):
         cdef np.float64_t length = norm(self.vec)
         cdef np.float64_t r[3]
         for i in range(3):
-            r[i] = self.periodic_difference(pos[i], self.p1[i], i)
-        # here b_sqr is the square of the impact parameter
+            r[i] = pos[i] - self.p1[i]
+        # the projected position of the sphere along the ray
         cdef np.float64_t l = dot(r, self.vec) / length
+        # the square of the impact parameter
         cdef np.float64_t b_sqr = dot(r, r) - l*l
-        cdef np.float64_t b
 
         # only accept spheres with radii larger than the impact parameter and
         # with a projected position along the ray no more than a radius away
