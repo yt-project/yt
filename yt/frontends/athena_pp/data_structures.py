@@ -138,6 +138,13 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def _detect_output_fields(self):
         self.field_list = [("athena_pp", k) for k in self.ds._field_map]
 
+    def _chunk_io(self, dobj, cache = True, local_only = False):
+        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
+        for subset in gobjs:
+            yield YTDataChunk(dobj, "io", [subset],
+                              self._count_selection(dobj, [subset]),
+                              cache = cache)
+
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
 
