@@ -268,16 +268,8 @@ class YTDataContainerDataset(YTDataset):
             return self.all_data()
 
         my_obj = getattr(self, self.parameters["container_type"])
-        my_args = []
-        for con_arg in self.parameters["con_args"]:
-            my_arg = self.parameters[con_arg]
-            my_units = self.parameters.get("%s_units" % con_arg)
-            if my_units is not None:
-                if isinstance(my_arg, np.ndarray):
-                    my_arg = self.arr(my_arg, my_units)
-                else:
-                    my_arg = self.quan(my_arg, my_units)
-            my_args.append(my_arg)
+        my_args = [self.parameters[con_arg]
+                   for con_arg in self.parameters["con_args"]]
         return my_obj(*my_args)
 
     @classmethod
