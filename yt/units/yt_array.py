@@ -1455,6 +1455,8 @@ def unorm(data, ord=None, axis=None, keepdims=False):
         norm = np.linalg.norm(data, ord=ord, axis=axis)
     else:
         norm = np.linalg.norm(data, ord=ord, axis=axis, keepdims=keepdims)
+    if norm.shape == ():
+        return YTQuantity(norm, data.units)
     return YTArray(norm, data.units)
 
 def udot(op1, op2):
@@ -1462,7 +1464,11 @@ def udot(op1, op2):
 
     This is a wrapper around np.dot that preserves units.
     """
-    return YTArray(np.dot(op1.d, op2.d), op1.units*op2.units)
+    dot = np.dot(op1.d, op2.d)
+    units = op1.units*op2.units
+    if dot.shape == ():
+        return YTQuantity(dot, units)
+    return YTArray(dot, units)
 
 def uvstack(arrs):
     """Stack arrays in sequence vertically (row wise) while preserving units
