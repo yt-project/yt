@@ -286,7 +286,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         def _photon_intensity_field(field, data):
             I = (1.0+redshift)*dist_fac*data[phot_name]
             return I.in_units("photons/cm**3/s/arcsec**2")
-        ds.add_field(("gas", i_name), function=_intensity_field,
+        ds.add_field(("gas", i_name), function=_photon_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
                      sampling_type="cell", units="photons/cm**3/s/arcsec**2")
 
