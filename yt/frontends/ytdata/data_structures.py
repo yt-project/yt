@@ -251,6 +251,7 @@ class YTDataContainerDataset(YTDataset):
         # cover the field_list.
         self.field_info.alias(("gas", "cell_volume"), ("grid", "cell_volume"))
 
+    _data_obj = None
     @property
     def data(self):
         """
@@ -258,19 +259,21 @@ class YTDataContainerDataset(YTDataset):
         create this dataset.
         """
 
-        # Some data containers can't be recontructed in the same way
-        # since this is now particle-like data.
-        data_type = self.parameters["data_type"]
-        container_type = self.parameters["container_type"]
-        ex_container_type = ["cutting", "proj", "ray", "slice"]
-        if data_type == "yt_light_ray" or container_type in ex_container_type:
-            mylog.info("Returning an all_data data container.")
-            return self.all_data()
+        if self._data_obj is None:
+            # Some data containers can't be recontructed in the same way
+            # since this is now particle-like data.
+            data_type = self.parameters["data_type"]
+            container_type = self.parameters["container_type"]
+            ex_container_type = ["cutting", "proj", "ray", "slice"]
+            if data_type == "yt_light_ray" or container_type in ex_container_type:
+                mylog.info("Returning an all_data data container.")
+                return self.all_data()
 
-        my_obj = getattr(self, self.parameters["container_type"])
-        my_args = [self.parameters[con_arg]
-                   for con_arg in self.parameters["con_args"]]
-        return my_obj(*my_args)
+            my_obj = getattr(self, self.parameters["container_type"])
+            my_args = [self.parameters[con_arg]
+                       for con_arg in self.parameters["con_args"]]
+            self._data_obj = my_obj(*my_args)
+        return self._data_obj
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
