@@ -1599,17 +1599,21 @@ cdef class RaySelector(SelectorObject):
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
 
         cdef int i
+        cdef np.float64_t length = norm(self.vec)
         cdef np.float64_t r[3]
         for i in range(3):
             r[i] = self.periodic_difference(pos[i], self.p1[i], i)
-        cdef np.float64_t l = dot(r, self.vec) / norm(self.vec)
         # here b_sqr is the square of the impact parameter
+        cdef np.float64_t l = dot(r, self.vec) / length
         cdef np.float64_t b_sqr = dot(r, r) - l*l
         cdef np.float64_t b
 
-        if b_sqr > 0:
-            if b_sqr < radius*radius:
-                return 1
+        # only accept spheres with radii larger than the impact parameter and
+        # with a projected position along the ray no more than a radius away
+        # from the ray
+        if -radius < l and l < (length+radius) and b_sqr < radius*radius:
+            return 1
+
         return 0
 
     @cython.boundscheck(False)
