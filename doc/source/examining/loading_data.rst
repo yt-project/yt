@@ -159,8 +159,8 @@ will be in cgs units (or whatever unit system was specified), but the Athena fie
 ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be in code units.
 
 Some 3D Athena outputs may have large grids (especially parallel datasets subsequently joined with
-the `join_vtk` script), and may benefit from being subdivided into "virtual grids". For this purpose,
-one can pass in the `nprocs` parameter:
+the ``join_vtk`` script), and may benefit from being subdivided into "virtual grids". For this purpose,
+one can pass in the ``nprocs`` parameter:
 
 .. code-block:: python
 
@@ -168,7 +168,7 @@ one can pass in the `nprocs` parameter:
 
    ds = yt.load("sloshing.0000.vtk", nprocs=8)
 
-which will subdivide each original grid into `nprocs` grids.
+which will subdivide each original grid into ``nprocs`` grids.
 
 .. note::
 
