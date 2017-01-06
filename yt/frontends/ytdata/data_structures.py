@@ -99,6 +99,8 @@ class SavedDataset(Dataset):
         if "unit_system_name" in self.parameters:
             unit_system = self.parameters["unit_system_name"]
             del self.parameters["unit_system_name"]
+        else:
+            unit_system = "cgs"
         # reset unit system since we may have a new unit registry
         self._assign_unit_system(unit_system)
 
