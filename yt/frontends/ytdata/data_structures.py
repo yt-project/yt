@@ -763,9 +763,7 @@ class YTProfileDataset(YTNonspatialDataset):
                 my_range = np.log10(my_range)
             self.domain_left_edge[i] = my_range[0]
             self.domain_right_edge[i] = my_range[1]
-            setattr(self, range_name,
-                    self.arr(self.parameters[range_name],
-                             self.parameters[range_name+"_units"]))
+            setattr(self, range_name, self.parameters[range_name])
 
             bin_field = "%s_field" % ax
             if isinstance(self.parameters[bin_field], string_types) and \
