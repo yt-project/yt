@@ -213,7 +213,6 @@ def test_nonspatial_data():
     save_as_dataset(fake_ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)
     new_ds = load(full_fn)
-    compare_unit_attributes(ds, new_ds)
     assert isinstance(new_ds, YTNonspatialDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     os.chdir(curdir)
