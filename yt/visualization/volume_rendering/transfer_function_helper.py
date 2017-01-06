@@ -14,12 +14,16 @@ rendering.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import matplotlib
+import numpy as np
+
+from distutils.version import LooseVersion
+
 from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
 from yt.visualization.volume_rendering.transfer_functions import \
     ColorTransferFunction
 from yt.extern.six import BytesIO
-import numpy as np
 
 
 class TransferFunctionHelper(object):
@@ -138,7 +142,11 @@ class TransferFunctionHelper(object):
         transfer function to produce a natural contrast ratio.
 
         """
-        self.tf.add_layers(10, colormap='spectral')
+        if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
+            colormap_name = 'spectral'
+        else:
+            colormap_name = 'nipy_spectral'
+        self.tf.add_layers(10, colormap=colormap_name)
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
         self.tf.funcs[-1].y *= 2*factor
 

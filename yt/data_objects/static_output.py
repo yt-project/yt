@@ -1218,13 +1218,15 @@ class Dataset(object):
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
+            sampling_type="cell",
             units=units,
             take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
-                                    nneighbors=64, kernel_name="cubic"):
+    def add_smoothed_particle_field(self, smooth_field,
+                                    method="volume_weighted", nneighbors=64,
+                                    kernel_name="cubic"):
         """Add a new smoothed particle field
 
         Creates a new smoothed field based on the particle *smooth_field*.
@@ -1241,7 +1243,7 @@ class Dataset(object):
            for now.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
-        kernel_name : string, default 'cubic'
+        kernel_name : string, default `cubic`
             This is the name of the smoothing kernel to use. Current supported
             kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
             `wendland4`, and `wendland6`.
@@ -1251,7 +1253,10 @@ class Dataset(object):
 
         The field name tuple for the newly created field.
         """
+        # The magical step
         self.index
+
+        # Parse arguments
         if isinstance(smooth_field, tuple):
             ptype, smooth_field = smooth_field[0], smooth_field[1]
         else:
@@ -1260,6 +1265,7 @@ class Dataset(object):
         if method != "volume_weighted":
             raise NotImplementedError("method must be 'volume_weighted'")
 
+        # Prepare field names and registry to be used later
         coord_name = "particle_position"
         mass_name = "particle_mass"
         smoothing_length_name = "smoothing_length"
@@ -1269,6 +1275,7 @@ class Dataset(object):
         density_name = "density"
         registry = self.field_info
 
+        # Do the actual work
         return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                    smoothing_length_name, density_name, smooth_field, registry,
                    nneighbors=nneighbors, kernel_name=kernel_name)[0]
@@ -1353,3 +1360,17 @@ class ParticleFile(object):
 
     def __lt__(self, other):
         return self.filename < other.filename
+
+
+class ParticleDataset(Dataset):
+    _unit_base = None
+    filter_bbox = False
+
+    def __init__(self, filename, dataset_type=None, file_style=None,
+                 units_override=None, unit_system="cgs",
+                 n_ref=64, over_refine_factor=1):
+        self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
+        super(ParticleDataset, self).__init__(
+            filename, dataset_type=dataset_type, file_style=file_style,
+            units_override=units_override, unit_system=unit_system)
