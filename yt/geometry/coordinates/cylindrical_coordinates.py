@@ -68,11 +68,13 @@ class CylindricalCoordinateHandler(CoordinateHandler):
                            units = "")
 
         def _CylindricalVolume(field, data):
-            return data["index", "dtheta"] \
-                 * data["index", "r"] \
-                 * data["index", "dr"] \
-                 * data["index", "dz"]
-        registry.add_field(("index", "cell_volume"), sampling_type="cell", 
+            r = data["index", "r"]
+            dr = data["index", "dr"]
+            vol = 0.5*((r+0.5*dr)**2-(r-0.5*dr)**2)
+            vol *= data["index", "dtheta"]
+            vol *= data["index", "dz"]
+            return vol
+        registry.add_field(("index", "cell_volume"), sampling_type="cell",
                  function=_CylindricalVolume,
                  units = "code_length**3")
 

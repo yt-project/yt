@@ -412,7 +412,9 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.vra.n_samples = n_samples
         self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
         self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)
-        light_dir /= np.sqrt(light_dir[0]**2 + light_dir[1]**2 + light_dir[2]**2)
+        light_dir /= np.sqrt(light_dir[0] * light_dir[0] +
+                             light_dir[1] * light_dir[1] +
+                             light_dir[2] * light_dir[2])
         for i in range(3):
             self.vra.light_dir[i] = light_dir[i]
         for i in range(4):

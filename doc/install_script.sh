@@ -1505,7 +1505,8 @@ else # INST_CONDA -eq 1
     else
         echo "Building yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
-        log_cmd ${DEST_DIR}/bin/hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
+        log_cmd ${DEST_DIR}/bin/hg clone https://bitbucket.org/yt_analysis/yt ${YT_DIR}
+        log_cmd ${DEST_DIR}/bin/hg -R ${YT_DIR} up -C ${BRANCH}
         if [ $INST_EMBREE -eq 1 ]
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg

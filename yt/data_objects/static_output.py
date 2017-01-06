@@ -106,8 +106,32 @@ class FieldTypeContainer(object):
             return self.__getattribute__(attr)
         return fnc
 
+    _field_types = None
+    @property
+    def field_types(self):
+        if self._field_types is None:
+            self._field_types = set(t for t, n in self.ds.field_info)
+        return self._field_types
+
     def __dir__(self):
-        return list(set(t for t, n in self.ds.field_info))
+        return list(self.field_types)
+
+    def __iter__(self):
+        for ft in self.field_types:
+            fnc = FieldNameContainer(self.ds, ft)
+            if len(dir(fnc)) == 0:
+                yield self.__getattribute__(ft)
+            else:
+                yield fnc
+
+    def __contains__(self, obj):
+        ob = None
+        if isinstance(obj, FieldNameContainer):
+            ob = obj.field_type
+        elif isinstance(obj, string_types):
+            ob = obj
+
+        return ob in self.field_types
 
 class FieldNameContainer(object):
     def __init__(self, ds, field_type):
@@ -124,6 +148,26 @@ class FieldNameContainer(object):
     def __dir__(self):
         return [n for t, n in self.ds.field_info
                 if t == self.field_type]
+
+    def __iter__(self):
+        for t, n in self.ds.field_info:
+            if t == self.field_type:
+                yield self.ds.field_info[t, n]
+
+    def __contains__(self, obj):
+        if isinstance(obj, DerivedField):
+            if self.field_type == obj.name[0] and obj.name in self.ds.field_info:
+                # e.g. from a completely different dataset
+                if self.ds.field_info[obj.name] is not obj:
+                    return False
+                return True
+        elif isinstance(obj, tuple):
+            if self.field_type == obj[0] and obj in self.ds.field_info:
+                return True
+        elif isinstance(obj, string_types):
+            if (self.field_type, obj) in self.ds.field_info:
+                return True
+        return False
 
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
@@ -183,7 +227,6 @@ class Dataset(object):
     particle_types_raw = ("io",)
     geometry = "cartesian"
     coordinates = None
-    max_level = 99
     storage_filename = None
     particle_unions = None
     known_filters = None
@@ -1175,13 +1218,15 @@ class Dataset(object):
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
+            sampling_type="cell",
             units=units,
             take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
-                                    nneighbors=64, kernel_name="cubic"):
+    def add_smoothed_particle_field(self, smooth_field,
+                                    method="volume_weighted", nneighbors=64,
+                                    kernel_name="cubic"):
         """Add a new smoothed particle field
 
         Creates a new smoothed field based on the particle *smooth_field*.
@@ -1198,7 +1243,7 @@ class Dataset(object):
            for now.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
-        kernel_name : string, default 'cubic'
+        kernel_name : string, default `cubic`
             This is the name of the smoothing kernel to use. Current supported
             kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
             `wendland4`, and `wendland6`.
@@ -1208,7 +1253,10 @@ class Dataset(object):
 
         The field name tuple for the newly created field.
         """
+        # The magical step
         self.index
+
+        # Parse arguments
         if isinstance(smooth_field, tuple):
             ptype, smooth_field = smooth_field[0], smooth_field[1]
         else:
@@ -1217,6 +1265,7 @@ class Dataset(object):
         if method != "volume_weighted":
             raise NotImplementedError("method must be 'volume_weighted'")
 
+        # Prepare field names and registry to be used later
         coord_name = "particle_position"
         mass_name = "particle_mass"
         smoothing_length_name = "smoothing_length"
@@ -1226,6 +1275,7 @@ class Dataset(object):
         density_name = "density"
         registry = self.field_info
 
+        # Do the actual work
         return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                    smoothing_length_name, density_name, smooth_field, registry,
                    nneighbors=nneighbors, kernel_name=kernel_name)[0]
@@ -1274,6 +1324,18 @@ class Dataset(object):
         self.field_dependencies.update(deps)
         return grad_fields
 
+    _max_level = None
+    @property
+    def max_level(self):
+        if self._max_level is None:
+            self._max_level = self.index.max_level
+
+        return self._max_level
+
+    @max_level.setter
+    def max_level(self, value):
+        self._max_level = value
+
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
     ds = datasets.get_ds_hash(*args)
@@ -1298,3 +1360,17 @@ class ParticleFile(object):
 
     def __lt__(self, other):
         return self.filename < other.filename
+
+
+class ParticleDataset(Dataset):
+    _unit_base = None
+    filter_bbox = False
+
+    def __init__(self, filename, dataset_type=None, file_style=None,
+                 units_override=None, unit_system="cgs",
+                 n_ref=64, over_refine_factor=1):
+        self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
+        super(ParticleDataset, self).__init__(
+            filename, dataset_type=dataset_type, file_style=file_style,
+            units_override=units_override, unit_system=unit_system)

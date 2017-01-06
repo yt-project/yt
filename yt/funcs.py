@@ -1036,3 +1036,7 @@ def parse_h5_attr(f, attr):
         return val.decode('utf8')
     else:
         return val
+
+def issue_deprecation_warning(msg):
+    from numpy import VisibleDeprecationWarning
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)

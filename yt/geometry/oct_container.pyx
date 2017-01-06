@@ -29,54 +29,16 @@ cdef extern from "stdlib.h":
     # NOTE that size_t might not be int
     void *alloca(int)
 
-cdef OctAllocationContainer *allocate_octs(
-        int n_octs, OctAllocationContainer *prev):
-    cdef OctAllocationContainer *n_cont
-    cdef Oct *oct
-    cdef int n, i, j, k
-    n_cont = <OctAllocationContainer *> malloc(
-        sizeof(OctAllocationContainer))
-    if prev == NULL:
-        n_cont.offset = 0
-    else:
-        n_cont.offset = prev.offset + prev.n
-    n_cont.my_octs = <Oct *> malloc(sizeof(Oct) * n_octs)
-    if n_cont.my_octs == NULL:
-        raise MemoryError
-    n_cont.n = n_octs
-    n_cont.n_assigned = 0
-    n_cont.con_id = -1
-    for n in range(n_octs):
-        oct = &n_cont.my_octs[n]
-        oct.file_ind = oct.domain = -1
-        oct.domain_ind = n + n_cont.offset
-        oct.children = NULL
-    if prev != NULL:
-        prev.next = n_cont
-    n_cont.next = NULL
-    return n_cont
-
-cdef void free_octs(
-        OctAllocationContainer *first):
-    cdef OctAllocationContainer *cur
-    while first != NULL:
-        cur = first
-        for i in range(cur.n):
-            if cur.my_octs[i].children != NULL:
-                free(cur.my_octs[i].children)
-        free(first.my_octs)
-        first = cur.next
-        free(cur)
-
 # Here is the strategy for RAMSES containers:
 #   * Read each domain individually, creating *all* octs found in that domain
 #     file, even if they reside on other CPUs.
 #   * Only allocate octs that reside on >= domain
 #   * For all octs, insert into tree, which may require traversing existing
 #     octs
-#   * Note that this does not allow OctAllocationContainer to exactly be a
-#     chunk, but it is close.  For IO chunking, we can theoretically examine
-#     those octs that live inside a given allocator.
+#   * Note that this does not allow one component of an ObjectPool (an
+#     AllocationContainer) to exactly be a chunk, but it is close.  For IO
+#     chunking, we can theoretically examine those octs that live inside a
+#     given allocator.
 
 cdef class OctreeContainer:
 
@@ -86,13 +48,12 @@ cdef class OctreeContainer:
         # This will just initialize the root mesh octs
         self.oref = over_refine
         self.partial_coverage = partial_coverage
-        self.cont = NULL
         cdef int i, j, k, p
         for i in range(3):
             self.nn[i] = oct_domain_dimensions[i]
         self.num_domains = 0
         self.level_offset = 0
-        self.domains = NULL
+        self.domains = OctObjectPool()
         p = 0
         self.nocts = 0 # Increment when initialized
         for i in range(3):
@@ -112,16 +73,7 @@ cdef class OctreeContainer:
 
     @property
     def oct_arrays(self):
-        cdef OctAllocationContainer *cur = self.cont
-        cdef Oct *this
-        cdef int i
-        cdef OctPadded[:] mm
-        rv = []
-        while cur != NULL:
-            mm = <OctPadded[:cur.n_assigned]> (<OctPadded*> cur.my_octs)
-            rv.append(np.asarray(mm))
-            cur = cur.next
-        return rv
+        return self.domains.to_arrays()
 
     @classmethod
     def load_octree(cls, header):
@@ -148,11 +100,11 @@ cdef class OctreeContainer:
         for i in range(3):
             dds[i] = (obj.DRE[i] - obj.DLE[i]) / obj.nn[i]
         # Pos is the center of the octs
-        cdef OctAllocationContainer *cur = obj.domains[0]
+        cdef OctAllocationContainer *cur = obj.domains.get_cont(0)
         cdef Oct *o
-        cdef np.int64_t nfinest = 0
+        cdef np.uint64_t nfinest = 0
         visitor.ref_mask = ref_mask
-        visitor.octs = cur.my_octs
+        visitor.octs = cur.my_objs
         visitor.nocts = &cur.n_assigned
         visitor.nfinest = &nfinest
         pos[0] = obj.DLE[0] + dds[0]/2.0
@@ -163,7 +115,7 @@ cdef class OctreeContainer:
                 for k in range(obj.nn[2]):
                     if obj.root_mesh[i][j][k] != NULL:
                         raise RuntimeError
-                    o = &cur.my_octs[cur.n_assigned]
+                    o = &cur.my_objs[cur.n_assigned]
                     o.domain_ind = o.file_ind = 0
                     o.domain = 1
                     obj.root_mesh[i][j][k] = o
@@ -185,7 +137,6 @@ cdef class OctreeContainer:
         return obj
 
     def __dealloc__(self):
-        free_octs(self.cont)
         if self.root_mesh == NULL: return
         for i in range(self.nn[0]):
             if self.root_mesh[i] == NULL: continue
@@ -195,19 +146,6 @@ cdef class OctreeContainer:
             if self.root_mesh[i] == NULL: continue
             free(self.root_mesh[i])
         free(self.root_mesh)
-
-    def __iter__(self):
-        #Get the next oct, will traverse domains
-        #Note that oct containers can be sorted
-        #so that consecutive octs are on the same domain
-        cdef OctAllocationContainer *cur = self.cont
-        cdef Oct *this
-        cdef int i
-        while cur != NULL:
-            for i in range(cur.n_assigned):
-                this = &cur.my_octs[i]
-                yield (this.file_ind, this.domain_ind, this.domain)
-            cur = cur.next
 
     @cython.cdivision(True)
     cdef void visit_all_octs(self, SelectorObject selector,
@@ -649,7 +587,7 @@ cdef class OctreeContainer:
         cdef np.float64_t dds[3]
         no = pos.shape[0] #number of octs
         if curdom > self.num_domains: return 0
-        cdef OctAllocationContainer *cont = self.domains[curdom - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(curdom - 1)
         cdef int initial = cont.n_assigned
         cdef int in_boundary = 0
         # How do we bootstrap ourselves?
@@ -692,35 +630,20 @@ cdef class OctreeContainer:
 
     def allocate_domains(self, domain_counts):
         cdef int count, i
-        cdef OctAllocationContainer *cur = self.cont
-        assert(cur == NULL)
         self.num_domains = len(domain_counts) # 1-indexed
-        self.domains = <OctAllocationContainer **> malloc(
-            sizeof(OctAllocationContainer *) * len(domain_counts))
         for i, count in enumerate(domain_counts):
-            cur = allocate_octs(count, cur)
-            if self.cont == NULL: self.cont = cur
-            self.domains[i] = cur
+            self.domains.append(count)
 
     cdef void append_domain(self, np.int64_t domain_count):
         self.num_domains += 1
-        self.domains = <OctAllocationContainer **> realloc(self.domains,
-                sizeof(OctAllocationContainer *) * self.num_domains)
-        if self.domains == NULL: raise RuntimeError
-        self.domains[self.num_domains - 1] = NULL
-        cdef OctAllocationContainer *cur = NULL
-        if self.num_domains > 1:
-            cur = self.domains[self.num_domains - 2]
-        cur = allocate_octs(domain_count, cur)
-        if self.cont == NULL: self.cont = cur
-        self.domains[self.num_domains - 1] = cur
+        self.domains.append(domain_count)
 
     cdef Oct* next_root(self, int domain_id, int ind[3]):
         cdef Oct *next = self.root_mesh[ind[0]][ind[1]][ind[2]]
         if next != NULL: return next
-        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n: raise RuntimeError
-        next = &cont.my_octs[cont.n_assigned]
+        next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         self.root_mesh[ind[0]][ind[1]][ind[2]] = next
         self.nocts += 1
@@ -737,9 +660,9 @@ cdef class OctreeContainer:
             for i in range(8):
                 parent.children[i] = NULL
         if next != NULL: return next
-        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n: raise RuntimeError
-        next = &cont.my_octs[cont.n_assigned]
+        next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         parent.children[cind(ind[0],ind[1],ind[2])] = next
         self.nocts += 1
@@ -842,6 +765,7 @@ cdef class SparseOctreeContainer(OctreeContainer):
         self.oref = over_refine
         for i in range(3):
             self.nn[i] = domain_dimensions[i]
+        self.domains = OctObjectPool()
         self.num_domains = 0
         self.level_offset = 0
         self.nocts = 0 # Increment when initialized
@@ -931,14 +855,14 @@ cdef class SparseOctreeContainer(OctreeContainer):
         cdef Oct *next = NULL
         self.get_root(ind, &next)
         if next != NULL: return next
-        cdef OctAllocationContainer *cont = self.domains[domain_id - 1]
+        cdef OctAllocationContainer *cont = self.domains.get_cont(domain_id - 1)
         if cont.n_assigned >= cont.n:
             print "Too many assigned."
             return NULL
         if self.num_root >= self.max_root:
             print "Too many roots."
             return NULL
-        next = &cont.my_octs[cont.n_assigned]
+        next = &cont.my_objs[cont.n_assigned]
         cont.n_assigned += 1
         cdef np.int64_t key = 0
         cdef OctKey *ikey = &self.root_nodes[self.num_root]
@@ -963,7 +887,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
         if self.root_nodes != NULL: free(self.root_nodes)
-        if self.domains != NULL: free(self.domains)
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
     pass
@@ -1049,3 +972,41 @@ cdef void OctList_delete(OctList *olist):
         next = this.next
         free(this)
         this = next
+
+cdef class OctObjectPool(ObjectPool):
+    # This is an inherited version of the ObjectPool that provides setup and
+    # teardown functions for the individually allocated objects.  These allow
+    # us to initialize the Octs to default values, and we can also free any
+    # allocated memory in them.  Implementing _con_to_array also provides the
+    # opportunity to supply views of the octs in Python code.
+    def __cinit__(self):
+        # Base class will ALSO be called
+        self.itemsize = sizeof(Oct)
+        assert(sizeof(OctAllocationContainer) == sizeof(AllocationContainer))
+
+    cdef void setup_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
+                         np.int64_t con_id):
+        cdef np.uint64_t i
+        cdef Oct* octs = <Oct *> obj
+        for n in range(n):
+            octs[n].file_ind = octs[n].domain = - 1
+            octs[n].domain_ind = n + offset
+            octs[n].children = NULL
+
+    cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
+                           np.int64_t con_id):
+        cdef np.uint64_t i, j
+        cdef Oct *my_octs = <Oct *> obj
+        for i in range(n):
+            if my_octs[i].children != NULL:
+                free(my_octs[i].children)
+        free(obj)
+
+    def _con_to_array(self, int i):
+        cdef AllocationContainer *obj = &self.containers[i]
+        if obj.n_assigned == 0:
+            return None
+        cdef OctPadded[:] mm = <OctPadded[:obj.n_assigned]> (
+                <OctPadded*> obj.my_objs)
+        rv = np.asarray(mm)
+        return rv

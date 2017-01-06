@@ -67,6 +67,7 @@ ytcfg_defaults = dict(
     ignore_invalid_unit_operation_errors = 'False',
     chunk_size = '1000',
     xray_data_dir = '/does/not/exist',
+    supp_data_dir = '/does/not/exist',
     default_colormap = 'arbre',
     ray_tracing_engine = 'embree',
     )

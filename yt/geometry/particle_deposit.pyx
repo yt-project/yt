@@ -22,8 +22,8 @@ from libc.math cimport sqrt
 from cpython cimport PyObject
 from yt.utilities.lib.fp_utils cimport *
 
-from oct_container cimport Oct, OctAllocationContainer, \
-    OctreeContainer, OctInfo
+from oct_container cimport \
+    Oct, OctreeContainer, OctInfo
 from cpython.array cimport array, clone
 from cython.view cimport memoryview as cymemview
 from yt.utilities.lib.misc_utilities import OnceIndirect
@@ -311,7 +311,7 @@ cdef class StdParticleField(ParticleDepositOperation):
         else:
             self.mk[ii[2], ii[1], ii[0], offset] = mk + (fields[0] - mk) / k
             self.qk[ii[2], ii[1], ii[0], offset] = \
-                qk + (k - 1.0) * (fields[0] - mk)**2.0 / k
+                qk + (k - 1.0) * (fields[0] - mk) * (fields[0] - mk) / k
         self.i[ii[2], ii[1], ii[0], offset] += 1
 
     def finalize(self):

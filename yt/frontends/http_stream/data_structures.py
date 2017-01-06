@@ -20,9 +20,8 @@ import numpy as np
 import time
 
 from yt.data_objects.static_output import \
+    ParticleDataset, \
     ParticleFile
-from yt.frontends.sph.data_structures import \
-    ParticleDataset
 from yt.frontends.sph.fields import \
     SPHFieldInfo
 from yt.funcs import \
@@ -43,17 +42,15 @@ class HTTPStreamDataset(ParticleDataset):
     filename_template = ""
     
     def __init__(self, base_url,
-                 dataset_type = "http_particle_stream",
-                 n_ref = 64, over_refine_factor=1, 
-                 unit_system="cgs"):
+                 dataset_type="http_particle_stream", unit_system="cgs",
+                 n_ref=64, over_refine_factor=1):
         if get_requests() is None:
             raise ImportError(
                 "This functionality depends on the requests package")
         self.base_url = base_url
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        super(HTTPStreamDataset, self).__init__("", dataset_type, 
-                                                unit_system=unit_system)
+        super(HTTPStreamDataset, self).__init__(
+            "", dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor)
 
     def __repr__(self):
         return self.base_url

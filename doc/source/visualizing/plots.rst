@@ -670,6 +670,21 @@ under symlog scale with the linear range of ``(0, linthresh)``.
    slc.set_log('x-velocity', True, linthresh=1.e1)
    slc.save()
 
+The :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_background_color`
+function accepts a field name and a color (optional). If color is given, the function
+will set the plot's background color to that. If not, it will set it to the bottom
+value of the color map.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(1.5, 'Mpc'))
+   slc.set_background_color('density')
+   slc.save('bottom_colormap_background')
+   slc.set_background_color('density', color='black')
+   slc.save('black_background')
+
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
 

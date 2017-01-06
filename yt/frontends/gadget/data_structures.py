@@ -26,7 +26,7 @@ import os
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
-    ParticleDataset
+    SPHDataset
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -76,7 +76,7 @@ class GadgetBinaryFile(ParticleFile):
             field_list, self.total_particles,
             self._position_offset, self._file_size)
 
-class GadgetDataset(ParticleDataset):
+class GadgetDataset(SPHDataset):
     _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _field_info_class = GadgetFieldInfo
@@ -89,6 +89,7 @@ class GadgetDataset(ParticleDataset):
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
+                 kernel_name=None,
                  index_ptype="all",
                  bounding_box = None,
                  header_spec = "default",
@@ -103,8 +104,6 @@ class GadgetDataset(ParticleDataset):
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
         self.index_ptype = index_ptype
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
@@ -123,7 +122,10 @@ class GadgetDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
-        super(GadgetDataset, self).__init__(filename, dataset_type, unit_system=unit_system)
+        super(GadgetDataset, self).__init__(
+            filename, dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
             self.length_unit.convert_to_units('kpccm/h')
@@ -362,6 +364,7 @@ class GadgetHDF5Dataset(GadgetDataset):
     def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
+                 kernel_name=None,
                  index_ptype="all",
                  bounding_box = None,
                  units_override=None,
@@ -374,7 +377,8 @@ class GadgetHDF5Dataset(GadgetDataset):
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
             over_refine_factor=over_refine_factor, index_ptype=index_ptype,
-            bounding_box = bounding_box, unit_system=unit_system)
+            kernel_name=kernel_name, bounding_box=bounding_box,
+            unit_system=unit_system)
 
     def _get_hvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")

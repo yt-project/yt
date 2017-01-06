@@ -427,3 +427,380 @@ def test_boolean_mix_periodicity():
     b6.sort()
     assert_array_equal(b6, np.setxor1d(np.setxor1d(rei, spi), cyli))
 
+def test_boolean_ray_region_no_overlap():
+    r"""Test to make sure that boolean objects (ray, region, no overlap)
+    behave the way we expect.
+
+    Test non-overlapping ray and region. This also checks that the original 
+    objects don't change as part of constructing the booleans.
+    """
+    ds = fake_amr_ds()
+    re = ds.box([0.25]*3, [0.75]*3)
+    ra = ds.ray([0.1]*3, [0.1, 0.1, 0.9])
+    # Store the original indices
+    i1 = re["index","morton_index"]
+    i1.sort()
+    i2 = ra["index","morton_index"]
+    i2.sort()
+    ii = np.concatenate((i1, i2))
+    ii.sort()
+    # Make some booleans
+    bo1 = re & ra
+    bo2 = re - ra
+    bo3 = re | ra
+    bo4 = ds.union([re, ra])
+    bo5 = ds.intersection([re, ra])
+    # This makes sure the original containers didn't change.
+    new_i1 = re["index","morton_index"]
+    new_i1.sort()
+    new_i2 = ra["index","morton_index"]
+    new_i2.sort()
+    assert_array_equal(new_i1, i1)
+    assert_array_equal(new_i2, i2)
+    # Now make sure the indices also behave as we expect.
+    empty = np.array([])
+    assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    assert_array_equal(b2, i1 )
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    bo6 = re ^ ra
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_ray_region_overlap():
+    r"""Test to make sure that boolean objects (ray, region, overlap)
+    behave the way we expect.
+
+    Test overlapping ray and region. This also checks that the original 
+    objects don't change as part of constructing the booleans.
+    """
+    ds = fake_amr_ds()
+    re = ds.box([0.25]*3, [0.75]*3)
+    ra = ds.ray([0]*3, [1]*3)
+    # Get indices of both.
+    i1 = re["index","morton_index"]
+    i2 = ra["index","morton_index"]
+    # Make some booleans
+    bo1 = re & ra
+    bo2 = re - ra
+    bo3 = re | ra
+    bo4 = ds.union([re, ra])
+    bo5 = ds.intersection([re, ra])
+    # Now make sure the indices also behave as we expect.
+    short_line = np.intersect1d(i1, i2)
+    cube_minus_line = np.setdiff1d(i1, i2)
+    both = np.union1d(i1, i2)
+    b1 = bo1["index","morton_index"]
+    b1.sort()
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b1, short_line)
+    assert_array_equal(b2, cube_minus_line)
+    assert_array_equal(b3, both)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
+    bo6 = re ^ ra
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_rays_no_overlap():
+    r"""Test to make sure that boolean objects (rays, no overlap)
+    behave the way we expect.
+
+    Test non-overlapping rays.
+    """
+    ds = fake_amr_ds()
+    ra1 = ds.ray([0, 0, 0], [0, 0, 1])
+    ra2 = ds.ray([1, 0, 0], [1, 0, 1])
+    # Store the original indices
+    i1 = ra1["index","morton_index"]
+    i1.sort()
+    i2 = ra2["index","morton_index"]
+    i2.sort()
+    ii = np.concatenate((i1, i2))
+    ii.sort()
+    # Make some booleans
+    bo1 = ra1 & ra2
+    bo2 = ra1 - ra2
+    bo3 = ra1 | ra2
+    bo4 = ds.union([ra1, ra2])
+    bo5 = ds.intersection([ra1, ra2])
+    # This makes sure the original containers didn't change.
+    new_i1 = ra1["index","morton_index"]
+    new_i1.sort()
+    new_i2 = ra2["index","morton_index"]
+    new_i2.sort()
+    assert_array_equal(new_i1, i1)
+    assert_array_equal(new_i2, i2)
+    # Now make sure the indices also behave as we expect.
+    empty = np.array([])
+    assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    assert_array_equal(b2, i1 )
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    bo6 = ra1 ^ ra2
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_rays_overlap():
+    r"""Test to make sure that boolean objects (rays, overlap)
+    behave the way we expect.
+
+    Test non-overlapping rays.
+    """
+    ds = fake_amr_ds()
+    ra1 = ds.ray([0]*3, [1]*3)
+    ra2 = ds.ray([0]*3, [0.5]*3)
+    # Get indices of both.
+    i1 = ra1["index","morton_index"]
+    i1.sort()
+    i2 = ra2["index","morton_index"]
+    i2.sort()
+    ii = np.concatenate((i1, i2))
+    ii.sort()
+    # Make some booleans
+    bo1 = ra1 & ra2
+    bo2 = ra1 - ra2
+    bo3 = ra1 | ra2
+    bo4 = ds.union([ra1, ra2])
+    bo5 = ds.intersection([ra1, ra2])
+    # Now make sure the indices also behave as we expect.
+    short_line = np.intersect1d(i1, i2)
+    short_line_b = np.setdiff1d(i1, i2)
+    full_line = np.union1d(i1, i2)
+    b1 = bo1["index","morton_index"]
+    b1.sort()
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b1, short_line)
+    assert_array_equal(b2, short_line_b)
+    assert_array_equal(b3, full_line)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, i1)
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
+    bo6 = ra1 ^ ra2
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_slices_no_overlap():
+    r"""Test to make sure that boolean objects (slices, no overlap)
+    behave the way we expect.
+
+    Test non-overlapping slices. This also checks that the original regions
+    don't change as part of constructing the booleans.
+    """
+    ds = fake_amr_ds()
+    sl1 = ds.r[:,:,0.25]
+    sl2 = ds.r[:,:,0.75]
+    # Store the original indices
+    i1 = sl1["index","morton_index"]
+    i1.sort()
+    i2 = sl2["index","morton_index"]
+    i2.sort()
+    ii = np.concatenate((i1, i2))
+    ii.sort()
+    # Make some booleans
+    bo1 = sl1 & sl2
+    bo2 = sl1 - sl2
+    bo3 = sl1 | sl2
+    bo4 = ds.union([sl1, sl2])
+    bo5 = ds.intersection([sl1, sl2])
+    # This makes sure the original containers didn't change.
+    new_i1 = sl1["index","morton_index"]
+    new_i1.sort()
+    new_i2 = sl2["index","morton_index"]
+    new_i2.sort()
+    assert_array_equal(new_i1, i1)
+    assert_array_equal(new_i2, i2)
+    # Now make sure the indices also behave as we expect.
+    empty = np.array([])
+    assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    assert_array_equal(b2, i1 )
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    bo6 = sl1 ^ sl2
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_slices_overlap():
+    r"""Test to make sure that boolean objects (slices, overlap)
+    behave the way we expect.
+
+    Test overlapping slices.
+    """
+    ds = fake_amr_ds()
+    sl1 = ds.r[:,:,0.25]
+    sl2 = ds.r[:,0.75,:]
+    # Get indices of both.
+    i1 = sl1["index","morton_index"]
+    i2 = sl2["index","morton_index"]
+    # Make some booleans
+    bo1 = sl1 & sl2
+    bo2 = sl1 - sl2
+    bo3 = sl1 | sl2
+    bo4 = ds.union([sl1, sl2])
+    bo5 = ds.intersection([sl1, sl2])
+    # Now make sure the indices also behave as we expect.
+    line = np.intersect1d(i1, i2)
+    orig = np.setdiff1d(i1, i2)
+    both = np.union1d(i1, i2)
+    b1 = bo1["index","morton_index"]
+    b1.sort()
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b1, line)
+    assert_array_equal(b2, orig)
+    assert_array_equal(b3, both)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
+    bo6 = sl1 ^ sl2
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_ray_slice_no_overlap():
+    r"""Test to make sure that boolean objects (ray, slice, no overlap)
+    behave the way we expect.
+
+    Test non-overlapping ray and slice. This also checks that the original 
+    regions don't change as part of constructing the booleans.
+    """
+    ds = fake_amr_ds()
+    sl = ds.r[:,:,0.25]
+    ra = ds.ray([0]*3, [0, 1, 0])
+    # Store the original indices
+    i1 = sl["index","morton_index"]
+    i1.sort()
+    i2 = ra["index","morton_index"]
+    i2.sort()
+    ii = np.concatenate((i1, i2))
+    ii.sort()
+    # Make some booleans
+    bo1 = sl & ra
+    bo2 = sl - ra
+    bo3 = sl | ra
+    bo4 = ds.union([sl, ra])
+    bo5 = ds.intersection([sl, ra])
+    # This makes sure the original containers didn't change.
+    new_i1 = sl["index","morton_index"]
+    new_i1.sort()
+    new_i2 = ra["index","morton_index"]
+    new_i2.sort()
+    assert_array_equal(new_i1, i1)
+    assert_array_equal(new_i2, i2)
+    # Now make sure the indices also behave as we expect.
+    empty = np.array([])
+    assert_array_equal(bo1["index","morton_index"], empty)
+    assert_array_equal(bo5["index","morton_index"], empty)
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    assert_array_equal(b2, i1 )
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b3, ii)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, b4)
+    bo6 = sl ^ ra
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))
+
+def test_boolean_ray_slice_overlap():
+    r"""Test to make sure that boolean objects (rays and slices, overlap)
+    behave the way we expect.
+
+    Test overlapping rays and slices.
+    """
+    ds = fake_amr_ds()
+    sl = ds.r[:,:,0.25]
+    ra = ds.ray([0, 0, 0.25], [0, 1, 0.25])
+    # Get indices of both.
+    i1 = sl["index","morton_index"]
+    i1.sort()
+    i2 = ra["index","morton_index"]
+    i1.sort()
+    ii = np.concatenate((i1, i2))
+    ii.sort()
+    # Make some booleans
+    bo1 = sl & ra
+    bo2 = sl - ra
+    bo3 = sl | ra
+    bo4 = ds.union([sl, ra])
+    bo5 = ds.intersection([sl, ra])
+    # Now make sure the indices also behave as we expect.
+    line = np.intersect1d(i1, i2)
+    sheet_minus_line = np.setdiff1d(i1, i2)
+    sheet = np.union1d(i1, i2)
+    b1 = bo1["index","morton_index"]
+    b1.sort()
+    b2 = bo2["index","morton_index"]
+    b2.sort()
+    b3 = bo3["index","morton_index"]
+    b3.sort()
+    assert_array_equal(b1, line)
+    assert_array_equal(b2, sheet_minus_line)
+    assert_array_equal(b3, sheet)
+    b4 = bo4["index","morton_index"]
+    b4.sort()
+    b5 = bo5["index","morton_index"]
+    b5.sort()
+    assert_array_equal(b3, i1)
+    assert_array_equal(b3, b4)
+    assert_array_equal(b1, b5)
+    bo6 = sl ^ ra
+    b6 = bo6["index", "morton_index"]
+    b6.sort()
+    assert_array_equal(b6, np.setxor1d(i1, i2))

@@ -121,7 +121,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if var.size == n1*n2:
                     tvals[tname] = var.reshape((n1, n2), order='F')
                 else:
-                    var = var.reshape((n1, n2, var.size / (n1*n2)), order='F')
+                    var = var.reshape((n1, n2, var.size // (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = var[:,:,i]
 
