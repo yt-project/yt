@@ -86,9 +86,9 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         with h5py.File(data_file.filename, "r") as f:
             if not f.keys(): return None
             pos = np.empty((pcount, 3), dtype="float64")
-            dx = np.finfo(f['particle_position_x'].dtype).eps
-            dx = 2.0 * self.ds.quan(dx, "code_length")
             units = f["particle_position_x"].attrs["units"]
+            dx = np.finfo(f['particle_position_x'].dtype).eps
+            dx = 2.0 * self.ds.quan(dx, units).to("code_length")
             pos[:,0] = f["particle_position_x"].value
             pos[:,1] = f["particle_position_y"].value
             pos[:,2] = f["particle_position_z"].value
