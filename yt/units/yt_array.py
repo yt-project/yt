@@ -16,6 +16,7 @@ from __future__ import print_function
 import copy
 import numpy as np
 
+from distutils.version import LooseVersion
 from functools import wraps
 from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
@@ -1446,9 +1447,15 @@ def unorm(data, ord=None, axis=None, keepdims=False):
     This is a wrapper around np.linalg.norm that preserves units. See
     the documentation for that function for descriptions of the keyword
     arguments.
+
+    The keepdims argument is ignored if the version of numpy installed is
+    older than numpy 1.10.0.
     """
-    return YTArray(np.linalg.norm(data, ord=ord, axis=axis, keepdims=keepdims),
-                   data.units)
+    if LooseVersion(np.__version__) < LooseVersion('1.10.0'):
+        norm = np.linalg.norm(data, ord=ord, axis=axis)
+    else:
+        norm = np.linalg.norm(data, ord=ord, axis=axis, keepdims=keepdims)
+    return YTArray(norm, data.units)
 
 def udot(op1, op2):
     """Matrix or vector dot product that preservs units
