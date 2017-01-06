@@ -1447,7 +1447,8 @@ def unorm(data, ord=None, axis=None, keepdims=False):
     the documentation for that function for descriptions of the keyword
     arguments.
     """
-    return YTArray(np.linalg.norm(data, ord, axis, keepdims), data.units)
+    return YTArray(np.linalg.norm(data, ord=ord, axis=axis, keepdims=keepdims),
+                   data.units)
 
 def udot(op1, op2):
     """Matrix or vector dot product that preservs units
