@@ -15,31 +15,20 @@ Data structures for HaloCatalog frontend.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
-from numbers import \
-    Number as numeric_type
 import numpy as np
-import stat
 import glob
-import os
 
 from .fields import \
     HaloCatalogFieldInfo
 
 from yt.frontends.ytdata.data_structures import \
     SavedDataset
-from yt.extern.six import \
-    string_types
 from yt.funcs import \
     parse_h5_attr
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
-    Dataset, \
     ParticleFile
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.yt_array import \
-    YTQuantity
 
 class HaloCatalogHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
