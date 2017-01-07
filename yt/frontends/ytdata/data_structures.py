@@ -47,6 +47,8 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.units import \
+    dimensions
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
@@ -90,10 +92,18 @@ class SavedDataset(Dataset):
         if "unit_registry_json" in self.parameters:
             self.unit_registry = UnitRegistry.from_json(
                 self.parameters["unit_registry_json"])
-            del self.parameters["unit_registry_json"]
             # reset self.arr and self.quan to use new unit_registry
             self._arr = None
             self._quan = None
+            for dim in ["length", "mass", "pressure",
+                        "temperature", "time", "velocity"]:
+                cu = "code_" + dim
+                if cu not in self.unit_registry:
+                    self.unit_registry.add(
+                        cu, 1.0, getattr(dimensions, dim))
+            if "code_magnetic" not in self.unit_registry:
+                self.unit_registry.add("code_magnetic", 1.0,
+                                       dimensions.magnetic_field)
 
         # if saved, set unit system
         if "unit_system_name" in self.parameters:
@@ -132,6 +142,7 @@ class SavedDataset(Dataset):
     def set_units(self):
         if "unit_registry_json" in self.parameters:
             self._set_code_unit_attributes()
+            del self.parameters["unit_registry_json"]
         else:
             super(SavedDataset, self).set_units()
 
