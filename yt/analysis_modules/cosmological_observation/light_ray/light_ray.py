@@ -681,12 +681,6 @@ class LightRay(CosmologySplice):
 
         # save the light ray solution
         if len(self.light_ray_solution) > 0:
-            # Convert everything to base unit system now to avoid
-            # problems with different units for each ds.
-            for s in self.light_ray_solution:
-                for f in s:
-                    if isinstance(s[f], YTArray):
-                        s[f].convert_to_base()
             for key in self.light_ray_solution[0]:
                 if key in ["next", "previous", "index"]:
                     continue
