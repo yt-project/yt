@@ -327,15 +327,8 @@ class YTDataLightRayDataset(YTDataContainerDataset):
         for field in lrs_fields:
             field_name = field[len(key)+1:]
             for i in range(self.parameters[field].shape[0]):
-                self.light_ray_solution[i][field_name] = self.parameters[field][i]
-                if "%s_units" % field in self.parameters:
-                    if len(self.parameters[field].shape) > 1:
-                        to_val = self.arr
-                    else:
-                        to_val = self.quan
-                    self.light_ray_solution[i][field_name] = \
-                      to_val(self.light_ray_solution[i][field_name],
-                             self.parameters["%s_units" % field])
+                self.light_ray_solution[i][field_name] = \
+                  self.parameters[field][i]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
