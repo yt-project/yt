@@ -1337,10 +1337,9 @@ class Dataset(object):
     def max_level(self, value):
         self._max_level = value
 
-    def create_new_unit(self, symbol, base_value, dimensions, tex_repr=None, 
-                        offset=None):
-        _create_new_unit(self.unit_registry, symbol, base_value, dimensions,
-                         tex_repr=tex_repr, offset=offset)
+    def create_new_unit(self, symbol, value, tex_repr=None, offset=None):
+        _create_new_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
+                         offset=offset)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()

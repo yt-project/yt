@@ -12,7 +12,7 @@ A class that represents a unit symbol.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six import text_type, string_types
+from yt.extern.six import text_type
 from sympy import \
     Expr, Mul, Add, Number, \
     Pow, Symbol, Integer, \
@@ -695,11 +695,13 @@ def _get_system_unit_string(dimensions, base_units):
         units.append("(%s)%s" % (unit_string, power_string))
     return " * ".join(units)
 
-def _create_new_unit(registry, symbol, base_value, dimensions, tex_repr=None, offset=None):
-    if isinstance(dimensions, string_types):
-        dimensions = Symbol(dimensions, positive=True)
-    registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
+def _create_new_unit(registry, symbol, value, tex_repr=None, offset=None):
+    from yt.units.yt_array import YTQuantity
+    if not isinstance(value, YTQuantity):
+        raise RuntimeError("\"value\" must be a YTQuantity!")
+    base_value = float(value.in_base(unit_system='cgs-ampere'))
+    registry.add(symbol, base_value, value.units.dimensions, tex_repr=tex_repr, offset=offset)
 
-def create_new_unit(symbol, base_value, dimensions, tex_repr=None, offset=None):
-    _create_new_unit(default_unit_registry, symbol, base_value, dimensions, 
-                     tex_repr=tex_repr, offset=offset)
+def create_new_unit(symbol, value, tex_repr=None, offset=None):
+    _create_new_unit(default_unit_registry, symbol, value, tex_repr=tex_repr, 
+                     offset=offset)
