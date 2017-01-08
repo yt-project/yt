@@ -45,7 +45,8 @@ from yt.utilities.parameter_file_storage import \
     NoParameterShelf, \
     output_type_registry
 from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, unit_system_registry
+from yt.units.unit_object import Unit, unit_system_registry, \
+    _create_new_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -1335,6 +1336,11 @@ class Dataset(object):
     @max_level.setter
     def max_level(self, value):
         self._max_level = value
+
+    def create_new_unit(self, symbol, base_value, dimensions, tex_repr=None, 
+                        offset=None):
+        _create_new_unit(self.unit_registry, symbol, base_value, dimensions,
+                         tex_repr=tex_repr, offset=offset)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
