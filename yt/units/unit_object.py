@@ -699,7 +699,8 @@ def _define_unit(registry, symbol, value, tex_repr=None, offset=None):
     from yt.units.yt_array import YTQuantity
     if symbol in registry:
         raise RuntimeError("The symbol \"%s\" is already in the unit registry!" % symbol)
-    value = YTQuantity(value[0], value[1])
+    if not isinstance(value, YTQuantity):
+        value = YTQuantity(value[0], value[1])
     base_value = float(value.in_base(unit_system='cgs-ampere'))
     dimensions = value.units.dimensions
     registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
