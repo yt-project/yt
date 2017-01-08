@@ -695,6 +695,9 @@ def _get_system_unit_string(dimensions, base_units):
         units.append("(%s)%s" % (unit_string, power_string))
     return " * ".join(units)
 
+def _create_new_unit(registry, symbol, base_value, dimensions, tex_repr=None, offset=None):
+    registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
+    
 def create_new_unit(symbol, base_value, dimensions, tex_repr=None, offset=None):
-    default_unit_registry.add(symbol, base_value, dimensions, 
-                              tex_repr=tex_repr, offset=offset)
+    _create_new_unit(default_unit_registry, symbol, base_value, dimensions, 
+                     tex_repr=tex_repr, offset=offset)
