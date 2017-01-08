@@ -1337,9 +1337,33 @@ class Dataset(object):
     def max_level(self, value):
         self._max_level = value
 
-    def define_unit(self, symbol, value, tex_repr=None, offset=None):
+    def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):
+        """
+        Define a new unit and add it to the dataset's unit registry.
+
+        Parameters
+        ----------
+        symbol : string
+            The symbol for the new unit.
+        value : (value, unit) tuple or YTQuantity
+            The definition of the new unit in terms of some other units. For example,
+            one would define a new "mph" unit with (1.0, "mile/hr") 
+        tex_repr : string, optional
+            The LaTeX representation of the new unit. If one is not supplied, it will
+            be generated automatically based on the symbol string.
+        offset : float, optional
+            The default offset for the unit. If not set, an offset of 0 is assumed.
+        prefixable : boolean, optional
+            Whether or not the new unit can use SI prefixes. Default: False
+
+        Examples
+        --------
+        >>> ds.define_unit("mph", (1.0, "mile/hr"))
+        >>> two_weeks = YTQuantity(14.0, "days")
+        >>> ds.define_unit("fortnight", two_weeks)
+        """
         _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
-                     offset=offset)
+                     offset=offset, prefixable=prefixable)
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
