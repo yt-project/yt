@@ -696,13 +696,17 @@ def _get_system_unit_string(dimensions, base_units):
     return " * ".join(units)
 
 def _define_unit(registry, symbol, value, tex_repr=None, offset=None):
+    from yt.funcs import iterable
     from yt.units.yt_array import YTQuantity
-    if not isinstance(value, YTQuantity):
-        raise RuntimeError("The \"value\" argument must be a YTQuantity!")
     if symbol in registry:
         raise RuntimeError("The symbol \"%s\" is already in the unit registry!" % symbol)
+    if iterable(value):
+        value = YTQuantity(value[0], value[1])
+    else:
+        value = YTQuantity(value)
     base_value = float(value.in_base(unit_system='cgs-ampere'))
-    registry.add(symbol, base_value, value.units.dimensions, tex_repr=tex_repr, offset=offset)
+    dimensions = value.units.dimensions
+    registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
 
 def define_unit(symbol, value, tex_repr=None, offset=None):
     _define_unit(default_unit_registry, symbol, value, tex_repr=tex_repr, offset=offset)
