@@ -99,6 +99,8 @@ from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
+from yt.units.unit_object import \
+    create_new_unit
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity, \
