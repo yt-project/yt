@@ -12,7 +12,7 @@ A class that represents a unit symbol.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.extern.six import text_type
+from yt.extern.six import text_type, string_types
 from sympy import \
     Expr, Mul, Add, Number, \
     Pow, Symbol, Integer, \
@@ -696,8 +696,10 @@ def _get_system_unit_string(dimensions, base_units):
     return " * ".join(units)
 
 def _create_new_unit(registry, symbol, base_value, dimensions, tex_repr=None, offset=None):
+    if isinstance(dimensions, string_types):
+        dimensions = Symbol(dimensions, positive=True)
     registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
-    
+
 def create_new_unit(symbol, base_value, dimensions, tex_repr=None, offset=None):
     _create_new_unit(default_unit_registry, symbol, base_value, dimensions, 
                      tex_repr=tex_repr, offset=offset)
