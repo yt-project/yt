@@ -698,7 +698,9 @@ def _get_system_unit_string(dimensions, base_units):
 def _define_unit(registry, symbol, value, tex_repr=None, offset=None):
     from yt.units.yt_array import YTQuantity
     if not isinstance(value, YTQuantity):
-        raise RuntimeError("\"value\" must be a YTQuantity!")
+        raise RuntimeError("The \"value\" argument must be a YTQuantity!")
+    if symbol in registry:
+        raise RuntimeError("The symbol \"%s\" is already in the unit registry!" % symbol)
     base_value = float(value.in_base(unit_system='cgs-ampere'))
     registry.add(symbol, base_value, value.units.dimensions, tex_repr=tex_repr, offset=offset)
 
