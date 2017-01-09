@@ -25,8 +25,7 @@ load_kwargs.update({
     isothermal_bin: iso_kwargs,
 })
 
-on_disk_gas_fields = {
-    # on-disk fields
+gas_fields_to_particle_fields = {
     'temperature': 'Temperature',
     'density': 'Density',
     'velocity_x': 'particle_velocity_x',
@@ -43,7 +42,7 @@ def test_snap_505_fields():
         ds = yt.load(ds_fn, **(load_kwargs[ds_fn]))
         ad = ds.all_data()
 
-        for gf, pf in on_disk_gas_fields.items():
+        for gf, pf in gas_fields_to_particle_fields.items():
             gas_field = ad['gas', gf]
             part_field = ad[ds._sph_ptype, pf]
 
