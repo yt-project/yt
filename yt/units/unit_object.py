@@ -22,6 +22,7 @@ from sympy import sympify, latex
 from sympy.parsing.sympy_parser import \
     parse_expr, auto_number, rationalize
 from keyword import iskeyword
+from yt.funcs import iterable
 from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks, \
@@ -700,6 +701,8 @@ def _define_unit(registry, symbol, value, tex_repr=None, offset=None, prefixable
     if symbol in registry:
         raise RuntimeError("The symbol \"%s\" is already in the unit registry!" % symbol)
     if not isinstance(value, YTQuantity):
+        if not iterable(value):
+            raise RuntimeError("\"value\" needs to be a (value, unit) tuple!")
         value = YTQuantity(value[0], value[1])
     base_value = float(value.in_base(unit_system='cgs-ampere'))
     dimensions = value.units.dimensions
