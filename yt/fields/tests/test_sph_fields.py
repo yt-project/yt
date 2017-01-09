@@ -37,25 +37,29 @@ gas_fields_to_particle_fields = {
 @requires_file(snap_33)
 @requires_file(tipsy_gal)
 @requires_file(FIRE_m12i)
-def test_snap_505_fields():
+def test_sph_field_semantics():
     for ds_fn in [tipsy_gal, isothermal_h5, isothermal_bin, snap_33, FIRE_m12i]:
-        ds = yt.load(ds_fn, **(load_kwargs[ds_fn]))
-        ad = ds.all_data()
+        yield sph_fields_validate, ds_fn
 
-        for gf, pf in gas_fields_to_particle_fields.items():
-            gas_field = ad['gas', gf]
-            part_field = ad[ds._sph_ptype, pf]
+def sph_fields_validate(ds_fn):
+    ds = yt.load(ds_fn, **(load_kwargs[ds_fn]))
+    ad = ds.al_data()
+    for gf, pf in gas_fields_to_particle_fields.items():
+        gas_field = ad['gas', gf]
+        part_field = ad[ds._sph_ptype, pf]
 
-            assert_array_almost_equal(gas_field, part_field)
+        assert_array_almost_equal(gas_field, part_field)
 
-        npart = ds.particle_type_counts[ds._sph_ptype]
+    npart = ds.particle_type_counts[ds._sph_ptype]
 
-        for i, ax in enumerate('xyz'):
-            ad.set_field_parameter('cp_%s_vec' % (ax,), yt.YTArray([1, 1, 1]))
-            ad.set_field_parameter('axis', i)
-        ad.set_field_parameter('omega_baryon', 0.3)
+    for i, ax in enumerate('xyz'):
+        ad.set_field_parameter(
+            'cp_%s_vec' % (ax,), yt.YTArray([1, 1, 1]))
+        ad.set_field_parameter('axis', i)
+    ad.set_field_parameter('omega_baryon', 0.3)
 
-        for f in ds.fields.gas:
-            gas_field = ad[f]
-            err_msg = "Field %s is not the correct shape" % (f,)
-            assert_equal(npart, gas_field.shape[0], err_msg=err_msg)
+    for f in ds.fields.gas:
+        gas_field = ad[f]
+        err_msg = "Field %s is not the correct shape" % (f,)
+        assert_equal(npart, gas_field.shape[0], err_msg=err_msg)
+
