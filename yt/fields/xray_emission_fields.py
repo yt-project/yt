@@ -148,8 +148,7 @@ class XrayEmissivityIntegrator(object):
 def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                               metallicity=("gas", "metallicity"), 
                               table_type="cloudy", data_dir=None,
-                              cosmology=None, with_metals=True,
-                              constant_metallicity=None):
+                              cosmology=None, **kwargs):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -176,13 +175,6 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         If set and redshift > 0.0, this cosmology will be used when computing the
         cosmological dependence of the emission fields. If not set, yt's default
         LCDM cosmology will be used.
-    with_metals : boolean, optional
-        True if the dataset's metallicity field should be used, False if a constant
-        metallicity should be used. NOTE: This parameter is deprecated; simply set
-        the ``metallicity`` parameter to the correct field name instead.
-    constant_metallicity : float, optional
-        Set this to a floating-point value to use a constant metallicity. NOTE: This
-        parameter is deprecated, set ``metallicity`` to a floating-point value instead.
 
     This will create three fields:
 
@@ -199,20 +191,25 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
     >>> p.save()
     """
-    if constant_metallicity is not None:
+    # The next several if constructs are for backwards-compatibility
+    if "constant_metallicity" in kwargs:
         issue_deprecation_warning("The \"constant_metallicity\" parameter is deprecated. Set "
                                   "the \"metallicity\" parameter to a constant float value instead.")
-        metallicity = constant_metallicity
-    if not with_metals and not isinstance(metallicity, float):
-        issue_deprecation_warning("The \"with_metals\" parameter is deprecated. You have set "
-                                  "it to False but did not specify a constant metallicity. "
-                                  "Proceeding to use the %s field for the metallicity." % metallicity)
+        metallicity = kwargs["constant_metallicity"]
+    if "with_metals" in kwargs:
+        issue_deprecation_warning("The \"with_metals\" parameter is deprecated. Use the "
+                                  "\"metallicity\" parameter to choose a constant or "
+                                  "spatially varying metallicity.")
+        if kwargs["with_metals"] and isinstance(metallicity, float):
+            raise RuntimeError("\"with_metals=True\", but you specified a constant metallicity!")
+        if not kwargs["with_metals"] and not isinstance(metallicity, float):
+            raise RuntimeError("\"with_metals=False\", but you didn't specify a constant metallicity!")
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
             metallicity = ds._get_field_info(*metallicity)
         except YTFieldNotFound:
             raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
-                               "Perhaps you should specify a constant metallicity?")
+                               "Perhaps you should specify a constant metallicity instead?")
 
     my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, redshift=redshift)
 
@@ -239,7 +236,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity]
+                my_Z = data[metallicity.name]
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
@@ -267,7 +264,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         my_emissivity = np.power(10, emp_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity]
+                my_Z = data[metallicity.name]
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
