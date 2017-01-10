@@ -420,6 +420,40 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
+def fake_sph_orientation_ds():
+    """Returns an in-memory SPH dataset useful for testing
+
+    This dataset should have one particle at the origin, one more particle
+    along the x axis, two along y, and three along z. All particles will
+    have non-overlapping smoothing regions with a radius of 0.25, masses of 1,
+    and densities of 1, and zero velocity.
+    """
+    from yt import load_particles
+
+    npart = 7
+
+    # one particle at the origin, one particle along x-axis, two along y,
+    # three along z
+    data = {
+        'particle_position_x': (
+            np.array([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 'cm'),
+        'particle_position_y': (
+            np.array([0.0, 0.0, 1.0, 2.0, 0.0, 0.0, 0.0]), 'cm'),
+        'particle_position_z': (
+            np.array([0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 3.0]), 'cm'),
+        'particle_mass': (np.ones(npart), 'g'),
+        'particle_velocity_x': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_y': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_z': (np.zeros(npart), 'cm/s'),
+        'smoothing_length': (0.25*np.ones(npart), 'cm'),
+        'density': (np.ones(npart), 'g/cm**3'),
+    }
+
+    bbox = np.array([[-4, 4], [-4, 4], [-4, 4]])
+
+    return load_particles(data=data, length_unit=1.0, bbox=bbox)
+
+
 def expand_keywords(keywords, full=False):
     """
     expand_keywords is a means for testing all possible keyword
