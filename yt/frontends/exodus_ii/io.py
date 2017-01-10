@@ -66,10 +66,11 @@ class IOHandlerExodusII(BaseIOHandler):
             ind = 0
             ftype, fname = field
             if ftype == "all":
+                mesh_ids = [i + 1 for i in range(len(chunks))]
                 objs = [chunk.objs[0] for chunk in chunks]
             else:
-                mesh_id = int(ftype[-1])
-                chunk = chunks[mesh_id - 1]
+                mesh_ids = [int(ftype[-1])]
+                chunk = chunks[mesh_ids[0] - 1]
                 objs = chunk.objs
             if fname in self.node_fields:
                 field_ind = self.node_fields.index(fname)
@@ -80,10 +81,10 @@ class IOHandlerExodusII(BaseIOHandler):
                     ind += g.select(selector, data, rv[field], ind)  # caches
             if fname in self.elem_fields:
                 field_ind = self.elem_fields.index(fname)
-                fdata = self.handler.variables['vals_elem_var%deb%s' %
-                                               (field_ind + 1, mesh_id)][:]
-                data = fdata[self.ds.step, :]
-                for g in chunk.objs:
+                for g, mesh_id in zip(objs, mesh_ids):
+                    fdata = self.handler.variables['vals_elem_var%deb%s' %
+                                                   (field_ind + 1, mesh_id)][:]
+                    data = fdata[self.ds.step, :]
                     ind += g.select(selector, data, rv[field], ind)  # caches
         return rv
 
