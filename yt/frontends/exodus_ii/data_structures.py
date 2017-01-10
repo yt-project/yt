@@ -161,12 +161,6 @@ class ExodusIIDataset(Dataset):
         self.default_field = [f for f in self.field_list 
                               if f[0] == 'connect1'][-1]
 
-        for mesh in self.index.meshes:
-            num_pseudo = get_num_pseudo_dims(mesh.connectivity_coords)
-            if (num_pseudo > 1 or self.dimensionality < 2):
-                raise RuntimeError("1D unstructured mesh data "
-                                   "are currently not supported.")
-
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
         # on-disk units.  These are the currently available quantities which
@@ -194,12 +188,6 @@ class ExodusIIDataset(Dataset):
         self.parameters['elem_names'] = self._get_elem_names()
         self.parameters['nod_names'] = self._get_nod_names()
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
-
-        # set up psuedo-3D for lodim datasets here
-        if self.dimensionality == 2:
-            self.domain_left_edge = np.append(self.domain_left_edge, 0.0)
-            self.domain_right_edge = np.append(self.domain_right_edge, 1.0)
-
         self.periodicity = (False, False, False)
 
         # These attributes don't really make sense for unstructured
@@ -370,6 +358,18 @@ class ExodusIIDataset(Dataset):
         width = ma - mi
         mi -= 0.1 * width
         ma += 0.1 * width
+
+        # set up pseudo-3D for lodim datasets here
+        for _ in range(self.dimensionality, 3):
+            mi = np.append(mi, 0.0)
+            ma = np.append(ma, 1.0)
+
+        num_pseudo_dims = get_num_pseudo_dims(coords)
+        self.dimensionality -= num_pseudo_dims
+        for i in range(self.dimensionality, 3):
+            mi[i] = 0.0
+            ma[i] = 1.0
+        
         return mi, ma
 
     @classmethod
