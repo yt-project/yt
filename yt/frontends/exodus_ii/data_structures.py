@@ -22,6 +22,7 @@ from yt.data_objects.unstructured_mesh import \
     UnstructuredMesh
 from yt.data_objects.static_output import \
     Dataset
+from yt.data_objects.unions import Union
 from .io import \
     NetCDF4FileHandler
 from yt.utilities.logger import ytLogger as mylog
@@ -56,6 +57,7 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
                                             displaced_coords,
                                             self)
             self.meshes.append(mesh)
+        self.mesh_union = Union("mesh_union", self.meshes)
 
     def _detect_output_fields(self):
         elem_names = self.dataset.parameters['elem_names']
