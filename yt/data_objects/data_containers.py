@@ -495,16 +495,16 @@ class YTDataContainer(object):
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export a data object to a reloadable yt dataset.
 
-        This function will take a data object and output a dataset
-        containing either the fields presently existing or fields
+        This function will take a data object and output a dataset 
+        containing either the fields presently existing or fields 
         given in the ``fields`` list.  The resulting dataset can be
         reloaded as a yt dataset.
 
         Parameters
         ----------
         filename : str, optional
-            The name of the file to be written.  If None, the name
-            will be a combination of the original dataset and the type
+            The name of the file to be written.  If None, the name 
+            will be a combination of the original dataset and the type 
             of data container.
         fields : list of string or tuple field names, optional
             If this is supplied, it is the list of fields to be saved to
@@ -1258,7 +1258,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return fields_to_get
 
     def get_data(self, fields=None):
-        # import pdb; pdb.set_trace()
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if fields is None: return
@@ -1320,7 +1319,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # need to be generated.
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
-        # import pdb; pdb.set_trace()
         for f, v in read_fluids.items():
             self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
@@ -1859,7 +1857,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-
+        
         vc_fields = [field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)

@@ -61,7 +61,6 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         elem_names = self.dataset.parameters['elem_names']
         node_names = self.dataset.parameters['nod_names']
         fnames = elem_names + node_names
-        # import pdb; pdb.set_trace()
         self.field_list = []
         for i in range(1, len(self.meshes)+1):
             self.field_list += [('connect%d' % i, fname) for fname in fnames]
@@ -373,18 +372,6 @@ class ExodusIIDataset(Dataset):
         width = ma - mi
         mi -= 0.1 * width
         ma += 0.1 * width
-
-        # set up pseudo-3D for lodim datasets here
-        for _ in range(self.dimensionality, 3):
-            mi = np.append(mi, 0.0)
-            ma = np.append(ma, 1.0)
-
-        num_pseudo_dims = get_num_pseudo_dims(coords)
-        self.dimensionality -= num_pseudo_dims
-        for i in range(self.dimensionality, 3):
-            mi[i] = 0.0
-            ma[i] = 1.0
-
         return mi, ma
 
     @classmethod

@@ -109,18 +109,6 @@ class OpaqueSource(RenderSource):
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
-    def set_field(self, field):
-        """Set the source's field to render
-
-        Parameters
-        ----------
-
-        field: field name
-            The field to render
-        """
-        self.field = field
-        return self
-
 
 class VolumeSource(RenderSource):
     """A class for rendering data from a volumetric data source
@@ -864,7 +852,7 @@ class PointSource(OpaqueSource):
                 radii = np.zeros(positions.shape[0], dtype='int64')
         else:
             assert(radii.ndim == 1)
-            assert(radii.shape[0] == positions.shape[0])
+            assert(radii.shape[0] == positions.shape[0]) 
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -906,7 +894,7 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-
+        
         zpoints(empty, z, px, py, dz, self.colors, self.radii, self.color_stride)
 
         self.zbuffer = zbuffer

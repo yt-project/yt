@@ -85,7 +85,6 @@ class IOHandlerExodusII(BaseIOHandler):
                 data = fdata[self.ds.step, :]
                 for g in chunk.objs:
                     ind += g.select(selector, data, rv[field], ind)  # caches
-        # import pdb; pdb.set_trace()
         return rv
 
     def _read_chunk_data(self, chunk, fields):

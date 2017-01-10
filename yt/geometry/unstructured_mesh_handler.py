@@ -60,7 +60,6 @@ class UnstructuredIndex(Index):
             dobj._chunk_info = self.meshes
         if getattr(dobj, "size", None) is None:
             dobj.size = self._count_selection(dobj)
-        # import pdb; pdb.set_trace()
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _count_selection(self, dobj, meshes = None):

@@ -81,7 +81,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
             offset = index.meshes[mesh_id]._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
-            import pdb; pdb.set_trace()
             buff_size = size[0:dimension] + (1,) + size[dimension:]
 
             ax = data_source.axis
