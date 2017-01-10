@@ -50,7 +50,7 @@ answer_tests:
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_007:
+  local_varia_008:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
@@ -58,6 +58,7 @@ answer_tests:
     - yt/visualization/volume_rendering/tests/test_vr_orientation.py
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
+    - yt/visualization/tests/test_mesh_slices.py:test_multi_region
 
   local_orion_001:
     - yt/frontends/boxlib/tests/test_orion.py
