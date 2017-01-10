@@ -154,6 +154,8 @@ class StreamParticleIOHandler(BaseIOHandler):
                 else:
                     hsml = 0
                 mask = selector.select_points(x, y, z, hsml)
+                if mask is None:
+                    continue
                 for field in field_list:
                     data = f[ptype, field][mask]
                     yield (ptype, field), data
