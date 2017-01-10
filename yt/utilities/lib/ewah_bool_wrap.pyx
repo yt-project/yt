@@ -861,6 +861,10 @@ cdef class BoolArrayCollection:
         ewah_refn[0].set(i1)
         ewah_coll[0][i1].set(i2)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
         cdef np.uint64_t i1
@@ -869,6 +873,10 @@ cdef class BoolArrayCollection:
                 ewah_keys[0].set(i1)
                 # self._set_coarse(i1)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
@@ -1539,6 +1547,10 @@ cdef class BoolArrayCollectionUncompressed:
         ewah_refn[i1] = 1
         ewah_coll[0][i1].set(i2)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint8_t[:] arr):
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
@@ -1549,6 +1561,10 @@ cdef class BoolArrayCollectionUncompressed:
             if arr[i1] == 1:
                 ewah_keys[i1] = 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_coarse_array_ptr(self, np.uint8_t *arr):
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
@@ -1560,6 +1576,10 @@ cdef class BoolArrayCollectionUncompressed:
             if arr[i1] == 1:
                 ewah_keys[i1] = 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
@@ -1572,6 +1592,10 @@ cdef class BoolArrayCollectionUncompressed:
                 ewah_refn[i1] = 1
                 ewah_coll[0][i1].set(i2)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef void _set_refined_array_ptr(self, np.uint64_t i1, np.uint8_t *arr):
         IF UncompressedFormat == 'MemoryView':
             cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
@@ -1579,10 +1603,11 @@ cdef class BoolArrayCollectionUncompressed:
             cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         cdef np.uint64_t i2
+        cdef ewah_bool_array barr = ewah_coll[0][i1]
         for i2 in range(self.nele2):
             if arr[i2] == 1:
                 ewah_refn[i1] = 1
-                ewah_coll[0][i1].set(i2)
+                barr.set(i2)
 
     cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2):
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
