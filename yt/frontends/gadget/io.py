@@ -74,6 +74,19 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
                 yield ptype, (x, y, z)
             f.close()
 
+    def _yield_coordinates(self, data_file):
+        f = h5py.File(data_file.filename)
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+        for key in f.keys():
+            if not key.startswith("PartType"): continue
+            if "Coordinates" not in f[key]: continue
+            ds = f[key]["Coordinates"]
+            dt = ds.dtype.newbyteorder("N") # Native
+            pos = np.empty(ds.shape, dtype=dt)
+            pos[:] = ds
+            yield pos
+        f.close()
+
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         data_files = set([])
