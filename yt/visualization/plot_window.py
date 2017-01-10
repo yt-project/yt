@@ -1037,7 +1037,7 @@ class PWViewerMPL(PlotWindow):
     @invalidate_plot
     def annotate_clear(self, index=None):
         """
-        Clear callbacks from the plot.  If index is not set, clear all
+        Clear callbacks from the plot.  If index is not set, clear all 
         callbacks.  If index is set, clear that index (ie 0 is the first one
         created, 1 is the 2nd one created, -1 is the last one created, etc.)
         """
@@ -1052,7 +1052,7 @@ class PWViewerMPL(PlotWindow):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f,
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
                                       self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
@@ -1070,8 +1070,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_colorbar(self, field=None):
         """
-        Hides the colorbar for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
+        Hides the colorbar for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
         PlotWindow object.
 
         Parameters
@@ -1111,8 +1111,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_colorbar(self, field=None):
         """
-        Shows the colorbar for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
+        Shows the colorbar for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
         PlotWindow object.  See hide_colorbar().
 
         Parameters
@@ -1130,8 +1130,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_axes(self, field=None):
         """
-        Hides the axes for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
+        Hides the axes for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
         PlotWindow object.
 
         Parameters
@@ -1169,8 +1169,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_axes(self, field=None):
         """
-        Shows the axes for a plot and updates the size of the
-        plot accordingly.  Defaults to operating on all fields for a
+        Shows the axes for a plot and updates the size of the 
+        plot accordingly.  Defaults to operating on all fields for a 
         PlotWindow object.  See hide_axes().
 
         Parameters
@@ -1435,7 +1435,7 @@ class ProjectionPlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are:
+         The method of projection.  Valid methods are: 
 
          "integrate" with no weight_field specified : integrate the requested
          field along the line of sight.
@@ -1484,7 +1484,7 @@ class ProjectionPlot(PWViewerMPL):
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        # proj_style is deprecated, but if someone specifies then it trumps
+        # proj_style is deprecated, but if someone specifies then it trumps 
         # method.
         if proj_style is not None:
             method = proj_style
@@ -1513,7 +1513,7 @@ class ProjectionPlot(PWViewerMPL):
                            field_parameters=field_parameters, method=method,
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             right_handed=right_handed, fontsize=fontsize, window_size=window_size,
+                             right_handed=right_handed, fontsize=fontsize, window_size=window_size, 
                              aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
