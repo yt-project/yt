@@ -140,6 +140,7 @@ class UnstructuredMesh(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
+        # import pdb; pdb.set_trace()
         dest[offset:offset+count] = source[mask, ...]
         return count
 
@@ -158,15 +159,16 @@ class UnstructuredMesh(YTSelectionContainer):
         return mask
 
     def _get_selector_mask(self, selector):
-        if hash(selector) == self._last_selector_id:
-            mask = self._last_mask
+        # if hash(selector) == self._last_selector_id:
+        #     mask = self._last_mask
+        # else:
+        # import pdb; pdb.set_trace()
+        self._last_mask = mask = selector.fill_mesh_cell_mask(self)
+        self._last_selector_id = hash(selector)
+        if mask is None:
+            self._last_count = 0
         else:
-            self._last_mask = mask = selector.fill_mesh_cell_mask(self)
-            self._last_selector_id = hash(selector)
-            if mask is None:
-                self._last_count = 0
-            else:
-                self._last_count = mask.sum()
+            self._last_count = mask.sum()
         return mask
 
     def select_fcoords_vertex(self, dobj = None):
@@ -234,4 +236,3 @@ class SemiStructuredMesh(UnstructuredMesh):
         # Note: this likely will not work with vector fields.
         dest[offset:offset+count] = source.flat[mask]
         return count
-

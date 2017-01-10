@@ -70,11 +70,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ftype, fname = field
             mesh_id = int(ftype[-1]) - 1
             mesh = index.meshes[mesh_id]
-            coords = mesh.connectivity_coords
-            indices = mesh.connectivity_indices
+            coords = index.meshes[0].connectivity_coords
+            indices = index.meshes[0].connectivity_indices
+            indices = np.concatenate((indices, index.meshes[1].connectivity_indices))
             offset = mesh._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
+            import pdb; pdb.set_trace()
             buff_size = size[0:dimension] + (1,) + size[dimension:]
 
             ax = data_source.axis

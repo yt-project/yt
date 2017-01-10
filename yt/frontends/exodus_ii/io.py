@@ -46,29 +46,40 @@ class IOHandlerExodusII(BaseIOHandler):
         # dict gets returned at the end and it should be flat, with selected
         # data.  Note that if you're reading grid data, you might need to
         # special-case a grid selector object.
-        chunks = list(chunks)
+        # chunks = list(chunks)
+        chunks = list(chunks)[0]
         rv = {}
         for field in fields:
             ftype, fname = field
-            ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
+            # ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
+            ci = self.handler.variables['connect1'][:] - self._INDEX_OFFSET
+            ci = np.concatenate((ci, self.handler.variables['connect2'][:] - self._INDEX_OFFSET))
             num_elem = ci.shape[0]
             if fname in self.node_fields:
                 nodes_per_element = ci.shape[1]
-                rv[field] = np.empty((num_elem, nodes_per_element), dtype="float64")
+                rv[field] = np.zeros((num_elem, nodes_per_element), dtype="float64")
             elif fname in self.elem_fields:
-                rv[field] = np.empty(num_elem, dtype="float64")
+                rv[field] = np.zeros(num_elem, dtype="float64")
         for field in fields:
             ind = 0
             ftype, fname = field
             mesh_id = int(ftype[-1])
-            chunk = chunks[mesh_id - 1]
-            ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
+            # import pdb; pdb.set_trace()
+            # chunk = chunks[mesh_id - 1]
+            # ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
+            chunk = chunks
+            ci = self.handler.variables['connect1'][:] - self._INDEX_OFFSET
+            ci = np.concatenate((ci, self.handler.variables['connect2'][:] - self._INDEX_OFFSET))
             if fname in self.node_fields:
                 field_ind = self.node_fields.index(fname)
                 fdata = self.handler.variables['vals_nod_var%d' % (field_ind + 1)]
                 data = fdata[self.ds.step][ci]
-                for g in chunk.objs:
-                    ind += g.select(selector, data, rv[field], ind)  # caches
+                # for g in chunk.objs:
+                #     ind += g.select(selector, data, rv[field], ind)  # caches
+                ind += chunk.objs[0].select(selector, data[:50, ...], rv[field], ind)  # caches
+                ind += chunk.objs[1].select(selector, data[50:, ...], rv[field], ind)
+                # ind += chunk.objs[0].select(selector, data[:50, ...], rv[field][:50, ...], ind)  # caches
+                # ind += chunk.objs[1].select(selector, data[50:, ...], rv[field][50:, ...], ind)
             if fname in self.elem_fields:
                 field_ind = self.elem_fields.index(fname)
                 fdata = self.handler.variables['vals_elem_var%deb%s' %
@@ -76,6 +87,7 @@ class IOHandlerExodusII(BaseIOHandler):
                 data = fdata[self.ds.step, :]
                 for g in chunk.objs:
                     ind += g.select(selector, data, rv[field], ind)  # caches
+        # import pdb; pdb.set_trace()
         return rv
 
     def _read_chunk_data(self, chunk, fields):
