@@ -239,8 +239,7 @@ class Index(ParallelAnalysisInterface):
         else:
             chunk_size = chunk.data_size
         fields_to_return = self.io._read_fluid_selection(
-            # self._chunk_io(dobj),
-            self._chunk_all(dobj),
+            self._chunk_io(dobj),
             selector,
             fields_to_read,
             chunk_size)
