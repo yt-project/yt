@@ -104,8 +104,13 @@ from yt.units.yt_array import \
     YTArray, \
     YTQuantity, \
     uconcatenate, \
+    ucross, \
     uintersect1d, \
     uunion1d, \
+    unorm, \
+    udot, \
+    uvstack, \
+    uhstack, \
     loadtxt, \
     savetxt
 
