@@ -137,10 +137,9 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef void visit_free(self, Oct *o):
         #Free the memory for this oct recursively
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit_free(o.children[cind(i,j,k)])
@@ -157,11 +156,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     cdef void visit_clear(self, Oct *o):
         #Free the memory for this oct recursively
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         o.file_ind = 0
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit_clear(o.children[cind(i,j,k)])
@@ -202,13 +200,12 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
     cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level):
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         self.oct_list[lpos[0]] = o
         lpos[0] += 1
         max_level[0] = imax(max_level[0], level)
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit_assign(o.children[cind(i,j,k)], lpos,
@@ -290,14 +287,13 @@ cdef class ParticleOctreeContainer(OctreeContainer):
         #Attach particles to child octs
         #Remove particles from this oct entirely
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         cdef int ind[3]
         cdef Oct *noct
         # TODO: This does not need to be changed.
         o.children = <Oct **> malloc(sizeof(Oct *)*8)
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     noct = self.allocate_oct()
                     noct.domain = o.domain
                     noct.file_ind = 0
@@ -344,11 +340,10 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
     cdef visit(self, Oct *o, np.int64_t *counts, level = 0):
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         counts[level] += 1
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit(o.children[cind(i,j,k)], counts, level + 1)
@@ -438,15 +433,14 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
 cdef void _mask_children(np.ndarray[np.uint8_t] mask, Oct *cur):
     cdef int i, j, k
-    cdef list loop = list(range(2))
     if cur == NULL:
         return
     mask[cur.domain_ind] = 1
     if cur.children == NULL:
         return
-    for i in loop:
-        for j in loop:
-            for k in loop:
+    for i in range(2):
+        for j in range(2):
+            for k in range(2):
                 _mask_children(mask, cur.children[cind(i,j,k)])
 
 ctypedef fused anyfloat:
@@ -1256,7 +1250,7 @@ cdef class ParticleBitmap:
         cdef list addfile_idx
         # Get bitmask for selector
         cdef ParticleBitmapSelector morton_selector
-        morton_selector = ParticleBitmapSelector(selector,self,ngz=0)
+        morton_selector = ParticleBitmapSelector(selector, self, ngz=0)
         morton_selector.fill_masks(cmask)
         # Get bitmasks for parts of files touching the selector
         file_idx = self.mask_to_files(cmask)
@@ -2129,7 +2123,6 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
         cdef int i, j, k, m, sbbox
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         for i in range(3):
             ndds[i] = dds[i]/2
         nlevel = level + 1
@@ -2140,13 +2133,13 @@ cdef class ParticleBitmapSelector:
             self.refined_select_list._prune()
             self.refined_ghosts_list._prune()
         # Loop over octs
-        for i in loop:
+        for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
             rpos[0] = npos[0] + ndds[0]
-            for j in loop:
+            for j in range(2):
                 npos[1] = pos[1] + j*ndds[1]
                 rpos[1] = npos[1] + ndds[1]
-                for k in loop:
+                for k in range(2):
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
                     # Only recurse into selected cells
@@ -2206,18 +2199,17 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
         cdef int i, j, k, m
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         for i in range(3):
             ndds[i] = dds[i]/2
         nlevel = level + 1
         # Loop over octs
-        for i in loop:
+        for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
             rpos[0] = npos[0] + ndds[0]
-            for j in loop:
+            for j in range(2):
                 npos[1] = pos[1] + j*ndds[1]
                 rpos[1] = npos[1] + ndds[1]
-                for k in loop:
+                for k in range(2):
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
                     # Only recurse into selected cells
@@ -2335,7 +2327,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level,
                       np.int64_t index_root):
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         IF InclPartialOcts == 1:
             self.oct_list[lpos[0]] = o
             self._index_base_octs[lpos[0]] = self._index_base_roots[index_root]
@@ -2346,9 +2337,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
                 self._index_base_octs[lpos[0]] = self._index_base_roots[index_root]
                 lpos[0] += 1
         max_level[0] = imax(max_level[0], level)
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit_assign(o.children[cind(i,j,k)], lpos,
@@ -2408,10 +2399,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef void visit_free(self, Oct *o, int free_this):
         #Free the memory for this oct recursively
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     if o.children != NULL \
                        and o.children[cind(i,j,k)] != NULL:
                         self.visit_free(o.children[cind(i,j,k)], 1)
@@ -2480,7 +2470,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef np.int64_t no = indices.shape[0], beg, end, nind
         cdef np.int64_t index
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         cdef int ind[3]
         cdef Oct *noct
         cdef Oct *noct_ch
@@ -2489,9 +2478,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         # Initialize children
         if o.children == NULL:
             o.children = <Oct **> malloc(sizeof(Oct *)*8)
-            for i in loop:
-                for j in loop:
-                    for k in loop:
+            for i in range(2):
+                for j in range(2):
+                    for k in range(2):
                         IF InclPartialOcts == 1:
                             noct = self.allocate_oct()
                             noct.domain = o.domain
@@ -2599,7 +2588,6 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         #Attach particles to child octs
         #Remove particles from this oct entirely
         cdef int i, j, k
-        cdef np.ndarray[np.int32_t] loop = np.arange(2).astype('int32')
         cdef int ind[3]
         cdef Oct *noct
         
@@ -2608,9 +2596,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             o.children = <Oct **> malloc(sizeof(Oct *)*8)
 
         # This version can be used to just add the child containing the index
-        #     for i in loop:
-        #         for j in loop:
-        #             for k in loop:
+        #     for i in range(2):
+        #         for j in range(2):
+        #             for k in range(2):
         #                 o.children[cind(i,j,k)] = NULL
         # # Only allocate and count the indexed oct
         # for i in range(3):
@@ -2623,9 +2611,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         # o.file_ind = self.n_ref + 1
 
 
-        for i in loop:
-            for j in loop:
-                for k in loop:
+        for i in range(2):
+            for j in range(2):
+                for k in range(2):
                     noct = self.allocate_oct()
                     noct.domain = o.domain
                     noct.file_ind = 0
