@@ -263,6 +263,16 @@ class DerivedField(object):
         data_label += r"$"
         return data_label
 
+    @property
+    def alias_field(self):
+        if PY2:
+            func_name = self._function.func_name
+        else:
+            func_name = self._function.__name__
+        if func_name == "_TranslationFunc":
+            return True
+        return False
+
     def __repr__(self):
         if PY2:
             func_name = self._function.func_name

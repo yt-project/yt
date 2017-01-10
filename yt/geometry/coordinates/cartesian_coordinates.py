@@ -139,6 +139,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
         from yt.frontends.sph.data_structures import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
         from yt.data_objects.selection_data_containers import \
             YTSlice
         from yt.data_objects.construction_data_containers import \
@@ -150,7 +151,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
         buff = np.zeros((size[1], size[0]), dtype="f8")
-        if isinstance(data_source.ds, ParticleDataset) and field[0] == 'gas':
+        particle_datasets = (ParticleDataset, StreamParticlesDataset)
+        if isinstance(data_source.ds, particle_datasets) and field[0] == 'gas':
             ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
@@ -183,7 +185,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     data_source[ptype, 'particle_mass'],
                     data_source[ptype, 'density'],
                     data_source[ptype, 'density'].in_units(ounits),
-                    size[0], size[1], bounds).transpose()
+                    size[0], size[1], bounds,
+                    use_normalization=False).transpose()
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "

@@ -550,10 +550,11 @@ class YTInvalidFieldType(YTException):
         self.fields = fields
 
     def __str__(self):
-        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can only "
-               "plot fields that\n"
-               "are defined on a mesh, but received the following particle "
-               "fields:\n\n"
+        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can "
+               "only plot fields that\n"
+               "are defined on a mesh or for SPH particles, but received the "
+               "following N-body\n"
+               "particle fields:\n\n"
                "    %s\n\n"
                "Did you mean to use ParticlePlot or plot a deposited particle "
                "field instead?" % self.fields)
