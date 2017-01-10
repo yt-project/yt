@@ -128,7 +128,7 @@ class BaseIOHandler(object):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
             psize[ptype] += selector.count_points(x, y, z, 0.0)
-        return dict(psize)
+        return psize
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
