@@ -64,6 +64,18 @@ dataset you could:
        print("(%f,  %f,  %f)    %f" %
              (sp["x"][i], sp["y"][i], sp["z"][i], sp["temperature"][i]))
 
+Data objects can also be cloned; for instance:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("RedshiftOutput0005")
+   sp = ds.sphere([0.5, 0.5, 0.5], (1, 'kpc'))
+   sp_copy = sp.clone()
+
+This can be useful for when manually chunking data or exploring different field
+parameters.
+
 .. _quickly-selecting-data:
 
 Slicing Syntax for Selecting Data
@@ -130,6 +142,16 @@ geographic dataset (which is usually ordered latitude, longitude, altitude) you
 can easily select, for instance, one hemisphere with a region selection:::
 
    ds.r[:,-180:0,:]
+
+If you specify a single slice, it will be repeated along all three dimensions.
+For instance, this will give all data:::
+
+   ds.r[:]
+
+And this will select a box running from 0.4 to 0.6 along all three
+dimensions:::
+
+   ds.r[0.4:0.6]
 
 Selecting Fixed Resolution Regions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -302,9 +324,12 @@ See also the section on :ref:`filtering-data`.
     | easily lead to empty data for non-intersecting regions.
     | Usage: ``slice(axis, coord, ds, data_source=sph)``
 
-**Boolean Regions**
-    | **Note: not yet implemented in yt 3.0**
-    | Usage: ``boolean()``
+**Union Regions**
+    | Usage: ``union()``
+    | See :ref:`boolean_data_objects`.
+
+**Intersection Regions**
+    | Usage: ``intersection()``
     | See :ref:`boolean_data_objects`.
 
 **Filter**
@@ -604,37 +629,48 @@ inappropriate for some types of analysis.
 Combining Objects: Boolean Data Objects
 ---------------------------------------
 
-.. note:: Boolean Data Objects have not yet been ported to yt 3.0 from
-    yt 2.x.  If you are interested in aiding in this port, please contact
-    the yt-dev mailing list.  Until it is ported, this functionality below
-    will not work.
+A special type of data object is the *boolean* data object, which works with
+data selection objects of any dimension.  It is built by relating already existing
+data objects with the bitwise operators for AND, OR and XOR, as well as the
+subtraction operator.  These are created by using the operators ``&`` for an
+intersection ("AND"), ``|`` for a union ("OR"), ``^`` for an exclusive or
+("XOR"), and ``+`` and ``-`` for addition ("OR") and subtraction ("NEG").
+Here are some examples:
 
-A special type of data object is the *boolean* data object.
-It works only on three-dimensional objects.
-It is built by relating already existing data objects with boolean operators.
-The boolean logic may be nested using parentheses, and
-it supports the standard "AND", "OR", and "NOT" operators:
+.. code-block:: python
 
-* **"AND"** When two data objects are related with an "AND", the combined
-  data object is the volume of the simulation covered by both objects, and
-  not by just a single object.
-* **"OR"** When two data objects are related with an "OR", the combined
-  data object is the volume(s) of the simulation covered by either of the
-  objects.
-  For example, this may be used to combine disjoint objects into one.
-* **"NOT"** When two data objects are related with a "NOT", the combined
-  data object is the volume of the first object that the second does not
-  cover.
-  For example, this may be used to cut out part(s) of the first data object
-  utilizing the second data object.
-* **"(" or ")"** Nested logic is surrounded by parentheses. The order of
-  operations is such that the boolean logic is evaluated inside the
-  inner-most parentheses, first, then goes upwards.
-  The logic is read left-to-right at all levels (crucial for the "NOT"
-  operator).
+   import yt
+   ds = yt.load("snapshot_010.hdf5")
 
-Please see the :ref:`cookbook` for some examples of how to use the boolean
-data object.
+   sp1 = ds.sphere("c", (0.1, "unitary"))
+   sp2 = ds.sphere(sp1.center + 2.0 * sp1.radius, (0.2, "unitary"))
+   sp3 = ds.sphere("c", (0.05, "unitary"))
+
+   new_obj = sp1 + sp2
+   cutout = sp1 - sp3
+   sp4 = sp1 ^ sp2
+   sp5 = sp1 & sp2
+   
+
+Note that the ``+`` operation and the ``|`` operation are identical.  For when
+multiple objects are to be combined in an intersection or a union, there are
+the data objects ``intersection`` and ``union`` which can be called, and which
+will yield slightly higher performance than a sequence of calls to ``+`` or
+``&``.  For instance:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("Enzo_64/DD0043/data0043")
+   sp1 = ds.sphere( (0.1, 0.2, 0.3), (0.05, "unitary"))
+   sp2 = ds.sphere( (0.2, 0.2, 0.3), (0.10, "unitary"))
+   sp3 = ds.sphere( (0.3, 0.2, 0.3), (0.15, "unitary"))
+
+   isp = ds.intersection( [sp1, sp2, sp3] )
+   usp = ds.union( [sp1, sp2, sp3] )
+
+The ``isp`` and ``usp`` objects will act the same as a set of chained ``&`` and
+``|`` operations (respectively) but are somewhat easier to construct.
 
 .. _extracting-connected-sets:
 

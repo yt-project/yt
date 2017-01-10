@@ -14,6 +14,8 @@ Exodus II data structures
 #-----------------------------------------------------------------------------
 import numpy as np
 
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
 from yt.data_objects.unstructured_mesh import \
@@ -26,7 +28,9 @@ from yt.utilities.logger import ytLogger as mylog
 from .fields import \
     ExodusIIFieldInfo
 from .util import \
-    load_info_records, sanitize_string
+    load_info_records, \
+    sanitize_string, \
+    get_num_pseudo_dims
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
@@ -154,7 +158,8 @@ class ExodusIIDataset(Dataset):
                                               units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
-        self.default_field = ("connect1", "diffused")
+        self.default_field = [f for f in self.field_list 
+                              if f[0] == 'connect1'][-1]
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -162,9 +167,9 @@ class ExodusIIDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
@@ -183,12 +188,6 @@ class ExodusIIDataset(Dataset):
         self.parameters['elem_names'] = self._get_elem_names()
         self.parameters['nod_names'] = self._get_nod_names()
         self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
-
-        # set up psuedo-3D for lodim datasets here
-        if self.dimensionality == 2:
-            self.domain_left_edge = np.append(self.domain_left_edge, 0.0)
-            self.domain_right_edge = np.append(self.domain_right_edge, 1.0)
-
         self.periodicity = (False, False, False)
 
         # These attributes don't really make sense for unstructured
@@ -359,6 +358,18 @@ class ExodusIIDataset(Dataset):
         width = ma - mi
         mi -= 0.1 * width
         ma += 0.1 * width
+
+        # set up pseudo-3D for lodim datasets here
+        for _ in range(self.dimensionality, 3):
+            mi = np.append(mi, 0.0)
+            ma = np.append(ma, 1.0)
+
+        num_pseudo_dims = get_num_pseudo_dims(coords)
+        self.dimensionality -= num_pseudo_dims
+        for i in range(self.dimensionality, 3):
+            mi[i] = 0.0
+            ma[i] = 1.0
+        
         return mi, ma
 
     @classmethod

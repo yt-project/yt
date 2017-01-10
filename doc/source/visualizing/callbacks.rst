@@ -278,17 +278,17 @@ Overplot Grids
 Overplot Cell Edges
 ~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_cell_edges(line_width=1.0, alpha = 1.0,
-                                  color = (0.0, 0.0, 0.0))
+.. function:: annotate_cell_edges(line_width=0.002, alpha=1.0, color='black')
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CellEdgesCallback`.)
 
-    Annotate the edges of cells, where the ``line_width`` in pixels is specified.
-    The ``alpha`` of the overlaid image and the ``color`` of the lines are also
-    specifiable.  Note that because the lines are drawn from both sides of a
-    cell, the image sometimes has the effect of doubling the line width.
-    Color here is in RGB float values (0 to 1).
+    Annotate the edges of cells, where the ``line_width`` relative to size of
+    the longest plot axis is specified.  The ``alpha`` of the overlaid image and
+    the ``color`` of the lines are also specifiable.  Note that because the
+    lines are drawn from both sides of a cell, the image sometimes has the
+    effect of doubling the line width.  Color here is a matplotlib color name or
+    a 3-tuple of RGB float values.
 
 .. python-script::
 
@@ -691,6 +691,28 @@ Annotate Triangle Facets Callback
    # Annotate slice-triangle intersection contours to the plot
    s.annotate_triangle_facets(points, plot_args={"colors": 'black'})
    s.save()
+
+.. _annotate-mesh-lines:
+
+Annotate Mesh Lines Callback
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: annotate_mesh_lines(plot_args=None)
+
+   (This is a proxy for
+   :class:`~yt.visualization.plot_modifications.MeshLinesCallback`.)
+
+   This draws the mesh line boundaries over a plot using a Matplotlib
+   line collection. This callback is only useful for unstructured or 
+   semi-structured mesh datasets. 
+
+.. python-script::
+
+   import yt
+   ds = yt.load('MOOSE_sample_data/out.e')
+   sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.annotate_mesh_lines(plot_args={'color':'black'})
+   sl.save()
 
 .. _annotate-ray:
 

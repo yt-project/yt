@@ -26,6 +26,8 @@ from yt.units.dimensions import \
     base_dimensions, temperature, \
     dimensionless, current_mks, \
     angle
+from yt.units.equivalencies import \
+    equivalence_registry
 from yt.units.unit_lookup_table import \
     unit_prefixes, prefixable_units, latex_prefixes, \
     default_base_units
@@ -110,8 +112,35 @@ def get_latex_representation(expr, registry):
             symbol_table[ex] = registry.lut[str(ex)][3]
         except:
             symbol_table[ex] = r"\rm{" + str(ex).replace('_', '\ ') + "}"
+
+    # invert the symbol table dict to look for keys with identical values
+    invert_symbols = {}
+    for key, value in symbol_table.items():
+        if value not in invert_symbols:
+            invert_symbols[value] = [key]
+        else:
+            invert_symbols[value].append(key)
+
+    # if there are any units with identical latex representations, substitute
+    # units to avoid  uncanceled terms in the final latex expresion.
+    for val in invert_symbols:
+        symbols = invert_symbols[val]
+        for i in range(1, len(symbols)):
+            expr = expr.subs(symbols[i], symbols[0])
+    prefix = None
+    if isinstance(expr, Mul):
+        coeffs = expr.as_coeff_Mul()
+        if coeffs[0] == 1 or not isinstance(coeffs[0], Float):
+            pass
+        else:
+            expr = coeffs[1]
+            prefix = Float(coeffs[0], 2)
     latex_repr = latex(expr, symbol_names=symbol_table, mul_symbol="dot",
                        fold_frac_powers=True, fold_short_frac=True)
+
+    if prefix is not None:
+        latex_repr = latex(prefix, mul_symbol="times") + '\\ ' + latex_repr
+
     if latex_repr == '1':
         return ''
     else:
@@ -258,7 +287,11 @@ class Unit(Expr):
     def latex_repr(self):
         if self._latex_repr is not None:
             return self._latex_repr
-        self._latex_repr = get_latex_representation(self.expr, self.registry)
+        if self.expr.is_Atom:
+            expr = self.expr
+        else:
+            expr = self.expr.copy()
+        self._latex_repr = get_latex_representation(expr, self.registry)
         return self._latex_repr
 
     ### Some sympy conventions
@@ -366,8 +399,12 @@ class Unit(Expr):
         """ Test unit inequality. """
         if not isinstance(u, Unit):
             return True
-        return \
-          (self.base_value != u.base_value or self.dimensions != u.dimensions)
+        if self.base_value != u.base_value:
+            return True
+        # use 'is' comparison dimensions to avoid expensive sympy operation
+        if self.dimensions is u.dimensions:
+            return False
+        return self.dimensions != u.dimensions
 
     def copy(self):
         return copy.deepcopy(self)
@@ -389,11 +426,14 @@ class Unit(Expr):
 
     def same_dimensions_as(self, other_unit):
         """ Test if dimensions are the same. """
+        # test first for 'is' equality to avoid expensive sympy operation
+        if self.dimensions is other_unit.dimensions:
+            return True
         return (self.dimensions / other_unit.dimensions) == sympy_one
 
     @property
     def is_dimensionless(self):
-        return self.dimensions == sympy_one
+        return self.dimensions is sympy_one
 
     @property
     def is_code_unit(self):
@@ -403,6 +443,25 @@ class Unit(Expr):
             else:
                 return False
         return True
+
+    def list_equivalencies(self):
+        """
+        Lists the possible equivalencies associated with this unit object
+        """
+        for k, v in equivalence_registry.items():
+            if self.has_equivalent(k):
+                print(v())
+
+    def has_equivalent(self, equiv):
+        """
+        Check to see if this unit object as an equivalent unit in *equiv*.
+        """
+        try:
+            this_equiv = equivalence_registry[equiv]()
+        except KeyError:
+            raise KeyError("No such equivalence \"%s\"." % equiv)
+        old_dims = self.dimensions
+        return old_dims in this_equiv.dims
 
     def get_base_equivalent(self, unit_system="cgs"):
         """
@@ -624,6 +683,8 @@ def _get_system_unit_string(dimensions, base_units):
     my_dims = dimensions.expand()
     if my_dims is dimensionless:
         return ""
+    if my_dims in base_units:
+        return base_units[my_dims]
     for factor in my_dims.as_ordered_factors():
         dim = list(factor.free_symbols)[0]
         unit_string = str(base_units[dim])
@@ -633,3 +694,46 @@ def _get_system_unit_string(dimensions, base_units):
             power_string = ""
         units.append("(%s)%s" % (unit_string, power_string))
     return " * ".join(units)
+
+def _define_unit(registry, symbol, value, tex_repr=None, offset=None, prefixable=False):
+    from yt.units.yt_array import YTQuantity, iterable
+    if symbol in registry:
+        raise RuntimeError("The symbol \"%s\" is already in the unit registry!" % symbol)
+    if not isinstance(value, YTQuantity):
+        if iterable(value) and len(value) == 2:
+            value = YTQuantity(value[0], value[1])
+        else:
+            raise RuntimeError("\"value\" needs to be a (value, unit) tuple!")
+    base_value = float(value.in_base(unit_system='cgs-ampere'))
+    dimensions = value.units.dimensions
+    registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
+    if prefixable:
+        prefixable_units.append(symbol)
+
+def define_unit(symbol, value, tex_repr=None, offset=None, prefixable=False):
+    """
+    Define a new unit and add it to the default unit registry.
+
+    Parameters
+    ----------
+    symbol : string
+        The symbol for the new unit.
+    value : (value, unit) tuple or YTQuantity
+        The definition of the new unit in terms of some other units. For example,
+        one would define a new "mph" unit with (1.0, "mile/hr") 
+    tex_repr : string, optional
+        The LaTeX representation of the new unit. If one is not supplied, it will
+        be generated automatically based on the symbol string.
+    offset : float, optional
+        The default offset for the unit. If not set, an offset of 0 is assumed.
+    prefixable : boolean, optional
+        Whether or not the new unit can use SI prefixes. Default: False
+
+    Examples
+    --------
+    >>> yt.define_unit("mph", (1.0, "mile/hr"))
+    >>> two_weeks = YTQuantity(14.0, "days")
+    >>> yt.define_unit("fortnight", two_weeks)
+    """
+    _define_unit(default_unit_registry, symbol, value, tex_repr=tex_repr, 
+                 offset=offset, prefixable=prefixable)

@@ -28,7 +28,8 @@ from yt.extern.six.moves import zip as izip
 from yt.funcs import \
     ensure_list, \
     ensure_tuple, \
-    get_pbar
+    get_pbar, \
+    setdefaultattr
 from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -275,7 +276,7 @@ class EnzoHierarchy(GridIndex):
             version = float(params["Internal"]["Provenance"]["VersionNumber"])
         if version >= 3.0:
             active_particles = True
-            nap = dict((ap_type, []) for ap_type in 
+            nap = dict((ap_type, []) for ap_type in
                 params["Physics"]["ActiveParticles"]["ActiveParticlesEnabled"])
         else:
             if "AppendActiveParticleType" in self.parameters:
@@ -424,7 +425,7 @@ class EnzoHierarchy(GridIndex):
             for apt in aps:
                 dd = field._copy_def()
                 dd.pop("name")
-                self.ds.field_info.add_field((apt, fname), **dd)
+                self.ds.field_info.add_field((apt, fname), sampling_type="cell", **dd)
 
     def _detect_output_fields(self):
         self.field_list = []
@@ -444,6 +445,16 @@ class EnzoHierarchy(GridIndex):
             if "AppendActiveParticleType" in self.dataset.parameters:
                 ap_fields = self._detect_active_particle_fields()
                 field_list = list(set(field_list).union(ap_fields))
+                if not any(f[0] == 'io' for f in field_list):
+                    if 'io' in self.dataset.particle_types_raw:
+                        ptypes_raw = list(self.dataset.particle_types_raw)
+                        ptypes_raw.remove('io')
+                        self.dataset.particle_types_raw = tuple(ptypes_raw)
+
+                    if 'io' in self.dataset.particle_types:
+                        ptypes = list(self.dataset.particle_types)
+                        ptypes.remove('io')
+                        self.dataset.particle_types = tuple(ptypes)
             ptypes = self.dataset.particle_types
             ptypes_raw = self.dataset.particle_types_raw
         else:
@@ -472,6 +483,15 @@ class EnzoHierarchy(GridIndex):
         else:
             random_sample = np.mgrid[0:max(len(self.grids),1)].astype("int32")
         return self.grids[(random_sample,)]
+
+    def _get_particle_type_counts(self):
+        try:
+            ret = {}
+            for ptype in self.grid_active_particle_count:
+                ret[ptype] = self.grid_active_particle_count[ptype].sum()
+            return ret
+        except AttributeError:
+            return super(EnzoHierarchy, self)._get_particle_type_counts()
 
     def find_particles_by_type(self, ptype, max_num=None, additional_fields=None):
         """
@@ -741,7 +761,7 @@ class EnzoDataset(Dataset):
         """
         # Let's read the file
         with open(self.parameter_filename, "r") as f:
-            line = f.readline().strip() 
+            line = f.readline().strip()
             f.seek(0)
             if line == "Internal:":
                 self._parse_enzo3_parameter_file(f)
@@ -898,11 +918,12 @@ class EnzoDataset(Dataset):
             if box_size is None:
                 box_size = self.parameters["Physics"]["Cosmology"]\
                     ["CosmologyComovingBoxSize"]
-            self.length_unit = self.quan(box_size, "Mpccm/h")
-            self.mass_unit = \
-                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3
-            self.time_unit = self.quan(k['utim'], 's')
-            self.velocity_unit = self.quan(k['uvel'], 'cm/s')
+            setdefaultattr(self, 'length_unit', self.quan(box_size, "Mpccm/h"))
+            setdefaultattr(
+                self, 'mass_unit',
+                self.quan(k['urho'], 'g/cm**3') * (self.length_unit.in_cgs())**3)
+            setdefaultattr(self, 'time_unit', self.quan(k['utim'], 's'))
+            setdefaultattr(self, 'velocity_unit', self.quan(k['uvel'], 'cm/s'))
         else:
             if "LengthUnits" in self.parameters:
                 length_unit = self.parameters["LengthUnits"]
@@ -918,15 +939,16 @@ class EnzoDataset(Dataset):
                 mylog.warning("Setting 1.0 in code units to be 1.0 s")
                 length_unit = mass_unit = time_unit = 1.0
 
-            self.length_unit = self.quan(length_unit, "cm")
-            self.mass_unit = self.quan(mass_unit, "g")
-            self.time_unit = self.quan(time_unit, "s")
-            self.velocity_unit = self.length_unit / self.time_unit
+            setdefaultattr(self, 'length_unit', self.quan(length_unit, "cm"))
+            setdefaultattr(self, 'mass_unit', self.quan(mass_unit, "g"))
+            setdefaultattr(self, 'time_unit', self.quan(time_unit, "s"))
+            setdefaultattr(
+                self, 'velocity_unit', self.length_unit / self.time_unit)
 
         magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
                                 (self.time_unit**2 * self.length_unit))
         magnetic_unit = np.float64(magnetic_unit.in_cgs())
-        self.magnetic_unit = self.quan(magnetic_unit, "gauss")
+        setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
 
     def cosmology_get_units(self):
         """
@@ -1077,4 +1099,3 @@ def rlines(f, keepends=False):
             for line in lines:
                 yield line
     yield buf  # First line.
-

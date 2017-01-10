@@ -8,6 +8,21 @@ matplotlib colormaps as well for nearly all functions.  Individual
 visualization functions usually allow you to specify a colormap with the
 ``cmap`` flag.
 
+In yt 3.3, we changed the default yt colormap from ``algae`` to ``arbre``.
+This colormap was designed and voted on by the yt community and is designed to
+be easier for people with different color sensitivities as well as when printed
+in black and white.  In 3.3, additional colormaps ``dusk``, ``kelp`` and
+``octarine`` were also added, following the same guidelines.  For a deeper dive
+into colormaps, see the SciPy 2015 talk by Stéfan van der Walt and Nathaniel
+Smith about the new matplotlib colormap ``viridis`` at
+https://www.youtube.com/watch?v=xAoljeRJ3lU .
+
+To specify a different default colormap (including ``viridis``), in your yt
+configuration file (see :ref:`configuration-file`) you can set the value
+``default_colormap`` to the name of the colormap you would like.  In contrast
+to previous versions of yt, starting in 3.3 yt no longer overrides any
+matplotlib defaults and instead only applies the colormap to yt-produced plots.
+
 .. _install-palettable:
 
 Palettable and ColorBrewer2
@@ -34,6 +49,25 @@ example ``('RdBu', 'Diverging', 9)``.  These discrete colormaps will
 not be interpolated, and can be useful for creating
 colorblind/printer/grayscale-friendly plots. For more information, visit
 `http://colorbrewer2.org <http://colorbrewer2.org>`_.
+
+.. _cmocean-cmaps:
+
+Colormaps from cmocean
+~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to ``palettable``, yt will also import colormaps defined in the
+`cmocean <http://matplotlib.org/cmocean>`_ package. These colormaps are
+`perceptually uniform <http://bids.github.io/colormap/>`_ and were originally
+designed for oceanography applications, but can be used for any kind of plots.
+
+Since ``cmocean`` is not installed as a dependency of yt by default, it must be
+installed separately to access the ``cmocean`` colormaps with yt. The easiest
+way to install ``cmocean`` is via ``pip``: ``pip install cmocean``.  To access
+the colormaps in yt, simply specify the name of the ``cmocean`` colormap in any
+context where you would specify a colormap. One caveat is the ``cmocean``
+colormap ``algae``. Since yt already defines a colormap named ``algae``, the
+``cmocean`` version of ``algae`` must be specified with the name
+``algae_cmocean``.
 
 .. _custom-colormaps:
 

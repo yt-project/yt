@@ -40,6 +40,9 @@ from yt.data_objects.static_output import \
     ParticleFile
 from yt.extern.six import \
     string_types
+from yt.funcs import \
+    is_root, \
+    parse_h5_attr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -54,6 +57,8 @@ from yt.utilities.on_demand_imports import \
     _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.utilities.tree_container import \
+    TreeContainer
 from yt.fields.field_exceptions import \
     NeedsGridType
 from yt.data_objects.data_containers import \
@@ -63,27 +68,18 @@ _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
-def parse_h5_attr(f, attr):
-    val = f.attrs.get(attr, None)
-    if isinstance(val, bytes):
-        return val.decode('utf8')
-    else:
-        return val
-
 class YTDataset(Dataset):
     """Base dataset class for all ytdata datasets."""
     def _parse_parameter_file(self):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
             for key in f.attrs.keys():
-                v = f.attrs[key]
-                if isinstance(v, bytes):
-                    v = v.decode("utf8")
+                v = parse_h5_attr(f, key)
                 if key == "con_args":
                     v = v.astype("str")
                 self.parameters[key] = v
             self.num_particles = \
-              dict([(group, f[group].attrs["num_elements"])
+              dict([(group, parse_h5_attr(f[group], "num_elements"))
                     for group in f if group != self.default_fluid_type])
         for attr in ["cosmological_simulation", "current_time", "current_redshift",
                      "hubble_constant", "omega_matter", "omega_lambda",
@@ -144,7 +140,7 @@ class YTDataset(Dataset):
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
-            self.header = dict((field, f.attrs[field]) \
+            self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
         super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
@@ -194,8 +190,10 @@ class YTDataContainerDataset(YTDataset):
 
         # Some data containers can't be recontructed in the same way
         # since this is now particle-like data.
-        if self.parameters["container_type"] in \
-          ["cutting", "proj", "ray", "slice"]:
+        data_type = self.parameters["data_type"]
+        container_type = self.parameters["container_type"]
+        ex_container_type = ["cutting", "proj", "ray", "slice"]
+        if data_type == "yt_light_ray" or container_type in ex_container_type:
             mylog.info("Returning an all_data data container.")
             return self.all_data()
 
@@ -220,10 +218,55 @@ class YTDataContainerDataset(YTDataset):
             cont_type = parse_h5_attr(f, "container_type")
             if data_type is None:
                 return False
-            if data_type in ["yt_light_ray"]:
-                return True
             if data_type == "yt_data_container" and \
                 cont_type not in _grid_data_containers:
+                return True
+        return False
+
+class YTDataLightRayDataset(YTDataContainerDataset):
+    """Dataset for saved LightRay objects."""
+
+    def _parse_parameter_file(self):
+        super(YTDataLightRayDataset, self)._parse_parameter_file()
+        self._restore_light_ray_solution()
+
+    def _restore_light_ray_solution(self):
+        """
+        Restore all information asssociate with the light ray solution
+        to its original form.
+        """
+        key = "light_ray_solution"
+        self.light_ray_solution = []
+        lrs_fields = [par for par in self.parameters \
+                      if key in par and not par.endswith("_units")]
+        if len(lrs_fields) == 0:
+            return
+        self.light_ray_solution = \
+          [{} for val in self.parameters[lrs_fields[0]]]
+        for sp3 in ["unique_identifier", "filename"]:
+            ksp3 = "%s_%s" % (key, sp3)
+            if ksp3 not in lrs_fields:
+                continue
+            self.parameters[ksp3] = self.parameters[ksp3].astype(str)
+        for field in lrs_fields:
+            field_name = field[len(key)+1:]
+            for i in range(self.parameters[field].shape[0]):
+                self.light_ray_solution[i][field_name] = self.parameters[field][i]
+                if "%s_units" % field in self.parameters:
+                    if len(self.parameters[field].shape) > 1:
+                        to_val = self.arr
+                    else:
+                        to_val = self.quan
+                    self.light_ray_solution[i][field_name] = \
+                      to_val(self.light_ray_solution[i][field_name],
+                             self.parameters["%s_units" % field])
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = parse_h5_attr(f, "data_type")
+            if data_type in ["yt_light_ray"]:
                 return True
         return False
 
@@ -325,7 +368,7 @@ class YTDataHierarchy(GridIndex):
                     field_name = (str(group), str(field))
                     self.field_list.append(field_name)
                     self.ds.field_units[field_name] = \
-                      f[group][field].attrs["units"]
+                      parse_h5_attr(f[group][field], "units")
 
 class YTGridHierarchy(YTDataHierarchy):
     grid = YTGrid
@@ -478,20 +521,37 @@ class YTNonspatialGrid(AMRGridPatch):
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
+
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            convert = True
+            if v.dtype != np.float64:
+                if finfos[f].units == "":
+                    self.field_data[f] = v
+                    convert = False
+                else:
+                    v = v.astype(np.float64)
+            if convert:
+                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f].convert_to_units(finfos[f].output_units)
 
-        read_particles, gen_particles = self.index._read_particle_fields(
+        read_particles, gen_particles = self.index._read_fluid_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            convert = True
+            if v.dtype != np.float64:
+                if finfos[f].units == "":
+                    self.field_data[f] = v
+                    convert = False
+                else:
+                    v = v.astype(np.float64)
+            if convert:
+                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -560,7 +620,7 @@ class YTNonspatialDataset(YTGridDataset):
 
     def _setup_classes(self):
         # We don't allow geometric selection for non-spatial datasets
-        pass
+        self.objects = []
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -609,7 +669,7 @@ class YTProfileDataset(YTNonspatialDataset):
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
             self.parameters["weight_field"] = \
-              tuple(self.parameters["weight_field"])
+              tuple(self.parameters["weight_field"].astype(str))
 
         for a in ["profile_dimensions"] + \
           ["%s_%s" % (ax, attr)
@@ -643,13 +703,20 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):
                 self.parameters[bin_field] = \
-                  tuple(self.parameters[bin_field])
+                  tuple(self.parameters[bin_field].astype(str))
             setattr(self, bin_field, self.parameters[bin_field])
+
+    def _setup_gas_alias(self):
+        "Alias the grid type to gas with a field alias."
+        for ftype, field in self.field_list:
+            if ftype == "data":
+                self.field_info.alias(("gas", field), (ftype, field))
 
     def create_field_info(self):
         super(YTProfileDataset, self).create_field_info()
-        self.field_info.alias(self.parameters["weight_field"],
-                              (self.default_fluid_type, "weight"))
+        if self.parameters["weight_field"] is not None:
+            self.field_info.alias(self.parameters["weight_field"],
+                                  (self.default_fluid_type, "weight"))
 
     def _set_derived_attrs(self):
         self.domain_center = 0.5 * (self.domain_right_edge +
@@ -657,15 +724,15 @@ class YTProfileDataset(YTNonspatialDataset):
         self.domain_width = self.domain_right_edge - \
           self.domain_left_edge
 
-    @parallel_root_only
     def print_key_parameters(self):
-        mylog.info("YTProfileDataset")
-        for a in ["dimensionality", "profile_dimensions"] + \
-          ["%s_%s" % (ax, attr)
-           for ax in "xyz"[:self.dimensionality]
-           for attr in ["field", "range", "log"]]:
-            v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+        if is_root():
+            mylog.info("YTProfileDataset")
+            for a in ["dimensionality", "profile_dimensions"] + \
+              ["%s_%s" % (ax, attr)
+               for ax in "xyz"[:self.dimensionality]
+               for attr in ["field", "range", "log"]]:
+                v = getattr(self, a)
+                mylog.info("Parameters: %-25s = %s", a, v)
         super(YTProfileDataset, self).print_key_parameters()
 
     @classmethod
@@ -674,5 +741,80 @@ class YTProfileDataset(YTNonspatialDataset):
         with h5py.File(args[0], "r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
+                return True
+        return False
+
+class YTClumpContainer(TreeContainer):
+    def __init__(self, clump_id, global_id, parent_id,
+                 contour_key, contour_id, ds=None):
+        self.clump_id = clump_id
+        self.global_id = global_id
+        self.parent_id = parent_id
+        self.contour_key = contour_key
+        self.contour_id = contour_id
+        self.parent = None
+        self.ds = ds
+        TreeContainer.__init__(self)
+
+    def add_child(self, child):
+        if self.children is None:
+            self.children = []
+        self.children.append(child)
+        child.parent = self
+
+    def __repr__(self):
+        return "Clump[%d]" % self.clump_id
+
+    def __getitem__(self, field):
+        g = self.ds.data
+        f = g._determine_fields(field)[0]
+        if f[0] == "clump":
+            return g[f][self.global_id]
+        if self.contour_id == -1:
+            return g[f]
+        cfield = (f[0], "contours_%s" % self.contour_key.decode('utf-8'))
+        if f[0] == "grid":
+            return g[f][g[cfield] == self.contour_id]
+        return self.parent[f][g[cfield] == self.contour_id]
+
+class YTClumpTreeDataset(YTNonspatialDataset):
+    """Dataset for saved clump-finder data."""
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTClumpTreeDataset, self).__init__(filename,
+                                                 unit_system=unit_system)
+        self._load_tree()
+
+    def _load_tree(self):
+        my_tree = {}
+        for i, clump_id in enumerate(self.data[("clump", "clump_id")]):
+            my_tree[clump_id] = YTClumpContainer(
+                clump_id, i, self.data["clump", "parent_id"][i],
+                self.data["clump", "contour_key"][i],
+                self.data["clump", "contour_id"][i], self)
+        for clump in my_tree.values():
+            if clump.parent_id == -1:
+                self.tree = clump
+            else:
+                parent = my_tree[clump.parent_id]
+                parent.add_child(clump)
+
+    _leaves = None
+    @property
+    def leaves(self):
+        if self._leaves is None:
+            self._leaves = []
+            for clump in self.tree:
+                if clump.children is None:
+                    self._leaves.append(clump)
+        return self._leaves
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = parse_h5_attr(f, "data_type")
+            if data_type is None:
+                return False
+            if data_type == "yt_clump_tree":
                 return True
         return False

@@ -26,7 +26,7 @@ from yt.funcs import \
     iterable, \
     ensure_list
 from yt.utilities.io_handler import io_registry
-from yt.data_objects.data_containers import \
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.data_objects.particle_unions import \
     ParticleUnion
@@ -69,6 +69,8 @@ from yt.data_objects.unstructured_mesh import \
 from yt.extern.six import string_types
 from .fields import \
     StreamFieldInfo
+from yt.frontends.exodus_ii.util import \
+    get_num_pseudo_dims
 
 class StreamGrid(AMRGridPatch):
     """
@@ -299,7 +301,7 @@ class StreamDataset(Dataset):
         name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
-        Dataset.__init__(self, name, self._dataset_type, 
+        Dataset.__init__(self, name, self._dataset_type,
                          unit_system=unit_system)
 
     def _parse_parameter_file(self):
@@ -400,13 +402,13 @@ def assign_particle_data(ds, pdata):
     Assign particle data to the grids using MatchPointsToGrids. This
     will overwrite any existing particle data, so be careful!
     """
-    
+
     # Note: what we need to do here is a bit tricky.  Because occasionally this
     # gets called before we property handle the field detection, we cannot use
     # any information about the index.  Fortunately for us, we can generate
     # most of the GridTree utilizing information we already have from the
     # stream handler.
-    
+
     if len(ds.stream_handler.fields) > 1:
 
         if ("io", "particle_position_x") in pdata:
@@ -425,7 +427,7 @@ def assign_particle_data(ds, pdata):
             np.equal(parent_ids, i, mask)
             num_children[i] = mask.sum()
         levels = ds.stream_handler.levels.astype("int64").ravel()
-        grid_tree = GridTree(num_grids, 
+        grid_tree = GridTree(num_grids,
                              ds.stream_handler.left_edges,
                              ds.stream_handler.right_edges,
                              ds.stream_handler.dimensions,
@@ -443,8 +445,8 @@ def assign_particle_data(ds, pdata):
                               out=particle_indices[1:])
         else :
             particle_indices[1] = particle_grid_count.squeeze()
-    
-        pdata.pop("number_of_particles", None) 
+
+        pdata.pop("number_of_particles", None)
         grid_pdata = []
         for i, pcount in enumerate(particle_grid_count):
             grid = {}
@@ -457,12 +459,12 @@ def assign_particle_data(ds, pdata):
 
     else :
         grid_pdata = [pdata]
-    
+
     for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
         ds.stream_handler.fields[gi].update(pd)
         npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)
         ds.stream_handler.particle_count[gi] = npart
-                                        
+
 def unitify_data(data):
     new_data, field_units = {}, {}
     for field, val in data.items():
@@ -507,7 +509,7 @@ def unitify_data(data):
     # At this point, we have arrays for all our fields
     new_data = {}
     for field in data:
-        if isinstance(field, tuple): 
+        if isinstance(field, tuple):
             new_field = field
         elif len(data[field].shape) in (1, 2):
             new_field = ("io", field)
@@ -580,7 +582,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
 
     Examples
@@ -668,7 +670,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
         sfh.update({0:data})
         grid_left_edges = domain_left_edge
         grid_right_edges = domain_right_edge
-        grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+        grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if length_unit is None:
         length_unit = 'code_length'
@@ -782,7 +784,7 @@ def load_amr_grids(grid_data, domain_dimensions,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
     refine_by : integer
         Specifies the refinement ratio between levels.  Defaults to 2.
@@ -998,7 +1000,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
 class StreamParticleIndex(ParticleIndex):
 
-    
+
     def __init__(self, ds, dataset_type = None):
         self.stream_handler = ds.stream_handler
         super(StreamParticleIndex, self).__init__(ds, dataset_type)
@@ -1034,20 +1036,19 @@ def load_particles(data, length_unit = None, bbox=None,
     This should allow a collection of particle data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
 
-    * Units will be incorrect unless the data has already been converted to
-      cgs.
-    * Some functions may behave oddly, and parallelism will be
-      disappointing or non-existent in most cases.
+    * There must be sufficient space in memory to contain both the particle
+      data and the octree used to index the particles.
+    * Parallelism will be disappointing or non-existent in most cases.
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
-    
+
     Parameters
     ----------
     data : dict
-        This is a dict of numpy arrays, where the keys are the field names.
-        Particles positions must be named "particle_position_x",
-        "particle_position_y", "particle_position_z".
+        This is a dict of numpy arrays or (numpy array, unit name) tuples, 
+        where the keys are the field names. Particles positions must be named 
+        "particle_position_x", "particle_position_y", and "particle_position_z".
     length_unit : float
         Conversion factor from simulation length units to centimeters
     mass_unit : float
@@ -1085,13 +1086,15 @@ def load_particles(data, length_unit = None, bbox=None,
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    else:
+        bbox = np.array(bbox)
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
-    
+
     pdata = {}
     for key in data.keys() :
         if not isinstance(key, tuple):
@@ -1192,7 +1195,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     array([[-1.  , -1.  , -1.  ],
            [-1.  , -1.  , -0.25],
            [-1.  , -1.  ,  0.  ],
-           ..., 
+           ...,
            [ 1.  ,  1.  ,  0.  ],
            [ 1.  ,  1.  ,  0.25],
            [ 1.  ,  1.  ,  1.  ]])
@@ -1270,7 +1273,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
 
     Particle fields are detected as one-dimensional fields. The number of particles
     is set by the "number_of_particles" key in data.
-    
+
     Parameters
     ----------
     data : dict
@@ -1303,7 +1306,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
         "spectral_cube".  Optionally, a tuple can be provided to specify the
         axis ordering -- for instance, to specify that the axis ordering should
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
-        can be done for other coordinates, for instance: 
+        can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
 
     """
@@ -1318,9 +1321,9 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
 
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
-    
+
     particle_types = set_particle_types(data)
-    
+
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates,
                 0: data})
@@ -1404,7 +1407,7 @@ class StreamOctreeSubset(OctreeSubset):
         dest.update((field, np.empty(cell_count, dtype="float64"))
                     for field in content)
         # Make references ...
-        count = oct_handler.fill_level(0, levels, cell_inds, file_inds, 
+        count = oct_handler.fill_level(0, levels, cell_inds, file_inds,
                                        dest, content, offset)
         return count
 
@@ -1493,14 +1496,17 @@ def load_octree(octree_mask, data,
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
-    
+
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.  It should be of
-        size n_octs * 8, where each item is 1 for an oct-cell being refined and
-        0 for it not being refined.  Note that for over_refine_factors != 1,
-        the children count will still be 8, so this is always 8.
+        This is a depth-first refinement mask for an Octree.  It should be 
+        of size n_octs * 8 (but see note about the root oct below), where 
+        each item is 1 for an oct-cell being refined and 0 for it not being
+        refined.  For over_refine_factors != 1, the children count will 
+        still be 8, so there will stil be n_octs * 8 entries. Note that if 
+        the root oct is not refined, there will be only one entry
+        for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
         A dictionary of 1D arrays.  Note that these must of the size of the
         number of "False" values in the ``octree_mask``.
@@ -1522,8 +1528,29 @@ def load_octree(octree_mask, data,
         Determines whether the data will be treated as periodic along
         each axis
     partial_coverage : boolean
-        Whether or not an oct can be refined cell-by-cell, or whether all 8 get
-        refined.
+        Whether or not an oct can be refined cell-by-cell, or whether all 
+        8 get refined.
+
+    Example
+    -------
+
+    >>> import yt
+    >>> import numpy as np
+    >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
+    ...             0, 0, 0, 0, 0, 0, 0, 0,
+    ...             8, 0, 0, 0, 0, 0, 0, 0,
+    ...             0]
+    >>>
+    >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
+    >>> quantities = {}
+    >>> quantities['gas', 'density'] = np.random.random((22, 1), dtype='f8')
+    >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
+    >>>
+    >>> ds = yt.load_octree(octree_mask=octree_mask,
+    ...                     data=quantities,
+    ...                     bbox=bbox,
+    ...                     over_refine_factor=0,
+    ...                     partial_coverage=0)
 
     """
 
@@ -1659,9 +1686,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         connectivity length and should be of shape (N,M) where N is the number
         of elements and M is the number of vertices per element.
     coordinates : array_like
-        The 3D coordinates of mesh vertices. This should be of size (L,3) where
-        L is the number of vertices. When loading more than one mesh, the data
-        for each mesh should be concatenated into a single coordinates array.
+        The 3D coordinates of mesh vertices. This should be of size (L, D) where
+        L is the number of vertices and D is the number of coordinates per vertex
+        (the spatial dimensions of the dataset). Currently this must be either 2 or 3.
+        When loading more than one mesh, the data for each mesh should be concatenated
+        into a single coordinates array.
     node_data : dict or list of dicts
         For a single mesh, a dict mapping field names to 2D numpy arrays,
         representing data defined at element vertices. For multiple meshes,
@@ -1720,6 +1749,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     """
 
+    dimensionality = coordinates.shape[1]
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
 
@@ -1750,9 +1780,23 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     data = ensure_list(data)
 
     if bbox is None:
-        bbox = np.array([[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
-                          coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
-                          for i in range(3)], "float64")
+        bbox = [[coordinates[:,i].min() - 0.1 * abs(coordinates[:,i].min()),
+                 coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
+                for i in range(dimensionality)]
+
+    if dimensionality < 3:
+        bbox.append([0.0, 1.0])
+    if dimensionality < 2:
+        bbox.append([0.0, 1.0])
+
+    # handle pseudo-dims here
+    num_pseudo_dims = get_num_pseudo_dims(coordinates)
+    dimensionality -= num_pseudo_dims
+    for i in range(dimensionality, 3):
+        bbox[i][0] = 0.0
+        bbox[i][1] = 1.0
+
+    bbox = np.array(bbox, dtype=np.float64)
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
@@ -1778,7 +1822,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
             raise RuntimeError
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
-    grid_dimensions = domain_dimensions.reshape(nprocs,3).astype("int32")
+    grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
 
     if length_unit is None:
         length_unit = 'code_length'
@@ -1811,7 +1855,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
-    handler.dimensionality = 3
+    handler.dimensionality = dimensionality
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
@@ -1826,5 +1870,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
 
     sds._node_fields = node_data[0].keys()
     sds._elem_fields = elem_data[0].keys()
+    sds.default_field = [f for f in sds.field_list
+                         if f[0] == 'connect1'][-1]
 
     return sds

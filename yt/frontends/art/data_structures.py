@@ -25,7 +25,8 @@ from yt.data_objects.static_output import \
 from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.funcs import \
-    mylog
+    mylog, \
+    setdefaultattr
 from yt.geometry.oct_container import \
     ARTOctreeContainer
 from yt.frontends.art.definitions import \
@@ -243,10 +244,10 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, "g*%s" % ng**3)
-        self.length_unit = self.quan(box_proper, "Mpc")
-        self.velocity_unit = self.quan(velocity, "cm/s")
-        self.time_unit = self.length_unit / self.velocity_unit
+        setdefaultattr(self, 'mass_unit', self.quan(mass, "g*%s" % ng**3))
+        setdefaultattr(self, 'length_unit', self.quan(box_proper, "Mpc"))
+        setdefaultattr(self, 'velocity_unit', self.quan(velocity, "cm/s"))
+        setdefaultattr(self, 'time_unit', self.length_unit / self.velocity_unit)
 
     def _parse_parameter_file(self):
         """
@@ -337,6 +338,8 @@ class ARTDataset(Dataset):
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
             mylog.info("Particle populations: "+'%9i '*len(ls_nonzero),
                        *ls_nonzero)
+            self._particle_type_counts = dict(
+                zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
                     if not self.parameters[k] == v:
@@ -630,6 +633,10 @@ class DarkMatterARTDataset(ARTDataset):
         if not os.path.isfile(f):
             return False
         if not f.endswith(suffix):
+            return False
+        if "s0" not in f:
+            # ATOMIC.DAT, for instance, passes the other tests, but then dies
+            # during _find_files because it can't be split.
             return False
         with open(f, 'rb') as fh:
             try:

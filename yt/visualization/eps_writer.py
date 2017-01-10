@@ -17,7 +17,6 @@ import pyx
 import numpy as np
 from matplotlib import cm
 import matplotlib.pyplot as plt
-from ._mpl_imports import FigureCanvasAgg
 
 from yt.config import \
     ytcfg
@@ -509,7 +508,8 @@ class DualEPS(object):
         For best results, set use_colorbar=False when creating the yt
         image.
         """
-        
+        from ._mpl_imports import FigureCanvasAgg
+
         # We need to remove the colorbar (if necessary), remove the
         # axes, and resize the figure to span the entire figure
         force_square = False
@@ -1044,8 +1044,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg",
     >>>           "special.jpg"]
     >>> cbs=[]
-    >>> cbs.append(return_cmap("algae", "Density [cm$^{-3}$]", (0,10), False))
-    >>> cbs.append(return_cmap("jet", "HI Density", (0,5), False))
+    >>> cbs.append(return_cmap("arbre", "Density [cm$^{-3}$]", (0,10), False))
+    >>> cbs.append(return_cmap("kelp", "HI Density", (0,5), False))
     >>> cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
     >>> cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
     >>> 
@@ -1110,9 +1110,9 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
             else:
                 this_plot = yt_plots
             if j == nrow-1:
-                xaxis = 1
-            elif j == 0:
                 xaxis = 0
+            elif j == 0:
+                xaxis = 1
             else:
                 xaxis = -1
             if i == 0:
@@ -1177,6 +1177,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         for i in range(ncol):
             xpos0 = i*(figsize[0] + margins[0])
             index = j*ncol + i
+            if isinstance(yt_plots, list):
+                this_plot = yt_plots[index]
+            else:
+                this_plot = yt_plots
             if (not _yt and colorbars is not None) or (_yt and not yt_nocbar):
                 if cb_flags is not None:
                     if not cb_flags[index]:
@@ -1228,7 +1232,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         if fields[index] is None:
                             fields[index] = d.return_field(yt_plots[index])
                                               
-                        d.colorbar_yt(yt_plots[index],
+                        d.colorbar_yt(this_plot,
                                       field=fields[index],
                                       pos=[xpos,ypos],
                                       shrink=shrink_cb,
@@ -1364,7 +1368,7 @@ def return_cmap(cmap=None, label="", range=(0,1), log=False):
 
     Examples
     --------
-    >>> cb = return_cmap("algae", "Density [cm$^{-3}$]", (0,10), False)
+    >>> cb = return_cmap("arbre", "Density [cm$^{-3}$]", (0,10), False)
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")

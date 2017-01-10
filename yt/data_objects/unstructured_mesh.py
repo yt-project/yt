@@ -22,8 +22,9 @@ from yt.utilities.lib.mesh_utilities import \
     fill_fcoords, fill_fwidths
 
 from yt.data_objects.data_containers import \
-    YTFieldData, \
     YTSelectionContainer
+from yt.data_objects.field_data import \
+    YTFieldData
 import yt.geometry.particle_deposit as particle_deposit
 
 class UnstructuredMesh(YTSelectionContainer):
@@ -225,3 +226,12 @@ class SemiStructuredMesh(UnstructuredMesh):
             else:
                 self._last_count = mask.sum()
         return mask
+
+    def select(self, selector, source, dest, offset):
+        mask = self._get_selector_mask(selector)
+        count = self.count(selector)
+        if count == 0: return 0
+        # Note: this likely will not work with vector fields.
+        dest[offset:offset+count] = source.flat[mask]
+        return count
+

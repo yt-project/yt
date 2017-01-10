@@ -13,24 +13,40 @@ from __future__ import absolute_import
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from io import BytesIO
 import matplotlib
-from ._mpl_imports import \
-    FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
-from yt.funcs import \
-    get_image_suffix, mylog, iterable
 import numpy as np
-import warnings
-try:
-    import brewer2mpl
-    has_brewer = True
-except:
-    has_brewer = False
-try:
-    import palettable
-    has_palettable = True
-except:
-    has_palettable = False
+
+from distutils.version import LooseVersion
+from io import BytesIO
+
+from yt.funcs import \
+    get_image_suffix, \
+    mylog, \
+    iterable, \
+    get_brewer_cmap, \
+    matplotlib_style_context, \
+    get_interactivity
+
+
+backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
+                       'FigureManagerGTK'],
+               'GTKAgg': ['backend_gtkagg', 'FigureCanvasGTKAgg'],
+               'GTKCairo': ['backend_gtkcairo', 'FigureCanvasGTKCairo'],
+               'MacOSX': ['backend_macosx', 'FigureCanvasMac', 'FigureManagerMac'],
+               'Qt4Agg': ['backend_qt4agg', 'FigureCanvasQTAgg'],
+               'Qt5Agg': ['backend_gt5agg', 'FigureCanvasQTAgg'],
+               'TkAgg': ['backend_tkagg', 'FigureCanvasTkAgg'],
+               'WX': ['backend_wx', 'FigureCanvasWx'],
+               'WXAgg': ['backend_wxagg', 'FigureCanvasWxAgg'],
+               'GTK3Cairo': ['backend_gtk3cairo',
+                             'FigureCanvasGTK3Cairo',
+                             'FigureManagerGTK3Cairo'],
+               'GTK3Agg': ['backend_gtk3agg', 'FigureCanvasGTK3Agg',
+                           'FigureManagerGTK3Agg'],
+               'WebAgg': ['backend_webagg', 'FigureCanvasWebAgg'],
+               'nbAgg': ['backend_nbagg', 'FigureCanvasNbAgg',
+                         'FigureManagerNbAgg'],
+                'agg': ['backend_agg', 'FigureCanvasAgg']}
 
 
 class CallbackWrapper(object):
@@ -59,12 +75,15 @@ class CallbackWrapper(object):
         self.font_color = font_color
         self.field = field
 
+
 class PlotMPL(object):
-    """A base class for all yt plots made using matplotlib.
+    """A base class for all yt plots made using matplotlib, that is backend independent.
 
     """
+
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
+        import matplotlib.figure
         self._plot_valid = True
         if figure is None:
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
@@ -77,10 +96,39 @@ class PlotMPL(object):
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        self.canvas = FigureCanvasAgg(self.figure)
+        canvas_classes = self._set_canvas()
+        self.canvas = canvas_classes[0](self.figure)
+        if len(canvas_classes) > 1:
+            self.manager = canvas_classes[1](self.canvas, 1)
+        for which in ['major', 'minor']:
+            for axis in 'xy':
+                self.axes.tick_params(
+                    which=which, axis=axis, direction='in', top=True, right=True
+                )
+
+    def _set_canvas(self):
+        self.interactivity = get_interactivity()
+        if self.interactivity:
+            backend = str(matplotlib.get_backend())
+        else:
+            backend = 'agg'
+
+        for key in backend_dict.keys():
+            if key == backend:
+                mod = __import__('matplotlib.backends', globals(), locals(),
+                                 [backend_dict[key][0]], 0)
+                submod = getattr(mod, backend_dict[key][0])
+                FigureCanvas = getattr(submod, backend_dict[key][1])
+                if len(backend_dict[key]) > 2:
+                    FigureManager = getattr(submod, backend_dict[key][2])
+                    return [FigureCanvas, FigureManager]
+                else:
+                    return [FigureCanvas]
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
+        from ._mpl_imports import \
+            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
         if mpl_kwargs is None:
             mpl_kwargs = {}
         if 'papertype' not in mpl_kwargs:
@@ -103,9 +151,37 @@ class PlotMPL(object):
             mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
             canvas = self.canvas
 
-        canvas.print_figure(name, **mpl_kwargs)
+        with matplotlib_style_context():
+            canvas.print_figure(name, **mpl_kwargs)
         return name
 
+    def show(self):
+        try:
+            self.manager.show()
+        except AttributeError:
+            self.canvas.show()
+
+    def _get_labels(self):
+        ax = self.axes
+        labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+        labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
+                   ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
+        return labels
+
+    def _set_font_properties(self, font_properties, font_color):
+        for label in self._get_labels():
+            label.set_fontproperties(font_properties)
+            if font_color is not None:
+                label.set_color(self.font_color)
+
+    def _repr_png_(self):
+        from ._mpl_imports import FigureCanvasAgg
+        canvas = FigureCanvasAgg(self.figure)
+        f = BytesIO()
+        with matplotlib_style_context():
+            canvas.print_figure(f)
+        f.seek(0)
+        return f.read()
 
 class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
@@ -135,25 +211,20 @@ class ImagePlotMPL(PlotMPL):
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
-            if has_palettable:
-                bmap = palettable.colorbrewer.get_map(*cmap)
-            elif has_brewer:
-                warnings.warn("Using brewer2mpl colormaps is deprecated. "
-                              "Please install the successor to brewer2mpl, "
-                              "palettable, with `pip install palettable`. "
-                              "Colormap tuple names remain unchanged.")
-                bmap = brewer2mpl.get_map(*cmap)
-            else:
-                raise RuntimeError(
-                    "Please install palettable to use colorbrewer colormaps")
-            cmap = bmap.get_mpl_colormap(N=cmap[2])
+            cmap = get_brewer_cmap(cmap)
         self.image = self.axes.imshow(data.to_ndarray(), origin='lower',
                                       extent=extent, norm=norm, vmin=self.zmin,
                                       aspect=aspect, vmax=self.zmax, cmap=cmap,
                                       interpolation='nearest')
         if (cbnorm == 'symlog'):
-            formatter = matplotlib.ticker.LogFormatterMathtext()
-            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
+            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+                formatter_kwargs = {}
+            else:
+                formatter_kwargs = dict(linthresh=cblinthresh)
+            formatter = matplotlib.ticker.LogFormatterMathtext(
+                **formatter_kwargs)
+            self.cb = self.figure.colorbar(
+                self.image, self.cax, format=formatter)
             yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
                           np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
                      list(10**np.arange(np.rint(np.log10(cblinthresh)),\
@@ -161,13 +232,8 @@ class ImagePlotMPL(PlotMPL):
             self.cb.set_ticks(yticks)
         else:
             self.cb = self.figure.colorbar(self.image, self.cax)
-
-    def _repr_png_(self):
-        canvas = FigureCanvasAgg(self.figure)
-        f = BytesIO()
-        canvas.print_figure(f)
-        f.seek(0)
-        return f.read()
+        for which in ['major', 'minor']:
+            self.cax.tick_params(which=which, axis='y', direction='in')
 
     def _get_best_layout(self):
 
@@ -267,6 +333,13 @@ class ImagePlotMPL(PlotMPL):
         self.cax.set_position(caxrect)
         self.figure.set_size_inches(*size)
 
+    def _get_labels(self):
+        labels = super(ImagePlotMPL, self)._get_labels()
+        cbax = self.cb.ax
+        labels += cbax.yaxis.get_ticklabels()
+        labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]
+        return labels
+
     def hide_axes(self):
         """
         Hide the axes for a plot including ticks and labels
@@ -294,6 +367,7 @@ class ImagePlotMPL(PlotMPL):
         """
         self._toggle_colorbar(True)
         return self
+
 
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):
@@ -334,6 +408,7 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
     can be instructure, and is encouraged to see how to generate more
     complicated or more specific sets of multiplots for your own purposes.
     """
+    import matplotlib.figure
     hf, wf = 1.0/ny, 1.0/nx
     fudge_x = fudge_y = 1.0
     if colorbar is None:
@@ -377,3 +452,5 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
             ax.clear()
             cbars.append(ax)
     return fig, tr, cbars
+
+

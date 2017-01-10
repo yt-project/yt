@@ -1,21 +1,24 @@
-cimport cython 
+cimport cython
 import numpy as np
 cimport numpy as np
+from yt.utilities.lib.element_mappings cimport ElementSampler
+from yt.utilities.lib.primitives cimport BBox, Ray
 
-# ray data structure
-cdef struct Ray:
-    np.float64_t origin[3]
-    np.float64_t direction[3]
-    np.float64_t inv_dir[3]
-    np.float64_t data_val
-    np.float64_t t_near
-    np.float64_t t_far
-    np.int64_t elem_id
+cdef extern from "mesh_triangulation.h":
+    enum:
+        MAX_NUM_TRI
 
-# axis-aligned bounding box
-cdef struct BBox:
-    np.float64_t left_edge[3]
-    np.float64_t right_edge[3]
+    int HEX_NV
+    int HEX_NT
+    int TETRA_NV
+    int TETRA_NT
+    int WEDGE_NV
+    int WEDGE_NT
+    int triangulate_hex[MAX_NUM_TRI][3]
+    int triangulate_tetra[MAX_NUM_TRI][3]
+    int triangulate_wedge[MAX_NUM_TRI][3]
+    int hex20_faces[6][8]
+    int tet10_faces[4][6]
 
 # node for the bounding volume hierarchy
 cdef struct BVHNode:
@@ -24,24 +27,54 @@ cdef struct BVHNode:
     BVHNode* left
     BVHNode* right
     BBox bbox
-    
-# triangle data structure
-cdef struct Triangle:
-    np.float64_t p0[3]
-    np.float64_t p1[3]
-    np.float64_t p2[3]
-    np.float64_t d0, d1, d2
-    np.int64_t elem_id
-    np.float64_t centroid[3]
-    BBox bbox
+
+# pointer to function that computes primitive intersection
+ctypedef np.int64_t (*intersect_func_type)(const void* primitives,
+                                           const np.int64_t item,
+                                           Ray* ray) nogil
+
+# pointer to function that computes primitive centroids
+ctypedef void (*centroid_func_type)(const void *primitives,
+                                    const np.int64_t item,
+                                    np.float64_t[3] centroid) nogil
+
+# pointer to function that computes primitive bounding boxes
+ctypedef void (*bbox_func_type)(const void *primitives,
+                                const np.int64_t item,
+                                BBox* bbox) nogil
+
 
 cdef class BVH:
     cdef BVHNode* root
-    cdef Triangle* triangles
+    cdef void* primitives
+    cdef np.int64_t* prim_ids
+    cdef np.float64_t** centroids
+    cdef BBox* bboxes
+    cdef np.float64_t* vertices
+    cdef np.float64_t* field_data
+    cdef np.int64_t num_prim_per_elem
+    cdef np.int64_t num_prim
+    cdef np.int64_t num_elem
+    cdef np.int64_t num_verts_per_elem
+    cdef np.int64_t num_field_per_elem
+    cdef int[MAX_NUM_TRI][3] tri_array
+    cdef ElementSampler sampler
+    cdef centroid_func_type get_centroid
+    cdef bbox_func_type get_bbox
+    cdef intersect_func_type get_intersect
     cdef np.int64_t _partition(self, np.int64_t begin, np.int64_t end,
                                np.int64_t ax, np.float64_t split) nogil
+    cdef void _set_up_triangles(self,
+                                np.float64_t[:, :] vertices,
+                                np.int64_t[:, :] indices) nogil
+    cdef void _set_up_patches(self,
+                              np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil
+    cdef void _set_up_tet_patches(self,
+                              np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil
     cdef void intersect(self, Ray* ray) nogil
-    cdef void _get_node_bbox(self, BVHNode* node, 
+    cdef void _get_node_bbox(self, BVHNode* node,
                              np.int64_t begin, np.int64_t end) nogil
     cdef void _recursive_intersect(self, Ray* ray, BVHNode* node) nogil
     cdef BVHNode* _recursive_build(self, np.int64_t begin, np.int64_t end) nogil

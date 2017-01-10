@@ -24,9 +24,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
 #include <string.h>
 #include <math.h>
+
+#ifdef _WIN32
+typedef __int64 int64_t;
+typedef __int32 int32_t;
+#else
+#include <stdint.h>
+#endif
 
 artio_fileset *artio_fileset_allocate( char *file_prefix, int mode,
 		const artio_context *context );

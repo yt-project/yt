@@ -35,8 +35,8 @@ class GadgetFieldInfo(SPHFieldInfo):
 
     def _setup_four_metal_fractions(self, ptype):
         """
-        This function breaks the FourMetalFractions field (if present) 
-        into its four component metal fraction fields and adds 
+        This function breaks the FourMetalFractions field (if present)
+        into its four component metal fraction fields and adds
         corresponding metal density fields which will later get smoothed
 
         This gets used with the Gadget group0000 format
@@ -52,8 +52,8 @@ class GadgetFieldInfo(SPHFieldInfo):
                 return _Fraction
 
             self.add_field( (ptype, metal_name+"_fraction"),
-                            function=_Fraction_wrap(i), 
-                            particle_type=True,
+                            sampling_type="particle",
+                            function=_Fraction_wrap(i),
                             units="")
 
             # add the metal density fields
@@ -64,8 +64,8 @@ class GadgetFieldInfo(SPHFieldInfo):
                 return _Metal_density
 
             self.add_field( (ptype, metal_name+"_density"),
-                            function=_Density_wrap(i), 
-                            particle_type=True,
+                            sampling_type="particle",
+                            function=_Density_wrap(i),
                             units=self.ds.unit_system["density"])
 
     def setup_gas_particle_fields(self, ptype):
@@ -90,9 +90,10 @@ class GadgetFieldInfo(SPHFieldInfo):
 
         self.add_field(
             (ptype, "Temperature"),
+            sampling_type="particle",
             function=_temperature,
-            particle_type=True,
             units=self.ds.unit_system["temperature"])
+        self.alias((ptype, 'temperature'), (ptype, 'Temperature'))
 
         # For now, we hardcode num_neighbors.  We should make this configurable
         # in the future.

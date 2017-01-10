@@ -1,7 +1,11 @@
 import numpy as np
+from yt.data_objects.data_containers import \
+    YTSelectionContainer3D
 from yt.data_objects.static_output import Dataset
-from yt.utilities.lib.grid_traversal import \
+from yt.utilities.lib import bounding_volume_hierarchy
+from yt.utilities.lib.image_samplers import \
     VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
+
 from yt.utilities.on_demand_imports import NotAModule
 try:
     from yt.utilities.lib import mesh_traversal
@@ -11,10 +15,15 @@ except ImportError:
 def data_source_or_all(data_source):
     if isinstance(data_source, Dataset):
         data_source = data_source.all_data()
+    if not isinstance(data_source, (YTSelectionContainer3D, type(None))):
+        raise RuntimeError(
+            "The data_source is not a valid 3D data container.\n"
+            "Expected an ojbect of type YTSelectionContainer3D but received "
+            "an object of type %s." % type(data_source))
     return data_source
 
 
-def new_mesh_sampler(camera, render_source):
+def new_mesh_sampler(camera, render_source, engine):
     params = ensure_code_unit_params(camera._get_sampler_params(render_source))
     args = (
         np.atleast_3d(params['vp_pos']),
@@ -27,7 +36,10 @@ def new_mesh_sampler(camera, render_source):
         params['width'],
     )
     kwargs = {'lens_type': params['lens_type']}
-    sampler = mesh_traversal.MeshSampler(*args, **kwargs)
+    if engine == 'embree':
+        sampler = mesh_traversal.EmbreeMeshSampler(*args, **kwargs)
+    elif engine == 'yt':
+        sampler = bounding_volume_hierarchy.BVHMeshSampler(*args, **kwargs)
     return sampler
 
 
@@ -109,17 +121,6 @@ def new_projection_sampler(camera, render_source):
     sampler = ProjectionSampler(*args, **kwargs)
     return sampler
 
-def ensure_code_unit_params(params):
-    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
-        param = params[param_name]
-        if hasattr(param, 'in_units'):
-            params[param_name] = param.in_units('code_length')
-    bounds = params['bounds']
-    if hasattr(bounds[0], 'units'):
-        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
-
-    return params
-
 def get_corners(le, re):
     return np.array([
         [le[0], le[1], le[2]],
@@ -131,3 +132,14 @@ def get_corners(le, re):
         [re[0], re[1], re[2]],
         [le[0], re[1], re[2]],
         ], dtype='float64')
+
+def ensure_code_unit_params(params):
+    for param_name in ['center', 'vp_pos', 'vp_dir', 'width']:
+        param = params[param_name]
+        if hasattr(param, 'in_units'):
+            params[param_name] = param.in_units('code_length')
+    bounds = params['bounds']
+    if hasattr(bounds[0], 'units'):
+        params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
+    return params
+

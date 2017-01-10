@@ -1,6 +1,31 @@
-from yt.testing import fake_amr_ds, assert_equal
+import numpy as np
+
+from yt.testing import \
+    assert_equal, \
+    fake_amr_ds, \
+    fake_particle_ds, \
+    fake_random_ds
 
 # This will test the "dataset access" method.
+
+def test_box_creation():
+    ds = fake_random_ds(32, length_unit=2)
+    left_edge = ds.arr([0.2, 0.2, 0.2], 'cm')
+    right_edge = ds.arr([0.6, 0.6, 0.6], 'cm')
+    center = (left_edge + right_edge)/2
+
+    boxes = [
+        ds.box(left_edge, right_edge),
+        ds.box(0.5*np.array(left_edge), 0.5*np.array(right_edge)),
+        ds.box((0.5*left_edge).tolist(), (0.5*right_edge).tolist())
+    ]
+
+    region = ds.region(center, left_edge, right_edge)
+
+    for b in boxes:
+        assert_equal(b.left_edge, region.left_edge)
+        assert_equal(b.right_edge, region.right_edge)
+        assert_equal(b.center, region.center)
 
 def test_region_from_d():
     ds = fake_amr_ds(fields=["density"])
@@ -37,3 +62,10 @@ def test_accessing_all_data():
     rho *= 2.0
     yield assert_equal, dd["density"]*2.0, ds.r["density"]
     yield assert_equal, dd["gas", "density"]*2.0, ds.r["gas", "density"]
+
+def test_particle_counts():
+    ds = fake_random_ds(16, particles=100)
+    assert ds.particle_type_counts == {'io': 100}
+
+    pds = fake_particle_ds(npart=128)
+    assert pds.particle_type_counts == {'io': 128}

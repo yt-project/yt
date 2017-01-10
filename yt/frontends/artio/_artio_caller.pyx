@@ -7,19 +7,20 @@ from yt.geometry.selection_routines cimport \
     SelectorObject, AlwaysSelector, OctreeSubsetSelector
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
-    SparseOctreeContainer
+    SparseOctreeContainer, OctObjectPool
 from yt.geometry.oct_visitors cimport Oct
 from yt.geometry.particle_deposit cimport \
     ParticleDepositOperation
-from libc.stdint cimport int32_t, int64_t
 from libc.stdlib cimport malloc, free
 from libc.string cimport memcpy
 import data_structures
 from yt.utilities.lib.misc_utilities import OnceIndirect
 
 cdef extern from "platform_dep.h":
+    ctypedef int int32_t
+    ctypedef long long int64_t
     void *alloca(int)
-    
+
 cdef extern from "cosmology.h":
     ctypedef struct CosmologyParameters "CosmologyParameters" :
         pass
@@ -922,7 +923,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         super(ARTIOOctreeContainer, self).__init__(dims, DLE, DRE)
         self.artio_handle = range_handler.artio_handle
         self.level_offset = 1
-        self.domains = NULL
+        self.domains = OctObjectPool()
         self.root_nodes = NULL
 
     @cython.boundscheck(False)
@@ -948,7 +949,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
 
         # We only allow one root oct.
         self.append_domain(oct_count)
-        self.domains[self.num_domains - 1].con_id = sfc
+        self.domains.containers[self.num_domains - 1].con_id = sfc
 
         oct_ind = -1
         ipos = 0
@@ -1008,7 +1009,7 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         source_arrays = []
         ipos = -1
         for i in range(self.num_domains):
-            ipos = imax(ipos, self.domains[i].n)
+            ipos = imax(ipos, self.domains.containers[i].n)
         for i in range(nf):
             field_ind[i] = field_indices[i]
             # Note that we subtract one, because we're not using the root mesh.
@@ -1028,13 +1029,13 @@ cdef class ARTIOOctreeContainer(SparseOctreeContainer):
         #     double-loop to calculate domain_counts
         # The cons should be in order
         cdef np.int64_t sfc_start, sfc_end
-        sfc_start = self.domains[0].con_id
-        sfc_end = self.domains[self.num_domains - 1].con_id
+        sfc_start = self.domains.containers[0].con_id
+        sfc_end = self.domains.containers[self.num_domains - 1].con_id
         status = artio_grid_cache_sfc_range(handle, sfc_start, sfc_end)
         check_artio_status(status)
         cdef np.int64_t offset = 0
         for si in range(self.num_domains):
-            sfc = self.domains[si].con_id
+            sfc = self.domains.containers[si].con_id
             status = artio_grid_read_root_cell_begin( handle, sfc,
                     dpos, NULL, &num_oct_levels, num_octs_per_level)
             check_artio_status(status)
@@ -1115,7 +1116,6 @@ cdef read_sfc_particles(artio_fileset artio_handle,
 
     if not artio_handle.has_particles:
         raise RuntimeError("Attempted to read non-existent particles in ARTIO")
-        return
 
     # Now we set up our field pointers
     params = artio_handle.parameters

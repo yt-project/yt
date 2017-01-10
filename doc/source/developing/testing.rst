@@ -32,10 +32,10 @@ What do Unit Tests Do
 
 Unit tests are tests that operate on some small set of machinery, and verify
 that the machinery works.  yt uses the `Nose
-<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.
-In practice, what this means is that we write scripts that ``yield``
-assertions, and Nose identifies those scripts, runs them, and verifies that the
-assertions are true.
+<http://nose.readthedocs.org/en/latest/>`_ framework for running unit tests.  In
+practice, what this means is that we write scripts that assert statements, and
+Nose identifies those scripts, runs them, and verifies that the assertions are
+true and the code runs without crashing.
 
 How to Run the Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -68,7 +68,7 @@ run:
 
 .. code-block:: bash
 
-   $ nosetests visualization/tests/test_plotwindow.py
+   $ nosetests yt/visualization/tests/test_plotwindow.py
 
 How to Write Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^
@@ -95,17 +95,18 @@ in handy:
 To create new unit tests:
 
 #. Create a new ``tests/`` directory next to the file containing the
-   functionality you want to test.  Be sure to add this new directory as a
-   subpackage in the setup.py script located in the directory you're adding a
-   new ``tests/`` folder to.  This ensures that the tests will be deployed in
-   yt source and binary distributions.
+   functionality you want to test and add an empty ``__init__.py`` file to
+   it.
 #. Inside that directory, create a new python file prefixed with ``test_`` and
    including the name of the functionality.
 #. Inside that file, create one or more routines prefixed with ``test_`` that
-   accept no arguments.  These should ``yield`` a tuple of the form
-   ``function``, ``argument_one``, ``argument_two``, etc.  For example
-   ``yield assert_equal, 1.0, 1.0`` would be captured by nose as a test that
-   asserts that 1.0 is equal to 1.0.
+   accept no arguments. The test function should do some work that tests some
+   functionality and should also verify that the results are correct using
+   assert statements or functions.  
+#. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
+   ``argument_two``, etc.  For example ``yield my_test, 'banana', 2.0`` would be
+   captured by nose and the ``my_test`` function will be run with the provided
+   arguments.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
    several combinations of ``nproc``, so that domain decomposition can be
    tested as well.
@@ -245,6 +246,13 @@ Gadget
 * ``IsothermalCollapse/snap_505.hdf5``
 * ``GadgetDiskGalaxy/snapshot_200.hdf5``
 
+GAMER
+~~~~~~
+
+* ``InteractingJets/jet_000002``
+* ``WaveDarkMatter/psiDM_000020``
+* ``Plummer/plummer_000000``
+
 Halo Catalog
 ~~~~~~~~~~~~
 
@@ -279,15 +287,12 @@ OWLS
 
 These datasets are available at http://yt-project.org/data/.
 
-Next, modify the file ``~/.yt/config`` to include a section ``[yt]``
-with the parameter ``test_data_dir``.  Set this to point to the
-directory with the test data you want to test with.  Here is an example
-config file:
+Next, add the config parameter ``test_data_dir`` pointing to 
+directory with the test data you want to test with, e.g.:
 
 .. code-block:: none
 
-   [yt]
-   test_data_dir = /Users/tomservo/src/yt-data
+   $ yt config set yt test_data_dir /Users/tomservo/src/yt-data
 
 More data will be added over time.  To run the answer tests, you must first
 generate a set of test answers locally on a "known good" revision, then update
@@ -302,19 +307,19 @@ project's contiguous integration server.
 .. code-block:: bash
 
    $ cd $YT_HG
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy frontends.tipsy
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy yt.frontends.tipsy
 
 This command will create a set of local answers from the tipsy frontend tests
 and store them in ``$HOME/Documents/test`` (this can but does not have to be the
 same directory as the ``test_data_dir`` configuration variable defined in your
-``.yt/config`` file) in a file named ``local-tipsy``. To run the tipsy
+``~/.config/yt/ytrc`` file) in a file named ``local-tipsy``. To run the tipsy
 frontend's answer tests using a different yt changeset, update to that
 changeset, recompile if necessary, and run the tests using the following
 command:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-name=local-tipsy frontends.tipsy
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-name=local-tipsy yt.frontends.tipsy
 
 The results from a nose testing session are pretty straightforward to
 understand, the results for each test are printed directly to STDOUT.  If a test
@@ -327,7 +332,7 @@ OWLS frontend, do the following:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data frontends.owls
+   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data yt.frontends.owls
 
 
 How to Write Answer Tests
@@ -464,9 +469,9 @@ Here is an example test function:
        test.prefix = "my_unique_name"
 
        # this ensures a nice test name in nose's output
-       test_my_ds.__description__ = test.description
+       test_my_ds.__name__ = test.description
 
-       yield test_my_ds
+       yield test
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
@@ -481,7 +486,7 @@ Enabling Answer Tests on Jenkins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
-integration server <http://tests.yt-project.org>`_. While unit tests are
+integration server <https://tests.yt-project.org>`_. While unit tests are
 autodiscovered by `nose <http://nose.readthedocs.org/en/latest/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
@@ -532,7 +537,13 @@ change the answer name in *tests/tests.yaml* e.g.:
 
       local_pw_000:
 
-would regenerate answers for OWLS frontend.
+would regenerate answers for OWLS frontend. 
+
+When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``), 
+it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing 
+the version number. Then, allow the tests to run (resulting in "no old answer" errors for the missing
+answers). If no other failures are present, you can then increment the version number to regenerate
+the answers. This way, we can avoid accidently covering up test breakages. 
 
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~

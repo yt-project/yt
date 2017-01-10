@@ -25,6 +25,8 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     create_obj
 from yt.frontends.ramses.api import RAMSESDataset
+import os
+import yt
 
 _fields = ("temperature", "density", "velocity_magnitude",
            ("deposit", "all_density"), ("deposit", "all_count"))
@@ -47,7 +49,7 @@ def test_output_00080():
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         yield assert_equal, s1, s2
-
+    assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
 def test_RAMSESDataset():
@@ -57,3 +59,15 @@ def test_RAMSESDataset():
 def test_units_override():
     for test in units_override_check(output_00080):
         yield test
+
+
+ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
+@requires_file(ramsesNonCosmo)
+def test_unit_non_cosmo():
+    ds = yt.load(os.path.join(ramsesNonCosmo, 'info_00002.txt'))
+
+    expected_raw_time = 0.0299468077820411 # in ramses unit
+    yield assert_equal, ds.current_time.value, expected_raw_time
+
+    expected_time = 14087886140997.336 # in seconds
+    assert_equal(ds.current_time.in_units('s').value, expected_time)

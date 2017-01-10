@@ -136,6 +136,9 @@ def save_as_dataset(ds, filename, data, field_types=None,
             field_name = field[1]
         else:
             field_name = field
+        # thanks, python3
+        if data[field].dtype.kind == 'U':
+            data[field] = data[field].astype('|S40')
         _yt_array_hdf5(fh[field_type], field_name, data[field])
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
@@ -229,5 +232,5 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if iterable(val):
         val = np.array(val)
         if val.dtype.kind == 'U':
-            val = val.astype('|S40')
+            val = val.astype('|S')
     fh.attrs[str(attr)] = val

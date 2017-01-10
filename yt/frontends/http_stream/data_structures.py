@@ -15,23 +15,19 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import json
 import numpy as np
 import time
 
 from yt.data_objects.static_output import \
+    ParticleDataset, \
     ParticleFile
-from yt.frontends.sph.data_structures import \
-    ParticleDataset
 from yt.frontends.sph.fields import \
     SPHFieldInfo
+from yt.funcs import \
+    get_requests
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
-
-try:
-    import requests
-    import json
-except ImportError:
-    requests = None
 
 class HTTPParticleFile(ParticleFile):
     pass
@@ -46,16 +42,15 @@ class HTTPStreamDataset(ParticleDataset):
     filename_template = ""
     
     def __init__(self, base_url,
-                 dataset_type = "http_particle_stream",
-                 n_ref = 64, over_refine_factor=1, 
-                 unit_system="cgs"):
-        if requests is None:
-            raise RuntimeError
+                 dataset_type="http_particle_stream", unit_system="cgs",
+                 n_ref=64, over_refine_factor=1):
+        if get_requests() is None:
+            raise ImportError(
+                "This functionality depends on the requests package")
         self.base_url = base_url
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        super(HTTPStreamDataset, self).__init__("", dataset_type, 
-                                                unit_system=unit_system)
+        super(HTTPStreamDataset, self).__init__(
+            "", dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor)
 
     def __repr__(self):
         return self.base_url
@@ -66,6 +61,7 @@ class HTTPStreamDataset(ParticleDataset):
         self.parameters["HydroMethod"] = "sph"
 
         # Here's where we're going to grab the JSON index file
+        requests = get_requests()
         hreq = requests.get(self.base_url + "/yt_index.json")
         if hreq.status_code != 200:
             raise RuntimeError
@@ -107,6 +103,9 @@ class HTTPStreamDataset(ParticleDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].startswith("http://"):
+            return False
+        requests = get_requests()
+        if requests is None:
             return False
         hreq = requests.get(args[0] + "/yt_index.json")
         if hreq.status_code == 200:

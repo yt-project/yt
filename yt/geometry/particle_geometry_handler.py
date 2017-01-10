@@ -14,6 +14,7 @@ Particle-only geometry handler
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import collections
 import numpy as np
 import os
 import weakref
@@ -29,7 +30,6 @@ from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.io_handler import io_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, communication_system, MPI
-from yt.extern.functools32 import lru_cache
 
 from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.octree_subset import ParticleOctreeSubset, _use_global_octree
@@ -47,6 +47,13 @@ class ParticleIndex(Index):
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
+    @property
+    def index_ptype(self):
+        if hasattr(self.dataset, "index_ptype"):
+            return self.dataset.index_ptype
+        else:
+            return "all"
+
     def _setup_geometry(self):
         self.regions = None
         mylog.debug("Initializing Particle Geometry Handler.")
@@ -62,6 +69,13 @@ class ParticleIndex(Index):
         dx = dx * (self.dataset.domain_right_edge -
                    self.dataset.domain_left_edge)
         return dx.min()
+
+    def _get_particle_type_counts(self):
+        result = collections.defaultdict(lambda: 0)
+        for df in self.data_files:
+            for k in df.total_particles.keys():
+                result[k] += df.total_particles[k]
+        return dict(result)
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -79,7 +93,15 @@ class ParticleIndex(Index):
         self._initialize_index()
         # Intialize global octree
         if _use_global_octree:
+            index_ptype = self.index_ptype
+            if index_ptype == "all":
+                self.total_particles = sum(
+                        sum(d.total_particles.values()) for d in self.data_files)
+            else:
+                self.total_particles = sum(
+                        d.total_particles[index_ptype] for d in self.data_files)
             ds = self.dataset
+            # TODO: Re-insert the usage of index_ptype here
             self.global_oct_handler = ParticleOctreeContainer(
                 [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
                 over_refine = ds.over_refine_factor)
@@ -93,7 +115,9 @@ class ParticleIndex(Index):
                 self.global_oct_handler.apply_domain(i+1, fmask, 
                                                      self.regions.index_order1)
             tot = sum(self.global_oct_handler.recursively_count().values())
-            mylog.info("Identified %0.3e octs in global octree", tot)
+            only_on_root(mylog.info, "Allocating for %0.3e particles "
+                                    "(index particle type '%s')",
+                        self.total_particles, index_ptype)
 
     def _index_filename(self,o1,o2):
         import shutil
@@ -104,6 +128,30 @@ class ParticleIndex(Index):
         if os.path.isfile(fname_old):
             shutil.move(fname_old,fname_new)
         return fname_new
+
+    def _initialize_indices(self):
+        # TODO: THIS IS NOT CURRENTLY USED AND MUST BE MERGED WITH ABOVE
+        # This will be replaced with a parallel-aware iteration step.
+        # Roughly outlined, what we will do is:
+        #   * Generate Morton indices on each set of files that belong to
+        #     an individual processor
+        #   * Create a global, accumulated histogram
+        #   * Cut based on estimated load balancing
+        #   * Pass particles to specific processors, along with NREF buffer
+        #   * Broadcast back a serialized octree to join
+        #
+        # For now we will do this in serial.
+        morton = np.empty(self.total_particles, dtype="uint64")
+        ind = 0
+        for data_file in self.data_files:
+            npart = sum(data_file.total_particles.values())
+            # TODO: Make this take index_ptype
+            morton[ind:ind + npart] = \
+                self.io._initialize_index(data_file, self.regions)
+            ind += npart
+        morton.sort()
+        # Now we add them all at once.
+        self.oct_handler.add(morton)
 
     def _initialize_index(self, fname=None, noref=False,
                           order1=None, order2=None, dont_cache=False):

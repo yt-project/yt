@@ -49,6 +49,20 @@ def test_blast():
         test_blast.__name__ = test.description
         yield test
 
+uo_blast = {
+    'length_unit': (1.0, 'pc'),
+    'mass_unit': (2.38858753789e-24, 'g/cm**3*pc**3'),
+    'time_unit': (1.0, 's*pc/km'),
+}
+
+@requires_file(blast)
+def test_blast_override():
+    # verify that overriding units causes derived unit values to be updated.
+    # see issue #1259
+    ds = load(blast, units_override=uo_blast)
+    assert_equal(float(ds.magnetic_unit.in_units('gauss')),
+                 5.478674679698131e-07)
+
 uo_stripping = {"time_unit":3.086e14,
                 "length_unit":8.0236e22,
                 "mass_unit":9.999e-30*8.0236e22**3}

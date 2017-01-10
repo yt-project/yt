@@ -438,7 +438,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
 
 cdef void _mask_children(np.ndarray[np.uint8_t] mask, Oct *cur):
     cdef int i, j, k
-    cdef list loop = range(2)
+    cdef list loop = list(range(2))
     if cur == NULL:
         return
     mask[cur.domain_ind] = 1
@@ -2394,13 +2394,11 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         #of the root mesh recursively
         cdef int i
         if self.root_nodes== NULL: return
-        if self.cont != NULL and self.cont.next == NULL: return
         if self.loaded == 0:
             for i in xrange(self.max_root):
                 if self.root_nodes[i].node == NULL: continue
                 self.visit_free(&self.root_nodes.node[i], 0)
-            free(self.cont)
-            self.cont = self.root_nodes = NULL
+            self.root_nodes = NULL
         free(self.oct_list)
         free(self._ptr_index_base_roots)
         free(self._ptr_index_base_octs)

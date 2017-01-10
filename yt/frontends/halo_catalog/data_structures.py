@@ -23,6 +23,9 @@ import os
 from .fields import \
     HaloCatalogFieldInfo
 
+from yt.funcs import \
+    parse_h5_attr, \
+    setdefaultattr
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
@@ -32,7 +35,7 @@ from yt.data_objects.static_output import \
 class HaloCatalogHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
-            self.header = dict((field, f.attrs[field]) \
+            self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
         super(HaloCatalogHDF5File, self).__init__(ds, io, filename, file_id)
@@ -54,7 +57,7 @@ class HaloCatalogDataset(Dataset):
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, "r") as f:
-            hvals = dict((key, f.attrs[key]) for key in f.attrs.keys())
+            hvals = dict((key, parse_h5_attr(f, key)) for key in f.attrs.keys())
         self.dimensionality = 3
         self.refine_by = 2
         self.unique_identifier = \
@@ -76,16 +79,16 @@ class HaloCatalogDataset(Dataset):
         self.parameters.update(hvals)
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.velocity_unit = self.quan(1.0, "cm / s")
-        self.time_unit = self.quan(1.0, "s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm / s"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
         with h5py.File(args[0], "r") as f:
             if "data_type" in f.attrs and \
-              f.attrs["data_type"] == "halo_catalog":
+              parse_h5_attr(f, "data_type") == "halo_catalog":
                 return True
         return False

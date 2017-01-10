@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.3-dev"
+__version__ = "3.4-dev"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -93,17 +93,24 @@ from yt.funcs import \
     parallel_profile, \
     enable_plugins, \
     memory_checker, \
-    deprecated_class
+    deprecated_class, \
+    toggle_interactivity
 from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
+from yt.units.unit_object import define_unit
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity, \
     uconcatenate, \
+    ucross, \
     uintersect1d, \
     uunion1d, \
+    unorm, \
+    udot, \
+    uvstack, \
+    uhstack, \
     loadtxt, \
     savetxt
 
@@ -155,7 +162,9 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
+    FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
+    FITSOffAxisProjection
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \

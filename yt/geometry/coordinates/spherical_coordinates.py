@@ -23,6 +23,7 @@ from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder, pixelize_aitoff
 
 class SphericalCoordinateHandler(CoordinateHandler):
+    name = "spherical"
 
     def __init__(self, ds, ordering = ('r', 'theta', 'phi')):
         super(SphericalCoordinateHandler, self).__init__(ds, ordering)
@@ -34,57 +35,59 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
-        registry.add_field(("index", "dx"), function=_unknown_coord)
-        registry.add_field(("index", "dy"), function=_unknown_coord)
-        registry.add_field(("index", "dz"), function=_unknown_coord)
-        registry.add_field(("index", "x"), function=_unknown_coord)
-        registry.add_field(("index", "y"), function=_unknown_coord)
-        registry.add_field(("index", "z"), function=_unknown_coord)
+        registry.add_field(("index", "dx"), sampling_type="cell",  function=_unknown_coord)
+        registry.add_field(("index", "dy"), sampling_type="cell",  function=_unknown_coord)
+        registry.add_field(("index", "dz"), sampling_type="cell",  function=_unknown_coord)
+        registry.add_field(("index", "x"), sampling_type="cell",  function=_unknown_coord)
+        registry.add_field(("index", "y"), sampling_type="cell",  function=_unknown_coord)
+        registry.add_field(("index", "z"), sampling_type="cell",  function=_unknown_coord)
         f1, f2 = _get_coord_fields(self.axis_id['r'])
-        registry.add_field(("index", "dr"), function = f1,
+        registry.add_field(("index", "dr"), sampling_type="cell",  function = f1,
                            display_field = False,
                            units = "code_length")
-        registry.add_field(("index", "r"), function = f2,
+        registry.add_field(("index", "r"), sampling_type="cell",  function = f2,
                            display_field = False,
                            units = "code_length")
 
         f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
-        registry.add_field(("index", "dtheta"), function = f1,
+        registry.add_field(("index", "dtheta"), sampling_type="cell",  function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "theta"), function = f2,
+        registry.add_field(("index", "theta"), sampling_type="cell",  function = f2,
                            display_field = False,
                            units = "")
 
         f1, f2 = _get_coord_fields(self.axis_id['phi'], "")
-        registry.add_field(("index", "dphi"), function = f1,
+        registry.add_field(("index", "dphi"), sampling_type="cell",  function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "phi"), function = f2,
+        registry.add_field(("index", "phi"), sampling_type="cell",  function = f2,
                            display_field = False,
                            units = "")
 
         def _SphericalVolume(field, data):
-            # r**2 sin theta dr dtheta dphi
-            vol = data["index", "r"]**2.0
-            vol *= data["index", "dr"]
-            vol *= np.sin(data["index", "theta"])
-            vol *= data["index", "dtheta"]
+            # Here we compute the spherical volume element exactly
+            r = data["index", "r"]
+            dr = data["index", "dr"]
+            theta = data["index", "theta"]
+            dtheta = data["index", "dtheta"]
+            vol = ((r+0.5*dr)**3-(r-0.5*dr)**3)/3.0
+            vol *= np.cos(theta-0.5*dtheta)-np.cos(theta+0.5*dtheta)
             vol *= data["index", "dphi"]
             return vol
-        registry.add_field(("index", "cell_volume"),
+        registry.add_field(("index", "cell_volume"), sampling_type="cell", 
                  function=_SphericalVolume,
                  units = "code_length**3")
 
         def _path_r(field, data):
             return data["index", "dr"]
-        registry.add_field(("index", "path_element_r"),
+        registry.add_field(("index", "path_element_r"), sampling_type="cell", 
                  function = _path_r,
                  units = "code_length")
         def _path_theta(field, data):
             # Note: this already assumes cell-centered
             return data["index", "r"] * data["index", "dtheta"]
-        registry.add_field(("index", "path_element_theta"),
+        registry.add_field(("index", "path_element_theta"), sampling_type="cell", 
                  function = _path_theta,
                  units = "code_length")
         def _path_phi(field, data):
@@ -92,7 +95,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
             return data["index", "r"] \
                     * data["index", "dphi"] \
                     * np.sin(data["index", "theta"])
-        registry.add_field(("index", "path_element_phi"),
+        registry.add_field(("index", "path_element_phi"), sampling_type="cell", 
                  function = _path_phi,
                  units = "code_length")
 
@@ -121,19 +124,23 @@ class SphericalCoordinateHandler(CoordinateHandler):
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias,
                       dimension):
-        if dimension == 1:
-            buff = pixelize_cylinder(data_source['px'],
-                                     data_source['pdx'],
-                                     data_source['py'],
-                                     data_source['pdy'],
-                                     size, data_source[field], bounds)
-        elif dimension == 2:
-            buff = pixelize_cylinder(data_source['px'],
-                                     data_source['pdx'],
-                                     data_source['py'],
-                                     data_source['pdy'],
-                                     size, data_source[field], bounds)
-            buff = buff.transpose()
+        name = self.axis_name[dimension]
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        if name == 'theta':
+            pixelize_cylinder(buff,
+                              data_source['px'],
+                              data_source['pdx'],
+                              data_source['py'],
+                              data_source['pdy'],
+                              data_source[field], bounds)
+        elif name == 'phi':
+            # Note that we feed in buff.T here
+            pixelize_cylinder(buff.T,
+                             data_source['px'],
+                             data_source['pdx'],
+                             data_source['py'],
+                             data_source['pdy'],
+                             data_source[field], bounds)
         else:
             raise RuntimeError
         return buff

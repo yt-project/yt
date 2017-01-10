@@ -31,13 +31,13 @@ redshift and time are available:
    print("hubble distance", co.hubble_distance())
 
    # distance from z = 0 to 0.5
-   print("comoving radial distance", co.comoving_radial_distance(0, 0.5).in_units("Mpc/h"))
+   print("comoving radial distance", co.comoving_radial_distance(0, 0.5).in_units("Mpccm/h"))
 
    # transverse distance
-   print("transverse distance", co.comoving_transverse_distance(0, 0.5).in_units("Mpc/h"))
+   print("transverse distance", co.comoving_transverse_distance(0, 0.5).in_units("Mpccm/h"))
 
    # comoving volume
-   print("comoving volume", co.comoving_volume(0, 0.5).in_units("Gpc**3"))
+   print("comoving volume", co.comoving_volume(0, 0.5).in_units("Gpccm**3"))
 
    # angulare diameter distance
    print("angular diameter distance", co.angular_diameter_distance(0, 0.5).in_units("Mpc/h"))
@@ -67,7 +67,16 @@ redshift and time are available:
    # convert redshift to time after Big Bang (same as Hubble time)
    print("t from z", co.t_from_z(0.5).in_units("Gyr"))
 
-Note, that all distances returned are comoving distances.  All of the above
+.. warning::
+
+   Cosmological distance calculations return values that are either
+   in the comoving or proper frame, depending on the specific quantity.  For
+   simplicity, the proper and comoving frames are set equal to each other
+   within the cosmology calculator.  This means that for some distance value,
+   x, x.to("Mpc") and x.to("Mpccm") will be the same.  The user should take
+   care to understand which reference frame is correct for the given calculation.
+
+All of the above
 functions accept scalar values and arrays.  The helper functions, `co.quan`
 and `co.arr` exist to create unitful `YTQuantities` and `YTArray` with the
 unit registry of the cosmology calculator.  For more information on the usage

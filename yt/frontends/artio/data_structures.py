@@ -30,7 +30,8 @@ from yt.frontends.artio.fields import \
     ARTIOFieldInfo
 
 from yt.funcs import \
-    mylog
+    mylog, \
+    setdefaultattr
 from yt.geometry.geometry_handler import \
     Index, \
     YTDataChunk
@@ -39,7 +40,7 @@ from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.octree_subset import \
     OctreeSubset
-from yt.data_objects.data_containers import \
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented
@@ -181,6 +182,17 @@ class ARTIOIndex(Index):
         """
         return (self.dataset.domain_width /
                 (self.dataset.domain_dimensions * 2**(self.max_level))).min()
+
+    def _get_particle_type_counts(self):
+        # this could be done in the artio C interface without creating temporary
+        # arrays but I don't want to touch that code
+        # if a future brave soul wants to try, take a look at
+        # `read_sfc_particles` in _artio_caller.pyx
+        result = {}
+        ad = self.ds.all_data()
+        for ptype in self.ds.particle_types_raw:
+            result[ptype] = ad[ptype, 'PID'].size
+        return result
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -343,10 +355,13 @@ class ARTIODataset(Dataset):
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
-        self.mass_unit = self.quan(self.parameters["unit_m"], "g")
-        self.length_unit = self.quan(self.parameters["unit_l"], "cm")
-        self.time_unit = self.quan(self.parameters["unit_t"], "s")
-        self.velocity_unit = self.length_unit / self.time_unit
+        setdefaultattr(
+            self, 'mass_unit', self.quan(self.parameters["unit_m"], "g"))
+        setdefaultattr(
+            self, 'length_unit', self.quan(self.parameters["unit_l"], "cm"))
+        setdefaultattr(
+            self, 'time_unit', self.quan(self.parameters["unit_t"], "s"))
+        setdefaultattr(self, 'velocity_unit', self.length_unit / self.time_unit)
 
     def _parse_parameter_file(self):
         # hard-coded -- not provided by headers

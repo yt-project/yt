@@ -13,6 +13,7 @@ Derived field base class.
 
 import contextlib
 import inspect
+import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
@@ -23,6 +24,7 @@ from .field_exceptions import \
     NeedsDataField, \
     NeedsProperty, \
     NeedsParameter, \
+    NeedsParameterValue, \
     FieldUnitsError
 from .field_detector import \
     FieldDetector
@@ -65,8 +67,14 @@ class DerivedField(object):
        Describes whether the field should be logged
     validators : list
        A list of :class:`FieldValidator` objects
+    sampling_type : string, default = "cell"
+        How is the field sampled?  This can be one of the following options at
+        present: "cell" (cell-centered), "discrete" (or "particle") for
+        discretely sampled data.
     particle_type : bool
-       Is this a particle (1D) field?
+       (Deprecated) Is this a particle (1D) field?  This is deprecated. Use
+       sampling_type = "discrete" or sampling_type = "particle".  This will
+       *override* sampling_type.
     vector_field : bool
        Describes the dimensionality of the field.  Currently unused.
     display_field : bool
@@ -83,9 +91,9 @@ class DerivedField(object):
        The dimensions of the field, only needed if units="auto" and only used
        for error checking.
     """
-    def __init__(self, name, function, units=None,
+    def __init__(self, name, sampling_type, function, units=None,
                  take_log=True, validators=None,
-                 particle_type=False, vector_field=False, display_field=True,
+                 particle_type=None, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
                  dimensions=None, ds=None):
         self.name = name
@@ -93,7 +101,12 @@ class DerivedField(object):
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        self.particle_type = particle_type
+        if particle_type is True:
+            warnings.warn("particle_type for derived fields "
+                          "has been replaced with sampling_type = 'particle'",
+                          DeprecationWarning)
+            sampling_type = "particle"
+        self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
 
@@ -135,20 +148,30 @@ class DerivedField(object):
         dd['units'] = self.units
         dd['take_log'] = self.take_log
         dd['validators'] = list(self.validators)
-        dd['particle_type'] = self.particle_type
+        dd['sampling_type'] = self.sampling_type
         dd['vector_field'] = self.vector_field
         dd['display_field'] = True
         dd['not_in_all'] = self.not_in_all
         dd['display_name'] = self.display_name
         return dd
 
+    @property
+    def particle_type(self):
+        return self.sampling_type in ("discrete", "particle")
+
     def get_units(self):
-        u = Unit(self.units, registry=self.ds.unit_registry)
+        if self.ds is not None:
+            u = Unit(self.units, registry=self.ds.unit_registry)
+        else:
+            u = Unit(self.units)
         return u.latex_representation()
 
     def get_projected_units(self):
-        u = Unit(self.units, registry=self.ds.unit_registry)*Unit('cm')
-        return u.latex_representation()
+        if self.ds is not None:
+            u = Unit(self.units, registry=self.ds.unit_registry)
+        else:
+            u = Unit(self.units)
+        return (u*Unit('cm')).latex_representation()
 
     def check_available(self, data):
         """
@@ -221,7 +244,10 @@ class DerivedField(object):
         if projected:
             raise NotImplementedError
         else:
-            units = Unit(self.units, registry=self.ds.unit_registry)
+            if self.ds is not None:
+                units = Unit(self.units, registry=self.ds.unit_registry)
+            else:
+                units = Unit(self.units)
         # Add unit label
         if not units.is_dimensionless:
             data_label += r"\ \ (%s)" % (units.latex_representation())
@@ -256,14 +282,21 @@ class FieldValidator(object):
     pass
 
 class ValidateParameter(FieldValidator):
-    def __init__(self, parameters):
+    def __init__(self, parameters, parameter_values=None):
         """
         This validator ensures that the dataset has a given parameter.
+
+        If *parameter_values* is supplied, this will also ensure that the field
+        is available for all permutations of the field parameter.
         """
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
+        self.parameter_values = parameter_values
     def __call__(self, data):
         doesnt_have = []
+        if self.parameter_values is not None:
+            if isinstance(data, FieldDetector):
+                raise NeedsParameterValue(self.parameter_values)
         for p in self.parameters:
             if not data.has_field_parameter(p):
                 doesnt_have.append(p)

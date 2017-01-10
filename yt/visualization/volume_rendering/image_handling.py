@@ -33,13 +33,12 @@ def export_rgba(image, fn, h5=True, fits=False, ):
         f.create_dataset("A", data=image[:,:,3])
         f.close()
     if fits:
-        from yt.utilities.fits_image import FITSImageData
+        from yt.visualization.fits_image import FITSImageData
         data = {}
         data["r"] = image[:,:,0]
         data["g"] = image[:,:,1]
         data["b"] = image[:,:,2]
         data["a"] = image[:,:,3]
-        nx, ny = data["r"].shape
         fib = FITSImageData(data)
         fib.writeto('%s.fits'%fn,clobber=True)
 
