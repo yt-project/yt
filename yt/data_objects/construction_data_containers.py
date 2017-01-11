@@ -429,7 +429,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         if self.method == "mip" or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:
-            # This gets explicitly converted to cm
             ax_name = self.ds.coordinates.axis_name[self.axis]
             dl = chunk["index", "path_element_%s" % (ax_name)]
             # This is done for cases where our path element does not have a CGS
