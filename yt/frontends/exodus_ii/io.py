@@ -51,9 +51,8 @@ class IOHandlerExodusII(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             if ftype == "all":
-                ci = self.handler.variables['connect1'][:] - self._INDEX_OFFSET
-                for i in range(1, len(self.ds.index.meshes)):
-                    ci = np.concatenate((ci, self.handler.variables['connect%d' % (i + 1)][:] - self._INDEX_OFFSET))
+                ci = np.concatenate([mesh.connectivity_indices - self._INDEX_OFFSET \
+                                     for mesh in self.ds.index.mesh_union])
             else:
                 ci = self.handler.variables[ftype][:] - self._INDEX_OFFSET
             num_elem = ci.shape[0]

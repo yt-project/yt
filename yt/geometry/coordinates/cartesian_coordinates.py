@@ -70,9 +70,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ftype, fname = field
             if ftype == "all":
                 mesh_id = 0
-                indices = index.meshes[0].connectivity_indices
-                for i in range(1, len(index.meshes)):
-                    indices = np.concatenate((indices, index.meshes[i].connectivity_indices))
+                indices = np.concatenate([mesh.connectivity_indices for mesh in index.mesh_union])
             else:
                 mesh_id = int(ftype[-1]) - 1
                 indices = index.meshes[mesh_id].connectivity_indices
