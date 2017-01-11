@@ -897,6 +897,13 @@ def enable_plugins():
             code = compile(f.read(), _fn, 'exec')
             exec(code, execdict)
 
+def subchunk_count(n_total, chunk_size):
+    handled = 0
+    while handled < n_total:
+        tr = min(n_total - handled, chunk_size)
+        yield tr
+        handled += tr
+
 def fix_unitary(u):
     if u == '1':
         return 'unitary'

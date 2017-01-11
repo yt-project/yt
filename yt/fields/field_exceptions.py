@@ -18,11 +18,13 @@ class ValidationException(Exception):
     pass
 
 class NeedsGridType(ValidationException):
-    def __init__(self, ghost_zones = 0, fields=None):
+    def __init__(self, ghost_zones = 0, fields=None, ghost_particles = False):
         self.ghost_zones = ghost_zones
         self.fields = fields
+        self.ghost_particles = ghost_particles
     def __str__(self):
-        return "(%s, %s)" % (self.ghost_zones, self.fields)
+        return "(%s, %s, %s)" % (self.ghost_zones, self.fields,
+            self.ghost_particles)
 
 class NeedsOriginalGrid(NeedsGridType):
     def __init__(self):

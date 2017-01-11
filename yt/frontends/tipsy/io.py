@@ -239,14 +239,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ds.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                              DW.units.dimensions)
 
-    def _initialize_index(self, data_file, regions):
-        ds = data_file.ds
-        morton = np.empty(sum(list(data_file.total_particles.values())),
-                          dtype="uint64")
-        ind = 0
-        DLE, DRE = ds.domain_left_edge, ds.domain_right_edge
-        self.domain_left_edge = DLE.in_units("code_length").ndarray_view()
-        self.domain_right_edge = DRE.in_units("code_length").ndarray_view()
+    def _yield_coordinates(self, data_file):
+        ds = data_file.pf
         with open(data_file.filename, "rb") as f:
             f.seek(ds._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
@@ -270,15 +264,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                         mas[axi] = ma
                     pos = np.empty((pp.size, 3), dtype="float64")
                     for i, ax in enumerate("xyz"):
-                        pos[:, i] = pp["Coordinates"][ax]
-                    regions.add_data_file(pos, data_file.file_id,
-                                          data_file.ds.filter_bbox)
-                    morton[ind:ind + c] = compute_morton(
-                        pos[:, 0], pos[:, 1], pos[:, 2],
-                        DLE, DRE, data_file.ds.filter_bbox)
-                    ind += c
-        mylog.info("Adding %0.3e particles", morton.size)
-        return morton
+                        pos[:,i] = pp["Coordinates"][ax]
+                    yield pos
 
     def _count_particles(self, data_file):
         npart = {

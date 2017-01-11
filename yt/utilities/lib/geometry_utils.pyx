@@ -22,6 +22,13 @@ from libc.math cimport copysign, fabs
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.lib.vec3_ops cimport subtract, cross, dot, L2_norm
 
+
+DEF ORDER_MAX=20
+DEF INDEX_MAX_64=2097151
+DEF XSHIFT=2
+DEF YSHIFT=1
+DEF ZSHIFT=0
+
 cdef extern from "math.h":
     double exp(double x) nogil
     float expf(float x) nogil
@@ -207,6 +214,73 @@ cdef np.int64_t setbit(np.int64_t x, np.int64_t w, np.int64_t i, np.int64_t b):
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def spread_bits(np.uint64_t x):
+    return spread_64bits_by2(x)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def compact_bits(np.uint64_t x):
+    return compact_64bits_by2(x)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def lsz(np.uint64_t v, int stride = 1, int start = 0):
+    cdef int c
+    c = start
+    while ((np.uint64(1) << np.uint64(c)) & np.uint64(v)):
+        c += stride
+    return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def lsb(np.uint64_t v, int stride = 1, int start = 0):
+    cdef int c
+    c = start
+    while (np.uint64(v) << np.uint64(c)) and not ((np.uint64(1) << np.uint64(c)) & np.uint64(v)):
+        c += stride
+    return c
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def bitwise_addition(np.uint64_t x, np.int64_t y0, 
+                     int stride = 1, int start = 0):
+    if (y0 == 0): return x
+    cdef int end, p, pstart
+    cdef list mstr
+    cdef np.uint64_t m, y, out
+    y = np.uint64(np.abs(y0))
+    if (y0 > 0):
+        func_ls = lsz
+    else:
+        func_ls = lsb
+    # Continue until all bits added
+    p = 0
+    out = x
+    while (y >> p):
+        if (y & (1 << p)): 
+            # Get end point
+            pstart = start + p*stride
+            end = func_ls(out,stride=stride,start=pstart)
+            # Create mask
+            mstr = (end + 1) * ['0']
+            for i in range(pstart,end+1,stride):
+                mstr[i] = '1'
+                m = int(''.join(mstr[::-1]), 2)
+            # Invert portion in mask
+            # print mstr[::-1]
+            # print y,p,(pstart,end+1),bin(m),bin(out),bin(~out)
+            out = masked_merge_64bit(out, ~out, m)
+        # Move to next bit
+        p += 1
+    return out
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cdef np.int64_t point_to_hilbert(int order, np.int64_t p[3]):
     cdef np.int64_t h, e, d, l, b, w, i, x
     h = e = d = 0
@@ -295,40 +369,50 @@ def get_hilbert_points(int order, np.ndarray[np.int64_t, ndim=1] indices):
             positions[i, j] = p[j]
     return positions
 
-# yt did not invent these! :)
-cdef np.uint64_t _const20 = 0x000001FFC00003FF
-cdef np.uint64_t _const10 = 0x0007E007C00F801F
-cdef np.uint64_t _const04 = 0x00786070C0E181C3
-cdef np.uint64_t _const2a = 0x0199219243248649
-cdef np.uint64_t _const2b = 0x0649249249249249
-cdef np.uint64_t _const2c = 0x1249249249249249
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.uint64_t point_to_morton(np.uint64_t p[3]):
+    # Weird indent thing going on... also, should this reference the pxd func?
+    return encode_morton_64bit(p[0],p[1],p[2])
+    
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef void morton_to_point(np.uint64_t mi, np.uint64_t *p):
+    decode_morton_64bit(mi,p)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline np.uint64_t spread_bits(np.uint64_t x):
-    # This magic comes from http://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
-    x=(x|(x<<20))&_const20
-    x=(x|(x<<10))&_const10
-    x=(x|(x<<4))&_const04
-    x=(x|(x<<2))&_const2a
-    x=(x|(x<<2))&_const2b
-    x=(x|(x<<2))&_const2c
-    return x
+def get_morton_index(np.ndarray[np.uint64_t, ndim=1] left_index):
+    cdef int j
+    cdef np.uint64_t morton_index
+    cdef np.uint64_t p[3]
+    for j in range(3):
+        if left_index[j] >= INDEX_MAX_64:
+            raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
+                             "for 64bit interleave.")
+        p[j] = left_index[j]
+    morton_index = point_to_morton(p)
+    return morton_index
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
-    cdef np.int64_t i, mi
+    cdef np.int64_t i
+    cdef int j
     cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    cdef np.uint64_t p[3]
     morton_indices = np.zeros(left_index.shape[0], 'uint64')
     for i in range(left_index.shape[0]):
-        mi = 0
-        mi |= spread_bits(left_index[i,2])<<0
-        mi |= spread_bits(left_index[i,1])<<1
-        mi |= spread_bits(left_index[i,0])<<2
-        morton_indices[i] = mi
+        for j in range(3):
+            if left_index[i, j] >= INDEX_MAX_64:
+                raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
+                                 "for 64bit interleave.")
+            p[j] = left_index[i, j]
+        morton_indices[i] = point_to_morton(p)
     return morton_indices
 
 @cython.cdivision(True)
@@ -336,21 +420,565 @@ def get_morton_indices(np.ndarray[np.uint64_t, ndim=2] left_index):
 @cython.wraparound(False)
 def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
                                np.ndarray[np.uint64_t, ndim=1] left_y,
-                               np.ndarray[np.uint64_t, ndim=1] left_z,):
-    cdef np.int64_t i, mi
+                               np.ndarray[np.uint64_t, ndim=1] left_z):
+    cdef np.int64_t i
     cdef np.ndarray[np.uint64_t, ndim=1] morton_indices
+    cdef np.uint64_t p[3]
     morton_indices = np.zeros(left_x.shape[0], 'uint64')
     for i in range(left_x.shape[0]):
-        mi = 0
-        mi |= spread_bits(left_z[i])<<0
-        mi |= spread_bits(left_y[i])<<1
-        mi |= spread_bits(left_x[i])<<2
-        morton_indices[i] = mi
+        p[0] = left_x[i]
+        p[1] = left_y[i]
+        p[2] = left_z[i]
+        for j in range(3):
+            if p[j] >= INDEX_MAX_64:
+                raise ValueError("Point exceeds max ({}) ".format(INDEX_MAX_64)+
+                                 "for 64 bit interleave.")
+        morton_indices[i] = point_to_morton(p)
     return morton_indices
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_point(np.uint64_t index):
+    cdef int j
+    cdef np.uint64_t p[3]
+    cdef np.ndarray[np.uint64_t, ndim=1] position
+    position = np.zeros(3, 'uint64')
+    morton_to_point(index, p)
+    for j in range(3):
+        position[j] = p[j]
+    return position
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_points(np.ndarray[np.uint64_t, ndim=1] indices):
+    # This is inspired by the scurve package by user cortesi on GH.
+    cdef int i, j
+    cdef np.uint64_t p[3]
+    cdef np.ndarray[np.uint64_t, ndim=2] positions
+    positions = np.zeros((indices.shape[0], 3), 'uint64')
+    for i in range(indices.shape[0]):
+        morton_to_point(indices[i], p)
+        for j in range(3):
+            positions[i, j] = p[j]
+    return positions
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_neighbors_coarse(mi1, max_index1, periodic, nn):
+    cdef int i
+    cdef np.uint32_t ntot
+    cdef np.ndarray[np.uint32_t, ndim=2] index = np.zeros((2*nn+1,3), dtype='uint32')
+    cdef np.ndarray[np.uint64_t, ndim=2] ind1_n = np.zeros((2*nn+1,3), dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=1] neighbors = np.zeros((2*nn+1)**3, dtype='uint64')
+    cdef bint periodicity[3]
+    if periodic:
+        for i in range(3): periodicity[i] = 1
+    else:
+        for i in range(3): periodicity[i] = 0
+    ntot = morton_neighbors_coarse(mi1, max_index1, periodicity, nn,
+                                   index, ind1_n, neighbors)
+    return np.resize(neighbors, (ntot,))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1,
+                                         bint periodicity[3], np.uint32_t nn, 
+                                         np.uint32_t[:,:] index,
+                                         np.uint64_t[:,:] ind1_n,
+                                         np.uint64_t[:] neighbors):
+    cdef np.uint32_t ntot = 0
+    cdef np.uint64_t ind1[3]
+    cdef np.uint32_t count[3]
+    cdef np.uint32_t origin[3]
+    cdef np.int64_t adv
+    cdef int i, j, k, ii, ij, ik
+    for i in range(3):
+        count[i] = 0
+        origin[i] = 0
+    # Get indices
+    decode_morton_64bit(mi1,ind1)
+    # Determine which directions are valid
+    for j,i in enumerate(range(-nn,(nn+1))):
+        if i == 0:
+            for k in range(3):
+                ind1_n[j,k] = ind1[k]
+                index[count[k],k] = j
+                origin[k] = count[k]
+                count[k] += 1
+        else:
+            for k in range(3):
+                adv = <np.int64_t>((<np.int64_t>ind1[k]) + i)
+                if (adv < 0): 
+                    if periodicity[k]:
+                        while adv < 0:
+                            adv += max_index1
+                        ind1_n[j,k] = <np.uint64_t>(adv % max_index1)
+                    else:
+                        continue
+                elif (adv >= max_index1):
+                    if periodicity[k]:
+                        ind1_n[j,k] = <np.uint64_t>(adv % max_index1)
+                    else:
+                        continue
+                else:
+                    ind1_n[j,k] = <np.uint64_t>(adv)
+                # print(i,k,adv,max_index1,ind1_n[j,k],adv % max_index1)
+                index[count[k],k] = j
+                count[k] += 1
+    # Iterate over ever combinations
+    for ii in range(count[0]):
+        i = index[ii,0]
+        for ij in range(count[1]):
+            j = index[ij,1]
+            for ik in range(count[2]):
+                k = index[ik,2]
+                if (ii != origin[0]) or (ij != origin[1]) or (ik != origin[2]):
+                    neighbors[ntot] = encode_morton_64bit(ind1_n[i,0],
+                                                          ind1_n[j,1],
+                                                          ind1_n[k,2])
+                    ntot += 1
+    return ntot
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_neighbors_refined(mi1, mi2, max_index1, max_index2, periodic, nn):
+    cdef int i
+    cdef np.uint32_t ntot
+    cdef np.ndarray[np.uint32_t, ndim=2] index = np.zeros((2*nn+1,3), dtype='uint32')
+    cdef np.ndarray[np.uint64_t, ndim=2] ind1_n = np.zeros((2*nn+1,3), dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=2] ind2_n = np.zeros((2*nn+1,3), dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=1] neighbors1 = np.zeros((2*nn+1)**3, dtype='uint64')
+    cdef np.ndarray[np.uint64_t, ndim=1] neighbors2 = np.zeros((2*nn+1)**3, dtype='uint64')
+    cdef bint periodicity[3]
+    if periodic:
+        for i in range(3): periodicity[i] = 1
+    else:
+        for i in range(3): periodicity[i] = 0
+    ntot = morton_neighbors_refined(mi1, mi2, max_index1, max_index2,
+                                    periodicity, nn,
+                                    index, ind1_n, ind2_n, 
+                                    neighbors1, neighbors2)
+    return np.resize(neighbors1, (ntot,)), np.resize(neighbors2, (ntot,))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.uint32_t morton_neighbors_refined(np.uint64_t mi1, np.uint64_t mi2, 
+                                          np.uint64_t max_index1, np.uint64_t max_index2,
+                                          bint periodicity[3], np.uint32_t nn, 
+                                          np.uint32_t[:,:] index,
+                                          np.uint64_t[:,:] ind1_n,
+                                          np.uint64_t[:,:] ind2_n,
+                                          np.uint64_t[:] neighbors1,
+                                          np.uint64_t[:] neighbors2):
+    cdef np.uint32_t ntot = 0
+    cdef np.uint64_t ind1[3]
+    cdef np.uint64_t ind2[3]
+    cdef np.uint32_t count[3]
+    cdef np.uint32_t origin[3]
+    cdef np.int64_t adv, maj, rem, adv1
+    cdef int i, j, k, ii, ij, ik
+    for i in range(3):
+        count[i] = 0
+        origin[i] = 0
+    # Get indices
+    decode_morton_64bit(mi1,ind1)
+    decode_morton_64bit(mi2,ind2)
+    # Determine which directions are valid
+    for j,i in enumerate(range(-nn,(nn+1))):
+        if i == 0:
+            for k in range(3):
+                ind1_n[j,k] = ind1[k]
+                ind2_n[j,k] = ind2[k]
+                index[count[k],k] = j
+                origin[k] = count[k]
+                count[k] += 1
+        else:
+            for k in range(3):
+                adv = <np.int64_t>(ind2[k] + i)
+                maj = adv / (<np.int64_t>max_index2)
+                rem = adv % (<np.int64_t>max_index2)
+                if adv < 0:
+                    adv1 = <np.int64_t>(ind1[k] + (maj-1))
+                    if adv1 < 0:
+                        if periodicity[k]:
+                            while adv1 < 0:
+                                adv1 += max_index1
+                            ind1_n[j,k] = <np.uint64_t>adv1
+                        else:
+                            continue
+                    else:
+                        ind1_n[j,k] = <np.uint64_t>adv1
+                    while adv < 0:
+                        adv += max_index2
+                    ind2_n[j,k] = <np.uint64_t>adv
+                elif adv >= max_index2:
+                    adv1 = <np.int64_t>(ind1[k] + maj)
+                    if adv1 >= max_index1:
+                        if periodicity[k]:
+                            ind1_n[j,k] = <np.uint64_t>(adv1 % <np.int64_t>max_index1)
+                        else:
+                            continue
+                    else:
+                        ind1_n[j,k] = <np.uint64_t>adv1
+                    ind2_n[j,k] = <np.uint64_t>rem
+                else:
+                    ind1_n[j,k] = ind1[k]
+                    ind2_n[j,k] = <np.uint64_t>(adv)
+                index[count[k],k] = j
+                count[k] += 1
+    # Iterate over ever combinations
+    for ii in range(count[0]):
+        i = index[ii,0]
+        for ij in range(count[1]):
+            j = index[ij,1]
+            for ik in range(count[2]):
+                k = index[ik,2]
+                if (ii != origin[0]) or (ij != origin[1]) or (ik != origin[2]):
+                    neighbors1[ntot] = encode_morton_64bit(ind1_n[i,0],
+                                                           ind1_n[j,1],
+                                                           ind1_n[k,2])
+                    neighbors2[ntot] = encode_morton_64bit(ind2_n[i,0],
+                                                           ind2_n[j,1],
+                                                           ind2_n[k,2])
+                    ntot += 1
+    return ntot
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_neighbor_periodic(np.ndarray[np.uint64_t,ndim=1] p, 
+                             list dim_list, list num_list, 
+                             np.uint64_t max_index):
+    cdef np.uint64_t p1[3]
+    cdef int j, dim, num
+    for j in range(3):
+        p1[j] = np.uint64(p[j])
+    for dim,num in zip(dim_list,num_list):
+        p1[dim] = np.uint64((np.int64(p[dim]) + num) % max_index)
+    return np.int64(point_to_morton(p1))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_neighbor_bounded(np.ndarray[np.uint64_t,ndim=1] p, 
+                            list dim_list, list num_list, 
+                            np.uint64_t max_index):
+    cdef np.int64_t x
+    cdef np.uint64_t p1[3]
+    cdef int j, dim, num
+    for j in range(3):
+        p1[j] = np.uint64(p[j])
+    for dim,num in zip(dim_list,num_list):
+        x = np.int64(p[dim]) + num
+        if (x >= 0) and (x < max_index):
+            p1[dim] = np.uint64(x)
+        else:
+            return np.int64(-1)
+    return np.int64(point_to_morton(p1))
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_neighbor(np.ndarray[np.uint64_t,ndim=1] p, 
+                    list dim_list, list num_list, 
+                    np.uint64_t max_index, periodic = False):
+    if periodic:
+        return morton_neighbor_periodic(p, dim_list, num_list, max_index)
+    else:
+        return morton_neighbor_bounded(p, dim_list, num_list, max_index)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_neighbors(np.ndarray[np.uint64_t,ndim=1] mi,
+                         int order = ORDER_MAX, periodic = False):
+    """Returns array of neighboring morton indices"""
+    # Declare
+    cdef int i, j, k, l, n
+    cdef np.uint64_t max_index
+    cdef np.ndarray[np.uint64_t, ndim=2] p
+    cdef np.int64_t nmi
+    cdef np.ndarray[np.uint64_t, ndim=1] mi_neighbors
+    p = get_morton_points(mi)
+    mi_neighbors = np.zeros(26*mi.shape[0], 'uint64')
+    n = 0
+    max_index = np.int64(1 << order)
+    # Define function
+    if periodic:
+        fneighbor = morton_neighbor_periodic
+    else:
+        fneighbor = morton_neighbor_bounded
+    for i in range(mi.shape[0]):
+        for j in range(3):
+            # +1 in dimension j
+            nmi = fneighbor(p[i,:],[j],[+1],max_index)
+            if nmi > 0:
+                mi_neighbors[n] = np.uint64(nmi)
+                n+=1
+                # +/- in dimension k
+                for k in range(j+1,3):
+                    # +1 in dimension k
+                    nmi = fneighbor(p[i,:],[j,k],[+1,+1],max_index)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = fneighbor(p[i,:],[j,k,l],[+1,+1,+1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = fneighbor(p[i,:],[j,k,l],[+1,+1,-1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                    # -1 in dimension k
+                    nmi = fneighbor(p[i,:],[j,k],[+1,-1],max_index)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = fneighbor(p[i,:],[j,k,l],[+1,-1,+1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = fneighbor(p[i,:],[j,k,l],[+1,-1,-1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+            # -1 in dimension j
+            nmi = fneighbor(p[i,:],[j],[-1],max_index)
+            if nmi > 0:
+                mi_neighbors[n] = np.uint64(nmi)
+                n+=1
+                # +/- in dimension k
+                for k in range(j+1,3):
+                    # +1 in dimension k
+                    nmi = fneighbor(p[i,:],[j,k],[-1,+1],max_index)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = fneighbor(p[i,:],[j,k,l],[-1,+1,+1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = fneighbor(p[i,:],[j,k,l],[-1,+1,-1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                    # -1 in dimension k
+                    nmi = fneighbor(p[i,:],[j,k],[-1,-1],max_index)
+                    if nmi > 0:
+                        mi_neighbors[n] = np.uint64(nmi)
+                        n+=1
+                        # +/- in dimension l
+                        for l in range(k+1,3):
+                            nmi = fneighbor(p[i,:],[j,k,l],[-1,-1,+1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+                            nmi = fneighbor(p[i,:],[j,k,l],[-1,-1,-1],max_index)
+                            if nmi > 0:
+                                mi_neighbors[n] = np.uint64(nmi)
+                                n+=1
+    mi_neighbors = np.resize(mi_neighbors,(n,))
+    return np.unique(np.hstack([mi,mi_neighbors]))
 
 ctypedef fused anyfloat:
     np.float32_t
     np.float64_t
+
+def ifrexp_cy(np.float64_t x):
+    cdef np.int64_t e, m
+    m = ifrexp(x, &e)
+    return m,e
+
+def msdb_cy(np.int64_t a, np.int64_t b):
+    return msdb(a,b)
+
+def msdb_cy(np.int64_t a, np.int64_t b):
+    return msdb(a,b)
+
+def xor_msb_cy(np.float64_t a, np.float64_t b):
+    return xor_msb(a,b)
+
+def morton_qsort_swap(np.ndarray[np.uint64_t, ndim=1] ind,
+                      np.uint64_t a, np.uint64_t b):
+    # http://www.geeksforgeeks.org/iterative-quick-sort/
+    cdef np.int64_t t = ind[a]
+    ind[a] = ind[b]
+    ind[b] = t
+
+def morton_qsort_partition(np.ndarray[anyfloat, ndim=2] pos,
+                           np.int64_t l, np.int64_t h,
+                           np.ndarray[np.uint64_t, ndim=1] ind,
+                           use_loop = False):
+    # Initialize
+    cdef int k
+    cdef np.int64_t i, j
+    cdef np.float64_t ppos[3]
+    cdef np.float64_t ipos[3]
+    cdef np.uint64_t done, pivot
+    if use_loop:
+        # http://www.geeksforgeeks.org/iterative-quick-sort/
+        # A bit slower
+        # Set starting point & pivot
+        i = (l - 1)
+        for k in range(3):
+            ppos[k] = pos[ind[h],k]
+        # Loop over array moving ind for points smaller than pivot to front
+        for j in range(l, h):
+            for k in range(3):
+                ipos[k] = pos[ind[j],k]
+            if compare_floats_morton(ipos,ppos):
+                i+=1
+                morton_qsort_swap(ind,i,j)
+        # Swap the pivot to the midpoint in the partition
+        i+=1
+        morton_qsort_swap(ind,i,h)
+        return i
+    else:
+        # Set starting point & pivot
+        i = l-1
+        j = h
+        done = 0
+        pivot = ind[h]
+        for k in range(3):
+            ppos[k] = pos[pivot,k]
+        # Loop until entire array processed
+        while not done:
+            # Process bottom
+            while not done:
+                i+=1
+                if i == j:
+                    done = 1
+                    break
+                for k in range(3):
+                    ipos[k] = pos[ind[i],k]
+                if compare_floats_morton(ppos,ipos):
+                    ind[j] = ind[i]
+                    break
+            # Process top
+            while not done:
+                j-=1
+                if j == i:
+                    done = 1
+                    break
+                for k in range(3):
+                    ipos[k] = pos[ind[j],k]
+                if compare_floats_morton(ipos,ppos):
+                    ind[i] = ind[j]
+                    break
+        ind[j] = pivot
+    return j
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_qsort_recursive(np.ndarray[anyfloat, ndim=2] pos,
+                           np.int64_t l, np.int64_t h,
+                           np.ndarray[np.uint64_t, ndim=1] ind,
+                           use_loop = False):
+    # http://www.geeksforgeeks.org/iterative-quick-sort/
+    cdef np.int64_t p
+    if (l < h):
+        p = morton_qsort_partition(pos, l, h, ind, use_loop=use_loop)
+        morton_qsort_recursive(pos, l, p-1, ind, use_loop=use_loop)
+        morton_qsort_recursive(pos, p+1, h, ind, use_loop=use_loop)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_qsort_iterative(np.ndarray[anyfloat, ndim=2] pos,
+                           np.int64_t l, np.int64_t h,
+                           np.ndarray[np.uint64_t, ndim=1] ind,
+                           use_loop = False):
+    # http://www.geeksforgeeks.org/iterative-quick-sort/
+    # Auxillary stack
+    cdef np.ndarray[np.int64_t, ndim=1] stack = np.zeros(h-l+1, dtype=np.int64)
+    cdef np.int64_t top = -1
+    cdef np.int64_t p
+    top+=1
+    stack[top] = l
+    top+=1
+    stack[top] = h
+    # Pop from stack until it's empty
+    while (top >= 0):
+        # Get next set
+        h = stack[top]
+        top-=1
+        l = stack[top]
+        top-=1
+        # Partition
+        p = morton_qsort_partition(pos, l, h, ind, use_loop=use_loop)
+        # Add left partition to the stack
+        if (p-1) > l:
+            top+=1
+            stack[top] = l
+            top+=1
+            stack[top] = p - 1
+        # Add right partition to the stack
+        if (p+1) < h:
+            top+=1
+            stack[top] = p + 1
+            top+=1
+            stack[top] = h
+            
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def morton_qsort(np.ndarray[anyfloat, ndim=2] pos,
+                 np.int64_t l, np.int64_t h,
+                 np.ndarray[np.uint64_t, ndim=1] ind,
+                 recursive = False,
+                 use_loop = False):
+    #get_morton_argsort1(pos,l,h,ind)
+    if recursive:
+        morton_qsort_recursive(pos,l,h,ind,use_loop=use_loop)
+    else:
+        morton_qsort_iterative(pos,l,h,ind,use_loop=use_loop)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def get_morton_argsort1(np.ndarray[anyfloat, ndim=2] pos, 
+                        np.int64_t start, np.int64_t end,
+                        np.ndarray[np.uint64_t, ndim=1] ind):
+    # Return if only one position selected
+    if start >= end: return
+    # Initialize
+    cdef np.int64_t top 
+    top = morton_qsort_partition(pos,start,end,ind)
+    # Do remaining parts on either side of pivot, sort side first
+    if (top-1-start < end-(top+1)):
+        get_morton_argsort1(pos,start,top-1,ind)
+        get_morton_argsort1(pos,top+1,end,ind)
+    else:
+        get_morton_argsort1(pos,top+1,end,ind)
+        get_morton_argsort1(pos,start,top-1,ind)
+    return
+
+def compare_morton(np.ndarray[anyfloat, ndim=1] p0, np.ndarray[anyfloat, ndim=1] q0):
+    cdef np.float64_t p[3]
+    cdef np.float64_t q[3]
+    # cdef np.int64_t iep,ieq,imp,imq
+    cdef int j
+    for j in range(3):
+        p[j] = p0[j]
+        q[j] = q0[j]
+        # imp = ifrexp(p[j],&iep)
+        # imq = ifrexp(q[j],&ieq)
+        # print j,p[j],q[j],xor_msb(p[j],q[j]),'m=',imp,imq,'e=',iep,ieq
+    return compare_floats_morton(p,q)
 
 @cython.cdivision(True)
 @cython.boundscheck(False)
@@ -387,17 +1015,12 @@ cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
         if use == 0:
             ind[i] = FLAG
             continue
-        mi = 0
-        mi |= spread_bits(ii[2])<<0
-        mi |= spread_bits(ii[1])<<1
-        mi |= spread_bits(ii[0])<<2
-        ind[i] = mi
+        ind[i] = encode_morton_64bit(ii[0],ii[1],ii[2])
     return pos_x.shape[0]
 
-DEF ORDER_MAX=20
-
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
-                   domain_left_edge, domain_right_edge, filter_bbox = False):
+                   domain_left_edge, domain_right_edge, filter_bbox = False,
+                   order = ORDER_MAX):
     cdef int i
     cdef int filter
     if filter_bbox:
@@ -410,7 +1033,7 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
     for i in range(3):
         DLE[i] = domain_left_edge[i]
         DRE[i] = domain_right_edge[i]
-        dds[i] = (DRE[i] - DLE[i]) / (1 << ORDER_MAX)
+        dds[i] = (DRE[i] - DLE[i]) / (1 << order)
     cdef np.ndarray[np.uint64_t, ndim=1] ind
     ind = np.zeros(pos_x.shape[0], dtype="uint64")
     cdef np.int64_t rv
@@ -431,6 +1054,276 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
         raise YTDomainOverflow(mis, mas,
                                domain_left_edge, domain_right_edge)
     return ind
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dist(np.ndarray[np.float64_t, ndim=1] p0, np.ndarray[np.float64_t, ndim=1] q0):
+    cdef int j
+    cdef np.float64_t p[3]
+    cdef np.float64_t q[3]
+    for j in range(3):
+        p[j] = p0[j]
+        q[j] = q0[j]
+    return euclidean_distance(p,q)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def dist_to_box(np.ndarray[np.float64_t, ndim=1] p,
+                np.ndarray[np.float64_t, ndim=1] cbox,
+                np.float64_t rbox):
+    cdef int j
+    cdef np.float64_t d = 0.0
+    for j in range(3):
+        d+= max((cbox[j]-rbox)-p[j],0.0,p[j]-(cbox[j]+rbox))**2
+    return np.sqrt(d)
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def solution_radius(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
+                    np.ndarray[np.uint64_t, ndim=1] idx, int order, 
+                    np.ndarray[np.float64_t, ndim=1] DLE,
+                    np.ndarray[np.float64_t, ndim=1] DRE):
+    c = np.zeros(3, dtype=np.float64)
+    return quadtree_box(P[i,:],P[idx[k-1],:],order,DLE,DRE,c)
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def knn_direct(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
+               np.ndarray[np.uint64_t, ndim=1] idx, return_dist = False, 
+               return_rad = False):
+    """Directly compute the k nearest neighbors by sorting on distance.
+
+    Args:
+        P (np.ndarray): (N,d) array of points to search sorted by Morton order.
+        k (int): number of nearest neighbors to find.
+        i (int): index of point that nearest neighbors should be found for.
+        idx (np.ndarray): indicies of points from P to be considered.
+        return_dist (Optional[bool]): If True, distances to the k nearest 
+            neighbors are also returned (in order of proximity). 
+            (default = False) 
+        return_rad (Optional[bool]): If True, distance to farthest nearest 
+            neighbor is also returned. This is set to False if return_dist is 
+            True. (default = False)
+
+    Returns: 
+        np.ndarray: Indicies of k nearest neighbors to point i. 
+
+    """
+    cdef int j,m
+    #cdef np.ndarray[np.float64_t, ndim=1] dist
+    cdef np.ndarray[long, ndim=1] sort_fwd
+    cdef np.float64_t ipos[3]
+    cdef np.float64_t jpos[3]
+    dist = np.zeros(len(idx),dtype=[('dist','float64'),('ind','int64')])
+    for m in range(3): ipos[m] = P[i,m]
+    for j in range(len(idx)):
+        for m in range(3): jpos[m] = P[idx[j],m]
+        dist['dist'][j] = euclidean_distance(ipos,jpos)
+        dist['ind'][j] = idx[j]
+    # TODO: this can be done more efficiently for just appending a few
+    # values. Possibly sort addition first and then make a collective pass
+    sort_fwd = np.argsort(dist,order=('dist','ind'))[:k]#.astype(np.uint64)
+    if return_dist:
+        return idx[sort_fwd],dist['dist'][sort_fwd]
+    elif return_rad:
+        return idx[sort_fwd],dist['dist'][sort_fwd][k-1]
+    else:
+        return idx[sort_fwd]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def quadtree_box(np.ndarray[np.float64_t, ndim=1] p, 
+                 np.ndarray[np.float64_t, ndim=1] q, int order, 
+                 np.ndarray[np.float64_t, ndim=1] DLE,
+                 np.ndarray[np.float64_t, ndim=1] DRE,
+                 np.ndarray[np.float64_t, ndim=1] c):
+    # Declare & transfer values to ctypes
+    cdef int j
+    cdef np.float64_t ppos[3]
+    cdef np.float64_t qpos[3]
+    cdef np.float64_t rbox
+    cdef np.float64_t cbox[3]
+    cdef np.float64_t DLE1[3]
+    cdef np.float64_t DRE1[3]
+    for j in range(3):
+        ppos[j] = p[j]
+        qpos[j] = q[j]
+        DLE1[j] = DLE[j]
+        DRE1[j] = DRE[j] 
+    # Get smallest box containing p & q
+    rbox = smallest_quadtree_box(ppos,qpos,order,DLE1,DRE1,
+                                 &cbox[0],&cbox[1],&cbox[2])
+    # Transfer values to python array
+    for j in range(3):
+        c[j] = cbox[j]
+    return rbox
+   
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def csearch_morton(np.ndarray[np.float64_t, ndim=2] P, int k, np.uint64_t i,
+                   np.ndarray[np.uint64_t, ndim=1] Ai, 
+                   np.uint64_t l, np.uint64_t h, int order,
+                   np.ndarray[np.float64_t, ndim=1] DLE,
+                   np.ndarray[np.float64_t, ndim=1] DRE, int nu = 4):
+    """Expand search concentrically to determine set of k nearest neighbors for 
+    point i. 
+
+    Args: 
+        P (np.ndarray): (N,d) array of points to search sorted by Morton order. 
+        k (int): number of nearest neighbors to find. 
+        i (int): index of point that nearest neighbors should be found for. 
+        Ai (np.ndarray): (N,k) array of partial nearest neighbor indices. 
+        l (int): index of lowest point to consider in addition to Ai. 
+        h (int): index of highest point to consider in addition to Ai. 
+        order (int): Maximum depth that Morton order quadtree should reach. 
+        DLE (np.float64[3]): 3 floats defining domain lower bounds in each dim.
+        DRE (np.float64[3]): 3 floats defining domain upper bounds in each dim.
+        nu (int): minimum number of points before a direct knn search is 
+            performed. (default = 4) 
+
+    Returns: 
+        np.ndarray: (N,k) array of nearest neighbor indices. 
+
+    Raises: 
+        ValueError: If l<i<h. l and h must be on the same side of i. 
+
+    """
+    cdef int j
+    cdef np.uint64_t m
+    # Make sure that h and l are both larger/smaller than i
+    if (l < i) and (h > i):
+        raise ValueError("Both l and h must be on the same side of i.")
+    m = np.uint64((h + l)/2)
+    # New range is small enough to consider directly 
+    if (h-l) < nu:
+        if m > i:
+            return knn_direct(P,k,i,np.hstack((Ai,np.arange(l,h+1,dtype=np.uint64))))
+        else:
+            return knn_direct(P,k,i,np.hstack((np.arange(l,h+1,dtype=np.uint64),Ai)))
+    # Add middle point
+    if m > i:
+        Ai,rad_Ai = knn_direct(P,k,i,np.hstack((Ai,m)).astype(np.uint64),return_rad=True)
+    else:
+        Ai,rad_Ai = knn_direct(P,k,i,np.hstack((m,Ai)).astype(np.uint64),return_rad=True)
+    cbox_sol = np.zeros(3,dtype=np.float64)
+    rbox_sol = quadtree_box(P[i,:],P[Ai[k-1],:],order,DLE,DRE,cbox_sol)
+    # Return current solution if hl box is outside current solution's box
+    # Uses actual box
+    cbox_hl = np.zeros(3,dtype=np.float64)
+    rbox_hl = quadtree_box(P[l,:],P[h,:],order,DLE,DRE,cbox_hl)
+    if dist_to_box(cbox_sol,cbox_hl,rbox_hl) >= 1.5*rbox_sol:
+        print '{} outside: rad = {}, rbox = {}, dist = {}'.format(m,rad_Ai,rbox_sol,dist_to_box(P[i,:],cbox_hl,rbox_hl))
+        return Ai
+    # Expand search to lower/higher indicies as needed 
+    if i < m: # They are already sorted...
+        Ai = csearch_morton(P,k,i,Ai,l,m-1,order,DLE,DRE,nu=nu)
+        if compare_morton(P[m,:],P[i,:]+dist(P[i,:],P[Ai[k-1],:])):
+            Ai = csearch_morton(P,k,i,Ai,m+1,h,order,DLE,DRE,nu=nu)
+    else:
+        Ai = csearch_morton(P,k,i,Ai,m+1,h,order,DLE,DRE,nu=nu)
+        if compare_morton(P[i,:]-dist(P[i,:],P[Ai[k-1],:]),P[m,:]):
+            Ai = csearch_morton(P,k,i,Ai,l,m-1,order,DLE,DRE,nu=nu)
+    return Ai
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def knn_morton(np.ndarray[np.float64_t, ndim=2] P0, int k, np.uint64_t i0,
+               float c = 1.0, int nu = 4, issorted = False, int order = ORDER_MAX, 
+               np.ndarray[np.float64_t, ndim=1] DLE = np.zeros(3,dtype=np.float64),
+               np.ndarray[np.float64_t, ndim=1] DRE = np.zeros(3,dtype=np.float64)):
+    """Get the indicies of the k nearest neighbors to point i. 
+ 
+    Args: 
+        P (np.ndarray): (N,d) array of points to search. 
+        k (int): number of nearest neighbors to find for each point in P. 
+        i (np.uint64): index of point to find neighbors for.
+        c (float): factor determining how many indicies before/after i are used
+            in the initial search (i-c*k to i+c*k, default = 1.0) 
+        nu (int): minimum number of points before a direct knn search is 
+            performed. (default = 4) 
+        issorted (Optional[bool]): if True, P is assumed to be sorted already 
+            according to Morton order. 
+        order (int): Maximum depth that Morton order quadtree should reach. 
+            If not provided, ORDER_MAX is used. 
+        DLE (np.ndarray): (d,) array of domain lower bounds in each dimension. 
+            If not provided, this is determined from the points. 
+        DRE (np.ndarray): (d,) array of domain upper bounds in each dimension. 
+            If not provided, this is determined from the points. 
+
+    Returns: 
+        np.ndarray: (N,k) indicies of k nearest neighbors for each point in P.
+"""
+    cdef int j
+    cdef np.uint64_t i
+    cdef np.int64_t N = P0.shape[0]
+    cdef np.ndarray[np.float64_t, ndim=2] P
+    cdef np.ndarray[np.uint64_t, ndim=1] sort_fwd = np.arange(N,dtype=np.uint64)
+    cdef np.ndarray[np.uint64_t, ndim=1] sort_rev = np.arange(N,dtype=np.uint64)
+    cdef np.ndarray[np.uint64_t, ndim=1] Ai
+    cdef np.int64_t idxmin, idxmax, u, l, I
+    # Sort if necessary
+    if issorted:
+        P = P0
+        i = i0
+    else:
+        morton_qsort(P0,0,N-1,sort_fwd)
+        sort_rev = np.argsort(sort_fwd).astype(np.uint64)
+        P = P0[sort_fwd,:]
+        i = sort_rev[i0]
+    # Check domain and set if singular
+    for j in range(3):
+        if DLE[j] == DRE[j]: 
+            DLE[j] = min(P[:,j])
+            DRE[j] = max(P[:,j])
+    # Get initial guess bassed on position in z-order
+    idxmin = <np.int64_t>max(i-c*k, 0)
+    idxmax = <np.int64_t>min(i+c*k, N-1)
+    Ai = np.hstack((np.arange(idxmin,i,dtype=np.uint64),
+                    np.arange(i+1,idxmax+1,dtype=np.uint64)))
+    Ai,rad_Ai = knn_direct(P,k,i,Ai,return_rad=True)
+    # Get radius of solution
+    cbox_Ai = np.zeros(3,dtype=np.float64)
+    rbox_Ai = quadtree_box(P[i,:],P[Ai[k-1],:],order,DLE,DRE,cbox_Ai)
+    rad_Ai = rbox_Ai
+    # Extend upper bound to match lower bound
+    if idxmax < (N-1):
+        if compare_morton(P[i,:]+rad_Ai,P[idxmax,:]):
+            u = i
+        else:
+            I = 1
+            while (idxmax+(2**I) < N) and compare_morton(P[idxmax+(2**I),:],P[i,:]+rad_Ai):
+                I+=1
+            u = min(idxmax+(2**I),N-1)
+            Ai = csearch_morton(P,k,i,Ai,min(idxmax+1,N-1),u,order,DLE,DRE,nu=nu)
+    else:
+        u = idxmax
+    # Extend lower bound to match upper bound
+    if idxmin > 0:
+        if compare_morton(P[idxmin,:],P[i,:]-rad_Ai):
+            l = i
+        else:
+            I = 1
+            while (idxmin-(2**I) >= 0) and compare_morton(P[i,:]-rad_Ai,P[idxmin-(2**I),:]):
+                I+=1
+            l = max(idxmin-(2**I),0)
+            Ai = csearch_morton(P,k,i,Ai,l,max(idxmin-1,0),order,DLE,DRE,nu=nu)
+    else:
+        l = idxmin
+    # Return indices of neighbors in the correct order
+    if issorted:
+        return Ai
+    else:
+        return sort_fwd[Ai]
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

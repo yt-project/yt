@@ -160,9 +160,8 @@ class StreamParticleIOHandler(BaseIOHandler):
                     data = f[ptype, field][mask]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
+    def _yield_coordinates(self, data_file):
         # self.fields[g.id][fname] is the pattern here
-        morton = []
         for ptype in self.ds.particle_types_raw:
             try:
                 pos = np.column_stack(self.fields[data_file.filename][
@@ -174,12 +173,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                 raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
                                        data_file.ds.domain_left_edge,
                                        data_file.ds.domain_right_edge)
-            regions.add_data_file(pos, data_file.file_id)
-            morton.append(compute_morton(
-                    pos[:,0], pos[:,1], pos[:,2],
-                    data_file.ds.domain_left_edge,
-                    data_file.ds.domain_right_edge))
-        return np.concatenate(morton)
+            yield pos
 
     def _count_particles(self, data_file):
         pcount = {}

@@ -72,7 +72,6 @@ def preserve_source_parameters(func):
         return tr
     return save_state
 
-
 class ProfileFieldAccumulator(object):
     def __init__(self, n_fields, size):
         shape = size + (n_fields,)

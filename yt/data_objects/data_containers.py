@@ -50,6 +50,7 @@ from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
     YTDimensionalityError, \
+    YTNonIndexedDataContainer, \
     YTBooleanObjectError, \
     YTBooleanObjectsWrongDataset
 from yt.utilities.lib.marching_cubes import \
@@ -67,6 +68,7 @@ import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
+from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 
@@ -307,6 +309,8 @@ class YTDataContainer(object):
         del self.field_data[key]
 
     def _generate_field(self, field):
+        # if field == ('deposit', 'PartType0_smoothed_density'):
+        #     import pdb; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
@@ -322,6 +326,7 @@ class YTDataContainer(object):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
+        # import pdb ; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
         if self._current_chunk is None or \
@@ -333,38 +338,62 @@ class YTDataContainer(object):
         try:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
-            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
+            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones,
+                ngt_exception.ghost_particles)
         else:
             rv = finfo(gen_obj)
         return rv
 
-    def _generate_spatial_fluid(self, field, ngz):
+    def _generate_spatial_fluid(self, field, ngz, ghost_particles = False):
         finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
-        rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
+        try:
+            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
+            accumulate = False
+        except YTNonIndexedDataContainer:
+            # In this case, we'll generate many tiny arrays of unknown size and
+            # then concatenate them.
+            outputs = []
+            accumulate = True
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial = True)
             deps = self._determine_fields(deps)
             for io_chunk in self.chunks([], "io", cache = False):
                 for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
-                                                    preload_fields = deps)):
+                                                    preload_fields = deps,
+                                                    ghost_particles = ghost_particles)):
                     o = self._current_chunk.objs[0]
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
+                                         units)
+                        outputs.append(rv)
+                        ind = 0 # Does this work with mesh?
                     with o._activate_cache():
-                        ind += o.select(self.selector, self[field], rv, ind)
+                        ind += o.select(self.selector, o[field], rv, ind)
         else:
-            chunks = self.index._chunk(self, "spatial", ngz = ngz)
+            chunks = self.index._chunk(self, "spatial", ngz = ngz,
+                                       ghost_particles = ghost_particles)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
                     gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
-                    ind += wogz.select(
-                        self.selector,
-                        gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                        rv, ind)
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(wogz.ires.size,
+                                dtype="float64"), units)
+                        outputs.append(rv)
+                    if gz._type_name == 'octree_subset':
+                        raise NotImplementedError
+                    else:
+                        ind += wogz.select(
+                            self.selector,
+                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                            rv, ind)
+        if accumulate:
+            rv = uconcatenate(outputs)
         return rv
 
     def _generate_particle_field(self, field):

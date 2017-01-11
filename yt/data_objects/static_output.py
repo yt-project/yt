@@ -1395,7 +1395,6 @@ class ParticleFile(object):
     def __lt__(self, other):
         return self.filename < other.filename
 
-
 class ParticleDataset(Dataset):
     _unit_base = None
     filter_bbox = False

@@ -78,6 +78,19 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 yield ptype, (x, y, z, hsml)
             f.close()
 
+    def _yield_coordinates(self, data_file):
+        f = h5py.File(data_file.filename)
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+        for key in f.keys():
+            if not key.startswith("PartType"): continue
+            if "Coordinates" not in f[key]: continue
+            ds = f[key]["Coordinates"]
+            dt = ds.dtype.newbyteorder("N") # Native
+            pos = np.empty(ds.shape, dtype=dt)
+            pos[:] = ds
+            yield pos
+        f.close()
+
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         data_files = set([])
@@ -321,7 +334,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     def _read_field_from_file(self, f, count, name):
         if count == 0: return
         if name == "ParticleIDs":
-            dt = "uint32"
+            dt = {True:'uint64', False:'uint32'}[self.ds.long_ids]
         else:
             dt = "float32"
         if name in self._vector_fields:
@@ -330,22 +343,44 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count//factor, factor), order="C")
-        return arr.astype("float64")
+        return np.asarray(arr, dtype="float64")
 
-    def _initialize_index(self, data_file, regions):
+    def _yield_coordinates(self, data_file):
         count = sum(data_file.total_particles.values())
-        DLE = data_file.ds.domain_left_edge
-        DRE = data_file.ds.domain_right_edge
+        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
             pp = np.fromfile(f, dtype = 'float32', count = count*3)
             pp.shape = (count, 3)
-        regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
-        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
-                                data_file.ds.filter_bbox)
-        return morton
+        yield pp
+
+    def _yield_field(self, data_file, field, ptypes=None):
+        poff = data_file.field_offsets
+        tp = data_file.total_particles
+        if ptypes is None:
+            ptype = None
+            for t in self._ptypes:
+                if tp[t] > 0:
+                    ptype = t
+                    break
+            with open(data_file.filename, "rb") as f:
+                f.seek(poff[ptype, field], os.SEEK_SET)
+                pp = self._read_field_from_file(f,
+                                                sum(data_file.total_particles.values()),
+                                                field)
+            yield pp
+        else:
+            plist = []
+            with open(data_file.filename, "rb") as f:
+                for ptype in ptypes:
+                    f.seek(poff[ptype, field], os.SEEK_SET)
+                    pp = self._read_field_from_file(f,
+                                                    tp[ptype], 
+                                                    field)
+                    yield ptype, pp
+
 
     def _count_particles(self, data_file):
         npart = dict((self._ptypes[i], v)
@@ -362,6 +397,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         fs = self._field_size
         offsets = {}
         for field in self._fields:
+            if field == "ParticleIDs" and self.ds.long_ids:
+                fs = 8
+            else:
+                fs = 4
             if not isinstance(field, string_types):
                 field = field[0]
             if not any( (ptype, field) in field_list
@@ -389,10 +428,15 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             if not any_ptypes: pos -= 8
         if file_size is not None:
             if (file_size != pos) & (self._format == 1): #ignore the rest of format 2 
+                diff = file_size - pos
+                possible = []
+                for ptype, psize in sorted(pcount.items()):
+                    if psize == 0: continue
+                    if float(diff) / psize == int(float(diff)/psize):
+                        possible.append(ptype)
                 mylog.warning("Your Gadget-2 file may have extra " +
-                              "columns or different precision!" +
-                              " (%s file vs %s computed)",
-                              file_size, pos)
+                              "columns or different precision! " +
+                              "(%s diff => %s?)", diff, possible)
         return offsets
 
     def _identify_fields(self, domain):
