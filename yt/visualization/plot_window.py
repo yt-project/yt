@@ -1283,9 +1283,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
-    data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
-         the entire simulation.
+    data_source: YTSelectionContainer object
+         Object to be used for data selection. Defaults to ds.all_data(), a 
+         region covering the full domain
 
     Examples
     --------
@@ -1460,6 +1460,9 @@ class ProjectionPlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    data_source: YTSelectionContainer object
+         Object to be used for data selection. Defaults to ds.all_data(), a 
+         region covering the full domain
 
     Examples
     --------
@@ -1587,8 +1590,8 @@ class OffAxisSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults to a region covering
-         the entire simulation.
+         Object to be used for data selection.  Defaults ds.all_data(), a 
+         region covering the full domain.
     """
 
     _plot_type = 'OffAxisSlice'
