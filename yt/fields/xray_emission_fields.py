@@ -88,6 +88,9 @@ class XrayEmissivityIntegrator(object):
         The location to look for the data table in. If not supplied, the file
         will be looked for in the location of the YT_DEST environment variable
         or in the current working directory.
+    use_metals : boolean, optional
+        If set to True, the emissivity will include contributions from metals.
+        Default: True
     """
     def __init__(self, table_type, redshift=0.0, data_dir=None, use_metals=True):
 
