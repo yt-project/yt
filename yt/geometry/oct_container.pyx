@@ -763,9 +763,6 @@ cdef int root_node_compare(void *a, void *b) nogil:
     else:
         return 1
 
-cdef void root_node_free(void *a) nogil:
-    return
-
 cdef class SparseOctreeContainer(OctreeContainer):
 
     def __init__(self, domain_dimensions, domain_left_edge, domain_right_edge,
@@ -896,7 +893,6 @@ cdef class SparseOctreeContainer(OctreeContainer):
     def __dealloc__(self):
         # This gets called BEFORE the superclass deallocation.  But, both get
         # called.
-        if self.tree_root != NULL: tdestroy(self.tree_root, root_node_free)
         if self.root_nodes != NULL: free(self.root_nodes)
 
 cdef class RAMSESOctreeContainer(SparseOctreeContainer):
