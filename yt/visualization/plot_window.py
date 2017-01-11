@@ -1629,13 +1629,17 @@ class OffAxisProjectionDummyDataSource(object):
     def __init__(self, center, ds, normal_vector, width, fields,
                  interpolated, resolution = (800,800), weight=None,
                  volume=None, no_ghost=False, le=None, re=None,
-                 north_vector=None, method="integrate"):
+                 north_vector=None, method="integrate",
+                 data_source=None):
         self.center = center
         self.ds = ds
         self.axis = 4 # always true for oblique data objects
         self.normal_vector = normal_vector
         self.width = width
-        self.dd = ds.all_data()
+        if data_source is None:
+            self.dd = ds.all_data()
+        else:
+            self.dd = data_source
         fields = self.dd._determine_fields(fields)
         self.fields = fields
         self.interpolated = interpolated
@@ -1740,6 +1744,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
          just a straight summation of the field along the given axis. WARNING:
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
+    data_source: YTSelectionContainer object
+         Object to be used for data selection. Defaults to ds.all_data(), a 
+         region covering the full domain
     """
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -1748,7 +1755,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
                  depth=(1, '1'), axes_unit=None, weight_field=None,
                  max_level=None, north_vector=None, right_handed=True,
                  volume=None, no_ghost=False, le=None, re=None,
-                 interpolated=False, fontsize=18, method="integrate"):
+                 interpolated=False, fontsize=18, method="integrate",
+                 data_source=None):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1758,7 +1766,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
         OffAxisProj = OffAxisProjectionDummyDataSource(
             center_rot, ds, normal, oap_width, fields, interpolated,
             weight=weight_field,  volume=volume, no_ghost=no_ghost,
-            le=le, re=re, north_vector=north_vector, method=method)
+            le=le, re=re, north_vector=north_vector, method=method,
+            data_source=data_source)
 
         validate_mesh_fields(OffAxisProj, fields)
 
