@@ -32,7 +32,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface, communication_system, MPI
 
 from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.octree_subset import ParticleOctreeSubset, _use_global_octree
+from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.data_objects.particle_container import ParticleContainer
 
 class ParticleIndex(Index):
@@ -103,9 +103,10 @@ class ParticleIndex(Index):
             ds = self.dataset
             # TODO: Re-insert the usage of index_ptype here
             self.global_oct_handler = ParticleOctreeContainer(
-                [1, 1, 1], ds.domain_left_edge, ds.domain_right_edge,
+                [8, 8, 8], ds.domain_left_edge, ds.domain_right_edge,
                 over_refine = ds.over_refine_factor)
             self.global_oct_handler.n_ref = ds.n_ref
+            # TODO: Add from individual files
             self.global_oct_handler.add(self.regions.primary_indices(), 
                                         self.regions.index_order1)
             self.global_oct_handler.finalize()
@@ -267,6 +268,7 @@ class ParticleIndex(Index):
             if isinstance(dobj, (ParticleContainer, ParticleOctreeSubset)):
                 dobj._chunk_info = [dobj]
             else:
+                # TODO: only return files
                 dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
                 nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
@@ -274,13 +276,7 @@ class ParticleIndex(Index):
                     domain_id = i+1
                     dobj._chunk_info[i] = ParticleContainer(
                         dobj, [self.data_files[dfi[i]]],
-                        overlap_files = [self.data_files[k] for k in addfi[i]],
-                        selector_mask = file_masks[i], domain_id = domain_id)
-                    # dobj._chunk_info[i] = ParticleOctreeSubset(
-                    #     dobj, [self.data_files[dfi[i]]], 
-                    #     overlap_files = [self.data_files[k] for k in addfi[i]],
-                    #     selector_mask = file_masks[i], domain_id = domain_id,
-                    #     over_refine_factor = self.ds.over_refine_factor)
+                        domain_id = domain_id)
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
                 # create as many objects as part of the chunk as we want, since
@@ -304,8 +300,7 @@ class ParticleIndex(Index):
                     g = og.retrieve_ghost_zones(ngz)
                 else:
                     g = og
-                with g._as_spatial():
-                    yield YTDataChunk(dobj, "spatial", [g])
+                yield YTDataChunk(dobj, "spatial", [g])
 
     def _chunk_io(self, dobj, cache = True, local_only = False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
