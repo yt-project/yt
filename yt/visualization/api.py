@@ -59,3 +59,10 @@ from .profile_plotter import \
 
 from .base_plot_types import \
     get_multi_plot
+
+from .fits_image import \
+    FITSImageData, \
+    FITSSlice, \
+    FITSOffAxisSlice, \
+    FITSProjection, \
+    FITSOffAxisProjection

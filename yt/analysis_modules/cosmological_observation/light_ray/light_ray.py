@@ -673,6 +673,25 @@ class LightRay(CosmologySplice):
                 ds["hubble_constant"] = \
                   ds["hubble_constant"].to("100*km/(Mpc*s)").d
         extra_attrs = {"data_type": "yt_light_ray"}
+
+        # save the light ray solution
+        if len(self.light_ray_solution) > 0:
+            # Convert everything to base unit system now to avoid
+            # problems with different units for each ds.
+            for s in self.light_ray_solution:
+                for f in s:
+                    if isinstance(s[f], YTArray):
+                        s[f].convert_to_base()
+            for key in self.light_ray_solution[0]:
+                if key in ["next", "previous", "index"]:
+                    continue
+                lrsa = [sol[key] for sol in self.light_ray_solution]
+                if isinstance(lrsa[-1], YTArray):
+                    to_arr = YTArray
+                else:
+                    to_arr = np.array
+                extra_attrs["light_ray_solution_%s" % key] = to_arr(lrsa)
+
         field_types = dict([(field, "grid") for field in data.keys()])
 
         # Only return LightRay elements with non-zero density

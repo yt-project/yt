@@ -24,7 +24,8 @@ from yt.utilities.lib.element_mappings import \
     test_hex20_sampler, \
     test_wedge_sampler, \
     test_tri2_sampler, \
-    test_tet2_sampler
+    test_tet2_sampler, \
+    test_linear1D_sampler
 
 
 def check_all_vertices(sampler, vertices, field_values):
@@ -35,6 +36,14 @@ def check_all_vertices(sampler, vertices, field_values):
         x = vertices[i]
         val = sampler(vertices, field_values, x)
         assert_almost_equal(val, field_values[i])
+
+
+def test_P1Sampler1D():
+
+    vertices = np.array([[0.1], [0.3]])
+    field_values = np.array([ 1.,  2.])
+
+    check_all_vertices(test_linear1D_sampler, vertices, field_values)
 
 
 def test_P1Sampler2D():

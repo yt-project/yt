@@ -17,7 +17,6 @@ from yt.fields.derived_field import ValidateSpatial
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _astropy
 from yt.units.yt_array import YTQuantity, YTArray
-from yt.utilities.fits_image import FITSImageData
 if PY3:
     from io import BytesIO as IO
 else:
@@ -109,6 +108,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     ...                            nan_mask=0.0)
     """
     from spectral_cube import SpectralCube
+    from yt.visualization.fits_image import FITSImageData
     from yt.frontends.fits.api import FITSDataset
     cube = SpectralCube.read(filename)
     if not isinstance(slab_width, YTQuantity):
@@ -171,14 +171,18 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     nx = ds.domain_dimensions[ds.lon_axis]
     ny = ds.domain_dimensions[ds.lat_axis]
     mask = filter.mask((ny,nx)).transpose()
+    if ds.events_data:
+        prefix = "event_"
+    else:
+        prefix = ""
     def _reg_field(field, data):
-        i = data["xyz"[ds.lon_axis]].ndarray_view().astype("int")-1
-        j = data["xyz"[ds.lat_axis]].ndarray_view().astype("int")-1
+        i = data[prefix+"xyz"[ds.lon_axis]].d.astype("int")-1
+        j = data[prefix+"xyz"[ds.lat_axis]].d.astype("int")-1
         new_mask = mask[i,j]
-        ret = data["zeros"].copy()
+        ret = np.zeros(data[prefix+"x"].shape)
         ret[new_mask] = 1.
         return ret
-    ds.add_field(("gas",reg_name), sampling_type="cell",  function=_reg_field)
+    ds.add_field(("gas", reg_name), sampling_type="cell",  function=_reg_field)
     if obj is None:
         obj = ds.all_data()
     if field_parameters is not None:
