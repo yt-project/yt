@@ -630,7 +630,7 @@ class RAMSESDataset(Dataset):
         # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
         # These conditions seem to always be true for non-cosmological datasets
-        if rheader["time"] > 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+        if rheader["time"] >= 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
             self.cosmological_simulation = 0
             self.current_redshift = 0
             self.hubble_constant = 0
