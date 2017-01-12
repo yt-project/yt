@@ -1012,7 +1012,6 @@ cdef class ParticleBitmap:
             cdef int ifile
             for ifile in range(self.nfiles):
                 self.bitmasks[ifile]._check()
-        return 1
 
     def reset_bitmasks(self):
         IF UseCythonBitmasks == 1:
@@ -2422,7 +2421,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef Oct *root = NULL
         cdef np.int64_t no = indices.shape[0], p, index
         cdef int i, level, new_root
-        cdef int ind[3], last_ind[3]
+        cdef int ind[3]
+        cdef int last_ind[3]
         cdef np.uint64_t ind64[3]
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         # Note what we're doing here: we have decided the root will always be
