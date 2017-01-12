@@ -28,4 +28,4 @@ class Union(object):
 
 class MeshUnion(Union):
     def __init__(self, name, sub_types):
-        super(ParticleUnion, self).__init__(name, sub_types)
+        super(MeshUnion, self).__init__(name, sub_types)
