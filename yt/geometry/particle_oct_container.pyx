@@ -806,7 +806,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions(self, verbose=True):
+    def find_collisions(self, verbose=False):
         cdef tuple cc, rc
         IF UseCythonBitmasks == 1:
             cc, rc = self.bitmasks._find_collisions(self.collisions,verbose)
@@ -819,7 +819,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_coarse(self, verbose=True, file_list = None):
+    def find_collisions_coarse(self, verbose=False, file_list = None):
         cdef int nc, nm
         IF UseCythonBitmasks == 1:
             nc, nm = self.bitmasks._find_collisions_coarse(self.collisions, verbose, file_list)
@@ -885,7 +885,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_refined(self, verbose=True):
+    def find_collisions_refined(self, verbose=False):
         cdef np.int32_t nc, nm
         IF UseCythonBitmasks == 1:
             nc, nm = self.bitmasks._find_collisions_refined(self.collisions,verbose)
