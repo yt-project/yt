@@ -138,8 +138,6 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        unit = np.array(np.tile(1.,ncoord))
-       
         x0 = np.array(np.tile(plot.xlim[0],ncoord))
         x1 = np.array(np.tile(plot.xlim[1],ncoord))
         xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
@@ -154,11 +152,11 @@ class PlotCallback(object):
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return (np.mod((ccoord[0]-x0)/(x1-x0),unit)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1]-y0)/(y1-y0),unit)*(yy1-yy0) + yy0)
+            return (np.mod((ccoord[0]-x0)/(x1-x0),1.0)*(xx1-xx0) + xx0,
+                    np.mod((ccoord[1]-y0)/(y1-y0),1.0)*(yy1-yy0) + yy0)
         else:
-            return (np.mod((ccoord[0][:]-x0)/(x1-x0),unit)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1][:]-y0)/(y1-y0),unit)*(yy1-yy0) + yy0)
+            return (np.mod((ccoord[0][:]-x0)/(x1-x0),1.0)*(xx1-xx0) + xx0,
+                    np.mod((ccoord[1][:]-y0)/(y1-y0),1.0)*(yy1-yy0) + yy0)
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
