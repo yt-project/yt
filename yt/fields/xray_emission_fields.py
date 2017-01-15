@@ -222,18 +222,8 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         em_Z = my_si.get_interpolator("metals", e_min, e_max)
         emp_Z = my_si.get_interpolator("metals", e_min, e_max, energy=False)
 
-    try:
-        ds._get_field_info("H_number_density")
-    except YTFieldNotFound:
-        mylog.warning("Could not find a field for \"H_number_density\". "
-                      "Assuming primordial H mass fraction.")
-        def _nh(field, data):
-            return primordial_H_mass_fraction*data["gas", "density"]/mp
-        ds.add_field(("gas", "H_number_density"), function=_nh, 
-                     sampling_type="cell", units="cm**-3")
-
     def _emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
+        dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
               "log_T": np.log10(data["gas", "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
@@ -244,7 +234,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
 
-        return data["gas","H_number_density"]**2 * \
+        return data["gas","H_nuclei_density"]**2 * \
             YTArray(my_emissivity, "erg*cm**3/s")
 
     emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
@@ -261,7 +251,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                  sampling_type="cell", units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data["gas", "H_number_density"]),
+        dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
               "log_T": np.log10(data["gas", "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
@@ -272,7 +262,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data["gas", "H_number_density"]**2 * \
+        return data["gas", "H_nuclei_density"]**2 * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
     phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
