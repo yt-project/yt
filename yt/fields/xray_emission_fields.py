@@ -25,11 +25,8 @@ from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
 from yt.utilities.linear_interpolators import \
     UnilinearFieldInterpolator, BilinearFieldInterpolator
-from yt.utilities.physical_constants import mp
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
-from yt.utilities.physical_ratios import \
-    primordial_H_mass_fraction
 
 data_version = {"cloudy": 2,
                 "apec": 2}
