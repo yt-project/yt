@@ -2,8 +2,11 @@ answer_tests:
   local_artio_001:
     - yt/frontends/artio/tests/test_outputs.py
 
-  local_athena_002:
+  local_athena_003:
     - yt/frontends/athena
+
+  local_athena_pp_000:
+    - yt/frontends/athena_pp
 
   local_chombo_002:
     - yt/frontends/chombo/tests/test_outputs.py

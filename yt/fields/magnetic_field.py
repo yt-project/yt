@@ -36,15 +36,17 @@ mag_factors = {dimensions.magnetic_field_cgs: 4.0*np.pi,
 def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
 
-    if (ftype,"magnetic_field_x") not in registry:
+    axis_names = registry.ds.coordinates.axis_order
+
+    if (ftype,"magnetic_field_%s" % axis_names[0]) not in registry:
         return
 
-    u = registry[ftype,"magnetic_field_x"].units
+    u = registry[ftype,"magnetic_field_%s" % axis_names[0]].units
 
     def _magnetic_field_strength(field,data):
-        B2 = (data[ftype,"magnetic_field_x"]**2 +
-              data[ftype,"magnetic_field_y"]**2 +
-              data[ftype,"magnetic_field_z"]**2)
+        B2 = (data[ftype,"magnetic_field_%s" % axis_names[0]]**2 +
+              data[ftype,"magnetic_field_%s" % axis_names[1]]**2 +
+              data[ftype,"magnetic_field_%s" % axis_names[2]]**2)
         return np.sqrt(B2)
     registry.add_field((ftype,"magnetic_field_strength"), sampling_type="cell", 
                        function=_magnetic_field_strength,
@@ -69,37 +71,63 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
              function=_magnetic_pressure,
              units=unit_system["pressure"])
 
-    def _magnetic_field_poloidal(field,data):
-        normal = data.get_field_parameter("normal")
-        d = data[ftype,'magnetic_field_x']
-        Bfields = data.ds.arr(
-                    [data[ftype,'magnetic_field_x'],
-                     data[ftype,'magnetic_field_y'],
-                     data[ftype,'magnetic_field_z']],
-                     d.units)
+    if registry.ds.geometry == "cartesian":
+        def _magnetic_field_poloidal(field,data):
+            normal = data.get_field_parameter("normal")
+            d = data[ftype,'magnetic_field_x']
+            Bfields = data.ds.arr(
+                        [data[ftype,'magnetic_field_x'],
+                         data[ftype,'magnetic_field_y'],
+                         data[ftype,'magnetic_field_z']],
+                         d.units)
 
-        theta = data["index", 'spherical_theta']
-        phi   = data["index", 'spherical_phi']
+            theta = data["index", 'spherical_theta']
+            phi   = data["index", 'spherical_phi']
 
-        return get_sph_theta_component(Bfields, theta, phi, normal)
+            return get_sph_theta_component(Bfields, theta, phi, normal)
+
+        def _magnetic_field_toroidal(field,data):
+            normal = data.get_field_parameter("normal")
+            d = data[ftype,'magnetic_field_x']
+            Bfields = data.ds.arr(
+                        [data[ftype,'magnetic_field_x'],
+                         data[ftype,'magnetic_field_y'],
+                         data[ftype,'magnetic_field_z']],
+                         d.units)
+
+            phi = data["index", 'spherical_phi']
+            return get_sph_phi_component(Bfields, phi, normal)
+
+    elif registry.ds.geometry == "cylindrical":
+        def _magnetic_field_poloidal(field, data):
+            r = data["index", "r"]
+            z = data["index", "z"]
+            d = np.sqrt(r*r+z*z)
+            return (data[ftype, "magnetic_field_r"]*(r/d) +
+                    data[ftype, "magnetic_field_z"]*(z/d))
+
+        def _magnetic_field_toroidal(field, data):
+            return data[ftype,"magnetic_field_theta"]
+
+    elif registry.ds.geometry == "spherical":
+        def _magnetic_field_poloidal(field, data):
+            return data[ftype,"magnetic_field_theta"]
+
+        def _magnetic_field_toroidal(field, data):
+            return data[ftype,"magnetic_field_phi"]
+
+    else:
+
+        # Unidentified geometry--set to None
+
+        _magnetic_field_toroidal = None
+        _magnetic_field_poloidal = None
 
     registry.add_field((ftype, "magnetic_field_poloidal"), sampling_type="cell", 
              function=_magnetic_field_poloidal,
              units=u, validators=[ValidateParameter("normal")])
 
-    def _magnetic_field_toroidal(field,data):
-        normal = data.get_field_parameter("normal")
-        d = data[ftype,'magnetic_field_x']
-        Bfields = data.ds.arr(
-                    [data[ftype,'magnetic_field_x'],
-                     data[ftype,'magnetic_field_y'],
-                     data[ftype,'magnetic_field_z']],
-                     d.units)
-        
-        phi = data["index", 'spherical_phi']
-        return get_sph_phi_component(Bfields, phi, normal)
-
-    registry.add_field((ftype, "magnetic_field_toroidal"), sampling_type="cell", 
+    registry.add_field((ftype, "magnetic_field_toroidal"), sampling_type="cell",
              function=_magnetic_field_toroidal,
              units=u, validators=[ValidateParameter("normal")])
 
@@ -160,7 +188,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
         def _mag_field(field, data):
             return convert(data[fd])
         return _mag_field
-    for ax, fd in zip("xyz", ds_fields):
+    for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
         registry.add_field((ftype,"magnetic_field_%s" % ax), sampling_type="cell", 
                            function=mag_field(fd),
                            units=unit_system[to_units.dimensions])

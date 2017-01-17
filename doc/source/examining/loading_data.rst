@@ -98,13 +98,13 @@ To load ARTIO data, you can specify a command such as this:
 
    ds = load("./A11QR1/s11Qzm1h2_a1.0000.art")
 
-.. _loading_athena_data:
+.. _loading-athena-data:
 
 Athena Data
 -----------
 
-Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+Athena 4.x VTK data is supported and cared for by John ZuHone. Both uniform grid
+and SMR datasets are supported.
 
 .. note:
    yt also recognizes Fargo3D data written to VTK files as
@@ -138,10 +138,14 @@ data, call ``load`` with the base file in the ``id0`` directory:
 which will pick up all of the files in the different ``id*`` directories for
 the entire dataset.
 
-yt works in cgs ("Gaussian") units by default, but Athena data is not
-normally stored in these units. If you would like to convert data to
-cgs units, you may supply conversions for length, time, and mass to ``load`` using
-the ``units_override`` functionality:
+The default unit system in yt is cgs ("Gaussian") units, but Athena data is not
+normally stored in these units, so the code unit system is the default unit
+system for Athena data. This means that answers to field queries from data
+objects and plots of data will be expressed in code units. Note that the default
+conversions from these units will still be in terms of cgs units, e.g. 1
+``code_length`` equals 1 cm, and so on. If you would like to provided different
+conversions, you may supply conversions for length, time, and mass to ``load``
+using the ``units_override`` functionality:
 
 .. code-block:: python
 
@@ -153,14 +157,16 @@ the ``units_override`` functionality:
 
    ds = yt.load("id0/cluster_merger.0250.vtk", units_override=units_override)
 
-This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
-``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
-``("athena","density")``, ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be
-in code units.
+This means that the yt fields, e.g. ``("gas","density")``,
+``("gas","velocity_x")``, ``("gas","magnetic_field_x")``, will be in cgs units
+(or whatever unit system was specified), but the Athena fields, e.g.,
+``("athena","density")``, ``("athena","velocity_x")``,
+``("athena","cell_centered_B_x")``, will be in code units.
 
-Some 3D Athena outputs may have large grids (especially parallel datasets subsequently joined with
-the `join_vtk` script), and may benefit from being subdivided into "virtual grids". For this purpose,
-one can pass in the `nprocs` parameter:
+Some 3D Athena outputs may have large grids (especially parallel datasets
+subsequently joined with the ``join_vtk`` script), and may benefit from being
+subdivided into "virtual grids". For this purpose, one can pass in the
+``nprocs`` parameter:
 
 .. code-block:: python
 
@@ -168,43 +174,100 @@ one can pass in the `nprocs` parameter:
 
    ds = yt.load("sloshing.0000.vtk", nprocs=8)
 
-which will subdivide each original grid into `nprocs` grids.
+which will subdivide each original grid into ``nprocs`` grids.
 
 .. note::
 
     Virtual grids are only supported (and really only necessary) for 3D data.
 
-Alternative values for the following simulation parameters may be specified using a ``parameters``
-dict, accepting the following keys:
+Alternative values for the following simulation parameters may be specified
+using a ``parameters`` dict, accepting the following keys:
 
 * ``Gamma``: ratio of specific heats, Type: Float
-* ``geometry``: Geometry type, currently accepts ``"cartesian"`` or ``"cylindrical"``
-* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values corresponding to each dimension
+* ``geometry``: Geometry type, currently accepts ``"cartesian"`` or
+  ``"cylindrical"``
+* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values
+  corresponding to each dimension
 
 .. code-block:: python
 
    import yt
 
-   parameters = {"gamma":4./3., "geometry":"cylindrical", "periodicity":(False,False,False)}
+   parameters = {"gamma":4./3., "geometry":"cylindrical",
+                 "periodicity":(False,False,False)}
 
    ds = yt.load("relativistic_jet_0000.vtk", parameters=parameters)
 
 .. rubric:: Caveats
 
-* yt primarily works with primitive variables. If the Athena
-  dataset contains conservative variables, the yt primitive fields will be generated from the
+* yt primarily works with primitive variables. If the Athena dataset contains
+  conservative variables, the yt primitive fields will be generated from the
   conserved variables on disk.
-* Special relativistic datasets may be loaded, but are not fully supported. In particular, the relationships between
-  quantities such as pressure and thermal energy will be incorrect, as it is currently assumed that their relationship
-  is that of an ideal a :math:`\gamma`-law equation of state.
+* Special relativistic datasets may be loaded, but at this time not all of
+  their fields are fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is
+  currently assumed that their relationship is that of an ideal a
+  :math:`\gamma`-law equation of state. This will be rectified in a future
+  release.
 * Domains may be visualized assuming periodicity.
 * Particle list data is currently unsupported.
 
 .. note::
 
    The old behavior of supplying unit conversions using a ``parameters``
-   dict supplied to ``load`` for Athena datasets is still supported, but is being deprecated in
-   favor of ``units_override``, which provides the same functionality.
+   dict supplied to ``load`` for Athena datasets is still supported, but is
+   being deprecated in favor of ``units_override``, which provides the same
+   functionality.
+
+.. _loading-athena-pp-data:
+
+Athena++ Data
+-------------
+
+Athena++ HDF5 data is supported and cared for by John ZuHone. Uniform-grid, SMR,
+and AMR datasets in cartesian coordinates are fully supported. Support for
+curvilinear coordinates and logarithmic cell sizes exists, but is preliminary.
+For the latter type of dataset, the data will be loaded in as a semi-structured
+mesh dataset. See :ref:`loading-semi-structured-mesh-data` for more details on
+how this works in yt.
+
+The default unit system in yt is cgs ("Gaussian") units, but Athena++ data is
+not normally stored in these units, so the code unit system is the default unit
+system for Athena++ data. This means that answers to field queries from data
+objects and plots of data will be expressed in code units. Note that the default
+conversions from these units will still be in terms of cgs units, e.g. 1
+``code_length`` equals 1 cm, and so on. If you would like to provided different
+conversions, you may supply conversions for length, time, and mass to ``load``
+using the ``units_override`` functionality:
+
+.. code-block:: python
+
+   import yt
+
+   units_override = {"length_unit":(1.0,"Mpc"),
+                     "time_unit"(1.0,"Myr"),
+                     "mass_unit":(1.0e14,"Msun")}
+
+   ds = yt.load("AM06/AM06.out1.00400.athdf", units_override=units_override)
+
+This means that the yt fields, e.g. ``("gas","density")``,
+``("gas","velocity_x")``, ``("gas","magnetic_field_x")``, will be in cgs units
+(or whatever unit system was specified), but the Athena fields, e.g.,
+``("athena_pp","density")``, ``("athena_pp","vel1")``, ``("athena_pp","Bcc1")``,
+will be in code units.
+
+.. rubric:: Caveats
+
+* yt primarily works with primitive variables. If the Athena++ dataset contains
+  conservative variables, the yt primitive fields will be generated from the
+  conserved variables on disk.
+* Special relativistic datasets may be loaded, but at this time not all of their
+  fields are fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is
+  currently assumed that their relationship is that of an ideal
+  :math:`\gamma`-law equation of state. This will be rectified in a future
+  release.
+* Domains may be visualized assuming periodicity.
 
 .. _loading-orion-data:
 
@@ -1181,6 +1244,8 @@ zero.
 
 * Particles may be difficult to integrate.
 * Data must already reside in memory.
+
+.. _loading-semi-structured-mesh-data:
 
 Semi-Structured Grid Data
 -------------------------
