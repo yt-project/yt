@@ -1322,7 +1322,7 @@ class YTDownloadData(YTCommand):
              help="The location in which to place the file, can be "
                   "\"supp_data_dir\", \"test_data_dir\", or any valid "
                   "path on disk. ", default=''),
-        dict(longname="--clobber", short="-c",
+        dict(longname="--overwrite", short="-c",
              help="Overwrite existing file.",
              action="store_true", default=False),
         dict(longname="--list", short="-l",
@@ -1360,8 +1360,8 @@ class YTDownloadData(YTCommand):
             print("The directory '%s' does not exist. Creating..." % data_dir)
             os.mkdir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
-        if os.path.exists(data_file) and not args.clobber:
-            raise IOError("File '%s' exists and clobber=False!" % data_file)
+        if os.path.exists(data_file) and not args.overwrite:
+            raise IOError("File '%s' exists and overwrite=False!" % data_file)
         fn = download_file(data_url, data_file)
         if not os.path.exists(fn):
             raise IOError("The file '%s' did not download!!" % args.filename)
