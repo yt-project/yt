@@ -1370,9 +1370,9 @@ class YTDownloadData(YTCommand):
         data = urllib.request.urlopen(
             'http://yt-project.org/data/datafiles.json').read().decode('utf8')
         data = json.loads(data)
-        for key in data.keys():
+        for key in data:
             for ds in data[key]:
-                print(ds['filename'] + '.tar.gz')
+                print('{filename}.tar.gz ({size}) type: {code}'.format(**ds))
                 for line in textwrap.wrap(ds['description']):
                     print('\t', line)
 
