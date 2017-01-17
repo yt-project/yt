@@ -1362,9 +1362,13 @@ class YTDownloadData(YTCommand):
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.overwrite:
             raise IOError("File '%s' exists and overwrite=False!" % data_file)
+        print("Attempting to download file: %s" % args.filename)
         fn = download_file(data_url, data_file)
+
         if not os.path.exists(fn):
             raise IOError("The file '%s' did not download!!" % args.filename)
+        print("File: %s downloaded successfully to %s" %
+              (args.filename, data_file))
 
     def get_list(self):
         data = urllib.request.urlopen(
