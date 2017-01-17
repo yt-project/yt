@@ -1,3 +1,3 @@
-.. _xray-emission-fields:
+.. _xray_emission_fields:
 
 .. notebook:: XrayEmissionFields.ipynb
