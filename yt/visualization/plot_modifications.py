@@ -1414,6 +1414,15 @@ class HaloCatalogCallback(PlotCallback):
         halo catalog to add text to the plot near the halo.
         Example: annotate_field = 'particle_mass' will
         write the halo mass next to each halo.
+    radius_field: Accepts a field contained in the halo
+        catalog to set the radius of the circle which will
+        surround each halo.
+    center_field_prefix: Accepts a field prefix which will
+        be used to find the fields containing the coordinates
+        of the center of each halo. Ex: 'particle_position'
+        will result in the fields 'particle_position_x' for x
+        'particle_position_y' for y, and 'particle_position_z' 
+        for z.
     text_args: Contains the arguments controlling the text
         appearance of the annotated field.
     factor: A number the virial radius is multiplied by for
@@ -1427,14 +1436,17 @@ class HaloCatalogCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
-                 width=None, annotate_field=None, text_args=None,
-                 font_kwargs=None, factor=1.0):
+                 width=None, annotate_field=None, radius_field='virial_radius',
+                 center_field_prefix="particle_position",
+                 text_args=None, font_kwargs=None, factor=1.0):
 
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
         def_text_args = {'color':'white'}
         self.halo_catalog = halo_catalog
         self.width = width
+        self.radius_field = radius_field
+        self.center_field_prefix = center_field_prefix
         self.annotate_field = annotate_field
         if circle_kwargs is not None:
             circle_args = circle_kwargs
@@ -1462,9 +1474,9 @@ class HaloCatalogCallback(PlotCallback):
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
         yax = plot.data.ds.coordinates.y_axis[data.axis]
-        field_x = "particle_position_%s" % axis_names[xax]
-        field_y = "particle_position_%s" % axis_names[yax]
-        field_z = "particle_position_%s" % axis_names[data.axis]
+        field_x = "%s_%s" % (self.center_field_prefix, axis_names[xax])
+        field_y = "%s_%s" % (self.center_field_prefix, axis_names[yax])
+        field_z = "%s_%s" % (self.center_field_prefix, axis_names[data.axis])
 
         # Set up scales for pixel size and original data
         pixel_scale = self.pixel_scale(plot)[0]
@@ -1478,7 +1490,7 @@ class HaloCatalogCallback(PlotCallback):
         px, py = self.convert_to_plot(plot,[px,py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data['virial_radius'][:].in_units(units)
+        radius = halo_data[self.radius_field][:].in_units(units)
         radius = np.array(radius*pixel_scale*self.factor/data_scale)
 
         if self.width:
