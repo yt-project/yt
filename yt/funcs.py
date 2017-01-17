@@ -597,6 +597,35 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
+    requests = get_requests()
+    if requests is None:
+        return simple_download_file(url, filename)
+    else:
+        return fancy_download_file(url, filename, requests)
+
+def fancy_download_file(url, filename, requests=None):
+    response = requests.get(url, stream=True)
+    total_length = response.headers.get('content-length')
+
+    with open(filename, 'wb') as fh:
+        if total_length is None:
+            fh.write(response.content)
+        else:
+            blocksize = 4 * 1024 ** 2
+            iterations = int(float(total_length)/float(blocksize))
+
+            pbar = get_pbar(
+                'Downloading %s to %s ' % os.path.split(filename)[::-1],
+                iterations)
+            iteration = 0
+            for chunk in response.iter_content(chunk_size=blocksize):
+                fh.write(chunk)
+                iteration += 1
+                pbar.update(iteration)
+            pbar.finish()
+    return filename
+
+def simple_download_file(url, filename):
     class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
