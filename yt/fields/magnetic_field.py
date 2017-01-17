@@ -116,6 +116,13 @@ def setup_magnetic_field_fields(registry, ftype = "gas", slice_info = None):
         def _magnetic_field_toroidal(field, data):
             return data[ftype,"magnetic_field_phi"]
 
+    else:
+
+        # Unidentified geometry--set to None
+
+        _magnetic_field_toroidal = None
+        _magnetic_field_poloidal = None
+
     registry.add_field((ftype, "magnetic_field_poloidal"), sampling_type="cell", 
              function=_magnetic_field_poloidal,
              units=u, validators=[ValidateParameter("normal")])
