@@ -25,6 +25,7 @@ import subprocess
 import tempfile
 import json
 import pprint
+import textwrap
 
 from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
@@ -1313,16 +1314,21 @@ class YTSearchCmd(YTCommand):
 
 class YTDownloadData(YTCommand):
 
-    args = (dict(short="filename", action="store", type=str,
-                 help="The name of the file to download"), 
-            dict(short="location", action="store", type=str,
-                 help="The location in which to place the file, can be "
-                      "\"supp_data_dir\", \"test_data_dir\", or any valid "
-                      "path on disk. "),
-            dict(longname="--clobber", short="-c",
-                 help="Output full contents of parameter file",
-                 action="store_true", default=False),
-            )
+    args = (
+        dict(short="filename", action="store", type=str,
+             help="The name of the file to download", nargs='?',
+             default=''), 
+        dict(short="location", action="store", type=str, nargs='?',
+             help="The location in which to place the file, can be "
+                  "\"supp_data_dir\", \"test_data_dir\", or any valid "
+                  "path on disk. ", default=''),
+        dict(longname="--clobber", short="-c",
+             help="Overwrite existing file.",
+             action="store_true", default=False),
+        dict(longname="--list", short="-l",
+             help="Display all available files.",
+             action="store_true", default=False),
+    )
     description = \
         """
         Download a file from http://yt-project.org/data and save it to a 
@@ -1333,6 +1339,16 @@ class YTDownloadData(YTCommand):
     name = "download"
 
     def __call__(self, args):
+        if args.list:
+            self.get_list()
+            return
+        if not args.filename:
+            raise RuntimeError('You need to provide a filename. See --help '
+                               'for details or use --list to get available '
+                               'datasets.')
+        elif not args.location:
+            raise RuntimeError('You need to specify download location. See '
+                               '--help for details.')
         data_url = "http://yt-project.org/data/%s" % args.filename
         if args.location in ["test_data_dir", "supp_data_dir"]:
             data_dir = ytcfg.get("yt", args.location)
@@ -1349,6 +1365,16 @@ class YTDownloadData(YTCommand):
         fn = download_file(data_url, data_file)
         if not os.path.exists(fn):
             raise IOError("The file '%s' did not download!!" % args.filename)
+
+    def get_list(self):
+        data = urllib.request.urlopen(
+            'http://yt-project.org/data/datafiles.json').read().decode('utf8')
+        data = json.loads(data)
+        for key in data.keys():
+            for ds in data[key]:
+                print(ds['filename'] + '.tar.gz')
+                for line in textwrap.wrap(ds['description']):
+                    print('\t', line)
 
 def run_main():
     args = parser.parse_args()
