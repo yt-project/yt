@@ -304,8 +304,10 @@ Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_halos(self, halo_catalog, circle_args=None, \
-                             width=None, annotate_field=None, text_args=None, \
-                             factor=1.0)
+                             width=None, annotate_field=None, \
+                             radius_field='virial_radius', \
+                             center_field_prefix="particle_position", \
+                             text_args=None, factor=1.0)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
@@ -321,11 +323,22 @@ Overplot Halo Annotations
    with the annotate_field, which accepts a field contained in the halo catalog
    to add text to the plot near the halo (example: ``annotate_field=
    'particle_mass'`` will write the halo mass next to each halo, whereas
-   ``'particle_identifier'`` shows the halo number).  font_kwargs contains the
-   arguments controlling the text appearance of the annotated field.
-   Factor is the number the virial radius is multiplied by for plotting the
-   circles. Ex: ``factor=2.0`` will plot circles with twice the radius of each
-   halo virial radius.
+   ``'particle_identifier'`` shows the halo number). The size of the circles is
+   found from the field ``radius_field`` which is ``'virial_radius'`` by
+   default. If another radius has been found as part of your halo analysis
+   workflow, you can save that field and use it as the ``radius_field`` to
+   change the size of the halos. The position of each halo is determined using
+   ``center_field_prefix`` in the following way. If ``'particle_position'``
+   is the value of ``center_field_prefix`` as is the default, the x value of
+   the halo position is stored in the field ``'particle_position_x'``, y is
+   ``'particle_position_y'``, and z is ``'particle_position_z'``. If you have
+   stored another set of coordinates for each halo as part of your halo
+   analysis as fields such as ``'halo_position_x'``, you can use these fields
+   to determine halo position by passing ``'halo_position'`` to
+   ``center_field_prefix``. font_kwargs contains the arguments controlling the
+   text appearance of the annotated field. Factor is the number the virial
+   radius is multiplied by for plotting the circles. Ex: ``factor=2.0`` will
+   plot circles with twice the radius of each halo virial radius.
 
 .. python-script::
 
