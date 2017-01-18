@@ -79,6 +79,9 @@ answer_tests:
   local_axialpix_001:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
+  local_particle_trajectory_000:
+    - yt/data_objects/tests/test_particle_trajectories.py
+
 other_tests:
   unittests:
      - '-v'
