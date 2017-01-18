@@ -207,8 +207,8 @@ class IOHandlerWarpX(IOHandlerBoxlib):
         if name in real_fnames:
             ind = real_fnames.index(name)
             with open(grid._particle_filename, "rb") as f:
-                f.seek(grid._particle_offset)
-                f.seek(pheader.particle_int_dtype.itemsize * grid.NumberOfParticles)
-                rdata = np.fromfile(f, pheader.real_type, 
+                f.seek(grid._particle_offset + 
+                       pheader.particle_int_dtype.itemsize * grid.NumberOfParticles)
+                rdata = np.fromfile(f, pheader.real_type,
                                     pheader.num_real * grid.NumberOfParticles)
                 return np.asarray(rdata[ind::pheader.num_real], dtype=np.float64)
