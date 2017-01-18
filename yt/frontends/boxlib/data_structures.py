@@ -359,7 +359,6 @@ class BoxlibHierarchy(GridIndex):
         self.field_order = [f for f in self.field_list]
 
     def _setup_data_io(self):
-        print(self.dataset_type)
         self.io = io_registry[self.dataset_type](self.dataset)
 
 
