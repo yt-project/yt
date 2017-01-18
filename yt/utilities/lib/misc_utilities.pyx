@@ -813,10 +813,10 @@ def fill_region(input_fields, output_fields,
                 np.ndarray[np.int64_t, ndim=2] ipos,
                 np.ndarray[np.int64_t, ndim=1] ires,
                 np.ndarray[np.int64_t, ndim=1] level_dims,
-                np.int64_t refine_by = 2
+                np.ndarray[np.int64_t, ndim=1] refine_by
                 ):
     cdef int i, n
-    cdef np.int64_t tot = 0, oi, oj, ok, rf
+    cdef np.int64_t tot = 0, oi, oj, ok, rf[3]
     cdef np.int64_t iind[3]
     cdef np.int64_t oind[3]
     cdef np.int64_t dim[3]
@@ -844,15 +844,16 @@ def fill_region(input_fields, output_fields,
         ofield = output_fields[n]
         ifield = input_fields[n]
         for i in range(ipos.shape[0]):
-            rf = refine_by**(output_level - ires[i])
+            for k in range(3):
+                rf[k] = refine_by[k]**(output_level - ires[i])
             for wi in range(3):
                 if offsets[0][wi] == 0: continue
                 off = (left_index[0] + level_dims[0]*(wi-1))
-                iind[0] = ipos[i, 0] * rf - off
+                iind[0] = ipos[i, 0] * rf[0] - off
                 # rf here is the "refinement factor", or, the number of zones
                 # that this zone could potentially contribute to our filled
                 # grid.
-                for oi in range(rf):
+                for oi in range(rf[0]):
                     # Now we need to apply our offset
                     oind[0] = oi + iind[0]
                     if oind[0] < 0:
@@ -862,8 +863,8 @@ def fill_region(input_fields, output_fields,
                     for wj in range(3):
                         if offsets[1][wj] == 0: continue
                         off = (left_index[1] + level_dims[1]*(wj-1))
-                        iind[1] = ipos[i, 1] * rf - off
-                        for oj in range(rf):
+                        iind[1] = ipos[i, 1] * rf[1] - off
+                        for oj in range(rf[1]):
                             oind[1] = oj + iind[1]
                             if oind[1] < 0:
                                 continue
@@ -872,8 +873,8 @@ def fill_region(input_fields, output_fields,
                             for wk in range(3):
                                 if offsets[2][wk] == 0: continue
                                 off = (left_index[2] + level_dims[2]*(wk-1))
-                                iind[2] = ipos[i, 2] * rf - off
-                                for ok in range(rf):
+                                iind[2] = ipos[i, 2] * rf[2] - off
+                                for ok in range(rf[2]):
                                     oind[2] = ok + iind[2]
                                     if oind[2] < 0:
                                         continue
