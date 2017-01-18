@@ -156,3 +156,55 @@ class IOHandlerOrion(IOHandlerBoxlib):
                     line = lines[num]
                     particles.append(read(line, field))
             return np.array(particles)
+
+
+class IOHandlerWarpX(IOHandlerBoxlib):
+    _dataset_type = "warpx_native"
+
+    def _read_particle_selection(self, chunks, selector, fields):
+        rv = {}
+        chunks = list(chunks)
+
+        if selector.__class__.__name__ == "GridSelector":
+
+            if not (len(chunks) == len(chunks[0].objs) == 1):
+                raise RuntimeError
+
+            grid = chunks[0].objs[0]
+
+            for ftype, fname in fields:
+                rv[ftype, fname] = self._read_particles(grid, fname)
+
+            return rv
+
+        rv = {f: np.array([]) for f in fields}
+        for chunk in chunks:
+            for grid in chunk.objs:
+                for ftype, fname in fields:
+                    data = self._read_particles(grid, fname)
+                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+        return rv
+
+    def _read_particles(self, grid, name):
+
+        particles = []
+
+        if grid.NumberOfParticles == 0:
+            return np.array(particles)
+
+        pheader = self.ds.index.particle_header
+        
+        int_fnames = [fname for ftype, fname in pheader.known_int_fields]
+        if name in int_fnames:
+            ind = int_fnames.index(name)
+            with open(grid._particle_filename, "rb") as f:
+                idata = np.fromfile(f, pheader.int_type, grid.NumberOfParticles)
+                return np.asarray(idata[ind::pheader.num_int], dtype=np.float64)
+
+        real_fnames = [fname for ftype, fname in pheader.known_real_fields]
+        if name in real_fnames:
+            ind = real_fnames.index(name)
+            with open(grid._particle_filename, "rb") as f:
+                f.seek(pheader.particle_int_dtype.itemsize * grid.NumberOfParticles)
+                rdata = np.fromfile(f, pheader.real_type, grid.NumberOfParticles)
+                return np.asarray(rdata[ind::pheader.num_real], dtype=np.float64)

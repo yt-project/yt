@@ -359,6 +359,7 @@ class BoxlibHierarchy(GridIndex):
         self.field_order = [f for f in self.field_list]
 
     def _setup_data_io(self):
+        print(self.dataset_type)
         self.io = io_registry[self.dataset_type](self.dataset)
 
 
@@ -1055,7 +1056,17 @@ class WarpXParticleHeader(object):
     def __init__(self, header_filename):
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
-            self.real_type = self.version_string.split('_')[-1]
+
+            particle_real_type = self.version_string.split('_')[-1]
+            particle_real_type = self.version_string.split('_')[-1]
+            if particle_real_type == 'double':
+                self.real_type = np.float64
+            elif particle_real_type == 'single':
+                self.real_type = np.float32
+            else:
+                raise RuntimeError("yt did not recognize particle real type.")
+            self.int_type = np.int32
+
             self.dim = int(f.readline().strip())
             self.num_int_base = 2 + self.dim
             self.num_real_base = self.dim
@@ -1085,6 +1096,8 @@ class WarpXParticleHeader(object):
         self._generate_particle_fields()
 
     def _generate_particle_fields(self):
+
+        # these will always be there
         self.known_int_fields = [("io", "particle_id"),
                                  ("io", "particle_cpu"),
                                  ("io", "particle_cell_x"),
@@ -1092,16 +1105,19 @@ class WarpXParticleHeader(object):
                                  ("io", "particle_cell_z")]
         self.known_int_fields = self.known_int_fields[0:2+self.dim]
 
+        # these are extra integer fields
         extra_int_fields = ["particle_int_comp%d" % i 
                             for i in range(self.num_int_extra)]
         self.known_int_fields.extend([("io", field) 
                                       for field in extra_int_fields])
 
+        # these real fields will always be there
         self.known_real_fields = [("io", "particle_position_x"),
                                   ("io", "particle_position_y"),
                                   ("io", "particle_position_z")]
         self.known_real_fields = self.known_real_fields[0:self.dim]
 
+        # these are the extras
         extra_real_fields = ["particle_real_comp%d" % i 
                              for i in range(self.num_real_extra)]
         self.known_real_fields.extend([("io", field) 
@@ -1109,17 +1125,23 @@ class WarpXParticleHeader(object):
 
         self.known_fields = self.known_int_fields + self.known_real_fields
 
+        self.particle_int_dtype = np.dtype([(t[1], self.int_type) 
+                                            for t in self.known_int_fields])
+
+        self.particle_real_dtype = np.dtype([(t[1], self.real_type) 
+                                            for t in self.known_real_fields])
+        
 
 class WarpXHierarchy(BoxlibHierarchy):
 
-    def __init__(self, ds, dataset_type='warpx_native'):
-        BoxlibHierarchy.__init__(self, ds, dataset_type)
+    def __init__(self, ds, dataset_type="warpx_native"):
+        super(WarpXHierarchy, self).__init__(ds, dataset_type)
         self._read_particles()
         
     def _read_particles(self):
-        particle_header_file = self.ds.output_dir + "/particle/Header"
+        particle_header_file = self.ds.output_dir + "/particle0/Header"
         self.particle_header = WarpXParticleHeader(particle_header_file)
-        base_particle_fn = self.ds.output_dir + '/particle/Level_%d/DATA_%.4d'
+        base_particle_fn = self.ds.output_dir + '/particle0/Level_%d/DATA_%.4d'
         gid = 0
         for lev, data in self.particle_header.data_map.items():
             for pdf in data.values():
@@ -1168,6 +1190,7 @@ class WarpXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
+        self.dataset_type = "warpx_native"
         jobinfo_filename = os.path.join(self.output_dir, "warpx_job_info")
         with open(jobinfo_filename, "r") as f:
             for line in f.readlines():
