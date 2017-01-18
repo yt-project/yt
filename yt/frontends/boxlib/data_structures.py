@@ -16,6 +16,7 @@ Data structures for BoxLib Codes
 import inspect
 import os
 import re
+from collections import namedtuple
 
 from stat import ST_CTIME
 
@@ -40,8 +41,8 @@ from yt.utilities.io_handler import \
 from .fields import \
     BoxlibFieldInfo, \
     MaestroFieldInfo, \
-    CastroFieldInfo
-
+    CastroFieldInfo, \
+    WarpXFieldInfo
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -690,7 +691,7 @@ class OrionHierarchy(BoxlibHierarchy):
 
     def _read_particles(self):
         """
-        reads in particles and assigns them to grids. Will search for
+        Reads in particles and assigns them to grids. Will search for
         Star particles, then sink particles if no star particle file
         is found, and finally will simply note that no particles are
         found if neither works. To add a new Orion particle type,
@@ -778,6 +779,9 @@ class OrionDataset(BoxlibDataset):
         if os.path.exists(jobinfo_filename):
             return False
         # Now we check for all the others
+        warpx_jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
+        if os.path.exists(warpx_jobinfo_filename):
+            return False
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
@@ -1044,3 +1048,139 @@ def _guess_pcast(vals):
     if len(vals) == 1:
         vals = vals[0]
     return vals
+
+
+class WarpXParticleHeader(object):
+
+    def __init__(self, header_filename):
+        with open(header_filename, "r") as f:
+            self.version_string = f.readline().strip()
+            self.real_type = self.version_string.split('_')[-1]
+            self.dim = int(f.readline().strip())
+            self.num_int_base = 2 + self.dim
+            self.num_real_base = self.dim
+            self.num_int_extra = 0  # this should be written by Boxlib, but isn't
+            self.num_real_extra = int(f.readline().strip())
+            self.num_int = self.num_int_base + self.num_int_extra
+            self.num_real = self.num_real_base + self.num_real_extra            
+            self.num_particles = int(f.readline().strip())
+            self.max_next_id = int(f.readline().strip())
+            self.finest_level = int(f.readline().strip())
+            self.num_levels = self.finest_level + 1
+
+            self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
+            self.data_map = {}
+            for level_num in range(self.num_levels):
+                self.grids_per_level[level_num] = int(f.readline().strip())
+                self.data_map[level_num] = {}
+            
+            pfd = namedtuple("ParticleFileDescriptor",
+                             ["file_number", "num_particles", "offset"])
+
+            for level_num in range(self.num_levels):
+                for grid_num in range(self.grids_per_level[level_num]):
+                    entry = [int(val) for val in f.readline().strip().split()]
+                    self.data_map[level_num][grid_num] = pfd(*entry)
+
+        self._generate_particle_fields()
+
+    def _generate_particle_fields(self):
+        self.known_int_fields = [("io", "particle_id"),
+                                 ("io", "particle_cpu"),
+                                 ("io", "particle_cell_x"),
+                                 ("io", "particle_cell_y"),
+                                 ("io", "particle_cell_z")]
+        self.known_int_fields = self.known_int_fields[0:2+self.dim]
+
+        extra_int_fields = ["particle_int_comp%d" % i 
+                            for i in range(self.num_int_extra)]
+        self.known_int_fields.extend([("io", field) 
+                                      for field in extra_int_fields])
+
+        self.known_real_fields = [("io", "particle_position_x"),
+                                  ("io", "particle_position_y"),
+                                  ("io", "particle_position_z")]
+        self.known_real_fields = self.known_real_fields[0:self.dim]
+
+        extra_real_fields = ["particle_real_comp%d" % i 
+                             for i in range(self.num_real_extra)]
+        self.known_real_fields.extend([("io", field) 
+                                       for field in extra_real_fields])
+
+        self.known_fields = self.known_int_fields + self.known_real_fields
+
+
+class WarpXHierarchy(BoxlibHierarchy):
+
+    def __init__(self, ds, dataset_type='warpx_native'):
+        BoxlibHierarchy.__init__(self, ds, dataset_type)
+        self._read_particles()
+        
+    def _read_particles(self):
+        particle_header_file = self.ds.output_dir + "/particle/Header"
+        self.particle_header = WarpXParticleHeader(particle_header_file)
+        base_particle_fn = self.ds.output_dir + '/particle/Level_%d/DATA_%.4d'
+        gid = 0
+        for lev, data in self.particle_header.data_map.items():
+            for pdf in data.values():
+                self.grids[gid]._particle_filename = base_particle_fn % \
+                                                     (lev, pdf.file_number)
+                self.grid_particle_count[gid] += pdf.num_particles
+                self.grids[gid].NumberOfParticles = pdf.num_particles
+                self.grids[gid]._particle_offset = pdf.offset
+                gid += 1
+
+        # add particle fields to field_list
+        pfield_list = self.particle_header.known_fields
+        self.field_list.extend(pfield_list)
+
+    
+def _skip_line(line):
+    if len(line) == 0:
+        return True
+    if line[0] == '\n':
+        return True
+    if line[0] == "=":
+        return True
+    if line[0] == ' ':
+        return True
+
+
+class WarpXDataset(BoxlibDataset):
+
+    _index_class = WarpXHierarchy
+    _field_info_class = WarpXFieldInfo
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args
+        output_dir = args[0]
+        # boxlib datasets are always directories
+        if not os.path.isdir(output_dir): return False
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        if os.path.exists(jobinfo_filename):
+            return True
+        return False
+
+    def _parse_parameter_file(self):
+        super(WarpXDataset, self)._parse_parameter_file()
+        jobinfo_filename = os.path.join(self.output_dir, "warpx_job_info")
+        with open(jobinfo_filename, "r") as f:
+            for line in f.readlines():
+                if _skip_line(line):
+                    continue
+                l = line.strip().split(":")
+                if len(l) == 2:
+                    self.parameters[l[0].strip()] = l[1].strip()
+                l = line.strip().split("=")
+                if len(l) == 2:
+                    self.parameters[l[0].strip()] = l[1].strip()
+                
+        # set the periodicity based on the integer BC runtime parameters
+        is_periodic = self.parameters['geometry.is_periodic'].split()
+        periodicity = [bool(val) for val in is_periodic]
+        self.periodicity = ensure_tuple(periodicity)

@@ -50,6 +50,9 @@ def _temperature(field, data):
     tr *= (gamma - 1.0)
     return tr
 
+class WarpXFieldInfo(FieldInfoContainer):
+    known_other_fields = ()
+    known_particle_fields = ()
 
 class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
