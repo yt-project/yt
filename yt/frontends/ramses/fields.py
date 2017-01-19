@@ -106,9 +106,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
-                return rv
+                # Return array in unit 'per volume' consistently with line below
+                return rv.in_units('code_length**-3')
             self.add_field(name = name, function=_func,
-                                 units = "code_length**-3")
+                           units = "code_length**-3")
         avals = {}
         tvals = {}
         with open(filename, "rb") as f:
