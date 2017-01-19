@@ -33,6 +33,21 @@ cdef class ElementSampler:
     cdef int check_mesh_lines(self, double* mapped_coord) nogil
 
 
+cdef class P1Sampler1D(ElementSampler):
+
+    cdef void map_real_to_unit(self,
+                               double* mapped_x,
+                               double* vertices,
+                               double* physical_x) nogil
+
+
+    cdef double sample_at_unit_point(self,
+                                     double* coord,
+                                     double* vals) nogil
+
+    cdef int check_inside(self, double* mapped_coord) nogil
+
+
 cdef class P1Sampler2D(ElementSampler):
 
     cdef void map_real_to_unit(self,

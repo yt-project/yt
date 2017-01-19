@@ -276,6 +276,34 @@ Example:
    $ yt hub start
    $ yt hub start /user/xarthisius/Public
 
+download
+~~~~~~~~
+
+This subcommand downloads a file from http://yt-project.org/data. Using ``yt download``, 
+one can download a file to:
+
+* ``"test_data_dir"``: Save the file to the location specified in 
+  the ``"test_data_dir"`` configuration entry for test data.
+* ``"supp_data_dir"``: Save the file to the location specified in 
+  the ``"supp_data_dir"`` configuration entry for supplemental data.
+* Any valid path to a location on disk, e.g. ``/home/jzuhone/data``.
+
+Examples:
+
+.. code-block:: bash
+
+   $ yt download apec_emissivity_v2.h5 supp_data_dir
+
+.. code-block:: bash
+
+   $ yt download GasSloshing.tar.gz test_data_dir
+
+.. code-block:: bash 
+
+   $ yt download ZeldovichPancake.tar.gz /Users/jzuhone/workspace
+
+If the configuration values ``"test_data_dir"`` or ``"supp_data_dir"`` have not
+been set by the user, an error will be thrown. 
 
 Config helper
 ~~~~~~~~~~~~~

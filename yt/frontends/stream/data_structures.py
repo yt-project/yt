@@ -786,8 +786,12 @@ def load_amr_grids(grid_data, domain_dimensions,
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
-    refine_by : integer
-        Specifies the refinement ratio between levels.  Defaults to 2.
+    refine_by : integer or list/array of integers.
+        Specifies the refinement ratio between levels.  Defaults to 2.  This
+        can be an array, in which case it specifies for each dimension.  For
+        instance, this can be used to say that some datasets have refinement of
+        1 in one dimension, indicating that they span the full range in that
+        dimension.
 
     Examples
     --------
@@ -1036,10 +1040,9 @@ def load_particles(data, length_unit = None, bbox=None,
     This should allow a collection of particle data to be loaded directly into
     yt and analyzed as would any others.  This comes with several caveats:
 
-    * Units will be incorrect unless the data has already been converted to
-      cgs.
-    * Some functions may behave oddly, and parallelism will be
-      disappointing or non-existent in most cases.
+    * There must be sufficient space in memory to contain both the particle
+      data and the octree used to index the particles.
+    * Parallelism will be disappointing or non-existent in most cases.
 
     This will initialize an Octree of data.  Note that fluid fields will not
     work yet, or possibly ever.
@@ -1047,9 +1050,9 @@ def load_particles(data, length_unit = None, bbox=None,
     Parameters
     ----------
     data : dict
-        This is a dict of numpy arrays, where the keys are the field names.
-        Particles positions must be named "particle_position_x",
-        "particle_position_y", "particle_position_z".
+        This is a dict of numpy arrays or (numpy array, unit name) tuples, 
+        where the keys are the field names. Particles positions must be named 
+        "particle_position_x", "particle_position_y", and "particle_position_z".
     length_unit : float
         Conversion factor from simulation length units to centimeters
     mass_unit : float
@@ -1087,6 +1090,8 @@ def load_particles(data, length_unit = None, bbox=None,
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
+    else:
+        bbox = np.array(bbox)
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
@@ -1749,11 +1754,6 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     """
 
     dimensionality = coordinates.shape[1]
-    num_pseudo = get_num_pseudo_dims(coordinates)
-    if (num_pseudo > 1 or dimensionality < 2):
-        raise RuntimeError("1D unstructured mesh data "
-                           "are currently not supported.")
-
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
 
@@ -1788,8 +1788,17 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
                  coordinates[:,i].max() + 0.1 * abs(coordinates[:,i].max())]
                 for i in range(dimensionality)]
 
-    if dimensionality == 2:
+    if dimensionality < 3:
         bbox.append([0.0, 1.0])
+    if dimensionality < 2:
+        bbox.append([0.0, 1.0])
+
+    # handle pseudo-dims here
+    num_pseudo_dims = get_num_pseudo_dims(coordinates)
+    dimensionality -= num_pseudo_dims
+    for i in range(dimensionality, 3):
+        bbox[i][0] = 0.0
+        bbox[i][1] = 1.0
 
     bbox = np.array(bbox, dtype=np.float64)
     domain_left_edge = np.array(bbox[:, 0], 'float64')

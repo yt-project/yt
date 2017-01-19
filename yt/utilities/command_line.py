@@ -36,7 +36,8 @@ from yt.funcs import \
     mylog, \
     ensure_dir_exists, \
     update_hg, \
-    enable_plugins
+    enable_plugins, \
+    download_file
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
@@ -1310,6 +1311,45 @@ class YTSearchCmd(YTCommand):
         print("Identified %s records output to %s" % (
               len(records), args.output))
 
+class YTDownloadData(YTCommand):
+
+    args = (dict(short="filename", action="store", type=str,
+                 help="The name of the file to download"), 
+            dict(short="location", action="store", type=str,
+                 help="The location in which to place the file, can be "
+                      "\"supp_data_dir\", \"test_data_dir\", or any valid "
+                      "path on disk. "),
+            dict(longname="--clobber", short="-c",
+                 help="Output full contents of parameter file",
+                 action="store_true", default=False),
+            )
+    description = \
+        """
+        Download a file from http://yt-project.org/data and save it to a 
+        particular location. Files can be saved to the locations provided 
+        by the "test_data_dir" or "supp_data_dir" configuration entries, or
+        any valid path to a location on disk.
+        """
+    name = "download"
+
+    def __call__(self, args):
+        data_url = "http://yt-project.org/data/%s" % args.filename
+        if args.location in ["test_data_dir", "supp_data_dir"]:
+            data_dir = ytcfg.get("yt", args.location)
+            if data_dir == "/does/not/exist":
+                raise RuntimeError("'%s' is not configured!" % args.location)
+        else:
+            data_dir = args.location
+        if not os.path.exists(data_dir):
+            print("The directory '%s' does not exist. Creating..." % data_dir)
+            os.mkdir(data_dir)
+        data_file = os.path.join(data_dir, args.filename)
+        if os.path.exists(data_file) and not args.clobber:
+            raise IOError("File '%s' exists and clobber=False!" % data_file)
+        fn = download_file(data_url, data_file)
+        if not os.path.exists(fn):
+            raise IOError("The file '%s' did not download!!" % args.filename)
+
 def run_main():
     args = parser.parse_args()
     # The following is a workaround for a nasty Python 3 bug:
@@ -1320,7 +1360,7 @@ def run_main():
     except AttributeError:
         parser.print_help()
         sys.exit(0)
-        
+
     args.func(args)
 
 if __name__ == "__main__": run_main()

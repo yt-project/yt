@@ -45,7 +45,7 @@ def check_for_openmp():
         
         if exit_code != 0:
             print("Compilation of OpenMP test code failed with the error: ")
-            print(err)
+            print(err.decode('utf8'))
             print("Disabling OpenMP support. ")
 
         # Clean up

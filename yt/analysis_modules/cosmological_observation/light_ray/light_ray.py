@@ -655,24 +655,42 @@ class LightRay(CosmologySplice):
 
         Write light ray data to hdf5 file.
         """
+
+        extra_attrs = {"data_type": "yt_light_ray"}
         if self.simulation_type is None:
             ds = self.ds
         else:
             ds = {}
-            ds["dimensionality"] = self.simulation.dimensionality
-            ds["domain_left_edge"] = self.simulation.domain_left_edge
-            ds["domain_right_edge"] = self.simulation.domain_right_edge
-            ds["cosmological_simulation"] = self.simulation.cosmological_simulation
             ds["periodicity"] = (True, True, True)
             ds["current_redshift"] = self.near_redshift
-            for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
-                ds[attr] = getattr(self.cosmology, attr)
+            for attr in ["dimensionality", "cosmological_simulation",
+                         "domain_left_edge", "domain_right_edge",
+                         "length_unit", "time_unit"]:
+                ds[attr] = getattr(self.simulation, attr)
+            if self.simulation.cosmological_simulation:
+                for attr in ["omega_lambda", "omega_matter",
+                             "hubble_constant"]:
+                    ds[attr] = getattr(self.cosmology, attr)
             ds["current_time"] = \
               self.cosmology.t_from_z(ds["current_redshift"])
             if isinstance(ds["hubble_constant"], YTArray):
                 ds["hubble_constant"] = \
                   ds["hubble_constant"].to("100*km/(Mpc*s)").d
-        extra_attrs = {"data_type": "yt_light_ray"}
+            extra_attrs["unit_registry_json"] = \
+              self.simulation.unit_registry.to_json()
+
+        # save the light ray solution
+        if len(self.light_ray_solution) > 0:
+            for key in self.light_ray_solution[0]:
+                if key in ["next", "previous", "index"]:
+                    continue
+                lrsa = [sol[key] for sol in self.light_ray_solution]
+                if isinstance(lrsa[-1], YTArray):
+                    to_arr = YTArray
+                else:
+                    to_arr = np.array
+                extra_attrs["light_ray_solution_%s" % key] = to_arr(lrsa)
+
         field_types = dict([(field, "grid") for field in data.keys()])
 
         # Only return LightRay elements with non-zero density

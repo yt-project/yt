@@ -375,7 +375,7 @@ class SZProjection(object):
         >>> sky_center = (30., 45., "deg")
         >>> szprj.write_fits("SZbullet.fits", sky_center=sky_center, sky_scale=sky_scale)
         """
-        from yt.utilities.fits_image import FITSImageData
+        from yt.visualization.fits_image import FITSImageData
 
         dx = self.dx.in_units("kpc")
         dy = dx

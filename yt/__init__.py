@@ -99,12 +99,18 @@ from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
+from yt.units.unit_object import define_unit
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity, \
     uconcatenate, \
+    ucross, \
     uintersect1d, \
     uunion1d, \
+    unorm, \
+    udot, \
+    uvstack, \
+    uhstack, \
     loadtxt, \
     savetxt
 
@@ -119,7 +125,8 @@ from yt.fields.api import \
     ValidateSpatial, \
     ValidateGridType, \
     add_field, \
-    derived_field
+    derived_field, \
+    add_xray_emissivity_field
 
 from yt.data_objects.api import \
     DatasetSeries, ImageArray, \
@@ -156,7 +163,9 @@ from yt.visualization.api import \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot
+    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
+    FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
+    FITSOffAxisProjection
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \

@@ -64,7 +64,7 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
     def apply(self, buff):
         from yt.utilities.on_demand_imports import _scipy
-        hnbeam = self.nbeam / 2
+        hnbeam = self.nbeam // 2
         sigma = self.sigma
 
         l = np.linspace(-hnbeam, hnbeam, num=self.nbeam + 1)

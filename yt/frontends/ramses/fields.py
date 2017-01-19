@@ -106,7 +106,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
-                return rv
+                # Return array in unit 'per volume' consistently with line below
+                return data.ds.arr(rv, 'code_length**-3')
             self.add_field(name = name, sampling_type="cell", function=_func,
                                  units = "code_length**-3")
         avals = {}
@@ -121,7 +122,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if var.size == n1*n2:
                     tvals[tname] = var.reshape((n1, n2), order='F')
                 else:
-                    var = var.reshape((n1, n2, var.size / (n1*n2)), order='F')
+                    var = var.reshape((n1, n2, var.size // (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = var[:,:,i]
 

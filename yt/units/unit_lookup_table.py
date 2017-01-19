@@ -187,7 +187,7 @@ latex_prefixes = {
     "u": r"\mu",
     }
 
-prefixable_units = (
+prefixable_units = [
     "m",
     "pc",
     "mcm",
@@ -217,7 +217,7 @@ prefixable_units = (
     "ohm",
     "statohm",
     "Sv",
-)
+]
 
 default_base_units = {
     dimensions.mass: 'g',

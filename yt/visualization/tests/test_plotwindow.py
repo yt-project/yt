@@ -13,12 +13,16 @@ Testsuite for PlotWindow class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import itertools
+import matplotlib
 import numpy as np
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
+
+from distutils.version import LooseVersion
 from nose.tools import assert_true
+
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
@@ -496,6 +500,17 @@ def test_frb_regen():
     slc = SlicePlot(ds, 2, 'density')
     slc.set_buff_size(1200)
     assert_equal(slc.frb['density'].shape, (1200, 1200))
+
+def test_set_background_color():
+    ds = fake_random_ds(32)
+    plot = SlicePlot(ds, 2, 'density')
+    for field in ['density', ('gas', 'density')]:
+        plot.set_background_color(field, 'red')
+        ax = plot.plots[field].axes
+        if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
+            assert_equal(ax.get_axis_bgcolor(), 'red')
+        else:
+            assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
 def test_set_unit():
     ds = fake_random_ds(32, fields=('temperature',), units=('K',))

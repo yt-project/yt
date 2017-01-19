@@ -50,6 +50,25 @@ not be interpolated, and can be useful for creating
 colorblind/printer/grayscale-friendly plots. For more information, visit
 `http://colorbrewer2.org <http://colorbrewer2.org>`_.
 
+.. _cmocean-cmaps:
+
+Colormaps from cmocean
+~~~~~~~~~~~~~~~~~~~~~~
+
+In addition to ``palettable``, yt will also import colormaps defined in the
+`cmocean <http://matplotlib.org/cmocean>`_ package. These colormaps are
+`perceptually uniform <http://bids.github.io/colormap/>`_ and were originally
+designed for oceanography applications, but can be used for any kind of plots.
+
+Since ``cmocean`` is not installed as a dependency of yt by default, it must be
+installed separately to access the ``cmocean`` colormaps with yt. The easiest
+way to install ``cmocean`` is via ``pip``: ``pip install cmocean``.  To access
+the colormaps in yt, simply specify the name of the ``cmocean`` colormap in any
+context where you would specify a colormap. One caveat is the ``cmocean``
+colormap ``algae``. Since yt already defines a colormap named ``algae``, the
+``cmocean`` version of ``algae`` must be specified with the name
+``algae_cmocean``.
+
 .. _custom-colormaps:
 
 Making and Viewing Custom Colormaps
