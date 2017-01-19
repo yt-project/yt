@@ -31,36 +31,38 @@ from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
 
-    def __init__(self, ds, ordering = ('x','y','z')):
-        super(CartesianCoordinateHandler, self).__init__(ds, ordering)
+    def __init__(self, ds, ordering=('x','y','z'), 
+                 axes_units=('code_length',)*3):
+        super(CartesianCoordinateHandler, self).__init__(ds, ordering, 
+                                                         axes_units=axes_units)
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
             registry.add_field(("index", "d%s" % ax), sampling_type="cell",  function = f1,
                                display_field = False,
-                               units = "code_length")
-            registry.add_field(("index", "path_element_%s" % ax), sampling_type="cell",  function = f1,
+                               units = self.axes_units[ax])
+            registry.add_field(("index", "path_element_%s" % ax), sampling_type="cell", function = f1,
                                display_field = False,
-                               units = "code_length")
-            registry.add_field(("index", "%s" % ax), sampling_type="cell",  function = f2,
+                               units = self.axes_units[ax])
+            registry.add_field(("index", "%s" % ax), sampling_type="cell", function = f2,
                                display_field = False,
-                               units = "code_length")
+                               units = self.axes_units[ax])
             f3 = _get_vert_fields(axi)
             registry.add_field(("index", "vertex_%s" % ax), sampling_type="cell",  function = f3,
                                display_field = False,
-                               units = "code_length")
+                               units = self.axes_units[ax])
         def _cell_volume(field, data):
-            rv  = data["index", "dx"].copy(order='K')
-            rv *= data["index", "dy"]
-            rv *= data["index", "dz"]
+            rv  = data["index", "d%s" % self.axis_order[0]].copy(order='K')
+            rv *= data["index", "d%s" % self.axis_order[1]]
+            rv *= data["index", "d%s" % self.axis_order[2]]
             return rv
-        registry.add_field(("index", "cell_volume"), sampling_type="cell",  function=_cell_volume,
-                           display_field=False, units = "code_length**3")
-        registry.check_derived_fields(
-            [("index", "dx"), ("index", "dy"), ("index", "dz"),
-             ("index", "x"), ("index", "y"), ("index", "z"),
-             ("index", "cell_volume")])
+        registry.add_field(("index", "cell_volume"), sampling_type="cell", function=_cell_volume,
+                           display_field=False, units = "*".join(self.axes_units.values()))
+        dfl = [("index", "%s" % ax) for ax in self.axis_order]
+        dfl += [("index", "d%s" % ax) for ax in self.axis_order]
+        dfl += [("index", "cell_volume")]
+        registry.check_derived_fields(dfl)
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
@@ -168,8 +170,17 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def convert_from_spherical(self, coord):
         raise NotImplementedError
 
-    _x_pairs = (('x', 'y'), ('y', 'z'), ('z', 'x'))
-    _y_pairs = (('x', 'z'), ('y', 'x'), ('z', 'y'))
+    @property
+    def _x_pairs(self):
+        return ((self.axis_order[0], self.axis_order[1]),
+                (self.axis_order[1], self.axis_order[2]),
+                (self.axis_order[2], self.axis_order[0]))
+
+    @property
+    def _y_pairs(self):
+        return ((self.axis_order[0], self.axis_order[2]),
+                (self.axis_order[1], self.axis_order[0]),
+                (self.axis_order[2], self.axis_order[1]))
 
     @property
     def period(self):

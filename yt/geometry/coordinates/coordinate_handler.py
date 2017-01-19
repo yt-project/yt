@@ -76,12 +76,13 @@ def validate_iterable_width(width, ds, unit=None):
 class CoordinateHandler(object):
     name = None
     
-    def __init__(self, ds, ordering):
+    def __init__(self, ds, ordering, axes_units=('code_length',)*3):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
         # By default, we use code_length.  This will get overridden in
         # subclasses.
-        self.axes_units = OrderedDict((ax, 'code_length') for ax in ordering)
+        self.axes_units = OrderedDict((ax, axes_units[i])
+                                      for i, ax in enumerate(ordering))
 
     def setup_fields(self):
         # This should return field definitions for x, y, z, r, theta, phi
