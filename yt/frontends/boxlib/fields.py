@@ -50,7 +50,17 @@ def _temperature(field, data):
     tr *= (gamma - 1.0)
     return tr
 
+
 class WarpXFieldInfo(FieldInfoContainer):
+    known_other_fields = ()
+    known_particle_fields = (
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+    )
+
+
+class NyxFieldInfo(FieldInfoContainer):
     known_other_fields = ()
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),

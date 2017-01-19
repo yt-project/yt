@@ -40,6 +40,7 @@ from yt.utilities.io_handler import \
 
 from .fields import \
     BoxlibFieldInfo, \
+    NyxFieldInfo, \
     MaestroFieldInfo, \
     CastroFieldInfo, \
     WarpXFieldInfo
@@ -362,11 +363,13 @@ class BoxlibHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.dataset)
 
     def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
+
         particle_header_file = self.ds.output_dir + "/" + directory_name + "/Header"
         self.particle_header = BoxLibParticleHeader(particle_header_file, 
                                                     is_checkpoint,
                                                     extra_field_names)
         base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+
         gid = 0
         for lev, data in self.particle_header.data_map.items():
             for pdf in data.values():
@@ -935,12 +938,20 @@ class NyxHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type='nyx_native'):
         super(NyxHierarchy, self).__init__(ds, dataset_type)
 
-        self._read_particles("DM", False)
+        # extra beyond the base real fields that all Boxlib
+        # particles have, i.e. the xyz positions
+        nyx_extra_real_fields = ['particle_mass',
+                                 'particle_velocity_x',
+                                 'particle_velocity_y',
+                                 'particle_velocity_z']
+
+        self._read_particles("DM", False, nyx_extra_real_fields)
 
 
 class NyxDataset(BoxlibDataset):
 
     _index_class = NyxHierarchy
+    _field_info_class = NyxFieldInfo
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -1133,6 +1144,14 @@ class WarpXHierarchy(BoxlibHierarchy):
 
     def __init__(self, ds, dataset_type="boxlib_native"):
         super(WarpXHierarchy, self).__init__(ds, dataset_type)
+
+        # extra beyond the base real fields that all Boxlib
+        # particles have, i.e. the xyz positions
+        warpx_extra_real_fields = ['particle_weight',
+                                   'particle_velocity_x',
+                                   'particle_velocity_y',
+                                   'particle_velocity_z']
+
         self._read_particles("particle0", True)
         
     
