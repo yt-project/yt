@@ -945,7 +945,9 @@ class NyxHierarchy(BoxlibHierarchy):
                                  'particle_velocity_y',
                                  'particle_velocity_z']
 
-        self._read_particles("DM", False, nyx_extra_real_fields)
+        is_checkpoint = False
+
+        self._read_particles("DM", True, nyx_extra_real_fields)
 
 
 class NyxDataset(BoxlibDataset):
@@ -1152,7 +1154,9 @@ class WarpXHierarchy(BoxlibHierarchy):
                                    'particle_velocity_y',
                                    'particle_velocity_z']
 
-        self._read_particles("particle0", True)
+        is_checkpoint = True
+
+        self._read_particles("particle0", is_checkpoint, warpx_extra_real_fields)
         
     
 def _skip_line(line):
