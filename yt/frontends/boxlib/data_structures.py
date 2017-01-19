@@ -361,6 +361,26 @@ class BoxlibHierarchy(GridIndex):
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.dataset)
 
+    def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
+        particle_header_file = self.ds.output_dir + "/" + directory_name + "/Header"
+        self.particle_header = BoxLibParticleHeader(particle_header_file, 
+                                                    is_checkpoint,
+                                                    extra_field_names)
+        base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+        gid = 0
+        for lev, data in self.particle_header.data_map.items():
+            for pdf in data.values():
+                self.grids[gid]._particle_filename = base_particle_fn % \
+                                                     (lev, pdf.file_number)
+                self.grid_particle_count[gid] += pdf.num_particles
+                self.grids[gid].NumberOfParticles = pdf.num_particles
+                self.grids[gid]._particle_offset = pdf.offset
+                gid += 1
+
+        # add particle fields to field_list
+        pfield_list = self.particle_header.known_fields
+        self.field_list.extend(pfield_list)
+
 
 class BoxlibDataset(Dataset):
     """
@@ -914,42 +934,8 @@ class NyxHierarchy(BoxlibHierarchy):
 
     def __init__(self, ds, dataset_type='nyx_native'):
         super(NyxHierarchy, self).__init__(ds, dataset_type)
-        self._read_particle_header()
 
-    def _read_particle_header(self):
-        if not self.ds.parameters["particles"]:
-            self.pgrid_info = np.zeros((self.num_grids, 3), dtype='int64')
-            return
-        for fn in ['particle_position_%s' % ax for ax in 'xyz'] + \
-                  ['particle_mass'] +  \
-                  ['particle_velocity_%s' % ax for ax in 'xyz']:
-            self.field_list.append(("io", fn))
-        header = open(os.path.join(self.ds.output_dir, "DM", "Header"))
-        version = header.readline()  # NOQA
-        ndim = header.readline()  # NOQA
-        nfields = header.readline()  # NOQA
-        ntotalpart = int(header.readline())  # NOQA
-        nextid = header.readline()  # NOQA
-        maxlevel = int(header.readline())  # NOQA
-
-        # Skip over how many grids on each level; this is degenerate
-        for i in range(maxlevel + 1):
-            header.readline()
-
-        grid_info = np.fromiter((int(i) for line in header.readlines()
-                                 for i in line.split()),
-                                dtype='int64',
-                                count=3*self.num_grids).reshape((self.num_grids, 3))
-        # we need grid_info in `populate_grid_objects`, so save it to self
-
-        for g, pg in izip(self.grids, grid_info):
-            g.particle_filename = os.path.join(self.ds.output_dir, "DM",
-                                               "Level_%s" % (g.Level),
-                                               "DATA_%04i" % pg[0])
-            g.NumberOfParticles = pg[1]
-            g._particle_offset = pg[2]
-
-        self.grid_particle_count[:, 0] = grid_info[:, 1]
+        self._read_particles("DM", False)
 
 
 class NyxDataset(BoxlibDataset):
@@ -1050,9 +1036,9 @@ def _guess_pcast(vals):
     return vals
 
 
-class WarpXParticleHeader(object):
+class BoxLibParticleHeader(object):
 
-    def __init__(self, header_filename):
+    def __init__(self, header_filename, is_checkpoint, extra_field_names=None):
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
@@ -1078,6 +1064,14 @@ class WarpXParticleHeader(object):
             self.finest_level = int(f.readline().strip())
             self.num_levels = self.finest_level + 1
 
+            # Boxlib particles can be written in checkpoint or plotfile mode
+            # The base integer fields are only there for checkpoints, but some
+            # codes use the checkpoint format for plotting
+            if not is_checkpoint:
+                self.num_int_base = 0
+                self.num_int_extra = 0
+                self.num_int = 0
+
             self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
             self.data_map = {}
             for level_num in range(self.num_levels):
@@ -1092,17 +1086,17 @@ class WarpXParticleHeader(object):
                     entry = [int(val) for val in f.readline().strip().split()]
                     self.data_map[level_num][grid_num] = pfd(*entry)
 
-        self._generate_particle_fields()
+        self._generate_particle_fields(extra_field_names)
 
-    def _generate_particle_fields(self):
+    def _generate_particle_fields(self, extra_field_names):
 
-        # these will always be there
+        # these are the 'base' integer fields
         self.known_int_fields = [("io", "particle_id"),
                                  ("io", "particle_cpu"),
                                  ("io", "particle_cell_x"),
                                  ("io", "particle_cell_y"),
                                  ("io", "particle_cell_z")]
-        self.known_int_fields = self.known_int_fields[0:2+self.dim]
+        self.known_int_fields = self.known_int_fields[0:self.num_int_base]
 
         # these are extra integer fields
         extra_int_fields = ["particle_int_comp%d" % i 
@@ -1110,17 +1104,21 @@ class WarpXParticleHeader(object):
         self.known_int_fields.extend([("io", field) 
                                       for field in extra_int_fields])
 
-        # these real fields will always be there
+        # these are the base real fields
         self.known_real_fields = [("io", "particle_position_x"),
                                   ("io", "particle_position_y"),
                                   ("io", "particle_position_z")]
-        self.known_real_fields = self.known_real_fields[0:self.dim]
+        self.known_real_fields = self.known_real_fields[0:self.num_real_base]
 
         # these are the extras
-        extra_real_fields = ["particle_real_comp%d" % i 
-                             for i in range(self.num_real_extra)]
+        if extra_field_names is not None:
+            assert(len(extra_field_names) == self.num_real_extra)
+        else:
+            extra_field_names = ["particle_real_comp%d" % i 
+                                 for i in range(self.num_real_extra)]
+
         self.known_real_fields.extend([("io", field) 
-                                       for field in extra_real_fields])
+                                       for field in extra_field_names])
 
         self.known_fields = self.known_int_fields + self.known_real_fields
 
@@ -1129,32 +1127,14 @@ class WarpXParticleHeader(object):
 
         self.particle_real_dtype = np.dtype([(t[1], self.real_type) 
                                             for t in self.known_real_fields])
-        
+
 
 class WarpXHierarchy(BoxlibHierarchy):
 
-    def __init__(self, ds, dataset_type="warpx_native"):
+    def __init__(self, ds, dataset_type="boxlib_native"):
         super(WarpXHierarchy, self).__init__(ds, dataset_type)
-        self._read_particles()
+        self._read_particles("particle0", True)
         
-    def _read_particles(self):
-        particle_header_file = self.ds.output_dir + "/particle0/Header"
-        self.particle_header = WarpXParticleHeader(particle_header_file)
-        base_particle_fn = self.ds.output_dir + '/particle0/Level_%d/DATA_%.4d'
-        gid = 0
-        for lev, data in self.particle_header.data_map.items():
-            for pdf in data.values():
-                self.grids[gid]._particle_filename = base_particle_fn % \
-                                                     (lev, pdf.file_number)
-                self.grid_particle_count[gid] += pdf.num_particles
-                self.grids[gid].NumberOfParticles = pdf.num_particles
-                self.grids[gid]._particle_offset = pdf.offset
-                gid += 1
-
-        # add particle fields to field_list
-        pfield_list = self.particle_header.known_fields
-        self.field_list.extend(pfield_list)
-
     
 def _skip_line(line):
     if len(line) == 0:
@@ -1189,7 +1169,6 @@ class WarpXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
-        self.dataset_type = "warpx_native"
         jobinfo_filename = os.path.join(self.output_dir, "warpx_job_info")
         with open(jobinfo_filename, "r") as f:
             for line in f.readlines():
