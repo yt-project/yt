@@ -947,7 +947,7 @@ class NyxHierarchy(BoxlibHierarchy):
 
         is_checkpoint = False
 
-        self._read_particles("DM", True, nyx_extra_real_fields)
+        self._read_particles("DM", is_checkpoint, nyx_extra_real_fields)
 
 
 class NyxDataset(BoxlibDataset):
