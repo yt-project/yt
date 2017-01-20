@@ -1196,6 +1196,22 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
 
+    def __init__(self, output_dir,
+                 cparam_filename="inputs",
+                 fparam_filename="probin",
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="mks"):
+
+        super(WarpXDataset, self).__init__(output_dir,
+                                           cparam_filename,
+                                           fparam_filename,
+                                           dataset_type,
+                                           storage_filename,
+                                           units_override,
+                                           unit_system)
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
@@ -1229,3 +1245,9 @@ class WarpXDataset(BoxlibDataset):
         is_periodic = self.parameters['geometry.is_periodic'].split()
         periodicity = [bool(val) for val in is_periodic]
         self.periodicity = ensure_tuple(periodicity)
+
+    def _set_code_unit_attributes(self):
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "m/s"))

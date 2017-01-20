@@ -52,11 +52,25 @@ def _temperature(field, data):
 
 
 class WarpXFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
+    known_other_fields = (
+        ("Bx", ("T", ["magnetic_field_x"], None)),
+        ("By", ("T", ["magnetic_field_y"], None)),
+        ("Bz", ("T", ["magnetic_field_z"], None)),
+        ("Ex", ("V/m", ["electric_field_x"], None)),
+        ("Ey", ("V/m", ["electric_field_y"], None)),
+        ("Ex", ("V/m", ["electric_field_z"], None)),
+        ("jx", ("A", ["current_x"], None)),
+        ("jy", ("A", ["current_y"], None)),
+        ("jz", ("A", ["current_z"], None)),
+    )
     known_particle_fields = (
-        ("particle_position_x", ("code_length", [], None)),
-        ("particle_position_y", ("code_length", [], None)),
-        ("particle_position_z", ("code_length", [], None)),
+        ("particle_weight", ("", [], None)),
+        ("particle_position_x", ("m", [], None)),
+        ("particle_position_y", ("m", [], None)),
+        ("particle_position_z", ("m", [], None)),
+        ("particle_velocity_x", ("m/s", [], None)),
+        ("particle_velocity_y", ("m/s", [], None)),
+        ("particle_velocity_z", ("m/s", [], None)),
     )
 
     def setup_particle_fields(self, ptype):
