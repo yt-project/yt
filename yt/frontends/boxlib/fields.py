@@ -15,7 +15,7 @@ import string
 import re
 
 from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, amu_cgs
+    boltzmann_constant_cgs, amu_cgs, me
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
@@ -58,6 +58,26 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
     )
+
+    def setup_particle_fields(self, ptype):
+
+        def get_mass(field, data):
+            species_mass = data.ds.index.parameters['particle0_mass']
+            return data["particle_weight"]*species_mass
+
+        self.add_field((ptype, "particle_mass"), sampling_type="particle",
+                       function=get_mass,
+                       units="kg")
+
+        def get_charge(field, data):
+            species_charge = data.ds.index.parameters['particle0_charge']
+            return data["particle_weight"]*species_charge
+
+        self.add_field((ptype, "particle_charge"), sampling_type="particle",
+                       function=get_charge,
+                       units="C")
+
+        super(WarpXFieldInfo, self).setup_particle_fields(ptype)
 
 
 class NyxFieldInfo(FieldInfoContainer):

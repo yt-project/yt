@@ -30,6 +30,7 @@ from yt.data_objects.grid_patch import AMRGridPatch
 from yt.extern.six.moves import zip as izip
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
+from yt.units import YTQuantity
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
@@ -1158,6 +1159,27 @@ class WarpXHierarchy(BoxlibHierarchy):
 
         self._read_particles("particle0", is_checkpoint, warpx_extra_real_fields)
         
+        # Additional WarpX particle information (used to set up species)
+        with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
+
+            # skip to the end, where species info is written out
+            line = f.readline()
+            while line and line != ')\n':
+                line = f.readline()
+            line = f.readline()
+
+            # Read in the species information
+            species_id = 0
+            while line:
+                line = line.strip().split()
+                charge = YTQuantity(float(line[0]), "C")
+                mass = YTQuantity(float(line[1]), "kg")
+                charge_name = 'particle%.1d_charge' % species_id
+                mass_name = 'particle%.1d_mass' % species_id
+                self.parameters[charge_name] = charge
+                self.parameters[mass_name] = mass
+                line = f.readline()
+                species_id += 1
     
 def _skip_line(line):
     if len(line) == 0:
