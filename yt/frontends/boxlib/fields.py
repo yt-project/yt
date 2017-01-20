@@ -15,7 +15,7 @@ import string
 import re
 
 from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, amu_cgs, me
+    boltzmann_constant_cgs, amu_cgs
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
