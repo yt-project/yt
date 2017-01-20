@@ -27,7 +27,6 @@ from yt.funcs import \
     mylog, \
     setdefaultattr
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.extern.six.moves import zip as izip
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
 from yt.units import YTQuantity
