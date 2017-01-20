@@ -1155,7 +1155,7 @@ class WarpXHierarchy(BoxlibHierarchy):
                                    'particle_velocity_y',
                                    'particle_velocity_z']
 
-        is_checkpoint = True
+        is_checkpoint = False
 
         self._read_particles("particle0", is_checkpoint, warpx_extra_real_fields)
         
