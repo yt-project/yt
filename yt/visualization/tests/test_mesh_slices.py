@@ -49,6 +49,14 @@ def test_tri2():
     for field in ds.field_list:
         yield compare(ds, field, "answers_tri2_%s_%s" % (field[0], field[1]))
 
+multi_region = "MultiRegion/two_region_example_out.e"
+
+@requires_ds(multi_region)
+def test_multi_region():
+    ds = data_dir_load(multi_region, kwargs={'step':-1})
+    for field in ds.field_list:
+        yield compare(ds, field, "answers_multi_region_%s_%s" % (field[0], field[1]))
+
 def test_mesh_slices():
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()

@@ -441,7 +441,7 @@ a dataset that uses 6-node wedge elements:
    sl = yt.SlicePlot(ds, 2, ('connect2', 'diffused'))
    sl.save()
 
-Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
+Slices can also be used to examine 2D unstructured mesh datasets, but the
 slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
 an example using another MOOSE dataset that uses triangular mesh elements:
 
@@ -450,6 +450,17 @@ an example using another MOOSE dataset that uses triangular mesh elements:
    import yt
    ds = yt.load('MOOSE_sample_data/out.e')
    sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
+
+You may run into situations where you have a variable you want to visualize that
+exists on multiple mesh blocks. To view the variable on ``all`` mesh blocks,
+simply pass ``all`` as the first argument of the field tuple:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MultiRegion/two_region_example_out.e", step=-1)
+   sl = yt.SlicePlot(ds, 'z', ('all', 'diffused'))
    sl.save()
 
 

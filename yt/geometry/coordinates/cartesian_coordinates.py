@@ -68,11 +68,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
             ftype, fname = field
-            mesh_id = int(ftype[-1]) - 1
-            mesh = index.meshes[mesh_id]
-            coords = mesh.connectivity_coords
-            indices = mesh.connectivity_indices
-            offset = mesh._index_offset
+            if ftype == "all":
+                mesh_id = 0
+                indices = np.concatenate([mesh.connectivity_indices for mesh in index.mesh_union])
+            else:
+                mesh_id = int(ftype[-1]) - 1
+                indices = index.meshes[mesh_id].connectivity_indices
+
+            coords = index.meshes[mesh_id].connectivity_coords
+            offset = index.meshes[mesh_id]._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
             buff_size = size[0:dimension] + (1,) + size[dimension:]
