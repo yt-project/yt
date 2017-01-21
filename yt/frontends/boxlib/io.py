@@ -84,6 +84,7 @@ class IOHandlerBoxlib(BaseIOHandler):
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         chunks = list(chunks)
+        unions = self.ds.particle_unions
 
         if selector.__class__.__name__ == "GridSelector":
 
@@ -93,44 +94,59 @@ class IOHandlerBoxlib(BaseIOHandler):
             grid = chunks[0].objs[0]
 
             for ftype, fname in fields:
-                rv[ftype, fname] = self._read_particles(grid, fname)
-
+                if ftype in unions:
+                    udata = np.array([])
+                    for subtype in unions[ftype]:
+                        data = self._read_particles(grid, subtype, fname)
+                        udata = np.concatenate((udata, data))
+                    rv[ftype, fname] = udata
+                else:
+                    rv[ftype, fname] = self._read_particles(grid, ftype, fname)
             return rv
 
         rv = {f: np.array([]) for f in fields}
         for chunk in chunks:
             for grid in chunk.objs:
                 for ftype, fname in fields:
-                    data = self._read_particles(grid, fname)
-                    rv[ftype, fname] = np.concatenate((data, rv[ftype, fname]))
+                    if ftype in unions:
+                        for subtype in unions[ftype]:
+                            data = self._read_particles(grid, subtype, fname)
+                            rv[ftype, fname] = np.concatenate((data, 
+                                                               rv[ftype, fname]))
+                    else:
+                        data = self._read_particles(grid, ftype, fname)
+                        rv[ftype, fname] = np.concatenate((data, 
+                                                           rv[ftype, fname]))
         return rv
 
-    def _read_particles(self, grid, name):
+    def _read_particles(self, grid, ftype, name):
 
         particles = []
+        npart = grid._pdata[ftype]["NumberOfParticles"]
 
-        if grid.NumberOfParticles == 0:
+        if npart == 0:
             return np.array(particles)
 
-        pheader = self.ds.index.particle_header
+        fn = grid._pdata[ftype]["particle_filename"]
+        offset = grid._pdata[ftype]["offset"]
+        pheader = self.ds.index.particle_headers[ftype]
         
         int_fnames = [fname for ftype, fname in pheader.known_int_fields]
         if name in int_fnames:
             ind = int_fnames.index(name)
-            with open(grid._particle_filename, "rb") as f:
-                f.seek(grid._particle_offset)
-                idata = np.fromfile(f, pheader.int_type, 
-                                    pheader.num_int * grid.NumberOfParticles)
+            fn = grid._pdata[ftype]["particle_filename"]
+            with open(fn, "rb") as f:
+                f.seek(offset)
+                idata = np.fromfile(f, pheader.int_type, pheader.num_int * npart)
                 return np.asarray(idata[ind::pheader.num_int], dtype=np.float64)
 
         real_fnames = [fname for ftype, fname in pheader.known_real_fields]
         if name in real_fnames:
             ind = real_fnames.index(name)
-            with open(grid._particle_filename, "rb") as f:
-                f.seek(grid._particle_offset + 
-                       pheader.particle_int_dtype.itemsize * grid.NumberOfParticles)
-                rdata = np.fromfile(f, pheader.real_type,
-                                    pheader.num_real * grid.NumberOfParticles)
+            with open(fn, "rb") as f:
+                f.seek(offset + 
+                       pheader.particle_int_dtype.itemsize * npart)
+                rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
                 return np.asarray(rdata[ind::pheader.num_real], dtype=np.float64)
 
 

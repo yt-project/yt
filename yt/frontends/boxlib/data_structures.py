@@ -21,6 +21,7 @@ from collections import namedtuple
 from stat import ST_CTIME
 
 import numpy as np
+import glob
 
 from yt.funcs import \
     ensure_tuple, \
@@ -76,6 +77,7 @@ class BoxlibGrid(AMRGridPatch):
         self._base_offset = offset
         self._parent_id = []
         self._children_ids = []
+        self._pdata = {}
 
     def _prepare_grid(self):
         super(BoxlibGrid, self)._prepare_grid()
@@ -144,6 +146,7 @@ class BoxlibHierarchy(GridIndex):
         self.dataset_type = dataset_type
         self.header_filename = os.path.join(ds.output_dir, 'Header')
         self.directory = ds.output_dir
+        self.particle_headers = {}
 
         GridIndex.__init__(self, ds, dataset_type)
         self._cache_endianness(self.grids[-1])
@@ -364,24 +367,28 @@ class BoxlibHierarchy(GridIndex):
 
     def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
 
-        particle_header_file = self.ds.output_dir + "/" + directory_name + "/Header"
-        self.particle_header = BoxLibParticleHeader(particle_header_file, 
-                                                    is_checkpoint,
-                                                    extra_field_names)
+        self.particle_headers[directory_name] = BoxLibParticleHeader(self.ds,
+                                                                     directory_name,
+                                                                     is_checkpoint,
+                                                                     extra_field_names)
+
         base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
 
         gid = 0
-        for lev, data in self.particle_header.data_map.items():
+        for lev, data in self.particle_headers[directory_name].data_map.items():
             for pdf in data.values():
-                self.grids[gid]._particle_filename = base_particle_fn % \
-                                                     (lev, pdf.file_number)
+                pdict = self.grids[gid]._pdata
+                pdict[directory_name] = {}
+                pdict[directory_name]["particle_filename"] = base_particle_fn % \
+                                                             (lev, pdf.file_number)
+                pdict[directory_name]["offset"] = pdf.offset
+                pdict[directory_name]["NumberOfParticles"] = pdf.num_particles
                 self.grid_particle_count[gid] += pdf.num_particles
-                self.grids[gid].NumberOfParticles = pdf.num_particles
-                self.grids[gid]._particle_offset = pdf.offset
+                self.grids[gid].NumberOfParticles += pdf.num_particles
                 gid += 1
 
         # add particle fields to field_list
-        pfield_list = self.particle_header.known_fields
+        pfield_list = self.particle_headers[directory_name].known_fields
         self.field_list.extend(pfield_list)
 
 
@@ -1051,7 +1058,10 @@ def _guess_pcast(vals):
 
 class BoxLibParticleHeader(object):
 
-    def __init__(self, header_filename, is_checkpoint, extra_field_names=None):
+    def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
+
+        self.species_name = directory_name
+        header_filename =  ds.output_dir + "/" + directory_name + "/Header"
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
@@ -1104,23 +1114,23 @@ class BoxLibParticleHeader(object):
     def _generate_particle_fields(self, extra_field_names):
 
         # these are the 'base' integer fields
-        self.known_int_fields = [("io", "particle_id"),
-                                 ("io", "particle_cpu"),
-                                 ("io", "particle_cell_x"),
-                                 ("io", "particle_cell_y"),
-                                 ("io", "particle_cell_z")]
+        self.known_int_fields = [(self.species_name, "particle_id"),
+                                 (self.species_name, "particle_cpu"),
+                                 (self.species_name, "particle_cell_x"),
+                                 (self.species_name, "particle_cell_y"),
+                                 (self.species_name, "particle_cell_z")]
         self.known_int_fields = self.known_int_fields[0:self.num_int_base]
 
         # these are extra integer fields
         extra_int_fields = ["particle_int_comp%d" % i 
                             for i in range(self.num_int_extra)]
-        self.known_int_fields.extend([("io", field) 
+        self.known_int_fields.extend([(self.species_name, field) 
                                       for field in extra_int_fields])
 
         # these are the base real fields
-        self.known_real_fields = [("io", "particle_position_x"),
-                                  ("io", "particle_position_y"),
-                                  ("io", "particle_position_z")]
+        self.known_real_fields = [(self.species_name, "particle_position_x"),
+                                  (self.species_name, "particle_position_y"),
+                                  (self.species_name, "particle_position_z")]
         self.known_real_fields = self.known_real_fields[0:self.num_real_base]
 
         # these are the extras
@@ -1130,7 +1140,7 @@ class BoxLibParticleHeader(object):
             extra_field_names = ["particle_real_comp%d" % i 
                                  for i in range(self.num_real_extra)]
 
-        self.known_real_fields.extend([("io", field) 
+        self.known_real_fields.extend([(self.species_name, field) 
                                        for field in extra_field_names])
 
         self.known_fields = self.known_int_fields + self.known_real_fields
@@ -1156,7 +1166,8 @@ class WarpXHierarchy(BoxlibHierarchy):
 
         is_checkpoint = False
 
-        self._read_particles("particle0", is_checkpoint, warpx_extra_real_fields)
+        for ptype in self.ds.particle_types:
+            self._read_particles(ptype, is_checkpoint, warpx_extra_real_fields)
         
         # Additional WarpX particle information (used to set up species)
         with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
@@ -1245,6 +1256,14 @@ class WarpXDataset(BoxlibDataset):
         is_periodic = self.parameters['geometry.is_periodic'].split()
         periodicity = [bool(val) for val in is_periodic]
         self.periodicity = ensure_tuple(periodicity)
+
+        species_list = []
+        species_dirs = glob.glob(self.output_dir + "/particle*")
+        for species in species_dirs:
+            species_list.append(species[len(self.output_dir)+1:])
+        self.particle_types = tuple(species_list)
+        self.particle_types_raw = self.particle_types
+
 
     def _set_code_unit_attributes(self):
         setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))

@@ -52,6 +52,7 @@ def _temperature(field, data):
 
 
 class WarpXFieldInfo(FieldInfoContainer):
+
     known_other_fields = (
         ("Bx", ("T", ["magnetic_field_x"], None)),
         ("By", ("T", ["magnetic_field_y"], None)),
@@ -63,6 +64,7 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("jy", ("A", ["current_y"], None)),
         ("jz", ("A", ["current_z"], None)),
     )
+
     known_particle_fields = (
         ("particle_weight", ("", [], None)),
         ("particle_position_x", ("m", [], None)),
@@ -73,10 +75,16 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("particle_velocity_z", ("m/s", [], None)),
     )
 
+    extra_union_fields = (
+        ("kg", "particle_mass"),
+        ("C", "particle_charge"),
+        ("", "particle_ones"),
+    )
+
     def setup_particle_fields(self, ptype):
 
         def get_mass(field, data):
-            species_mass = data.ds.index.parameters['particle0_mass']
+            species_mass = data.ds.index.parameters[ptype + '_mass']
             return data["particle_weight"]*species_mass
 
         self.add_field((ptype, "particle_mass"), sampling_type="particle",
@@ -84,7 +92,7 @@ class WarpXFieldInfo(FieldInfoContainer):
                        units="kg")
 
         def get_charge(field, data):
-            species_charge = data.ds.index.parameters['particle0_charge']
+            species_charge = data.ds.index.parameters[ptype + '_charge']
             return data["particle_weight"]*species_charge
 
         self.add_field((ptype, "particle_charge"), sampling_type="particle",
@@ -101,6 +109,7 @@ class NyxFieldInfo(FieldInfoContainer):
         ("particle_position_y", ("code_length", [], None)),
         ("particle_position_z", ("code_length", [], None)),
     )
+
 
 class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
