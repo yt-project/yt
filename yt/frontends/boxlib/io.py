@@ -131,7 +131,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         offset = grid._pdata[ftype]["offset"]
         pheader = self.ds.index.particle_headers[ftype]
         
-        int_fnames = [fname for ftype, fname in pheader.known_int_fields]
+        int_fnames = [fname for _, fname in pheader.known_int_fields]
         if name in int_fnames:
             ind = int_fnames.index(name)
             fn = grid._pdata[ftype]["particle_filename"]
@@ -140,7 +140,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                 idata = np.fromfile(f, pheader.int_type, pheader.num_int * npart)
                 return np.asarray(idata[ind::pheader.num_int], dtype=np.float64)
 
-        real_fnames = [fname for ftype, fname in pheader.known_real_fields]
+        real_fnames = [fname for _, fname in pheader.known_real_fields]
         if name in real_fnames:
             ind = real_fnames.index(name)
             with open(fn, "rb") as f:
