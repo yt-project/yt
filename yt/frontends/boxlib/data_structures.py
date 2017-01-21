@@ -1023,7 +1023,7 @@ class NyxDataset(BoxlibDataset):
         if os.path.isdir(os.path.join(self.output_dir, "DM")):
             # we have particles
             self.parameters["particles"] = 1 
-            self.particle_types = ("io",)
+            self.particle_types = ("DM",)
             self.particle_types_raw = self.particle_types
 
     def _set_code_unit_attributes(self):
