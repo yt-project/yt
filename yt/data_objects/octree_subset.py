@@ -190,7 +190,7 @@ class OctreeSubset(YTSelectionContainer):
                          dtype="float64")
         # We should not need the following if we know in advance all our fields
         # need no casting.
-        fields = [np.asarray(f, dtype="float64") for f in fields]
+        fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
         op.process_octree(self.oct_handler, self.domain_ind, pos, fields,
             self.domain_id, self._domain_offset)
         vals = op.finalize()
