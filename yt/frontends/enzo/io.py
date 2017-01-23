@@ -177,11 +177,9 @@ class IOHandlerPackedHDF5GhostZones(IOHandlerPackedHDF5):
                       slice(NGZ, -NGZ),
                       slice(NGZ, -NGZ))
 
-    def _read_raw_data_set(self, grid, field):
-        f = h5py.File(grid.filename, "r")
-        ds = f["/Grid%08i/%s" % (grid.id, field)][:].swapaxes(0,2)
-        f.close()
-        return ds
+    def _read_obj_field(self, *args, **kwargs):
+        return super(IOHandlerPackedHDF5GhostZones, self)._read_obj_field(
+                *args, **kwargs)[self._base]
 
 class IOHandlerInMemory(BaseIOHandler):
 
