@@ -71,7 +71,7 @@ def test_LyA():
         test_LyA.__name__ = test.description
         yield test
 
-@requires_ds(LyA)
+@requires_file(LyA)
 def test_nyx_particle_io():
     ds = data_dir_load(LyA)
 
@@ -126,7 +126,7 @@ def test_plasma():
         test_plasma.__name__ = test.description
         yield test
 
-@requires_ds(plasma)
+@requires_file(plasma)
 def test_warpx_particle_io():
     ds = data_dir_load(plasma)
     grid = ds.index.grids[0]
