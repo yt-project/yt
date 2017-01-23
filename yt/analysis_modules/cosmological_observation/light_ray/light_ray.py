@@ -21,6 +21,8 @@ from yt.convenience import \
     load
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
+from yt.units.index_array import \
+    YTIndexArray
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.cosmology import \
@@ -419,13 +421,13 @@ class LightRay(CosmologySplice):
             left_edge = domain.domain_left_edge
         elif not hasattr(left_edge, 'units'):
             left_edge = domain.arr(left_edge, assumed_units)
-        left_edge.convert_to_units('unitary')
+        left_edge = left_edge.to('unitary')
 
         if right_edge is None:
             right_edge = domain.domain_right_edge
         elif not hasattr(right_edge, 'units'):
             right_edge = domain.arr(right_edge, assumed_units)
-        right_edge.convert_to_units('unitary')
+        right_edge = right_edge.to('unitary')
 
         if start_position is not None:
             if hasattr(start_position, 'units'):
@@ -763,7 +765,9 @@ def periodic_adjust(p, left=None, right=None):
     Return the point p adjusted for periodic boundaries.
 
     """
-    if isinstance(p, YTArray):
+    if isinstance(p, YTIndexArray):
+        p = p.in_units("unitary")
+    elif isinstance(p, YTArray):
         p.convert_to_units("unitary")
     if left is None:
         left = np.zeros_like(p)
