@@ -127,13 +127,17 @@ class FixedResolutionBuffer(object):
             (item, self.buff_size[0], self.buff_size[1]))
         bounds = []
         axis = self.data_source.axis
-        names = self.ds.coordinates.axis_name
-        xax = names[self.ds.coordinates.x_axis[axis]]
-        yax = names[self.ds.coordinates.y_axis[axis]]
-        units = (self.ds.coordinates.axes_units[xax],
-                 self.ds.coordinates.axes_units[xax],
-                 self.ds.coordinates.axes_units[yax],
-                 self.ds.coordinates.axes_units[yax])
+        if axis == 4:
+            # TODO: make this DTRT for off-axis and nonspatial
+            units = ("code_length",)*4
+        else:
+            names = self.ds.coordinates.axis_name
+            xax = names[self.ds.coordinates.x_axis[axis]]
+            yax = names[self.ds.coordinates.y_axis[axis]]
+            units = (self.ds.coordinates.axes_units[xax],
+                     self.ds.coordinates.axes_units[xax],
+                     self.ds.coordinates.axes_units[yax],
+                     self.ds.coordinates.axes_units[yax])
         for i, b in enumerate(self.bounds):
             if hasattr(b, "in_units"):
                 b = float(b.in_units(units[i]))
