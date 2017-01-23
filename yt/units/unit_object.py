@@ -846,4 +846,4 @@ def define_unit(symbol, value, tex_repr=None, offset=None, prefixable=False):
     >>> yt.define_unit("fortnight", two_weeks)
     """
     _define_unit(default_unit_registry, symbol, value, tex_repr=tex_repr, 
-                 offset=offset, prefixable=prefixable)>>>>>>> theirs
+                 offset=offset, prefixable=prefixable)
