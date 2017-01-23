@@ -338,7 +338,9 @@ class Unit(Expr):
 
     def __mul__(self, u):
         """ Multiply Unit with u (Unit object). """
-        if not isinstance(u, Unit):
+        if isinstance(u, UnitTuple):
+            return u.__mul__(self)
+        elif not isinstance(u, Unit):
             raise InvalidUnitOperation("Tried to multiply a Unit object with "
                                        "'%s' (type %s). This behavior is "
                                        "undefined." % (u, type(u)))
