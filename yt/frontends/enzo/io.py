@@ -77,33 +77,10 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (KeyError,)
 
     def _read_particle_coords(self, chunks, ptf):
-        chunks = list(chunks)
-        for chunk in chunks: # These should be organized by grid filename
-            f = None
-            for g in chunk.objs:
-                if g.filename is None: continue
-                if f is None:
-                    #print "Opening (count) %s" % g.filename
-                    f = h5py.File(g.filename, "r")
-                nap = sum(g.NumberOfActiveParticles.values())
-                if g.NumberOfParticles == 0 and nap == 0:
-                    continue
-                ds = f.get("/Grid%08i" % g.id)
-                for ptype, field_list in sorted(ptf.items()):
-                    if ptype != "io":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = ds.get("Particles/%s" % ptype)
-                    else:
-                        pds = ds
-                    pn = _particle_position_names.get(ptype,
-                            r"particle_position_%s")
-                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
-                               for ax in 'xyz')
-                    for field in field_list:
-                        if np.asarray(pds[field]).ndim > 1:
-                            self._array_fields[field] = pds[field].shape
-                    yield ptype, (x, y, z)
-            if f: f.close()
+        # This is fun!  We can get rid of lots of duplicated code just by
+        # adding a conditional into _read_particle_fields and calling that.
+        for rv in self._read_particle_fields(chunks, ptf, None):
+            yield rv
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -128,6 +105,11 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             r"particle_position_%s")
                     x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
                                for ax in 'xyz')
+                    if selector is None:
+                        # This only ever happens if the call is made from
+                        # _read_particle_coords.
+                        yield ptype, (x, y, z)
+                        continue
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None: continue
                     for field in field_list:
