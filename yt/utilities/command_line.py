@@ -1376,7 +1376,9 @@ class YTDownloadData(YTCommand):
         data = json.loads(data)
         for key in data:
             for ds in data[key]:
-                print('{filename}.tar.gz ({size}) type: {code}'.format(**ds))
+                ds['fullname'] = ds['url'].replace(
+                    'http://yt-project.org/data/', '')
+                print('{fullname} ({size}) type: {code}'.format(**ds))
                 for line in textwrap.wrap(ds['description']):
                     print('\t', line)
 
