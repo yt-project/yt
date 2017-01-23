@@ -42,17 +42,20 @@ from yt.extern.six import \
     string_types
 from yt.funcs import \
     is_root, \
-    parse_h5_attr
+    parse_h5_attr, \
+    iterable
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.units import \
     dimensions
+from yt.units.index_array import \
+    YTIndexArray
 from yt.units.unit_registry import \
     UnitRegistry
 from yt.units.yt_array import \
-    YTQuantity
+    YTArray, YTQuantity
 from yt.utilities.logger import \
     ytLogger as mylog
 from yt.utilities.exceptions import \
@@ -120,11 +123,15 @@ class SavedDataset(Dataset):
             ustr = "%s_units" % par
             if ustr in self.parameters:
                 if isinstance(self.parameters[par], np.ndarray):
-                    to_u = self.arr
+                    if isinstance(self.parameters[ustr], np.ndarray):
+                        to_u = YTIndexArray
+                    else:
+                        to_u = YTArray
                 else:
-                    to_u = self.quan
+                    to_u = YTQuantity
                 self.parameters[par] = to_u(
-                    self.parameters[par], self.parameters[ustr])
+                    self.parameters[par], self.parameters[ustr],
+                    registry=self.unit_registry)
                 del_pars.append(ustr)
         for par in del_pars:
             del self.parameters[par]

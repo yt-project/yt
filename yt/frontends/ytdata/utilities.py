@@ -17,6 +17,8 @@ Utility functions for ytdata frontend.
 import numpy as np
 
 from yt.funcs import iterable
+from yt.units.index_array import \
+    YTIndexArray
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.logger import \
@@ -202,12 +204,14 @@ def _yt_array_hdf5(fh, field, data):
     -------
     dataset : hdf5 dataset
         The created hdf5 dataset.
-    
+
     """
 
     dataset = fh.create_dataset(str(field), data=data)
     units = ""
-    if isinstance(data, YTArray):
+    if isinstance(data, YTIndexArray):
+        units = np.array([str(u) for u in data.units]).astype('|S')
+    elif isinstance(data, YTArray):
         units = str(data.units)
     dataset.attrs["units"] = units
     return dataset
@@ -232,7 +236,11 @@ def _yt_array_hdf5_attr(fh, attr, val):
 
     if val is None: val = "None"
     if hasattr(val, "units"):
-        fh.attrs["%s_units" % attr] = str(val.units)
+        if isinstance(val, YTIndexArray):
+            units = np.array([str(u) for u in val.units]).astype('|S')
+        else:
+            units = str(val.units)
+        fh.attrs["%s_units" % attr] = units
     # The following is a crappy workaround for getting
     # Unicode strings into HDF5 attributes in Python 3
     if iterable(val):
