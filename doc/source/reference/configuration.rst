@@ -109,6 +109,8 @@ used internally.
   to stdout rather than stderr
 * ``skip_dataset_cache`` (default: ``'False'``): If true, automatic caching of datasets
   is turned off.
+* ``supp_data_dir`` (default: ``'/does/not/exist'``): The default path certain
+  submodules of yt look in for supplemental data files.
 
 .. _plugin-file:
 

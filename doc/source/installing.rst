@@ -95,22 +95,17 @@ throughout your system).
 Running the Install Script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To get the installation script for the ``stable`` branch of the code,
-download it using the following command:
+You can download the installation script with the following command:
 
 .. code-block:: bash
 
-  $ wget http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
+  $ wget http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
 
 If you do not have ``wget``, the following should also work:
 
 .. code-block:: bash
 
-  $ curl -OL http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
-
-If you wish to install a different version of yt (see :ref:`branches-of-yt`),
-replace ``stable`` with the appropriate branch name (e.g. ``yt``, ``yt-2.x``) in
-the path above to get the correct install script.
+  $ curl -OL http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
 the `miniconda python distrubtion <http://conda.pydata.org/miniconda.html>`_,

@@ -22,8 +22,8 @@ from libc.math cimport sqrt
 from cpython cimport PyObject
 from yt.utilities.lib.fp_utils cimport *
 
-from oct_container cimport Oct, OctAllocationContainer, \
-    OctreeContainer, OctInfo
+from oct_container cimport \
+    Oct, OctreeContainer, OctInfo
 from cpython.array cimport array, clone
 from cython.view cimport memoryview as cymemview
 from yt.utilities.lib.misc_utilities import OnceIndirect
@@ -311,7 +311,7 @@ cdef class StdParticleField(ParticleDepositOperation):
         else:
             self.mk[ii[2], ii[1], ii[0], offset] = mk + (fields[0] - mk) / k
             self.qk[ii[2], ii[1], ii[0], offset] = \
-                qk + (k - 1.0) * (fields[0] - mk)**2.0 / k
+                qk + (k - 1.0) * (fields[0] - mk) * (fields[0] - mk) / k
         self.i[ii[2], ii[1], ii[0], offset] += 1
 
     def finalize(self):
@@ -329,11 +329,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] field
     cdef public object ofield
     def initialize(self):
-        if not all(_ > 1 for _ in self.nvals):
+        if not all(_ > 1 for _ in self.nvals[:-1]):
             from yt.utilities.exceptions import YTBoundsDefinitionError
             raise YTBoundsDefinitionError(
-                "CIC requires minimum of 2 zones in all dimensions",
-                self.nvals)
+                "CIC requires minimum of 2 zones in all spatial dimensions",
+                self.nvals[:-1])
         self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 

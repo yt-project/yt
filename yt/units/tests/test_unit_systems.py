@@ -108,7 +108,7 @@ def test_tesla_magnetic_unit():
         ad = ds.all_data()
         dens = ad['density']
         magx = ad['magx']
-        magnetic_field_x = ad['magnetic_field_x']
+        magnetic_field_x = ad['magnetic_field_r']
 
         if us == 'cgs':
             assert str(dens.units) == 'g/cm**3'

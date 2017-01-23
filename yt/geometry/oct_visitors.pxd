@@ -117,8 +117,8 @@ cdef class StoreOctree(OctVisitor):
 cdef class LoadOctree(OctVisitor):
     cdef np.uint8_t[:] ref_mask
     cdef Oct* octs
-    cdef np.int64_t *nocts
-    cdef np.int64_t *nfinest
+    cdef np.uint64_t *nocts
+    cdef np.uint64_t *nfinest
 
 cdef inline int cind(int i, int j, int k):
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.

@@ -390,6 +390,9 @@ class AbsorptionSpectrum(object):
         # and deposit the lines into the spectrum
         for line in parallel_objects(self.line_list, njobs=njobs):
             column_density = field_data[line['field_name']] * field_data['dl']
+            if (column_density < 0).any():
+                mylog.warn("Setting negative densities for field %s to 0! Bad!" % line['field_name'])
+                np.clip(column_density, 0, np.inf, out=column_density)
             if (column_density == 0).all():
                 mylog.info("Not adding line %s: insufficient column density" % line['label'])
                 continue
@@ -492,8 +495,8 @@ class AbsorptionSpectrum(object):
                 window_width_in_bins = 2
 
                 while True:
-                    left_index = (center_index[i] - window_width_in_bins/2)
-                    right_index = (center_index[i] + window_width_in_bins/2)
+                    left_index = (center_index[i] - window_width_in_bins//2)
+                    right_index = (center_index[i] + window_width_in_bins//2)
                     n_vbins = (right_index - left_index) * n_vbins_per_bin[i]
 
                     # the array of virtual bins in lambda space

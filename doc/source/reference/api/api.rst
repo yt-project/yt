@@ -155,11 +155,18 @@ These classes and functions enable yt's symbolic unit handling system.
 
    yt.data_objects.static_output.Dataset.arr
    yt.data_objects.static_output.Dataset.quan
+   ~yt.units.unit_object.define_unit
    ~yt.units.unit_object.Unit
    ~yt.units.unit_registry.UnitRegistry
    ~yt.units.yt_array.YTArray
    ~yt.units.yt_array.YTQuantity
-
+   ~yt.units.yt_array.uconcatenate
+   ~yt.units.yt_array.uintersect1d
+   ~yt.units.yt_array.uunion1d
+   ~yt.units.yt_array.unorm
+   ~yt.units.yt_array.udot
+   ~yt.units.yt_array.uvstack
+   ~yt.units.yt_array.uhstack
 
 Frontends
 ---------

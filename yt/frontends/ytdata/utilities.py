@@ -95,7 +95,9 @@ def save_as_dataset(ds, filename, data, field_types=None,
                    "current_redshift", "current_time",
                    "domain_dimensions", "periodicity",
                    "cosmological_simulation", "omega_lambda",
-                   "omega_matter", "hubble_constant"]
+                   "omega_matter", "hubble_constant",
+                   "length_unit", "mass_unit", "time_unit",
+                   "velocity_unit", "magnetic_unit"]
 
     fh = h5py.File(filename, "w")
     if ds is None: ds = {}
@@ -103,6 +105,14 @@ def save_as_dataset(ds, filename, data, field_types=None,
     if hasattr(ds, "parameters") and isinstance(ds.parameters, dict):
         for attr, val in ds.parameters.items():
             _yt_array_hdf5_attr(fh, attr, val)
+
+    if hasattr(ds, "unit_registry"):
+        _yt_array_hdf5_attr(fh, "unit_registry_json",
+                            ds.unit_registry.to_json())
+
+    if hasattr(ds, "unit_system"):
+        _yt_array_hdf5_attr(fh, "unit_system_name",
+                            ds.unit_system.name)
 
     for attr in base_attrs:
         if isinstance(ds, dict):
@@ -126,19 +136,16 @@ def save_as_dataset(ds, filename, data, field_types=None,
             field_type = field_types[field]
         if field_type not in fh:
             fh.create_group(field_type)
-        # for now, let's avoid writing "code" units
-        if hasattr(data[field], "units"):
-            for atom in data[field].units.expr.atoms():
-                if str(atom).startswith("code"):
-                    data[field].convert_to_base()
-                    break
+
         if isinstance(field, tuple):
             field_name = field[1]
         else:
             field_name = field
-        # thanks, python3
+
+        # for python3
         if data[field].dtype.kind == 'U':
-            data[field] = data[field].astype('|S40')
+            data[field] = data[field].astype('|S')
+
         _yt_array_hdf5(fh[field_type], field_name, data[field])
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
@@ -225,12 +232,11 @@ def _yt_array_hdf5_attr(fh, attr, val):
 
     if val is None: val = "None"
     if hasattr(val, "units"):
-        val = val.in_base()
         fh.attrs["%s_units" % attr] = str(val.units)
     # The following is a crappy workaround for getting
     # Unicode strings into HDF5 attributes in Python 3
     if iterable(val):
         val = np.array(val)
         if val.dtype.kind == 'U':
-            val = val.astype('|S40')
+            val = val.astype('|S')
     fh.attrs[str(attr)] = val

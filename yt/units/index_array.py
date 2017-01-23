@@ -271,6 +271,14 @@ class YTIndexArray(YTArray):
 
         return new_array
 
+    def to(self, units):
+        """
+        An alias for YTIndexArray.in_units().
+
+        See the docstrings of that function for details.
+        """
+        return self.in_units(units)
+
     def in_base(self, unit_system="cgs"):
         """
         Creates a copy of this array with the data in the equivalent base units,

@@ -25,11 +25,12 @@ from libc.stdlib cimport malloc, free
 from vec3_ops cimport dot, cross, subtract
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
+    P1Sampler1D, \
+    P1Sampler2D, \
     P1Sampler3D, \
     Q1Sampler3D, \
-    S2Sampler3D, \
-    P1Sampler2D, \
     Q1Sampler2D, \
+    S2Sampler3D, \
     W1Sampler3D, \
     T2Sampler2D, \
     Tet2Sampler3D
@@ -352,8 +353,8 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     for i in range(8):
         rbounds[0] = fmin(rbounds[0], corners[i])
         rbounds[1] = fmax(rbounds[1], corners[i])
-    rbounds[0] = rbounds[0]**0.5
-    rbounds[1] = rbounds[1]**0.5
+    rbounds[0] = math.sqrt(rbounds[0])
+    rbounds[1] = math.sqrt(rbounds[1])
     # If we include the origin in either direction, we need to have radius of
     # zero as our lower bound.
     if x0 < 0 and x1 > 0:
@@ -479,8 +480,8 @@ def pixelize_aitoff(np.float64_t[:] theta,
                 y = (-1.0 + j * dy)*s2
                 zb = (x*x/8.0 + y*y/2.0 - 1.0)
                 if zb > 0: continue
-                z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
-                z = z**0.5
+                z = (1.0 - (x * 0.25) * (x * 0.25) - (y * 0.5) * (y * 0.5))
+                z = math.sqrt(z)
                 # Longitude
                 theta0 = 2.0*math.atan(z*x/(2.0 * (2.0*z*z-1.0)))
                 # Latitude
@@ -604,6 +605,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = S2Sampler3D()
     elif ndim == 2 and nvertices == 3:
         sampler = P1Sampler2D()
+    elif ndim == 1 and nvertices == 2:
+        sampler = P1Sampler1D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
     elif ndim == 2 and nvertices == 6:
@@ -658,10 +661,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                 pstart[i] = i64max(<np.int64_t> ((LE[i] - pLE[i])*idds[i]) - 1, 0)
                 pend[i] = i64min(<np.int64_t> ((RE[i] - pLE[i])*idds[i]) + 1, img.shape[i]-1)
 
-            # override for the 2D case
-            if ndim == 2:
+            # override for the low-dimensional case
+            if ndim < 3:
                 pstart[2] = 0
                 pend[2] = 0
+            if ndim < 2:
+                pstart[1] = 0
+                pend[1] = 0
 
             if use == 0:
                 continue

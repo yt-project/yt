@@ -21,7 +21,7 @@ cimport cython
 from libc.math cimport sqrt
 
 from yt.utilities.lib.fp_utils cimport *
-from .oct_container cimport Oct, OctAllocationContainer, OctreeContainer
+from .oct_container cimport Oct, OctreeContainer
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
