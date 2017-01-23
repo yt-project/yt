@@ -62,8 +62,8 @@ answer_tests:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
 
-  local_orion_001:
-    - yt/frontends/boxlib/tests/test_orion.py
+  local_boxlib_002:
+    - yt/frontends/boxlib/tests/test_outputs.py
 
   local_ramses_001:
     - yt/frontends/ramses/tests/test_outputs.py
