@@ -95,8 +95,6 @@ class ParticleIndex(Index):
                 self.data_files.append(df)
                 start = end
                 end += CHUNKSIZE
-        #self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
-        #                   for i in range(ndoms)]
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
         # Get index & populate octree
@@ -160,12 +158,6 @@ class ParticleIndex(Index):
             rflag = self.regions.check_bitmasks()
             if rflag == 0:
                 raise IOError()
-                # dont_cache = True
-                # raise IOError()
-            #     self._initialize_owners()
-            # rflag = self.regions.check_bitmasks()
-            # else: # Save pcounts in file?
-            #     self._initialize_owners()
         except IOError:
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
