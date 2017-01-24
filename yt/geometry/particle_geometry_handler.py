@@ -85,8 +85,23 @@ class ParticleIndex(Index):
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
-        self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
-                           for i in range(ndoms)]
+        self.data_files = []
+        CHUNKSIZE = 64**3
+        fi = 0
+        for i in range(ndoms):
+            start = 0
+            end = start + CHUNKSIZE
+            while 1:
+                df = cls(self.dataset, self.io, template % {'num':i}, fi,
+                        (start, end))
+                if max(df.total_particles.values()) == 0:
+                    break
+                fi += 1
+                self.data_files.append(df)
+                start = end
+                end += CHUNKSIZE
+        #self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
+        #                   for i in range(ndoms)]
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
         # Get index & populate octree

@@ -76,12 +76,15 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
             f.close()
 
     def _yield_coordinates(self, data_file):
+        si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename)
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
+        np.clip(pcount - si, 0, ei - si, out=pcount)
+        pcount = pcount.sum()
         for key in f.keys():
             if not key.startswith("PartType"): continue
             if "Coordinates" not in f[key]: continue
-            ds = f[key]["Coordinates"]
+            ds = f[key]["Coordinates"][si:ei,...]
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
@@ -134,7 +137,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
         index_ptype = self.index_ptype
         f = h5py.File(data_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
-        np.clip(pcount, 0, ei - si, out=pcount)
+        np.clip(pcount - si, 0, ei - si, out=pcount)
         if index_ptype == "all":
             keys = f.keys()
             pcount = pcount.sum()
@@ -168,7 +171,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
         if None not in (si, ei):
-            np.clip(pcount, 0, ei - si, out=pcount)
+            np.clip(pcount - si, 0, ei - si, out=pcount)
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
         return npart
 
