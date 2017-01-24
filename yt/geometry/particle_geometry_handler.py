@@ -139,7 +139,12 @@ class ParticleIndex(Index):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
                      self.total_particles, global_rootonly = True)
-        # No more than 256^3 in the region finder.
+        # use a trivial morton index for datasets containing a single data file
+        # in the future we should experiment with intra-file indexing
+        if len(self.data_files) == 1:
+            if order1 is None and order2 is None:
+                order1 = 0
+                order2 = 0
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
                 len(self.data_files), 
