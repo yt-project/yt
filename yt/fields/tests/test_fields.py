@@ -104,7 +104,7 @@ class TestFieldAccess(object):
                     g.clear_data()
                     g.field_parameters.update(sp)
                     r1 = field._function(field, g)
-                    if field.particle_type:
+                    if field.sampling_type == 'particle':
                         assert_equal(v1.shape[0], g.NumberOfParticles)
                     else:
                         assert_array_equal(r1.shape, v1.shape)
@@ -303,7 +303,7 @@ def test_add_field_string_aliasing():
         return data['particle_mass']
         
     ds.add_field('particle_mass_alias', function=pmass_alias, 
-                 units='g', particle_type=True)
+                 units='g', sampling_type='particle')
 
     ds.field_info['particle_mass_alias']
     ds.field_info['all', 'particle_mass_alias']

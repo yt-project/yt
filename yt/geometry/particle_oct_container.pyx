@@ -806,7 +806,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions(self, verbose=True):
+    def find_collisions(self, verbose=False):
         cdef tuple cc, rc
         IF UseCythonBitmasks == 1:
             cc, rc = self.bitmasks._find_collisions(self.collisions,verbose)
@@ -819,7 +819,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_coarse(self, verbose=True, file_list = None):
+    def find_collisions_coarse(self, verbose=False, file_list = None):
         cdef int nc, nm
         IF UseCythonBitmasks == 1:
             nc, nm = self.bitmasks._find_collisions_coarse(self.collisions, verbose, file_list)
@@ -885,7 +885,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def find_collisions_refined(self, verbose=True):
+    def find_collisions_refined(self, verbose=False):
         cdef np.int32_t nc, nm
         IF UseCythonBitmasks == 1:
             nc, nm = self.bitmasks._find_collisions_refined(self.collisions,verbose)
@@ -1012,7 +1012,6 @@ cdef class ParticleBitmap:
             cdef int ifile
             for ifile in range(self.nfiles):
                 self.bitmasks[ifile]._check()
-        return 1
 
     def reset_bitmasks(self):
         IF UseCythonBitmasks == 1:
@@ -2422,7 +2421,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef Oct *root = NULL
         cdef np.int64_t no = indices.shape[0], p, index
         cdef int i, level, new_root
-        cdef int ind[3], last_ind[3]
+        cdef int ind[3]
+        cdef int last_ind[3]
         cdef np.uint64_t ind64[3]
         cdef np.uint64_t *data = <np.uint64_t *> indices.data
         # Note what we're doing here: we have decided the root will always be

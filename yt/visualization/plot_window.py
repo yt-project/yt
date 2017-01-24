@@ -135,7 +135,17 @@ def validate_mesh_fields(data_source, fields):
     canonical_fields = data_source._determine_fields(fields)
     invalid_fields = []
     for field in canonical_fields:
-        if data_source.ds.field_info[field].particle_type is True:
+        finfo = data_source.ds.field_info[field]
+        if finfo.sampling_type == "particle":
+            if not hasattr(data_source.ds, '_sph_ptype'):
+                pass
+            elif finfo.alias_field:
+                alias_name = finfo._function.alias_name
+                if alias_name[0] == data_source.ds._sph_ptype:
+                    continue
+            else:
+                if finfo.name[0] == data_source.ds._sph_ptype:
+                    continue
             invalid_fields.append(field)
 
     if len(invalid_fields) > 0:

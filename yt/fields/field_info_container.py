@@ -17,6 +17,7 @@ native.
 
 import numpy as np
 from numbers import Number as numeric_type
+import warnings
 
 from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
@@ -160,17 +161,22 @@ class FieldInfoContainer(dict):
             if ptype2 != ptype:
                 continue
             if alias_name not in sph_whitelist_fields:
-                continue
-            fn = add_volume_weighted_smoothed_field(
+                if alias_name.startswith('particle_'):
+                    pass
+                else:
+                    continue
+            add_volume_weighted_smoothed_field(
                 ptype, "particle_position", "particle_mass",
                 sml_name, "density", alias_name, self,
                 num_neighbors)
+            uni_alias_name = alias_name
             if 'particle_' in alias_name:
-                alias_name = alias_name.replace('particle_', '')
-            new_aliases.append(((ftype, alias_name), fn[0]))
-        for alias, source in new_aliases:
-            #print "Aliasing %s => %s" % (alias, source)
-            self.alias(alias, source)
+                uni_alias_name = alias_name.replace('particle_', '')
+            new_aliases.append(
+                ((ftype, uni_alias_name), (ptype, alias_name), )
+            )
+            for alias, source in new_aliases:
+                self.alias(alias, source)
 
     def setup_fluid_aliases(self):
         known_other_fields = dict(self.known_other_fields)
@@ -195,7 +201,7 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, sampling_type="cell", units = units,
+            self.add_output_field(field, sampling_type="cell",units = units,
                                   display_name = display_name)
             for alias in aliases:
                 self.alias(("gas", alias), field)
@@ -257,7 +263,18 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        if kwargs.get("particle_type", False):
+        particle_field = False
+        if sampling_type == 'particle':
+            particle_field = True
+
+        if kwargs.get('particle_type', False):
+            warnings.warn(
+                'The particle_type keyword argument of add_field has been '
+                'deprecated. Please set sampling_type="particle" instead.',
+                stacklevel=2)
+            particle_field = True
+
+        if particle_field:
             ftype = 'all'
         else:
             ftype = self.ds.default_fluid_type

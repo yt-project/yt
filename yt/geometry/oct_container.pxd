@@ -111,4 +111,3 @@ cdef extern from "tsearch.h" nogil:
                     int (*compar)(const void *, const void *))
     void *tdelete(const void *key, void **rootp,
                     int (*compar)(const void *, const void *))
-    void tdestroy(void *root, void (*free_node)(void *nodep))

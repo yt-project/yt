@@ -329,11 +329,11 @@ cdef class CICDeposit(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] field
     cdef public object ofield
     def initialize(self):
-        if not all(_ > 1 for _ in self.nvals):
+        if not all(_ > 1 for _ in self.nvals[:-1]):
             from yt.utilities.exceptions import YTBoundsDefinitionError
             raise YTBoundsDefinitionError(
-                "CIC requires minimum of 2 zones in all dimensions",
-                self.nvals)
+                "CIC requires minimum of 2 zones in all spatial dimensions",
+                self.nvals[:-1])
         self.field = append_axes(
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
@@ -408,7 +408,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
     def finalize(self):
         wf = np.asarray(self.wf)
         w = np.asarray(self.w)
-        rv = wf / w
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rv = wf / w
         rv.shape = self.nvals
         return rv
 

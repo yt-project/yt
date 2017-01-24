@@ -68,8 +68,10 @@ cdef class SelectorObject:
     cdef void visit_grid_cells(self, GridVisitorData *data,
                     grid_visitor_function *func, np.uint8_t *cached_mask = ?)
 
-    # compute periodic distance (if periodicity set) assuming 0->domain_width[i] coordinates
-    cdef np.float64_t difference(self, np.float64_t x1, np.float64_t x2, int d) nogil
+    # compute periodic distance (if periodicity set)
+    # assuming 0->domain_width[d] coordinates
+    cdef np.float64_t periodic_difference(
+        self, np.float64_t x1, np.float64_t x2, int d) nogil
 
 cdef class AlwaysSelector(SelectorObject):
     pass

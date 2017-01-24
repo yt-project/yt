@@ -100,7 +100,7 @@ def restore_field_information_state(func):
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
     if weight is None:
-        if field_object.particle_type is True:
+        if field_object.sampling_type == "particle":
             weight_field = (field_object.name[0], 'particle_ones')
         else:
             weight_field = ('index', 'ones')
@@ -316,7 +316,7 @@ class YTDataContainer(object):
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
-            if finfo.particle_type: # This is a property now
+            if finfo.sampling_type == "particle":
                 tr = self._generate_particle_field(field)
             else:
                 tr = self._generate_fluid_field(field)
@@ -588,7 +588,7 @@ class YTDataContainer(object):
             if field in self._container_fields:
                 ftypes[field] = "grid"
                 need_grid_positions = True
-            elif self.ds.field_info[field].particle_type:
+            elif self.ds.field_info[field].sampling_type == "particle":
                 if field[0] not in ptypes:
                     ptypes.append(field[0])
                 ftypes[field] = field[0]
@@ -1126,7 +1126,8 @@ class YTDataContainer(object):
         if obj is None: obj = self
         old_particle_type = obj._current_particle_type
         old_fluid_type = obj._current_fluid_type
-        if finfo.particle_type:
+        fluid_types = self.ds.fluid_types
+        if finfo.sampling_type == "particle" and ftype not in fluid_types:
             obj._current_particle_type = ftype
         else:
             obj._current_fluid_type = ftype
@@ -1154,7 +1155,7 @@ class YTDataContainer(object):
             else:
                 fname = field
                 finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.particle_type:
+                if finfo.sampling_type == "particle":
                     ftype = self._current_particle_type
                 else:
                     ftype = self._current_fluid_type
@@ -1173,9 +1174,13 @@ class YTDataContainer(object):
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
-            if finfo.particle_type and ftype not in self.ds.particle_types:
+            particle_field = finfo.sampling_type == "particle"
+            local_field = finfo.local_sampling
+            if local_field:
+                pass
+            elif particle_field and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
-            elif not finfo.particle_type and ftype not in self.ds.fluid_types:
+            elif not particle_field and ftype not in self.ds.fluid_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
         return explicit_fields
@@ -1219,7 +1224,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if data_source is not None:
             if data_source.ds is not self.ds:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
-                                   "from a different DataSet", ds, data_source.ds)
+                                   "from a different Dataset", ds, data_source.ds)
             if data_source._dimensionality < self._dimensionality:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
                                    "of lower dimensionality (%u vs %u)" %
@@ -1238,7 +1243,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise YTDataSelectorNotImplemented(self._type_name)
 
         if self._data_source is not None:
-            self._selector = compose_selector(self, self._data_source.selector, sclass(self))
+            self._selector = compose_selector(
+                self, self._data_source.selector, sclass(self))
         else:
             self._selector = sclass(self)
         return self._selector
@@ -1339,7 +1345,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for ftype, fname in fields_to_get:
             finfo = self.ds._get_field_info(ftype, fname)
             finfos[ftype, fname] = finfo
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))

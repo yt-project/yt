@@ -18,6 +18,7 @@ cimport cython
 from libcpp.vector cimport vector
 from libcpp.map cimport map
 from libcpp.string cimport string
+from libc.stdint cimport uint64_t
 
 # Streams req for c++ IO
 cdef extern from "<ostream>" namespace "std":
@@ -77,9 +78,8 @@ cdef extern from "ewah.h":
         EWAHBoolArraySetBitForwardIterator begin()
         EWAHBoolArraySetBitForwardIterator end()
 
-ctypedef EWAHBoolArray[np.uint64_t] ewah_bool_array
-#ctypedef EWAHBoolArray[np.uint64_t].EWAHBoolArraySetBitForwardIterator ewah_bool_iterator
-ctypedef EWAHBoolArraySetBitForwardIterator[np.uint64_t] ewah_bool_iterator
+ctypedef EWAHBoolArray[uint64_t] ewah_bool_array
+ctypedef EWAHBoolArraySetBitForwardIterator[uint64_t] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
 ctypedef map[np.uint64_t, ewah_bool_array] ewah_map
 ctypedef stringstream sstream

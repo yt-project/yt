@@ -118,7 +118,7 @@ class FieldTypeContainer(object):
         return list(self.field_types)
 
     def __iter__(self):
-        for ft in self.field_types:
+        for ft in sorted(list(self.field_types)):
             fnc = FieldNameContainer(self.ds, ft)
             if len(dir(fnc)) == 0:
                 yield self.__getattribute__(ft)
@@ -146,14 +146,17 @@ class FieldNameContainer(object):
             return self.__getattribute__(attr)
         return ds.field_info[ft, attr]
 
+    @property
+    def _field_names(self):
+        return set(
+            (t, n) for t, n in self.ds.field_info if t == self.field_type)
+
     def __dir__(self):
-        return [n for t, n in self.ds.field_info
-                if t == self.field_type]
+        return [f[1] for f in sorted(list(self._field_names))]
 
     def __iter__(self):
-        for t, n in self.ds.field_info:
-            if t == self.field_type:
-                yield self.ds.field_info[t, n]
+        for field_name in sorted(self._field_names):
+            yield self.ds.field_info[field_name]
 
     def __contains__(self, obj):
         if isinstance(obj, DerivedField):
@@ -689,10 +692,10 @@ class Dataset(object):
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
             fi = self._last_finfo = self.field_info[fname]
-            if fi.particle_type and self._last_freq[0] \
+            if fi.sampling_type == "particle" and self._last_freq[0] \
                 not in self.particle_types:
                     field = "all", field[1]
-            elif not fi.particle_type and self._last_freq[0] \
+            elif not fi.sampling_type == "particle" and self._last_freq[0] \
                 not in self.fluid_types:
                     field = self.default_fluid_type, field[1]
             self._last_freq = field
@@ -1132,14 +1135,15 @@ class Dataset(object):
                           "force_override=True.", name)
         if kwargs.setdefault('particle_type', False):
             if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError("Clashing definition of 'sampling_type' and "
-                               "'particle_type'. Note that 'particle_type' is "
-                               "deprecated. Please just use 'sampling_type'.")
+                raise RuntimeError(
+                    "Clashing definition of 'sampling_type' and "
+                    "'particle_type'. Note that 'particle_type' is "
+                    "deprecated. Please just use 'sampling_type'.")
             else:
                 sampling_type = "particle"
         if sampling_type is None:
             warnings.warn("Because 'sampling_type' not specified, yt will "
-                          "assume a cell 'sampling_type'")
+                          "assume a cell 'sampling_type'", stacklevel=2)
             sampling_type = "cell"
         self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)

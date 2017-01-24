@@ -721,7 +721,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                 if f == 'number_of_particles':
                     continue
                 mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                pdata_ftype["io",f] = pdata.pop(f)
+                pdata_ftype["io", f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
         # This will update the stream handler too
@@ -935,7 +935,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
-            if fi.particle_type :
+            if fi.sampling_type == "particle":
                 pdata[field] = uconcatenate([grid[field]
                                                for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
@@ -961,7 +961,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = ds._get_field_info(*field)
-                if not fi.particle_type :
+                if not fi.sampling_type == "particle":
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < ds.index.max_level: continue
@@ -977,7 +977,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = ds._get_field_info(*field)
-                    if not fi.particle_type :
+                    if not fi.sampling_type == "particle":
                         gd[field] = grid[field]
                 grid_data.append(gd)
 
@@ -1023,6 +1023,18 @@ class StreamParticlesDataset(StreamDataset):
     filename_template = "stream_file"
     n_ref = 64
     over_refine_factor = 1
+
+    def __init__(self, stream_handler, storage_filename=None,
+                 geometry='cartesian', unit_system='cgs'):
+        super(StreamParticlesDataset, self).__init__(
+            stream_handler, storage_filename=storage_filename,
+            geometry=geometry, unit_system=unit_system)
+        fields = list(stream_handler.fields['stream_file'].keys())
+        if ('io', 'density') in fields and ('io', 'smoothing_length') in fields:
+            # FIXME FIXME FIXME don't merge PR with this
+            # this is hacky and will only work with fields for SPH data with
+            # the 'io' ptype
+            self._sph_ptype = 'io'
 
 def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,

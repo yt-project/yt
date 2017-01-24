@@ -75,8 +75,13 @@ def _rockstar_method(ds, **finder_kwargs):
     
     rh = RockstarHaloFinder(ds, **finder_kwargs)
     rh.run()
+    
+    if 'outbase' in finder_kwargs:
+        outbase = finder_kwargs['outbase']
+    else:
+        outbase = "rockstar_halos"
 
-    halos_ds = RockstarDataset("rockstar_halos/halos_0.0.bin")
+    halos_ds = RockstarDataset(outbase + "/halos_0.0.bin")
     try:
         halos_ds.create_field_info()
     except ValueError:

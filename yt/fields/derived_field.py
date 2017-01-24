@@ -17,7 +17,8 @@ import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
-    ensure_list
+    ensure_list, \
+    VisibleDeprecationWarning
 from .field_exceptions import \
     NeedsGridType, \
     NeedsOriginalGrid, \
@@ -157,7 +158,14 @@ class DerivedField(object):
 
     @property
     def particle_type(self):
+        warnings.warn("particle_type has been deprecated, "
+                      "check for field.sampling_type == 'particle' instead.",
+                      VisibleDeprecationWarning, stacklevel=2)
         return self.sampling_type in ("discrete", "particle")
+
+    @property
+    def local_sampling(self):
+        return self.sampling_type in ('discrete', 'particle', 'local')
 
     def get_units(self):
         if self.ds is not None:
@@ -255,6 +263,16 @@ class DerivedField(object):
         data_label += r"$"
         return data_label
 
+    @property
+    def alias_field(self):
+        if PY2:
+            func_name = self._function.func_name
+        else:
+            func_name = self._function.__name__
+        if func_name == "_TranslationFunc":
+            return True
+        return False
+
     def __repr__(self):
         if PY2:
             func_name = self._function.func_name
@@ -273,7 +291,7 @@ class DerivedField(object):
         s += "(units: %s" % self.units
         if self.display_name is not None:
             s += ", display_name: '%s'" % (self.display_name)
-        if self.particle_type:
+        if self.sampling_type == "particle":
             s += ", particle field"
         s += ")"
         return s

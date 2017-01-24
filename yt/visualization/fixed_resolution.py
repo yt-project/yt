@@ -130,6 +130,7 @@ class FixedResolutionBuffer(object):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
+
         buff = self.ds.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,
             int(self.antialias))
@@ -137,9 +138,8 @@ class FixedResolutionBuffer(object):
         for name, (args, kwargs) in self._filters:
             buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
 
-        # Need to add _period and self.periodic
-        # self._period, int(self.periodic)
-        ia = ImageArray(buff, input_units=self.data_source[item].units,
+        # FIXME DO NOT MERGE PR WITH THIS
+        ia = ImageArray(buff, input_units='g/cm**2',
                         info=self._get_info(item))
         self.data[item] = ia
         return self.data[item]

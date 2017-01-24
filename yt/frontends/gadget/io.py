@@ -19,8 +19,8 @@ import numpy as np
 import os
 
 from yt.extern.six import string_types
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.frontends.sph.io import \
+    IOHandlerSPH
 from yt.utilities.lib.geometry_utils import \
     compute_morton
 from yt.utilities.logger import ytLogger as mylog
@@ -33,7 +33,7 @@ from .definitions import \
     gadget_hdf5_ptypes
 
 
-class IOHandlerGadgetHDF5(BaseIOHandler):
+class IOHandlerGadgetHDF5(IOHandlerSPH):
     _dataset_type = "gadget_hdf5"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = gadget_hdf5_ptypes
@@ -72,7 +72,12 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
                 x = f["/%s/Coordinates" % ptype][si:ei,0].astype("float64")
                 y = f["/%s/Coordinates" % ptype][si:ei,1].astype("float64")
                 z = f["/%s/Coordinates" % ptype][si:ei,2].astype("float64")
-                yield ptype, (x, y, z)
+                if ptype == self.ds._sph_ptype:
+                    hsml = f[
+                        "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
+                else:
+                    hsml = 0.0
+                yield ptype, (x, y, z, hsml)
             f.close()
 
     def _yield_coordinates(self, data_file):
@@ -105,10 +110,15 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
                     continue
                 g = f["/%s" % ptype]
                 coords = g["Coordinates"][si:ei].astype("float64")
+                if ptype == 'PartType0':
+                    hsmls = g["SmoothingLength"][si:ei].astype("float64")
+                else:
+                    hsmls = 0.0
                 mask = selector.select_points(
-                            coords[:,0], coords[:,1], coords[:,2], 0.0)
+                    coords[:,0], coords[:,1], coords[:,2], hsmls)
                 del coords
-                if mask is None: continue
+                if mask is None:
+                    continue
                 for field in field_list:
 
                     if field in ("Mass", "Masses") and \
@@ -231,7 +241,7 @@ class IOHandlerGadgetHDF5(BaseIOHandler):
 
 ZeroMass = object()
 
-class IOHandlerGadgetBinary(BaseIOHandler):
+class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
     _vector_fields = (("Coordinates", 3),
                       ("Velocity", 3),
@@ -289,9 +299,12 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             for ptype in ptf:
                 # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                            tp[ptype], "Coordinates")
-                yield ptype, (pos[:,0], pos[:,1], pos[:,2])
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
+                f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                hsml = self._read_field_from_file(
+                    f, tp[ptype], "SmoothingLength")
+                yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2], hsml)
             f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -305,12 +318,17 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items()):
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(f,
-                            tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(
+                    f, tp[ptype], "Coordinates")
+                f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
+                hsml = self._read_field_from_file(
+                    f, tp[ptype], "SmoothingLength")
                 mask = selector.select_points(
-                    pos[:,0], pos[:,1], pos[:,2], 0.0)
+                    pos[:, 0], pos[:, 1], pos[:, 2], hsml)
                 del pos
-                if mask is None: continue
+                del hsml
+                if mask is None:
+                    continue
                 for field in field_list:
                     if field == "Mass" and ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")

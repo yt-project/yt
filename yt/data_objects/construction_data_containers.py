@@ -62,6 +62,7 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
+from yt.frontends.sph.data_structures import ParticleDataset
 import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
@@ -320,6 +321,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
+        if isinstance(self.ds, ParticleDataset):
+            return
         tree = self._get_tree(len(fields))
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
@@ -426,7 +429,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         if self.method == "mip" or self._sum_only:
             dl = self.ds.quan(1.0, "")
         else:
-            # This gets explicitly converted to cm
             ax_name = self.ds.coordinates.axis_name[self.axis]
             dl = chunk["index", "path_element_%s" % (ax_name)]
             # This is done for cases where our path element does not have a CGS
@@ -649,7 +651,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 fill.append(field)
         for field in fill:
             finfo = self.ds._get_field_info(*field)
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
         fill = [f for f in fill if f not in particles]

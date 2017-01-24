@@ -17,7 +17,7 @@ from yt.testing import fake_random_ds
 TEST_PLUGIN_FILE = '''def _myfunc(field, data):
     return np.random.random(data['density'].shape)
 add_field('random', dimensions='dimensionless',
-          function=_myfunc, units='auto')'''
+          function=_myfunc, units='auto', sampling_type='cell')'''
 
 
 def setUpModule():
