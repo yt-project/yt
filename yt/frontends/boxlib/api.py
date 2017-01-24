@@ -20,12 +20,18 @@ from .data_structures import \
       OrionHierarchy, \
       OrionDataset, \
       CastroDataset, \
-      MaestroDataset
+      MaestroDataset, \
+      NyxDataset, \
+      NyxHierarchy, \
+      WarpXDataset, \
+      WarpXHierarchy
 
 from .fields import \
       BoxlibFieldInfo, \
       MaestroFieldInfo, \
-      CastroFieldInfo
+      CastroFieldInfo, \
+      NyxFieldInfo, \
+      WarpXFieldInfo
 
 from .io import \
       IOHandlerBoxlib

@@ -68,8 +68,21 @@ answer_tests:
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
     - yt/visualization/tests/test_mesh_slices.py:test_multi_region
 
-  local_orion_001:
-    - yt/frontends/boxlib/tests/test_orion.py
+  local_boxlib_002:
+    - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
+    - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
+    - yt/frontends/boxlib/tests/test_outputs.py:test_star
+    - yt/frontends/boxlib/tests/test_outputs.py:test_OrionDataset
+    - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
+
+  local_boxlib_particles_001:
+    - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
+    - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
+    - yt/frontends/boxlib/tests/test_outputs.py:test_langmuir
+    - yt/frontends/boxlib/tests/test_outputs.py:test_plasma
+    - yt/frontends/boxlib/tests/test_outputs.py:test_warpx_particle_io
+    - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
+    - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
   local_ramses_001:
     - yt/frontends/ramses/tests/test_outputs.py
