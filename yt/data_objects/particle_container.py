@@ -14,17 +14,18 @@ This is a particle container that provides no indexing information.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
+import contextlib
 
 from yt.data_objects.data_containers import \
     YTFieldData, \
-    YTDataContainer, \
     YTSelectionContainer
-from yt.funcs import *
+from yt.funcs import \
+    ensure_list
 from yt.utilities.exceptions import \
-    YTNonIndexedDataContainer
+    YTNonIndexedDataContainer, \
+    YTDataSelectorNotImplemented
 from yt.data_objects.octree_subset import \
-     ParticleOctreeSubset, _use_global_octree
+    ParticleOctreeSubset
 
 # def _octree_indexed(self, *args, 
 
@@ -69,10 +70,7 @@ class ParticleContainer(YTSelectionContainer):
             self._temp_spatial = True
             self._octree = base_region
         # To ensure there are not domains if global octree not used
-        if _use_global_octree:
-            self.domain_id = domain_id
-        else:
-            self.domain_id = -1
+        self.domain_id = -1
             
     def __getattr__(self, *args, **kwargs):
         if self._temp_spatial:

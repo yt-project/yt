@@ -359,7 +359,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file):
         count = sum(data_file.total_particles.values())
-        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
@@ -384,7 +383,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                                                 field)
             yield pp
         else:
-            plist = []
             with open(data_file.filename, "rb") as f:
                 for ptype in ptypes:
                     f.seek(poff[ptype, field], os.SEEK_SET)

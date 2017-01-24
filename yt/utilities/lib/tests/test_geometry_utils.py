@@ -3,7 +3,9 @@ import numpy as np
 from yt.testing import \
     fake_random_ds, \
     assert_array_less, \
-    assert_array_equal, assert_equal
+    assert_array_equal, \
+    assert_equal, \
+    assert_raises
 from yt.utilities.lib.misc_utilities import obtain_rvec, obtain_rv_vec
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
@@ -64,8 +66,6 @@ def test_lsb():
 def test_bitwise_addition():
     from yt.utilities.lib.geometry_utils import bitwise_addition
     # TODO: Handle negative & periodic boundaries
-    begin = 1
-    end = 5
     lz = [(0,1),
 #          (0,-1),
           (1,1),
@@ -215,26 +215,14 @@ def test_get_morton_neighbors_refined():
         assert_equal(np.sort(n2),np.sort(ans2))
 
 def test_morton_neighbor():
-    from yt.utilities.lib.geometry_utils import morton_neighbor, get_morton_indices, get_morton_index
+    from yt.utilities.lib.geometry_utils import \
+        morton_neighbor, \
+        get_morton_indices
     order = 20
     imax = np.uint64(1 << order)
     p = np.array([[imax/2,imax/2,imax/2],
                   [imax/2,imax/2,0     ],
                   [imax/2,imax/2,imax  ]],dtype=np.uint64)
-    add = np.array([[+1, 0, 0],
-                    [+1,+1, 0],[+1,+1,+1],[+1,+1,-1],
-                    [+1,-1, 0],[+1,-1,+1],[+1,-1,-1],
-                    [+1, 0,+1],[+1, 0,-1],
-                    [-1, 0, 0],
-                    [-1,+1, 0],[-1,+1,+1],[-1,+1,-1],
-                    [-1,-1, 0],[-1,-1,+1],[-1,-1,-1],
-                    [-1, 0,+1],[-1, 0,-1],
-                    [ 0,+1, 0],
-                    [ 0,+1,+1],[ 0,+1,-1],
-                    [ 0,-1, 0],
-                    [ 0,-1,+1],[ 0,-1,-1],
-                    [ 0, 0,+1],
-                    [ 0, 0,-1]])
     p_ans = np.array([[imax/2,imax/2,imax/2+1],
                       [imax/2,imax/2,imax/2-1],
                       [imax/2,imax/2,imax-1  ],
@@ -397,12 +385,12 @@ def time_get_morton_neighbors():
     x = np.arange(N,dtype=np.uint64)+np.uint64(imax-N/2)
     # Non-periodic
     t1 = time.time()
-    mi = get_morton_neighbors(x,order=order,periodic=False)
+    get_morton_neighbors(x,order=order,periodic=False)
     t2 = time.time()
     tnon = t2-t1
     # Periodic
     t1 = time.time()
-    mi = get_morton_neighbors(x,order=order,periodic=True)
+    get_morton_neighbors(x,order=order,periodic=True)
     t2 = time.time()
     tper = t2-t1
     print("get_morton_neighbors: {:f} non-perodic, {:f} periodic".format(tnon,tper))
@@ -417,14 +405,14 @@ def time_bitwise_addition():
         p = get_morton_points(np.array([x],dtype=np.uint64))
         p[0]+=1
         p[0]+=2
-        x1 = get_morton_indices(p)
+        get_morton_indices(p)
     t2 = time.time()
     print("Explicit bit spreading/compacting: {:f}".format(t2-t1))
     # Bitwise addition
     t1 = time.time()
     for x in xarr:
-        x2 = bitwise_addition(x,np.int64(1),stride=3,start=2)
-        x2 = bitwise_addition(x,np.int64(2),stride=3,start=2)
+        bitwise_addition(x,np.int64(1),stride=3,start=2)
+        bitwise_addition(x,np.int64(2),stride=3,start=2)
     t2 = time.time()
     print("Using bitwise addition: {:f}".format(t2-t1))
 
@@ -548,22 +536,6 @@ def test_knn_morton():
     assert_array_equal(knn_mor,knn_dir,
                        err_msg="grid of {} points & k = {}".format(Np,k))
 
-
-def test_csearch_morton():
-    from yt.utilities.lib.geometry_utils import morton_qsort,csearch_morton,ORDER_MAX
-    k = 5
-    i = 0
-    xN = 3
-    N = xN**3
-    xf = np.arange(xN,dtype=np.float64)+1
-    DLE = np.zeros(3,dtype=np.float64)
-    DRE = (xN+1)*np.ones(3,dtype=np.float64)
-    X,Y,Z = np.meshgrid(xf,xf,xf)
-    pos = np.vstack((X.flatten(),Y.flatten(),Z.flatten())).T
-    sort_fwd = np.arange(N, dtype=np.uint64)
-    morton_qsort(pos,0,N-1,sort_fwd)
-    out = csearch_morton(pos[sort_fwd,:], k, i, Ai, l, h, order, DLE, DRE, ORDER_MAX)
-    # assert_array_equal(out,ans)
 
 def test_obtain_rvec():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, 

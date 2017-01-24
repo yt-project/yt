@@ -18,7 +18,6 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.exceptions import YTDomainOverflow
 
 class IOHandlerStream(BaseIOHandler):

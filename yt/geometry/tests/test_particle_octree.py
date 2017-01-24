@@ -245,39 +245,6 @@ def fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE,
         pos[:,i] = np.random.uniform(DLE[i], DRE[i], inp)
     return pos
 
-def filter_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
-                                   fname_base=None):
-    import pickle
-    np.random.seed(int(0x4d3d3d3))
-    DW = DRE - DLE
-    if fname_base is None:
-        fname_base = 'hilbert{}_gaussian_np{}_nf{}_'.format(order,npart,nfiles)
-    def load_pos(file_id):
-        filename = fname_base+'file{}'.format(file_id)
-        if os.path.isfile(filename):
-            fd = open(filename,'rb')
-            positions = pickle.load(fd)
-            fd.close()
-        else:
-            positions = np.empty((0,3), dtype='float64')
-        return positions
-    def save_pos(file_id,positions):
-        filename = fname_base+'file{}'.format(file_id)
-        fd = open(filename,'wb')
-        pickle.dump(positions,fd)
-        fd.close()
-    # Random
-    for ifile in range(nfiles):
-        print 'Fixing file {}'.format(ifile)
-        # print 'Random, file {}'.format(ifile)
-        ipos = load_pos(ifile)
-        for k in range(3):
-            ipos[:,k] += 0.999999*DW[k]
-            idx = (ipos[:,k]>=DRE[k])
-            ipos[idx,k] -= (1.0e-9)*DW[k]
-        save_pos(ifile,ipos)
-
-
 def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
                                     buff=0.0, order=6, verbose=False,
                                     fname_base=None, nchunk=10,
@@ -314,7 +281,6 @@ def makeall_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
         raise ValueError('Fewer hilbert cells than files.')
     nHPF = nH/nfiles
     rHPF = nH%nfiles
-    hdiv = DW/dim_hilbert
     for ichunk in range(nchunk):
         print "Chunk {}...".format(ichunk)
         inp = npart_gau/nchunk
@@ -469,7 +435,6 @@ def fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, verbose=False):
     np.random.seed(int(0x4d3d3d3)+ifile)
     DW = DRE - DLE
     nYZ = int(np.sqrt(npart/nfiles))
-    nR = npart - nYZ*nYZ*nfiles
     div = DW/nYZ
     Y, Z = np.mgrid[DLE[1] + 0.1*div[1] : DRE[1] - 0.1*div[1] : nYZ * 1j,
                     DLE[2] + 0.1*div[2] : DRE[2] - 0.1*div[2] : nYZ * 1j]
@@ -491,9 +456,6 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         fd = open(fname,'rb')
         pos = pickle.load(fd)
         fd.close()
-        # filter_decomp_hilbert_gaussian(npart, nfiles, DLE, DRE,
-        #                                fname_base=fname.split('file')[0])
-        # raise Exception('Stop')
         return pos
     if decomp.startswith('zoom_'):
         zoom_factor = 5
@@ -521,7 +483,6 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
             pos = np.concatenate((pos,ipos),axis=0)
     # A perfect grid, no overlap between files
     elif decomp == 'grid':
-        buff = kws.pop('buff',None)
         pos = fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, **kws)
     # Completely random data set
     elif decomp == 'random':
@@ -576,7 +537,6 @@ def FakeBitmap(npart, nfiles, order1, order2, decomp='grid',
                buff=0.5, DLE=None, DRE=None, distrib='uniform',
                fname=None, verbose=False, really_verbose=False):
     from yt.funcs import get_pbar
-    N = (1<<order1)
     if DLE is None: DLE = np.array([0.0, 0.0, 0.0])
     if DRE is None: DRE = np.array([1.0, 1.0, 1.0])
     reg = ParticleBitmap(DLE, DRE, nfiles,
@@ -827,12 +787,11 @@ def time_selection(npart_dim, nfiles, fake_regions,
 
 def time_selection_decomp(**kws):
     vlist = ['hilbert','morton','sliced','random','zoom_hilbert']
-    out = vary_selection_stats('decomp', vlist, verbose=True, **kws)
+    vary_selection_stats('decomp', vlist, verbose=True, **kws)
 
 def time_selection_selector(**kws):
     vlist = np.logspace(-1,0,num=20,endpoint=True)
-    # vlist = [0.01,0.02,0.05,0.1,0.2,0.3,0.4,0.5,0.75,1.0]
-    out = vary_selection_stats('selector', vlist, verbose=True, **kws)
+    vary_selection_stats('selector', vlist, verbose=True, **kws)
 
 def plot_vary_selector(plot_mem=False,**kws):
     import matplotlib as mpl
@@ -986,7 +945,7 @@ def plot_vary_order1(plot_mem=False,**kws):
             fit_mem = optimization.curve_fit(func_pow, vlist, mem, [0.004,4.0])
             print fit_mem
             ax3.plot(vlist,func_pow(vlist,*fit_mem[0]),'c--')
-            fmem = func_pow(vlist,*fit_mem[0])
+            func_pow(vlist,*fit_mem[0])
             print 'fitting time'
             fit_time = optimization.curve_fit(func_time, vlist, t, [1.0,1.0])#,1.0])
             print fit_time
@@ -1130,9 +1089,6 @@ def plot_vary_decomp(plot_collisions=False,plot_mem=False,**kws):
     fname = 'vary_decomp_to{}.png'.format(order2)
     # Set up plot
     plt.close('all')
-    cmap = plt.get_cmap('jet') 
-    cnorm = mpl.colors.Normalize(vmin=0, vmax=len(list_decomp)-1)
-    smap = mpl.cm.ScalarMappable(norm=cnorm, cmap=cmap)
     clrs = ['m','c','r','b']
     stys = [':','-.','--','-']
     if plot_mem:
@@ -1310,7 +1266,7 @@ def test_save_load_bitmap():
         reg0._coarse_index_data_file(pos, i)
         pos[:,0] += (DW[0]/nfiles)
     pos[:,0] = (DW[0]/nfiles)/2
-    cc = reg0.find_collisions_coarse(verbose=verbose)
+    reg0.find_collisions_coarse(verbose=verbose)
     # Refined index
     max_npart = pos.shape[0]
     sub_mi1 = np.zeros(max_npart, "uint64")
@@ -1320,7 +1276,7 @@ def test_save_load_bitmap():
                                       sub_mi1, sub_mi2, i)
         pos[:,0] += (DW[0]/nfiles)
     pos[:,0] = (DW[0]/nfiles)/2
-    rc = reg0.find_collisions_refined(verbose=verbose)
+    reg0.find_collisions_refined(verbose=verbose)
     # Owners
     reg0.set_owners()
     # Save

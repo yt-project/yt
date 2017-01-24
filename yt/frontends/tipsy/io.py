@@ -22,8 +22,6 @@ import os
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.utilities.lib.geometry_utils import \
-    compute_morton
 from yt.utilities.logger import ytLogger as \
     mylog
 
@@ -240,7 +238,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                              DW.units.dimensions)
 
     def _yield_coordinates(self, data_file):
-        ds = data_file.pf
+        ds = data_file.ds
+        ind = 0
         with open(data_file.filename, "rb") as f:
             f.seek(ds._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
