@@ -1371,12 +1371,21 @@ def _reconstruct_ds(*args, **kwargs):
     return ds
 
 class ParticleFile(object):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range = None):
         self.ds = ds
         self.io = weakref.proxy(io)
         self.filename = filename
         self.file_id = file_id
+        if range is None:
+            range = (None, None)
+        self.start, self.end = range
         self.total_particles = self.io._count_particles(self)
+        # Now we adjust our start/end, in case there are fewer particles than
+        # we realized
+        if self.start is None:
+            self.start = 0
+        self.end = max(self.total_particles.values()) + self.start
+        print(self.start, self.end, self.total_particles)
 
     def select(self, selector):
         pass
