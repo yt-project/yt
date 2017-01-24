@@ -1389,7 +1389,6 @@ class ParticleFile(object):
         if self.start is None:
             self.start = 0
         self.end = max(self.total_particles.values()) + self.start
-        print(self.start, self.end, self.total_particles)
 
     def select(self, selector):
         pass
