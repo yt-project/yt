@@ -177,6 +177,11 @@ class StreamParticleIOHandler(BaseIOHandler):
     def _count_particles(self, data_file):
         pcount = {}
         for ptype in self.ds.particle_types_raw:
+            pcount[ptype] = 0
+        # stream datasets only have one "file"
+        if data_file.file_id > 0:
+            return pcount
+        for ptype in self.ds.particle_types_raw:
             d = self.fields[data_file.filename]
             try:
                 pcount[ptype] = d[ptype, "particle_position_x"].size
