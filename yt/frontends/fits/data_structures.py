@@ -489,12 +489,15 @@ class FITSDataset(Dataset):
             self.domain_dimensions = np.append(self.domain_dimensions,
                                                [int(1)])
 
-        self.domain_left_edge = np.array([0.5]*3)
-        self.domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
+        domain_left_edge = np.array([0.5]*3)
+        domain_right_edge = np.array([float(dim)+0.5 for dim in self.domain_dimensions])
 
         if self.dimensionality == 2:
-            self.domain_left_edge[-1] = 0.5
-            self.domain_right_edge[-1] = 1.5
+            domain_left_edge[-1] = 0.5
+            domain_right_edge[-1] = 1.5
+
+        self.domain_left_edge = domain_left_edge
+        self.domain_right_edge = domain_right_edge
 
         # Get the simulation time
         try:
@@ -611,8 +614,10 @@ class FITSDataset(Dataset):
                 self.spectral_factor /= self.domain_dimensions[self.spec_axis]
                 mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
             Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
-            self.domain_right_edge[self.spec_axis] = self.domain_left_edge[self.spec_axis] + \
-                                                     self.spectral_factor*Dz
+            dre = self.domain_right_edge
+            dre[self.spec_axis] = (self.domain_left_edge[self.spec_axis] +
+                                   self.spectral_factor*Dz)
+            self.domain_right_edge = dre
             self._dz /= self.spectral_factor
             self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
 

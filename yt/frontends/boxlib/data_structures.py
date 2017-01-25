@@ -666,7 +666,9 @@ class BoxlibDataset(Dataset):
         self.domain_right_edge = \
             np.concatenate([self.domain_right_edge, [1.0]])
         if self.geometry == "cylindrical":
-            self.domain_right_edge[2] = 2.0 * np.pi
+            dre = self.domain_right_edge
+            dre[2] = 2.0 * np.pi
+            self.domain_right_edge = dre
         tmp = self.domain_dimensions.tolist()
         tmp.append(1)
         self.domain_dimensions = np.array(tmp)
