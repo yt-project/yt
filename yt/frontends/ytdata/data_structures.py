@@ -668,18 +668,19 @@ class YTProfileDataset(YTNonspatialDataset):
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
 
-        self.domain_dimensions = np.ones(3, dtype="int")
-        self.domain_dimensions[:self.dimensionality] = \
+        domain_dimensions = np.ones(3, dtype="int")
+        domain_dimensions[:self.dimensionality] = \
           self.profile_dimensions
-        self.domain_left_edge = np.zeros(3)
-        self.domain_right_edge = np.ones(3)
+        self.domain_dimensions = domain_dimensions
+        domain_left_edge = np.zeros(3)
+        domain_right_edge = np.ones(3)
         for i, ax in enumerate("xyz"[:self.dimensionality]):
             range_name = "%s_range" % ax
             my_range = self.parameters[range_name]
             if getattr(self, "%s_log" % ax, False):
                 my_range = np.log10(my_range)
-            self.domain_left_edge[i] = my_range[0]
-            self.domain_right_edge[i] = my_range[1]
+            domain_left_edge[i] = my_range[0]
+            domain_right_edge[i] = my_range[1]
             setattr(self, range_name,
                     self.arr(self.parameters[range_name],
                              self.parameters[range_name+"_units"]))
@@ -692,6 +693,8 @@ class YTProfileDataset(YTNonspatialDataset):
                 self.parameters[bin_field] = \
                   tuple(self.parameters[bin_field].astype(str))
             setattr(self, bin_field, self.parameters[bin_field])
+        self.domain_left_edge = domain_left_edge
+        self.domain_right_edge = domain_right_edge
 
     def _setup_gas_alias(self):
         "Alias the grid type to gas with a field alias."
