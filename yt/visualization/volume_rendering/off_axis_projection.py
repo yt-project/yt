@@ -143,7 +143,6 @@ def off_axis_projection(data_source, center, normal_vector,
         # its dependencies..
         deps, _ = data_source.ds.field_info.check_derived_fields([weightfield])
         data_source.ds.field_dependencies.update(deps)
-        fields = [weightfield, weight]
         vol.set_field(weightfield)
         vol.set_weight_field(weight)
     ptf = ProjectionTransferFunction()
