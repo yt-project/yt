@@ -348,6 +348,35 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+   
+    _checksum = None
+    @property
+    def checksum(self):
+        try:
+            import hashlib
+        except ImportError:
+            return 'nohashlib'
+
+        def generate_file_md5(m, filename, blocksize=2**20):
+            with open(filename , "rb") as f:
+                while True:
+                    buf = f.read(blocksize)
+                    if not buf:
+                        break
+                    m.update(buf)
+
+        if self._checksum is None:
+            m = hashlib.md5()
+            if os.path.isdir(self.parameter_filename):
+                for root, _, files in os.walk(self.parameter_filename):
+                    for fname in files:
+                        fname = os.path.join(root, fname)
+                        generate_file_md5(m, fname)
+            else:
+                generate_file_md5(m, self.parameter_filename)
+            
+            self._checksum = m.hexdigest()
+        return self._checksum
 
     domain_left_edge = MutableAttribute()
     domain_right_edge = MutableAttribute()
