@@ -110,8 +110,17 @@ class FITSImageData(object):
 
             self.shape = self.hdulist[0].shape
             self.dimensionality = len(self.shape)
-            self.wcs = _astropy.pywcs.WCS(header=self.hdulist[0].header,
-                                          naxis=self.dimensionality)
+            wcs_names = [key for key in self.hdulist[0].header 
+                         if "WCSNAME" in key]
+            for name in wcs_names:
+                if name == "WCSNAME":
+                    key = ' '
+                else:
+                    key = name[-1]
+                w = _astropy.pywcs.WCS(header=self.hdulist[0].header,
+                                       key=key, naxis=self.dimensionality)
+                setattr(self, "wcs"+key.strip().lower(), w)
+
             return
 
         self.hdulist = _astropy.pyfits.HDUList()
