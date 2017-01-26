@@ -352,20 +352,21 @@ class Dataset(object):
     _checksum = None
     @property
     def checksum(self):
-        try:
-            import hashlib
-        except ImportError:
-            return 'nohashlib'
-
-        def generate_file_md5(m, filename, blocksize=2**20):
-            with open(filename , "rb") as f:
-                while True:
-                    buf = f.read(blocksize)
-                    if not buf:
-                        break
-                    m.update(buf)
-
         if self._checksum is None:
+            try:
+                import hashlib
+            except ImportError:
+                self._checksum = 'nohashlib'
+                return self._checksum
+
+            def generate_file_md5(m, filename, blocksize=2**20):
+                with open(filename , "rb") as f:
+                    while True:
+                        buf = f.read(blocksize)
+                        if not buf:
+                            break
+                        m.update(buf)
+
             m = hashlib.md5()
             if os.path.isdir(self.parameter_filename):
                 for root, _, files in os.walk(self.parameter_filename):
