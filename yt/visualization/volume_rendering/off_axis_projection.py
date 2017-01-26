@@ -198,7 +198,8 @@ def off_axis_projection(data_source, center, normal_vector,
     image = vol.finalize_image(camera, vol.sampler.aimage)
     image = ImageArray(image, funits, registry=data_source.ds.unit_registry, info=image.info)
 
-    data_source.ds.field_info.pop(("index", "temp_weightfield"))
+    if weight is not None:
+        data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
     if method == "integrate":
         if weight is None:
