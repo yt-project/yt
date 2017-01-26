@@ -816,7 +816,8 @@ def fill_region(input_fields, output_fields,
                 np.ndarray[np.int64_t, ndim=1] refine_by
                 ):
     cdef int i, n
-    cdef np.int64_t tot = 0, oi, oj, ok, rf[3]
+    cdef np.int64_t tot = 0, oi, oj, ok
+    cdef np.int64_t rf[3]
     cdef np.int64_t iind[3]
     cdef np.int64_t oind[3]
     cdef np.int64_t dim[3]
