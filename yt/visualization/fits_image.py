@@ -26,10 +26,16 @@ class UnitfulHDU(object):
     def __init__(self, hdu):
         self.hdu = hdu
         self.header = self.hdu.header
+        self.name = self.header["BTYPE"]
+        self.units = self.header["BUNIT"]
+        self.shape = self.hdu.shape
 
     @property
     def data(self):
-        return YTArray(self.hdu.data, self.header["BUNIT"])
+        return YTArray(self.hdu.data, self.units)
+
+    def __repr__(self):
+        return "FITSImage: %s (%d x %d, %s)" % (self.name, *self.shape, self.units)
 
 class FITSImageData(object):
 
@@ -244,8 +250,17 @@ class FITSImageData(object):
     def __getitem__(self, item):
         return UnitfulHDU(self.hdulist[item])
 
+    def __repr__(self):
+        return str([self[k] for k in self.keys()])
+
     def info(self):
-        return self.hdulist.info()
+        hinfo = self.hdulist.info(output=False)
+        format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
+        results = []
+        for line in hinfo:
+            units = self.field_units[self.hdulist[line[0]].header['btype']]
+            results.append(format.format(*line[:-1], units)) 
+        print('\n'.join(results)+'\n')
 
     @parallel_root_only
     def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
