@@ -22,6 +22,15 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 import re
 
+class UnitfulHDU(object):
+    def __init__(self, hdu):
+        self.hdu = hdu
+        self.header = self.hdu.header
+
+    @property
+    def data(self):
+        return YTArray(self.hdu.data, self.header["BUNIT"])
+
 class FITSImageData(object):
 
     def __init__(self, data, fields=None, units=None, width=None, wcs=None):
@@ -76,6 +85,9 @@ class FITSImageData(object):
         >>> f_deg.writeto("temp.fits")
         """
 
+        self.fields = []
+        self.field_units = {}
+
         if units is None:
             units = "cm"
         if width is None:
@@ -83,6 +95,18 @@ class FITSImageData(object):
 
         exclude_fields = ['x','y','z','px','py','pz',
                           'pdx','pdy','pdz','weight_field']
+
+        if isinstance(data, _astropy.pyfits.HDUList):
+            self.hdulist = data
+            for hdu in data:
+                self.fields.append(hdu.header["btype"])
+                self.field_units[hdu.header["btype"]] = hdu.header['bunit']
+
+            self.shape = self.hdulist[0].shape
+            self.dimensionality = len(self.shape)
+            self.wcs = _astropy.pywcs.WCS(header=self.hdulist[0].header,
+                                          naxis=self.dimensionality)
+            return
 
         self.hdulist = _astropy.pyfits.HDUList()
 
@@ -102,7 +126,6 @@ class FITSImageData(object):
                 fn = fields[0]
             img_data = {fn: data}
 
-        self.fields = []
         for fd in fields:
             if isinstance(fd, tuple):
                 self.fields.append(fd[1])
@@ -110,7 +133,6 @@ class FITSImageData(object):
                 self.fields.append(fd)
 
         first = True
-        self.field_units = {}
         for key in fields:
             if key not in exclude_fields:
                 if hasattr(img_data[key], "units"):
@@ -138,22 +160,22 @@ class FITSImageData(object):
                 # FRBs are a special case where we have coordinate
                 # information, so we take advantage of this and
                 # construct the WCS object
-                dx = (img_data.bounds[1]-img_data.bounds[0]).in_units(units).v/self.shape[0]
-                dy = (img_data.bounds[3]-img_data.bounds[2]).in_units(units).v/self.shape[1]
-                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).in_units(units).v
-                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).in_units(units).v
+                dx = (img_data.bounds[1]-img_data.bounds[0]).to(units).v/self.shape[0]
+                dy = (img_data.bounds[3]-img_data.bounds[2]).to(units).v/self.shape[1]
+                xctr = 0.5*(img_data.bounds[1]+img_data.bounds[0]).to(units).v
+                yctr = 0.5*(img_data.bounds[3]+img_data.bounds[2]).to(units).v
                 center = [xctr, yctr]
                 cdelt = [dx,dy]
             elif isinstance(img_data, YTCoveringGrid):
-                cdelt = img_data.dds.in_units(units).v
-                center = 0.5*(img_data.left_edge+img_data.right_edge).in_units(units).v
+                cdelt = img_data.dds.to(units).v
+                center = 0.5*(img_data.left_edge+img_data.right_edge).to(units).v
             else:
                 # If img_data is just an array, we assume the center is the origin
                 # and use the image width to determine the cell widths
                 if not iterable(width):
                     width = [width]*self.dimensionality
                 if isinstance(width[0], YTQuantity):
-                    cdelt = [wh.in_units(units).v/n for wh, n in zip(width, self.shape)]
+                    cdelt = [wh.to(units).v/n for wh, n in zip(width, self.shape)]
                 else:
                     cdelt = [float(wh)/n for wh, n in zip(width, self.shape)]
                 center = [0.0]*self.dimensionality
@@ -214,13 +236,13 @@ class FITSImageData(object):
         return key in self.fields
 
     def values(self):
-        return [self.hdulist[k] for k in self.fields]
+        return [self[k] for k in self.fields]
 
     def items(self):
-        return [(k, self.hdulist[k]) for k in self.fields]
+        return [(k, self[k]) for k in self.fields]
 
     def __getitem__(self, item):
-        return self.hdulist[item]
+        return UnitfulHDU(self.hdulist[item])
 
     def info(self):
         return self.hdulist.info()
@@ -287,7 +309,7 @@ class FITSImageData(object):
         Return the data array of the image corresponding to *field*
         with units attached.
         """
-        return YTArray(self.hdulist[field].data, self.field_units[field])
+        return self[field].data
 
     def set_unit(self, field, units):
         """
@@ -296,7 +318,8 @@ class FITSImageData(object):
         if field not in self.keys():
             raise KeyError("%s not an image!" % field)
         idx = self.fields.index(field)
-        new_data = YTArray(self.hdulist[idx].data, self.field_units[field]).in_units(units)
+        new_data = YTArray(self.hdulist[idx].data, 
+                           self.field_units[field]).to(units)
         self.hdulist[idx].data = new_data.v
         self.hdulist[idx].header["bunit"] = units
         self.field_units[field] = units
@@ -311,10 +334,13 @@ class FITSImageData(object):
             raise KeyError("%s not an image!" % key)
         idx = self.fields.index(key)
         im = self.hdulist.pop(idx)
-        data = YTArray(im.data, self.field_units[key])
         self.field_units.pop(key)
         self.fields.remove(key)
-        return FITSImageData(data, fields=key, wcs=self.wcs)
+        data = _astropy.pyfits.HDUList([im])
+        return FITSImageData(data)
+
+    def close(self):
+        self.hdulist.close()
 
     @classmethod
     def from_file(cls, filename):
@@ -327,12 +353,8 @@ class FITSImageData(object):
         filename : string
             The name of the file to open.
         """
-        f = _astropy.pyfits.open(filename)
-        data = {}
-        for hdu in f:
-            data[hdu.header["btype"]] = YTArray(hdu.data, hdu.header["bunit"])
-        f.close()
-        return cls(data, wcs=_astropy.pywcs.WCS(header=hdu.header))
+        f = _astropy.pyfits.open(filename, lazy_load_hdus=False)
+        return cls(f)
 
     @classmethod
     def from_images(cls, image_list):
@@ -347,14 +369,14 @@ class FITSImageData(object):
         """
         w = image_list[0].wcs
         img_shape = image_list[0].shape
-        data = {}
-        for image in image_list:
-            assert_same_wcs(w, image.wcs)
-            if img_shape != image.shape:
+        data = []
+        for fid in image_list:
+            assert_same_wcs(w, fid.wcs)
+            if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
-            for key in image.keys():
-                data[key] = image.get_data(key)
-        return cls(data, wcs=w)
+            data += fid.hdulist
+        data = _astropy.pyfits.HDUList(data)
+        return cls(data)
 
     def create_sky_wcs(self, sky_center, sky_scale,
                        ctype=["RA---TAN","DEC--TAN"],
