@@ -352,6 +352,15 @@ class Dataset(object):
     _checksum = None
     @property
     def checksum(self):
+        '''
+        Computes md5 sum of a dataset.
+
+        Note: Currently this property is unable to determine a complete set of
+        files that are a part of a given dataset. As a first approximation, the
+        checksum of :py:attr:`~parameter_file` is calculated. In case
+        :py:attr:`~parameter_file` is a directory, checksum of all files inside
+        the directory is calculated.
+        '''
         if self._checksum is None:
             try:
                 import hashlib
@@ -373,10 +382,14 @@ class Dataset(object):
                     for fname in files:
                         fname = os.path.join(root, fname)
                         generate_file_md5(m, fname)
-            else:
+            elif os.path.isfile(self.parameter_filename):
                 generate_file_md5(m, self.parameter_filename)
-            
-            self._checksum = m.hexdigest()
+            else:
+                m = 'notafile'
+
+            if isinstance(m, hashlib._hashlib.HASH):
+                m = m.hexdigest()
+            self._checksum = m
         return self._checksum
 
     domain_left_edge = MutableAttribute()
