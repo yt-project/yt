@@ -1603,7 +1603,7 @@ information.  At this time, halo member particles cannot be loaded.
 .. _loading-openpmd-data:
 
 openPMD Data
----------
+------------
 
 `openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
 scheme for mesh based data and particle data. It does not actually define a file

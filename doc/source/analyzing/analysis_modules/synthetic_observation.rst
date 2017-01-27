@@ -14,7 +14,6 @@ from simulation data.
    planning_cosmology_simulations
    absorption_spectrum
    star_analysis
-   xray_emission_fields
    sunyaev_zeldovich
    photon_simulator
    ppv_cubes
