@@ -256,7 +256,7 @@ man_pages = [
 intersphinx_mapping = {'http://docs.python.org/': None,
                        'http://ipython.org/ipython-doc/stable/': None,
                        'http://docs.scipy.org/doc/numpy/': None,
-                       'http://matplotlib.sourceforge.net/': None,
+                       'http://matplotlib.org/': None,
                        }
 
 if not on_rtd:
