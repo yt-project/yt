@@ -609,11 +609,13 @@ class YTRegion(YTSelectionContainer3D):
         if not isinstance(left_edge, YTArray):
             self.left_edge = self.ds.arr(left_edge, 'code_length')
         else:
-            self.left_edge = left_edge
+            # need to assign this dataset's unit registry to the YTArray
+            self.left_edge = self.ds.arr(left_edge.copy())
         if not isinstance(right_edge, YTArray):
             self.right_edge = self.ds.arr(right_edge, 'code_length')
         else:
-            self.right_edge = right_edge
+            # need to assign this dataset's unit registry to the YTArray
+            self.right_edge = self.ds.arr(right_edge.copy())
 
 class YTDataCollection(YTSelectionContainer3D):
     """
