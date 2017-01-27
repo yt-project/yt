@@ -23,4 +23,3 @@ multiple processors to accomplish tasks faster.
    saving_data
    time_series_analysis
    parallel_computation
-   xray_emission_fields
