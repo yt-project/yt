@@ -387,7 +387,7 @@ class Dataset(object):
             else:
                 m = 'notafile'
 
-            if isinstance(m, hashlib._hashlib.HASH):
+            if hasattr(m, 'hexdigest'):
                 m = m.hexdigest()
             self._checksum = m
         return self._checksum
