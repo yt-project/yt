@@ -130,6 +130,7 @@ datasets.
    ~yt.data_objects.time_series.DatasetSeriesObject
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
+   ~yt.data_objects.particle_trajectories.ParticleTrajectories
 
 Geometry Handlers
 -----------------
