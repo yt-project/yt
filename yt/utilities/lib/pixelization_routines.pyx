@@ -244,7 +244,7 @@ def pixelize_off_axis_cartesian(
                        np.float64_t[:] pdz,
                        np.float64_t[:] center,
                        np.float64_t[:,:] inv_mat,
-                       np.int64_t[:] indices,
+                       np.int_t[:] indices,
                        np.float64_t[:] data,
                        bounds):
     cdef np.float64_t x_min, x_max, y_min, y_max
