@@ -1,7 +1,5 @@
 """
-These are particle union objects.  These essentially alias one particle to
-another, where the other can be one or several particle types.
-
+Various definitions for various other modules and routines
 
 
 
@@ -14,9 +12,3 @@ another, where the other can be one or several particle types.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-
-from .unions import Union
-
-class ParticleUnion(Union):
-    def __init__(self, name, sub_types):
-        super(ParticleUnion, self).__init__(name, sub_types)

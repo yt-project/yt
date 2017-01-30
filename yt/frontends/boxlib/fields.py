@@ -51,6 +51,66 @@ def _temperature(field, data):
     return tr
 
 
+class WarpXFieldInfo(FieldInfoContainer):
+
+    known_other_fields = (
+        ("Bx", ("T", ["magnetic_field_x"], None)),
+        ("By", ("T", ["magnetic_field_y"], None)),
+        ("Bz", ("T", ["magnetic_field_z"], None)),
+        ("Ex", ("V/m", ["electric_field_x"], None)),
+        ("Ey", ("V/m", ["electric_field_y"], None)),
+        ("Ex", ("V/m", ["electric_field_z"], None)),
+        ("jx", ("A", ["current_x"], None)),
+        ("jy", ("A", ["current_y"], None)),
+        ("jz", ("A", ["current_z"], None)),
+    )
+
+    known_particle_fields = (
+        ("particle_weight", ("", [], None)),
+        ("particle_position_x", ("m", [], None)),
+        ("particle_position_y", ("m", [], None)),
+        ("particle_position_z", ("m", [], None)),
+        ("particle_velocity_x", ("m/s", [], None)),
+        ("particle_velocity_y", ("m/s", [], None)),
+        ("particle_velocity_z", ("m/s", [], None)),
+    )
+
+    extra_union_fields = (
+        ("kg", "particle_mass"),
+        ("C", "particle_charge"),
+        ("", "particle_ones"),
+    )
+
+    def setup_particle_fields(self, ptype):
+
+        def get_mass(field, data):
+            species_mass = data.ds.index.parameters[ptype + '_mass']
+            return data["particle_weight"]*species_mass
+
+        self.add_field((ptype, "particle_mass"), sampling_type="particle",
+                       function=get_mass,
+                       units="kg")
+
+        def get_charge(field, data):
+            species_charge = data.ds.index.parameters[ptype + '_charge']
+            return data["particle_weight"]*species_charge
+
+        self.add_field((ptype, "particle_charge"), sampling_type="particle",
+                       function=get_charge,
+                       units="C")
+
+        super(WarpXFieldInfo, self).setup_particle_fields(ptype)
+
+
+class NyxFieldInfo(FieldInfoContainer):
+    known_other_fields = ()
+    known_particle_fields = (
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+    )
+
+
 class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", (rho_units, ["density"], None)),

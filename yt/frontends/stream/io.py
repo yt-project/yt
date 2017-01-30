@@ -18,7 +18,6 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.exceptions import YTDomainOverflow
 
 class IOHandlerStream(BaseIOHandler):
@@ -177,6 +176,11 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def _count_particles(self, data_file):
         pcount = {}
+        for ptype in self.ds.particle_types_raw:
+            pcount[ptype] = 0
+        # stream datasets only have one "file"
+        if data_file.file_id > 0:
+            return pcount
         for ptype in self.ds.particle_types_raw:
             d = self.fields[data_file.filename]
             try:

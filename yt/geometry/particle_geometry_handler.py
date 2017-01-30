@@ -19,20 +19,15 @@ import numpy as np
 import os
 import weakref
 
-from yt.config import ytcfg
-from yt.funcs import get_pbar, only_on_root, ensure_list
+from yt.funcs import \
+    get_pbar, \
+    only_on_root
 from yt.utilities.logger import ytLogger as mylog
 from yt.data_objects.octree_subset import ParticleOctreeSubset
-from yt.geometry.geometry_handler import Index, YTDataChunk
-from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer, ParticleBitmap
-from yt.utilities.definitions import MAXLEVEL
-from yt.utilities.io_handler import io_registry
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, communication_system, MPI
-
-from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.octree_subset import ParticleOctreeSubset
+from yt.geometry.geometry_handler import \
+    Index, \
+    YTDataChunk
+from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.data_objects.particle_container import ParticleContainer
 
 class ParticleIndex(Index):
@@ -85,40 +80,25 @@ class ParticleIndex(Index):
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
-        self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
-                           for i in range(ndoms)]
+        self.data_files = []
+        CHUNKSIZE = 64**3
+        fi = 0
+        for i in range(ndoms):
+            start = 0
+            end = start + CHUNKSIZE
+            while 1:
+                df = cls(self.dataset, self.io, template % {'num':i}, fi,
+                        (start, end))
+                if max(df.total_particles.values()) == 0:
+                    break
+                fi += 1
+                self.data_files.append(df)
+                start = end
+                end += CHUNKSIZE
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
         # Get index & populate octree
         self._initialize_index()
-        # Intialize global octree
-        if _use_global_octree:
-            index_ptype = self.index_ptype
-            if index_ptype == "all":
-                self.total_particles = sum(
-                        sum(d.total_particles.values()) for d in self.data_files)
-            else:
-                self.total_particles = sum(
-                        d.total_particles[index_ptype] for d in self.data_files)
-            ds = self.dataset
-            # TODO: Re-insert the usage of index_ptype here
-            self.global_oct_handler = ParticleOctreeContainer(
-                [8, 8, 8], ds.domain_left_edge, ds.domain_right_edge,
-                over_refine = ds.over_refine_factor)
-            self.global_oct_handler.n_ref = ds.n_ref
-            # TODO: Add from individual files
-            self.global_oct_handler.add(self.regions.primary_indices(), 
-                                        self.regions.index_order1)
-            self.global_oct_handler.finalize()
-            self.max_level = self.global_oct_handler.max_level
-            for i in range(ndoms):
-                fmask = self.regions.file_ownership_mask(i)
-                self.global_oct_handler.apply_domain(i+1, fmask, 
-                                                     self.regions.index_order1)
-            tot = sum(self.global_oct_handler.recursively_count().values())
-            only_on_root(mylog.info, "Allocating for %0.3e particles "
-                                    "(index particle type '%s')",
-                        self.total_particles, index_ptype)
 
     def _index_filename(self,o1,o2):
         import shutil
@@ -159,7 +139,12 @@ class ParticleIndex(Index):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
                      self.total_particles, global_rootonly = True)
-        # No more than 256^3 in the region finder.
+        # use a trivial morton index for datasets containing a single data file
+        # in the future we should experiment with intra-file indexing
+        if len(self.data_files) == 1:
+            if order1 is None and order2 is None:
+                order1 = 1
+                order2 = 1
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
                 len(self.data_files), 
@@ -178,12 +163,6 @@ class ParticleIndex(Index):
             rflag = self.regions.check_bitmasks()
             if rflag == 0:
                 raise IOError()
-                # dont_cache = True
-                # raise IOError()
-            #     self._initialize_owners()
-            # rflag = self.regions.check_bitmasks()
-            # else: # Save pcounts in file?
-            #     self._initialize_owners()
         except IOError:
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()

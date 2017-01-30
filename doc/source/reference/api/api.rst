@@ -621,8 +621,8 @@ Absorption and X-ray spectra and spectral lines:
    :toctree: generated/
 
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum
-   ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.EmissivityIntegrator
-   ~yt.analysis_modules.spectral_integrator.spectral_frequency_integrator.add_xray_emissivity_field
+   ~yt.fields.xray_emission_fields.XrayEmissivityIntegrator
+   ~yt.fields.xray_emission_fields.add_xray_emissivity_field
 
 Absorption spectra fitting:
 

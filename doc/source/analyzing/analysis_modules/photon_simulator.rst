@@ -3,6 +3,14 @@
 Constructing Mock X-ray Observations
 ------------------------------------
 
+.. warning:: 
+
+  The ``photon_simulator`` analysis module has been deprecated; it is
+  no longer being updated, and it will be removed in a future version
+  of yt. Users are encouraged to download and use the
+  `pyXSIM <http://hea-www.cfa.harvard.edu/~jzuhone/pyxsim>`_ package 
+  instead. 
+
 .. note::
 
   If you just want to create derived fields for X-ray emission,

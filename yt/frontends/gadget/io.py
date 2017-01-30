@@ -63,28 +63,33 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: x.filename):
+            si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                x = f["/%s/Coordinates" % ptype][:,0].astype("float64")
-                y = f["/%s/Coordinates" % ptype][:,1].astype("float64")
-                z = f["/%s/Coordinates" % ptype][:,2].astype("float64")
+                x = f["/%s/Coordinates" % ptype][si:ei,0].astype("float64")
+                y = f["/%s/Coordinates" % ptype][si:ei,1].astype("float64")
+                z = f["/%s/Coordinates" % ptype][si:ei,2].astype("float64")
                 if ptype == self.ds._sph_ptype:
-                    hsml = f["/%s/SmoothingLength" % ptype][:].astype("float64")
+                    hsml = f[
+                        "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
                 else:
                     hsml = 0.0
                 yield ptype, (x, y, z, hsml)
             f.close()
 
     def _yield_coordinates(self, data_file):
+        si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename)
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
+        np.clip(pcount - si, 0, ei - si, out=pcount)
+        pcount = pcount.sum()
         for key in f.keys():
             if not key.startswith("PartType"): continue
             if "Coordinates" not in f[key]: continue
-            ds = f[key]["Coordinates"]
+            ds = f[key]["Coordinates"][si:ei,...]
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
@@ -98,14 +103,15 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: x.filename):
+            si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, "r")
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
-                coords = g["Coordinates"][:].astype("float64")
+                coords = g["Coordinates"][si:ei].astype("float64")
                 if ptype == 'PartType0':
-                    hsmls = g["SmoothingLength"][:].astype("float64")
+                    hsmls = g["SmoothingLength"][si:ei].astype("float64")
                 else:
                     hsmls = 0.0
                 mask = selector.select_points(
@@ -123,28 +129,31 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
-                        data = g[rfield][:][mask,...]
+                        data = g[rfield][si:ei][mask,...]
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
-                        data = g["Metallicity"][:,col][mask]
+                        data = g["Metallicity"][si:ei,col][mask]
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
-                        data = g["ChemistryAbundances"][:,col][mask]
+                        data = g["ChemistryAbundances"][si:ei,col][mask]
                     else:
-                        data = g[field][:][mask,...]
+                        data = g[field][si:ei][mask,...]
 
                     yield (ptype, field), data
             f.close()
 
     def _initialize_index(self, data_file, regions):
+        si, ei = data_file.start, data_file.end
         index_ptype = self.index_ptype
         f = h5py.File(data_file.filename, "r")
+        pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
+        np.clip(pcount - si, 0, ei - si, out=pcount)
         if index_ptype == "all":
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][:].sum()
             keys = f.keys()
+            pcount = pcount.sum()
         else:
             pt = int(index_ptype[-1])
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][pt]
+            pcount = pcount[pt]
             keys = [index_ptype]
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
@@ -167,9 +176,12 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         return morton
 
     def _count_particles(self, data_file):
+        si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, "r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         f.close()
+        if None not in (si, ei):
+            np.clip(pcount - si, 0, ei - si, out=pcount)
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
         return npart
 
@@ -347,7 +359,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file):
         count = sum(data_file.total_particles.values())
-        pos = np.empty((count, 3), dtype='float64')
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
@@ -372,7 +383,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                                                 field)
             yield pp
         else:
-            plist = []
             with open(data_file.filename, "rb") as f:
                 for ptype in ptypes:
                     f.seek(poff[ptype, field], os.SEEK_SET)
