@@ -143,8 +143,8 @@ class ParticleIndex(Index):
         # in the future we should experiment with intra-file indexing
         if len(self.data_files) == 1:
             if order1 is None and order2 is None:
-                order1 = 0
-                order2 = 0
+                order1 = 1
+                order2 = 1
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
                 len(self.data_files), 
