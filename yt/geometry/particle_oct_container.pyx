@@ -42,6 +42,7 @@ from libcpp.pair cimport pair
 from cython.operator cimport dereference, preincrement
 import struct
 import os
+import itertools
 
 # Changes the container used to store morton indicies for selectors
 DEF BoolType = "Bool" 
@@ -542,28 +543,37 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def _coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                                np.ndarray[anyfloat, ndim=1] hsml,
                                 np.uint64_t file_id):
-        return self.__coarse_index_data_file(pos, file_id)
+        return self.__coarse_index_data_file(pos, hsml, file_id)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void __coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+                                       np.ndarray[anyfloat, ndim=1] hsml,
                                        np.uint64_t file_id):
         # Initialize
         cdef np.int64_t i, p
-        cdef np.uint64_t mi
+        cdef np.uint64_t mi, miex, mi_max
+        cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
-        cdef int skip
+        cdef int skip, Nex, xex, yex, zex
+        cdef object xex_range, yex_range, zex_range
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds[3]
+        cdef np.float64_t dds_max
         cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
+        mi_max = (1 << self.index_order1)
         # Copy over things for this file (type cast necessary?)
+        dds_max = 0.0
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             dds[i] = self.dds_mi1[i]
+            if dds[i] > dds_max:
+                dds_max = dds[i]
         # Mark index of particles that are in this file
         for p in range(pos.shape[0]):
             skip = 0
@@ -574,8 +584,23 @@ cdef class ParticleBitmap:
                     break
                 ppos[i] = pos[p,i]
             if skip==1: continue
-            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds)
+            mi = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
+                                          dds, mi_split)
             mask[mi] = 1
+            # Expand mask by softening
+            if hsml is not None:
+                Nex = <int>np.ceil(hsml[p]/dds_max)
+                if Nex > 0:
+                    # Ensure that min/max values for x,y,z indexes are obeyed
+                    xex_range = range(max(-Nex, -mi_split[0]), min(Nex, mi_max-mi_split[0]))
+                    yex_range = range(max(-Nex, -mi_split[1]), min(Nex, mi_max-mi_split[1]))
+                    zex_range = range(max(-Nex, -mi_split[2]), min(Nex, mi_max-mi_split[2]))
+                    for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
+                        miex = encode_morton_64bit(mi_split[0] + xex,
+                                                   mi_split[1] + yex,
+                                                   mi_split[2] + zex)
+                        mask[miex] = 1
+                
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -628,6 +653,7 @@ cdef class ParticleBitmap:
         # Initialize
         cdef np.int64_t i, p
         cdef np.uint64_t mi
+        cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
@@ -655,8 +681,9 @@ cdef class ParticleBitmap:
             if mask[mi] > 1:
                 # Determine sub index within cell of primary index
                 sub_mi1[nsub_mi] = mi
-                sub_mi2[nsub_mi] = bounded_morton_relative_dds(ppos[0], ppos[1], ppos[2],
-                                                               LE, dds1, dds2)
+                sub_mi2[nsub_mi] = bounded_morton_split_relative_dds(
+                    ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split)
+
                 nsub_mi += 1
                 pcount[mi] += 1
                 IF OwnByCount == 1:
