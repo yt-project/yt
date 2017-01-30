@@ -182,8 +182,13 @@ class ParticleIndex(Index):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
-            for pos in self.io._yield_coordinates(data_file):
-                self.regions._coarse_index_data_file(pos, data_file.file_id)
+            for ptype, pos in self.io._yield_coordinates(data_file):
+                if hasattr(self.ds, '_sph_ptype'):
+                    hsml = self.io._yield_smoothing_length(data_file)
+                else:
+                    hsml = None
+                self.regions._coarse_index_data_file(
+                    pos, hsml, data_file.file_id)
             self.regions._set_coarse_index_data_file(data_file.file_id)
         pb.finish()
         self.regions.find_collisions_coarse()
@@ -200,9 +205,13 @@ class ParticleIndex(Index):
             pb.update(i)
             pcount[:] = 0
             nsub_mi = 0
-            for pos in self.io._yield_coordinates(data_file):
-                nsub_mi = self.regions._refined_index_data_file(pos, 
-                    mask, pcount, sub_mi1, sub_mi2,
+            for ptype, pos in self.io._yield_coordinates(data_file):
+                if hasattr(self.ds, '_sph_ptype'):
+                    hsml = self.io._yield_smoothing_length(data_file)
+                else:
+                    hsml = None
+                nsub_mi = self.regions._refined_index_data_file(
+                    pos, hsml, mask, pcount, sub_mi1, sub_mi2,
                     data_file.file_id, nsub_mi)
             self.regions._set_refined_index_data_file(
                 mask, sub_mi1, sub_mi2,
@@ -216,7 +225,7 @@ class ParticleIndex(Index):
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             pcount[:] = 0
-            for pos in self.io._yield_coordinates(data_file):
+            for ptype, pos in self.io._yield_coordinates(data_file):
                 self.regions._owners_data_file(pos, pcount, data_file.file_id)
         pb.finish()
         self.regions.set_owners()
@@ -244,6 +253,7 @@ class ParticleIndex(Index):
             self._initialize_index()
         # Must check that chunk_info contains the right number of ghost zones
         if getattr(dobj, "_chunk_info", None) is None:
+            import pdb; pdb.set_trace()
             if isinstance(dobj, (ParticleContainer, ParticleOctreeSubset)):
                 dobj._chunk_info = [dobj]
             else:

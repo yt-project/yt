@@ -541,14 +541,18 @@ cdef class ParticleBitmap:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def _coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+    def _coarse_index_data_file(self,
+                                np.ndarray[anyfloat, ndim=2] pos,
+                                np.ndarray[anyfloat, ndim=1] hsml,
                                 np.uint64_t file_id):
-        return self.__coarse_index_data_file(pos, file_id)
+        return self.__coarse_index_data_file(pos, hsml, file_id)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void __coarse_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos,
+    cdef void __coarse_index_data_file(self,
+                                       np.ndarray[anyfloat, ndim=2] pos,
+                                       np.ndarray[anyfloat, ndim=1] hsml,
                                        np.uint64_t file_id):
         # Initialize
         cdef np.int64_t i, p
@@ -605,7 +609,9 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+    def _refined_index_data_file(self,
+                                 np.ndarray[anyfloat, ndim=2] pos,
+                                 np.ndarray[anyfloat, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint32_t, ndim=1] pcount,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
@@ -619,12 +625,16 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef np.uint64_t __refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
-                                               np.ndarray[np.uint8_t, ndim=1] mask,
-                                               np.ndarray[np.uint32_t, ndim=1] pcount,
-                                               np.ndarray[np.uint64_t, ndim=1] sub_mi1,
-                                               np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                               np.uint64_t file_id, np.uint64_t nsub_mi):
+    cdef np.uint64_t __refined_index_data_file(
+        self,
+        np.ndarray[anyfloat, ndim=2] pos,
+        np.ndarray[anyfloat, ndim=1] hsml,
+        np.ndarray[np.uint8_t, ndim=1] mask,
+        np.ndarray[np.uint32_t, ndim=1] pcount,
+        np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+        np.ndarray[np.uint64_t, ndim=1] sub_mi2,
+        np.uint64_t file_id, np.uint64_t nsub_mi
+    ):
         # Initialize
         cdef np.int64_t i, p
         cdef np.uint64_t mi
