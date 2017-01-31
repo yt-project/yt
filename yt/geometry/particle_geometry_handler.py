@@ -245,8 +245,7 @@ class ParticleIndex(Index):
                     domain_id = i+1
                     dobj._chunk_info[i] = ParticleContainer(
                         dobj, [self.data_files[dfi[i]]],
-                        overlap_files = [self.data_files[k] for k in addfi[i]],
-                        selector_mask = file_masks[i], domain_id = domain_id)
+                        domain_id = domain_id)
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
                 # create as many objects as part of the chunk as we want, since
