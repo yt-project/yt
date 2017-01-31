@@ -45,8 +45,6 @@ import struct
 import os
 import itertools
 
-# If set to 1, ghost cells are added at the refined level
-DEF RefinedGhosts = 1
 # If set to 1, ghost cells are added at the refined level reguardless of if the 
 # coarse cell containing it is refined in the selector.
 # If set to 0, ghost cells are only added at the refined level if the coarse index 
@@ -1586,14 +1584,9 @@ cdef class ParticleBitmapSelector:
         cdef bint flag_ref = self.is_refined(mi1)
         self.coarse_select_bool[mi1] = 1
         # Neighbors
-        IF RefinedGhosts == 0:
-            if (self.ngz > 0): 
-                if (bbox == 2):
-                    self.add_neighbors_coarse(mi1)
-        ELSE:
-            if (self.ngz > 0) and (flag_ref == 0):
-                if (bbox == 2):
-                    self.add_neighbors_coarse(mi1)
+        if (self.ngz > 0) and (flag_ref == 0):
+            if (bbox == 2):
+                self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1616,12 +1609,8 @@ cdef class ParticleBitmapSelector:
                         if fmask._get_coarse(mi1) == 1:
                             self.file_mask_p[i] = 1
         # Neighbors
-        IF RefinedGhosts == 0:
-            if (self.ngz > 0):
-                self.set_files_neighbors_coarse(mi1)
-        ELSE:
-            if (flag_ref == 0) and (self.ngz > 0):
-                self.set_files_neighbors_coarse(mi1)
+        if (flag_ref == 0) and (self.ngz > 0):
+            self.set_files_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1630,10 +1619,9 @@ cdef class ParticleBitmapSelector:
     cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2):
         self.refined_select_bool[mi2] = 1
         # Neighbors
-        IF RefinedGhosts == 1:
-            if (self.ngz > 0):
-                if (bbox == 2):
-                    self.add_neighbors_refined(mi1, mi2)
+        if (self.ngz > 0):
+            if (bbox == 2):
+                self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1654,9 +1642,8 @@ cdef class ParticleBitmapSelector:
                     if fmask._get(mi1, mi2) == 1:
                         self.file_mask_p[i] = 1
         # Neighbors
-        IF RefinedGhosts == 1:
-            if (self.ngz > 0):
-                self.set_files_neighbors_refined(mi1, mi2)
+        if (self.ngz > 0):
+            self.set_files_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1847,22 +1834,19 @@ cdef class ParticleBitmapSelector:
         # Get ghost zones, unordered
         for mi1 in range(self.s1):
             if mm_s._get_coarse(mi1):
-                IF RefinedGhosts == 1:
-                    if self.is_refined(mi1):
+                if self.is_refined(mi1):
+                    for mi2 in range(self.s2):
+                        if mm_s._get(mi1, mi2):
+                            self.add_neighbors_refined(mi1, mi2)
+                    # self.push_refined_bool(mi1)
+                    IF UseUncompressedView == 1:
+                        self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+                        self.refined_ghosts_bool[:] = 0
+                    ELSE:
+                        self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
                         for mi2 in range(self.s2):
-                            if mm_s._get(mi1, mi2):
-                                self.add_neighbors_refined(mi1, mi2)
-                        # self.push_refined_bool(mi1)
-                        IF UseUncompressedView == 1:
-                            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-                            self.refined_ghosts_bool[:] = 0
-                        ELSE:
-                            self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
-                            for mi2 in range(self.s2):
-                                self.refined_ghosts_bool[mi2] = 0
-                    else:
-                        self.add_neighbors_coarse(mi1)
-                ELSE:
+                            self.refined_ghosts_bool[mi2] = 0
+                else:
                     self.add_neighbors_coarse(mi1)
         # Add ghost zones to bool array in order
         IF UseUncompressedView == 1:
