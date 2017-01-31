@@ -24,7 +24,8 @@ from yt.utilities.answer_testing.framework import \
 from yt.frontends.boxlib.api import \
     OrionDataset, \
     NyxDataset, \
-    WarpXDataset
+    WarpXDataset, \
+    CastroDataset
 import numpy as np    
 
 # We don't do anything needing ghost zone generation right now, because these
