@@ -45,8 +45,6 @@ import struct
 import os
 import itertools
 
-# If set to 1, only cells at the edge of selectors are refined
-DEF OnlyRefineEdges = 1
 # If set to 1, ghost cells are added at the refined level
 DEF RefinedGhosts = 1
 # If set to 1, ghost cells are added at the refined level reguardless of if the 
@@ -65,7 +63,7 @@ DEF UseCythonBitmasks = 1
 DEF FillChildCellsCoarse = 1
 DEF FillChildCellsRefined = 1
 # Super to handle any case where you need to know edges
-# Must be set to 1 if OnlyRefineEdges,
+# Must be set to 1 if 
 # FillChildCellCoarse, or FilleChildCellRefined is 1
 DEF DetectEdges = 1
 
@@ -1980,11 +1978,7 @@ cdef class ParticleBitmapSelector:
                             self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == self.order1:
                         mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
-                        IF OnlyRefineEdges == 1:
-                            if sbbox == 2: # an edge cell
-                                if self.is_refined(mi1) == 1:
-                                    self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                        ELSE:
+                        if sbbox == 2: # an edge cell
                             if self.is_refined(mi1) == 1:
                                 self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                         self.add_coarse(mi1, sbbox)
