@@ -81,8 +81,6 @@ DEF CellParticleCount = 0
 # If set, orphan cells (those that do not contain any particles) are
 # added to the mask for the first file
 DEF AddOrphans = 0
-# If set, intermediate octs are included in the octree
-DEF InclPartialOcts = 0
 
 _bitmask_version = np.uint64(1)
 
@@ -2186,12 +2184,8 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             over_refine)
         self.loaded = 0
         self.fill_style = "o"
-        IF InclPartialOcts == 1:
-            self.partial_coverage = 1
-            self.overlap_cells = 1
-        ELSE:
-            self.partial_coverage = 2
-            self.overlap_cells = 0
+        self.partial_coverage = 2
+        self.overlap_cells = 0
         # Now the overrides
         self.max_level = -1
         self.max_root = num_root
@@ -2264,15 +2258,10 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
     cdef visit_assign(self, Oct *o, np.int64_t *lpos, int level, int *max_level,
                       np.int64_t index_root):
         cdef int i, j, k
-        IF InclPartialOcts == 1:
+        if o.children == NULL:
             self.oct_list[lpos[0]] = o
             self._index_base_octs[lpos[0]] = self._index_base_roots[index_root]
             lpos[0] += 1
-        ELSE:
-            if o.children == NULL:
-                self.oct_list[lpos[0]] = o
-                self._index_base_octs[lpos[0]] = self._index_base_roots[index_root]
-                lpos[0] += 1
         max_level[0] = imax(max_level[0], level)
         for i in range(2):
             for j in range(2):
@@ -2419,18 +2408,11 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             for i in range(2):
                 for j in range(2):
                     for k in range(2):
-                        IF InclPartialOcts == 1:
-                            noct = self.allocate_oct()
-                            noct.domain = o.domain
-                            noct.file_ind = o.file_ind
-                            o.children[cind(i,j,k)] = noct
-                            count[0] += 1
-                        ELSE:
-                            o.children[cind(i,j,k)] = NULL
-                            # noct = self.allocate_oct()
-                            # noct.domain = o.domain
-                            # noct.file_ind = 0
-                            # o.children[cind(i,j,k)] = noct
+                        o.children[cind(i,j,k)] = NULL
+                        # noct = self.allocate_oct()
+                        # noct.domain = o.domain
+                        # noct.file_ind = 0
+                        # o.children[cind(i,j,k)] = noct
         # Loop through sets of particles with matching prefix at this level
         while end < no:
             beg = end
@@ -2441,22 +2423,19 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             # Add oct
             for i in range(3):
                 ind[i] = ((index >> (2 - i)) & 1)
-            IF InclPartialOcts == 1:
-                noct = o.children[cind(ind[0],ind[1],ind[2])]
-            ELSE:
-                # noct = o.children[cind(ind[0],ind[1],ind[2])]
-                if o.children[cind(ind[0],ind[1],ind[2])] != NULL:
-                    raise Exception('Child was already initialized...')
-                noct = self.allocate_oct()
-                noct.domain = o.domain
-                o.children[cind(ind[0],ind[1],ind[2])] = noct
-                # Don't add it to the list if it will be refined
-                if nind > self.n_ref and level < ORDER_MAX:
-                    self.nocts -= 1
-                    noct.domain_ind = -1 # overwritten by finalize
-                else:
-                    count[0] += 1
-                noct.file_ind = o.file_ind
+            # noct = o.children[cind(ind[0],ind[1],ind[2])]
+            if o.children[cind(ind[0],ind[1],ind[2])] != NULL:
+                raise Exception('Child was already initialized...')
+            noct = self.allocate_oct()
+            noct.domain = o.domain
+            o.children[cind(ind[0],ind[1],ind[2])] = noct
+            # Don't add it to the list if it will be refined
+            if nind > self.n_ref and level < ORDER_MAX:
+                self.nocts -= 1
+                noct.domain_ind = -1 # overwritten by finalize
+            else:
+                count[0] += 1
+            noct.file_ind = o.file_ind
             # noct.file_ind = nind
             # o.file_ind = self.n_ref + 1
             # Refine oct or add its children
