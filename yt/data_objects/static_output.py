@@ -717,7 +717,7 @@ class Dataset(object):
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cls)
-        if self.refine_by != 2 and hasattr(self, 'proj') and \
+        if not np.all(self.refine_by == 2) and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
                         + " overlap_proj")

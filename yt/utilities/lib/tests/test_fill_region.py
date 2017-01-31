@@ -25,7 +25,8 @@ def test_fill_region():
         ires = np.zeros(NDIM*NDIM*NDIM, "int64")
         ddims = np.array([NDIM, NDIM, NDIM], dtype="int64") * rf
         fill_region(input_fields, output_fields, level,
-                    left_index, ipos, ires, ddims, 2)
+                    left_index, ipos, ires, ddims,
+                    np.array([2, 2, 2], dtype="i8"))
         for r in range(level + 1):
             for o, i in zip(output_fields, v):
                 assert_equal( o[r::rf,r::rf,r::rf], i)

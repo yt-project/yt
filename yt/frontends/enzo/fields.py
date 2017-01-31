@@ -191,8 +191,25 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(("enzo", te_name), sampling_type="cell",
                 units="code_velocity**2")
             self.alias(("gas", "thermal_energy"), ("enzo", te_name))
-
+            def _ge_plus_kin(field, data):
+                ret = data[te_name] + 0.5*data["velocity_x"]**2.0
+                if data.ds.dimensionality > 1:
+                    ret += 0.5*data["velocity_y"]**2.0
+                if data.ds.dimensionality > 2:
+                    ret += 0.5*data["velocity_z"]**2.0
+                return ret
+            self.add_field(
+                ("gas", "total_energy"), sampling_type="cell",
+                function = _ge_plus_kin,
+                units = unit_system["specific_energy"])
         elif dual_energy == 1:
+            self.add_output_field(
+                ("enzo", te_name), sampling_type="cell",
+                units = "code_velocity**2")
+            self.alias(
+                ("gas", "total_energy"),
+                ("enzo", te_name),
+                units = unit_system["specific_energy"])
             self.add_output_field(
                 ("enzo", ge_name), sampling_type="cell",
                 units="code_velocity**2")
@@ -220,7 +237,10 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name), sampling_type="cell",
                 units = "code_velocity**2")
-            self.alias(("gas", "total_energy"), ("enzo", te_name))
+            self.alias(
+                ("gas", "total_energy"),
+                ("enzo", te_name),
+                units = unit_system["specific_energy"])
             def _tot_minus_kin(field, data):
                 ret = data[te_name] - 0.5*data["velocity_x"]**2.0
                 if data.ds.dimensionality > 1:

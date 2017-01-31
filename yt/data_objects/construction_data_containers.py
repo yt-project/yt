@@ -666,13 +666,17 @@ class YTCoveringGrid(YTSelectionContainer3D):
                          for field in fields]
         domain_dims = self.ds.domain_dimensions.astype("int64") \
                     * self.ds.relative_refinement(0, self.level)
+        refine_by = self.ds.refine_by
+        if not iterable(self.ds.refine_by):
+            refine_by = [refine_by, refine_by, refine_by]
+        refine_by = np.array(refine_by, dtype="i8")
         for chunk in self._data_source.chunks(fields, "io"):
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
             # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
-                        domain_dims, self.ds.refine_by)
+                        domain_dims, refine_by)
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
@@ -940,6 +944,12 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
         min_level = self._compute_minimum_level()
+        # NOTE: This usage of "refine_by" is actually *okay*, because it's
+        # being used with respect to iref, which is *already* scaled!
+        refine_by = self.ds.refine_by
+        if not iterable(self.ds.refine_by):
+            refine_by = [refine_by, refine_by, refine_by]
+        refine_by = np.array(refine_by, dtype="i8")
         for level in range(self.level + 1):
             if level < min_level:
                 self._update_level_state(ls)
@@ -954,11 +964,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
-                # NOTE: This usage of "refine_by" is actually *okay*, because it's
-                # being used with respect to iref, which is *already* scaled!
                 tot -= fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
-                            chunk.ires, domain_dims, self.ds.refine_by)
+                            chunk.ires, domain_dims, refine_by)
             if level == 0 and tot != 0:
                 raise RuntimeError
             self._update_level_state(ls)

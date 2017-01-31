@@ -786,8 +786,12 @@ def load_amr_grids(grid_data, domain_dimensions,
         be z, x, y, this would be: ("cartesian", ("z", "x", "y")).  The same
         can be done for other coordinates, for instance:
         ("spherical", ("theta", "phi", "r")).
-    refine_by : integer
-        Specifies the refinement ratio between levels.  Defaults to 2.
+    refine_by : integer or list/array of integers.
+        Specifies the refinement ratio between levels.  Defaults to 2.  This
+        can be an array, in which case it specifies for each dimension.  For
+        instance, this can be used to say that some datasets have refinement of
+        1 in one dimension, indicating that they span the full range in that
+        dimension.
 
     Examples
     --------

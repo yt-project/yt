@@ -22,6 +22,7 @@ from yt.data_objects.unstructured_mesh import \
     UnstructuredMesh
 from yt.data_objects.static_output import \
     Dataset
+from yt.data_objects.unions import MeshUnion
 from .io import \
     NetCDF4FileHandler
 from yt.utilities.logger import ytLogger as mylog
@@ -50,12 +51,13 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         self.meshes = []
         for mesh_id, conn_ind in enumerate(connectivity):
             displaced_coords = self.ds._apply_displacement(coords, mesh_id)
-            mesh = ExodusIIUnstructuredMesh(mesh_id, 
+            mesh = ExodusIIUnstructuredMesh(mesh_id,
                                             self.index_filename,
-                                            conn_ind, 
-                                            displaced_coords, 
+                                            conn_ind,
+                                            displaced_coords,
                                             self)
             self.meshes.append(mesh)
+        self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
     def _detect_output_fields(self):
         elem_names = self.dataset.parameters['elem_names']
@@ -64,6 +66,7 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         self.field_list = []
         for i in range(1, len(self.meshes)+1):
             self.field_list += [('connect%d' % i, fname) for fname in fnames]
+        self.field_list += [('all', fname) for fname in fnames]
 
 
 class ExodusIIDataset(Dataset):
@@ -79,7 +82,7 @@ class ExodusIIDataset(Dataset):
                  units_override=None):
         """
 
-        A class used to represent an on-disk ExodusII dataset. The initializer takes 
+        A class used to represent an on-disk ExodusII dataset. The initializer takes
         two extra optional parameters, "step" and "displacements."
 
         Parameters
@@ -88,25 +91,25 @@ class ExodusIIDataset(Dataset):
         step : integer
             The step tells which time index to slice at. It throws an Error if
             the index is larger than the number of time outputs in the ExodusII
-            file. Passing step=-1 picks out the last dataframe. 
+            file. Passing step=-1 picks out the last dataframe.
             Default is 0.
 
         displacements : dictionary of tuples
             This is a dictionary that controls whether or not displacement fields
             will be used with the meshes in this dataset. The keys of the
-            displacements dictionary should the names of meshes in the file 
-            (e.g., "connect1", "connect2", etc... ), while the values should be 
+            displacements dictionary should the names of meshes in the file
+            (e.g., "connect1", "connect2", etc... ), while the values should be
             tuples of the form (scale, offset), where "scale" is a floating point
             value and "offset" is an array-like with one component for each spatial
             dimension in the dataset. When the displacements for a given mesh are
             turned on, the coordinates of the vertices in that mesh get transformed
-            as: 
+            as:
 
                   vertex_x = vertex_x + disp_x*scale + offset_x
                   vertex_y = vertex_y + disp_y*scale + offset_y
                   vertex_z = vertex_z + disp_z*scale + offset_z
 
-            If no displacement 
+            If no displacement
             fields (assumed to be named 'disp_x', 'disp_y', etc... ) are detected in
             the output file, then this dictionary is ignored.
 
@@ -123,7 +126,7 @@ class ExodusIIDataset(Dataset):
         >>> import yt
         >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=-1)
 
-        This will load the Dataset at index 10, turning on displacement fields for 
+        This will load the Dataset at index 10, turning on displacement fields for
         the 2nd mesh without applying any scale or offset:
 
         >>> import yt
@@ -136,9 +139,9 @@ class ExodusIIDataset(Dataset):
         >>> import yt
         >>> ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
                          displacements={'connect2': (1.0, [0.0, 0.0, 0.0])})
-        
+
         This will load the Dataset at index 10, scaling the displacements for
-        the 2nd mesh by a factor of 5.0 and shifting all the vertices in 
+        the 2nd mesh by a factor of 5.0 and shifting all the vertices in
         the first mesh by 1.0 unit in the z direction.
 
         >>> import yt
@@ -158,7 +161,7 @@ class ExodusIIDataset(Dataset):
                                               units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
-        self.default_field = [f for f in self.field_list 
+        self.default_field = [f for f in self.field_list
                               if f[0] == 'connect1'][-1]
 
     def _set_code_unit_attributes(self):
@@ -212,6 +215,7 @@ class ExodusIIDataset(Dataset):
                 i += 1
             else:
                 break
+        fluid_types += ('all',)
         return fluid_types
 
     def _read_glo_var(self):
@@ -244,7 +248,7 @@ class ExodusIIDataset(Dataset):
             return self._vars['time_whole'][self.step]
         except IndexError:
             raise RuntimeError("Invalid step number, max is %d" \
-                               % (self.num_steps - 1))            
+                               % (self.num_steps - 1))
         except (KeyError, TypeError):
             return 0.0
 
@@ -261,7 +265,7 @@ class ExodusIIDataset(Dataset):
         else:
             return [sanitize_string(v.tostring()) for v in
                     self._vars["name_glo_var"]]
-            
+
     def _get_elem_names(self):
         """
 
@@ -296,7 +300,7 @@ class ExodusIIDataset(Dataset):
         Loads the coordinates for the mesh
 
         """
-        
+
         coord_axes = 'xyz'[:self.dimensionality]
 
         mylog.info("Loading coordinates")
@@ -309,7 +313,7 @@ class ExodusIIDataset(Dataset):
         return coords
 
     def _apply_displacement(self, coords, mesh_id):
-        
+
         mesh_name = "connect%d" % (mesh_id + 1)
         if mesh_name not in self.displacements:
             new_coords = coords.copy()
@@ -327,7 +331,7 @@ class ExodusIIDataset(Dataset):
                 new_coords[:, i] = coords[:, i] + fac*disp + offset[i]
 
         return new_coords
-        
+
     def _read_connectivity(self):
         """
         Loads the connectivity data for the mesh
@@ -343,7 +347,7 @@ class ExodusIIDataset(Dataset):
         Loads the boundaries for the domain edge
 
         """
-        
+
         coords = self._read_coordinates()
         connectivity = self._read_connectivity()
 
