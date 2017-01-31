@@ -1148,7 +1148,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def mask2filemasks(self, BoolArrayCollection cmask, np.ndarray[np.uint32_t, ndim=1] file_idx):
-        cdef BoolArrayCollection fmask, temp_mask
+        cdef BoolArrayCollection fmask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
         cdef int i
@@ -1156,8 +1156,7 @@ cdef class ParticleBitmap:
         file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
                               dtype="object")
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
-            temp_mask = self.bitmasks._get_bitmask(<np.uint32_t> fid)
-            cmask._logicaland(temp_mask, fmask)
+            self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
         # Check for orphaned cells
         IF AddOrphans == 1:
             cdef BoolArrayCollection total_mask = BoolArrayCollection()
@@ -1176,7 +1175,6 @@ cdef class ParticleBitmap:
         cdef list addfile_idx
         addfile_idx = len(file_masks)*[None]
         for i, fmask in enumerate(file_masks):
-            temp_mask = BoolArrayCollection()
             addfile_idx[i] = self.mask_to_files(fmask).astype('uint32')
         return addfile_idx
 
@@ -1185,7 +1183,7 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     def identify_file_masks(self, SelectorObject selector):
         cdef BoolArrayCollection cmask = BoolArrayCollection()
-        cdef BoolArrayCollection fmask, temp_mask
+        cdef BoolArrayCollection fmask
         cdef np.int32_t fid
         cdef np.ndarray[object, ndim=1] file_masks
         cdef np.ndarray[np.uint32_t, ndim=1] file_idx
@@ -1200,8 +1198,7 @@ cdef class ParticleBitmap:
                               dtype="object")
         addfile_idx = len(file_idx)*[None]
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
-            temp_mask = self.bitmasks._get_bitmask(<np.uint32_t> fid)
-            cmask._logicaland(temp_mask, fmask)
+            self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
             addfile_idx[i] = self.mask_to_files(fmask).astype('uint32')
         # Check for orphaned cells
         IF AddOrphans == 1:
