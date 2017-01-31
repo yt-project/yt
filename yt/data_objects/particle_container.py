@@ -24,8 +24,6 @@ from yt.funcs import \
 from yt.utilities.exceptions import \
     YTNonIndexedDataContainer, \
     YTDataSelectorNotImplemented
-from yt.data_objects.octree_subset import \
-    ParticleOctreeSubset
 
 # def _octree_indexed(self, *args, 
 
@@ -66,9 +64,6 @@ class ParticleContainer(YTSelectionContainer):
         if isinstance(base_region, ParticleContainer):
             self._temp_spatial = base_region._temp_spatial
             self._octree = base_region._octree
-        elif isinstance(base_region, ParticleOctreeSubset):
-            self._temp_spatial = True
-            self._octree = base_region
         # To ensure there are not domains if global octree not used
         self.domain_id = -1
             
@@ -112,18 +107,6 @@ class ParticleContainer(YTSelectionContainer):
             yield self
         self.data_files = old_data_files
         self.overlap_files = old_overlap_files
-
-    @property
-    def octree(self):
-        # Cache octree so it is not constructed every time
-        if self._octree is None:
-            self._octree = ParticleOctreeSubset(
-                self.base_region, self.data_files,
-                overlap_files = self.overlap_files,
-                selector_mask = self.selector_mask, 
-                domain_id = self.domain_id,
-                over_refine_factor = self.ds.over_refine_factor)
-        return self._octree
 
     def retrieve_ghost_zones(self, ngz, coarse_ghosts = False):
         gz_oct = self.octree.retrieve_ghost_zones(ngz, coarse_ghosts = coarse_ghosts)

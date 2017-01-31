@@ -23,7 +23,6 @@ from yt.funcs import \
     get_pbar, \
     only_on_root
 from yt.utilities.logger import ytLogger as mylog
-from yt.data_objects.octree_subset import ParticleOctreeSubset
 from yt.geometry.geometry_handler import \
     Index, \
     YTDataChunk
@@ -253,7 +252,7 @@ class ParticleIndex(Index):
             self._initialize_index()
         # Must check that chunk_info contains the right number of ghost zones
         if getattr(dobj, "_chunk_info", None) is None:
-            if isinstance(dobj, (ParticleContainer, ParticleOctreeSubset)):
+            if isinstance(dobj, ParticleContainer):
                 dobj._chunk_info = [dobj]
             else:
                 dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
@@ -265,11 +264,6 @@ class ParticleIndex(Index):
                         dobj, [self.data_files[dfi[i]]],
                         overlap_files = [self.data_files[k] for k in addfi[i]],
                         selector_mask = file_masks[i], domain_id = domain_id)
-                    # dobj._chunk_info[i] = ParticleOctreeSubset(
-                    #     dobj, [self.data_files[dfi[i]]], 
-                    #     overlap_files = [self.data_files[k] for k in addfi[i]],
-                    #     selector_mask = file_masks[i], domain_id = domain_id,
-                    #     over_refine_factor = self.ds.over_refine_factor)
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
                 # create as many objects as part of the chunk as we want, since
