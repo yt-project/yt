@@ -45,8 +45,6 @@ import struct
 import os
 import itertools
 
-# Changes the container used to store morton indicies for selectors
-DEF BoolType = "Bool" 
 # If set to 1, ghost zones are added after all selected cells are identified.
 # If set to 0, ghost zones are added as cells are selected
 DEF GhostsAfter = 0
@@ -79,12 +77,8 @@ DEF DetectEdges = 1
 
 _bitmask_version = np.uint64(1)
 
-IF BoolType == 'Vector':
-    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskVector as SparseUnorderedBitmask
-    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskVector as SparseUnorderedRefinedBitmask
-ELSE:
-    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
-    from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
+from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
+from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
 
 IF UseUncompressed == 1:
     from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
@@ -1382,10 +1376,7 @@ cdef class ParticleBitmapSelector:
     cdef np.uint64_t max_index2
     cdef np.uint64_t s1
     cdef np.uint64_t s2
-    IF BoolType == "Bool":
-        cdef void* pointers[11]
-    ELSE:
-        cdef void* pointers[7]
+    cdef void* pointers[11]
     cdef np.uint64_t[:,:] ind1_n
     cdef np.uint64_t[:,:] ind2_n
     cdef np.uint32_t[:,:] neighbors
@@ -1395,26 +1386,19 @@ cdef class ParticleBitmapSelector:
     cdef np.uint8_t[:] file_mask_p
     cdef np.uint8_t[:] file_mask_g
     # Uncompressed boolean
-    IF BoolType == "Bool":
-        IF UseUncompressedView == 1:
-            cdef np.uint8_t[:] refined_select_bool
-            cdef np.uint8_t[:] refined_ghosts_bool
-            cdef np.uint8_t[:] coarse_select_bool
-            cdef np.uint8_t[:] coarse_ghosts_bool
-        ELSE:
-            cdef np.uint8_t *refined_select_bool
-            cdef np.uint8_t *refined_ghosts_bool
-            cdef np.uint8_t *coarse_select_bool
-            cdef np.uint8_t *coarse_ghosts_bool
-        cdef SparseUnorderedRefinedBitmask refined_ghosts_list
-        cdef BoolArrayColl select_ewah
-        cdef BoolArrayColl ghosts_ewah
-    # Vectors
+    IF UseUncompressedView == 1:
+        cdef np.uint8_t[:] refined_select_bool
+        cdef np.uint8_t[:] refined_ghosts_bool
+        cdef np.uint8_t[:] coarse_select_bool
+        cdef np.uint8_t[:] coarse_ghosts_bool
     ELSE:
-        cdef SparseUnorderedBitmask coarse_select_list
-        cdef SparseUnorderedBitmask coarse_ghosts_list
-        cdef SparseUnorderedRefinedBitmask refined_select_list
-        cdef SparseUnorderedRefinedBitmask refined_ghosts_list
+        cdef np.uint8_t *refined_select_bool
+        cdef np.uint8_t *refined_ghosts_bool
+        cdef np.uint8_t *coarse_select_bool
+        cdef np.uint8_t *coarse_ghosts_bool
+    cdef SparseUnorderedRefinedBitmask refined_ghosts_list
+    cdef BoolArrayColl select_ewah
+    cdef BoolArrayColl ghosts_ewah
 
     def __cinit__(self, selector, bitmap, ngz=0):
         cdef int i
@@ -1457,54 +1441,43 @@ cdef class ParticleBitmapSelector:
         self.file_mask_p[:] = 0
         self.file_mask_g[:] = 0
         # Uncompressed Boolean
-        IF BoolType == "Bool":
-            self.pointers[7] = malloc( sizeof(np.uint8_t) * self.s2)
-            self.pointers[8] = malloc( sizeof(np.uint8_t) * self.s2)
-            self.pointers[9] = malloc( sizeof(np.uint8_t) * self.s1)
-            self.pointers[10] = malloc( sizeof(np.uint8_t) * self.s1)
-            IF UseUncompressedView == 1:
-                self.refined_select_bool = <np.uint8_t[:self.s2]> self.pointers[7]
-                self.refined_ghosts_bool = <np.uint8_t[:self.s2]> self.pointers[8]
-                self.coarse_select_bool = <np.uint8_t[:self.s1]> self.pointers[9]
-                self.coarse_ghosts_bool = <np.uint8_t[:self.s1]> self.pointers[10]
-                self.refined_select_bool[:] = 0
-                self.refined_ghosts_bool[:] = 0
-                self.coarse_select_bool[:] = 0
-                self.coarse_ghosts_bool[:] = 0
-            ELSE:
-                self.refined_select_bool = <np.uint8_t *> self.pointers[7]
-                self.refined_ghosts_bool = <np.uint8_t *> self.pointers[8]
-                self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
-                self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
-                cdef np.uint64_t mi
-                for mi in range(<np.int64_t>self.s2):
-                    self.refined_select_bool[mi] = 0
-                    self.refined_ghosts_bool[mi] = 0
-                for mi in range(<np.int64_t>self.s1):
-                    self.coarse_select_bool[mi] = 0
-                    self.coarse_ghosts_bool[mi] = 0
-            self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
-            IF UseUncompressed == 1:
-                self.select_ewah = BoolArrayColl(self.s1, self.s2)
-                self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
-            ELSE:
-                self.select_ewah = BoolArrayCollection()
-                self.ghosts_ewah = BoolArrayCollection()
-        # Vectors
+        self.pointers[7] = malloc( sizeof(np.uint8_t) * self.s2)
+        self.pointers[8] = malloc( sizeof(np.uint8_t) * self.s2)
+        self.pointers[9] = malloc( sizeof(np.uint8_t) * self.s1)
+        self.pointers[10] = malloc( sizeof(np.uint8_t) * self.s1)
+        IF UseUncompressedView == 1:
+            self.refined_select_bool = <np.uint8_t[:self.s2]> self.pointers[7]
+            self.refined_ghosts_bool = <np.uint8_t[:self.s2]> self.pointers[8]
+            self.coarse_select_bool = <np.uint8_t[:self.s1]> self.pointers[9]
+            self.coarse_ghosts_bool = <np.uint8_t[:self.s1]> self.pointers[10]
+            self.refined_select_bool[:] = 0
+            self.refined_ghosts_bool[:] = 0
+            self.coarse_select_bool[:] = 0
+            self.coarse_ghosts_bool[:] = 0
         ELSE:
-            self.coarse_select_list = SparseUnorderedBitmask()
-            self.coarse_ghosts_list = SparseUnorderedBitmask()
-            self.refined_select_list = SparseUnorderedRefinedBitmask()
-            self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
+            self.refined_select_bool = <np.uint8_t *> self.pointers[7]
+            self.refined_ghosts_bool = <np.uint8_t *> self.pointers[8]
+            self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
+            self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
+            cdef np.uint64_t mi
+            for mi in range(<np.int64_t>self.s2):
+                self.refined_select_bool[mi] = 0
+                self.refined_ghosts_bool[mi] = 0
+            for mi in range(<np.int64_t>self.s1):
+                self.coarse_select_bool[mi] = 0
+                self.coarse_ghosts_bool[mi] = 0
+        self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
+        IF UseUncompressed == 1:
+            self.select_ewah = BoolArrayColl(self.s1, self.s2)
+            self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
+        ELSE:
+            self.select_ewah = BoolArrayCollection()
+            self.ghosts_ewah = BoolArrayCollection()
 
     def __dealloc__(self):
         cdef int i
-        IF BoolType == 'Bool':
-            for i in range(11):
-                free(self.pointers[i])
-        ELSE:
-            for i in range(7):
-                free(self.pointers[i])
+        for i in range(11):
+            free(self.pointers[i])
 
     def fill_masks(self, BoolArrayCollection mm_s, BoolArrayCollection mm_g = None):
         # Normal variables
@@ -1546,13 +1519,9 @@ cdef class ParticleBitmapSelector:
         ELSE:
             self.recursive_morton_mask(level, pos, dds, mi1)
         # Set coarse morton indices in order
-        IF BoolType == 'Bool':
-            self.set_coarse_bool(mm_s0, mm_g0)
-            self.set_refined_list(mm_s0, mm_g0)
-            self.set_refined_bool(mm_s0, mm_g0)
-        ELSE:
-            self.set_coarse_list(mm_s0, mm_g0)
-            self.set_refined_list(mm_s0, mm_g0)
+        self.set_coarse_bool(mm_s0, mm_g0)
+        self.set_refined_list(mm_s0, mm_g0)
+        self.set_refined_bool(mm_s0, mm_g0)
         IF GhostsAfter == 1:
             self.add_ghost_zones(mm_s0, mm_g0)
         # Print things
@@ -1625,10 +1594,7 @@ cdef class ParticleBitmapSelector:
     @cython.initializedcheck(False)
     cdef void add_coarse(self, np.uint64_t mi1, int bbox = 2):
         cdef bint flag_ref = self.is_refined(mi1)
-        IF BoolType == 'Bool':
-            self.coarse_select_bool[mi1] = 1
-        ELSE:
-            self.coarse_select_list._set(mi1)
+        self.coarse_select_bool[mi1] = 1
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 0:
@@ -1679,10 +1645,7 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2):
-        IF BoolType == 'Bool':
-            self.refined_select_bool[mi2] = 1
-        ELSE:
-            self.refined_select_list._set(mi1, mi2)
+        self.refined_select_bool[mi2] = 1
         # Neighbors
         IF GhostsAfter == 0:
             IF RefinedGhosts == 1:
@@ -1730,10 +1693,7 @@ cdef class ParticleBitmapSelector:
                                        self.ind1_n, self.neighbor_list1)
         for m in range(<np.int32_t>ntot):
             mi1_n = self.neighbor_list1[m]
-            IF BoolType == 'Bool':
-                self.coarse_ghosts_bool[mi1_n] = 1
-            ELSE:
-                self.coarse_ghosts_list._set(mi1_n)
+            self.coarse_ghosts_bool[mi1_n] = 1
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1777,25 +1737,17 @@ cdef class ParticleBitmapSelector:
         for m in range(<np.int32_t>ntot):
             mi1_n = self.neighbor_list1[m]
             mi2_n = self.neighbor_list2[m]
-            IF BoolType == 'Bool':
-                self.coarse_ghosts_bool[mi1_n] = 1
-                IF RefinedExternalGhosts == 1:
-                    if mi1_n == mi1:
-                        self.refined_ghosts_bool[mi2_n] = 1 
-                    else:
-                        self.refined_ghosts_list._set(mi1_n, mi2_n)
-                ELSE:
-                    if mi1_n == mi1:
-                        self.refined_ghosts_bool[mi2_n] = 1 
-                    elif self.is_refined(mi1_n) == 1: 
-                        self.refined_ghosts_list._set(mi1_n, mi2_n)
-            ELSE:
-                self.coarse_ghosts_list._set(mi1_n)
-                IF RefinedExternalGhosts == 1:
+            self.coarse_ghosts_bool[mi1_n] = 1
+            IF RefinedExternalGhosts == 1:
+                if mi1_n == mi1:
+                    self.refined_ghosts_bool[mi2_n] = 1 
+                else:
                     self.refined_ghosts_list._set(mi1_n, mi2_n)
-                ELSE:
-                    if self.is_refined(mi1_n) == 1:
-                        self.refined_ghosts_list._set(mi1_n, mi2_n)
+            ELSE:
+                if mi1_n == mi1:
+                    self.refined_ghosts_bool[mi2_n] = 1 
+                elif self.is_refined(mi1_n) == 1: 
+                    self.refined_ghosts_list._set(mi1_n, mi2_n)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1856,11 +1808,6 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_refined_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        IF BoolType != 'Bool':
-            IF UseUncompressed == 1:
-                self.refined_select_list._fill_bool(mm_s)
-            ELSE:
-                self.refined_select_list._fill_ewah(mm_s)
         IF GhostsAfter == 0:
             IF UseUncompressed == 1:
                 self.refined_ghosts_list._fill_bool(mm_g)
@@ -1931,44 +1878,35 @@ cdef class ParticleBitmapSelector:
                         for mi2 in range(self.s2):
                             if mm_s._get(mi1, mi2):
                                 self.add_neighbors_refined(mi1, mi2)
-                        IF BoolType == 'Bool':
-                            # self.push_refined_bool(mi1)
-                            IF UseUncompressedView == 1:
-                                self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-                                self.refined_ghosts_bool[:] = 0
-                            ELSE:
-                                self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
-                                for mi2 in range(self.s2):
-                                    self.refined_ghosts_bool[mi2] = 0
+                        # self.push_refined_bool(mi1)
+                        IF UseUncompressedView == 1:
+                            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+                            self.refined_ghosts_bool[:] = 0
+                        ELSE:
+                            self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+                            for mi2 in range(self.s2):
+                                self.refined_ghosts_bool[mi2] = 0
                     else:
                         self.add_neighbors_coarse(mi1)
                 ELSE:
                     self.add_neighbors_coarse(mi1)
         # Add ghost zones to bool array in order
-        IF BoolType == 'Bool':
-            IF UseUncompressedView == 1:
-                mm_g._set_coarse_array(self.coarse_ghosts_bool)
-                self.coarse_ghosts_bool[:] = 0
-            ELSE:
-                mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
-                for mi1 in range(self.s1):
-                    self.coarse_ghosts_bool[mi1] = 0
-            # print("Before refined list: {: 6d}".format(mm_g._count_refined()))
-            IF UseUncompressed == 1:
-                self.refined_ghosts_list._fill_bool(mm_g)
-            ELSE:
-                self.refined_ghosts_list._fill_ewah(mm_g)
-            # print("Before refined bool: {: 6d}".format(mm_g._count_refined()))
-            # print("Bool to be appended: {: 6d}".format(self.ghosts_ewah._count_refined()))
-            mm_g._append(self.ghosts_ewah)
-            # print("After             :  {: 6d}".format(mm_g._count_refined()))
+        IF UseUncompressedView == 1:
+            mm_g._set_coarse_array(self.coarse_ghosts_bool)
+            self.coarse_ghosts_bool[:] = 0
         ELSE:
-            IF UseUncompressed == 1:
-                self.coarse_ghosts_list._fill_bool(mm_g)
-                self.refined_ghosts_list._fill_bool(mm_g)
-            ELSE:
-                self.coarse_ghosts_list._fill_ewah(mm_g)
-                self.refined_ghosts_list._fill_ewah(mm_g)
+            mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+            for mi1 in range(self.s1):
+                self.coarse_ghosts_bool[mi1] = 0
+        # print("Before refined list: {: 6d}".format(mm_g._count_refined()))
+        IF UseUncompressed == 1:
+            self.refined_ghosts_list._fill_bool(mm_g)
+        ELSE:
+            self.refined_ghosts_list._fill_ewah(mm_g)
+        # print("Before refined bool: {: 6d}".format(mm_g._count_refined()))
+        # print("Bool to be appended: {: 6d}".format(self.ghosts_ewah._count_refined()))
+        mm_g._append(self.ghosts_ewah)
+        # print("After             :  {: 6d}".format(mm_g._count_refined()))
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -2038,12 +1976,6 @@ cdef class ParticleBitmapSelector:
         for i in range(3):
             ndds[i] = dds[i]/2
         nlevel = level + 1
-        # Clean up
-        IF BoolType == 'Vector':
-            self.coarse_select_list._prune()
-            self.coarse_ghosts_list._prune()
-            self.refined_select_list._prune()
-            self.refined_ghosts_list._prune()
         # Loop over octs
         for i in range(2):
             npos[0] = pos[0] + i*ndds[0]
@@ -2080,8 +2012,7 @@ cdef class ParticleBitmapSelector:
                             if self.is_refined(mi1) == 1:
                                 self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                         self.add_coarse(mi1, sbbox)
-                        IF BoolType == 'Bool':
-                            self.push_refined_bool(mi1)
+                        self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
                         IF FillChildCellsRefined == 1:
                             if sbbox == 1:
