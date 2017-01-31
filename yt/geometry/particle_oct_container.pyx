@@ -45,9 +45,6 @@ import struct
 import os
 import itertools
 
-# If set to 1, only cells at the edge of selectors are given ghost zones
-# This has no effect if ghost zones are done at the end
-DEF OnlyGhostsAtEdges = 1
 # If set to 1, only cells at the edge of selectors are refined
 DEF OnlyRefineEdges = 1
 # If set to 1, ghost cells are added at the refined level
@@ -68,7 +65,7 @@ DEF UseCythonBitmasks = 1
 DEF FillChildCellsCoarse = 1
 DEF FillChildCellsRefined = 1
 # Super to handle any case where you need to know edges
-# Must be set to 1 if OnlyGhostsAtEdges, OnlyRefineEdges,
+# Must be set to 1 if OnlyRefineEdges,
 # FillChildCellCoarse, or FilleChildCellRefined is 1
 DEF DetectEdges = 1
 
@@ -1593,17 +1590,11 @@ cdef class ParticleBitmapSelector:
         # Neighbors
         IF RefinedGhosts == 0:
             if (self.ngz > 0): 
-                IF OnlyGhostsAtEdges == 1:
-                    if (bbox == 2):
-                        self.add_neighbors_coarse(mi1)
-                ELSE:
+                if (bbox == 2):
                     self.add_neighbors_coarse(mi1)
         ELSE:
             if (self.ngz > 0) and (flag_ref == 0):
-                IF OnlyGhostsAtEdges == 1:
-                    if (bbox == 2):
-                        self.add_neighbors_coarse(mi1)
-                ELSE:
+                if (bbox == 2):
                     self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
@@ -1643,10 +1634,7 @@ cdef class ParticleBitmapSelector:
         # Neighbors
         IF RefinedGhosts == 1:
             if (self.ngz > 0):
-                IF OnlyGhostsAtEdges == 1:
-                    if (bbox == 2):
-                        self.add_neighbors_refined(mi1, mi2)
-                ELSE:
+                if (bbox == 2):
                     self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
