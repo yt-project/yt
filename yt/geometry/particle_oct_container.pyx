@@ -626,11 +626,10 @@ cdef class ParticleBitmap:
                                  np.ndarray[anyfloat, ndim=2] pos,
                                  np.ndarray[anyfloat, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
-                                 np.ndarray[np.uint32_t, ndim=1] pcount,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                  np.uint64_t file_id, np.uint64_t nsub_mi):
-        return self.__refined_index_data_file(pos, hsml, mask, pcount,
+        return self.__refined_index_data_file(pos, hsml, mask,
                                               sub_mi1, sub_mi2,
                                               file_id, nsub_mi)
 
@@ -643,7 +642,6 @@ cdef class ParticleBitmap:
         np.ndarray[anyfloat, ndim=2] pos,
         np.ndarray[anyfloat, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
-        np.ndarray[np.uint32_t, ndim=1] pcount,
         np.ndarray[np.uint64_t, ndim=1] sub_mi1,
         np.ndarray[np.uint64_t, ndim=1] sub_mi2,
         np.uint64_t file_id, np.uint64_t nsub_mi
@@ -691,7 +689,6 @@ cdef class ParticleBitmap:
                 sub_mi2[nsub_mi] = bounded_morton_split_relative_dds(
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split)
                 nsub_mi += 1
-                pcount[mi] += 1
                 # Expand for smoothing
                 if hsml is not None:
                     Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
@@ -712,7 +709,6 @@ cdef class ParticleBitmap:
                         sub_mi1[nsub_mi] = mi
                         sub_mi2[nsub_mi] = miex
                         nsub_mi += 1
-                        pcount[mi] += 1
         # Only subs of particles in the mask
         return nsub_mi
 

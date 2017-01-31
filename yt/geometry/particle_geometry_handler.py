@@ -193,11 +193,9 @@ class ParticleIndex(Index):
                         for d in self.data_files)
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
-        pcount = np.zeros(1 << (self.regions.index_order1*3), 'uint32')
         pb = get_pbar("Initializing refined index", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
-            pcount[:] = 0
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if hasattr(self.ds, '_sph_ptype'):
@@ -205,7 +203,7 @@ class ParticleIndex(Index):
                 else:
                     hsml = None
                 nsub_mi = self.regions._refined_index_data_file(
-                    pos, hsml, mask, pcount, sub_mi1, sub_mi2,
+                    pos, hsml, mask, sub_mi1, sub_mi2,
                     data_file.file_id, nsub_mi)
             self.regions._set_refined_index_data_file(
                 mask, sub_mi1, sub_mi2,
