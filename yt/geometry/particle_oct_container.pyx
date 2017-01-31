@@ -82,9 +82,6 @@ DEF CellParticleCount = 0
 DEF AddOrphans = 0
 # If set, intermediate octs are included in the octree
 DEF InclPartialOcts = 0
-# If set, cells are owned by the file that contributes the most particles.
-# Otherwise, cells are owned by the file with the largest index
-DEF OwnByCount = 0
 
 _bitmask_version = np.uint64(1)
 
@@ -465,7 +462,6 @@ cdef class ParticleBitmap:
     cdef public object masks
     cdef public object counts
     cdef public object max_count
-    cdef public object owners
     cdef public object _last_selector
     cdef public object _last_return_values
     cdef public object _cached_octrees
@@ -511,11 +507,6 @@ cdef class ParticleBitmap:
         # by particles.
         # This is the simple way, for now.
         self.masks = np.zeros((1 << (index_order1 * 3), nfiles), dtype="uint8")
-        IF CellParticleCount == 1:
-            self.owners = np.zeros((1 << (index_order1 * 3), 3), dtype='int32')
-        ELSE: 
-            self.owners = np.zeros((1 << (index_order1 * 3), 2), dtype='int32')
-        self.owners[:,1] -= 1
         IF UseCythonBitmasks == 1:
             self.bitmasks = FileBitmasks(self.nfiles)
         ELSE:
@@ -661,7 +652,6 @@ cdef class ParticleBitmap:
         cdef np.float64_t RE[3]
         cdef np.float64_t dds1[3]
         cdef np.float64_t dds2[3]
-        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
         cdef np.float64_t dd2_max
         cdef np.uint64_t mi_split[3]
         cdef np.uint64_t miex, mi_max
@@ -697,14 +687,6 @@ cdef class ParticleBitmap:
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split)
                 nsub_mi += 1
                 pcount[mi] += 1
-                IF OwnByCount == 1:
-                    if <np.int32_t>pcount[mi] > owners[mi,0]:
-                        owners[mi,0] = <np.int32_t>pcount[mi]
-                        owners[mi,1] = <np.int32_t>file_id
-                ELSE:
-                    if <np.int32_t>file_id > owners[mi,1]:
-                        owners[mi,0] = <np.int32_t>pcount[mi]
-                        owners[mi,1] = <np.int32_t>file_id
                 # Expand for smoothing
                 if hsml is not None:
                     Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
@@ -726,19 +708,6 @@ cdef class ParticleBitmap:
                         sub_mi2[nsub_mi] = miex
                         nsub_mi += 1
                         pcount[mi] += 1
-                        IF OwnByCount == 1:
-                            if <np.int32_t>pcount[mi] > owners[mi,0]:
-                                owners[mi,0] = <np.int32_t>pcount[mi]
-                                owners[mi,1] = <np.int32_t>file_id
-                        ELSE:
-                            if <np.int32_t>file_id > owners[mi,1]:
-                                owners[mi,0] = <np.int32_t>pcount[mi]
-                                owners[mi,1] = <np.int32_t>file_id
-            else:
-                owners[mi,0] += 1
-                owners[mi,1] = <np.int32_t>file_id
-            IF CellParticleCount == 1:
-                owners[mi,2] += 1
         # Only subs of particles in the mask
         return nsub_mi
 
@@ -777,97 +746,6 @@ cdef class ParticleBitmap:
                 bitmasks._set_refined(file_id, sub_mi1[p], sub_mi2[p])
             ELSE:
                 bitmasks._set_refined(sub_mi1[p], sub_mi2[p])
-
-        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
-    def _owners_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
-                          np.ndarray[np.uint32_t, ndim=1] pcount,
-                          np.uint64_t file_id):
-        return self.__owners_data_file(pos, pcount, file_id)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
-    cdef np.uint64_t __owners_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
-                                        np.ndarray[np.uint32_t, ndim=1] pcount,
-                                        np.uint64_t file_id):
-        # Initialize
-        cdef np.uint64_t i, p, mi
-        cdef np.float64_t ppos[3]
-        cdef int skip
-        cdef np.float64_t LE[3]
-        cdef np.float64_t RE[3]
-        cdef np.float64_t dds1[3]
-        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
-        #cdef np.int32_t[:,:] owners = self.owners
-        cdef bint isref
-        IF UseCythonBitmasks == 1:
-            cdef FileBitmasks bitmasks = self.bitmasks
-        ELSE:
-            cdef BoolArrayCollection bitmasks = self.bitmasks[file_id]
-        # Copy things from structure (type cast)
-        for i in range(3):
-            LE[i] = self.left_edge[i]
-            RE[i] = self.right_edge[i]
-            dds1[i] = self.dds_mi1[i]
-        # Loop over positions skipping those outside the domain
-        for p in range(pos.shape[0]):
-            skip = 0
-            for i in range(3):
-                if pos[p,i] > RE[i] or pos[p,i] < LE[i]:
-                    skip = 1
-                    break
-                ppos[i] = pos[p,i]
-            if skip==1: continue
-            # Only look if collision at coarse index
-            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
-            IF UseCythonBitmasks == 1:
-                isref = bitmasks._isref(file_id, mi)
-            ELSE:
-                isref = bitmasks._isref(mi)
-            if isref:
-                pcount[mi] += 1
-                IF OwnByCount == 1:
-                    if <np.int32_t>pcount[mi] > owners[mi][0]:
-                        owners[mi][0] = <np.int32_t>pcount[mi]
-                        owners[mi][1] = <np.int32_t>file_id
-                ELSE:
-                    if <np.int32_t>file_id > owners[mi][1]:
-                        owners[mi][0] = <np.int32_t>pcount[mi]
-                        owners[mi][1] = <np.int32_t>file_id
-            else:
-                owners[mi][0] += 1
-                owners[mi][1] = <np.int32_t>file_id
-            IF CellParticleCount == 1:
-                owners[mi][2] += 1
-        # bitmasks.print_info(file_id)
-        # print np.sum(owners[:,1] == file_id)
-
-    @cython.boundscheck(False)
-    @cython.wraparound(False)
-    @cython.cdivision(True)
-    @cython.initializedcheck(False)
-    def set_owners(self):
-        cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
-        IF UseCythonBitmasks == 1:
-            self.bitmasks._set_owners(owners)
-        ELSE:
-            cdef np.int64_t i1
-            cdef np.uint32_t ifile
-            for ifile in range(self.nfiles):
-                self.bitmasks[ifile]._reset_owners()
-            cdef BoolArrayCollection bitmask
-            for i1 in range(owners.shape[0]):
-                if owners[i1][1] >= 0:
-                # if owners[i1][0] > 0:
-                    ifile = owners[i1][1]
-                    bitmask = self.bitmasks[ifile]
-                    bitmask._set_owns(<np.uint64_t>i1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1095,7 +973,6 @@ cdef class ParticleBitmap:
         cdef np.uint64_t nfiles = 0
         cdef np.uint64_t size_serial
         cdef bint overwrite = 0
-        cdef bint redo_owners = 0
         # Verify that file is correct version
         if not os.path.isfile(fname):
             raise IOError("The provided index file does not exist")
@@ -1105,9 +982,7 @@ cdef class ParticleBitmap:
             overwrite = 1
             nfiles = ver
             ver = 0 # Original bitmaps had number of files first
-        if _bitmask_version == 1 and ver == 0:
-            redo_owners = 1
-        elif ver != _bitmask_version:
+        if ver != _bitmask_version:
             raise IOError("The file format of the index has changed since "+
                           "this file was created. It will be replaced with an "+
                           "updated version.")
@@ -1136,8 +1011,6 @@ cdef class ParticleBitmap:
         # Save in correct format
         if overwrite == 1:
             self.save_bitmasks(fname)
-        if redo_owners:
-            read_flag = 0
         return read_flag
 
     def check(self):
@@ -1192,8 +1065,8 @@ cdef class ParticleBitmap:
         return np.array(mi,'uint64')
 
     def file_ownership_mask(self, fid):
-        cdef BoolArrayCollection out = BoolArrayCollection()
-        self.bitmasks._select_owned(<np.uint32_t> fid, out)
+        cdef BoolArrayCollection out
+        out = self.bitmasks._get_bitmask(<np.uint32_t> fid)
         return out
 
     def finalize(self):
@@ -1279,8 +1152,7 @@ cdef class ParticleBitmap:
         file_masks = np.array([BoolArrayCollection() for i in range(len(file_idx))],
                               dtype="object")
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
-            temp_mask = BoolArrayCollection()
-            self.bitmasks._select_owned(<np.uint32_t> fid, temp_mask)
+            temp_mask = self.bitmasks._get_bitmask(<np.uint32_t> fid)
             cmask._logicaland(temp_mask, fmask)
         # Check for orphaned cells
         IF AddOrphans == 1:
@@ -1324,8 +1196,7 @@ cdef class ParticleBitmap:
                               dtype="object")
         addfile_idx = len(file_idx)*[None]
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
-            temp_mask = BoolArrayCollection()
-            self.bitmasks._select_owned(<np.uint32_t> fid, temp_mask)
+            temp_mask = self.bitmasks._get_bitmask(<np.uint32_t> fid)
             cmask._logicaland(temp_mask, fmask)
             addfile_idx[i] = self.mask_to_files(fmask).astype('uint32')
         # Check for orphaned cells
