@@ -45,10 +45,10 @@ import struct
 import os
 import itertools
 
-# If set to 1, ghost cells are added at the refined level reguardless of if the 
+# If set to 1, ghost cells are added at the refined level reguardless of if the
 # coarse cell containing it is refined in the selector.
-# If set to 0, ghost cells are only added at the refined level if the coarse index 
-# for the ghost cell is refined in the selector.
+# If set to 0, ghost cells are only added at the refined level of the coarse
+# index for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
 
 _bitmask_version = np.uint64(1)
