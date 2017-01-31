@@ -694,23 +694,21 @@ cdef class ParticleBitmap:
                 # Expand for smoothing
                 if hsml is not None:
                     Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
-                else:
-                    Nex = 0
-                if Nex > 0:
-                    xex_range = range(max(-Nex, -mi_split[0]), min(Nex, mi_max-mi_split[0]))
-                    yex_range = range(max(-Nex, -mi_split[1]), min(Nex, mi_max-mi_split[1]))
-                    zex_range = range(max(-Nex, -mi_split[2]), min(Nex, mi_max-mi_split[2]))
-                    for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
-                        if (xex, yex, zex) == (0, 0, 0):
-                            continue
-                        miex = encode_morton_64bit(mi_split[0] + xex,
-                                                   mi_split[1] + yex,
-                                                   mi_split[2] + zex)
-                        if nsub_mi >= sub_mi1.size:
-                            raise IndexError("Refined index exceeded original estimate.")
-                        sub_mi1[nsub_mi] = mi
-                        sub_mi2[nsub_mi] = miex
-                        nsub_mi += 1
+                    if Nex > 0:
+                        xex_range = range(max(-Nex, -mi_split[0]), min(Nex, mi_max-mi_split[0]))
+                        yex_range = range(max(-Nex, -mi_split[1]), min(Nex, mi_max-mi_split[1]))
+                        zex_range = range(max(-Nex, -mi_split[2]), min(Nex, mi_max-mi_split[2]))
+                        for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
+                            if (xex, yex, zex) == (0, 0, 0):
+                                continue
+                            miex = encode_morton_64bit(mi_split[0] + xex,
+                                                       mi_split[1] + yex,
+                                                       mi_split[2] + zex)
+                            if nsub_mi >= sub_mi1.size:
+                                raise IndexError("Refined index exceeded original estimate.")
+                            sub_mi1[nsub_mi] = mi
+                            sub_mi2[nsub_mi] = miex
+                            nsub_mi += 1
         # Only subs of particles in the mask
         return nsub_mi
 
