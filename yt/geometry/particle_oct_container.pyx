@@ -51,11 +51,8 @@ import itertools
 # for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
 # If Set to 1, auto fill child cells for cells
-DEF FillChildCellsCoarse = 1
 DEF FillChildCellsRefined = 1
 # Super to handle any case where you need to know edges
-# Must be set to 1 if 
-# FillChildCellCoarse, or FilleChildCellRefined is 1
 DEF DetectEdges = 1
 
 _bitmask_version = np.uint64(1)
@@ -1263,20 +1260,17 @@ cdef class ParticleBitmapSelector:
         mm_s0 = BoolArrayColl(self.s1, self.s2)
         mm_g0 = BoolArrayColl(self.s1, self.s2)
         # Recurse
-        IF FillChildCellsCoarse == 1:
-            cdef np.float64_t rpos[3]
-            for i in range(3):
-                rpos[i] = self.DRE[i] - self.bitmap.dds_mi2[i]/2.0
-            sbbox = self.selector.select_bbox_edge(pos, rpos)
-            if sbbox == 1:
-                # self.fill_subcells_mi1(pos, dds)
-                for mi1 in range(<np.int64_t>self.s1):
-                    mm_s0._set_coarse(mi1)
-                mm_s0._compress(mm_s)
-                return
-            else:
-                self.recursive_morton_mask(level, pos, dds, mi1)
-        ELSE:
+        cdef np.float64_t rpos[3]
+        for i in range(3):
+            rpos[i] = self.DRE[i] - self.bitmap.dds_mi2[i]/2.0
+        sbbox = self.selector.select_bbox_edge(pos, rpos)
+        if sbbox == 1:
+            # self.fill_subcells_mi1(pos, dds)
+            for mi1 in range(<np.int64_t>self.s1):
+                mm_s0._set_coarse(mi1)
+            mm_s0._compress(mm_s)
+            return
+        else:
             self.recursive_morton_mask(level, pos, dds, mi1)
         # Set coarse morton indices in order
         self.set_coarse_bool(mm_s0, mm_g0)
@@ -1645,12 +1639,9 @@ cdef class ParticleBitmapSelector:
                     IF DetectEdges == 0:
                         sbbox = 2
                     if nlevel < self.order1:
-                        IF FillChildCellsCoarse == 1:
-                            if sbbox == 1:
-                                self.fill_subcells_mi1(npos, ndds)
-                            else:
-                                self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                        ELSE:
+                        if sbbox == 1:
+                            self.fill_subcells_mi1(npos, ndds)
+                        else:
                             self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == self.order1:
                         mi1 = bounded_morton_dds(npos[0], npos[1], npos[2], self.DLE, ndds)
