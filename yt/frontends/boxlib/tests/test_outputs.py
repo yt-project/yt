@@ -32,6 +32,7 @@ import numpy as np
 _orion_fields = ("temperature", "density", "velocity_magnitude")
 _nyx_fields = ("Ne", "Temp", "particle_mass_density")
 _warpx_fields = ("Ex", "By", "jz")
+_castro_fields = ("Temp", "density", "particle_count")
 
 radadvect = "RadAdvect/plt00000"
 @requires_ds(radadvect)
@@ -104,6 +105,44 @@ def test_nyx_particle_io():
     assert(np.all(np.logical_and(reg['particle_position_z'] <= right_edge[2], 
                                  reg['particle_position_z'] >= left_edge[2])))
 
+RT_particles = "RT_particles/plt00050"
+@requires_ds(RT_particles)
+def test_RT_particles():
+    ds = data_dir_load(RT_particles)
+    yield assert_equal, str(ds), "plt00050"
+    for test in small_patch_amr(ds, _castro_fields):
+        test_RT_particles.__name__ = test.description
+        yield test
+
+
+@requires_file(RT_particles)
+def test_castro_particle_io():
+    ds = data_dir_load(RT_particles)
+
+    grid = ds.index.grids[2]
+    npart_grid_2 = 49  # read directly from the header
+    assert_equal(grid['particle_position_x'].size, npart_grid_2)
+    assert_equal(grid['Tracer', 'particle_position_y'].size, npart_grid_2)
+    assert_equal(grid['all', 'particle_position_y'].size, npart_grid_2)
+
+    ad = ds.all_data()
+    npart = 49  # read directly from the header
+    assert_equal(ad['particle_velocity_x'].size, npart)
+    assert_equal(ad['Tracer', 'particle_velocity_y'].size, npart)
+    assert_equal(ad['all', 'particle_velocity_y'].size, npart)
+
+    left_edge = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    right_edge = ds.arr([0.25, 1.0, 1.0], 'code_length')
+    center = 0.5*(left_edge + right_edge)
+                   
+    reg = ds.region(center, left_edge, right_edge)
+
+    assert(np.all(np.logical_and(reg['particle_position_x'] <= right_edge[0], 
+                                 reg['particle_position_x'] >= left_edge[0])))
+
+    assert(np.all(np.logical_and(reg['particle_position_y'] <= right_edge[1], 
+                                 reg['particle_position_y'] >= left_edge[1])))
+
 langmuir = "LangmuirWave/plt00020"
 @requires_ds(langmuir)
 def test_langmuir():
@@ -172,6 +211,10 @@ def test_OrionDataset():
 @requires_file(LyA)
 def test_NyxDataset():
     assert isinstance(data_dir_load(LyA), NyxDataset)
+
+@requires_file(RT_particles)
+def test_CastroDataset():
+    assert isinstance(data_dir_load(RT_particles), CastroDataset)
 
 @requires_file(LyA)
 def test_WarpXDataset():

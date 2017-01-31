@@ -73,11 +73,14 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
     - yt/frontends/boxlib/tests/test_outputs.py:test_OrionDataset
+    - yt/frontends/boxlib/tests/test_outputs.py:test_CastroDataset
+    - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
 
   local_boxlib_particles_001:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
+    - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_langmuir
     - yt/frontends/boxlib/tests/test_outputs.py:test_plasma
     - yt/frontends/boxlib/tests/test_outputs.py:test_warpx_particle_io
