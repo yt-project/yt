@@ -50,10 +50,6 @@ import itertools
 # If set to 0, ghost cells are only added at the refined level if the coarse index 
 # for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
-# If Set to 1, auto fill child cells for cells
-DEF FillChildCellsRefined = 1
-# Super to handle any case where you need to know edges
-DEF DetectEdges = 1
 
 _bitmask_version = np.uint64(1)
 
@@ -1631,13 +1627,8 @@ cdef class ParticleBitmapSelector:
                     npos[2] = pos[2] + k*ndds[2]
                     rpos[2] = npos[2] + ndds[2]
                     # Only recurse into selected cells
-                    IF DetectEdges == 1:
-                        sbbox = self.selector.select_bbox_edge(npos, rpos)
-                    ELSE:
-                        sbbox = self.selector.select_bbox(npos, rpos)
+                    sbbox = self.selector.select_bbox_edge(npos, rpos)
                     if sbbox == 0: continue
-                    IF DetectEdges == 0:
-                        sbbox = 2
                     if nlevel < self.order1:
                         if sbbox == 1:
                             self.fill_subcells_mi1(npos, ndds)
@@ -1651,12 +1642,9 @@ cdef class ParticleBitmapSelector:
                         self.add_coarse(mi1, sbbox)
                         self.push_refined_bool(mi1)
                     elif nlevel < (self.order1 + self.order2):
-                        IF FillChildCellsRefined == 1:
-                            if sbbox == 1:
-                                self.fill_subcells_mi2(npos, ndds)
-                            else:
-                                self.recursive_morton_mask(nlevel, npos, ndds, mi1)
-                        ELSE:
+                        if sbbox == 1:
+                            self.fill_subcells_mi2(npos, ndds)
+                        else:
                             self.recursive_morton_mask(nlevel, npos, ndds, mi1)
                     elif nlevel == (self.order1 + self.order2):
                         decode_morton_64bit(mi1,ind1)
