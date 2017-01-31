@@ -78,9 +78,6 @@ DEF FillChildCellsRefined = 1
 DEF DetectEdges = 1
 # If set, the number of particles in each cell are tracked
 DEF CellParticleCount = 0
-# If set, orphan cells (those that do not contain any particles) are
-# added to the mask for the first file
-DEF AddOrphans = 0
 
 _bitmask_version = np.uint64(1)
 
@@ -1155,15 +1152,6 @@ cdef class ParticleBitmap:
                               dtype="object")
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
             self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
-        # Check for orphaned cells
-        IF AddOrphans == 1:
-            cdef BoolArrayCollection total_mask = BoolArrayCollection()
-            cdef BoolArrayCollection orphans = BoolArrayCollection()
-            for i, fmask in enumerate(file_masks):
-                total_mask._append(fmask)
-            total_mask._logicalxor(cmask, orphans)
-            fmask = file_masks[0]
-            fmask._append(orphans)
         return file_masks
 
     @cython.boundscheck(False)
@@ -1198,15 +1186,6 @@ cdef class ParticleBitmap:
         for i, (fid, fmask) in enumerate(zip(file_idx,file_masks)):
             self.bitmasks._logicaland(<np.uint32_t> fid, cmask, fmask)
             addfile_idx[i] = self.mask_to_files(fmask).astype('uint32')
-        # Check for orphaned cells
-        IF AddOrphans == 1:
-            cdef BoolArrayCollection total_mask = BoolArrayCollection()
-            cdef BoolArrayCollection orphans = BoolArrayCollection()
-            for i, fmask in enumerate(file_masks):
-                total_mask._append(fmask)
-            total_mask._logicalxor(cmask, orphans)
-            fmask = file_masks[0]
-            fmask._append(orphans)
         return file_idx.astype('uint32'), file_masks, addfile_idx
 
     @cython.boundscheck(False)
