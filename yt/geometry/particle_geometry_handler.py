@@ -144,6 +144,7 @@ class ParticleIndex(Index):
             if order1 is None and order2 is None:
                 order1 = 1
                 order2 = 1
+                dont_cache=True
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
                 len(self.data_files), 
