@@ -631,13 +631,14 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def _refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                 np.ndarray[anyfloat, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint32_t, ndim=1] pcount,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                  np.uint64_t file_id, np.uint64_t nsub_mi):
-        return self.__refined_index_data_file(pos, mask, pcount,
-                                              sub_mi1, sub_mi2, 
+        return self.__refined_index_data_file(pos, hsml, mask, pcount,
+                                              sub_mi1, sub_mi2,
                                               file_id, nsub_mi)
 
     @cython.boundscheck(False)
@@ -645,6 +646,7 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef np.uint64_t __refined_index_data_file(self, np.ndarray[anyfloat, ndim=2] pos, 
+                                               np.ndarray[anyfloat, ndim=1] hsml,
                                                np.ndarray[np.uint8_t, ndim=1] mask,
                                                np.ndarray[np.uint32_t, ndim=1] pcount,
                                                np.ndarray[np.uint64_t, ndim=1] sub_mi1,
@@ -653,7 +655,6 @@ cdef class ParticleBitmap:
         # Initialize
         cdef np.int64_t i, p
         cdef np.uint64_t mi
-        cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
         cdef int skip
         cdef np.float64_t LE[3]
@@ -661,12 +662,21 @@ cdef class ParticleBitmap:
         cdef np.float64_t dds1[3]
         cdef np.float64_t dds2[3]
         cdef np.ndarray[np.int32_t, ndim=2] owners = self.owners
+        cdef np.float64_t dd2_max
+        cdef np.uint64_t mi_split[3]
+        cdef np.uint64_t miex, mi_max
+        cdef int xex, yex, zex
+        cdef object xex_range, yex_range, zex_range
+        mi_max = (1 << self.index_order2)
         # Copy things from structure (type cast)
+        dds2_max = 0.0
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             dds1[i] = self.dds_mi1[i]
             dds2[i] = self.dds_mi2[i]
+            if dds2[i] > dds2_max:
+                dds2_max = dds2[i]
         # Loop over positions skipping those outside the domain
         for p in range(pos.shape[0]):
             skip = 0
@@ -680,10 +690,11 @@ cdef class ParticleBitmap:
             mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
             if mask[mi] > 1:
                 # Determine sub index within cell of primary index
+                if nsub_mi >= sub_mi1.size:
+                    raise IndexError("Refined index exceeded original estimate.")
                 sub_mi1[nsub_mi] = mi
                 sub_mi2[nsub_mi] = bounded_morton_split_relative_dds(
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split)
-
                 nsub_mi += 1
                 pcount[mi] += 1
                 IF OwnByCount == 1:
@@ -694,6 +705,35 @@ cdef class ParticleBitmap:
                     if <np.int32_t>file_id > owners[mi,1]:
                         owners[mi,0] = <np.int32_t>pcount[mi]
                         owners[mi,1] = <np.int32_t>file_id
+                # Expand for smoothing
+                if hsml is not None:
+                    Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
+                else:
+                    Nex = 0
+                if Nex > 0:
+                    xex_range = range(max(-Nex, -mi_split[0]), min(Nex, mi_max-mi_split[0]))
+                    yex_range = range(max(-Nex, -mi_split[1]), min(Nex, mi_max-mi_split[1]))
+                    zex_range = range(max(-Nex, -mi_split[2]), min(Nex, mi_max-mi_split[2]))
+                    for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
+                        if (xex, yex, zex) == (0, 0, 0):
+                            continue
+                        miex = encode_morton_64bit(mi_split[0] + xex,
+                                                   mi_split[1] + yex,
+                                                   mi_split[2] + zex)
+                        if nsub_mi >= sub_mi1.size:
+                            raise IndexError("Refined index exceeded original estimate.")
+                        sub_mi1[nsub_mi] = mi
+                        sub_mi2[nsub_mi] = miex
+                        nsub_mi += 1
+                        pcount[mi] += 1
+                        IF OwnByCount == 1:
+                            if <np.int32_t>pcount[mi] > owners[mi,0]:
+                                owners[mi,0] = <np.int32_t>pcount[mi]
+                                owners[mi,1] = <np.int32_t>file_id
+                        ELSE:
+                            if <np.int32_t>file_id > owners[mi,1]:
+                                owners[mi,0] = <np.int32_t>pcount[mi]
+                                owners[mi,1] = <np.int32_t>file_id
             else:
                 owners[mi,0] += 1
                 owners[mi,1] = <np.int32_t>file_id
@@ -710,7 +750,7 @@ cdef class ParticleBitmap:
                                      np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                      np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                      np.uint64_t file_id, np.uint64_t nsub_mi):
-        return self.__set_refined_index_data_file(mask, sub_mi1, sub_mi2, 
+        return self.__set_refined_index_data_file(mask, sub_mi1, sub_mi2,
                                                   file_id, nsub_mi)
 
     @cython.boundscheck(False)
