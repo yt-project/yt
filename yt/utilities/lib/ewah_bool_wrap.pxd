@@ -5,10 +5,8 @@ cdef class FileBitmasks:
     cdef void** ewah_coll
     cdef void** ewah_keys
     cdef void** ewah_refn
-    cdef void** ewah_owns
 
     cdef void _reset(self)
-    cdef void _reset_owners(self)
     cdef bint _iseq(self, FileBitmasks solf)
     cdef BoolArrayCollection _get_bitmask(self, np.uint32_t ifile)
     cdef tuple _find_collisions(self, BoolArrayCollection coll, bint verbose=*)
@@ -18,24 +16,20 @@ cdef class FileBitmasks:
     cdef void _set(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint32_t ifile, np.uint64_t i1)
     cdef void _set_refined(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
-    cdef void _set_owners(self, np.int32_t[:,:] arr)
     cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr)
     cdef void _set_refined_array(self, np.uint32_t ifile, np.uint64_t mi1, np.uint8_t[:] arr)
     cdef void _set_map(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_refn(self, np.uint32_t ifile, np.uint64_t i1)
-    cdef void _set_owns(self, np.uint32_t ifile, np.uint64_t i1)
     cdef bint _get(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
     cdef bint _get_coarse(self, np.uint32_t ifile, np.uint64_t i1)
     cdef bint _isref(self, np.uint32_t ifile, np.uint64_t i)
     cdef int _count_total(self, np.uint32_t ifile)
     cdef int _count_refined(self, np.uint32_t ifile)
-    cdef int _count_owned(self, np.uint32_t ifile)
     cdef int _count_coarse(self, np.uint32_t ifile)
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf)
     cdef bint _intersects(self, np.uint32_t ifile, BoolArrayCollection solf)
     cdef void _logicalxor(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
     cdef void _logicaland(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
-    cdef void _select_owned(self, np.uint32_t ifile, BoolArrayCollection out)
     cdef void _select_contaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out, 
                np.uint8_t[:] secondary_files, BoolArrayCollection mask2=*)
     cdef void _select_uncontaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out,
@@ -48,11 +42,9 @@ cdef class BoolArrayCollection:
     cdef void* ewah_coll
     cdef void* ewah_keys
     cdef void* ewah_refn
-    cdef void* ewah_owns
     cdef void* ewah_coar
 
     cdef void _reset(self)
-    cdef void _reset_owners(self)
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint64_t i1)
@@ -61,7 +53,6 @@ cdef class BoolArrayCollection:
     cdef void _set_refined_array(self, np.uint64_t mi1, np.uint8_t[:] arr)
     cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_refn(self, np.uint64_t i1)
-    cdef void _set_owns(self, np.uint64_t i1)
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef bint _get_coarse(self, np.uint64_t i1)
     cdef bint _contains(self, np.uint64_t i)
@@ -69,7 +60,6 @@ cdef class BoolArrayCollection:
     cdef void _ewah_coarse(self)
     cdef int _count_total(self)
     cdef int _count_refined(self)
-    cdef int _count_owned(self)
     cdef int _count_coarse(self)
     cdef void _append(self, BoolArrayCollection solf)
     cdef void _logicalor(self, BoolArrayCollection solf, BoolArrayCollection out)
@@ -93,7 +83,6 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void* ewah_coll
     cdef void* ewah_keys
     cdef void* ewah_refn
-    cdef void* ewah_owns
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef void _set_coarse(self, np.uint64_t i1)
@@ -104,13 +93,11 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void _set_refined_array_ptr(self, np.uint64_t mi1, np.uint8_t *arr)
     cdef void _set_map(self, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_refn(self, np.uint64_t i1)
-    cdef void _set_owns(self, np.uint64_t i1)
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef bint _get_coarse(self, np.uint64_t i1)
     cdef bint _isref(self, np.uint64_t i)
     cdef int _count_total(self)
     cdef int _count_refined(self)
-    cdef int _count_owned(self)
     cdef void _append(self, BoolArrayCollectionUncompressed solf)
     cdef bint _intersects(self, BoolArrayCollectionUncompressed solf)
     cdef void _compress(self, BoolArrayCollection solf)

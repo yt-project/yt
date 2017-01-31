@@ -23,6 +23,7 @@ from libc.math cimport floor, ceil, fmod
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport bounded_morton, \
     bounded_morton_dds, bounded_morton_relative_dds, \
+    bounded_morton_split_dds, bounded_morton_split_relative_dds, \
     encode_morton_64bit, decode_morton_64bit, \
     morton_neighbors_coarse, morton_neighbors_refined
 import numpy as np
@@ -536,6 +537,7 @@ cdef class ParticleBitmap:
     def _coarse_index_data_file(self,
                                 np.ndarray[anyfloat, ndim=2] pos,
                                 np.ndarray[anyfloat, ndim=1] hsml,
+                                np.uint64_t file_id):
         return self.__coarse_index_data_file(pos, hsml, file_id)
 
     @cython.boundscheck(False)
