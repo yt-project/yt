@@ -568,7 +568,7 @@ cdef class ParticleBitmap:
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                  np.uint64_t file_id, np.uint64_t nsub_mi):
-        return self.__refined_index_data_file(pos, hsml, mask, pcount,
+        return self.__refined_index_data_file(pos, hsml, mask,
                                               sub_mi1, sub_mi2, 
                                               file_id, nsub_mi)
 
