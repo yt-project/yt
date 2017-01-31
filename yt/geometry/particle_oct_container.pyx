@@ -76,8 +76,6 @@ DEF FillChildCellsRefined = 1
 # Must be set to 1 if OnlyGhostsAtEdges, OnlyRefineEdges,
 # FillChildCellCoarse, or FilleChildCellRefined is 1
 DEF DetectEdges = 1
-# If set, the number of particles in each cell are tracked
-DEF CellParticleCount = 0
 
 _bitmask_version = np.uint64(1)
 
