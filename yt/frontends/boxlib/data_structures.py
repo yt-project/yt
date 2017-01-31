@@ -822,8 +822,26 @@ class OrionDataset(BoxlibDataset):
         return False
 
 
+class CastroHierarchy(BoxlibHierarchy):
+
+    def __init__(self, ds, dataset_type='castro_native'):
+        super(CastroHierarchy, self).__init__(ds, dataset_type)
+
+        # extra beyond the base real fields that all Boxlib
+        # particles have, i.e. the xyz positions
+        castro_extra_real_fields = ['particle_velocity_x',
+                                    'particle_velocity_y',
+                                    'particle_velocity_z']
+
+        is_checkpoint = True
+
+        self._read_particles("Tracer", is_checkpoint, 
+                             castro_extra_real_fields[0:self.ds.dimensionality])
+
+
 class CastroDataset(BoxlibDataset):
 
+    _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
 
     @classmethod
@@ -882,7 +900,13 @@ class CastroDataset(BoxlibDataset):
             if not self.parameters['-z'] == "interior": periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
-    
+        if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
+            # we have particles
+            self.parameters["particles"] = 1 
+            self.particle_types = ("Tracer",)
+            self.particle_types_raw = self.particle_types
+
+
 
 class MaestroDataset(BoxlibDataset):
 
@@ -956,7 +980,8 @@ class NyxHierarchy(BoxlibHierarchy):
 
         is_checkpoint = False
 
-        self._read_particles("DM", is_checkpoint, nyx_extra_real_fields)
+        self._read_particles("DM", is_checkpoint, 
+                             nyx_extra_real_fields[0:self.ds.dimensionality+1])
 
 
 class NyxDataset(BoxlibDataset):
@@ -1169,7 +1194,8 @@ class WarpXHierarchy(BoxlibHierarchy):
         is_checkpoint = False
 
         for ptype in self.ds.particle_types:
-            self._read_particles(ptype, is_checkpoint, warpx_extra_real_fields)
+            self._read_particles(ptype, is_checkpoint, 
+                                 warpx_extra_real_fields[0:self.ds.dimensionality+1])
         
         # Additional WarpX particle information (used to set up species)
         with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
