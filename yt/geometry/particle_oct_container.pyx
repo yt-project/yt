@@ -45,9 +45,6 @@ import struct
 import os
 import itertools
 
-# If set to 1, ghost zones are added after all selected cells are identified.
-# If set to 0, ghost zones are added as cells are selected
-DEF GhostsAfter = 0
 # If set to 1, only cells at the edge of selectors are given ghost zones
 # This has no effect if ghost zones are done at the end
 DEF OnlyGhostsAtEdges = 1
@@ -1522,8 +1519,6 @@ cdef class ParticleBitmapSelector:
         self.set_coarse_bool(mm_s0, mm_g0)
         self.set_refined_list(mm_s0, mm_g0)
         self.set_refined_bool(mm_s0, mm_g0)
-        IF GhostsAfter == 1:
-            self.add_ghost_zones(mm_s0, mm_g0)
         # Print things
         if 0:
             mm_s0.print_info("Selector: ")
@@ -1596,21 +1591,20 @@ cdef class ParticleBitmapSelector:
         cdef bint flag_ref = self.is_refined(mi1)
         self.coarse_select_bool[mi1] = 1
         # Neighbors
-        IF GhostsAfter == 0:
-            IF RefinedGhosts == 0:
-                if (self.ngz > 0): 
-                    IF OnlyGhostsAtEdges == 1:
-                        if (bbox == 2):
-                            self.add_neighbors_coarse(mi1)
-                    ELSE:
+        IF RefinedGhosts == 0:
+            if (self.ngz > 0): 
+                IF OnlyGhostsAtEdges == 1:
+                    if (bbox == 2):
                         self.add_neighbors_coarse(mi1)
-            ELSE:
-                if (self.ngz > 0) and (flag_ref == 0):
-                    IF OnlyGhostsAtEdges == 1:
-                        if (bbox == 2):
-                            self.add_neighbors_coarse(mi1)
-                    ELSE:
+                ELSE:
+                    self.add_neighbors_coarse(mi1)
+        ELSE:
+            if (self.ngz > 0) and (flag_ref == 0):
+                IF OnlyGhostsAtEdges == 1:
+                    if (bbox == 2):
                         self.add_neighbors_coarse(mi1)
+                ELSE:
+                    self.add_neighbors_coarse(mi1)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1647,14 +1641,13 @@ cdef class ParticleBitmapSelector:
     cdef void add_refined(self, np.uint64_t mi1, np.uint64_t mi2, int bbox = 2):
         self.refined_select_bool[mi2] = 1
         # Neighbors
-        IF GhostsAfter == 0:
-            IF RefinedGhosts == 1:
-                if (self.ngz > 0):
-                    IF OnlyGhostsAtEdges == 1:
-                        if (bbox == 2):
-                            self.add_neighbors_refined(mi1, mi2)
-                    ELSE:
+        IF RefinedGhosts == 1:
+            if (self.ngz > 0):
+                IF OnlyGhostsAtEdges == 1:
+                    if (bbox == 2):
                         self.add_neighbors_refined(mi1, mi2)
+                ELSE:
+                    self.add_neighbors_refined(mi1, mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1798,21 +1791,19 @@ cdef class ParticleBitmapSelector:
             self.coarse_select_list._fill_bool(mm_s)
         ELSE:
             self.coarse_select_list._fill_ewah(mm_s)
-        IF GhostsAfter == 0:
-            IF UseUncompressed == 1:
-                self.coarse_ghosts_list._fill_bool(mm_g)
-            ELSE:
-                self.coarse_ghosts_list._fill_ewah(mm_g)
+        IF UseUncompressed == 1:
+            self.coarse_ghosts_list._fill_bool(mm_g)
+        ELSE:
+            self.coarse_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_refined_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        IF GhostsAfter == 0:
-            IF UseUncompressed == 1:
-                self.refined_ghosts_list._fill_bool(mm_g)
-            ELSE:
-                self.refined_ghosts_list._fill_ewah(mm_g)
+        IF UseUncompressed == 1:
+            self.refined_ghosts_list._fill_bool(mm_g)
+        ELSE:
+            self.refined_ghosts_list._fill_ewah(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1826,22 +1817,20 @@ cdef class ParticleBitmapSelector:
             mm_s._set_coarse_array_ptr(self.coarse_select_bool)
             for mi1 in range(self.s1):
                 self.coarse_select_bool[mi1] = 0
-        IF GhostsAfter == 0:
-            IF UseUncompressedView == 1:
-                mm_g._set_coarse_array(self.coarse_ghosts_bool)
-                self.coarse_ghosts_bool[:] = 0
-            ELSE:
-                mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
-                for mi1 in range(self.s1):
-                    self.coarse_ghosts_bool[mi1] = 0
+        IF UseUncompressedView == 1:
+            mm_g._set_coarse_array(self.coarse_ghosts_bool)
+            self.coarse_ghosts_bool[:] = 0
+        ELSE:
+            mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+            for mi1 in range(self.s1):
+                self.coarse_ghosts_bool[mi1] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_refined_bool(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         mm_s._append(self.select_ewah)
-        IF GhostsAfter == 0:
-            mm_g._append(self.ghosts_ewah)
+        mm_g._append(self.ghosts_ewah)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1856,14 +1845,13 @@ cdef class ParticleBitmapSelector:
             self.select_ewah._set_refined_array_ptr(mi1, self.refined_select_bool)
             for mi2 in range(self.s2):
                 self.refined_select_bool[mi2] = 0
-        IF GhostsAfter == 0:
-            IF UseUncompressedView == 1:
-                self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-                self.refined_ghosts_bool[:] = 0
-            ELSE:
-                self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
-                for mi2 in range(self.s2):
-                    self.refined_ghosts_bool[mi2] = 0
+        IF UseUncompressedView == 1:
+            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
+            self.refined_ghosts_bool[:] = 0
+        ELSE:
+            self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+            for mi2 in range(self.s2):
+                self.refined_ghosts_bool[mi2] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
