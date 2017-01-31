@@ -50,11 +50,6 @@ import itertools
 # If set to 0, ghost cells are only added at the refined level if the coarse index 
 # for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
-# If set to 1, bitmaps are only compressed before looking for files
-DEF UseUncompressed = 1
-# If set to 1, uncompressed bitmaps are passed around as memory views rather than pointers
-# Does not apply if UseUncompressed = 0 (i.e. automatically is 1)
-DEF UseUncompressedView = 0
 # If Set to 1, file bitmasks are managed by cython
 DEF UseCythonBitmasks = 1
 # If Set to 1, auto fill child cells for cells
@@ -69,11 +64,7 @@ _bitmask_version = np.uint64(1)
 
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
-
-IF UseUncompressed == 1:
-    from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
-ELSE:
-    from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection as BoolArrayColl
+from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
 
 IF UseCythonBitmasks == 1:
     from ..utilities.lib.ewah_bool_wrap cimport FileBitmasks
@@ -1376,16 +1367,10 @@ cdef class ParticleBitmapSelector:
     cdef np.uint8_t[:] file_mask_p
     cdef np.uint8_t[:] file_mask_g
     # Uncompressed boolean
-    IF UseUncompressedView == 1:
-        cdef np.uint8_t[:] refined_select_bool
-        cdef np.uint8_t[:] refined_ghosts_bool
-        cdef np.uint8_t[:] coarse_select_bool
-        cdef np.uint8_t[:] coarse_ghosts_bool
-    ELSE:
-        cdef np.uint8_t *refined_select_bool
-        cdef np.uint8_t *refined_ghosts_bool
-        cdef np.uint8_t *coarse_select_bool
-        cdef np.uint8_t *coarse_ghosts_bool
+    cdef np.uint8_t *refined_select_bool
+    cdef np.uint8_t *refined_ghosts_bool
+    cdef np.uint8_t *coarse_select_bool
+    cdef np.uint8_t *coarse_ghosts_bool
     cdef SparseUnorderedRefinedBitmask refined_ghosts_list
     cdef BoolArrayColl select_ewah
     cdef BoolArrayColl ghosts_ewah
@@ -1435,34 +1420,20 @@ cdef class ParticleBitmapSelector:
         self.pointers[8] = malloc( sizeof(np.uint8_t) * self.s2)
         self.pointers[9] = malloc( sizeof(np.uint8_t) * self.s1)
         self.pointers[10] = malloc( sizeof(np.uint8_t) * self.s1)
-        IF UseUncompressedView == 1:
-            self.refined_select_bool = <np.uint8_t[:self.s2]> self.pointers[7]
-            self.refined_ghosts_bool = <np.uint8_t[:self.s2]> self.pointers[8]
-            self.coarse_select_bool = <np.uint8_t[:self.s1]> self.pointers[9]
-            self.coarse_ghosts_bool = <np.uint8_t[:self.s1]> self.pointers[10]
-            self.refined_select_bool[:] = 0
-            self.refined_ghosts_bool[:] = 0
-            self.coarse_select_bool[:] = 0
-            self.coarse_ghosts_bool[:] = 0
-        ELSE:
-            self.refined_select_bool = <np.uint8_t *> self.pointers[7]
-            self.refined_ghosts_bool = <np.uint8_t *> self.pointers[8]
-            self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
-            self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
-            cdef np.uint64_t mi
-            for mi in range(<np.int64_t>self.s2):
-                self.refined_select_bool[mi] = 0
-                self.refined_ghosts_bool[mi] = 0
-            for mi in range(<np.int64_t>self.s1):
-                self.coarse_select_bool[mi] = 0
-                self.coarse_ghosts_bool[mi] = 0
+        self.refined_select_bool = <np.uint8_t *> self.pointers[7]
+        self.refined_ghosts_bool = <np.uint8_t *> self.pointers[8]
+        self.coarse_select_bool = <np.uint8_t *> self.pointers[9]
+        self.coarse_ghosts_bool = <np.uint8_t *> self.pointers[10]
+        cdef np.uint64_t mi
+        for mi in range(<np.int64_t>self.s2):
+            self.refined_select_bool[mi] = 0
+            self.refined_ghosts_bool[mi] = 0
+        for mi in range(<np.int64_t>self.s1):
+            self.coarse_select_bool[mi] = 0
+            self.coarse_ghosts_bool[mi] = 0
         self.refined_ghosts_list = SparseUnorderedRefinedBitmask()
-        IF UseUncompressed == 1:
-            self.select_ewah = BoolArrayColl(self.s1, self.s2)
-            self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
-        ELSE:
-            self.select_ewah = BoolArrayCollection()
-            self.ghosts_ewah = BoolArrayCollection()
+        self.select_ewah = BoolArrayColl(self.s1, self.s2)
+        self.ghosts_ewah = BoolArrayColl(self.s1, self.s2)
 
     def __dealloc__(self):
         cdef int i
@@ -1485,12 +1456,8 @@ cdef class ParticleBitmapSelector:
         # Uncompressed version
         cdef BoolArrayColl mm_s0
         cdef BoolArrayColl mm_g0
-        IF UseUncompressed == 1:
-            mm_s0 = BoolArrayColl(self.s1, self.s2)
-            mm_g0 = BoolArrayColl(self.s1, self.s2)
-        ELSE:
-            mm_s0 = mm_s
-            mm_g0 = mm_g
+        mm_s0 = BoolArrayColl(self.s1, self.s2)
+        mm_g0 = BoolArrayColl(self.s1, self.s2)
         # Recurse
         IF FillChildCellsCoarse == 1:
             cdef np.float64_t rpos[3]
@@ -1501,8 +1468,7 @@ cdef class ParticleBitmapSelector:
                 # self.fill_subcells_mi1(pos, dds)
                 for mi1 in range(<np.int64_t>self.s1):
                     mm_s0._set_coarse(mi1)
-                IF UseUncompressed == 1:
-                    mm_s0._compress(mm_s)
+                mm_s0._compress(mm_s)
                 return
             else:
                 self.recursive_morton_mask(level, pos, dds, mi1)
@@ -1517,9 +1483,8 @@ cdef class ParticleBitmapSelector:
             mm_s0.print_info("Selector: ")
             mm_g0.print_info("Ghost   : ")
         # Compress
-        IF UseUncompressed == 1:
-            mm_s0._compress(mm_s)
-            mm_g0._compress(mm_g)
+        mm_s0._compress(mm_s)
+        mm_g0._compress(mm_g)
 
     def find_files(self,
                    np.ndarray[np.uint8_t, ndim=1] file_mask_p,
@@ -1760,43 +1725,26 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_coarse_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        IF UseUncompressed == 1:
-            self.coarse_select_list._fill_bool(mm_s)
-        ELSE:
-            self.coarse_select_list._fill_ewah(mm_s)
-        IF UseUncompressed == 1:
-            self.coarse_ghosts_list._fill_bool(mm_g)
-        ELSE:
-            self.coarse_ghosts_list._fill_ewah(mm_g)
+        self.coarse_select_list._fill_bool(mm_s)
+        self.coarse_ghosts_list._fill_bool(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_refined_list(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
-        IF UseUncompressed == 1:
-            self.refined_ghosts_list._fill_bool(mm_g)
-        ELSE:
-            self.refined_ghosts_list._fill_ewah(mm_g)
+        self.refined_ghosts_list._fill_bool(mm_g)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void set_coarse_bool(self, BoolArrayColl mm_s, BoolArrayColl mm_g):
         cdef np.uint64_t mi1
-        IF UseUncompressedView == 1:
-            mm_s._set_coarse_array(self.coarse_select_bool)
-            self.coarse_select_bool[:] = 0
-        ELSE:
-            mm_s._set_coarse_array_ptr(self.coarse_select_bool)
-            for mi1 in range(self.s1):
-                self.coarse_select_bool[mi1] = 0
-        IF UseUncompressedView == 1:
-            mm_g._set_coarse_array(self.coarse_ghosts_bool)
-            self.coarse_ghosts_bool[:] = 0
-        ELSE:
-            mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
-            for mi1 in range(self.s1):
-                self.coarse_ghosts_bool[mi1] = 0
+        mm_s._set_coarse_array_ptr(self.coarse_select_bool)
+        for mi1 in range(self.s1):
+            self.coarse_select_bool[mi1] = 0
+        mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+        for mi1 in range(self.s1):
+            self.coarse_ghosts_bool[mi1] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1810,21 +1758,13 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void push_refined_bool(self, np.uint64_t mi1):
-        IF UseUncompressedView == 1:
-            self.select_ewah._set_refined_array(mi1, self.refined_select_bool)
-            self.refined_select_bool[:] = 0
-        ELSE:
-            cdef np.uint64_t mi2
-            self.select_ewah._set_refined_array_ptr(mi1, self.refined_select_bool)
-            for mi2 in range(self.s2):
-                self.refined_select_bool[mi2] = 0
-        IF UseUncompressedView == 1:
-            self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-            self.refined_ghosts_bool[:] = 0
-        ELSE:
-            self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
-            for mi2 in range(self.s2):
-                self.refined_ghosts_bool[mi2] = 0
+        cdef np.uint64_t mi2
+        self.select_ewah._set_refined_array_ptr(mi1, self.refined_select_bool)
+        for mi2 in range(self.s2):
+            self.refined_select_bool[mi2] = 0
+        self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+        for mi2 in range(self.s2):
+            self.refined_ghosts_bool[mi2] = 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1839,28 +1779,17 @@ cdef class ParticleBitmapSelector:
                         if mm_s._get(mi1, mi2):
                             self.add_neighbors_refined(mi1, mi2)
                     # self.push_refined_bool(mi1)
-                    IF UseUncompressedView == 1:
-                        self.ghosts_ewah._set_refined_array(mi1, self.refined_ghosts_bool)
-                        self.refined_ghosts_bool[:] = 0
-                    ELSE:
-                        self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
-                        for mi2 in range(self.s2):
-                            self.refined_ghosts_bool[mi2] = 0
+                    self.ghosts_ewah._set_refined_array_ptr(mi1, self.refined_ghosts_bool)
+                    for mi2 in range(self.s2):
+                        self.refined_ghosts_bool[mi2] = 0
                 else:
                     self.add_neighbors_coarse(mi1)
         # Add ghost zones to bool array in order
-        IF UseUncompressedView == 1:
-            mm_g._set_coarse_array(self.coarse_ghosts_bool)
-            self.coarse_ghosts_bool[:] = 0
-        ELSE:
-            mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
-            for mi1 in range(self.s1):
-                self.coarse_ghosts_bool[mi1] = 0
+        mm_g._set_coarse_array_ptr(self.coarse_ghosts_bool)
+        for mi1 in range(self.s1):
+            self.coarse_ghosts_bool[mi1] = 0
         # print("Before refined list: {: 6d}".format(mm_g._count_refined()))
-        IF UseUncompressed == 1:
-            self.refined_ghosts_list._fill_bool(mm_g)
-        ELSE:
-            self.refined_ghosts_list._fill_ewah(mm_g)
+        self.refined_ghosts_list._fill_bool(mm_g)
         # print("Before refined bool: {: 6d}".format(mm_g._count_refined()))
         # print("Bool to be appended: {: 6d}".format(self.ghosts_ewah._count_refined()))
         mm_g._append(self.ghosts_ewah)
