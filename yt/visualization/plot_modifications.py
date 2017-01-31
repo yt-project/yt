@@ -152,11 +152,11 @@ class PlotCallback(object):
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+            return (np.mod((ccoord[0]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
+                    np.mod((ccoord[1]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
         else:
-            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
+            return (np.mod((ccoord[0][:]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
+                    np.mod((ccoord[1][:]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
@@ -1460,22 +1460,21 @@ class HaloCatalogCallback(PlotCallback):
 
         # Set up scales for pixel size and original data
         pixel_scale = self.pixel_scale(plot)[0]
-        data_scale = data.ds.length_unit
-        units = data_scale.units
+        units = plot.xlim[0].units
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
-        px = halo_data[field_x][:].in_units(units) / data_scale
-        py = halo_data[field_y][:].in_units(units) / data_scale
+        px = halo_data[field_x][:].in_units(units)
+        py = halo_data[field_y][:].in_units(units)
+
         px, py = self.convert_to_plot(plot,[px,py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data['virial_radius'][:].in_units(units)
-        radius = np.array(radius*pixel_scale*self.factor/data_scale)
+        radius = halo_data[self.radius_field][:].in_units(units)
+        radius = np.array(radius*pixel_scale*self.factor)
 
         if self.width:
-            pz = halo_data[field_z][:].in_units(units)/data_scale
-            pz = data.ds.arr(pz, 'code_length')
+            pz = halo_data[field_z][:].in_units('code_length')
             c = data.center[data.axis]
 
             # I should catch an error here if width isn't in this form
