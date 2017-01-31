@@ -827,16 +827,18 @@ class CastroHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type='castro_native'):
         super(CastroHierarchy, self).__init__(ds, dataset_type)
 
-        # extra beyond the base real fields that all Boxlib
-        # particles have, i.e. the xyz positions
-        castro_extra_real_fields = ['particle_velocity_x',
-                                    'particle_velocity_y',
-                                    'particle_velocity_z']
+        if ("particles" in self.ds.parameters):
 
-        is_checkpoint = True
+            # extra beyond the base real fields that all Boxlib
+            # particles have, i.e. the xyz positions
+            castro_extra_real_fields = ['particle_velocity_x',
+                                        'particle_velocity_y',
+                                        'particle_velocity_z']
 
-        self._read_particles("Tracer", is_checkpoint, 
-                             castro_extra_real_fields[0:self.ds.dimensionality])
+            is_checkpoint = True
+
+            self._read_particles("Tracer", is_checkpoint, 
+                                 castro_extra_real_fields[0:self.ds.dimensionality])
 
 
 class CastroDataset(BoxlibDataset):
