@@ -157,9 +157,6 @@ class ParticleIndex(Index):
                                          self.regions.index_order2)
         try:
             rflag = self.regions.load_bitmasks(fname)
-            if rflag == 0:
-                self._initialize_owners()
-                self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             if rflag == 0:
                 raise IOError()
@@ -168,9 +165,6 @@ class ParticleIndex(Index):
             self._initialize_coarse_index()
             if not noref:
                 self._initialize_refined_index()
-                self.regions.set_owners()
-            else:
-                self._initialize_owners()
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
@@ -210,17 +204,6 @@ class ParticleIndex(Index):
         pb.finish()
         self.regions.find_collisions_refined()
 
-    def _initialize_owners(self):
-        pcount = np.zeros(1 << (self.regions.index_order1*3), 'uint32')
-        pb = get_pbar("Initializing owners", len(self.data_files))
-        for i, data_file in enumerate(self.data_files):
-            pb.update(i)
-            pcount[:] = 0
-            for pos in self.io._yield_coordinates(data_file):
-                self.regions._owners_data_file(pos, pcount, data_file.file_id)
-        pb.finish()
-        self.regions.set_owners()
-            
     def _detect_output_fields(self):
         # TODO: Add additional fields
         dsl = []
