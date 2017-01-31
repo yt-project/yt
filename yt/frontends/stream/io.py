@@ -172,7 +172,11 @@ class StreamParticleIOHandler(BaseIOHandler):
                 raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0),
                                        data_file.ds.domain_left_edge,
                                        data_file.ds.domain_right_edge)
-            yield pos
+            yield ptype, pos
+
+    def _yield_smoothing_length(self, data_file):
+        ptype = self.ds._sph_ptype
+        return self.fields[data_file.filename][ptype, 'smoothing_length']
 
     def _count_particles(self, data_file):
         pcount = {}

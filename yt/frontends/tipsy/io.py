@@ -264,7 +264,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     pos = np.empty((pp.size, 3), dtype="float64")
                     for i, ax in enumerate("xyz"):
                         pos[:,i] = pp["Coordinates"][ax]
-                    yield pos
+                    yield ptype, pos
 
     def _count_particles(self, data_file):
         npart = {

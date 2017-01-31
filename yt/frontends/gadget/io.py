@@ -93,7 +93,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
-            yield pos
+            yield key, pos
         f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
