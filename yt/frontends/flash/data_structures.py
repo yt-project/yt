@@ -377,28 +377,32 @@ class FLASHDataset(Dataset):
         if self.dimensionality == 1: nblocky = 1
 
         # Determine domain boundaries
-        self.domain_left_edge = np.array(
+        dle = np.array(
             [self.parameters["%smin" % ax] for ax in 'xyz']).astype("float64")
-        self.domain_right_edge = np.array(
+        dre = np.array(
             [self.parameters["%smax" % ax] for ax in 'xyz']).astype("float64")
         if self.dimensionality < 3:
             for d in [dimensionality]+list(range(3-dimensionality)):
-                if self.domain_left_edge[d] == self.domain_right_edge[d]:
-                    mylog.warning('Identical domain left edge and right edges '
-                                  'along dummy dimension (%i), attempting to read anyway' % d)
-                    self.domain_right_edge[d] = self.domain_left_edge[d]+1.0
+                if dle[d] == dre[d]:
+                    mylog.warning(
+                        'Identical domain left edge and right edges '
+                        'along dummy dimension (%i), attempting to read anyway'
+                        % d)
+                    dre[d] = dle[d]+1.0
         if self.dimensionality < 3 and self.geometry == "cylindrical":
             mylog.warning("Extending theta dimension to 2PI + left edge.")
-            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+            dre[2] = dle[2] + 2*np.pi
         elif self.dimensionality < 3 and self.geometry == "polar":
             mylog.warning("Extending theta dimension to 2PI + left edge.")
-            self.domain_right_edge[1] = self.domain_left_edge[1] + 2*np.pi
+            dre[1] = dle[1] + 2*np.pi
         elif self.dimensionality < 3 and self.geometry == "spherical":
             mylog.warning("Extending phi dimension to 2PI + left edge.")
-            self.domain_right_edge[2] = self.domain_left_edge[2] + 2*np.pi
+            dre[2] = dle[2] + 2*np.pi
         if self.dimensionality == 1 and self.geometry == "spherical":
             mylog.warning("Extending theta dimension to PI + left edge.")
-            self.domain_right_edge[1] = self.domain_left_edge[1] + np.pi
+            dre[1] = dle[1] + np.pi
+        self.domain_left_edge = dle
+        self.domain_right_edge = dre
         self.domain_dimensions = \
             np.array([nblockx*nxb,nblocky*nyb,nblockz*nzb])
 
