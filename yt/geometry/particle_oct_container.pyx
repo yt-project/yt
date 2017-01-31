@@ -546,7 +546,7 @@ cdef class ParticleBitmap:
     cdef void __coarse_index_data_file(self,
                                        np.ndarray[anyfloat, ndim=2] pos,
                                        np.ndarray[anyfloat, ndim=1] hsml,
-                                       np.uint64_t file_id):
+                                       np.uint64_t file_id) except *:
         # Initialize
         cdef np.int64_t i, p
         cdef np.uint64_t mi, miex, mi_max
@@ -559,7 +559,7 @@ cdef class ParticleBitmap:
         cdef np.float64_t dds[3]
         cdef np.float64_t dds_max
         cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
-        mi_max = (1 << self.index_order1)
+        mi_max = (1 << self.index_order1) - 1
         # Copy over things for this file (type cast necessary?)
         dds_max = 0.0
         for i in range(3):
@@ -586,15 +586,18 @@ cdef class ParticleBitmap:
                 Nex = <int>np.ceil(hsml[p]/dds_max)
                 if Nex > 0:
                     # Ensure that min/max values for x,y,z indexes are obeyed
-                    xex_range = range(max(-Nex, -mi_split[0]), min(Nex, mi_max-mi_split[0]))
-                    yex_range = range(max(-Nex, -mi_split[1]), min(Nex, mi_max-mi_split[1]))
-                    zex_range = range(max(-Nex, -mi_split[2]), min(Nex, mi_max-mi_split[2]))
+                    xex_range = range(-min(Nex, <int>mi_split[0]), min(Nex, mi_max-mi_split[0])+1)
+                    yex_range = range(-min(Nex, <int>mi_split[1]), min(Nex, mi_max-mi_split[1])+1)
+                    zex_range = range(-min(Nex, <int>mi_split[2]), min(Nex, mi_max-mi_split[2])+1)
                     for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
                         miex = encode_morton_64bit(mi_split[0] + xex,
                                                    mi_split[1] + yex,
                                                    mi_split[2] + zex)
+                        if miex >= mask.size:
+                            raise IndexError("Index for a softening region " +
+                                             "({}) exceeds ".format(miex) +
+                                             "max ({})".format(mask.size))
                         mask[miex] = 1
-                
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -630,7 +633,7 @@ cdef class ParticleBitmap:
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                 np.uint64_t file_id, np.uint64_t nsub_mi):
+                                 np.uint64_t file_id, np.int64_t nsub_mi):
         return self.__refined_index_data_file(pos, hsml, mask,
                                               sub_mi1, sub_mi2,
                                               file_id, nsub_mi)
@@ -639,15 +642,15 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef np.uint64_t __refined_index_data_file(
+    cdef np.int64_t __refined_index_data_file(
         self,
         np.ndarray[anyfloat, ndim=2] pos,
         np.ndarray[anyfloat, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
         np.ndarray[np.uint64_t, ndim=1] sub_mi1,
         np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-        np.uint64_t file_id, np.uint64_t nsub_mi
-    ):
+        np.uint64_t file_id, np.int64_t nsub_mi
+    ) except -1:
         # Initialize
         cdef np.int64_t i, p
         cdef np.uint64_t mi
@@ -662,7 +665,7 @@ cdef class ParticleBitmap:
         cdef np.uint64_t miex, mi_max
         cdef int xex, yex, zex
         cdef object xex_range, yex_range, zex_range
-        mi_max = (1 << self.index_order2)
+        mi_max = (1 << self.index_order2) - 1
         # Copy things from structure (type cast)
         dds2_max = 0.0
         for i in range(3):
@@ -695,9 +698,9 @@ cdef class ParticleBitmap:
                 if hsml is not None:
                     Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
                     if Nex > 0:
-                        xex_range = range(max(-Nex, -mi_split[0]), min(Nex, mi_max-mi_split[0]))
-                        yex_range = range(max(-Nex, -mi_split[1]), min(Nex, mi_max-mi_split[1]))
-                        zex_range = range(max(-Nex, -mi_split[2]), min(Nex, mi_max-mi_split[2]))
+                        xex_range = range(-min(Nex, <int>mi_split[0]), min(Nex, mi_max-mi_split[0])+1)
+                        yex_range = range(-min(Nex, <int>mi_split[1]), min(Nex, mi_max-mi_split[1])+1)
+                        zex_range = range(-min(Nex, <int>mi_split[2]), min(Nex, mi_max-mi_split[2])+1)
                         for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
                             if (xex, yex, zex) == (0, 0, 0):
                                 continue
@@ -719,7 +722,7 @@ cdef class ParticleBitmap:
     def _set_refined_index_data_file(self, np.ndarray[np.uint8_t, ndim=1] mask,
                                      np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                      np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                     np.uint64_t file_id, np.uint64_t nsub_mi):
+                                     np.uint64_t file_id, np.int64_t nsub_mi):
         return self.__set_refined_index_data_file(mask, sub_mi1, sub_mi2,
                                                   file_id, nsub_mi)
 
@@ -730,7 +733,7 @@ cdef class ParticleBitmap:
     cdef void __set_refined_index_data_file(self, np.ndarray[np.uint8_t, ndim=1] mask,
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-                                            np.uint64_t file_id, np.uint64_t nsub_mi):
+                                            np.uint64_t file_id, np.int64_t nsub_mi):
         # Initialize
         cdef np.int64_t i, p
         IF UseCythonBitmasks == 1:
@@ -741,7 +744,7 @@ cdef class ParticleBitmap:
         sub_mi1 = sub_mi1[:nsub_mi]
         sub_mi2 = sub_mi2[:nsub_mi]
         cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2,sub_mi1))
-        for i in range(<np.int64_t>nsub_mi):
+        for i in range(nsub_mi):
             p = ind[i]
             IF UseCythonBitmasks == 1:
                 bitmasks._set_refined(file_id, sub_mi1[p], sub_mi2[p])
@@ -1209,7 +1212,6 @@ cdef class ParticleBitmap:
             total_mask._logicalxor(cmask, orphans)
             fmask = file_masks[0]
             fmask._append(orphans)
-        # print orphans._count_total()
         return file_idx.astype('uint32'), file_masks, addfile_idx
 
     @cython.boundscheck(False)
@@ -1220,7 +1222,7 @@ cdef class ParticleBitmap:
         cdef BoolArrayCollection cmask_g = BoolArrayCollection()
         # Find mask of selected morton indices
         cdef ParticleBitmapSelector morton_selector
-        morton_selector = ParticleBitmapSelector(selector,self,ngz=ngz)
+        morton_selector = ParticleBitmapSelector(selector, self, ngz=ngz)
         morton_selector.fill_masks(cmask_s, cmask_g)
         return self.masks_to_files(cmask_s, cmask_g), (cmask_s, cmask_g)
 

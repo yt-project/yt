@@ -122,10 +122,18 @@ cdef class FileBitmasks:
         cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>self.ewah_keys
         cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>self.ewah_refn
         cdef ewah_map **ewah_coll = <ewah_map **>self.ewah_coll
-        out.ewah_keys = <void *>ewah_keys[ifile]
-        out.ewah_refn = <void *>ewah_refn[ifile]
-        out.ewah_coll = <void *>ewah_coll[ifile]
-        # TODO: make sure ewah arrays are not deallocated when out is clean up
+        # This version actually copies arrays, which can be costly
+        cdef ewah_bool_array *ewah_keys_out = <ewah_bool_array *>out.ewah_keys
+        cdef ewah_bool_array *ewah_refn_out = <ewah_bool_array *>out.ewah_refn
+        cdef ewah_map *ewah_coll_out = <ewah_map *>out.ewah_coll
+        ewah_keys_out[0] = ewah_keys[ifile][0]
+        ewah_refn_out[0] = ewah_refn[ifile][0]
+        ewah_coll_out[0] = ewah_coll[ifile][0]
+        # This version only copies pointers which can lead to deallocation of
+        # the source when the copy is deleted.
+        # out.ewah_keys = <void *>ewah_keys[ifile]
+        # out.ewah_refn = <void *>ewah_refn[ifile]
+        # out.ewah_coll = <void *>ewah_coll[ifile]
         return out
 
     cdef tuple _find_collisions(self, BoolArrayCollection coll, bint verbose = 0):
@@ -273,6 +281,23 @@ cdef class FileBitmasks:
     cdef bint _get_coarse(self, np.uint32_t ifile, np.uint64_t i1):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
         return ewah_keys[0].get(i1)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef void _get_coarse_array(self, np.uint32_t ifile, np.uint64_t imax,
+                                np.uint8_t[:] arr) except *:
+        cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_keys[0].begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_keys[0].end())
+        cdef np.uint64_t iset
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            if iset >= imax:
+                raise IndexError("Index {} exceedes max {}.".format(iset, imax))
+            arr[iset] = 1
+            preincrement(iter_set[0])
 
     cdef bint _isref(self, np.uint32_t ifile, np.uint64_t i):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
@@ -798,6 +823,25 @@ cdef class BoolArrayCollection:
 
     def get_coarse(self, i1):
         return self._get_coarse(i1)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef void _get_coarse_array(self, np.uint64_t imax, np.uint8_t[:] arr) except *:
+        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
+        cdef ewah_bool_iterator *iter_set = new ewah_bool_iterator(ewah_keys[0].begin())
+        cdef ewah_bool_iterator *iter_end = new ewah_bool_iterator(ewah_keys[0].end())
+        cdef np.uint64_t iset
+        while iter_set[0] != iter_end[0]:
+            iset = dereference(iter_set[0])
+            if iset >= imax:
+                raise IndexError("Index {} exceedes max {}.".format(iset, imax))
+            arr[iset] = 1
+            preincrement(iter_set[0])
+
+    def get_coarse_array(self, imax, arr):
+        return self._get_coarse_array(imax, arr)
 
     cdef bint _contains(self, np.uint64_t i):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys

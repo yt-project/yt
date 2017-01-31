@@ -234,7 +234,7 @@ class ParticleIndex(Index):
             self._initialize_index()
         # Must check that chunk_info contains the right number of ghost zones
         if getattr(dobj, "_chunk_info", None) is None:
-            import pdb; pdb.set_trace()
+            # import pdb; pdb.set_trace()
             if isinstance(dobj, (ParticleContainer, ParticleOctreeSubset)):
                 dobj._chunk_info = [dobj]
             else:

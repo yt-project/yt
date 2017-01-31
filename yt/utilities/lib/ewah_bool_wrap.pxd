@@ -22,6 +22,7 @@ cdef class FileBitmasks:
     cdef void _set_refn(self, np.uint32_t ifile, np.uint64_t i1)
     cdef bint _get(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
     cdef bint _get_coarse(self, np.uint32_t ifile, np.uint64_t i1)
+    cdef void _get_coarse_array(self, np.uint32_t ifile, np.uint64_t imax, np.uint8_t[:] arr) except *
     cdef bint _isref(self, np.uint32_t ifile, np.uint64_t i)
     cdef int _count_total(self, np.uint32_t ifile)
     cdef int _count_refined(self, np.uint32_t ifile)
@@ -55,6 +56,7 @@ cdef class BoolArrayCollection:
     cdef void _set_refn(self, np.uint64_t i1)
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2=*)
     cdef bint _get_coarse(self, np.uint64_t i1)
+    cdef void _get_coarse_array(self, np.uint64_t imax, np.uint8_t[:] arr) except *
     cdef bint _contains(self, np.uint64_t i)
     cdef bint _isref(self, np.uint64_t i)
     cdef void _ewah_coarse(self)
