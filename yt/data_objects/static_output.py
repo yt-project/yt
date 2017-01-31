@@ -348,6 +348,49 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+   
+    _checksum = None
+    @property
+    def checksum(self):
+        '''
+        Computes md5 sum of a dataset.
+
+        Note: Currently this property is unable to determine a complete set of
+        files that are a part of a given dataset. As a first approximation, the
+        checksum of :py:attr:`~parameter_file` is calculated. In case
+        :py:attr:`~parameter_file` is a directory, checksum of all files inside
+        the directory is calculated.
+        '''
+        if self._checksum is None:
+            try:
+                import hashlib
+            except ImportError:
+                self._checksum = 'nohashlib'
+                return self._checksum
+
+            def generate_file_md5(m, filename, blocksize=2**20):
+                with open(filename , "rb") as f:
+                    while True:
+                        buf = f.read(blocksize)
+                        if not buf:
+                            break
+                        m.update(buf)
+
+            m = hashlib.md5()
+            if os.path.isdir(self.parameter_filename):
+                for root, _, files in os.walk(self.parameter_filename):
+                    for fname in files:
+                        fname = os.path.join(root, fname)
+                        generate_file_md5(m, fname)
+            elif os.path.isfile(self.parameter_filename):
+                generate_file_md5(m, self.parameter_filename)
+            else:
+                m = 'notafile'
+
+            if hasattr(m, 'hexdigest'):
+                m = m.hexdigest()
+            self._checksum = m
+        return self._checksum
 
     domain_left_edge = MutableAttribute()
     domain_right_edge = MutableAttribute()
