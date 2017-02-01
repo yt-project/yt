@@ -261,6 +261,33 @@ cdef class FileBitmasks:
                 ewah_refn[0].set(i1)
                 ewah_coll[0][i1].set(i2)
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
+    cdef void _set_refined_index_array(self, np.uint32_t ifile, np.int64_t nsub_mi,
+                                       np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                       np.ndarray[np.uint64_t, ndim=1] sub_mi2):
+        cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
+        cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
+        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2[:nsub_mi],
+                                                              sub_mi1[:nsub_mi]))
+        cdef np.int64_t i, p
+        cdef BoolArrayCollection temp
+        if self._count_refined(ifile) == 0:
+            # Add to file bitmask in order
+            for i in range(nsub_mi):
+                p = ind[i]
+                self._set_refined(ifile, sub_mi1[p], sub_mi2[p])
+        else:
+            # Add to dummy bitmask in order, then combine
+            temp = BoolArrayCollection()
+            for i in range(nsub_mi):
+                p = ind[i]
+                temp._set_coarse(sub_mi1[p])
+                temp._set_refined(sub_mi1[p], sub_mi2[p])
+                self._append(ifile, temp)
+
     cdef void _set_map(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2):
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
         ewah_coll[0][i1].set(i2)

@@ -333,16 +333,16 @@ cdef inline np.uint64_t bounded_morton_split_dds(np.float64_t x, np.float64_t y,
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_split_relative_dds(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds1, np.float64_t *dds2,
-                               np.uint64_t *p):
+                               np.uint64_t *p2):
     cdef np.float64_t DLE2[3]
     cdef np.uint64_t mi2
     DLE2[0] = <np.float64_t> (<np.int64_t> ((x - DLE[0])/dds1[0])) * dds1[0]
     DLE2[1] = <np.float64_t> (<np.int64_t> ((y - DLE[1])/dds1[1])) * dds1[1]
     DLE2[2] = <np.float64_t> (<np.int64_t> ((z - DLE[2])/dds1[2])) * dds1[2]
-    p[0] = <np.uint64_t> ((x - DLE2[0])/dds2[0])
-    p[1] = <np.uint64_t> ((y - DLE2[1])/dds2[1])
-    p[2] = <np.uint64_t> ((z - DLE2[2])/dds2[2])
-    mi2 = encode_morton_64bit(p[0], p[1], p[2])
+    p2[0] = <np.uint64_t> ((x - DLE2[0])/dds2[0])
+    p2[1] = <np.uint64_t> ((y - DLE2[1])/dds2[1])
+    p2[2] = <np.uint64_t> ((z - DLE2[2])/dds2[2])
+    mi2 = encode_morton_64bit(p2[0], p2[1], p2[2])
     return mi2
 
   

@@ -190,7 +190,7 @@ class ParticleIndex(Index):
     def _initialize_refined_index(self):
         mask = self.regions.masks.sum(axis=1).astype('uint8')
         max_npart = max(sum(d.total_particles.values())
-                        for d in self.data_files)
+                        for d in self.data_files) * 28
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
         pb = get_pbar("Initializing refined index", len(self.data_files))
@@ -198,7 +198,7 @@ class ParticleIndex(Index):
             pb.update(i)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
-                if hasattr(self.ds, '_sph_ptype'):
+                if hasattr(self.ds, '_sph_ptype') and ptype == self.ds._sph_ptype:
                     hsml = self.io._yield_smoothing_length(data_file)
                 else:
                     hsml = None
@@ -206,7 +206,7 @@ class ParticleIndex(Index):
                     pos, hsml, mask, sub_mi1, sub_mi2,
                     data_file.file_id, nsub_mi)
             self.regions._set_refined_index_data_file(
-                mask, sub_mi1, sub_mi2,
+                sub_mi1, sub_mi2,
                 data_file.file_id, nsub_mi)
         pb.finish()
         self.regions.find_collisions_refined()

@@ -491,23 +491,23 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi, miex, mi_max
         cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
-        cdef int skip, Nex, xex, yex, zex,
-        cdef int xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
-        cdef object xex_range, yex_range, zex_range
+        cdef int skip, Nex
+        cdef int Nex_min[3]
+        cdef int Nex_max[3]
+        cdef np.float64_t rpos_min, rpos_max
+        cdef np.uint64_t xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
+        cdef np.uint64_t xex, yex, zex,
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds[3]
-        cdef np.float64_t dds_max
-        cdef np.ndarray[np.uint8_t, ndim=1] mask = self.masks[:,file_id]
+        cdef np.uint8_t[:] mask = self.masks[:, file_id]
+        cdef np.int64_t msize = (1 << (self.index_order1 * 3))
         mi_max = (1 << self.index_order1) - 1
         # Copy over things for this file (type cast necessary?)
-        dds_max = 0.0
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             dds[i] = self.dds_mi1[i]
-            if dds[i] > dds_max:
-                dds_max = dds[i]
         # Mark index of particles that are in this file
         for p in range(pos.shape[0]):
             skip = 0
@@ -522,27 +522,36 @@ cdef class ParticleBitmap:
                                           dds, mi_split)
             mask[mi] = 1
             # Expand mask by softening
+            # TODO: handle wrapping over periodic boundary conditions
             if hsml is not None:
-                Nex = <int>np.ceil(hsml[p]/dds_max)
-                if Nex > 0:
+                Nex = 1
+                for i in range(3):
+                    Nex_min[i] = 0
+                    Nex_max[i] = 0
+                    rpos_min = ppos[i] - (dds[i]*mi_split[i] + LE[i])
+                    rpos_max = dds[i] - rpos_min
+                    if rpos_min > hsml[p]:
+                        Nex_min[i] = <int>((rpos_min-hsml[p])/dds[i]) + 1
+                    if rpos_max > hsml[p]:
+                        Nex_max[i] = <int>((rpos_max-hsml[p])/dds[i]) + 1
+                    Nex *= (Nex_max[i] + Nex_min[i] + 1)
+                if Nex > 1:
                     # Ensure that min/max values for x,y,z indexes are obeyed
-                    xex_min = -min(Nex, <int>mi_split[0])
-                    xex_max = min(Nex, mi_max - mi_split[0]) + 1
-                    yex_min = -min(Nex, <int>mi_split[1])
-                    yex_max = min(Nex, mi_max - mi_split[1]) + 1
-                    zex_min = -min(Nex, <int>mi_split[2])
-                    zex_max = min(Nex, mi_max - mi_split[2]) + 1
+                    xex_min = mi_split[0] - min(Nex_min[0], <int>mi_split[0])
+                    xex_max = mi_split[0] + min(Nex_max[0], <int>(mi_max - mi_split[0])) + 1
+                    yex_min = mi_split[1] - min(Nex_min[1], <int>mi_split[1])
+                    yex_max = mi_split[1] + min(Nex_max[1], <int>(mi_max - mi_split[1])) + 1
+                    zex_min = mi_split[2] - min(Nex_min[2], <int>mi_split[2])
+                    zex_max = mi_split[2] + min(Nex_max[2], <int>(mi_max - mi_split[2])) + 1
                     for xex in range(xex_min, xex_max):
                         for yex in range(yex_min, yex_max):
                             for zex in range(zex_min, zex_max):
-                                miex = encode_morton_64bit(mi_split[0] + xex,
-                                                           mi_split[1] + yex,
-                                                           mi_split[2] + zex)
-                                if miex >= mask.shape[0]:
+                                miex = encode_morton_64bit(xex, yex, zex)
+                                if miex >= msize:
                                     raise IndexError(
                                         "Index for a softening region " +
                                         "({}) exceeds ".format(miex) +
-                                        "max ({})".format(mask.size))
+                                        "max ({})".format(msize))
                                 mask[miex] = 1
             
     @cython.boundscheck(False)
@@ -593,29 +602,29 @@ cdef class ParticleBitmap:
     ) except -1:
         # Initialize
         cdef np.int64_t i, p
-        cdef np.uint64_t mi
+        cdef np.uint64_t mi1, mi2
         cdef np.float64_t ppos[3]
-        cdef int skip
+        cdef int skip, Nex
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t dds1[3]
         cdef np.float64_t dds2[3]
-        cdef np.float64_t dd2_max
-        cdef np.uint64_t mi_split[3]
+        cdef np.uint64_t mi_split1[3]
+        cdef np.uint64_t mi_split2[3]
         cdef np.uint64_t miex, mi_max
-        cdef int xex, yex, zex
-        cdef int xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
-        cdef object xex_range, yex_range, zex_range
+        cdef int Nex_min[3]
+        cdef int Nex_max[3]
+        cdef np.float64_t rpos_min, rpos_max
+        cdef np.uint64_t xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
+        cdef np.uint64_t xex, yex, zex,
+        cdef np.int64_t msize = sub_mi1.shape[0]
         mi_max = (1 << self.index_order2) - 1
         # Copy things from structure (type cast)
-        dds2_max = 0.0
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
             dds1[i] = self.dds_mi1[i]
             dds2[i] = self.dds_mi2[i]
-            if dds2[i] > dds2_max:
-                dds2_max = dds2[i]
         # Loop over positions skipping those outside the domain
         for p in range(pos.shape[0]):
             skip = 0
@@ -626,42 +635,57 @@ cdef class ParticleBitmap:
                 ppos[i] = pos[p,i]
             if skip==1: continue
             # Only look if collision at coarse index
-            mi = bounded_morton_dds(ppos[0], ppos[1], ppos[2], LE, dds1)
-            if mask[mi] > 1:
+            mi1 = bounded_morton_split_dds(ppos[0], ppos[1], ppos[2], LE,
+                                           dds1, mi_split1)
+            if mask[mi1] > 1:
                 # Determine sub index within cell of primary index
-                if nsub_mi >= sub_mi1.size:
-                    raise IndexError("Refined index exceeded original estimate.")
-                sub_mi1[nsub_mi] = mi
-                sub_mi2[nsub_mi] = bounded_morton_split_relative_dds(
-                    ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split)
+                if nsub_mi >= msize:
+                    raise IndexError("Refined index exceeded estimate.")
+                mi2 = bounded_morton_split_relative_dds(
+                    ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split2)
+                sub_mi1[nsub_mi] = mi1
+                sub_mi2[nsub_mi] = mi2
                 nsub_mi += 1
                 # Expand for smoothing
+                # TODO: handle wrapping over periodic boundary conditions or
+                # for cases that extend into other coarse indices
                 if hsml is not None:
-                    Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
-                    if Nex > 0:
-                        xex_min = -min(Nex, <int>mi_split[0])
-                        xex_max = min(Nex, mi_max - mi_split[0]) + 1
-                        yex_min = -min(Nex, <int>mi_split[1])
-                        yex_max = min(Nex, mi_max - mi_split[1]) + 1
-                        zex_min = -min(Nex, <int>mi_split[2])
-                        zex_max = min(Nex, mi_max - mi_split[2]) + 1
+                    Nex = 1
+                    for i in range(3):
+                        Nex_min[i] = 0
+                        Nex_max[i] = 0
+                        rpos_min = ppos[i] - (dds2[i]*mi_split2[i] + dds1[i]*mi_split1[i] + LE[i])
+                        rpos_max = dds2[i] - rpos_min
+                        if rpos_min > hsml[p]:
+                            Nex_min[i] = <int>((rpos_min-hsml[p])/dds2[i]) + 1
+                        if rpos_max > hsml[p]:
+                            Nex_max[i] = <int>((rpos_max-hsml[p])/dds2[i]) + 1
+                        Nex *= (Nex_max[i] + Nex_min[i] + 1)
+                    if Nex > 1:
+                        # Ensure that min/max values for x,y,z indexes are obeyed
+                        xex_min = mi_split2[0] - min(Nex_min[0], <int>mi_split2[0])
+                        xex_max = mi_split2[0] + min(Nex_max[0], <int>(mi_max - mi_split2[0])) + 1
+                        yex_min = mi_split2[1] - min(Nex_min[1], <int>mi_split2[1])
+                        yex_max = mi_split2[1] + min(Nex_max[1], <int>(mi_max - mi_split2[1])) + 1
+                        zex_min = mi_split2[2] - min(Nex_min[2], <int>mi_split2[2])
+                        zex_max = mi_split2[2] + min(Nex_max[2], <int>(mi_max - mi_split2[2])) + 1
                         for xex in range(xex_min, xex_max):
                             for yex in range(yex_min, yex_max):
                                 for zex in range(zex_min, zex_max):
                                     if xex == 0 and yex == 0 and zex == 0:
                                         continue
-                                    miex = encode_morton_64bit(
-                                        mi_split[0] + xex,
-                                        mi_split[1] + yex,
-                                        mi_split[2] + zex)
-                                    if nsub_mi >= sub_mi1.shape[0]:
+                                    miex = encode_morton_64bit(xex, yex, zex)
+                                    if nsub_mi >= msize:
+                                        # self.bitmasks._set_refined_index_array(
+                                        #     file_id, nsub_mi, sub_mi1, sub_mi2)
+                                        # nsub_mi = 0
                                         raise IndexError(
                                             "Refined index exceeded original "
                                             "estimate.\n"
                                             "nsub_mi = %s, "
                                             "sub_mi1.shape[0] = %s"
                                             % (nsub_mi, sub_mi1.shape[0]))
-                                    sub_mi1[nsub_mi] = mi
+                                    sub_mi1[nsub_mi] = mi1
                                     sub_mi2[nsub_mi] = miex
                                     nsub_mi += 1
         # Only subs of particles in the mask
@@ -671,31 +695,24 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    def _set_refined_index_data_file(self, np.ndarray[np.uint8_t, ndim=1] mask,
+    def _set_refined_index_data_file(self,
                                      np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                      np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                      np.uint64_t file_id, np.int64_t nsub_mi):
-        return self.__set_refined_index_data_file(mask, sub_mi1, sub_mi2,
+        return self.__set_refined_index_data_file(sub_mi1, sub_mi2,
                                                   file_id, nsub_mi)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     @cython.initializedcheck(False)
-    cdef void __set_refined_index_data_file(self, np.ndarray[np.uint8_t, ndim=1] mask,
+    cdef void __set_refined_index_data_file(self,
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                             np.ndarray[np.uint64_t, ndim=1] sub_mi2,
                                             np.uint64_t file_id, np.int64_t nsub_mi):
-        # Initialize
         cdef np.int64_t i, p
         cdef FileBitmasks bitmasks = self.bitmasks
-        # Set bitmasks in order
-        sub_mi1 = sub_mi1[:nsub_mi]
-        sub_mi2 = sub_mi2[:nsub_mi]
-        cdef np.ndarray[np.int64_t, ndim=1] ind = np.lexsort((sub_mi2,sub_mi1))
-        for i in range(nsub_mi):
-            p = ind[i]
-            bitmasks._set_refined(file_id, sub_mi1[p], sub_mi2[p])
+        bitmasks._set_refined_index_array(file_id, nsub_mi, sub_mi1, sub_mi2)
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -819,7 +836,7 @@ cdef class ParticleBitmap:
         if nfiles == 0:
             nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
             if nfiles != self.nfiles:
-                raise Exception("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+                raise IOError("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
         # Read bitmap for each file
         for ifile in range(nfiles):
             size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
@@ -1916,9 +1933,9 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             # looking at (MAX_ORDER - level) & with the values 1, 2, 4.
             index = indices[p]
             decode_morton_64bit(index >> ((ORDER_MAX - order1)*3), ind64)
-            if ind64[0] != last_ind[0] or \
-               ind64[1] != last_ind[1] or \
-               ind64[2] != last_ind[2]:
+            if ind64[0] != <np.uint64_t>last_ind[0] or \
+               ind64[1] != <np.uint64_t>last_ind[1] or \
+               ind64[2] != <np.uint64_t>last_ind[2]:
                 for i in range(3):
                     last_ind[i] = ind64[i]
                 self.get_root(last_ind, &root)
