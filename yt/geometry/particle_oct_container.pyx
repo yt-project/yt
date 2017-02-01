@@ -43,7 +43,6 @@ from libcpp.pair cimport pair
 from cython.operator cimport dereference, preincrement
 import struct
 import os
-import itertools
 
 # If set to 1, ghost cells are added at the refined level reguardless of if the
 # coarse cell containing it is refined in the selector.
@@ -492,7 +491,8 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi, miex, mi_max
         cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
-        cdef int skip, Nex, xex, yex, zex
+        cdef int skip, Nex, xex, yex, zex,
+        cdef int xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
         cdef object xex_range, yex_range, zex_range
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
@@ -526,18 +526,24 @@ cdef class ParticleBitmap:
                 Nex = <int>np.ceil(hsml[p]/dds_max)
                 if Nex > 0:
                     # Ensure that min/max values for x,y,z indexes are obeyed
-                    xex_range = range(-min(Nex, <int>mi_split[0]), min(Nex, mi_max-mi_split[0])+1)
-                    yex_range = range(-min(Nex, <int>mi_split[1]), min(Nex, mi_max-mi_split[1])+1)
-                    zex_range = range(-min(Nex, <int>mi_split[2]), min(Nex, mi_max-mi_split[2])+1)
-                    for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
-                        miex = encode_morton_64bit(mi_split[0] + xex,
-                                                   mi_split[1] + yex,
-                                                   mi_split[2] + zex)
-                        if miex >= mask.size:
-                            raise IndexError("Index for a softening region " +
-                                             "({}) exceeds ".format(miex) +
-                                             "max ({})".format(mask.size))
-                        mask[miex] = 1
+                    xex_min = -min(Nex, <int>mi_split[0])
+                    xex_max = min(Nex, mi_max - mi_split[0]) + 1
+                    yex_min = -min(Nex, <int>mi_split[1])
+                    yex_max = min(Nex, mi_max - mi_split[1]) + 1
+                    zex_min = -min(Nex, <int>mi_split[2])
+                    zex_max = min(Nex, mi_max - mi_split[2]) + 1
+                    for xex in range(xex_min, xex_max):
+                        for yex in range(yex_min, yex_max):
+                            for zex in range(zex_min, zex_max):
+                                miex = encode_morton_64bit(mi_split[0] + xex,
+                                                           mi_split[1] + yex,
+                                                           mi_split[2] + zex)
+                                if miex >= mask.shape[0]:
+                                    raise IndexError(
+                                        "Index for a softening region " +
+                                        "({}) exceeds ".format(miex) +
+                                        "max ({})".format(mask.size))
+                                mask[miex] = 1
             
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -598,6 +604,7 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi_split[3]
         cdef np.uint64_t miex, mi_max
         cdef int xex, yex, zex
+        cdef int xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
         cdef object xex_range, yex_range, zex_range
         mi_max = (1 << self.index_order2) - 1
         # Copy things from structure (type cast)
@@ -632,20 +639,31 @@ cdef class ParticleBitmap:
                 if hsml is not None:
                     Nex = <np.uint32_t>np.ceil(hsml[p]/dds2_max)
                     if Nex > 0:
-                        xex_range = range(-min(Nex, <int>mi_split[0]), min(Nex, mi_max-mi_split[0])+1)
-                        yex_range = range(-min(Nex, <int>mi_split[1]), min(Nex, mi_max-mi_split[1])+1)
-                        zex_range = range(-min(Nex, <int>mi_split[2]), min(Nex, mi_max-mi_split[2])+1)
-                        for xex,yex,zex in itertools.product(xex_range, yex_range, zex_range):
-                            if (xex, yex, zex) == (0, 0, 0):
-                                continue
-                            miex = encode_morton_64bit(mi_split[0] + xex,
-                                                       mi_split[1] + yex,
-                                                       mi_split[2] + zex)
-                            if nsub_mi >= sub_mi1.size:
-                                raise IndexError("Refined index exceeded original estimate.")
-                            sub_mi1[nsub_mi] = mi
-                            sub_mi2[nsub_mi] = miex
-                            nsub_mi += 1
+                        xex_min = -min(Nex, <int>mi_split[0])
+                        xex_max = min(Nex, mi_max - mi_split[0]) + 1
+                        yex_min = -min(Nex, <int>mi_split[1])
+                        yex_max = min(Nex, mi_max - mi_split[1]) + 1
+                        zex_min = -min(Nex, <int>mi_split[2])
+                        zex_max = min(Nex, mi_max - mi_split[2]) + 1
+                        for xex in range(xex_min, xex_max):
+                            for yex in range(yex_min, yex_max):
+                                for zex in range(zex_min, zex_max):
+                                    if xex == 0 and yex == 0 and zex == 0:
+                                        continue
+                                    miex = encode_morton_64bit(
+                                        mi_split[0] + xex,
+                                        mi_split[1] + yex,
+                                        mi_split[2] + zex)
+                                    if nsub_mi >= sub_mi1.shape[0]:
+                                        raise IndexError(
+                                            "Refined index exceeded original "
+                                            "estimate.\n"
+                                            "nsub_mi = %s, "
+                                            "sub_mi1.shape[0] = %s"
+                                            % (nsub_mi, sub_mi1.shape[0]))
+                                    sub_mi1[nsub_mi] = mi
+                                    sub_mi2[nsub_mi] = miex
+                                    nsub_mi += 1
         # Only subs of particles in the mask
         return nsub_mi
 
