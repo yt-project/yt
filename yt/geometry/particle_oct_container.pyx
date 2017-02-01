@@ -408,6 +408,7 @@ cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 cdef class ParticleBitmap:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
+    cdef np.uint8_t periodicity[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t dds_mi1[3]
     cdef np.float64_t dds_mi2[3]
@@ -432,7 +433,7 @@ cdef class ParticleBitmap:
     cdef FileBitmasks bitmasks
     cdef public BoolArrayCollection collisions
 
-    def __init__(self, left_edge, right_edge, nfiles, 
+    def __init__(self, left_edge, right_edge, periodicity, nfiles, 
                  index_order1 = None, index_order2 = None):
         # TODO: Set limit on maximum orders?
         if index_order1 is None: index_order1 = 7
@@ -449,6 +450,7 @@ cdef class ParticleBitmap:
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
+            self.periodicity[i] = <np.uint8_t>periodicity[i]
             self.dims[i] = (1<<index_order1)
             self.dds[i] = (right_edge[i] - left_edge[i])/self.dims[i]
             self.idds[i] = 1.0/self.dds[i] 
@@ -496,9 +498,15 @@ cdef class ParticleBitmap:
         cdef int Nex_max[3]
         cdef np.float64_t rpos_min, rpos_max
         cdef np.uint64_t xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
-        cdef np.uint64_t xex, yex, zex,
+        cdef np.uint64_t xex, yex, zex
+        cdef int ix, iy, iz
+        cdef int ixb, ixe, iyb, iye, izb, ize
+        cdef np.ndarray[np.int64_t, ndim=1] xex_range = np.empty(7, 'int64')
+        cdef np.ndarray[np.int64_t, ndim=1] yex_range = np.empty(7, 'int64')
+        cdef np.ndarray[np.int64_t, ndim=1] zex_range = np.empty(7, 'int64')
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.uint8_t PER[3]
         cdef np.float64_t dds[3]
         cdef np.uint8_t[:] mask = self.masks[:, file_id]
         cdef np.int64_t msize = (1 << (self.index_order1 * 3))
@@ -507,6 +515,7 @@ cdef class ParticleBitmap:
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
+            PER[i] = self.periodicity[i]
             dds[i] = self.dds_mi1[i]
         # Mark index of particles that are in this file
         for p in range(pos.shape[0]):
@@ -522,7 +531,6 @@ cdef class ParticleBitmap:
                                           dds, mi_split)
             mask[mi] = 1
             # Expand mask by softening
-            # TODO: handle wrapping over periodic boundary conditions
             if hsml is not None:
                 Nex = 1
                 for i in range(3):
@@ -537,15 +545,63 @@ cdef class ParticleBitmap:
                     Nex *= (Nex_max[i] + Nex_min[i] + 1)
                 if Nex > 1:
                     # Ensure that min/max values for x,y,z indexes are obeyed
+                    if (Nex_max[0] + Nex_min[0] + 1) > xex_range.shape[0]:
+                        xex_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'int64')
+                    if (Nex_max[1] + Nex_min[1] + 1) > yex_range.shape[0]:
+                        yex_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'int64')
+                    if (Nex_max[2] + Nex_min[2] + 1) > zex_range.shape[0]:
+                        zex_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'int64')
                     xex_min = mi_split[0] - min(Nex_min[0], <int>mi_split[0])
                     xex_max = mi_split[0] + min(Nex_max[0], <int>(mi_max - mi_split[0])) + 1
                     yex_min = mi_split[1] - min(Nex_min[1], <int>mi_split[1])
                     yex_max = mi_split[1] + min(Nex_max[1], <int>(mi_max - mi_split[1])) + 1
                     zex_min = mi_split[2] - min(Nex_min[2], <int>mi_split[2])
                     zex_max = mi_split[2] + min(Nex_max[2], <int>(mi_max - mi_split[2])) + 1
+                    ixb = iyb = izb = 0
+                    ixe = iye = ize = 0
                     for xex in range(xex_min, xex_max):
-                        for yex in range(yex_min, yex_max):
-                            for zex in range(zex_min, zex_max):
+                        xex_range[ixe] = xex
+                        ixe += 1
+                    for yex in range(yex_min, yex_max):
+                        yex_range[iye] = yex
+                        iye += 1
+                    for zex in range(zex_min, zex_max):
+                        zex_range[ize] = zex
+                        ize += 1
+                    # Add periodic wrapping
+                    if PER[0]:
+                        if Nex_min[0] > <int>mi_split[0]:
+                            for xex in range(mi_max + 1 - (Nex_min[0] - mi_split[0]), mi_max + 1):
+                                xex_range[ixe] = xex
+                                ixe += 1
+                        if Nex_max[0] > <int>(mi_max-mi_split[0]):
+                            for xex in range(0, Nex_max[0] - (mi_max-mi_split[0])):
+                                xex_range[ixe] = xex
+                                ixe += 1
+                    if PER[1]:
+                        if Nex_min[1] > <int>mi_split[1]:
+                            for yex in range(mi_max + 1 - (Nex_min[1] - mi_split[1]), mi_max + 1):
+                                yex_range[iye] = yex
+                                iye += 1
+                        if Nex_max[1] > <int>(mi_max-mi_split[1]):
+                            for yex in range(0, Nex_max[1] - (mi_max-mi_split[1])):
+                                yex_range[iye] = yex
+                                iye += 1
+                    if PER[2]:
+                        if Nex_min[2] > <int>mi_split[2]:
+                            for zex in range(mi_max + 1 - (Nex_min[2] - mi_split[2]), mi_max + 1):
+                                zex_range[ize] = zex
+                                ize += 1
+                        if Nex_max[2] > <int>(mi_max-mi_split[2]):
+                            for zex in range(0, Nex_max[2] - (mi_max-mi_split[2])):
+                                zex_range[ize] = zex
+                                ize += 1
+                    for ix in range(ixb, ixe):
+                        xex = xex_range[ix]
+                        for iy in range(iyb, iye):
+                            yex = yex_range[iy]
+                            for iz in range(izb, ize):
+                                zex = zex_range[iz]
                                 miex = encode_morton_64bit(xex, yex, zex)
                                 if miex >= msize:
                                     raise IndexError(
