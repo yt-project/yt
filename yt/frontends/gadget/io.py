@@ -96,6 +96,19 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
+    def _yield_smoothing_length(self, data_file):
+        ptype = self.ds._sph_ptype
+        ind = int(ptype[-1])
+        si, ei = data_file.start, data_file.end
+        with h5py.File(data_file.filename) as f:
+            pcount = int(f["/Header"].attrs["NumPart_ThisFile"][ind])
+            pcount = np.clip(pcount - si, 0, ei - si)
+            ds = f[ptype]["SmoothingLength"][si:ei,...]
+            dt = ds.dtype.newbyteorder("N") # Native
+            hsml = np.empty(ds.shape, dtype=dt)
+            hsml[:] = ds
+            return hsml
+
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         data_files = set([])
