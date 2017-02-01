@@ -18,6 +18,9 @@ cdef class FileBitmasks:
     cdef void _set_refined(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr)
     cdef void _set_refined_array(self, np.uint32_t ifile, np.uint64_t mi1, np.uint8_t[:] arr)
+    cdef void _set_refined_index_array(self, np.uint32_t ifile, np.int64_t nsub_mi,
+                                       np.ndarray[np.uint64_t, ndim=1] sub_mi1,
+                                       np.ndarray[np.uint64_t, ndim=1] sub_mi2)
     cdef void _set_map(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2)
     cdef void _set_refn(self, np.uint32_t ifile, np.uint64_t i1)
     cdef bint _get(self, np.uint32_t ifile, np.uint64_t i1, np.uint64_t i2=*)
