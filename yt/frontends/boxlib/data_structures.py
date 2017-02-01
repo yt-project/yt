@@ -437,6 +437,8 @@ class BoxlibDataset(Dataset):
             "materials.gamma", 1.6667)
 
     def _localize_check(self, fn):
+        if fn is None:
+            return None
         # If the file exists, use it.  If not, set it to None.
         root_dir = os.path.dirname(self.output_dir)
         full_fn = os.path.join(root_dir, fn)
@@ -1196,8 +1198,7 @@ class WarpXHierarchy(BoxlibHierarchy):
         is_checkpoint = False
 
         for ptype in self.ds.particle_types:
-            self._read_particles(ptype, is_checkpoint, 
-                                 warpx_extra_real_fields[0:self.ds.dimensionality+1])
+            self._read_particles(ptype, is_checkpoint, warpx_extra_real_fields)
         
         # Additional WarpX particle information (used to set up species)
         with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
@@ -1238,8 +1239,8 @@ class WarpXDataset(BoxlibDataset):
     _field_info_class = WarpXFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename="inputs",
-                 fparam_filename="probin",
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
