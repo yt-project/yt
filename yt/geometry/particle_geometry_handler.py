@@ -177,7 +177,7 @@ class ParticleIndex(Index):
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             for ptype, pos in self.io._yield_coordinates(data_file):
-                if hasattr(self.ds, '_sph_ptype'):
+                if hasattr(self.ds, '_sph_ptype') and ptype == self.ds._sph_ptype:
                     hsml = self.io._yield_smoothing_length(data_file)
                 else:
                     hsml = None
