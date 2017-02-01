@@ -129,6 +129,10 @@ class BaseIOHandler(object):
         ind = {field: 0 for field in fields}
         for field, obj, data in self.io_iter(chunks, fields):
             if data is None: continue
+            if selector.__class__.__name__ == "GridSelector":
+                ind[field] += data.size
+                rv[field] = data.copy()
+                continue
             ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
