@@ -68,7 +68,7 @@ answer_tests:
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
     - yt/visualization/tests/test_mesh_slices.py:test_multi_region
 
-  local_boxlib_002:
+  local_boxlib_003:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
@@ -77,7 +77,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
 
-  local_boxlib_particles_001:
+  local_boxlib_particles_002:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
