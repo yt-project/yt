@@ -402,8 +402,8 @@ class PlotWindow(ImagePlotContainer):
                 "Field list {} and unit "
                 "list {} are incompatible".format(field, new_unit))
         for f, u in zip(field, new_unit):
-            self._equivalencies[f] = (equivalency, equivalency_kwargs)
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
+            self._equivalencies[f] = (equivalency, equivalency_kwargs)
         return self
 
     @invalidate_plot

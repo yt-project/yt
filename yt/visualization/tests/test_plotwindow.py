@@ -546,3 +546,11 @@ def test_set_unit():
     slc.set_buff_size(1000)
 
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+
+    # test that destroying the FRB then changing the unit using an equivalency
+    # doesn't error out, see issue #1316
+    slc = SlicePlot(ds, 2, 'temperature')
+    slc.set_buff_size(1000)
+    slc.set_unit('temperature', 'keV', equivalency='thermal')
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+
