@@ -251,6 +251,12 @@ class CastroFieldInfo(FieldInfoContainer):
         ("rot_z", ("cm/s**2", [], r"\mathbf{f}_{\rm{rot}} \cdot \mathbf{e}_z")),
     )
 
+    known_particle_fields = (
+        ("particle_position_x", ("code_length", [], None)),
+        ("particle_position_y", ("code_length", [], None)),
+        ("particle_position_z", ("code_length", [], None)),
+    )
+
     def setup_fluid_fields(self):
         # add X's
         for _, field in self.ds.field_list:
