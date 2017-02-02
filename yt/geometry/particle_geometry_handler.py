@@ -57,12 +57,7 @@ class ParticleIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        # ML = self.oct_handler.max_level 
-        ML = self.regions.index_order1 # was self.oct_handler.max_level
-        dx = 1.0/(self.dataset.domain_dimensions*2**ML)
-        dx = dx * (self.dataset.domain_right_edge -
-                   self.dataset.domain_left_edge)
-        return dx.min()
+        return self.ds.arr(0, 'code_length')
 
     def _get_particle_type_counts(self):
         result = collections.defaultdict(lambda: 0)
