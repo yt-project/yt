@@ -50,7 +50,7 @@ import os
 # index for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
 
-_bitmask_version = np.uint64(1)
+_bitmask_version = np.uint64(3)
 
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
@@ -408,6 +408,7 @@ cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 cdef class ParticleBitmap:
     cdef np.float64_t left_edge[3]
     cdef np.float64_t right_edge[3]
+    cdef np.uint8_t periodicity[3]
     cdef np.float64_t dds[3]
     cdef np.float64_t dds_mi1[3]
     cdef np.float64_t dds_mi2[3]
@@ -432,7 +433,7 @@ cdef class ParticleBitmap:
     cdef FileBitmasks bitmasks
     cdef public BoolArrayCollection collisions
 
-    def __init__(self, left_edge, right_edge, nfiles, 
+    def __init__(self, left_edge, right_edge, periodicity, nfiles, 
                  index_order1 = None, index_order2 = None):
         # TODO: Set limit on maximum orders?
         if index_order1 is None: index_order1 = 7
@@ -449,6 +450,7 @@ cdef class ParticleBitmap:
         for i in range(3):
             self.left_edge[i] = left_edge[i]
             self.right_edge[i] = right_edge[i]
+            self.periodicity[i] = <np.uint8_t>periodicity[i]
             self.dims[i] = (1<<index_order1)
             self.dds[i] = (right_edge[i] - left_edge[i])/self.dims[i]
             self.idds[i] = 1.0/self.dds[i] 
@@ -496,9 +498,14 @@ cdef class ParticleBitmap:
         cdef int Nex_max[3]
         cdef np.float64_t rpos_min, rpos_max
         cdef np.uint64_t xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
-        cdef np.uint64_t xex, yex, zex,
+        cdef np.uint64_t xex, yex, zex
+        cdef int ix, iy, iz, ixe, iye, ize
+        cdef np.ndarray[np.uint64_t, ndim=1] xex_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] yex_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] zex_range = np.empty(7, 'uint64')
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.uint8_t PER[3]
         cdef np.float64_t dds[3]
         cdef np.uint8_t[:] mask = self.masks[:, file_id]
         cdef np.int64_t msize = (1 << (self.index_order1 * 3))
@@ -507,6 +514,7 @@ cdef class ParticleBitmap:
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
+            PER[i] = self.periodicity[i]
             dds[i] = self.dds_mi1[i]
         # Mark index of particles that are in this file
         for p in range(pos.shape[0]):
@@ -522,7 +530,6 @@ cdef class ParticleBitmap:
                                           dds, mi_split)
             mask[mi] = 1
             # Expand mask by softening
-            # TODO: handle wrapping over periodic boundary conditions
             if hsml is not None:
                 Nex = 1
                 for i in range(3):
@@ -537,15 +544,62 @@ cdef class ParticleBitmap:
                     Nex *= (Nex_max[i] + Nex_min[i] + 1)
                 if Nex > 1:
                     # Ensure that min/max values for x,y,z indexes are obeyed
+                    if (Nex_max[0] + Nex_min[0] + 1) > xex_range.shape[0]:
+                        xex_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'uint64')
+                    if (Nex_max[1] + Nex_min[1] + 1) > yex_range.shape[0]:
+                        yex_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'uint64')
+                    if (Nex_max[2] + Nex_min[2] + 1) > zex_range.shape[0]:
+                        zex_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'uint64')
                     xex_min = mi_split[0] - min(Nex_min[0], <int>mi_split[0])
                     xex_max = mi_split[0] + min(Nex_max[0], <int>(mi_max - mi_split[0])) + 1
                     yex_min = mi_split[1] - min(Nex_min[1], <int>mi_split[1])
                     yex_max = mi_split[1] + min(Nex_max[1], <int>(mi_max - mi_split[1])) + 1
                     zex_min = mi_split[2] - min(Nex_min[2], <int>mi_split[2])
                     zex_max = mi_split[2] + min(Nex_max[2], <int>(mi_max - mi_split[2])) + 1
+                    ixe = iye = ize = 0
                     for xex in range(xex_min, xex_max):
-                        for yex in range(yex_min, yex_max):
-                            for zex in range(zex_min, zex_max):
+                        xex_range[ixe] = xex
+                        ixe += 1
+                    for yex in range(yex_min, yex_max):
+                        yex_range[iye] = yex
+                        iye += 1
+                    for zex in range(zex_min, zex_max):
+                        zex_range[ize] = zex
+                        ize += 1
+                    # Add periodic wrapping
+                    if PER[0]:
+                        if Nex_min[0] > <int>mi_split[0]:
+                            for xex in range(mi_max + 1 - (Nex_min[0] - mi_split[0]), mi_max + 1):
+                                xex_range[ixe] = xex
+                                ixe += 1
+                        if Nex_max[0] > <int>(mi_max-mi_split[0]):
+                            for xex in range(0, Nex_max[0] - (mi_max-mi_split[0])):
+                                xex_range[ixe] = xex
+                                ixe += 1
+                    if PER[1]:
+                        if Nex_min[1] > <int>mi_split[1]:
+                            for yex in range(mi_max + 1 - (Nex_min[1] - mi_split[1]), mi_max + 1):
+                                yex_range[iye] = yex
+                                iye += 1
+                        if Nex_max[1] > <int>(mi_max-mi_split[1]):
+                            for yex in range(0, Nex_max[1] - (mi_max-mi_split[1])):
+                                yex_range[iye] = yex
+                                iye += 1
+                    if PER[2]:
+                        if Nex_min[2] > <int>mi_split[2]:
+                            for zex in range(mi_max + 1 - (Nex_min[2] - mi_split[2]), mi_max + 1):
+                                zex_range[ize] = zex
+                                ize += 1
+                        if Nex_max[2] > <int>(mi_max-mi_split[2]):
+                            for zex in range(0, Nex_max[2] - (mi_max-mi_split[2])):
+                                zex_range[ize] = zex
+                                ize += 1
+                    for ix in range(ixe):
+                        xex = xex_range[ix]
+                        for iy in range(iye):
+                            yex = yex_range[iy]
+                            for iz in range(ize):
+                                zex = zex_range[iz]
                                 miex = encode_morton_64bit(xex, yex, zex)
                                 if miex >= msize:
                                     raise IndexError(
@@ -607,22 +661,33 @@ cdef class ParticleBitmap:
         cdef int skip, Nex
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
+        cdef np.uint8_t PER[3]
         cdef np.float64_t dds1[3]
         cdef np.float64_t dds2[3]
         cdef np.uint64_t mi_split1[3]
         cdef np.uint64_t mi_split2[3]
-        cdef np.uint64_t miex, mi_max
+        cdef np.uint64_t miex1, miex2, mi1_max, mi2_max
         cdef int Nex_min[3]
         cdef int Nex_max[3]
         cdef np.float64_t rpos_min, rpos_max
-        cdef np.uint64_t xex_min, xex_max, yex_min, yex_max, zex_min, zex_max
-        cdef np.uint64_t xex, yex, zex,
+        cdef np.uint64_t xex2_min, xex2_max, yex2_min, yex2_max, zex2_min, zex2_max
+        cdef np.uint64_t xex1, yex1, zex1
+        cdef np.uint64_t xex2, yex2, zex2
+        cdef int ix, iy, iz, ixe, iye, ize
+        cdef np.ndarray[np.uint64_t, ndim=1] xex1_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] yex1_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] zex1_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] xex2_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] yex2_range = np.empty(7, 'uint64')
+        cdef np.ndarray[np.uint64_t, ndim=1] zex2_range = np.empty(7, 'uint64')
         cdef np.int64_t msize = sub_mi1.shape[0]
-        mi_max = (1 << self.index_order2) - 1
+        mi1_max = (1 << self.index_order1) - 1
+        mi2_max = (1 << self.index_order2) - 1
         # Copy things from structure (type cast)
         for i in range(3):
             LE[i] = self.left_edge[i]
             RE[i] = self.right_edge[i]
+            PER[i] = self.periodicity[i]
             dds1[i] = self.dds_mi1[i]
             dds2[i] = self.dds_mi2[i]
         # Loop over positions skipping those outside the domain
@@ -647,8 +712,6 @@ cdef class ParticleBitmap:
                 sub_mi2[nsub_mi] = mi2
                 nsub_mi += 1
                 # Expand for smoothing
-                # TODO: handle wrapping over periodic boundary conditions or
-                # for cases that extend into other coarse indices
                 if hsml is not None:
                     Nex = 1
                     for i in range(3):
@@ -663,19 +726,123 @@ cdef class ParticleBitmap:
                         Nex *= (Nex_max[i] + Nex_min[i] + 1)
                     if Nex > 1:
                         # Ensure that min/max values for x,y,z indexes are obeyed
-                        xex_min = mi_split2[0] - min(Nex_min[0], <int>mi_split2[0])
-                        xex_max = mi_split2[0] + min(Nex_max[0], <int>(mi_max - mi_split2[0])) + 1
-                        yex_min = mi_split2[1] - min(Nex_min[1], <int>mi_split2[1])
-                        yex_max = mi_split2[1] + min(Nex_max[1], <int>(mi_max - mi_split2[1])) + 1
-                        zex_min = mi_split2[2] - min(Nex_min[2], <int>mi_split2[2])
-                        zex_max = mi_split2[2] + min(Nex_max[2], <int>(mi_max - mi_split2[2])) + 1
-                        for xex in range(xex_min, xex_max):
-                            for yex in range(yex_min, yex_max):
-                                for zex in range(zex_min, zex_max):
-                                    if xex == 0 and yex == 0 and zex == 0:
+                        if (Nex_max[0] + Nex_min[0] + 1) > xex1_range.shape[0]:
+                            xex1_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'uint64')
+                            xex2_range = np.empty(Nex_max[0] + Nex_min[0] + 1, 'uint64')
+                        if (Nex_max[1] + Nex_min[1] + 1) > yex1_range.shape[0]:
+                            yex1_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'uint64')
+                            yex2_range = np.empty(Nex_max[1] + Nex_min[1] + 1, 'uint64')
+                        if (Nex_max[2] + Nex_min[2] + 1) > zex1_range.shape[0]:
+                            zex1_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'uint64')
+                            zex2_range = np.empty(Nex_max[2] + Nex_min[2] + 1, 'uint64')
+                        xex2_min = mi_split2[0] - min(Nex_min[0], <int>mi_split2[0])
+                        xex2_max = mi_split2[0] + min(Nex_max[0], <int>(mi2_max - mi_split2[0])) + 1
+                        yex2_min = mi_split2[1] - min(Nex_min[1], <int>mi_split2[1])
+                        yex2_max = mi_split2[1] + min(Nex_max[1], <int>(mi2_max - mi_split2[1])) + 1
+                        zex2_min = mi_split2[2] - min(Nex_min[2], <int>mi_split2[2])
+                        zex2_max = mi_split2[2] + min(Nex_max[2], <int>(mi2_max - mi_split2[2])) + 1
+                        ixe = iye = ize = 0
+                        for xex2 in range(xex2_min, xex2_max):
+                            xex1_range[ixe] = mi_split1[0]
+                            xex2_range[ixe] = xex2
+                            ixe += 1
+                        for yex2 in range(yex2_min, yex2_max):
+                            yex1_range[iye] = mi_split1[1]
+                            yex2_range[iye] = yex2
+                            iye += 1
+                        for zex2 in range(zex2_min, zex2_max):
+                            zex1_range[ize] = mi_split1[2]
+                            zex2_range[ize] = zex2
+                            ize += 1
+                        # Expand to adjacent coarse cells, wrapping periodically
+                        # if need be
+                        # x
+                        if Nex_min[0] > <int>mi_split2[0]:
+                            if mi_split1[0] > 0:
+                                for xex2 in range(mi2_max + 1 - (Nex_min[0] - mi_split2[0]), mi2_max + 1): 
+                                    xex1_range[ixe] = mi_split1[0] - 1
+                                    xex2_range[ixe] = xex2
+                                    ixe += 1
+                            elif PER[0]:
+                                for xex2 in range(mi2_max + 1 - (Nex_min[0] - mi_split2[0]), mi2_max + 1): 
+                                    xex1_range[ixe] = mi1_max
+                                    xex2_range[ixe] = xex2
+                                    ixe += 1
+                        if Nex_max[0] > <int>(mi2_max-mi_split2[0]):  
+                            if mi_split1[0] < mi1_max:
+                                for xex2 in range(0, Nex_max[0] - (mi2_max-mi_split2[0])): 
+                                    xex1_range[ixe] = mi_split1[0] + 1
+                                    xex2_range[ixe] = xex2
+                                    ixe += 1
+                            elif PER[0]:
+                                for xex2 in range(0, Nex_max[0] - (mi2_max-mi_split2[0])): 
+                                    xex1_range[ixe] = 0
+                                    xex2_range[ixe] = xex2
+                                    ixe += 1
+                        # y
+                        if Nex_min[1] > <int>mi_split2[1]:
+                            if mi_split1[1] > 0:
+                                for yex2 in range(mi2_max + 1 - (Nex_min[1] - mi_split2[1]), mi2_max + 1): 
+                                    yex1_range[iye] = mi_split1[1] - 1
+                                    yex2_range[iye] = yex2
+                                    iye += 1
+                            elif PER[1]:
+                                for yex2 in range(mi2_max + 1 - (Nex_min[1] - mi_split2[1]), mi2_max + 1): 
+                                    yex1_range[iye] = mi1_max
+                                    yex2_range[iye] = yex2
+                                    iye += 1
+                        if Nex_max[1] > <int>(mi2_max-mi_split2[1]):  
+                            if mi_split1[1] < mi1_max:
+                                for yex2 in range(0, Nex_max[1] - (mi2_max-mi_split2[1])): 
+                                    yex1_range[iye] = mi_split1[1] + 1
+                                    yex2_range[iye] = yex2
+                                    iye += 1
+                            elif PER[1]:
+                                for yex2 in range(0, Nex_max[1] - (mi2_max-mi_split2[1])): 
+                                    yex1_range[iye] = 0
+                                    yex2_range[iye] = yex2
+                                    iye += 1
+                        # z
+                        if Nex_min[2] > <int>mi_split2[2]:
+                            if mi_split1[2] > 0:
+                                for zex2 in range(mi2_max + 1 - (Nex_min[2] - mi_split2[2]), mi2_max + 1): 
+                                    zex1_range[ize] = mi_split1[2] - 1
+                                    zex2_range[ize] = zex2
+                                    ize += 1
+                            elif PER[2]:
+                                for zex2 in range(mi2_max + 1 - (Nex_min[2] - mi_split2[2]), mi2_max + 1): 
+                                    zex1_range[ize] = mi1_max
+                                    zex2_range[ize] = zex2
+                                    ize += 1
+                        if Nex_max[2] > <int>(mi2_max-mi_split2[2]):  
+                            if mi_split1[2] < mi1_max:
+                                for zex2 in range(0, Nex_max[2] - (mi2_max-mi_split2[2])): 
+                                    zex1_range[ize] = mi_split1[2] + 1
+                                    zex2_range[ize] = zex2
+                                    ize += 1
+                            elif PER[2]:
+                                for zex2 in range(0, Nex_max[2] - (mi2_max-mi_split2[2])): 
+                                    zex1_range[ize] = 0
+                                    zex2_range[ize] = zex2
+                                    ize += 1
+                        for ix in range(ixe):
+                            xex1 = xex1_range[ix]
+                            xex2 = xex2_range[ix]
+                            for iy in range(iye):
+                                yex1 = yex1_range[iy]
+                                yex2 = yex2_range[iy]
+                                for iz in range(ize):
+                                    zex1 = zex1_range[iz]
+                                    zex2 = zex2_range[iz]
+                                    if (xex1 == mi_split1[0] and xex2 == mi_split2[0] and
+                                        yex1 == mi_split1[1] and yex2 == mi_split2[1] and
+                                        zex1 == mi_split1[2] and zex2 == mi_split2[2]):
                                         continue
-                                    miex = encode_morton_64bit(xex, yex, zex)
+                                    miex1 = encode_morton_64bit(xex1, yex1, zex1)
+                                    miex2 = encode_morton_64bit(xex2, yex2, zex2)
                                     if nsub_mi >= msize:
+                                        # Uncomment these lines to allow periodic
+                                        # caching of refined indices
                                         # self.bitmasks._set_refined_index_array(
                                         #     file_id, nsub_mi, sub_mi1, sub_mi2)
                                         # nsub_mi = 0
@@ -685,8 +852,8 @@ cdef class ParticleBitmap:
                                             "nsub_mi = %s, "
                                             "sub_mi1.shape[0] = %s"
                                             % (nsub_mi, sub_mi1.shape[0]))
-                                    sub_mi1[nsub_mi] = mi1
-                                    sub_mi2[nsub_mi] = miex
+                                    sub_mi1[nsub_mi] = miex1
+                                    sub_mi2[nsub_mi] = miex2
                                     nsub_mi += 1
         # Only subs of particles in the mask
         return nsub_mi

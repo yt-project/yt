@@ -147,6 +147,7 @@ class ParticleIndex(Index):
                 dont_cache=True
         self.regions = ParticleBitmap(
                 ds.domain_left_edge, ds.domain_right_edge,
+                ds.periodicity,
                 len(self.data_files), 
                 index_order1=order1, index_order2=order2)
         N = 1<<(self.regions.index_order1 + self.ds.over_refine_factor)
