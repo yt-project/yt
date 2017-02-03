@@ -157,3 +157,48 @@ def test_chained_selection():
         region = ds.box(ds.domain_left_edge, ds.domain_right_edge,
                         data_source=sph)
         assert_equal(region['gas', 'density'].shape[0], answer)
+
+def test_boolean_selection():
+    ds = fake_sph_orientation_ds()
+
+    sph = ds.sphere([0, 0, 0], 0.5)
+
+    sph2 = ds.sphere([1, 0, 0], 0.5)
+
+    reg = ds.all_data()
+
+    neg = reg - sph
+
+    assert_equal(neg['gas', 'density'].shape[0], 6)
+
+    plus = sph + sph2
+
+    assert_equal(plus['gas', 'density'].shape[0], 2)
+
+    intersect = sph & sph2
+
+    assert_equal(intersect['gas', 'density'].shape[0], 0)
+
+    intersect = reg & sph2
+
+    assert_equal(intersect['gas', 'density'].shape[0], 1)
+
+    exclusive = sph ^ sph2
+
+    assert_equal(exclusive['gas', 'density'].shape[0], 2)
+
+    exclusive = sph ^ reg
+
+    assert_equal(exclusive['gas', 'density'].shape[0], 6)
+
+    intersect = ds.intersection([sph, sph2])
+
+    assert_equal(intersect['gas', 'density'].shape[0], 0)
+
+    intersect = ds.intersection([reg, sph2])
+
+    assert_equal(intersect['gas', 'density'].shape[0], 1)
+
+    union = ds.union([sph, sph2])
+
+    assert_equal(union['gas', 'density'].shape[0], 2)

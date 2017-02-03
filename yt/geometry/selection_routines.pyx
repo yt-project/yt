@@ -2571,6 +2571,14 @@ cdef class BooleanANDSelector(BooleanSelector):
         if rv2 == 0: return 0
         return 1
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        if rv2 == 0: return 0
+        return max(rv1, rv2)
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
@@ -2615,6 +2623,12 @@ cdef class BooleanORSelector(BooleanSelector):
         if rv2 == 1: return 1
         return 0
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        return max(rv1, rv2)
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
@@ -2657,6 +2671,10 @@ cdef class BooleanNOTSelector(BooleanSelector):
         # check anywhere else.
         return 1
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        return 1
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
@@ -2687,6 +2705,10 @@ cdef class BooleanXORSelector(BooleanSelector):
                                np.float64_t right_edge[3]) nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
+        return 1
+
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
         return 1
 
     cdef int select_grid(self, np.float64_t left_edge[3],
@@ -2720,10 +2742,14 @@ cdef class BooleanXORSelector(BooleanSelector):
 cdef class BooleanNEGSelector(BooleanSelector):
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                         np.float64_t right_edge[3]) nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
         return self.sel1.select_bbox(left_edge, right_edge)
+
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        return self.sel1.select_bbox_edge(left_edge, right_edge)
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
@@ -2777,6 +2803,25 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
                 if (<SelectorObject>self.selectors[i]).select_bbox(
                         left_edge, right_edge) == 0:
                     return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        cdef int selected = 0
+        cdef int ret
+        with gil:
+            for i in range(self.n_obj):
+                ret = (<SelectorObject>self.selectors[i]).select_bbox_edge(
+                    left_edge, right_edge)
+                if ret == 0:
+                    return 0
+                elif ret == 2:
+                    selected = 2
+        if selected == 2:
+            return 2
         return 1
 
     @cython.cdivision(True)
@@ -2844,6 +2889,23 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
                         left_edge, right_edge) == 1:
                     return 1
         return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3]) nogil:
+        cdef int selected = 0
+        cdef int ret
+        with gil:
+            for i in range(self.n_obj):
+                ret = (<SelectorObject>self.selectors[i]).select_bbox_edge(
+                    left_edge, right_edge)
+                if ret == 2:
+                    return 2
+                elif ret == 1:
+                    selected = 1
+        return selected
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
