@@ -40,19 +40,19 @@ def get_first_commit_after_last_major_release(repo_path):
     """
     with hglib.open(repo_path) as client:
         tags = client.log("reverse(tag())")
-        tags = sorted([LooseVersion(t[2]) for t in tags])
+        tags = [t[2].decode('utf8') for t in tags]
+        tags = sorted([t for t in tags if t[:2] == 'yt'])
         for t in tags[::-1]:
-            if t.version[0:2] != ['yt', '-']:
-                continue
-            if len(t.version) == 4 or t.version[4] == 0:
+            ver = LooseVersion(t)
+            if len(ver.version) == 4 or ver.version[4] == 0:
                 last_major_tag = t
                 break
         last_before_release = client.log(
             "last(ancestors(%s) and branch(yt))" % str(last_major_tag))
+        rev = last_before_release[0][1].decode()
         first_after_release = client.log(
-            "first(descendants(%s) and branch(yt) and not %s)"
-            % (last_before_release[0][1], last_before_release[0][1]))
-    return str(first_after_release[0][1][:12])
+            "first(descendants(%s) and branch(yt) and not %s)" % (rev, rev))
+    return first_after_release[0][1][:12].decode('utf8')
 
 
 def get_branch_tip(repo_path, branch, exclude=None):
@@ -65,7 +65,7 @@ def get_branch_tip(repo_path, branch, exclude=None):
                 revset += "and not %s" % exclude
             except hglib.error.CommandError:
                 pass
-        change = client.log(revset)[0][1][:12]
+        change = client.log(revset)[0][1][:12].decode('utf8')
     return change
 
 
@@ -153,7 +153,7 @@ def find_merge_commit_in_prs(needle, prs):
     """
     for pr in prs[::-1]:
         if pr['merge_commit'] is not None:
-            if pr['merge_commit']['hash'] == needle[1][:12]:
+            if pr['merge_commit']['hash'] == needle[1][:12].decode('utf8'):
                 return pr
     return None
 
@@ -167,8 +167,8 @@ def create_commits_to_prs_mapping(linege, prs):
     my_prs = list(prs)
     commit_data = cache_commit_data(my_prs)
     for commit in lineage:
-        cset_hash = commit[1]
-        message = commit[5]
+        cset_hash = commit[1].decode('utf8')
+        message = commit[5].decode('utf8')
         if message.startswith('Merged in') and '(pull request #' in message:
             pr = find_merge_commit_in_prs(commit, my_prs)
             if pr is None:
@@ -186,7 +186,7 @@ def create_commits_to_prs_mapping(linege, prs):
 def invert_commits_to_prs_mapping(commits_to_prs):
     """invert the mapping from individual commits to pull requests"""
     inv_map = {}
-    for k, v in commits_to_prs.iteritems():
+    for k, v in commits_to_prs.items():
         # can't save v itself in inv_map since it's an unhashable dictionary
         if v is not None:
             created_date = v['created_on'].split('.')[0]
@@ -210,14 +210,18 @@ def get_last_descendant(repo_path, commit):
 def screen_already_backported(repo_path, inv_map):
     with hglib.open(repo_path) as client:
         tags = client.log("reverse(tag())")
-        major_tags = [t for t in tags if t[2].endswith('.0')]
-        most_recent_major_tag_name = major_tags[0][2]
+        tags = [t[2].decode('utf8') for t in tags]
+        tags = [LooseVersion(t) for t in tags if t.startswith('yt')]
+        major_tags = [
+            t for t in tags if len(t.version) == 4 or t.version[-1] == 0]
+        most_recent_major_tag_name = major_tags[0].vstring
         lineage = client.log(
             "descendants(%s) and branch(stable)" % most_recent_major_tag_name)
         prs_to_screen = []
         for pr in inv_map:
             for commit in lineage:
-                if commit[5].startswith('Backporting PR #%s' % pr[0]):
+                desc = commit[5].decode('utf8')
+                if desc.startswith('Backporting PR #%s' % pr[0]):
                     prs_to_screen.append(pr)
         for pr in prs_to_screen:
             del inv_map[pr]
@@ -227,6 +231,7 @@ def commit_already_on_stable(repo_path, commit):
     with hglib.open(repo_path) as client:
         commit_info = client.log(commit)[0]
         most_recent_tag_name = client.log("reverse(tag())")[0][2]
+        most_recent_tag_name = most_recent_tag_name.decode('utf8')
         lineage = client.log(
             "descendants(%s) and branch(stable)" % most_recent_tag_name)
         # if there is a stable commit with the same commit message,
@@ -263,7 +268,7 @@ def backport_pr_commits(repo_path, inv_map, last_stable, prs):
             revset = '"%s"' % revset
             message = "Backporting PR #%s %s" % \
                 (pr['id'], pr['links']['html']['href'])
-            dest = get_last_descendant(repo_path, last_stable)
+            dest = get_last_descendant(repo_path, last_stable).decode('utf8')
             message = \
                 "hg rebase -r %s --keep --collapse -m \"%s\" -d %s\n" % \
                 (revset, message, dest)
