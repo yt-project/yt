@@ -234,7 +234,8 @@ class ParticleIndex(Index):
                 dobj._chunk_info = [dobj]
             else:
                 # TODO: only return files
-                dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
+                dfi, file_masks, addfi = self.regions.identify_file_masks(
+                    dobj.selector)
                 nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
                 for i in range(nfiles):
@@ -245,9 +246,10 @@ class ParticleIndex(Index):
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
                 # create as many objects as part of the chunk as we want, since
-                # it'll take the set() of them.  So if we break stuff up like this
-                # here, we end up in a situation where we have the ability to break
-                # things down further later on for buffer zones and the like.
+                # it'll take the set() of them.  So if we break stuff up like
+                # this here, we end up in a situation where we have the ability
+                # to break things down further later on for buffer zones and the
+                # like.
         dobj._current_chunk, = self._chunk_all(dobj)
 
     def _chunk_all(self, dobj):
