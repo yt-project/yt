@@ -864,6 +864,9 @@ class Dataset(object):
         box is a wrapper to the Region object for creating a region
         without having to specify a *center* value.  It assumes the center
         is the midpoint between the left_edge and right_edge.
+
+        Keyword arguments are passed to the initializer of the YTRegion object
+        (e.g. ds.region).
         """
         # we handle units in the region data object
         # but need to check if left_edge or right_edge is a
