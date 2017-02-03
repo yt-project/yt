@@ -95,6 +95,7 @@ DISK_ANSWERS = {
     ((0, 0, 0), (1, 0, 0), 4, 2): 7,
     ((0, 0, 0), (1, 0, 0), 4, 1): 7,
     ((0, 0, 0), (1, 0, 0), 4, 0.5): 6,
+    ((0, 0, 0), (1, 1, 1), 1, 1): 4,
     ((-0.5, -0.5, -0.5), (1, 1, 1), 4, 4): 7,
 }
 
@@ -114,6 +115,7 @@ RAY_ANSWERS = {
     ((0, 0, 0), (0, 0, 3)): 4,
     ((0, 1, 0), (0, 2, 0)): 2,
     ((1, 0, 0), (0, 2, 0)): 2,
+    ((0.5, 0.5, 0.5), (0.5, 0.5, 3.5)): 0,
 }
 
 def test_ray():
@@ -124,3 +126,20 @@ def test_ray():
             end = np.array([e + i*0.1 for e in end_point])
             ray = ds.ray(start, end)
             assert_equal(ray['gas', 'density'].shape[0], answer)
+
+CUTTING_ANSWERS = {
+    ((1, 0, 0), (0, 0, 0)): 6,
+    ((0, 1, 0), (0, 0, 0)): 5,
+    ((0, 0, 1), (0, 0, 0)): 4,
+    ((1, 1, 1), (1./3, 1./3, 1./3)): 3,
+    ((1, 1, 1), (2./3, 2./3, 2./3)): 2,
+    ((1, 1, 1), (1, 1, 1)): 1,
+}
+
+def test_cutting():
+    ds = fake_sph_orientation_ds()
+    for (normal, center), answer in CUTTING_ANSWERS.items():
+        for i in range(-1, 2):
+            cen = [c + 0.1*c for c in center]
+            cut = ds.cutting(normal, cen)
+            assert_equal(cut['gas', 'density'].shape[0], answer)

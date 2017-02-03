@@ -402,7 +402,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
          fields.
     data_source: optional
         Draw the selection from the provided data source rather than
-        all data associated with the data_set
+        all data associated with the dataset
 
     Notes
     -----
