@@ -2480,6 +2480,14 @@ cdef class ComposeSelector(SelectorObject):
         else:
             return 0
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        if self.selector1.select_bbox_edge(left_edge, right_edge) and \
+                self.selector2.select_bbox_edge(left_edge, right_edge):
+            return 1
+        else:
+            return 0
+
     def _hash_vals(self):
         return (hash(self.selector1), hash(self.selector2))
 

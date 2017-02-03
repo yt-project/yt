@@ -27,6 +27,7 @@ def test_slice():
             sl = ds.slice(ax, coord + i*0.1)
             assert_equal(sl['gas', 'density'].shape[0], answer)
 
+
 REGION_ANSWERS = {
     ((-4, -4, -4), (4, 4, 4)): 7,
     ((0, 0, 0), (4, 4, 4)): 7,
@@ -58,6 +59,7 @@ def test_region():
                 reg = ds.box(le, re)
                 assert_equal(reg['gas', 'density'].shape[0], answer)
 
+
 SPHERE_ANSWERS = {
     ((0, 0, 0), 4): 7,
     ((0, 0, 0), 3): 7,
@@ -81,6 +83,7 @@ def test_sphere():
                 rad = radius + 0.1*j
                 sph = ds.sphere(cent, rad)
                 assert_equal(sph['gas', 'density'].shape[0], answer)
+
 
 DISK_ANSWERS = {
     ((0, 0, 0), (0, 0, 1), 4, 3): 7,
@@ -109,6 +112,7 @@ def test_disk():
             disk = ds.disk(cent, normal, radius, height)
             assert_equal(disk['gas', 'density'].shape[0], answer)
 
+
 RAY_ANSWERS = {
     ((0, 0, 0), (3, 0, 0)): 2,
     ((0, 0, 0), (0, 3, 0)): 3,
@@ -127,6 +131,7 @@ def test_ray():
             ray = ds.ray(start, end)
             assert_equal(ray['gas', 'density'].shape[0], answer)
 
+
 CUTTING_ANSWERS = {
     ((1, 0, 0), (0, 0, 0)): 6,
     ((0, 1, 0), (0, 0, 0)): 5,
@@ -143,3 +148,12 @@ def test_cutting():
             cen = [c + 0.1*c for c in center]
             cut = ds.cutting(normal, cen)
             assert_equal(cut['gas', 'density'].shape[0], answer)
+
+def test_chained_selection():
+    ds = fake_sph_orientation_ds()
+
+    for (center, radius), answer in SPHERE_ANSWERS.items():
+        sph = ds.sphere(center, radius)
+        region = ds.box(ds.domain_left_edge, ds.domain_right_edge,
+                        data_source=sph)
+        assert_equal(region['gas', 'density'].shape[0], answer)
