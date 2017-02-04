@@ -202,3 +202,7 @@ def test_boolean_selection():
     union = ds.union([sph, sph2])
 
     assert_equal(union['gas', 'density'].shape[0], 2)
+
+    union = ds.union([sph, reg])
+
+    assert_equal(union['gas', 'density'].shape[0], 7)
