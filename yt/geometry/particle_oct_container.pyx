@@ -31,6 +31,7 @@ cimport numpy as np
 from selection_routines cimport SelectorObject, AlwaysSelector
 cimport cython
 from collections import defaultdict
+from yt.funcs import get_pbar
 
 from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
@@ -1005,10 +1006,13 @@ cdef class ParticleBitmap:
             if nfiles != self.nfiles:
                 raise IOError("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
         # Read bitmap for each file
+        pb = get_pbar("Loading particle index", nfiles)
         for ifile in range(nfiles):
+            pb.update(ifile)
             size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
             irflag = self.bitmasks._loads(ifile, f.read(size_serial))
             if irflag == 0: read_flag = 0
+        pb.finish()
         # Collisions
         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
         irflag = self.collisions._loads(f.read(size_serial))
