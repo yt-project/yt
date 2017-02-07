@@ -856,7 +856,7 @@ class CastroDataset(BoxlibDataset):
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
-                 unit_system="mks"):
+                 unit_system="cgs"):
 
         super(CastroDataset, self).__init__(output_dir,
                                             cparam_filename,
@@ -940,7 +940,7 @@ class MaestroDataset(BoxlibDataset):
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
-                 unit_system="mks"):
+                 unit_system="cgs"):
         
         super(MaestroDataset, self).__init__(output_dir,
                                              cparam_filename,
@@ -1033,7 +1033,7 @@ class NyxDataset(BoxlibDataset):
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
-                 unit_system="mks"):
+                 unit_system="cgs"):
 
         super(NyxDataset, self).__init__(output_dir,
                                          cparam_filename,
