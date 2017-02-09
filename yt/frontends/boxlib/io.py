@@ -126,7 +126,11 @@ class IOHandlerBoxlib(BaseIOHandler):
                 rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
                 x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
                 y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
+                if (grid.ds.dimensionality == 2):
+                    z = np.ones_like(y)
+                    z *= 0.5*(grid.LeftEdge[2] + grid.RightEdge[2])
+                else:
+                    z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
                 mask = selector.select_points(x, y, z, 0.0)
 
                 if mask is None:
@@ -150,7 +154,11 @@ class IOHandlerBoxlib(BaseIOHandler):
                 rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
                 x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
                 y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
+                if (grid.ds.dimensionality == 2):
+                    z = np.ones_like(y)
+                    z *= 0.5*(grid.LeftEdge[2] + grid.RightEdge[2])
+                else:
+                    z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
                 mask = selector.select_points(x, y, z, 0.0)
 
                 if mask is None:
