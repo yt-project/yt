@@ -32,7 +32,7 @@ try:
 except pkg_resources.DistributionNotFound:
     pass  # yay!
 
-VERSION = "3.3.3"
+VERSION = "3.3.4"
 
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
