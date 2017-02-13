@@ -18,7 +18,11 @@ cimport cython
 import numpy as np
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from libc.stdlib cimport malloc, free, abs
-from fixed_interpolator cimport *
+from fixed_interpolator cimport \
+    eval_gradient, \
+    offset_fill, \
+    offset_interpolate, \
+    vertex_interp
 
 cdef extern from "marching_cubes.h":
     int tri_table[256][16]

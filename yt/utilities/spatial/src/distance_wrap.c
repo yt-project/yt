@@ -863,7 +863,7 @@ extern PyObject *pdist_weighted_minkowski_wrap(PyObject *self, PyObject *args) {
   else {
     X = (double*)X_->data;
     dm = (double*)dm_->data;
-    w = (const double*)w_->data;
+    w = (double*)w_->data;
     m = X_->dimensions[0];
     n = X_->dimensions[1];
 

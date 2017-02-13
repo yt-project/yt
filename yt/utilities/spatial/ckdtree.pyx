@@ -369,7 +369,7 @@ cdef class cKDTree:
         stdlib.free(node)
 
     def __dealloc__(cKDTree self):
-        if <int>(self.tree) == 0:
+        if self.tree == NULL:
             # should happen only if __init__ was never called
             return
         self.__free_tree(self.tree)
