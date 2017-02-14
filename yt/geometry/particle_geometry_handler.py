@@ -104,30 +104,6 @@ class ParticleIndex(Index):
             shutil.move(fname_old,fname_new)
         return fname_new
 
-    def _initialize_indices(self):
-        # TODO: THIS IS NOT CURRENTLY USED AND MUST BE MERGED WITH ABOVE
-        # This will be replaced with a parallel-aware iteration step.
-        # Roughly outlined, what we will do is:
-        #   * Generate Morton indices on each set of files that belong to
-        #     an individual processor
-        #   * Create a global, accumulated histogram
-        #   * Cut based on estimated load balancing
-        #   * Pass particles to specific processors, along with NREF buffer
-        #   * Broadcast back a serialized octree to join
-        #
-        # For now we will do this in serial.
-        morton = np.empty(self.total_particles, dtype="uint64")
-        ind = 0
-        for data_file in self.data_files:
-            npart = sum(data_file.total_particles.values())
-            # TODO: Make this take index_ptype
-            morton[ind:ind + npart] = \
-                self.io._initialize_index(data_file, self.regions)
-            ind += npart
-        morton.sort()
-        # Now we add them all at once.
-        self.oct_handler.add(morton)
-
     def _initialize_index(self, fname=None, noref=False,
                           order1=None, order2=None, dont_cache=False):
         ds = self.dataset
@@ -164,9 +140,6 @@ class ParticleIndex(Index):
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
-        # These are now invalid, but I don't know what to replace them with:
-        #self.max_level = self.oct_handler.max_level
-        #self.dataset.max_level = self.max_level
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
