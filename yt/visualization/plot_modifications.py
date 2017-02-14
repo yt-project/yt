@@ -1470,7 +1470,7 @@ class HaloCatalogCallback(PlotCallback):
         px, py = self.convert_to_plot(plot,[px,py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data[self.radius_field][:].in_units(units)
+        radius = halo_data['virial_radius'][:].in_units(units)
         radius = np.array(radius*pixel_scale*self.factor)
 
         if self.width:
