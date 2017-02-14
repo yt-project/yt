@@ -36,8 +36,8 @@ class ParticleIndex(Index):
     def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
-        self.index_filename = self.dataset.parameter_filename
-        self.directory = os.path.dirname(self.index_filename)
+        self._index_filename = self.dataset.parameter_filename
+        self.directory = os.path.dirname(self._index_filename)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
@@ -94,49 +94,47 @@ class ParticleIndex(Index):
         # Get index & populate octree
         self._initialize_index()
 
-    def _index_filename(self,o1,o2):
-        import shutil
-        # Uses parameter file
-        fname_old = os.path.join(self.dataset.fullpath, 
-                                 "index{}_{}.ewah".format(o1,o2))
-        fname_new = self.index_filename + ".index{}_{}.ewah".format(o1,o2)
-        if os.path.isfile(fname_old):
-            shutil.move(fname_old,fname_new)
-        return fname_new
-
-    def _initialize_index(self, fname=None, noref=False,
-                          order1=None, order2=None, dont_cache=False):
+    def _initialize_index(self):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
                      self.total_particles, global_rootonly = True)
+
         # use a trivial morton index for datasets containing a single data file
-        # in the future we should experiment with intra-file indexing
         if len(self.data_files) == 1:
-            if order1 is None and order2 is None:
-                order1 = 1
-                order2 = 1
-                dont_cache=True
+            order1 = 1
+            order2 = 1
+        else:
+            order1 = ds.index_order[0]
+            order2 = ds.index_order[1]
+
+        if order1 == 1 and order2 == 1:
+            dont_cache = True
+        else:
+            dont_cache = False
+
         self.regions = ParticleBitmap(
-                ds.domain_left_edge, ds.domain_right_edge,
-                ds.periodicity,
-                len(self.data_files), 
-                index_order1=order1, index_order2=order2)
-        N = 1<<(self.regions.index_order1 + self.ds.over_refine_factor)
-        self.ds.domain_dimensions[:] = N
+            ds.domain_left_edge, ds.domain_right_edge,
+            ds.periodicity,
+            len(self.data_files), 
+            index_order1=order1,
+            index_order2=order2)
+
         # Load indices from file if provided
-        if fname is None: 
-            fname = self._index_filename(self.regions.index_order1,
-                                         self.regions.index_order2)
+        if ds.index_filename is None:
+            fname = self._index_filename + ".index{}_{}.ewah".format(
+                self.regions.index_order1, self.regions.index_order2)
+        else:
+            fname = self.index_filename
+
         try:
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             if rflag == 0:
-                raise IOError()
+                raise IOError
         except IOError:
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
-            if not noref:
-                self._initialize_refined_index()
+            self._initialize_refined_index()
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()

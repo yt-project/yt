@@ -435,10 +435,8 @@ cdef class ParticleBitmap:
     cdef public BoolArrayCollection collisions
 
     def __init__(self, left_edge, right_edge, periodicity, nfiles, 
-                 index_order1 = None, index_order2 = None):
+                 index_order1, index_order2):
         # TODO: Set limit on maximum orders?
-        if index_order1 is None: index_order1 = 7
-        if index_order2 is None: index_order2 = 5
         cdef int i
         self._cached_octrees = {}
         self._last_selector = None
