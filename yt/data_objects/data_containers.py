@@ -309,8 +309,6 @@ class YTDataContainer(object):
         del self.field_data[key]
 
     def _generate_field(self, field):
-        # if field == ('deposit', 'PartType0_smoothed_density'):
-        #     import pdb; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
