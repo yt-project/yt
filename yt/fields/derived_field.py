@@ -357,24 +357,23 @@ class ValidateProperty(FieldValidator):
         return True
 
 class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones = 0, fields=None, ghost_particles = False):
+    def __init__(self, ghost_zones = 0, fields=None):
         """
         This validator ensures that the data handed to the field is of spatial
         nature -- that is to say, 3-D.
         """
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
-        self.ghost_particles = ghost_particles
         self.fields = fields
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
         #if isinstance(data, FieldDetector): return True
         if not getattr(data, '_spatial', False):
-            raise NeedsGridType(self.ghost_zones,self.fields,self.ghost_particles)
+            raise NeedsGridType(self.ghost_zones,self.fields)
         if self.ghost_zones <= data._num_ghost_zones:
             return True
-        raise NeedsGridType(self.ghost_zones,self.fields, self.ghost_particles)
+        raise NeedsGridType(self.ghost_zones,self.fields)
 
 class ValidateGridType(FieldValidator):
     def __init__(self):

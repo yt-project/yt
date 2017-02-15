@@ -227,15 +227,12 @@ class ParticleIndex(Index):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, None)
 
-    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None,
-                       ghost_particles = False):
-        if ngz == 0 and ghost_particles:
-            ngz = 1
+    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for og in sobjs:
             with og._expand_data_files():
-                if ghost_particles: # change to ngz > 0?
-                    g = og.retrieve_ghost_zones(ngz)
+                if ngz > 0:
+                    g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
                 else:
                     g = og
                 yield YTDataChunk(dobj, "spatial", [g])
