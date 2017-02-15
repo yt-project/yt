@@ -322,8 +322,7 @@ class build_ext(_build_ext):
     def finalize_options(self):
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
-            self.distribution.ext_modules,
-            compiler_directives={'linetrace':True})
+            self.distribution.ext_modules)
         _build_ext.finalize_options(self)
         # Prevent numpy from thinking it is still in its setup process
         # see http://stackoverflow.com/a/21621493/1382869
