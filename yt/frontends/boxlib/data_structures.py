@@ -437,6 +437,8 @@ class BoxlibDataset(Dataset):
             "materials.gamma", 1.6667)
 
     def _localize_check(self, fn):
+        if fn is None:
+            return None
         # If the file exists, use it.  If not, set it to None.
         root_dir = os.path.dirname(self.output_dir)
         full_fn = os.path.join(root_dir, fn)
@@ -822,8 +824,28 @@ class OrionDataset(BoxlibDataset):
         return False
 
 
+class CastroHierarchy(BoxlibHierarchy):
+
+    def __init__(self, ds, dataset_type='castro_native'):
+        super(CastroHierarchy, self).__init__(ds, dataset_type)
+
+        if ("particles" in self.ds.parameters):
+
+            # extra beyond the base real fields that all Boxlib
+            # particles have, i.e. the xyz positions
+            castro_extra_real_fields = ['particle_velocity_x',
+                                        'particle_velocity_y',
+                                        'particle_velocity_z']
+
+            is_checkpoint = True
+
+            self._read_particles("Tracer", is_checkpoint, 
+                                 castro_extra_real_fields[0:self.ds.dimensionality])
+
+
 class CastroDataset(BoxlibDataset):
 
+    _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
 
     @classmethod
@@ -882,7 +904,13 @@ class CastroDataset(BoxlibDataset):
             if not self.parameters['-z'] == "interior": periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
-    
+        if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
+            # we have particles
+            self.parameters["particles"] = 1 
+            self.particle_types = ("Tracer",)
+            self.particle_types_raw = self.particle_types
+
+
 
 class MaestroDataset(BoxlibDataset):
 
@@ -956,7 +984,8 @@ class NyxHierarchy(BoxlibHierarchy):
 
         is_checkpoint = False
 
-        self._read_particles("DM", is_checkpoint, nyx_extra_real_fields)
+        self._read_particles("DM", is_checkpoint, 
+                             nyx_extra_real_fields[0:self.ds.dimensionality+1])
 
 
 class NyxDataset(BoxlibDataset):
@@ -1210,8 +1239,8 @@ class WarpXDataset(BoxlibDataset):
     _field_info_class = WarpXFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename="inputs",
-                 fparam_filename="probin",
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
