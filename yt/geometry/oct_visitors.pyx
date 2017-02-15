@@ -63,7 +63,6 @@ cdef class CopyArrayF64(OctVisitor):
     @cython.boundscheck(False)
     @cython.initializedcheck(False)
     cdef void visit(self, Oct* o, np.uint8_t selected):
-        import numpy as np
         # We should always have global_index less than our source.
         # "last" here tells us the dimensionality of the array.
         if selected == 0: return
