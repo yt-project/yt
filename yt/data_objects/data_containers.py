@@ -324,7 +324,6 @@ class YTDataContainer(object):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        # import pdb ; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
         if self._current_chunk is None or \
