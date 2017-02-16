@@ -73,8 +73,6 @@ class IOHandlerPackedHDF5(BaseIOHandler):
         return (KeyError,)
 
     def _read_particle_coords(self, chunks, ptf):
-        # This is fun!  We can get rid of lots of duplicated code just by
-        # adding a conditional into _read_particle_fields and calling that.
         for rv in self._read_particle_fields(chunks, ptf, None):
             yield rv
 
