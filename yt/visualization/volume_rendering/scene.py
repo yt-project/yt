@@ -501,6 +501,7 @@ class Scene(object):
 
         for k, source in self.transparent_sources:
             im = source.render(camera, zbuffer=opaque)
+            opaque.rgba = im
 
         return im
 
