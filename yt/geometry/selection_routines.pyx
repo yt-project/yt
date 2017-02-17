@@ -17,6 +17,7 @@ Geometry selection routines.
 import numpy as np
 cimport numpy as np
 cimport cython
+from cython cimport floating
 from libc.stdlib cimport malloc, free
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, Oct
@@ -96,7 +97,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                 np.int64_t offset,
                 np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-                np.ndarray[anyfloat, ndim=3] vals):
+                np.ndarray[floating, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):
@@ -550,9 +551,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_points(self, np.ndarray[anyfloat, ndim=1] x,
-                           np.ndarray[anyfloat, ndim=1] y,
-                           np.ndarray[anyfloat, ndim=1] z,
+    def count_points(self, np.ndarray[floating, ndim=1] x,
+                           np.ndarray[floating, ndim=1] y,
+                           np.ndarray[floating, ndim=1] z,
                            np.float64_t radius):
         cdef int count = 0
         cdef int i
@@ -578,9 +579,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def select_points(self, np.ndarray[anyfloat, ndim=1] x,
-                            np.ndarray[anyfloat, ndim=1] y,
-                            np.ndarray[anyfloat, ndim=1] z,
+    def select_points(self, np.ndarray[floating, ndim=1] x,
+                            np.ndarray[floating, ndim=1] y,
+                            np.ndarray[floating, ndim=1] z,
                             np.float64_t radius):
         cdef int count = 0
         cdef int i
