@@ -64,6 +64,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
+        import pdb; pdb.set_trace()
         index = data_source.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
