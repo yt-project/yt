@@ -862,3 +862,73 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     free(vertices)
     free(field_vals)
     return img
+
+def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
+                           np.ndarray[np.int64_t, ndim=2] conn,
+                           np.ndarray[np.float64_t, ndim=1] start_point,
+                           np.ndarray[np.float64_t, ndim=1] end_point,
+                           resolution
+                           np.ndarray[np.float64_t, ndim=2] field,
+                           int index_offset = 0):
+
+    cdef np.float64_t *vertices
+    cdef np.float64_t *field_vals
+    cdef int nvertices = conn.shape[1]
+    cdef int ndim = coords.shape[1]
+    cdef int num_field_vals = field.shape[1]
+    cdef double[4] mapped_coord
+    cdef ElementSampler sampler
+    cdef np.float64_t lin_vec[3]
+    cdef np.float64_t lin_inc[3]
+    cdef np.ndarray[np.float64_t, ndim=2] lin_sample_points
+    lin_sample_points = np.zeros((resolution + 1, 3), dtype="float64")
+    cdef np.int64_t i, n
+    cdef np.float64_t arc_length[resolution + 1]
+    cdef np.float64_t lin_length
+
+    # Pick the right sampler and allocate storage for the mapped coordinate
+    if ndim == 3 and nvertices == 4:
+        sampler = P1Sampler3D()
+    elif ndim == 3 and nvertices == 6:
+        sampler = W1Sampler3D()
+    elif ndim == 3 and nvertices == 8:
+        sampler = Q1Sampler3D()
+    elif ndim == 3 and nvertices == 20:
+        sampler = S2Sampler3D()
+    elif ndim == 2 and nvertices == 3:
+        sampler = P1Sampler2D()
+    elif ndim == 1 and nvertices == 2:
+        sampler = P1Sampler1D()
+    elif ndim == 2 and nvertices == 4:
+        sampler = Q1Sampler2D()
+    elif ndim == 2 and nvertices == 6:
+        sampler = T2Sampler2D()
+    elif ndim == 3 and nvertices == 10:
+        sampler = Tet2Sampler3D()
+    else:
+        raise YTElementTypeNotRecognized(ndim, nvertices)
+
+    # allocate temporary storage
+    vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
+    field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
+
+    for ci in range(conn.shape[0]):
+
+        for n in range(num_field_vals):
+            field_vals[n] = field[ci, n]
+
+        # Fill the vertices
+        for n in range(nvertices):
+            cj = conn[ci, n] - index_offset
+            for i in range(ndim):
+                vertices[ndim*n + i] = coords[cj, i]
+
+    lin_vec = end_point - start_point
+    lin_length = np.linalg.norm(lin_vec)
+    lin_inc = lin_vec / resolution
+    inc_length = np.linalg.norm(lin_inc)
+    lin_sample_points[0] = start_point
+    arc_length[0] = 0
+    for i in range(1, resolution + 1):
+        lin_sample_points[i] = lin_sample_points[i-1] + lin_inc
+        arc_length[i] = arc_length[i-1] + inc_length
