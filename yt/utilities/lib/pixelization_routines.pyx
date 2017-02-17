@@ -119,7 +119,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
     # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
     # depositing into them the data value.  Overlap computes the relative
     # overlap of a data value with a pixel.
-    # 
+    #
     # NOTE ON ROWS AND COLUMNS:
     #
     #   The way that images are plotting in matplotlib is somewhat different
@@ -497,7 +497,7 @@ def pixelize_cylinder(np.float64_t[:,:] buff,
     cdef np.float64_t r_i, theta_i, dr_i, dtheta_i, dthetamin
     cdef np.float64_t costheta, sintheta
     cdef int i, pi, pj
-    
+
     cdef int imax = np.asarray(radius).argmax()
     rmax = radius[imax] + dradius[imax]
 
@@ -867,7 +867,7 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
                            np.ndarray[np.int64_t, ndim=2] conn,
                            np.ndarray[np.float64_t, ndim=1] start_point,
                            np.ndarray[np.float64_t, ndim=1] end_point,
-                           resolution
+                           resolution,
                            np.ndarray[np.float64_t, ndim=2] field,
                            int index_offset = 0):
 
@@ -876,15 +876,20 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nvertices = conn.shape[1]
     cdef int ndim = coords.shape[1]
     cdef int num_field_vals = field.shape[1]
+    cdef int num_plot_nodes = resolution + 1
     cdef double[4] mapped_coord
     cdef ElementSampler sampler
     cdef np.float64_t lin_vec[3]
     cdef np.float64_t lin_inc[3]
     cdef np.ndarray[np.float64_t, ndim=2] lin_sample_points
-    lin_sample_points = np.zeros((resolution + 1, 3), dtype="float64")
+    lin_sample_points = np.zeros((num_plot_nodes, 3), dtype="float64")
     cdef np.int64_t i, n
-    cdef np.float64_t arc_length[resolution + 1]
+    cdef np.ndarray[np.float64_t, ndim=1] arc_length
+    arc_length = np.zeros(num_plot_nodes, dtype="float64")
     cdef np.float64_t lin_length
+    cdef np.ndarray[np.float64_t, ndim=1] plot_values
+    plot_values = np.zeros(num_plot_nodes, dtype="foat64")
+    cdef np.float64_t sample_point[3]
 
     # Pick the right sampler and allocate storage for the mapped coordinate
     if ndim == 3 and nvertices == 4:
@@ -912,17 +917,6 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     vertices = <np.float64_t *> malloc(ndim * sizeof(np.float64_t) * nvertices)
     field_vals = <np.float64_t *> malloc(sizeof(np.float64_t) * num_field_vals)
 
-    for ci in range(conn.shape[0]):
-
-        for n in range(num_field_vals):
-            field_vals[n] = field[ci, n]
-
-        # Fill the vertices
-        for n in range(nvertices):
-            cj = conn[ci, n] - index_offset
-            for i in range(ndim):
-                vertices[ndim*n + i] = coords[cj, i]
-
     lin_vec = end_point - start_point
     lin_length = np.linalg.norm(lin_vec)
     lin_inc = lin_vec / resolution
@@ -932,3 +926,24 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     for i in range(1, resolution + 1):
         lin_sample_points[i] = lin_sample_points[i-1] + lin_inc
         arc_length[i] = arc_length[i-1] + inc_length
+
+    for ci in range(conn.shape[0]):
+        for n in range(num_field_vals):
+            field_vals[n] = field[ci, n]
+
+        # Fill the vertices
+        for n in range(nvertices):
+            cj = conn[ci, n] - index_offset
+            for i in range(ndim):
+                vertices[ndim*n + i] = coords[cj, i]
+
+        for i in range(resolution + 1):
+            sample_point = lin_sample_points[i]
+            sampler.map_real_to_unit(mapped_coord, vertices, sample_point)
+            if not sampler.check_inside(mapped_coord):
+                continue
+            plot_values = sampler.sample_at_unit_point(mapped_coord, field_vals)
+
+    free(vertices)
+    free(field_vals)
+    return arc_length, plot_values

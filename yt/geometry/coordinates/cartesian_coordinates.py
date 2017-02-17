@@ -120,6 +120,39 @@ class CartesianCoordinateHandler(CoordinateHandler):
             return self._oblique_pixelize(data_source, field, bounds, size,
                                           antialias)
 
+    def line_plot(self, data_source, field, start_point, end_point, resolution):
+        import pdb; pdb.set_trace()
+        index = data_source.ds.index
+        if (hasattr(index, 'meshes') and
+           not isinstance(index.meshes[0], SemiStructuredMesh)):
+            ftype, fname = field
+            if ftype == "all":
+                mesh_id = 0
+                indices = np.concatenate([mesh.connectivity_indices for mesh in index.mesh_union])
+            else:
+                mesh_id = int(ftype[-1]) - 1
+                indices = index.meshes[mesh_id].connectivity_indices
+
+            coords = index.meshes[mesh_id].connectivity_coords
+            offset = index.meshes[mesh_id]._index_offset
+            ad = data_source.ds.all_data()
+            field_data = ad[field]
+            if field_data.shape[1] == 27:
+                # hexahedral
+                mylog.warning("High order elements not yet supported, " +
+                              "dropping to 1st order.")
+                field_data = field_data[:, 0:8]
+                indices = indices[:, 0:8]
+
+            arc_length, plot_values = element_mesh_line_plot(coords, indices,
+                                                             start_point,
+                                                             end_point,
+                                                             resolution, field,
+                                                             index_offset=offset)
+
+            return arc_length, plot_values
+
+
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
                         dim, periodic):
         # We should be using fcoords
