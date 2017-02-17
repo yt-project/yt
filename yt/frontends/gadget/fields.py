@@ -83,8 +83,11 @@ class GadgetFieldInfo(SPHFieldInfo):
                 # Assume cosmic abundances
                 x_H = 0.76
                 gamma = 5.0/3.0
-                # Assume zero ionization
-                mu = 4.0 / (3.0 * x_H + 1.0)
+                if data.has_field_parameter("mean_molecular_weight"):
+                    mu = data.get_field_parameter("mean_molecular_weight")
+                else:
+                    # Assume zero ionization
+                    mu = 4.0 / (3.0 * x_H + 1.0)
                 ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
