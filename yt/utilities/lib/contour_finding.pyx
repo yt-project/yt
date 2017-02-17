@@ -16,9 +16,8 @@ A two-pass contour finding algorithm
 import numpy as np
 cimport numpy as np
 cimport cython
+from cython cimport floating
 from libc.stdlib cimport malloc, free, realloc
-from yt.geometry.selection_routines cimport \
-    anyfloat
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
@@ -521,7 +520,7 @@ cdef class ParticleContourTree(ContourTree):
     @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
                                 np.ndarray[np.int64_t, ndim=1] dom_ind,
-                                np.ndarray[anyfloat, ndim=2] positions,
+                                np.ndarray[floating, ndim=2] positions,
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
                                 int domain_id, int domain_offset):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
@@ -559,7 +558,7 @@ cdef class ParticleContourTree(ContourTree):
             pdoms[i] = offset
         pind = np.argsort(pdoms)
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
-        cdef anyfloat *fpos = <anyfloat*> positions.data
+        cdef floating *fpos = <floating*> positions.data
         # pind is now the pointer into the position and particle_ids array.
         for i in range(positions.shape[0]):
             offset = pdoms[pind[i]]
@@ -641,7 +640,7 @@ cdef class ParticleContourTree(ContourTree):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container,
-                                   anyfloat *positions,
+                                   floating *positions,
                                    np.int64_t *pind,
                                    np.int64_t pcount,
                                    np.int64_t noffset,
