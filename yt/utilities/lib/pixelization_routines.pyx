@@ -711,17 +711,21 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int num_plot_nodes = resolution + 1
     cdef double[4] mapped_coord
     cdef ElementSampler sampler
-    cdef np.float64_t lin_vec[3]
-    cdef np.float64_t lin_inc[3]
+    cdef np.ndarray[np.float64_t, ndim=1] lin_vec
+    cdef np.ndarray[np.float64_t, ndim=1] lin_inc
     cdef np.ndarray[np.float64_t, ndim=2] lin_sample_points
-    lin_sample_points = np.zeros((num_plot_nodes, 3), dtype="float64")
-    cdef np.int64_t i, n
+    cdef np.int64_t i, n, j
     cdef np.ndarray[np.float64_t, ndim=1] arc_length
-    arc_length = np.zeros(num_plot_nodes, dtype="float64")
-    cdef np.float64_t lin_length
+    cdef np.float64_t lin_length, inc_length
     cdef np.ndarray[np.float64_t, ndim=1] plot_values
-    plot_values = np.zeros(num_plot_nodes, dtype="foat64")
     cdef np.float64_t sample_point[3]
+
+    lin_vec = np.zeros(ndim, dtype="float64")
+    lin_inc = np.zeros(ndim, dtype="float64")
+
+    lin_sample_points = np.zeros((num_plot_nodes, ndim), dtype="float64")
+    arc_length = np.zeros(num_plot_nodes, dtype="float64")
+    plot_values = np.zeros(num_plot_nodes, dtype="float64")
 
     # Pick the right sampler and allocate storage for the mapped coordinate
     if ndim == 3 and nvertices == 4:
@@ -752,29 +756,39 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     lin_vec = end_point - start_point
     lin_length = np.linalg.norm(lin_vec)
     lin_inc = lin_vec / resolution
-    inc_length = np.linalg.norm(lin_inc)
-    lin_sample_points[0] = start_point
+    inc_length = lin_length / resolution
+    for j in range(ndim):
+        lin_sample_points[0, j] = start_point[j]
     arc_length[0] = 0
     for i in range(1, resolution + 1):
-        lin_sample_points[i] = lin_sample_points[i-1] + lin_inc
-        arc_length[i] = arc_length[i-1] + inc_length
+        for j in range(ndim):
+            lin_sample_points[i, j] = lin_sample_points[i-1, j] + lin_inc[j]
+            arc_length[i] = arc_length[i-1] + inc_length
 
-    for ci in range(conn.shape[0]):
-        for n in range(num_field_vals):
-            field_vals[n] = field[ci, n]
+    for i in range(resolution + 1):
+        for j in range(3):
+            if j < ndim:
+                sample_point[j] = lin_sample_points[i][j]
+            else:
+                sample_point[j] = 0
+        for ci in range(conn.shape[0]):
+            for n in range(num_field_vals):
+                field_vals[n] = field[ci, n]
 
-        # Fill the vertices
-        for n in range(nvertices):
-            cj = conn[ci, n] - index_offset
-            for i in range(ndim):
-                vertices[ndim*n + i] = coords[cj, i]
+            # Fill the vertices
+            for n in range(nvertices):
+                cj = conn[ci, n] - index_offset
+                for i in range(ndim):
+                    vertices[ndim*n + i] = coords[cj, i]
 
-        for i in range(resolution + 1):
-            sample_point = lin_sample_points[i]
             sampler.map_real_to_unit(mapped_coord, vertices, sample_point)
-            if not sampler.check_inside(mapped_coord):
+            if not sampler.check_inside(mapped_coord) and ci != conn.shape[0] - 1:
                 continue
-            plot_values = sampler.sample_at_unit_point(mapped_coord, field_vals)
+            elif not sampler.check_inside(mapped_coord):
+                raise RuntimeError("It's impossible that the line point doesn't "
+                                   "fall within any of the elements.")
+            plot_values[i] = sampler.sample_at_unit_point(mapped_coord, field_vals)
+            break
 
     free(vertices)
     free(field_vals)

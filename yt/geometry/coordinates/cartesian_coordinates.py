@@ -24,7 +24,7 @@ from .coordinate_handler import \
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian
+    pixelize_cartesian, element_mesh_line_plot
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 
 
@@ -125,12 +125,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
             return self._oblique_pixelize(data_source, field, bounds, size,
                                           antialias)
 
-    def line_plot(self, data_source, field, start_point, end_point, resolution):
-        import pdb; pdb.set_trace()
-        index = data_source.ds.index
+    def line_plot(self, field, start_point, end_point, resolution):
+        index = self.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
-            ftype, fname = field
+            ftype, fname = field[0]
             if ftype == "all":
                 mesh_id = 0
                 indices = np.concatenate([mesh.connectivity_indices for mesh in index.mesh_union])
@@ -139,9 +138,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 indices = index.meshes[mesh_id].connectivity_indices
 
             coords = index.meshes[mesh_id].connectivity_coords
+            if coords.shape[1] != end_point.size != start_point.size:
+                raise ValueError("The coordinate dimension doesn't match the "
+                                 "start and end point dimensions.")
+
+
             offset = index.meshes[mesh_id]._index_offset
-            ad = data_source.ds.all_data()
-            field_data = ad[field]
+            ad = self.ds.all_data()
+            field_data = ad[field[0]]
             if field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning("High order elements not yet supported, " +
@@ -152,7 +156,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             arc_length, plot_values = element_mesh_line_plot(coords, indices,
                                                              start_point,
                                                              end_point,
-                                                             resolution, field,
+                                                             resolution, field_data,
                                                              index_offset=offset)
 
             return arc_length, plot_values
