@@ -96,7 +96,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _yield_smoothing_length(self, data_file):
+    def _yield_smoothing_length(self, data_file, position_dtype=None):
         ptype = self.ds._sph_ptype
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
@@ -105,6 +105,12 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             pcount = np.clip(pcount - si, 0, ei - si)
             ds = f[ptype]["SmoothingLength"][si:ei,...]
             dt = ds.dtype.newbyteorder("N") # Native
+            if position_dtype is not None and dt < position_dtype:
+                # Sometimes positions are stored in double precision
+                # but smoothing lengths are stored in single precision.
+                # In these cases upcast smoothing length to double precision
+                # to avoid ValueErrors when we pass these arrays to Cython.
+                dt = position_dtype
             hsml = np.empty(ds.shape, dtype=dt)
             hsml[:] = ds
             return hsml
