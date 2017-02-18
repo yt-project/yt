@@ -259,5 +259,6 @@ intersphinx_mapping = {'http://docs.python.org/': None,
                        'http://matplotlib.org/': None,
                        }
 
+numpydoc_show_class_members = False
 if not on_rtd:
     autosummary_generate = glob.glob("reference/api/api.rst")

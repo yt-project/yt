@@ -10,7 +10,6 @@ SlicePlot and ProjectionPlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.plot_window.SlicePlot
    ~yt.visualization.plot_window.AxisAlignedSlicePlot
@@ -24,7 +23,6 @@ ProfilePlot and PhasePlot
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.profile_plotter.ProfilePlot
    ~yt.visualization.profile_plotter.PhasePlot
@@ -34,7 +32,6 @@ Particle Plots
 ^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.particle_plots.ParticleProjectionPlot
    ~yt.visualization.particle_plots.ParticlePhasePlot
@@ -44,7 +41,6 @@ Fixed Resolution Pixelization
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.fixed_resolution.FixedResolutionBuffer
    ~yt.visualization.fixed_resolution.ParticleImageBuffer
@@ -69,7 +65,6 @@ Base Classes
 These will almost never need to be instantiated on their own.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.data_containers.YTDataContainer
    ~yt.data_objects.data_containers.YTSelectionContainer
@@ -85,7 +80,6 @@ These objects are defined by some selection method or mechanism.  Most are
 geometric.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.selection_data_containers.YTPoint
    ~yt.data_objects.selection_data_containers.YTOrthoRay
@@ -108,7 +102,6 @@ integrating through the simulation in some way, or creating some large or
 expensive set of intermediate data.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.construction_data_containers.YTStreamline
    ~yt.data_objects.construction_data_containers.YTQuadTreeProj
@@ -124,7 +117,6 @@ These are objects that either contain and represent or operate on series of
 datasets.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.time_series.DatasetSeries
    ~yt.data_objects.time_series.DatasetSeriesObject
@@ -138,7 +130,6 @@ Geometry Handlers
 These objects generate an "index" into multiresolution data.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.geometry.geometry_handler.Index
    ~yt.geometry.grid_geometry_handler.GridIndex
@@ -152,7 +143,6 @@ Units
 These classes and functions enable yt's symbolic unit handling system.
 
 .. autosummary::
-   :toctree: generated/
 
    yt.data_objects.static_output.Dataset.arr
    yt.data_objects.static_output.Dataset.quan
@@ -173,13 +163,11 @@ Frontends
 ---------
 
 .. autosummary::
-   :toctree: generated/
 
 ARTIO
 ^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.artio.data_structures.ARTIOIndex
    ~yt.frontends.artio.data_structures.ARTIOOctreeSubset
@@ -194,7 +182,6 @@ Athena
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.athena.data_structures.AthenaGrid
    ~yt.frontends.athena.data_structures.AthenaHierarchy
@@ -206,7 +193,6 @@ Boxlib
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.boxlib.data_structures.BoxlibGrid
    ~yt.frontends.boxlib.data_structures.BoxlibHierarchy
@@ -225,7 +211,6 @@ Chombo
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.chombo.data_structures.ChomboGrid
    ~yt.frontends.chombo.data_structures.ChomboHierarchy
@@ -239,7 +224,6 @@ Enzo
 ^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.enzo.answer_testing_support.ShockTubeTest
    ~yt.frontends.enzo.data_structures.EnzoGrid
@@ -264,7 +248,6 @@ FITS
 ^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.fits.data_structures.FITSGrid
    ~yt.frontends.fits.data_structures.FITSHierarchy
@@ -276,7 +259,6 @@ FLASH
 ^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.flash.data_structures.FLASHGrid
    ~yt.frontends.flash.data_structures.FLASHHierarchy
@@ -288,7 +270,6 @@ GDF
 ^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.gdf.data_structures.GDFGrid
    ~yt.frontends.gdf.data_structures.GDFHierarchy
@@ -299,7 +280,6 @@ Halo Catalogs
 ^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
    ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
@@ -319,7 +299,6 @@ MOAB
 ^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.moab.data_structures.MoabHex8Hierarchy
    ~yt.frontends.moab.data_structures.MoabHex8Mesh
@@ -334,7 +313,6 @@ OpenPMD
 ^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.open_pmd.data_structures.OpenPMDGrid
    ~yt.frontends.open_pmd.data_structures.OpenPMDHierarchy
@@ -349,7 +327,6 @@ RAMSES
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.ramses.data_structures.RAMSESDomainFile
    ~yt.frontends.ramses.data_structures.RAMSESDomainSubset
@@ -362,7 +339,6 @@ SPH and Particle Codes
 ^^^^^^^^^^^^^^^^^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.gadget.data_structures.GadgetBinaryFile
    ~yt.frontends.gadget.data_structures.GadgetHDF5Dataset
@@ -384,7 +360,6 @@ Stream
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.stream.data_structures.StreamDictFieldHandler
    ~yt.frontends.stream.data_structures.StreamGrid
@@ -410,7 +385,6 @@ ytdata
 ^^^^^^
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.frontends.ytdata.data_structures.YTDataContainerDataset
    ~yt.frontends.ytdata.data_structures.YTSpatialPlotDataset
@@ -434,7 +408,6 @@ Loading Data
 ------------
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.convenience.load
    ~yt.convenience.simulation
@@ -457,7 +430,6 @@ to create these objects in a uniform manner.
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.profiles.ProfileND
    ~yt.data_objects.profiles.Profile1D
@@ -475,7 +447,6 @@ The ``Clump`` object and associated functions can be used for identification
 of topologically disconnected structures, i.e., clump finding.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.level_sets.clump_handling.Clump
    ~yt.analysis_modules.level_sets.clump_handling.Clump.add_info_item
@@ -495,7 +466,6 @@ The ``HaloCatalog`` object is the primary means for performing custom analysis
 on cosmological halos.  It is also the primary interface for halo finding.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
    ~yt.analysis_modules.halo_analysis.halo_finding_methods.HaloFindingMethod
@@ -526,7 +496,6 @@ These provide direct access to the halo finders.  However, it is strongly recomm
 to use the ``HaloCatalog``.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.halo_finding.halo_objects.FOFHaloFinder
    ~yt.analysis_modules.halo_finding.halo_objects.HOPHaloFinder
@@ -541,7 +510,6 @@ operations acting on two spatially-distinct points in a data source.  See also
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.two_point_functions.two_point_functions.TwoPointFunctions
    ~yt.analysis_modules.two_point_functions.two_point_functions.FcnSet
@@ -550,7 +518,6 @@ Field Types
 -----------
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.fields.field_info_container.FieldInfoContainer
    ~yt.fields.derived_field.DerivedField
@@ -564,7 +531,6 @@ Field Functions
 ---------------
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.fields.field_info_container.FieldInfoContainer.add_field
    ~yt.data_objects.static_output.Dataset.add_field
@@ -574,7 +540,6 @@ Particle Filters
 ----------------
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.particle_filters.add_particle_filter
    ~yt.data_objects.particle_filters.particle_filter
@@ -587,7 +552,6 @@ an ``ImageArray`` object, which has useful functions for image saving and
 writing to bitmaps.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.image_array.ImageArray
 
@@ -601,7 +565,6 @@ For the generation of stellar SEDs.  (See also :ref:`star_analysis`.)
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.star_analysis.sfr_spectrum.StarFormationRate
    ~yt.analysis_modules.star_analysis.sfr_spectrum.SpectrumBuilder
@@ -611,7 +574,6 @@ Light cone generation and simulation analysis.  (See also
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.cosmological_observation.light_cone.light_cone.LightCone
    ~yt.analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
@@ -619,7 +581,6 @@ Light cone generation and simulation analysis.  (See also
 Absorption and X-ray spectra and spectral lines:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum.AbsorptionSpectrum
    ~yt.fields.xray_emission_fields.XrayEmissivityIntegrator
@@ -628,14 +589,12 @@ Absorption and X-ray spectra and spectral lines:
 Absorption spectra fitting:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.absorption_spectrum.absorption_spectrum_fit.generate_total_fit
 
 Sunrise exporting:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.sunrise_export.sunrise_exporter.export_to_sunrise
    ~yt.analysis_modules.sunrise_export.sunrise_exporter.export_to_sunrise_from_halolist
@@ -643,7 +602,6 @@ Sunrise exporting:
 RADMC-3D exporting:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DLayer
    ~yt.analysis_modules.radmc3d_export.RadMC3DInterface.RadMC3DWriter
@@ -657,7 +615,6 @@ Here are the primary entry points and the main classes involved in the
 Scene infrastructure:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.volume_rendering.volume_rendering.volume_render
    ~yt.visualization.volume_rendering.volume_rendering.create_scene
@@ -669,7 +626,6 @@ Scene infrastructure:
 The different kinds of sources:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.volume_rendering.render_source.RenderSource
    ~yt.visualization.volume_rendering.render_source.VolumeSource
@@ -683,7 +639,6 @@ The different kinds of sources:
 The different kinds of transfer functions:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.volume_rendering.transfer_functions.TransferFunction
    ~yt.visualization.volume_rendering.transfer_functions.ColorTransferFunction
@@ -695,7 +650,6 @@ The different kinds of transfer functions:
 The different kinds of lenses:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.volume_rendering.lens.Lens
    ~yt.visualization.volume_rendering.lens.PlaneParallelLens
@@ -712,7 +666,6 @@ See also :ref:`streamlines`.
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.streamlines.Streamlines
 
@@ -725,7 +678,6 @@ where colorbars are unnecessary or for volume rendering.
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.image_writer.multi_image_composite
    ~yt.visualization.image_writer.write_bitmap
@@ -740,7 +692,6 @@ We also provide a module that is very good for generating EPS figures,
 particularly with complicated layouts.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.eps_writer.DualEPS
    ~yt.visualization.eps_writer.single_plot
@@ -757,7 +708,6 @@ See :ref:`derived-quantities`.
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.data_objects.derived_quantities.DerivedQuantity
    ~yt.data_objects.derived_quantities.DerivedQuantityCollection
@@ -783,7 +733,6 @@ Callback List
 See also :ref:`callbacks`.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
    ~yt.visualization.plot_modifications.ArrowCallback
@@ -817,7 +766,6 @@ Colormap Functions
 See also :ref:`colormaps`.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.visualization.color_maps.add_cmap
    ~yt.visualization.color_maps.make_colormap
@@ -828,7 +776,6 @@ Function List
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.convenience.load
    ~yt.frontends.ytdata.utilities.save_as_dataset
@@ -864,7 +811,6 @@ Math Utilities
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.utilities.math_utils.periodic_position
    ~yt.utilities.math_utils.periodic_dist
@@ -899,7 +845,6 @@ Miscellaneous Types
 
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.config.YTConfigParser
    ~yt.utilities.parameter_file_storage.ParameterFileStore
@@ -913,7 +858,6 @@ Cosmology Calculator
 --------------------
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.utilities.cosmology.Cosmology
    ~yt.utilities.cosmology.Cosmology.hubble_distance
@@ -937,7 +881,6 @@ Testing Infrastructure
 The first set of functions are all provided by NumPy.
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.testing.assert_array_equal
    ~yt.testing.assert_almost_equal
@@ -953,7 +896,6 @@ The first set of functions are all provided by NumPy.
 These are yt-provided functions:
 
 .. autosummary::
-   :toctree: generated/
 
    ~yt.testing.assert_rel_equal
    ~yt.testing.amrspace

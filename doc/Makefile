@@ -47,6 +47,7 @@ recipeclean:
 	-rm -rf _temp/*.done source/cookbook/_static/*
 
 html:
+	sphinx-apidoc -o source/reference/api/ -e ../yt
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
