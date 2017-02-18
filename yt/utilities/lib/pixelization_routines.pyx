@@ -882,7 +882,7 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     cdef np.ndarray[np.float64_t, ndim=1] lin_vec
     cdef np.ndarray[np.float64_t, ndim=1] lin_inc
     cdef np.ndarray[np.float64_t, ndim=2] lin_sample_points
-    cdef np.int64_t i, n, j
+    cdef np.int64_t i, n, j, k
     cdef np.ndarray[np.float64_t, ndim=1] arc_length
     cdef np.float64_t lin_length, inc_length
     cdef np.ndarray[np.float64_t, ndim=1] plot_values
@@ -946,8 +946,8 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
             # Fill the vertices
             for n in range(nvertices):
                 cj = conn[ci, n] - index_offset
-                for i in range(ndim):
-                    vertices[ndim*n + i] = coords[cj, i]
+                for k in range(ndim):
+                    vertices[ndim*n + k] = coords[cj, k]
 
             sampler.map_real_to_unit(mapped_coord, vertices, sample_point)
             if not sampler.check_inside(mapped_coord) and ci != conn.shape[0] - 1:
