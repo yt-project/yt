@@ -64,7 +64,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        import pdb; pdb.set_trace()
         index = data_source.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
@@ -129,7 +128,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         index = self.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
-            ftype, fname = field[0]
+            ftype, fname = field
             if ftype == "all":
                 mesh_id = 0
                 indices = np.concatenate([mesh.connectivity_indices for mesh in index.mesh_union])
@@ -145,7 +144,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
             offset = index.meshes[mesh_id]._index_offset
             ad = self.ds.all_data()
-            field_data = ad[field[0]]
+            field_data = ad[field]
             if field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning("High order elements not yet supported, " +
