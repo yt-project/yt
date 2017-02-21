@@ -97,7 +97,6 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             pos[:,1] = halos["particle_position_y"]
             pos[:,2] = halos["particle_position_z"]
             yield 'halos', pos
-        f.close()
 
     def _initialize_index(self, data_file, regions):
         pcount = data_file.header["num_halos"]

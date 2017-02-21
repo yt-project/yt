@@ -54,6 +54,17 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                     z = coords[:, 2]
                     yield ptype, (x, y, z)
 
+    def _yield_coordinates(self, data_file):
+        # ptypes = ["Group"]
+        ptypes = self.ds.particle_types_raw
+        with h5py.File(data_file.filename, "r") as f:
+            for ptype in sorted(ptypes):
+                pcount = data_file.total_particles[ptype]
+                if pcount == 0: continue
+                coords = f[ptype]["%sPos" % ptype].value.astype("float64")
+                coords = np.resize(coords, (pcount, 3))
+                yield ptype, coords
+
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["Group"], dtype="float64")
         fofindex = np.arange(data_file.total_particles["Group"]) + \
