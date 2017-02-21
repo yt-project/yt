@@ -116,7 +116,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
         self._calculate_file_offset_map()
 
 class GadgetFOFHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id, range = None):
+    def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:
             self.header = \
               dict((str(field), val)
@@ -130,7 +130,7 @@ class GadgetFOFHDF5File(ParticleFile):
           {"Group": self.header["Ngroups_ThisFile"],
            "Subhalo": self.header["Nsubgroups_ThisFile"]}
         self.total_offset = 0 # I think this is no longer needed
-        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id, range)
+        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
 
 class GadgetFOFDataset(Dataset):
     _index_class = GadgetFOFParticleIndex

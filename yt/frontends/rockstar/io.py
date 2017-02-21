@@ -86,6 +86,19 @@ class IOHandlerRockstarBinary(BaseIOHandler):
                         data = halos[field][mask].astype("float64")
                         yield (ptype, field), data
 
+    def _yield_coordinates(self, data_file):
+        # Just does halos
+        pcount = data_file.header['num_halos']
+        with open(data_file.filename, "rb") as f:
+            f.seek(data_file._position_offset, os.SEEK_SET)
+            halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
+            pos = np.empty((halos.size, 3), dtype="float64")
+            pos[:,0] = halos["particle_position_x"]
+            pos[:,1] = halos["particle_position_y"]
+            pos[:,2] = halos["particle_position_z"]
+            yield 'halos', pos
+        f.close()
+
     def _initialize_index(self, data_file, regions):
         pcount = data_file.header["num_halos"]
         morton = np.empty(pcount, dtype='uint64')

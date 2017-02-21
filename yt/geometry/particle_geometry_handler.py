@@ -86,8 +86,13 @@ class ParticleIndex(Index):
             start = 0
             end = start + CHUNKSIZE
             while 1:
-                df = cls(self.dataset, self.io, template % {'num':i}, fi,
-                        (start, end))
+                try:
+                    df = cls(self.dataset, self.io, template % {'num':i}, fi,
+                            (start, end))
+                except:
+                    df = cls(self.dataset, self.io, template % {'num':i}, fi)
+                    self.data_files.append(df)
+                    break
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1

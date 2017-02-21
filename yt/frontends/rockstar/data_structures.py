@@ -36,14 +36,14 @@ from .definitions import \
     header_dt
 
 class RockstarBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id, range = None):
+    def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
             self.header = fpu.read_cattrs(f, header_dt, "=")
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id, range)
+        super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id)
 
 class RockstarDataset(Dataset):
     _index_class = ParticleIndex
