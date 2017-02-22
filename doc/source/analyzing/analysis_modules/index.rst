@@ -18,4 +18,3 @@ by default when you "import yt".  Read up on these advanced tools below.
    exporting
    two_point_functions
    clump_finding
-   particle_trajectories

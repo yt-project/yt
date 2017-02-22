@@ -19,10 +19,6 @@ from oct_visitors cimport Oct, OctVisitor
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 cdef inline _ensure_code(arr):
     # If it's a YTArray, convert it.  If not, don't.
     if hasattr(arr, "units"):

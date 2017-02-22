@@ -126,12 +126,12 @@ class GAMERHierarchy(GridIndex):
         son_list = self._handle["Tree/Son"].value
 
         for gid in range(self.num_grids):
-            grid     = self.grids.flat[gid]
+            grid     = self.grids[gid]
             son_gid0 = son_list[gid]
 
             # set up the parent-children relationship
             if son_gid0 >= 0:
-                grid.Children = [ self.grids.flat[son_gid0+s] for s in range(8) ]
+                grid.Children = [ self.grids[son_gid0+s] for s in range(8) ]
 
             for son_grid in grid.Children: son_grid.Parent = grid
 

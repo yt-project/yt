@@ -313,8 +313,11 @@ class ImagePlotContainer(object):
         actual_field = self.data_source._determine_fields(field)[0]
         if color is None:
             cmap = self._colormaps[actual_field]
-            if isinstance(cmap, string_types): 
-                cmap = yt_colormaps[cmap]
+            if isinstance(cmap, string_types):
+                try:
+                    cmap = yt_colormaps[cmap]
+                except KeyError:
+                    cmap = getattr(matplotlib.cm, cmap)
             color = cmap(0)
         if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
             self.plots[actual_field].axes.set_axis_bgcolor(color)

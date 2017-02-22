@@ -353,6 +353,49 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+   
+    _checksum = None
+    @property
+    def checksum(self):
+        '''
+        Computes md5 sum of a dataset.
+
+        Note: Currently this property is unable to determine a complete set of
+        files that are a part of a given dataset. As a first approximation, the
+        checksum of :py:attr:`~parameter_file` is calculated. In case
+        :py:attr:`~parameter_file` is a directory, checksum of all files inside
+        the directory is calculated.
+        '''
+        if self._checksum is None:
+            try:
+                import hashlib
+            except ImportError:
+                self._checksum = 'nohashlib'
+                return self._checksum
+
+            def generate_file_md5(m, filename, blocksize=2**20):
+                with open(filename , "rb") as f:
+                    while True:
+                        buf = f.read(blocksize)
+                        if not buf:
+                            break
+                        m.update(buf)
+
+            m = hashlib.md5()
+            if os.path.isdir(self.parameter_filename):
+                for root, _, files in os.walk(self.parameter_filename):
+                    for fname in files:
+                        fname = os.path.join(root, fname)
+                        generate_file_md5(m, fname)
+            elif os.path.isfile(self.parameter_filename):
+                generate_file_md5(m, self.parameter_filename)
+            else:
+                m = 'notafile'
+
+            if hasattr(m, 'hexdigest'):
+                m = m.hexdigest()
+            self._checksum = m
+        return self._checksum
 
     domain_left_edge = MutableAttribute()
     domain_right_edge = MutableAttribute()
@@ -831,9 +874,9 @@ class Dataset(object):
         # list or other non-array iterable before calculating
         # the center
         if not isinstance(left_edge, np.ndarray):
-            left_edge = np.array(left_edge)
+            left_edge = np.array(left_edge, dtype='float64')
         if not isinstance(right_edge, np.ndarray):
-            right_edge = np.array(right_edge)
+            right_edge = np.array(right_edge, dtype='float64')
         c = (left_edge + right_edge)/2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
@@ -1213,16 +1256,15 @@ class Dataset(object):
             Create a grid field for particle quantities using given method.
             """
             pos = data[ptype, "particle_position"]
+            fields = [data[ptype, deposit_field]]
             if method == 'weighted_mean':
-                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field],
-                                                   data[ptype, weight_field]],
-                                             method=method, kernel_name=kernel_name),
-                                             input_units=units)
+                fields.append(data[ptype, weight_field])
+            fields = [np.ascontiguousarray(f) for f in fields]
+            d = data.deposit(pos, fields, method=method,
+                             kernel_name=kernel_name)
+            d = data.ds.arr(d, input_units=units)
+            if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
-            else:
-                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method, kernel_name=kernel_name),
-                                             input_units=units)
             return d
 
         self.add_field(

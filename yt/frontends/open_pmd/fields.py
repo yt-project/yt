@@ -98,36 +98,39 @@ def setup_absolute_positions(self, ptype):
 class OpenPMDFieldInfo(FieldInfoContainer):
     """Specifies which fields from the dataset yt should know about.
 
-    ``self.known_other_fields`` and ``self.known_particle_fields`` must be populated.
-    Entries for both of these lists must be tuples of the form
-        ("name", ("units", ["fields", "to", "alias"], "display_name"))
-    These fields will be represented and handled in yt in the way you define them here.
-    The fields defined in both ``self.known_other_fields`` and ``self.known_particle_fields`` will only be added
-    to a dataset (with units, aliases, etc), if they match any entry in the ``OpenPMDHierarchy``'s ``self.field_list``.
+    ``self.known_other_fields`` and ``self.known_particle_fields`` must be
+    populated.  Entries for both of these lists must be tuples of the form
+    ``("name", ("units", ["fields", "to", "alias"], "display_name"))``.  These
+    fields will be represented and handled in yt in the way you define them
+    here.  The fields defined in both ``self.known_other_fields`` and
+    ``self.known_particle_fields`` will only be added to a dataset (with units,
+    aliases, etc), if they match any entry in the ``OpenPMDHierarchy``'s
+    ``self.field_list``.
 
     Notes
     -----
 
-    Contrary to many other frontends, we dynamically obtain the known fields from the simulation output.
-    The openPMD markup is extremely flexible - names, dimensions and the number of individual datasets
-    can (and very likely will) vary.
+    Contrary to many other frontends, we dynamically obtain the known fields
+    from the simulation output.  The openPMD markup is extremely flexible -
+    names, dimensions and the number of individual datasets can (and very likely
+    will) vary.
 
-    openPMD states that names of records and their components are only allowed to contain the
-        characters a-Z,
-        the numbers 0-9
-        and the underscore _
-        (equivalently, the regex \w).
-    Since yt widely uses the underscore in field names, openPMD's underscores (_) are replaced by hyphen (-).
+    openPMD states that names of records and their components are only allowed
+    to contain the characters ``a-Z``, the numbers ``0-9`` and the underscore
+    ``_`` (equivalently, the regex ``\w``).  Since yt widely uses the underscore
+    in field names, openPMD's underscores (``_``) are replaced by hyphen
+    (``-``).
 
-    Derived fields will automatically be set up, if names and units of your known on-disk (or manually derived)
-    fields match the ones in [1].
+    Derived fields will automatically be set up, if names and units of your
+    known on-disk (or manually derived) fields match the ones in the list of
+    yt "universal" fields.
 
     References
     ----------
-    .. http://yt-project.org/docs/dev/analyzing/fields.html
-    .. http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
-    .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
-    .. [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
+    * http://yt-project.org/docs/dev/analyzing/fields.html
+    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
+    * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
+
     """
     _mag_fields = []
 
