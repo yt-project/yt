@@ -61,7 +61,7 @@ def periodic_position(pos, ds):
     pos : array
         An array of floats.
 
-    ds : Dataset
+    ds : ~yt.data_objects.static_output.Dataset 
         A simulation static output.
 
     Examples

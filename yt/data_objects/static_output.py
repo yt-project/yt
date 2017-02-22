@@ -1056,7 +1056,7 @@ class Dataset(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax

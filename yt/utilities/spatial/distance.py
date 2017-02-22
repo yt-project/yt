@@ -12,7 +12,6 @@ Distance matrix computation from a collection of raw observation vectors
 stored in a rectangular array.
 
 .. autosummary::
-   :toctree: generated/
 
    pdist   -- pairwise distances between observation vectors.
    cdist   -- distances between between two collections of observation vectors
@@ -23,7 +22,6 @@ condensed and redundant. Also contained in this module are functions
 for computing the number of observations in a distance matrix.
 
 .. autosummary::
-   :toctree: generated/
 
    is_valid_dm -- checks for a valid distance matrix
    is_valid_y  -- checks for a valid condensed distance matrix
@@ -35,7 +33,6 @@ distances over a large collection of vectors is inefficient for these
 functions. Use ``pdist`` for this purpose.
 
 .. autosummary::
-   :toctree: generated/
 
    braycurtis       -- the Bray-Curtis distance.
    canberra         -- the Canberra distance.

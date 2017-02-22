@@ -327,22 +327,22 @@ class HaloMassFcn():
 
     def sigmaM(self):
         """
-         Written by BWO, 2006 (updated 25 January 2007).
-         Converted to Python by Stephen Skory December 2009.
+        Written by BWO, 2006 (updated 25 January 2007).
+        Converted to Python by Stephen Skory December 2009.
 
-         This routine takes in cosmological parameters and creates a file (array) with
-         sigma(M) in it, which is necessary for various press-schechter type
-         stuff.  In principle one can calculate it ahead of time, but it's far,
-         far faster in the long run to calculate your sigma(M) ahead of time.
+        This routine takes in cosmological parameters and creates a file (array) with
+        sigma(M) in it, which is necessary for various press-schechter type
+        stuff.  In principle one can calculate it ahead of time, but it's far,
+        far faster in the long run to calculate your sigma(M) ahead of time.
         
-         Inputs: cosmology, user must set parameters
+        Inputs: cosmology, user must set parameters
         
-         Outputs: four columns of data containing the following information:
+        Outputs: four columns of data containing the following information:
 
-         1) mass (Msolar/h)
-         2) sigma (normalized) using Msun/h as the input
-         
-         The arrays output are used later.
+        1) mass (Msolar/h)
+        2) sigma (normalized) using Msun/h as the input
+        
+        The arrays output are used later.
         """
         
         # Set up the transfer function object.
@@ -446,13 +446,12 @@ class HaloMassFcn():
 
     def sigma_squared_of_R(self, R):
         """
-        /* calculates sigma^2(R).  This is the routine where the magic happens (or
-           whatever it is that we do here).  Integrates the sigma_squared_integrand
-           parameter from R to infinity.  Calls GSL (gnu scientific library) to do
-           the actual integration.  
+        calculates sigma^2(R).  This is the routine where the magic happens (or
+        whatever it is that we do here).  Integrates the sigma_squared_integrand
+        parameter from R to infinity.  Calls GSL (gnu scientific library) to do
+        the actual integration.  
         
-           Note that R is in h^-1 Mpc (comoving)
-        */
+        Note that R is in h^-1 Mpc (comoving)
         """
         self.R = R
         result = integrate_inf(self.sigma_squared_integrand)
@@ -463,7 +462,7 @@ class HaloMassFcn():
 
     def sigma_squared_integrand(self, k):
         """
-        /* integrand for integral to get sigma^2(R). */
+        integrand for integral to get sigma^2(R).
         """
 
         Rcom = self.R;  # this is R in comoving Mpc/h
@@ -474,7 +473,7 @@ class HaloMassFcn():
 
     def PofK(self, k):
         """
-        /* returns power spectrum as a function of wavenumber k */
+        returns power spectrum as a function of wavenumber k
         """
 
         thisPofK = np.power(k, self.primordial_index) * np.power( self.TofK(k), 2.0);
@@ -483,7 +482,7 @@ class HaloMassFcn():
 
     def TofK(self, k):
         """
-        /* returns transfer function as a function of wavenumber k. */
+        returns transfer function as a function of wavenumber k.
         """
         
         thisTofK = self.TF.TFmdm_onek_hmpc(k);
@@ -503,9 +502,9 @@ class HaloMassFcn():
 
     def multiplicityfunction(self, sigma):
         """
-        /* Multiplicity function - this is where the various fitting functions/analytic 
+        Multiplicity function - this is where the various fitting functions/analytic 
         theories are different.  The various places where I found these fitting functions
-        are listed below.  */
+        are listed below.
         """
         
         nu = self.delta_c0 / sigma;
@@ -552,7 +551,7 @@ class HaloMassFcn():
 
     def sigmaof_M_z(self, sigmabin, redshift):
         """
-        /* sigma(M, z) */
+        sigma(M, z)
         """
         
         thissigma = self.Dofz(redshift) * self.sigmaarray[sigmabin];
@@ -561,7 +560,7 @@ class HaloMassFcn():
 
     def Dofz(self, redshift):
         """
-        /* Growth function */
+        Growth function
         """
 
         thisDofz = self.gofz(redshift) / self.gofz(0.0) / (1.0+redshift);
@@ -571,7 +570,7 @@ class HaloMassFcn():
 
     def gofz(self, redshift):
         """
-        /* g(z) - I don't think this has any other name*/
+        g(z) - I don't think this has any other name
         """
 
         thisgofz = 2.5 * self.omega_matter_of_z(redshift) / \
@@ -585,7 +584,7 @@ class HaloMassFcn():
 
     def omega_matter_of_z(self,redshift):
         """
-        /* Omega matter as a function of redshift */
+        Omega matter as a function of redshift
         """
         
         thisomofz = self.omega_matter0 * math.pow( 1.0+redshift, 3.0) / \
@@ -595,7 +594,7 @@ class HaloMassFcn():
 
     def omega_lambda_of_z(self,redshift):
         """
-        /* Omega lambda as a function of redshift */
+        Omega lambda as a function of redshift
         """
 
         thisolofz = self.omega_lambda0 / math.pow( self.Eofz(redshift), 2.0 )
@@ -604,7 +603,7 @@ class HaloMassFcn():
 
     def Eofz(self, redshift):
         """
-        /* E(z) - I don't think this has any other name */
+        E(z) - I don't think this has any other name
         """
         thiseofz = math.sqrt( self.omega_lambda0 \
             + (1.0 - self.omega_lambda0 - self.omega_matter0)*math.pow( 1.0+redshift, 2.0) \
@@ -653,18 +652,29 @@ the user may access them in an external program, via "extern" declarations. */
 
 class TransferFunction(object):
     """
-    /* This routine takes cosmological parameters and a redshift and sets up
-    all the internal scalar quantities needed to compute the transfer function. */
-    /* INPUT: omega_matter -- Density of CDM, baryons, and massive neutrinos,
-                    in units of the critical density. */
-    /* 	  omega_baryon -- Density of baryons, in units of critical. */
-    /* 	  omega_hdm    -- Density of massive neutrinos, in units of critical */
-    /* 	  degen_hdm    -- (Int) Number of degenerate massive neutrino species */
-    /*        omega_lambda -- Cosmological constant */
-    /* 	  hubble       -- Hubble constant, in units of 100 km/s/Mpc */
-    /*        redshift     -- The redshift at which to evaluate */
-    /* OUTPUT: Returns 0 if all is well, 1 if a warning was issued.  Otherwise,
-        sets many global variables for use in TFmdm_onek_mpc() */
+    This routine takes cosmological parameters and a redshift and sets up
+    all the internal scalar quantities needed to compute the transfer function.
+
+    Parameters
+    ----------
+    omega_matter : float
+        Density of CDM, baryons, and massive neutrinos, in units 
+        of the critical density.
+    omega_baryon : float
+        Density of baryons, in units of critical.
+    omega_hdm : float
+        Density of massive neutrinos, in units of critical
+    degen_hdm : integer
+        Number of degenerate massive neutrino species
+    omega_lambda : float
+        Cosmological constant
+    hubble : float
+        Hubble constant, in units of 100 km/s/Mpc
+    redshift : float
+        The redshift at which to evaluate
+
+    Returns 0 if all is well, 1 if a warning was issued. Otherwise,
+    sets many global variables for use in TFmdm_onek_mpc()
     """
     def __init__(self, omega_matter, omega_baryon, omega_hdm,
                  degen_hdm, omega_lambda, hubble, redshift):
@@ -751,15 +761,23 @@ class TransferFunction(object):
 
     def TFmdm_onek_mpc(self,  kk):
         """
-        /* Given a wavenumber in Mpc^-1, return the transfer function for the
-        cosmology held in the global variables. */
-        /* Input: kk -- Wavenumber in Mpc^-1 */
-        /* Output: The following are set as global variables:
-            growth_cb -- the transfer function for density-weighted
-                    CDM + Baryon perturbations. 
-            growth_cbnu -- the transfer function for density-weighted
-                    CDM + Baryon + Massive Neutrino perturbations. */
-        /* The function returns growth_cb */
+        Given a wavenumber in Mpc^-1, return the transfer function for the
+        cosmology held in the global variables.
+
+        Parameters
+        ----------
+        kk : float
+            Wavenumber in Mpc^-1
+
+        Returns
+        -------
+        growth_cb : float
+            the transfer function for density-weighted
+            CDM + Baryon perturbations. (returned and set as a global var)
+        growth_cbnu : float
+            the transfer function for density-weighted
+            CDM + Baryon + Massive Neutrino perturbations.
+            (set as a global var)
         """
     
         self.qq = kk/self.omhh*SQR(self.theta_cmb);
@@ -794,15 +812,22 @@ class TransferFunction(object):
 
     def TFmdm_onek_hmpc(self, kk):
         """
-        /* Given a wavenumber in h Mpc^-1, return the transfer function for the
-        cosmology held in the global variables. */
-        /* Input: kk -- Wavenumber in h Mpc^-1 */
-        /* Output: The following are set as global variables:
-            growth_cb -- the transfer function for density-weighted
-                    CDM + Baryon perturbations. 
-            growth_cbnu -- the transfer function for density-weighted
-                    CDM + Baryon + Massive Neutrino perturbations. */
-        /* The function returns growth_cb */
+        Given a wavenumber in h Mpc^-1, return the transfer function for the
+        cosmology held in the global variables.
+
+        Parameters
+        ----------
+        kk : float
+            Wavenumber in h Mpc^-1 */
+
+        Returns
+        -------
+        growth_cb : float
+            the transfer function for density-weighted
+            CDM + Baryon perturbations. (return and set as a global var) 
+        growth_cbnu : float
+            the transfer function for density-weighted
+            CDM + Baryon + Massive Neutrino perturbations.
         """
         return self.TFmdm_onek_mpc(kk*self.hhubble);
 
