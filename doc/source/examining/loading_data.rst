@@ -151,9 +151,9 @@ using the ``units_override`` functionality:
 
    import yt
 
-   units_override = {"length_unit":(1.0,"Mpc"),
-                     "time_unit"(1.0,"Myr"),
-                     "mass_unit":(1.0e14,"Msun")}
+   units_override = {"length_unit": (1.0, "Mpc"),
+                     "time_unit": (1.0, "Myr"),
+                     "mass_unit": (1.0e14, "Msun")}
 
    ds = yt.load("id0/cluster_merger.0250.vtk", units_override=units_override)
 
