@@ -20,7 +20,7 @@ from yt.visualization.fixed_resolution import \
 from yt.funcs import \
     ensure_list, \
     fix_axis
-from yt.units.yt_array import YTArray
+from yt.units.index_array import YTIndexArray
 from .plot_window import \
     get_axes_unit, \
     get_window_parameters, \
@@ -52,8 +52,8 @@ class ParticleAxisAlignedDummyDataSource(object):
         else:
             self.field_parameters = field_parameters
 
-        LE = center - 0.5*YTArray(width)
-        RE = center + 0.5*YTArray(width)
+        LE = center - 0.5*YTIndexArray(width)
+        RE = center + 0.5*YTIndexArray(width)
         self.dd = ds.region(center, LE, RE, fields,
                             field_parameters=field_parameters,
                             data_source=data_source)

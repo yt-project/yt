@@ -1521,17 +1521,25 @@ def unorm(data, ord=None, axis=None, keepdims=False):
         norm = np.linalg.norm(data, ord=ord, axis=axis)
     else:
         norm = np.linalg.norm(data, ord=ord, axis=axis, keepdims=keepdims)
+    if isinstance(data.units, tuple):
+        # TODO: Make this DTRT for non-spatial data
+        units = data.units[0]
+    else:
+        units = data.units
     if norm.shape == ():
-        return YTQuantity(norm, data.units)
-    return YTArray(norm, data.units)
+        return YTQuantity(norm, units)
+    return YTArray(norm, units)
 
 def udot(op1, op2):
-    """Matrix or vector dot product that preservs units
+    """Matrix or vector dot product that preserves units
 
     This is a wrapper around np.dot that preserves units.
     """
     dot = np.dot(op1.d, op2.d)
     units = op1.units*op2.units
+    if isinstance(units, tuple):
+        # TODO: Make this DTRT for non-spatial data
+        units = units[0]
     if dot.shape == ():
         return YTQuantity(dot, units)
     return YTArray(dot, units)
