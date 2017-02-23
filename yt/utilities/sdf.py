@@ -1269,11 +1269,15 @@ class SDFIndex(object):
         Return list of data chunks for a cell on the given level
         plus a padding around the cell, for a list of fields.
 
-        Returns:
-            data: A list of dictionaries of data.
+        Returns
+        -------
+            data: list
+                A list of dictionaries of data.
 
-        chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
-                                             8.0, ['x','y','z','ident'])
+        Examples
+        --------
+        >>> chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
+        ...                                    8.0, ['x','y','z','ident'])
 
         """
         _ensure_xyz_fields(fields)

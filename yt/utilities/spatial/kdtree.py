@@ -547,7 +547,7 @@ class KDTree(object):
         Parameters
         ==========
 
-        other : KDTree
+        other : `~yt.utilities.spatial.kdtree.KDTree`
             The tree containing points to search against
         r : positive float
             The maximum distance
@@ -719,7 +719,7 @@ class KDTree(object):
         Parameters
         ==========
 
-        other : KDTree
+        other : `~yt.utilities.spatial.kdtree.KDTree`
 
         r : float or one-dimensional array of floats
             The radius to produce a count for. Multiple radii are searched with a single
@@ -790,14 +790,14 @@ class KDTree(object):
         any distance greater than max_distance.
 
         Parameters
-        ==========
+        ----------
 
-        other : KDTree
+        other : `~yt.utilities.spatial.kdtree.KDTree`
 
         max_distance : positive float
 
         Returns
-        =======
+        -------
 
         result : dok_matrix
             Sparse matrix representing the results in "dictionary of keys" format.
