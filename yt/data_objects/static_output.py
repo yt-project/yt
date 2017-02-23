@@ -614,8 +614,6 @@ class Dataset(object):
             cls = InternalGeographicCoordinateHandler
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
-        elif self.geometry == "custom":
-            cls = CustomCoordinateHandler
         else:
             raise YTGeometryNotSupported(self.geometry)
         self.coordinates = cls(self, **kwargs)
