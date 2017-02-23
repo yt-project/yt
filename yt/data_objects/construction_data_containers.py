@@ -1240,7 +1240,8 @@ class YTSurface(YTSelectionContainer3D):
             self.field_value, surf_vals, field_x_vals, field_y_vals, field_z_vals,
             ff, mask, grid.LeftEdge, grid.dds)
         # assumes all the fluxing fields have the same units
-        ret_units = field_x_vals.units * ff.units * grid.dds.units**2
+        # TODO: Make this DTRT for heterogeneous dimensions
+        ret_units = field_x_vals.units * ff.units * grid.dds.units[0]**2
         ret = self.ds.arr(ret, ret_units)
         ret.convert_to_units(self.ds.unit_system[ret_units.dimensions])
         return ret
