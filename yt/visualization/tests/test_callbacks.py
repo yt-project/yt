@@ -268,14 +268,14 @@ def test_particles_callback():
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_particles((10, "Mpc"), p_size=1.0, col="k", marker="o",
-                             stride=1, ptype='all', minimum_mass=None,
+                             stride=1, ptype="all", minimum_mass=None,
                              alpha=1.0)
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
-        p.annotate_particles((10, 'Mpc'))
+        p.annotate_particles((10, "Mpc"))
         yield assert_raises, YTDataTypeUnsupported, p.save, prefix
 
 def test_sphere_callback():
