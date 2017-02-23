@@ -586,7 +586,11 @@ class Dataset(object):
     def _setup_coordinate_handler(self):
         kwargs = {}
         if isinstance(self.geometry, tuple):
-            self.geometry, ordering = self.geometry
+            if len(self.geometry) == 2:
+                self.geometry, ordering = self.geometry
+            elif len(self.geometry) == 3:
+                self.geometry, ordering, axes_units = self.geometry
+                kwargs['axes_units'] = axes_units
             kwargs['ordering'] = ordering
         if isinstance(self.geometry, CoordinateHandler):
             # I kind of dislike this.  The geometry field should always be a
