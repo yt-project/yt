@@ -852,7 +852,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     Parameters
     ----------
     maxr : scalar
-        should be max(|x|, |y|)
+        should be ``max(|x|, |y|)``
 
     aspect : scalar
         The aspect ratio of width / height for the projection.

@@ -1167,7 +1167,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     r"""Define the cell coordinates and cell neighbors of a hexahedral mesh
     for a semistructured grid. Used to specify the connectivity and
     coordinates parameters used in
-    :function:`~yt.frontends.stream.data_structures.load_hexahedral_mesh`.
+    :func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh`.
 
     Parameters
     ----------

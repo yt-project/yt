@@ -613,15 +613,15 @@ class HaloMassFcn():
 
 
 """ 
-/* Fitting Formulae for CDM + Baryon + Massive Neutrino (MDM) cosmologies. */
-/* Daniel J. Eisenstein & Wayne Hu, Institute for Advanced Study */
+Fitting Formulae for CDM + Baryon + Massive Neutrino (MDM) cosmologies.
+Daniel J. Eisenstein & Wayne Hu, Institute for Advanced Study
 
-/* There are two primary routines here, one to set the cosmology, the
+There are two primary routines here, one to set the cosmology, the
 other to construct the transfer function for a single wavenumber k. 
 You should call the former once (per cosmology) and the latter as 
-many times as you want. */
+many times as you want. 
 
-/* TFmdm_set_cosm() -- User passes all the cosmological parameters as
+   TFmdm_set_cosm() -- User passes all the cosmological parameters as
    arguments; the routine sets up all of the scalar quantites needed 
    computation of the fitting formula.  The input parameters are: 
    1) omega_matter -- Density of CDM, baryons, and massive neutrinos,
@@ -633,7 +633,7 @@ many times as you want. */
    6) hubble       -- Hubble constant, in units of 100 km/s/Mpc 
    7) redshift     -- The redshift at which to evaluate */
 
-/* TFmdm_onek_mpc() -- User passes a single wavenumber, in units of Mpc^-1.
+   TFmdm_onek_mpc() -- User passes a single wavenumber, in units of Mpc^-1.
    Routine returns the transfer function from the Eisenstein & Hu
    fitting formula, based on the cosmology currently held in the 
    internal variables.  The routine returns T_cb (the CDM+Baryon
@@ -641,13 +641,13 @@ many times as you want. */
    Baryon+Neutrino density-weighted transfer function) is stored
    in the global variable tf_cbnu. */
 
-/* We also supply TFmdm_onek_hmpc(), which is identical to the previous
-   routine, but takes the wavenumber in units of h Mpc^-1. */
+We also supply TFmdm_onek_hmpc(), which is identical to the previous
+routine, but takes the wavenumber in units of h Mpc^-1.
 
-/* We hold the internal scalar quantities in global variables, so that
-the user may access them in an external program, via "extern" declarations. */
+We hold the internal scalar quantities in global variables, so that
+the user may access them in an external program, via "extern" declarations.
 
-/* Please note that all internal length scales are in Mpc, not h^-1 Mpc! */
+Please note that all internal length scales are in Mpc, not h^-1 Mpc!
 """
 
 class TransferFunction(object):
@@ -818,7 +818,7 @@ class TransferFunction(object):
         Parameters
         ----------
         kk : float
-            Wavenumber in h Mpc^-1 */
+            Wavenumber in h Mpc^-1
 
         Returns
         -------

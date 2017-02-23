@@ -639,25 +639,31 @@ cdef class cKDTree:
         """ query the tree for the nearest neighbors, to get the density
             of particles for chainHOP.
 
-        Parameters:
-        ===========
+        Parameters
+        ----------
 
-        mass: A array-like list of the masses of the particles, in the same
+        mass : array 
+            A array-like list of the masses of the particles, in the same
             order as the data that went into building the kd tree.
 
-        num_neighbors: Optional, the number of neighbors to search for and to
+        num_neighbors : integer, optional 
+            The number of neighbors to search for and to
             use in the density calculation. Default is 65, and is probably what
             one should stick with.
 
-        nMerge: The number of nearest neighbor tags to return for each particle.
+        nMerge: integer, optional
+            The number of nearest neighbor tags to return for each particle.
+            Defaults to 6.
 
-        Returns:
-        ========
+        Returns
+        -------
 
-        dens: An array of the densities for each particle, in the same order
+        dens : array 
+            An array of the densities for each particle, in the same order
             as the input data.
 
-        tags: A two-dimensional array of the indexes, nMerge nearest neighbors
+        tags : array 
+            A two-dimensional array of the indexes, nMerge nearest neighbors
             for each particle.
 
         """
@@ -723,20 +729,23 @@ cdef class cKDTree:
         """ query the tree in chunks, between start and finish, recording the
             nearest neighbors.
 
-        Parameters:
-        ===========
+        Parameters
+        ----------
 
-        start: The starting point in the dataset for this search.
+        start: integer
+            The starting point in the dataset for this search.
 
-        finish: The ending point in the dataset for this search.
+        finish: integer
+            The ending point in the dataset for this search.
 
-        num_neighbors: Optional, the number of neighbors to search for.
-            The default is 65.
+        num_neighbors: integer, optional
+            The number of neighbors to search for. The default is 65.
 
-        Returns:
-        ========
+        Returns
+        -------
 
-        chunk_tags: A two-dimensional array of the nearest neighbor tags for the
+        chunk_tags: array
+            A two-dimensional array of the nearest neighbor tags for the
             points in this search.
 
         """

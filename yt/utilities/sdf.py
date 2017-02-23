@@ -431,17 +431,16 @@ class HTTPSDFRead(SDFRead):
 
     Parameters
     ----------
-    filename: string
-    The filename associated with the data to be loaded.
-    header: string, optional
-    If separate from the data file, a file containing the
-    header can be specified. Default: None.
+    filename : string
+        The filename associated with the data to be loaded.
+    header : string, optional
+        If separate from the data file, a file containing the
+        header can be specified. Default: None.
 
     Returns
     -------
     self : SDFRead object
-    Dict-like container of parameters and data.
-
+        Dict-like container of parameters and data.
 
     References
     ----------

@@ -380,9 +380,9 @@ def hamming(u, v):
 
 
 def jaccard(u, v):
-    """
+    r"""
     Computes the Jaccard-Needham dissimilarity between two boolean
-    n-vectors u and v, which is
+    ``n``-vectors ``u`` and ``v``, which is
 
     .. math::
 
@@ -396,9 +396,9 @@ def jaccard(u, v):
     Parameters
     ----------
     u : ndarray
-        An :math:`n`-dimensional vector.
+        An ``n``-dimensional vector.
     v : ndarray
-        An :math:`n`-dimensional vector.
+        An ``n``-dimensional vector.
 
     Returns
     -------
@@ -414,9 +414,9 @@ def jaccard(u, v):
 
 
 def kulsinski(u, v):
-    """
-    Computes the Kulsinski dissimilarity between two boolean n-vectors
-    u and v, which is defined as
+    r"""
+    Computes the Kulsinski dissimilarity between two boolean ``n``-vectors
+    ``u`` and ``v``, which is defined as
 
     .. math::
 
@@ -430,9 +430,9 @@ def kulsinski(u, v):
     Parameters
     ----------
     u : ndarray
-        An :math:`n`-dimensional vector.
+        An ``n``-dimensional vector.
     v : ndarray
-        An :math:`n`-dimensional vector.
+        An ``n``-dimensional vector.
 
     Returns
     -------
@@ -915,9 +915,9 @@ def pdist(X, metric='euclidean', p=2, w=None, V=None, VI=None):
     r"""
     Computes the pairwise distances between m original observations in
     n-dimensional space. Returns a condensed distance matrix Y.  For
-    each :math:`i` and :math:`j` (where :math:`i<j<n`), the
+    each ``i`` and ``j`` (where ``i < j < n``), the
     metric ``dist(u=X[i], v=X[j])`` is computed and stored in the
-    :math:`ij`th entry.
+    ``ij``th entry.
 
     See ``squareform`` for information on how to calculate the index of
     this entry or to convert the condensed distance matrix to a
@@ -969,7 +969,7 @@ def pdist(X, metric='euclidean', p=2, w=None, V=None, VI=None):
           1 - \frac{uv^T}
                    {{|u|}_2 {|v|}_2}
 
-       where |*|_2 is the 2 norm of its argument *.
+       where :math:`|*|_2` is the 2 norm of its argument \*.
 
     7. ``Y = pdist(X, 'correlation')``
 
@@ -1358,49 +1358,45 @@ def squareform(X, force="no", checks=True):
 
     Parameters
     ----------
-       X : ndarray
-           Either a condensed or redundant distance matrix.
+    X : ndarray
+        Either a condensed or redundant distance matrix.
 
     Returns
     -------
-       Y : ndarray
-           If a condensed distance matrix is passed, a redundant
-           one is returned, or if a redundant one is passed, a
-           condensed distance matrix is returned.
+    Y : ndarray
+        If a condensed distance matrix is passed, a redundant
+        one is returned, or if a redundant one is passed, a
+        condensed distance matrix is returned.
+    force : string
+        As with MATLAB(TM), if force is equal to 'tovector' or
+        'tomatrix', the input will be treated as a distance matrix
+        or distance vector respectively.
 
-       force : string
-           As with MATLAB(TM), if force is equal to 'tovector' or
-           'tomatrix', the input will be treated as a distance matrix
-           or distance vector respectively.
+    checks : bool
+        If ``checks`` is set to ``False``, no checks will be made
+        for matrix symmetry nor zero diagonals. This is useful if
+        it is known that ``X - X.T1`` is small and ``diag(X)`` is
+        close to zero. These values are ignored any way so they do
+        not disrupt the squareform transformation.
 
-       checks : bool
-           If ``checks`` is set to ``False``, no checks will be made
-           for matrix symmetry nor zero diagonals. This is useful if
-           it is known that ``X - X.T1`` is small and ``diag(X)`` is
-           close to zero. These values are ignored any way so they do
-           not disrupt the squareform transformation.
-
-
-    Calling Conventions
+    Notes
     -------------------
 
     1. v = squareform(X)
 
-       Given a square d by d symmetric distance matrix ``X``,
-       ``v=squareform(X)`` returns a :math:`d*(d-1)/2` (or
-       `${n \choose 2}$`) sized vector v.
+      Given a square d by d symmetric distance matrix ``X``, ``v=squareform(X)``
+      returns a :math:`d*(d-1)/2` (or :math:`{n \choose 2}`) sized vector ``v``.
+      :math:`v[{n \choose 2}-{n-i \choose 2} + (j-i-1)]` is the distance between
+      points ``i`` and ``j``. If ``X`` is non-square or asymmetric, an error is
+      returned.
 
-      v[{n \choose 2}-{n-i \choose 2} + (j-i-1)] is the distance
-      between points i and j. If X is non-square or asymmetric, an error
-      is returned.
+    2. X = squareform(v)
 
-    X = squareform(v)
-
-      Given a d*d(-1)/2 sized v for some integer d>=2 encoding distances
-      as described, X=squareform(v) returns a d by d distance matrix X. The
-      X[i, j] and X[j, i] values are set to
-      v[{n \choose 2}-{n-i \choose 2} + (j-u-1)] and all
-      diagonal elements are zero.
+      Given a ``d*d(-1)/2`` sized ``v`` for some integer ``d>=2`` encoding
+      distances as described, ``X=squareform(v)`` returns a ``d`` by ``d``
+      distance matrix ``X``. The ``X[i, j]`` and ``X[j, i]`` values are set to
+      :math:`v[{n \choose 2}-{n-i \choose 2} + (j-u-1)]` and all diagonal
+      elements are zero.
 
     """
 
@@ -1484,7 +1480,7 @@ def is_valid_dm(D, tol=0.0, throw=False, name="D", warning=False):
 
     Parameters
     ----------
-    D : ndarray
+    D : `~np.ndarray`
         The candidate object to test for validity.
     tol : double
         The distance matrix should be symmetric. tol is the maximum
@@ -1747,7 +1743,7 @@ def cdist(XA, XB, metric='euclidean', p=2, V=None, VI=None, w=None):
           \frac{1 - uv^T}
                {{|u|}_2 {|v|}_2}
 
-       where :math:`|*|_2` is the 2-norm of its argument *.
+       where :math:`|*|_2` is the 2-norm of its argument \*.
 
     7. ``Y = cdist(XA, XB, 'correlation')``
 
