@@ -917,7 +917,7 @@ def pdist(X, metric='euclidean', p=2, w=None, V=None, VI=None):
     n-dimensional space. Returns a condensed distance matrix Y.  For
     each ``i`` and ``j`` (where ``i < j < n``), the
     metric ``dist(u=X[i], v=X[j])`` is computed and stored in the
-    ``ij``th entry.
+    ``ij`` th entry.
 
     See ``squareform`` for information on how to calculate the index of
     this entry or to convert the condensed distance matrix to a
@@ -1480,9 +1480,9 @@ def is_valid_dm(D, tol=0.0, throw=False, name="D", warning=False):
 
     Parameters
     ----------
-    D : `~np.ndarray`
+    D : ndarray
         The candidate object to test for validity.
-    tol : double
+    tol : float
         The distance matrix should be symmetric. tol is the maximum
         difference between the :math:`ij`th entry and the
         :math:`ji`th entry for the distance metric to be

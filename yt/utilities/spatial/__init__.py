@@ -1,6 +1,5 @@
 """
 Spatial algorithms and data structures (:mod:`scipy.spatial`)
-=============================================================
 
 Nearest-neighbor queries:
 

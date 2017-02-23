@@ -80,7 +80,7 @@
 # purposes.
 
 """``MPI_Import`` defines an mpi-aware import hook. The standard use of
-this module is as follows:
+this module is as follows::
 
     from MPI_Import import mpi_import
     with mpi_import():
@@ -94,7 +94,7 @@ processes load that module.
 
 One CRITICAL detail: any code inside the mpi_import block must be
 executed exactly the same on all of the MPI ranks. For example,
-consider this:
+consider this::
 
     def foo():
         import mpi
@@ -117,7 +117,7 @@ for the bcast, or it will receive an out-of-order bcast.
 
 The import hook provides a way to test whether we're using this
 importer, which can be used to disable rank-asymmetric behavior in a
-module import:
+module import::
 
     from yt.extern.six.moves import builtins
     hasattr(builtins.__import__,"mpi_import")
@@ -130,7 +130,7 @@ One such example is pyMPI's synchronizeQueuedOutput function, which
 tends to cause deadlocks when it is executed inside an mpi_imported
 module. In that case, we provide a hook to execute a function after
 the mpi_import hook has been replaced by the standard import hook.
-Here is an example showing the use of this feature:
+Here is an example showing the use of this feature::
 
     # encapsulate the rank-asymmetric code in a function
     def f():
@@ -172,7 +172,7 @@ Some implementation details
 * This module uses pyMPI. It was originally designed with mpi4py, and
   switching back to mpi4py requires only minor modifications. To
   quickly substitute mpi4py for pyMPI, the 'import mpi' line below can
-  be replaced with the following wrapper:
+  be replaced with the following wrapper::
 
     from mpi4py import MPI
     class mpi(object):

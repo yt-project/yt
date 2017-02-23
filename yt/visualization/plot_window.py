@@ -1423,7 +1423,7 @@ class ProjectionPlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ===============================================    ===================================
+         ===============================================    ==================================
 
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
