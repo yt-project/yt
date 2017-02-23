@@ -433,7 +433,7 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o',\
-                                 stride=1.0, ptype=None, minimum_mass=None, \
+                                 stride=1, ptype=None, minimum_mass=None, \
                                  alpha=1.0)
 
    (This is a proxy for

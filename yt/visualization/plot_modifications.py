@@ -1527,7 +1527,7 @@ class HaloCatalogCallback(PlotCallback):
 
 class ParticleCallback(PlotCallback):
     """
-    annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
+    annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1,
                        ptype=None, minimum_mass=None, alpha=1.0)
 
     Adds particle positions, based on a thick slab along *axis* with a
@@ -1542,7 +1542,7 @@ class ParticleCallback(PlotCallback):
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
+    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
                  ptype='all', minimum_mass=None, alpha=1.0):
         PlotCallback.__init__(self)
         self.width = width
