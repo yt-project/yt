@@ -795,6 +795,11 @@ class UnitTuple(tuple):
     def same_dimensions_as(self, other):
         return all(u.same_dimensions_as(o) for u, o in zip(self, other))
 
+    def __repr__(self):
+        if self.is_homogeneous:
+            return self[0].__repr__()
+        return self.expr.__repr__()
+
     def __mul__(self, other):
         if isinstance(other, UnitTuple):
             ret = UnitTuple(u*v for u, v in zip(self, other))
