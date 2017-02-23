@@ -38,9 +38,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "dx"), sampling_type="cell",  function=_unknown_coord)
         registry.add_field(("index", "dy"), sampling_type="cell",  function=_unknown_coord)
         registry.add_field(("index", "dz"), sampling_type="cell",  function=_unknown_coord)
-        registry.add_field(("index", "x"), sampling_type="cell",  function=_unknown_coord)
-        registry.add_field(("index", "y"), sampling_type="cell",  function=_unknown_coord)
-        registry.add_field(("index", "z"), sampling_type="cell",  function=_unknown_coord)
         f1, f2 = _get_coord_fields(self.axis_id['r'])
         registry.add_field(("index", "dr"), sampling_type="cell",  function = f1,
                            display_field = False,
@@ -98,6 +95,29 @@ class SphericalCoordinateHandler(CoordinateHandler):
         registry.add_field(("index", "path_element_phi"), sampling_type="cell", 
                  function = _path_phi,
                  units = "code_length")
+
+        def _sph_x(field, data):
+            x = data["index", "r"]
+            x *= np.sin(data["index", "theta"])
+            x *= np.cos(data["index", "phi"])
+            return x
+        registry.add_field(("index", "x"), sampling_type="cell", 
+                           function=_sph_x, units="code_length")
+
+        def _sph_y(field, data):
+            y = data["index", "r"]
+            y *= np.sin(data["index", "theta"])
+            y *= np.sin(data["index", "phi"])
+            return y
+        registry.add_field(("index", "y"), sampling_type="cell",
+                           function=_sph_y, units="code_length")
+
+        def _sph_z(field, data):
+            z = data["index", "r"]
+            z *= np.cos(data["index", "theta"])
+            return z
+        registry.add_field(("index", "z"), sampling_type="cell",
+                           function=_sph_z, units="code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
