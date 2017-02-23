@@ -50,7 +50,7 @@ class YTIndexArray(YTArray):
     __array_priority__ = 3.0
 
     def __new__(cls, input_array, input_units=None, registry=None,
-                dtype=np.float64):
+                geometry="cartesian", dtype=np.float64):
         if input_array is NotImplemented:
             return input_array
         if input_units is None:
@@ -78,6 +78,8 @@ class YTIndexArray(YTArray):
         obj.units = UnitTuple(
             (Unit(iu, registry=registry) if not isinstance(iu, Unit)
              else iu for iu in input_units))
+        
+        obj.geometry = geometry
 
         return obj
 
