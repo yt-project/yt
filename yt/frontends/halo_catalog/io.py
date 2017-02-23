@@ -14,6 +14,7 @@ HaloCatalog data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.units.index_array import YTIndexArray
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
@@ -92,7 +93,8 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
             pos[:,0] = f["particle_position_x"].value
             pos[:,1] = f["particle_position_y"].value
             pos[:,2] = f["particle_position_z"].value
-            pos = data_file.ds.arr(pos, units). to("code_length")
+            pos = YTIndexArray(pos, units,
+                               registry=data_file.ds.unit_registry).to("code_length")
             dle = self.ds.domain_left_edge.to("code_length")
             dre = self.ds.domain_right_edge.to("code_length")
             # These are 32 bit numbers, so we give a little lee-way.
