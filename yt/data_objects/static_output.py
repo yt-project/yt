@@ -194,6 +194,8 @@ class MutableAttribute(object):
         self.data = weakref.WeakKeyDictionary()
 
     def __get__(self, instance, owner):
+        if not instance:
+            return None
         ret = self.data.get(instance, None)
         try:
             ret = ret.copy()
