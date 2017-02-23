@@ -31,6 +31,7 @@ def test_orientation():
     sc = Scene()
 
     vol = VolumeSource(ds, field=('gas', 'density'))
+    sc.add_source(vol)
 
     tf = vol.transfer_function
     tf = ColorTransferFunction((0.1, 1.0))
@@ -53,7 +54,6 @@ def test_orientation():
                                north_vector=[0., 0., 1.])
         cam.set_width(ds.domain_width*2.)
 
-        sc.add_source(vol)
         yield VRImageComparisonTest(
             sc, ds, '%s_%04d' % (lens_type, frame), decimals)
 
