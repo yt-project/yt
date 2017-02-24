@@ -26,10 +26,6 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
-from yt.units.index_array import \
-    YTIndexArray
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.utilities.file_handler import \
