@@ -42,7 +42,7 @@ def test_slice():
     ds = fake_sph_orientation_ds()
     for (ax, coord), answer in SLICE_ANSWERS.items():
         # test that we can still select particles even if we offset the slice
-        # within each particle's smoothing volumes
+        # within each particle's smoothing volume
         for i in range(-1, 2):
             sl = ds.slice(ax, coord + i*0.1)
             assert_equal(sl['gas', 'density'].shape[0], answer)
