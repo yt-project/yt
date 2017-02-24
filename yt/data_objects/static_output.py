@@ -78,8 +78,7 @@ from yt.geometry.coordinates.api import \
     SphericalCoordinateHandler, \
     GeographicCoordinateHandler, \
     SpectralCubeCoordinateHandler, \
-    InternalGeographicCoordinateHandler, \
-    CustomCoordinateHandler
+    InternalGeographicCoordinateHandler
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is contant up
@@ -1054,9 +1053,7 @@ class Dataset(object):
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
                 setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
 
-    _arr = None
-    @property
-    def arr(self):
+    def arr(self, input_array, input_units=None, **kwargs):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
@@ -1094,11 +1091,14 @@ class Dataset(object):
                  1.00010449]) Mpc
 
         """
-
-        if self._arr is not None:
-            return self._arr
-        self._arr = functools.partial(YTArray, registry = self.unit_registry)
-        return self._arr
+        kwargs.pop("registry", None)
+        if isinstance(input_units, tuple):
+            arr = YTIndexArray(input_array, input_units=input_units, 
+                               registry=self.unit_registry, **kwargs)
+        else:
+            arr = YTArray(input_array, input_units=input_units,
+                          registry=self.unit_registry, **kwargs)
+        return arr
 
     _quan = None
     @property
