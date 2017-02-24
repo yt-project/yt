@@ -20,9 +20,6 @@ import numpy as np
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.funcs import mylog
 
-from yt.units.index_array import \
-    YTIndexArray
-
 from yt.utilities.io_handler import \
     BaseIOHandler
 
@@ -130,8 +127,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 if data_file.total_particles[ptype] == 0: continue
                 pos = f[ptype]["CenterOfMass"].value.astype("float64")
                 pos = np.resize(pos, (data_file.total_particles[ptype], 3))
-                pos = YTIndexArray(pos, ("code_length",)*3,
-                                   registry=data_file.ds.unit_registry)
+                pos = data_file.ds.arr(pos, ("code_length",)*3)
                 # These are 32 bit numbers, so we give a little lee-way.
                 # Otherwise, for big sets of particles, we often will bump into the
                 # domain edges.  This helps alleviate that.

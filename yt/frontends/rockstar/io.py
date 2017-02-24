@@ -25,9 +25,6 @@ from yt.utilities.exceptions import \
 from yt.utilities.io_handler import \
     BaseIOHandler
 
-from yt.units.index_array import \
-    YTIndexArray
-
 from .definitions import halo_dts
 from yt.utilities.lib.geometry_utils import compute_morton
 
@@ -101,8 +98,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             halos = np.fromfile(f, dtype=self._halo_dt, count = pcount)
             pos = np.empty((halos.size, 3), dtype="float64")
             # These positions are in Mpc, *not* "code" units
-            pos = YTIndexArray(pos, ("code_length",)*3, 
-                               registry=data_file.ds.unit_registry)
+            pos = data_file.ds.arr(pos, ("code_length",)*3)
             dx = np.finfo(halos['particle_position_x'].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
             pos[:,0] = halos["particle_position_x"]

@@ -334,7 +334,7 @@ class Dataset(object):
             n = "domain_%s" % attr
             v = getattr(self, n)
             if not isinstance(v, YTIndexArray):
-                v = YTIndexArray(v, units, registry=self.unit_registry)
+                v = self.arr(v, units)
                 setattr(self, n, v)
 
     def __reduce__(self):

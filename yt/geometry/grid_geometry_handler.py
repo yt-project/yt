@@ -26,8 +26,6 @@ from yt.funcs import \
     ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
     Index, YTDataChunk, ChunkDataCache
-from yt.units.index_array import \
-    YTIndexArray
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
 from .grid_container import \
@@ -102,14 +100,12 @@ class GridIndex(Index):
         coords = self.ds.coordinates
         units = tuple(coords.axes_units.values())
         self.grid_dimensions = np.ones((self.num_grids,3), 'int32')
-        self.grid_left_edge = YTIndexArray(np.zeros((self.num_grids,3),
-                                    self.float_type), units,
-                                    registry = self.ds.unit_registry)
-        self.grid_right_edge = YTIndexArray(np.ones((self.num_grids,3),
-                                    self.float_type), units,
-                                    registry = self.ds.unit_registry)
-        self.grid_levels = np.zeros((self.num_grids,1), 'int32')
-        self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
+        self.grid_left_edge = self.ds.arr(np.zeros((self.num_grids, 3),
+                                    self.float_type), units)
+        self.grid_right_edge = self.ds.arr(np.ones((self.num_grids, 3),
+                                    self.float_type), units)
+        self.grid_levels = np.zeros((self.num_grids, 1), 'int32')
+        self.grid_particle_count = np.zeros((self.num_grids, 1), 'int32')
 
     def clear_all_data(self):
         """
@@ -247,10 +243,8 @@ class GridIndex(Index):
     def _get_grid_tree(self):
         coords = self.ds.coordinates
         units = tuple(coords.axes_units.values())
-        left_edge = YTIndexArray(np.zeros((self.num_grids, 3)),
-                               units, registry=self.ds.unit_registry)
-        right_edge = YTIndexArray(np.zeros((self.num_grids, 3)),
-                                units, registry=self.ds.unit_registry)
+        left_edge = self.ds.arr(np.zeros((self.num_grids, 3)), units)
+        right_edge = self.ds.arr(np.zeros((self.num_grids, 3)), units)
         level = np.zeros((self.num_grids), dtype='int64')
         parent_ind = np.zeros((self.num_grids), dtype='int64')
         num_children = np.zeros((self.num_grids), dtype='int64')

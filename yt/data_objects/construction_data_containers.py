@@ -37,7 +37,6 @@ from yt.funcs import \
     get_memory_usage, \
     iterable, \
     only_on_root
-from yt.units.index_array import YTIndexArray
 from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented, \
     YTNoAPIKey, \
@@ -587,8 +586,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if hasattr(edge, 'units'):
             edge_units = edge.units
         else:
-            edge_units = 'code_length'
-        return YTIndexArray(edge, edge_units, registry=self.ds.unit_registry)
+            edge_units = ('code_length',)*3
+        return self.ds.arr(edge, edge_units)
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr

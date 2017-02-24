@@ -28,8 +28,6 @@ from yt.utilities.lib.geometry_utils import \
     compute_morton
 from yt.utilities.on_demand_imports import \
     _h5py as h5py
-from yt.units.index_array import \
-    YTIndexArray
 
 class IOHandlerYTNonspatialhdf5(BaseIOHandler):
     _dataset_type = "ytnonspatialhdf5"
@@ -222,7 +220,6 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        unit_registry = data_file.ds.unit_registry
         all_count = self._count_particles(data_file)
         pcount = sum(all_count.values())
         morton = np.empty(pcount, dtype='uint64')
@@ -246,7 +243,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 pos[:,1] = _get_position_array(ptype, f, "y")
                 pos[:,2] = _get_position_array(ptype, f, "z")
                 # TODO make this DTRT for non-spatial data
-                pos = YTIndexArray(pos, units, registry=unit_registry).to(u)
+                pos = self.ds.arr(pos, (units,)*3).to(u)
                 dle = self.ds.domain_left_edge.to(u)
                 dre = self.ds.domain_right_edge.to(u)
 
