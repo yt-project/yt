@@ -4,6 +4,26 @@ from yt.testing import \
     assert_equal, \
     fake_sph_orientation_ds
 
+def test_point():
+    ds = fake_sph_orientation_ds()
+    field_data = ds.stream_handler.fields['stream_file']
+    ppos = [field_data['io', 'particle_position_%s' % d] for d in 'xyz']
+    ppos = np.array(ppos).T
+    for pos in ppos:
+        for i in range(-1, 2):
+            offset = 0.1*np.array([i, 0, 0])
+            pt = ds.point(pos + offset)
+            assert_equal(pt['gas', 'density'].shape[0], 1)
+        for j in range(-1, 2):
+            offset = 0.1*np.array([0, j, 0])
+            pt = ds.point(pos + offset)
+            assert_equal(pt['gas', 'density'].shape[0], 1)
+        for k in range(-1, 2):
+            offset = 0.1*np.array([0, 0, k])
+            pt = ds.point(pos + offset)
+            assert_equal(pt['gas', 'density'].shape[0], 1)
+
+
 # The number of particles along each slice axis at that coordinate
 SLICE_ANSWERS = {
     ('x', 0): 6,
