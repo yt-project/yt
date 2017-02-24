@@ -798,7 +798,7 @@ class UnitTuple(tuple):
     def __repr__(self):
         if self.is_homogeneous:
             return self[0].__repr__()
-        return self.expr.__repr__()
+        return super(UnitTuple, self).__repr__()
 
     def __mul__(self, other):
         if isinstance(other, UnitTuple):
