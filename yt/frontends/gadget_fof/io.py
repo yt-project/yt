@@ -56,7 +56,6 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                     yield ptype, (x, y, z)
 
     def _yield_coordinates(self, data_file):
-        # ptypes = ["Group"]
         ptypes = self.ds.particle_types_raw
         with h5py.File(data_file.filename, "r") as f:
             for ptype in sorted(ptypes):
