@@ -120,7 +120,7 @@ class ParticleIndex(Index):
             index_order2=order2)
 
         # Load indices from file if provided
-        if ds.index_filename is None:
+        if getattr(ds, 'index_filename', None) is None:
             fname = self._index_filename + ".index{}_{}.ewah".format(
                 self.regions.index_order1, self.regions.index_order2)
         else:
