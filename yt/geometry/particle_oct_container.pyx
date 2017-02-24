@@ -1017,6 +1017,11 @@ cdef class ParticleBitmap:
             self.save_bitmasks(fname)
         return read_flag
 
+    def print_info(self):
+        cdef int ifile
+        for ifile in range(self.nfiles):
+            self.bitmasks.print_info(ifile, "File: %03d" % ifile)
+
     def check(self):
         cdef np.uint64_t mi1
         cdef ewah_bool_array arr_totref, arr_tottwo
@@ -1024,6 +1029,7 @@ cdef class ParticleBitmap:
         cdef vector[size_t] vec_totref
         cdef vector[size_t].iterator it_mi1
         cdef int nm = 0, nc = 0
+        cdef int ifile
         # Locate all indices with second level refinement
         for ifile in range(self.nfiles):
             arr = (<ewah_bool_array**> self.bitmasks.ewah_refn)[ifile][0]
@@ -1047,7 +1053,7 @@ cdef class ParticleBitmap:
             preincrement(it_mi1)
         # nc: total number of second level morton indices that are repeated
         # nm: total number of second level morton indices
-        print "Total of %s / %s collisions (% 3.5f%%)" % (nc, nm, 100.0*float(nc)/nm)
+        print("Total of %s / %s collisions (% 3.5f%%)" % (nc, nm, 100.0*float(nc)/nm))
 
     def primary_indices(self):
         mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray()

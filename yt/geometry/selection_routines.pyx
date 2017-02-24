@@ -388,10 +388,21 @@ cdef class SelectorObject:
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        """
+        Returns:
+          0: If the selector does not touch the bounding box.
+          1: If the selector overlaps the bounding box anywhere.
+        """
         return 0
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        """
+        Returns:
+          0: If the selector does not touch the bounding box.
+          1: If the selector contains the entire bounding box.
+          2: If the selector contains part of the bounding box.
+        """
         return 0
 
     @cython.boundscheck(False)
@@ -704,14 +715,21 @@ cdef class PointSelector(SelectorObject):
     cdef np.float64_t p[3]
 
     def __init__(self, dobj):
+        cdef np.float64_t [:] DLE
+        cdef np.float64_t [:] DRE
+        DLE = _ensure_code(dobj.ds.domain_left_edge)
+        DRE = _ensure_code(dobj.ds.domain_right_edge)
         for i in range(3):
             self.p[i] = _ensure_code(dobj.p[i])
 
             # ensure the point lies in the domain
             if self.periodicity[i]:
-                self.p[i] = np.fmod(self.p[i], self.domain_width[i])
-                if self.p[i] < 0.0:
-                    self.p[i] += self.domain_width[i]
+                if self.p[i] < DLE[i]:
+                    self.p[i] = DLE[i] + np.fmod(DLE[i]-self.p[i],
+                                                 self.domain_width[i])
+                elif self.p[i] >= DRE[i]:
+                    self.p[i] = DLE[i] + np.fmod(self.p[i] - DRE[i],
+                                                 self.domain_width[i])
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -755,14 +773,12 @@ cdef class PointSelector(SelectorObject):
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
         # point definitely can only be in one cell
+        # Return 2 in all cases to indicate that the point only overlaps
+        # portion of box
         if (left_edge[0] <= self.p[0] <= right_edge[0] and
             left_edge[1] <= self.p[1] <= right_edge[1] and
             left_edge[2] <= self.p[2] <= right_edge[2]):
-            if ((left_edge[0] == self.p[0]) or (self.p[0] == right_edge[0]) or
-                (left_edge[1] == self.p[1]) or (self.p[1] == right_edge[1]) or
-                (left_edge[2] == self.p[2]) or (self.p[2] == right_edge[2])):
-                return 2
-            return 1
+            return 2
         else:
             return 0
 
@@ -897,13 +913,14 @@ cdef class SphereSelector(SelectorObject):
                     farthest = relcenter - edge/2.0
                 # farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
                 fdist += farthest*farthest
-                if fdist >= self.radius2: return 2
-            return 1
+                if fdist >= self.radius2:
+                    return 2  # Box extends outside sphere
+            return 1  # Box entirely inside sphere
         for i in range(3):
             if not self.check_box[i]: continue
             if right_edge[i] < self.bbox[i][0] or \
                left_edge[i] > self.bbox[i][1]:
-                return 0
+                return 0  # Box outside sphere bounding box
         # http://www.gamedev.net/topic/335465-is-this-the-simplest-sphere-aabb-collision-test/
         cdist = 0
         fdist = 0
@@ -920,11 +937,12 @@ cdef class SphereSelector(SelectorObject):
             #farthest = relcenter + fclip(relcenter, -edge/2.0, edge/2.0)
             cdist += closest*closest
             fdist += farthest*farthest
-            if cdist > self.radius2: return 0
+            if cdist > self.radius2:
+                return 0  # Box does not overlap sphere
         if fdist < self.radius2:
-            return 1
+            return 1  # Sphere extends to entirely contain box
         else:
-            return 2
+            return 2  # Sphere only partially overlaps box
 
     def _hash_vals(self):
         return (("radius", self.radius),
@@ -2403,11 +2421,11 @@ cdef class ComposeSelector(SelectorObject):
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                               np.float64_t right_edge[3]) nogil:
-        if self.selector1.select_bbox_edge(left_edge, right_edge) and \
-                self.selector2.select_bbox_edge(left_edge, right_edge):
-            return 1
-        else:
-            return 0
+        cdef int rv1 = self.selector1.select_bbox_edge(left_edge, right_edge)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.selector2.select_bbox_edge(left_edge, right_edge)
+        if rv2 == 0: return 0
+        return max(rv1, rv2)
 
     def _hash_vals(self):
         return (hash(self.selector1), hash(self.selector2))
@@ -2547,7 +2565,9 @@ cdef class BooleanORSelector(BooleanSelector):
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                               np.float64_t right_edge[3]) nogil:
         cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        if rv2 == 1: return 1
         return max(rv1, rv2)
 
     cdef int select_grid(self, np.float64_t left_edge[3],
@@ -2557,6 +2577,7 @@ cdef class BooleanORSelector(BooleanSelector):
         if rv1 == 1: return 1
         cdef int rv2 = self.sel2.select_grid(left_edge, right_edge, level, o)
         if rv2 == 1: return 1
+        if (rv1 == 2) or (rv2 == 2): return 2
         return 0
 
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
@@ -2594,7 +2615,10 @@ cdef class BooleanNOTSelector(BooleanSelector):
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                               np.float64_t right_edge[3]) nogil:
-        return 1
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        if rv1 == 0: return 1
+        elif rv1 == 1: return 0
+        return 2
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
@@ -2630,7 +2654,21 @@ cdef class BooleanXORSelector(BooleanSelector):
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                               np.float64_t right_edge[3]) nogil:
-        return 1
+        # Return 2 in cases where one or both selectors partially overlap since
+        # part of the bounding box could satisfy the condition unless the
+        # selectors are identical.
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        if rv1 == rv2:
+            if rv1 == 2: 
+                # If not identical, part of the bbox will be touched by one
+                # selector and not the other.
+                # if self.sel1 == self.sel2: return 0  # requires gil
+                return 2
+            return 0
+        if rv1 == 0: return rv2
+        if rv2 == 0: return rv1
+        return 2  # part of bbox only touched by selector fully covering bbox
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
@@ -2670,7 +2708,17 @@ cdef class BooleanNEGSelector(BooleanSelector):
 
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                               np.float64_t right_edge[3]) nogil:
-        return self.sel1.select_bbox_edge(left_edge, right_edge)
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        if rv2 == 1:
+            return 0
+        elif rv2 == 0:
+            return rv1
+        # If sel2 is partial, then sel1 - sel2 will be partial as long
+        # as sel1 != sel2
+        # if self.sel1 == self.sel2: return 0  # requires gil
+        return 2  
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
@@ -2731,7 +2779,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
     @cython.wraparound(False)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                               np.float64_t right_edge[3]) nogil:
-        cdef int selected = 0
+        cdef int selected = 1
         cdef int ret
         with gil:
             for i in range(self.n_obj):
@@ -2741,9 +2789,7 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
                     return 0
                 elif ret == 2:
                     selected = 2
-        if selected == 2:
-            return 2
-        return 1
+        return selected
 
     @cython.cdivision(True)
     @cython.boundscheck(False)
@@ -2822,10 +2868,10 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
             for i in range(self.n_obj):
                 ret = (<SelectorObject>self.selectors[i]).select_bbox_edge(
                     left_edge, right_edge)
-                if ret == 2:
-                    return 2
-                elif ret == 1:
-                    selected = 1
+                if ret == 1:
+                    return 1
+                elif ret == 2:
+                    selected = 2
         return selected
 
     @cython.cdivision(True)
