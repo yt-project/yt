@@ -24,10 +24,6 @@ from yt.utilities.lib.ewah_bool_wrap cimport \
 from yt.utilities.lib.geometry_utils cimport decode_morton_64bit
 from yt.utilities.lib.fp_utils cimport _ensure_code
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level

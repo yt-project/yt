@@ -89,10 +89,10 @@ class GadgetDataset(SPHDataset):
 
     def __init__(self, filename, dataset_type="gadget_binary",
                  additional_fields=(),
-                 unit_base=None, n_ref=64,
-                 over_refine_factor=1,
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
                  kernel_name=None,
-                 index_ptype="all",
                  bounding_box = None,
                  header_spec = "default",
                  field_spec = "default",
@@ -108,7 +108,6 @@ class GadgetDataset(SPHDataset):
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
-        self.index_ptype = index_ptype
         self.storage_filename = None
         self.long_ids = long_ids
         self.header_offset = header_offset
@@ -129,8 +128,10 @@ class GadgetDataset(SPHDataset):
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
         super(GadgetDataset, self).__init__(
-            filename, dataset_type=dataset_type, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            filename, dataset_type=dataset_type,
+            unit_system=unit_system,
+            index_order=index_order,
+            index_filename=index_filename,
             kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
@@ -369,21 +370,22 @@ class GadgetHDF5Dataset(GadgetDataset):
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="gadget_hdf5",
-                 unit_base = None, n_ref=64,
-                 over_refine_factor=1,
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
                  kernel_name=None,
-                 index_ptype="all",
-                 bounding_box = None,
+                 bounding_box=None,
                  units_override=None,
                  unit_system="cgs"):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         if units_override is not None:
-            raise RuntimeError("units_override is not supported for GadgetHDF5Dataset. "+
-                               "Use unit_base instead.")
+            raise RuntimeError(
+                "units_override is not supported for GadgetHDF5Dataset. "+
+                "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
-            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor, index_ptype=index_ptype,
+            filename, dataset_type, unit_base=unit_base,
+            index_order=index_order, index_filename=index_filename,
             kernel_name=kernel_name, bounding_box=bounding_box,
             unit_system=unit_system)
 

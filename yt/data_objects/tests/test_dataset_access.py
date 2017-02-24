@@ -4,7 +4,10 @@ from yt.testing import \
     assert_equal, \
     fake_amr_ds, \
     fake_particle_ds, \
-    fake_random_ds
+    fake_random_ds, \
+    requires_file
+from yt.utilities.answer_testing.framework import \
+    data_dir_load
 
 # This will test the "dataset access" method.
 
@@ -69,3 +72,10 @@ def test_particle_counts():
 
     pds = fake_particle_ds(npart=128)
     assert pds.particle_type_counts == {'io': 128}
+
+
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+@requires_file(g30)
+def test_checksum():
+    assert fake_random_ds(16).checksum == 'notafile'
+    assert data_dir_load(g30).checksum == '6169536e4b9f737ce3d3ad440df44c58'

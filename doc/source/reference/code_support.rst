@@ -22,7 +22,7 @@ each supported output format using yt.
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+
 | Athena                |     Y      |     N     |      Y     |   Y   |    Y     |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+
-| Castro                |     Y      |     N     |   Partial  |   Y   |    Y     |    Y     |     N      |   Full   |
+| Castro                |     Y      |  Y [#f3]_ |   Partial  |   Y   |    Y     |    Y     |     N      |   Full   |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+
 | Chombo                |     Y      |     Y     |      Y     |   Y   |    Y     |    Y     |     Y      |   Full   |
 +-----------------------+------------+-----------+------------+-------+----------+----------+------------+----------+
@@ -68,7 +68,8 @@ each supported output format using yt.
 .. [#f1] one-dimensional base-state not read in currently.
 .. [#f2] These handle mesh fields using an in-memory octree that has not been parallelized.
          Datasets larger than approximately 1024^3 will not scale well.
-
+.. [#f3] Newer versions of Castro that use BoxLib's standard particle format are supported.
+	 The older ASCII format is not.
 
 If you have a dataset that uses an output format not yet supported by yt, you
 can either input your data following :ref:`loading-numpy-array` or

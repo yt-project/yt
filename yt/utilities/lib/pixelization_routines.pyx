@@ -818,13 +818,13 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
         for j in prange(0, posx.shape[0]):
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, buff.shape[0]-1)
-            x1 = iclip(x1+1, 0, buff.shape[0]-1)
+            x0 = iclip(x0-1, 0, buff.shape[0])
+            x1 = iclip(x1+1, 0, buff.shape[0])
 
             y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
             y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, buff.shape[1]-1)
-            y1 = iclip(y1+1, 0, buff.shape[1]-1)
+            y0 = iclip(y0-1, 0, buff.shape[1])
+            y1 = iclip(y1+1, 0, buff.shape[1])
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
@@ -884,8 +884,8 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
     y_min = bounds[2]
     y_max = bounds[3]
 
-    dx = (x_max - x_min) / xsize
-    dy = (y_max - y_min) / ysize
+    dx = (x_max - x_min) / buff.shape[0]
+    dy = (y_max - y_min) / buff.shape[1]
     idx = 1.0/dx
     idy = 1.0/dy
 
@@ -899,13 +899,13 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
         for j in prange(0, posx.shape[0]):
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize-1)
-            x1 = iclip(x1+1, 0, xsize-1)
+            x0 = iclip(x0-1, 0, buff.shape[0])
+            x1 = iclip(x1+1, 0, buff.shape[0])
 
             y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
             y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize-1)
-            y1 = iclip(y1+1, 0, ysize-1)
+            y0 = iclip(y0-1, 0, buff.shape[1])
+            y1 = iclip(y1+1, 0, buff.shape[1])
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             h_j = math.sqrt(h_j2)

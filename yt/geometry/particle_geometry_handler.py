@@ -36,8 +36,8 @@ class ParticleIndex(Index):
     def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
-        self.index_filename = self.dataset.parameter_filename
-        self.directory = os.path.dirname(self.index_filename)
+        self._index_filename = self.dataset.parameter_filename
+        self.directory = os.path.dirname(self._index_filename)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
@@ -57,12 +57,7 @@ class ParticleIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        # ML = self.oct_handler.max_level 
-        ML = self.regions.index_order1 # was self.oct_handler.max_level
-        dx = 1.0/(self.dataset.domain_dimensions*2**ML)
-        dx = dx * (self.dataset.domain_right_edge -
-                   self.dataset.domain_left_edge)
-        return dx.min()
+        return self.ds.arr(0, 'code_length')
 
     def _get_particle_type_counts(self):
         result = collections.defaultdict(lambda: 0)
@@ -104,79 +99,50 @@ class ParticleIndex(Index):
         # Get index & populate octree
         self._initialize_index()
 
-    def _index_filename(self,o1,o2):
-        import shutil
-        # Uses parameter file
-        fname_old = os.path.join(self.dataset.fullpath, 
-                                 "index{}_{}.ewah".format(o1,o2))
-        fname_new = self.index_filename + ".index{}_{}.ewah".format(o1,o2)
-        if os.path.isfile(fname_old):
-            shutil.move(fname_old,fname_new)
-        return fname_new
-
-    def _initialize_indices(self):
-        # TODO: THIS IS NOT CURRENTLY USED AND MUST BE MERGED WITH ABOVE
-        # This will be replaced with a parallel-aware iteration step.
-        # Roughly outlined, what we will do is:
-        #   * Generate Morton indices on each set of files that belong to
-        #     an individual processor
-        #   * Create a global, accumulated histogram
-        #   * Cut based on estimated load balancing
-        #   * Pass particles to specific processors, along with NREF buffer
-        #   * Broadcast back a serialized octree to join
-        #
-        # For now we will do this in serial.
-        morton = np.empty(self.total_particles, dtype="uint64")
-        ind = 0
-        for data_file in self.data_files:
-            npart = sum(data_file.total_particles.values())
-            # TODO: Make this take index_ptype
-            morton[ind:ind + npart] = \
-                self.io._initialize_index(data_file, self.regions)
-            ind += npart
-        morton.sort()
-        # Now we add them all at once.
-        self.oct_handler.add(morton)
-
-    def _initialize_index(self, fname=None, noref=False,
-                          order1=None, order2=None, dont_cache=False):
+    def _initialize_index(self):
         ds = self.dataset
         only_on_root(mylog.info, "Allocating for %0.3e particles",
                      self.total_particles, global_rootonly = True)
+
         # use a trivial morton index for datasets containing a single data file
-        # in the future we should experiment with intra-file indexing
         if len(self.data_files) == 1:
-            if order1 is None and order2 is None:
-                order1 = 1
-                order2 = 1
-                dont_cache=True
+            order1 = 1
+            order2 = 1
+        else:
+            order1 = ds.index_order[0]
+            order2 = ds.index_order[1]
+
+        if order1 == 1 and order2 == 1:
+            dont_cache = True
+        else:
+            dont_cache = False
+
         self.regions = ParticleBitmap(
-                ds.domain_left_edge, ds.domain_right_edge,
-                ds.periodicity,
-                len(self.data_files), 
-                index_order1=order1, index_order2=order2)
-        N = 1<<(self.regions.index_order1 + self.ds.over_refine_factor)
-        self.ds.domain_dimensions[:] = N
+            ds.domain_left_edge, ds.domain_right_edge,
+            ds.periodicity,
+            len(self.data_files), 
+            index_order1=order1,
+            index_order2=order2)
+
         # Load indices from file if provided
-        if fname is None: 
-            fname = self._index_filename(self.regions.index_order1,
-                                         self.regions.index_order2)
+        if getattr(ds, 'index_filename', None) is None:
+            fname = self._index_filename + ".index{}_{}.ewah".format(
+                self.regions.index_order1, self.regions.index_order2)
+        else:
+            fname = self.index_filename
+
         try:
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             if rflag == 0:
-                raise IOError()
+                raise IOError
         except IOError:
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
-            if not noref:
-                self._initialize_refined_index()
+            self._initialize_refined_index()
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
-        # These are now invalid, but I don't know what to replace them with:
-        #self.max_level = self.oct_handler.max_level
-        #self.dataset.max_level = self.max_level
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
@@ -184,7 +150,7 @@ class ParticleIndex(Index):
             pb.update(i)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if hasattr(self.ds, '_sph_ptype') and ptype == self.ds._sph_ptype:
-                    hsml = self.io._yield_smoothing_length(data_file)
+                    hsml = self.io._yield_smoothing_length(data_file, pos.dtype)
                 else:
                     hsml = None
                 self.regions._coarse_index_data_file(
@@ -205,7 +171,7 @@ class ParticleIndex(Index):
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if hasattr(self.ds, '_sph_ptype') and ptype == self.ds._sph_ptype:
-                    hsml = self.io._yield_smoothing_length(data_file)
+                    hsml = self.io._yield_smoothing_length(data_file, pos.dtype)
                 else:
                     hsml = None
                 nsub_mi = self.regions._refined_index_data_file(
@@ -244,7 +210,8 @@ class ParticleIndex(Index):
                 dobj._chunk_info = [dobj]
             else:
                 # TODO: only return files
-                dfi, file_masks, addfi = self.regions.identify_file_masks(dobj.selector)
+                dfi, file_masks, addfi = self.regions.identify_file_masks(
+                    dobj.selector)
                 nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
                 for i in range(nfiles):
@@ -255,24 +222,22 @@ class ParticleIndex(Index):
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to
                 # create as many objects as part of the chunk as we want, since
-                # it'll take the set() of them.  So if we break stuff up like this
-                # here, we end up in a situation where we have the ability to break
-                # things down further later on for buffer zones and the like.
+                # it'll take the set() of them.  So if we break stuff up like
+                # this here, we end up in a situation where we have the ability
+                # to break things down further later on for buffer zones and the
+                # like.
         dobj._current_chunk, = self._chunk_all(dobj)
 
     def _chunk_all(self, dobj):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, None)
 
-    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None,
-                       ghost_particles = False):
-        if ngz == 0 and ghost_particles:
-            ngz = 1
+    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for og in sobjs:
             with og._expand_data_files():
-                if ghost_particles: # change to ngz > 0?
-                    g = og.retrieve_ghost_zones(ngz)
+                if ngz > 0:
+                    g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
                 else:
                     g = og
                 yield YTDataChunk(dobj, "spatial", [g])

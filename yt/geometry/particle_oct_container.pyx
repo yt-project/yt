@@ -30,7 +30,9 @@ import numpy as np
 cimport numpy as np
 from selection_routines cimport SelectorObject, AlwaysSelector
 cimport cython
+from cython cimport floating
 from collections import defaultdict
+from yt.funcs import get_pbar
 
 from particle_deposit cimport gind
 from yt.utilities.lib.ewah_bool_array cimport \
@@ -398,10 +400,6 @@ cdef void _mask_children(np.ndarray[np.uint8_t] mask, Oct *cur):
             for k in range(2):
                 _mask_children(mask, cur.children[cind(i,j,k)])
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 cdef np.uint64_t ONEBIT=1
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 
@@ -434,10 +432,8 @@ cdef class ParticleBitmap:
     cdef public BoolArrayCollection collisions
 
     def __init__(self, left_edge, right_edge, periodicity, nfiles, 
-                 index_order1 = None, index_order2 = None):
+                 index_order1, index_order2):
         # TODO: Set limit on maximum orders?
-        if index_order1 is None: index_order1 = 7
-        if index_order2 is None: index_order2 = 5
         cdef int i
         self._cached_octrees = {}
         self._last_selector = None
@@ -476,8 +472,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def _coarse_index_data_file(self,
-                                np.ndarray[anyfloat, ndim=2] pos,
-                                np.ndarray[anyfloat, ndim=1] hsml,
+                                np.ndarray[floating, ndim=2] pos,
+                                np.ndarray[floating, ndim=1] hsml,
                                 np.uint64_t file_id):
         return self.__coarse_index_data_file(pos, hsml, file_id)
 
@@ -485,8 +481,8 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef void __coarse_index_data_file(self,
-                                       np.ndarray[anyfloat, ndim=2] pos,
-                                       np.ndarray[anyfloat, ndim=1] hsml,
+                                       np.ndarray[floating, ndim=2] pos,
+                                       np.ndarray[floating, ndim=1] hsml,
                                        np.uint64_t file_id) except *:
         # Initialize
         cdef np.int64_t i, p
@@ -631,8 +627,8 @@ cdef class ParticleBitmap:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     def _refined_index_data_file(self,
-                                 np.ndarray[anyfloat, ndim=2] pos,
-                                 np.ndarray[anyfloat, ndim=1] hsml,
+                                 np.ndarray[floating, ndim=2] pos,
+                                 np.ndarray[floating, ndim=1] hsml,
                                  np.ndarray[np.uint8_t, ndim=1] mask,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi1,
                                  np.ndarray[np.uint64_t, ndim=1] sub_mi2,
@@ -647,8 +643,8 @@ cdef class ParticleBitmap:
     @cython.initializedcheck(False)
     cdef np.int64_t __refined_index_data_file(
         self,
-        np.ndarray[anyfloat, ndim=2] pos,
-        np.ndarray[anyfloat, ndim=1] hsml,
+        np.ndarray[floating, ndim=2] pos,
+        np.ndarray[floating, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
         np.ndarray[np.uint64_t, ndim=1] sub_mi1,
         np.ndarray[np.uint64_t, ndim=1] sub_mi2,
@@ -1005,10 +1001,13 @@ cdef class ParticleBitmap:
             if nfiles != self.nfiles:
                 raise IOError("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
         # Read bitmap for each file
+        pb = get_pbar("Loading particle index", nfiles)
         for ifile in range(nfiles):
+            pb.update(ifile)
             size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
             irflag = self.bitmasks._loads(ifile, f.read(size_serial))
             if irflag == 0: read_flag = 0
+        pb.finish()
         # Collisions
         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
         irflag = self.collisions._loads(f.read(size_serial))

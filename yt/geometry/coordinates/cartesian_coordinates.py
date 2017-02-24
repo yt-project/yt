@@ -168,11 +168,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 le[self.y_axis[dim]] = bounds[2]
                 re[self.x_axis[dim]] = bounds[1]
                 re[self.y_axis[dim]] = bounds[3]
-                # FIXME FIXME FIXME uncomment the data_source line
-                # once chained selection works again
                 proj_reg = data_source.ds.region(
                     left_edge=le, right_edge=re, center=data_source.center,
-                    #data_source=data_source.data_source
+                    data_source=data_source.data_source
                 )
                 buff = pixelize_sph_kernel_projection(
                     proj_reg[ptype, px_name].in_units('cm'),

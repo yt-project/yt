@@ -18,6 +18,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.math cimport sqrt
+from cython cimport floating
 from libc.stdlib cimport malloc, free
 from libc.stdio cimport printf
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
@@ -110,7 +111,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                 np.int64_t offset,
                 np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-                np.ndarray[anyfloat, ndim=3] vals):
+                np.ndarray[floating, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):
@@ -534,86 +535,6 @@ cdef class SelectorObject:
                 pos[0] += dds[0]
         return total
 
-    # @cython.boundscheck(False)
-    # @cython.wraparound(False)
-    # @cython.cdivision(True)
-    # def fill_mask_morton(self, left_edge, right_edge, order1, order2, 
-    #                      mask_coll, ngz=0):
-    #     cdef int i, j
-    #     cdef np.uint32_t ntot
-    #     cdef np.uint64_t mi1, mi2, mi1_n, mi2_n
-    #     cdef np.uint64_t ind1[3]
-    #     cdef np.uint64_t ind2[3]
-    #     cdef np.float64_t DLE[3]
-    #     cdef np.float64_t DRE[3]
-    #     cdef np.float64_t dds1[3]
-    #     cdef np.float64_t dds2[3]
-    #     cdef np.float64_t lpos1[3]
-    #     cdef np.float64_t lpos2[3]
-    #     cdef np.float64_t rpos1[3]
-    #     cdef np.float64_t rpos2[3]
-    #     cdef np.uint64_t max_index1 = (1 << order1)
-    #     cdef np.uint64_t max_index2 = (1 << order2)
-    #     cdef BoolArrayCollection mask_s = BoolArrayCollection()
-    #     cdef BoolArrayCollection mask_g = BoolArrayCollection()
-    #     cdef np.uint8_t[:] bool_coarse_g = np.zeros(1<<(3*order1), dtype='uint8')
-    #     cdef SparseUnorderedBitmaskSet list_coarse_g = SparseUnorderedBitmaskSet()
-    #     cdef SparseUnorderedRefinedBitmaskSet list_refined_g = SparseUnorderedRefinedBitmaskSet()
-    #     cdef np.uint32_t[:,:] index = np.zeros((2*ngz+1, 3), dtype='uint32')
-    #     cdef np.uint64_t[:,:] ind1_n = np.zeros((2*ngz+1, 3), dtype='uint64')
-    #     cdef np.uint64_t[:,:] ind2_n = np.zeros((2*ngz+1, 3), dtype='uint64')
-    #     cdef np.uint64_t[:] neighbors1 = np.zeros((2*ngz+1)**3, dtype='uint64')
-    #     cdef np.uint64_t[:] neighbors2 = np.zeros((2*ngz+1)**3, dtype='uint64')
-    #     for i in range(3):
-    #         DLE[i] = left_edge[i]
-    #         DRE[i] = right_edge[i]
-    #         dds1[i] = (DRE[i] - DLE[i])/max_index1
-    #         dds2[i] = dds1[i]/max_index2
-    #     # Coarse
-    #     for mi1 in range(1 << (order1*3)):
-    #         # list_coarse_g._prune()
-    #         # list_refined_g._prune()
-    #         decode_morton_64bit(mi1, ind1)
-    #         for i in range(3):
-    #             lpos1[i] = DLE[i] + (<np.float64_t>ind1[i])*dds1[i]
-    #             rpos1[i] = lpos1[i] + dds1[i]
-    #         if self.select_bbox(lpos1, rpos1):
-    #             mask_s._set_coarse(mi1)
-    #             # Neighbors
-    #             if (ngz > 0):
-    #                 ntot = morton_neighbors_coarse(mi1, max_index1, self.periodicity,
-    #                                                ngz, index, ind1_n, neighbors1)
-    #                 for i in range(ntot):
-    #                     mi1_n = neighbors1[i]
-    #                     bool_coarse_g[mi1_n] = 1
-    #                     #list_coarse_g._set(mi1_n)
-    #             # Refinement
-    #             if mask_coll.isref(mi1):
-    #                 for mi2 in range(1 << (order1*3)):
-    #                     decode_morton_64bit(mi2, ind2)
-    #                     for i in range(3):
-    #                         lpos2[i] = DLE[i] + \
-    #                                    (<np.float64_t>ind1[i])*dds1[i] + \
-    #                                    (<np.float64_t>ind2[i])*dds2[i]
-    #                         rpos2[i] = lpos2[i] + dds2[i]
-    #                     if self.select_bbox(lpos2, rpos2):
-    #                         mask_s._set_refined(mi1, mi2)
-    #                     if (ngz > 0):
-    #                         ntot = morton_neighbors_refined(mi1, mi2, max_index1, max_index2,
-    #                                                         self.periodicity, ngz, 
-    #                                                         index, ind1_n, ind2_n,
-    #                                                         neighbors1, neighbors2)
-    #                         for i in range(3):
-    #                             mi1_n = neighbors1[i]
-    #                             mi2_n = neighbors2[i]
-    #                             list_refined_g._set(mi1_n, mi2_n)
-    #     # Add indices to mask
-    #     mask_g._set_coarse_array(bool_coarse_g)
-    #     # list_coarse_g._fill_ewah(mask_g)
-    #     list_refined_g._fill_ewah(mask_g)
-    #     # Return masks
-    #     return mask_s, mask_g
-
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -679,9 +600,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_points(self, np.ndarray[anyfloat, ndim=1] x,
-                           np.ndarray[anyfloat, ndim=1] y,
-                           np.ndarray[anyfloat, ndim=1] z,
+    def count_points(self, np.ndarray[floating, ndim=1] x,
+                           np.ndarray[floating, ndim=1] y,
+                           np.ndarray[floating, ndim=1] z,
                            radii):
         cdef int count = 0
         cdef int i
@@ -710,9 +631,9 @@ cdef class SelectorObject:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def select_points(self,
-                      np.ndarray[anyfloat, ndim=1] x,
-                      np.ndarray[anyfloat, ndim=1] y,
-                      np.ndarray[anyfloat, ndim=1] z,
+                      np.ndarray[floating, ndim=1] x,
+                      np.ndarray[floating, ndim=1] y,
+                      np.ndarray[floating, ndim=1] z,
                       radii):
         cdef int count = 0
         cdef int i
@@ -2480,6 +2401,14 @@ cdef class ComposeSelector(SelectorObject):
         else:
             return 0
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        if self.selector1.select_bbox_edge(left_edge, right_edge) and \
+                self.selector2.select_bbox_edge(left_edge, right_edge):
+            return 1
+        else:
+            return 0
+
     def _hash_vals(self):
         return (hash(self.selector1), hash(self.selector2))
 
@@ -2563,6 +2492,14 @@ cdef class BooleanANDSelector(BooleanSelector):
         if rv2 == 0: return 0
         return 1
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        if rv2 == 0: return 0
+        return max(rv1, rv2)
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
@@ -2607,6 +2544,12 @@ cdef class BooleanORSelector(BooleanSelector):
         if rv2 == 1: return 1
         return 0
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox_edge(left_edge, right_edge)
+        cdef int rv2 = self.sel2.select_bbox_edge(left_edge, right_edge)
+        return max(rv1, rv2)
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
@@ -2649,6 +2592,10 @@ cdef class BooleanNOTSelector(BooleanSelector):
         # check anywhere else.
         return 1
 
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        return 1
+
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
                          Oct *o = NULL) nogil:
@@ -2679,6 +2626,10 @@ cdef class BooleanXORSelector(BooleanSelector):
                                np.float64_t right_edge[3]) nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
+        return 1
+
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
         return 1
 
     cdef int select_grid(self, np.float64_t left_edge[3],
@@ -2712,10 +2663,14 @@ cdef class BooleanXORSelector(BooleanSelector):
 cdef class BooleanNEGSelector(BooleanSelector):
 
     cdef int select_bbox(self, np.float64_t left_edge[3],
-                               np.float64_t right_edge[3]) nogil:
+                         np.float64_t right_edge[3]) nogil:
         # We always return True here, because we don't have a "fully included"
         # check anywhere else.
         return self.sel1.select_bbox(left_edge, right_edge)
+
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        return self.sel1.select_bbox_edge(left_edge, right_edge)
 
     cdef int select_grid(self, np.float64_t left_edge[3],
                          np.float64_t right_edge[3], np.int32_t level,
@@ -2769,6 +2724,25 @@ cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
                 if (<SelectorObject>self.selectors[i]).select_bbox(
                         left_edge, right_edge) == 0:
                     return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                              np.float64_t right_edge[3]) nogil:
+        cdef int selected = 0
+        cdef int ret
+        with gil:
+            for i in range(self.n_obj):
+                ret = (<SelectorObject>self.selectors[i]).select_bbox_edge(
+                    left_edge, right_edge)
+                if ret == 0:
+                    return 0
+                elif ret == 2:
+                    selected = 2
+        if selected == 2:
+            return 2
         return 1
 
     @cython.cdivision(True)
@@ -2836,6 +2810,23 @@ cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
                         left_edge, right_edge) == 1:
                     return 1
         return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_bbox_edge(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3]) nogil:
+        cdef int selected = 0
+        cdef int ret
+        with gil:
+            for i in range(self.n_obj):
+                ret = (<SelectorObject>self.selectors[i]).select_bbox_edge(
+                    left_edge, right_edge)
+                if ret == 2:
+                    return 2
+                elif ret == 1:
+                    selected = 1
+        return selected
 
     @cython.cdivision(True)
     @cython.boundscheck(False)

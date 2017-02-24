@@ -309,8 +309,6 @@ class YTDataContainer(object):
         del self.field_data[key]
 
     def _generate_field(self, field):
-        # if field == ('deposit', 'PartType0_smoothed_density'):
-        #     import pdb; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
@@ -326,7 +324,6 @@ class YTDataContainer(object):
 
     def _generate_fluid_field(self, field):
         # First we check the validator
-        # import pdb ; pdb.set_trace()
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
         if self._current_chunk is None or \
@@ -338,13 +335,12 @@ class YTDataContainer(object):
         try:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
-            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones,
-                ngt_exception.ghost_particles)
+            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
         else:
             rv = finfo(gen_obj)
         return rv
 
-    def _generate_spatial_fluid(self, field, ngz, ghost_particles = False):
+    def _generate_spatial_fluid(self, field, ngz):
         finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
@@ -363,8 +359,7 @@ class YTDataContainer(object):
             deps = self._determine_fields(deps)
             for io_chunk in self.chunks([], "io", cache = False):
                 for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
-                                                    preload_fields = deps,
-                                                    ghost_particles = ghost_particles)):
+                                                    preload_fields = deps)):
                     o = self._current_chunk.objs[0]
                     if accumulate:
                         rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
@@ -374,8 +369,7 @@ class YTDataContainer(object):
                     with o._activate_cache():
                         ind += o.select(self.selector, o[field], rv, ind)
         else:
-            chunks = self.index._chunk(self, "spatial", ngz = ngz,
-                                       ghost_particles = ghost_particles)
+            chunks = self.index._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
