@@ -18,6 +18,7 @@ import re
 from distutils.version import LooseVersion
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut
+from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.extern import six
 from sympy import \
     sympify, \
@@ -52,6 +53,17 @@ class UnitRegistry:
 
     def __contains__(self, item):
         return item in self.lut
+
+    _unit_system_id = None
+    @property
+    def unit_system_id(self):
+        if self._unit_system_id is None:
+            hash_data = bytearray()
+            for k, v in self.lut.items():
+                hash_data.extend(k.encode('ascii'))
+                hash_data.extend(repr(v).encode('ascii'))
+            self._unit_system_id = "code_unit_system_%d" % (-fnv_hash(hash_data))
+        return self._unit_system_id
 
     def add(self, symbol, base_value, dimensions, tex_repr=None, offset=None):
         """
