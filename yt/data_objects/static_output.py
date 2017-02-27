@@ -31,7 +31,8 @@ from yt.fields.derived_field import \
 from yt.funcs import \
     mylog, \
     set_intersection, \
-    ensure_list
+    ensure_list, \
+    iterable
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.exceptions import \
@@ -1455,10 +1456,7 @@ class ParticleDataset(Dataset):
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
-                 n_ref=64, over_refine_factor=1,
                  index_order=None, index_filename=None):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
         if index_order is None:
             self.index_order = (7, 5)
         elif not iterable(index_order):

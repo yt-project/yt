@@ -17,8 +17,6 @@ from __future__ import print_function
 
 from yt.data_objects.static_output import \
     ParticleDataset
-from yt.funcs import \
-    iterable
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
