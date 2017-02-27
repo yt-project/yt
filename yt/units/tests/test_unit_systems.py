@@ -69,11 +69,7 @@ def test_fields_diff_systems_sloshing():
         ds = load(gslr, unit_system=us)
         dd = ds.sphere("c", (15.,"kpc"))
         for field in test_fields:
-            if us == "code":
-                # For this dataset code units are cgs
-                v1 = dd_cgs[field]
-            else:
-                v1 = dd_cgs[field].in_base(us)
+            v1 = dd_cgs[field].in_base(us)
             v2 = dd[field]
             assert_almost_equal(v1.v, v2.v)
             assert str(v2.units) == test_units[us][field]
@@ -88,7 +84,7 @@ def test_fields_diff_systems_etc():
 
     for us in test_units:
         ds = load(etc, unit_system=us)
-        dd = ds.sphere("max", (500.,"kpc"))
+        dd = ds.sphere("max", (500., "kpc"))
         for field in test_fields:
             if us == "code":
                 v1 = dd_cgs[field].in_units(test_units["code"][field])
