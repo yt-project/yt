@@ -133,7 +133,7 @@ cdef class OctreeContainer:
         obj.nocts = cur.n_assigned
         if obj.nocts * visitor.nz != ref_mask.size:
             raise KeyError(ref_mask.size, obj.nocts, obj.oref,
-                obj.partial_coverage)
+                obj.partial_coverage, visitor.nz)
         return obj
 
     def __dealloc__(self):

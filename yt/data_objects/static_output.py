@@ -1455,9 +1455,22 @@ class ParticleDataset(Dataset):
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
-                 n_ref=64, over_refine_factor=1):
+                 n_ref=64, over_refine_factor=1,
+                 index_order=None, index_filename=None):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        if index_order is None:
+            self.index_order = (7, 5)
+        elif not iterable(index_order):
+            self.index_order = (int(index_order), 1)
+        else:
+            if len(index_order) != 2:
+                raise RuntimeError(
+                    'Tried to load a dataset with index_order={}, but '
+                    'index_order\nmust be an integer or a two-element tuple of '
+                    'integers.'.format(index_order))
+            self.index_order = tuple([int(o) for o in index_order])
+        self.index_filename=index_filename
         super(ParticleDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system)

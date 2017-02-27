@@ -330,6 +330,15 @@ cdef class FileBitmasks:
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         return ewah_refn[0].get(i)
 
+    def count_coarse(self, ifile):
+        return self._count_coarse(ifile)
+
+    def count_total(self, ifile):
+        return self._count_total(ifile)
+    
+    def count_refined(self, ifile):
+        return self._count_refined(ifile)
+
     cdef int _count_coarse(self, np.uint32_t ifile):
         return self._count_total(ifile) - self._count_refined(ifile)
 

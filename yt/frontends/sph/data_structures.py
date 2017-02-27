@@ -31,21 +31,10 @@ class SPHDataset(ParticleDataset):
             self.kernel_name = self.default_kernel_name
         else:
             self.kernel_name = kernel_name
-        if index_order is None:
-            self.index_order = (7, 5)
-        elif not iterable(index_order):
-            self.index_order = (int(index_order), 1)
-        else:
-            if len(index_order) != 2:
-                raise RuntimeError(
-                    'Tried to load a dataset with index_order={}, but '
-                    'index_order\nmust be an integer or a two-element tuple of '
-                    'integers.'.format(index_order))
-            self.index_order = tuple([int(o) for o in index_order])
-        self.index_filename=index_filename
         super(SPHDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
-            units_override=units_override, unit_system=unit_system)
+            units_override=units_override, unit_system=unit_system,
+            index_order=index_order, index_filename=index_filename)
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,

@@ -23,7 +23,7 @@ from .fields import \
     RockstarFieldInfo
 
 from yt.data_objects.static_output import \
-    Dataset, \
+    ParticleDataset, \
     ParticleFile
 from yt.funcs import \
     setdefaultattr
@@ -45,17 +45,16 @@ class RockstarBinaryFile(ParticleFile):
 
         super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id)
 
-class RockstarDataset(Dataset):
+class RockstarDataset(ParticleDataset):
     _index_class = ParticleIndex
     _file_class = RockstarBinaryFile
     _field_info_class = RockstarFieldInfo
     _suffix = ".bin"
 
     def __init__(self, filename, dataset_type="rockstar_binary",
+                 units_override=None, unit_system="cgs",
                  n_ref = 16, over_refine_factor = 1,
-                 units_override=None, unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+                 index_order=None, index_filename=None):
         super(RockstarDataset, self).__init__(filename, dataset_type,
                                               units_override=units_override,
                                               unit_system=unit_system)

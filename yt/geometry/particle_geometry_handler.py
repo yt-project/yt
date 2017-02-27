@@ -84,7 +84,8 @@ class ParticleIndex(Index):
                 try:
                     df = cls(self.dataset, self.io, template % {'num':i}, fi,
                             (start, end))
-                except:
+                except Exception as e:
+                    only_on_root(mylog.info, "Error chunking file: %s", str(e))
                     df = cls(self.dataset, self.io, template % {'num':i}, fi)
                     self.data_files.append(df)
                     break

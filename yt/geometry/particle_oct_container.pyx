@@ -1022,6 +1022,18 @@ cdef class ParticleBitmap:
         for ifile in range(self.nfiles):
             self.bitmasks.print_info(ifile, "File: %03d" % ifile)
 
+    def count_coarse(self, ifile):
+        r"""Get the number of coarse cells set for a file."""
+        return self.bitmasks.count_coarse(ifile)
+
+    def count_refined(self, ifile):
+        r"""Get the number of cells refined for a file."""
+        return self.bitmasks.count_refined(ifile)
+    
+    def count_total(self, ifile):
+        r"""Get the total number of cells set for a file."""
+        return self.bitmasks.count_total(ifile)
+
     def check(self):
         cdef np.uint64_t mi1
         cdef ewah_bool_array arr_totref, arr_tottwo
