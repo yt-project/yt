@@ -53,7 +53,6 @@ class RockstarDataset(ParticleDataset):
 
     def __init__(self, filename, dataset_type="rockstar_binary",
                  units_override=None, unit_system="cgs",
-                 n_ref = 16, over_refine_factor = 1,
                  index_order=None, index_filename=None):
         super(RockstarDataset, self).__init__(filename, dataset_type,
                                               units_override=units_override,
