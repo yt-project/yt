@@ -19,6 +19,7 @@ cimport numpy as np
 cimport cython
 from cython cimport floating
 from libc.stdlib cimport malloc, free
+from yt.utilities.lib.fnv_hash cimport _fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
@@ -44,16 +45,6 @@ cdef extern from "math.h":
 # define here to avoid the gil later
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
-
-cdef np.int64_t fnv_hash(unsigned char[:] octets):
-    # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
-    # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
-    cdef np.int64_t hash_val = 2166136261
-    cdef char octet
-    for octet in octets:
-        hash_val = hash_val ^ octet
-        hash_val = hash_val * 16777619
-    return hash_val
 
 # These routines are separated into a couple different categories:
 #
