@@ -269,7 +269,7 @@ def test_bitmap_select():
     np.random.seed(int(0x4d3d3d3))
     dx = 0.1
     for periodic in [False, True]:
-        for nfiles in [2, 31, 127, 128, 129]:
+        for nfiles in [2, 15, 31, 32, 33]:
             # Now we create particles 
             # Note: we set order1 to log2(nfiles) here for testing purposes to 
             # ensure no collisions
