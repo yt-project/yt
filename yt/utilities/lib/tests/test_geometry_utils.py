@@ -83,7 +83,6 @@ def test_bitwise_addition():
         i = np.uint64(i)
         a = np.int64(a)
         out = bitwise_addition(i,a,stride=1,start=0)
-        # print bin(i),bin(a),bin(np.uint64(i+a)),bin(out)
         assert_equal(out,i+a)
 
 #def test_add_to_morton_coord():
@@ -141,43 +140,6 @@ def test_compare_morton():
     assert_equal(compare_morton(p,p),0)
 
 
-# def test_morton_qsort(seed=1,recursive=False,use_loop=False):
-#     from yt.utilities.lib.geometry_utils import morton_qsort,get_morton_points
-#     np.random.seed(seed)
-#     N = 100
-#     mi = np.hstack((np.arange(N,dtype=np.uint64),#+600000,
-#                     np.array([646904,780276],dtype=np.uint64)))
-#     N = len(mi)
-#     pos = get_morton_points(mi).astype(np.float64)
-#     sort_out = np.arange(N,dtype=np.uint64)
-#     sort_shf = np.arange(N,dtype=np.uint64)
-#     np.random.shuffle(sort_shf)
-#     sort_ans = np.argsort(sort_shf)
-#     morton_qsort(pos[sort_shf,:],0,N-1,sort_out,
-#                  recursive=recursive,use_loop=use_loop)
-#     if True:
-#         from yt.utilities.lib.geometry_utils import compare_morton,xor_msb_cy,msdb_cy,ifrexp_cy
-#         count = 0
-#         for ind1 in range(N):
-#             if sort_out[ind1]!=sort_ans[ind1]:
-#                 for ind2 in range(ind1+1,N):
-#                     i1 = sort_ans[ind1]
-#                     i2 = sort_ans[ind2]
-#                     p1 = pos[sort_shf[i1],:]
-#                     p2 = pos[sort_shf[i2],:]
-#                     if not compare_morton(p1,p2):
-#                         count+=1
-#                         print compare_morton(p1,p2),compare_morton(p2,p1)
-#                         print 'Found {}'.format(count)
-#                         print '    ',i1, mi[sort_shf[i1]], p1
-#                         print '    ',i2, mi[sort_shf[i2]], p2
-#                         for j in range(3):
-#                             im1,ie1 = ifrexp_cy(p1[j])
-#                             im2,ie2 = ifrexp_cy(p2[j])
-#                             print '    ',j,xor_msb_cy(p1[j],p2[j]),[ie1,ie2],[im1,im2],msdb_cy(im1,im2)
-#     assert_array_equal(sort_out,sort_ans)
-
-
 def test_get_morton_neighbors_coarse():
     from yt.utilities.lib.geometry_utils import get_morton_neighbors_coarse
     imax = 5
@@ -192,7 +154,7 @@ def test_get_morton_neighbors_coarse():
              (448,1):np.array([192, 64,0,9, 82,18,27, 128,137, 228, 100,36,45, 
                                118,54,63, 164,173, 320, 256,265, 338, 274,283, 384, 393], dtype='uint64'),
              (448,0):np.array([228, 118,63, 173, 338, 283, 393], dtype='uint64')}
-    for (mi1, periodic), ans in tests.iteritems():
+    for (mi1, periodic), ans in tests.items():
         n1 = get_morton_neighbors_coarse(mi1, imax, periodic, ngz)
         assert_equal(np.sort(n1),np.sort(ans))
 
@@ -214,7 +176,7 @@ def test_get_morton_neighbors_refined():
                           np.array([192, 64,0, 9,  82, 18, 27, 128,137, 228, 100, 36, 45, 118, 54, 63, 164,173, 320, 256,265, 338, 274,283, 384, 393], dtype='uint64')),
              (448,448,0):(np.array([448, 448,448, 448, 448, 448, 448], dtype='uint64'),
                           np.array([228, 118, 63, 173, 338, 283, 393], dtype='uint64'))}
-    for (mi1, mi2, periodic), (ans1, ans2) in tests.iteritems():
+    for (mi1, mi2, periodic), (ans1, ans2) in tests.items():
         n1, n2 = get_morton_neighbors_refined(mi1, mi2, imax1, imax2, periodic, ngz)
         assert_equal(np.sort(n1),np.sort(ans1))
         assert_equal(np.sort(n2),np.sort(ans2))
@@ -382,75 +344,6 @@ def test_get_morton_neighbors():
         ans = get_morton_indices(np.vstack([p[i,:],pn_per[i]]))
         assert_array_equal(np.unique(out),np.unique(ans),err_msg="Periodic: {}".format(i))
 
-
-def time_get_morton_neighbors():
-    import time
-    from yt.utilities.lib.geometry_utils import get_morton_neighbors
-    # 0.001464
-    N = 100
-    order = 20
-    imax = np.uint64(1 << order)
-    x = np.arange(N,dtype=np.uint64)+np.uint64(imax-N/2)
-    # Non-periodic
-    t1 = time.time()
-    get_morton_neighbors(x,order=order,periodic=False)
-    t2 = time.time()
-    tnon = t2-t1
-    # Periodic
-    t1 = time.time()
-    get_morton_neighbors(x,order=order,periodic=True)
-    t2 = time.time()
-    tper = t2-t1
-    print("get_morton_neighbors: {:f} non-perodic, {:f} periodic".format(tnon,tper))
-
-
-def time_bitwise_addition():
-    import time
-    from yt.utilities.lib.geometry_utils import get_morton_points, get_morton_indices, bitwise_addition
-    xarr = np.array(range(100)+[np.uint64(0b11111111111111111111)],dtype=np.uint64)
-    # Explicit spreading and compacting
-    t1 = time.time()
-    for x in xarr:
-        p = get_morton_points(np.array([x],dtype=np.uint64))
-        p[0]+=1
-        p[0]+=2
-        get_morton_indices(p)
-    t2 = time.time()
-    print("Explicit bit spreading/compacting: {:f}".format(t2-t1))
-    # Bitwise addition
-    t1 = time.time()
-    for x in xarr:
-        bitwise_addition(x,np.int64(1),stride=3,start=2)
-        bitwise_addition(x,np.int64(2),stride=3,start=2)
-    t2 = time.time()
-    print("Using bitwise addition: {:f}".format(t2-t1))
-
-
-def time_morton_qsort(seed=1):
-    # Not the most effecient test, but not meant to be run much
-    import time
-    # Recursive, no loop
-    t1 = time.time()
-    test_morton_qsort(recursive=True,use_loop=False)
-    t2 = time.time()
-    print("Recursive, no loop: {:f}".format(t2-t1))
-    # Recursive, loop
-    t1 = time.time()
-    test_morton_qsort(recursive=True,use_loop=True)
-    t2 = time.time()
-    print("Recursive, loop:    {:f}".format(t2-t1))
-    # Iterative, no loop
-    t1 = time.time()
-    test_morton_qsort(recursive=False,use_loop=False)
-    t2 = time.time()
-    print("Iterative, no loop: {:f}".format(t2-t1))
-    # Iterative, loop
-    t1 = time.time()
-    test_morton_qsort(recursive=False,use_loop=True)
-    t2 = time.time()
-    print("Iterative, loop:    {:f}".format(t2-t1))
-
-
 def test_dist():
     from yt.utilities.lib.geometry_utils import dist
     p = np.array([0.0,0.0,0.0],dtype=np.float64)
@@ -482,74 +375,6 @@ def test_knn_direct(seed=1):
     assert_array_equal(sort_out,sort_ans)
 
 # TODO: test of quadtree (.pxd)
-
-def gen_points_grid(n_per_dim,ndim):
-    q = np.arange(n_per_dim,dtype=np.float64)+0.5 # Middle of each cell
-    out = np.meshgrid(*tuple(ndim*[q]))
-    pos = np.vstack(tuple([iout.flatten() for iout in out])).T
-    DLE = np.array(ndim*[0.0],dtype=np.float64)
-    DRE = np.array(ndim*[n_per_dim],dtype=np.float64)
-    pos = pos.astype(np.float64)
-    # ind = np.arange(pos.shape[0])
-    # np.random.shuffle(ind)
-    # pos = pos[ind,:]
-    return pos,DLE,DRE
-
-
-def gen_points_random(n_per_dim,ndim,seed=1):
-    np.random.seed(seed)
-    pos = np.random.random_sample((n_per_dim**ndim,ndim)).astype(np.float64)
-    DLE = np.array(ndim*[0.0],dtype=np.float64)
-    DRE = np.array(ndim*[1.0],dtype=np.float64)
-    pos = pos.astype(np.float64)
-    return pos,DLE,DRE
-
-
-def gen_points(n_per_dim,ndim,seed=1,grid=False):
-    if grid:
-        return gen_points_grid(n_per_dim,ndim)
-    else:
-        return gen_points_random(n_per_dim,ndim,seed=seed)
-
-# def test_knn_morton():
-#     from yt.utilities.lib.geometry_utils import knn_direct,knn_morton,morton_qsort,dist
-#     Np_d = 10 # 100
-#     Nd = 3
-#     Np = Np_d**Nd
-#     idx_test = np.uint64(Np/2)
-#     k = 6 # 27
-#     idx_notest = np.hstack([np.arange(idx_test),np.arange((idx_test+1),Np)]).astype(np.uint64)
-#     # Random points
-#     pos,DLE,DRE = gen_points_random(Np_d,Nd)
-#     sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
-#     morton_qsort(pos,0,pos.shape[0]-1,sort_fwd)
-#     sort_rev = np.argsort(sort_fwd).astype(np.uint64)
-#     knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
-#     knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
-#     if False:
-#         print pos[idx_test,:]
-#         id1 = 14252
-#         id2 = 14502
-#         print id1,pos[sort_fwd[id1],:],dist(pos[idx_test,:],pos[sort_fwd[id1],:])
-#         print id2,pos[sort_fwd[id2],:],dist(pos[idx_test,:],pos[sort_fwd[id2],:])
-#     assert_array_equal(knn_mor,knn_dir,
-#                        err_msg="{} random points & k = {}".format(Np,k))
-#     # Grid points
-#     pos,DLE,DRE = gen_points_grid(Np_d,Nd)
-#     sort_fwd = np.arange(pos.shape[0],dtype=np.uint64)
-#     morton_qsort(pos,0,pos.shape[0]-1,sort_fwd)
-#     sort_rev = np.argsort(sort_fwd).astype(np.uint64)
-#     knn_dir = sorted(knn_direct(pos[sort_fwd,:],k,sort_rev[idx_test],sort_rev[idx_notest]))
-#     knn_mor = sorted(knn_morton(pos[sort_fwd,:],k,sort_rev[idx_test],DLE=DLE,DRE=DRE,issorted=True))
-#     if False:
-#         print pos[idx_test,:]
-#         id1 = 14252
-#         id2 = 14502
-#         print id1,pos[sort_fwd[id1],:],dist(pos[idx_test,:],pos[sort_fwd[id1],:])
-#         print id2,pos[sort_fwd[id2],:],dist(pos[idx_test,:],pos[sort_fwd[id2],:])
-#     assert_array_equal(knn_mor,knn_dir,
-#                        err_msg="grid of {} points & k = {}".format(Np,k))
-
 
 def test_obtain_rvec():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, 
