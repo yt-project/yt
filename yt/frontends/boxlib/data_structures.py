@@ -1389,7 +1389,7 @@ class AMReXParticleHeader(object):
                 self.int_component_names.append(f.readline().strip())
             self.num_int = self.num_int_base + self.num_int_extra
             self.num_real = self.num_real_base + self.num_real_extra
-            self.is_checkpoint = bool(f.readline().strip())
+            self.is_checkpoint = bool(int(f.readline().strip()))
             self.num_particles = int(f.readline().strip())
             self.max_next_id = int(f.readline().strip())
             self.finest_level = int(f.readline().strip())
