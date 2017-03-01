@@ -497,7 +497,7 @@ class OpenPMDDataset(Dataset):
         """
         try:
             f = h5.File(args[0], "r")
-        except (IOError, OSError):
+        except (IOError, OSError, ImportError):
             return False
 
         requirements = ["openPMD", "basePath", "meshesPath", "particlesPath"]

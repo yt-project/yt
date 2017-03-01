@@ -439,7 +439,7 @@ class FLASHDataset(Dataset):
             fileh = HDF5FileHandler(args[0])
             if "bounding box" in fileh["/"].keys():
                 return True
-        except:
+        except (IOError, OSError, ImportError):
             pass
         return False
 
@@ -494,7 +494,7 @@ class FLASHParticleDataset(FLASHDataset):
             if "bounding box" not in fileh["/"].keys() \
                 and "localnp" in fileh["/"].keys():
                 return True
-        except IOError:
+        except (IOError, OSError, ImportError):
             pass
         return False
 
