@@ -90,6 +90,7 @@ class ParticleIndex(Index):
                 end += CHUNKSIZE
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
+
         # Get index & populate octree
         self._initialize_index()
 

@@ -386,7 +386,17 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 pp.shape = (count, 3)
                 yield ptype, pp
 
-    def _yield_field(self, data_file, field, ptypes=None):
+    def _get_smoothing_length(self, data_file, position_dtype):
+        ret = self._get_field(data_file, 'SmoothingLength', 'Gas')
+        if position_dtype is not None and ret.dtype != position_dtype:
+            # Sometimes positions are stored in double precision
+            # but smoothing lengths are stored in single precision.
+            # In these cases upcast smoothing length to double precision
+            # to avoid ValueErrors when we pass these arrays to Cython.
+            ret = ret.astype(position_dtype)
+        return ret
+
+    def _get_field(self, data_file, field, ptype):
         poff = data_file.field_offsets
         tp = data_file.total_particles
         with open(data_file.filename, "rb") as f:

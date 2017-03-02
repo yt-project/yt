@@ -77,8 +77,19 @@ class GadgetBinaryFile(ParticleFile):
             field_list, self.total_particles,
             self._position_offset, self._file_size)
 
+class GadgetBinaryIndex(ParticleIndex):
+
+    def _initialize_index(self):
+        # Normally this function is called during field detection. We call it
+        # here because we need to know which fields exist on-disk so that we can
+        # read in the smoothing lengths for SPH data before we construct the
+        # Morton bitmaps.
+        self._detect_output_fields()
+        super(GadgetBinaryIndex, self)._initialize_index()
+
+
 class GadgetDataset(SPHDataset):
-    _index_class = ParticleIndex
+    _index_class = GadgetBinaryIndex
     _file_class = GadgetBinaryFile
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Mass"
@@ -363,6 +374,7 @@ class GadgetDataset(SPHDataset):
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
+    _index_class = ParticleIndex
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _sph_ptype = 'PartType0'
