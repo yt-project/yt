@@ -439,8 +439,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             self.domain_left_edge = np.zeros(3, "float64")
             self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
 
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
 
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
