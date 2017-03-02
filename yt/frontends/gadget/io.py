@@ -96,7 +96,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _yield_smoothing_length(self, data_file, position_dtype=None):
+    def _get_smoothing_length(self, data_file, position_dtype=None):
         ptype = self.ds._sph_ptype
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
