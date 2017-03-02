@@ -37,14 +37,15 @@ class netCDF4_imports(object):
     def Dataset(self):
         if self._Dataset is None:
             try:
-                from netCDF4.Dataset import Dataset
-                self.log
+                from netCDF4 import Dataset
             except ImportError:
                 Dataset = NotAModule(self._name)
             self._Dataset = Dataset
         return self._Dataset
 
+
 _netCDF4 = netCDF4_imports()
+
 
 class astropy_imports(object):
     _name = "astropy"
