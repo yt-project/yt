@@ -81,14 +81,7 @@ class ParticleIndex(Index):
             start = 0
             end = start + CHUNKSIZE
             while 1:
-                try:
-                    df = cls(self.dataset, self.io, template % {'num':i}, fi,
-                            (start, end))
-                except Exception as e:
-                    only_on_root(mylog.info, "Error chunking file: %s", str(e))
-                    df = cls(self.dataset, self.io, template % {'num':i}, fi)
-                    self.data_files.append(df)
-                    break
+                df = cls(self.dataset, self.io, template % {'num':i}, fi, (start, end))
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1

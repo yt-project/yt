@@ -60,7 +60,7 @@ def _get_gadget_format(filename):
         raise RuntimeError("Incorrect Gadget format %s!" % str(rhead))
 
 class GadgetBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range=None):
         with open(filename, "rb") as f:
             if _get_gadget_format(filename) == 2:
                 f.seek(f.tell()+16)
@@ -70,7 +70,7 @@ class GadgetBinaryFile(ParticleFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id)
+        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id, range)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_field_offsets(

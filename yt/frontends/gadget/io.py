@@ -377,14 +377,14 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return np.asarray(arr, dtype="float64")
 
     def _yield_coordinates(self, data_file):
-        count = sum(data_file.total_particles.values())
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
-            # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype = 'float32', count = count*3)
-            pp.shape = (count, 3)
-        yield pp
+            for ptype, count in data_file.total_particles.items():
+                # The first total_particles * 3 values are positions
+                pp = np.fromfile(f, dtype = 'float32', count = count*3)
+                pp.shape = (count, 3)
+            yield ptype, pp
 
     def _yield_field(self, data_file, field, ptypes=None):
         poff = data_file.field_offsets
@@ -412,8 +412,11 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
 
 
     def _count_particles(self, data_file):
-        npart = dict((self._ptypes[i], v)
-            for i, v in enumerate(data_file.header["Npart"]))
+        si, ei = data_file.start, data_file.end
+        pcount = np.array(data_file.header["Npart"])
+        if None not in (si, ei):
+            np.clip(pcount - si, 0, ei - si, out=pcount)
+        npart = dict((self._ptypes[i], v) for i, v in enumerate(pcount))
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints
