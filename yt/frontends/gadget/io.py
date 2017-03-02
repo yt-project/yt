@@ -384,32 +384,16 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 # The first total_particles * 3 values are positions
                 pp = np.fromfile(f, dtype = 'float32', count = count*3)
                 pp.shape = (count, 3)
-            yield ptype, pp
+                yield ptype, pp
 
     def _yield_field(self, data_file, field, ptypes=None):
         poff = data_file.field_offsets
         tp = data_file.total_particles
-        if ptypes is None:
-            ptype = None
-            for t in self._ptypes:
-                if tp[t] > 0:
-                    ptype = t
-                    break
-            with open(data_file.filename, "rb") as f:
-                f.seek(poff[ptype, field], os.SEEK_SET)
-                pp = self._read_field_from_file(f,
-                                                sum(data_file.total_particles.values()),
-                                                field)
-            yield pp
-        else:
-            with open(data_file.filename, "rb") as f:
-                for ptype in ptypes:
-                    f.seek(poff[ptype, field], os.SEEK_SET)
-                    pp = self._read_field_from_file(f,
-                                                    tp[ptype], 
-                                                    field)
-                    yield ptype, pp
-
+        with open(data_file.filename, "rb") as f:
+            f.seek(poff[ptype, field], os.SEEK_SET)
+            pp = self._read_field_from_file(
+                f, tp[ptype], field)
+        return pp
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
