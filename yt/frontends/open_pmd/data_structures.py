@@ -31,7 +31,8 @@ from yt.frontends.open_pmd.misc import \
     get_component
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import HDF5FileHandler
+from yt.utilities.file_handler import HDF5FileHandler, \
+    warn_h5py
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 
@@ -495,6 +496,7 @@ class OpenPMDDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         """Checks whether the supplied file can be read by this frontend.
         """
+        warn_h5py(args[0])
         try:
             f = h5.File(args[0], "r")
         except (IOError, OSError, ImportError):

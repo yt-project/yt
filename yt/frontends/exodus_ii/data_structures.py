@@ -23,8 +23,9 @@ from yt.data_objects.unstructured_mesh import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.unions import MeshUnion
-from .io import \
-    NetCDF4FileHandler
+from yt.utilities.file_handler import \
+    NetCDF4FileHandler, \
+    warn_netcdf
 from yt.utilities.logger import ytLogger as mylog
 from .fields import \
     ExodusIIFieldInfo
@@ -378,6 +379,7 @@ class ExodusIIDataset(Dataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        warn_netcdf(args[0])
         try:
             from netCDF4 import Dataset
             filename = args[0]

@@ -14,6 +14,24 @@ A wrapper class for h5py file objects.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import NotAModule
+
+def valid_hdf5_signature(fn):
+    signature = b'\x89HDF\r\n\x1a\n'
+    try:
+        with open(fn, 'rb') as f:
+            header = f.read(8)
+            return header == signature
+    except:
+        return False
+
+
+def warn_h5py(fn):
+    needs_h5py = valid_hdf5_signature(fn)
+    if needs_h5py and isinstance(h5py.File, NotAModule):
+        raise RuntimeError("This appears to be an HDF5 file, "
+                           "but h5py is not installed.")
+
 
 class HDF5FileHandler(object):
     handle = None
@@ -66,6 +84,29 @@ class FITSFileHandler(HDF5FileHandler):
 
     def close(self):
         self.handle.close()
+
+
+def valid_netcdf_classic_signature(filename):
+    signature_v1 = b'CDF\x01'
+    signature_v2 = b'CDF\x02'
+    try:
+        with open(filename, 'rb') as f:
+            header = f.read(4)
+            return (header == signature_v1 or header == signature_v2)
+    except:
+        return False
+
+
+def warn_netcdf(fn):
+    needs_netcdf = valid_netcdf_classic_signature(fn)
+    if needs_netcdf:
+        try: 
+            from netCDF4 import Dataset
+        except ImportError:
+            raise RuntimeError("This appears to be a netCDF file, "
+                               "but the python bindings for netCDF4 "
+                               "are not installed.")
+
 
 class NetCDF4FileHandler(object):
     def __init__(self, filename):

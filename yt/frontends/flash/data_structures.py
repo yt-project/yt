@@ -30,7 +30,8 @@ from yt.geometry.grid_geometry_handler import \
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.file_handler import \
-    HDF5FileHandler
+    HDF5FileHandler, \
+    warn_h5py
 from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import FLASHFieldInfo
 
@@ -489,6 +490,7 @@ class FLASHParticleDataset(FLASHDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        warn_h5py(args[0])
         try:
             fileh = HDF5FileHandler(args[0])
             if "bounding box" not in fileh["/"].keys() \
