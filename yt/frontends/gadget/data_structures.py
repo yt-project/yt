@@ -189,9 +189,10 @@ class GadgetDataset(SPHDataset):
         # Set standard values
 
         # We may have an overridden bounding box.
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+        if self.domain_left_edge is None and hvals['BoxSize'] != 0:
+                self.domain_left_edge = np.zeros(3, "float64")
+                self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+
         self.domain_dimensions = np.ones(3, "int32")
         self.periodicity = (True, True, True)
 
@@ -435,9 +436,10 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.omega_matter = self.parameters["Omega0"]
         self.hubble_constant = self.parameters["HubbleParam"]
 
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
+        if self.domain_left_edge is None and self.parameters['BoxSize'] != 0:
+                self.domain_left_edge = np.zeros(3, "float64")
+                self.domain_right_edge = \
+                    np.ones(3, "float64") * self.parameters["BoxSize"]
 
         self.domain_dimensions = np.ones(3, "int32")
 

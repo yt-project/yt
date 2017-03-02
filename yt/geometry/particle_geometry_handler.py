@@ -99,6 +99,28 @@ class ParticleIndex(Index):
         only_on_root(mylog.info, "Allocating for %0.3e particles",
                      self.total_particles, global_rootonly = True)
 
+        # if we have not yet set domain_left_edge and domain_right_edge then do
+        # an I/O pass over the particle coordinates to determine a bounding box
+        if self.ds.domain_left_edge is None:
+            min_ppos = np.empty(3, dtype='float64')
+            min_ppos[:] = np.nan
+            max_ppos = np.empty(3, dtype='float64')
+            max_ppos[:] = np.nan
+            only_on_root(
+                mylog.info,
+                'Bounding box cannot be inferred from metadata, reading '
+                'particle positions to infer bounding box')
+            for df in self.data_files:
+                for _, ppos in self.io._yield_coordinates(df):
+                    min_ppos = np.nanmin(np.vstack([min_ppos, ppos]), axis=0)
+                    max_ppos = np.nanmax(np.vstack([max_ppos, ppos]), axis=0)
+            only_on_root(
+                mylog.info,
+                'Load this dataset with bounding_box=[%s, %s] to avoid I/O '
+                'overhead from inferring bounding_box.' % (min_ppos, max_ppos))
+            self.ds.domain_left_edge = self.ds.arr(1.05*min_ppos, 'code_length')
+            self.ds.domain_right_edge = self.ds.arr(1.05*max_ppos, 'code_length')
+
         # use a trivial morton index for datasets containing a single data file
         if len(self.data_files) == 1:
             order1 = 1

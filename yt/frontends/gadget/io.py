@@ -381,6 +381,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             for ptype, count in data_file.total_particles.items():
+                if count == 0:
+                    continue
                 # The first total_particles * 3 values are positions
                 pp = np.fromfile(f, dtype = 'float32', count = count*3)
                 pp.shape = (count, 3)

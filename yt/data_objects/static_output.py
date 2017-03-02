@@ -333,7 +333,7 @@ class Dataset(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            if not isinstance(v, YTArray):
+            if not isinstance(v, YTArray) and v is not None:
                 v = self.arr(v, "code_length")
                 setattr(self, n, v)
 
