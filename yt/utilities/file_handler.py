@@ -14,6 +14,7 @@ A wrapper class for h5py file objects.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
 from yt.utilities.on_demand_imports import NotAModule
 
 def valid_hdf5_signature(fn):
@@ -99,13 +100,9 @@ def valid_netcdf_classic_signature(filename):
 
 def warn_netcdf(fn):
     needs_netcdf = valid_netcdf_classic_signature(fn)
-    if needs_netcdf:
-        try: 
-            from netCDF4 import Dataset
-        except ImportError:
-            raise RuntimeError("This appears to be a netCDF file, "
-                               "but the python bindings for netCDF4 "
-                               "are not installed.")
+    if needs_netcdf and isinstance(netCDF4.Dataset, NotAModule):
+        raise RuntimeError("This appears to be a netCDF file, but the "
+                           "python bindings for netCDF4 are not installed.")
 
 
 class NetCDF4FileHandler(object):

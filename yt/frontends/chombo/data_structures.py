@@ -13,7 +13,7 @@ Data structures for Chombo.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.on_demand_imports import _h5py as h5py, NotAModule
+from yt.utilities.on_demand_imports import _h5py as h5py
 import re
 import os
 import weakref

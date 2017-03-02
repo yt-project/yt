@@ -30,6 +30,22 @@ class NotAModule(object):
     def __call__(self, *args, **kwargs):
         raise self.error
 
+class netCDF4_imports(object):
+    _name = "netCDF4"
+    _Dataset = None
+    @property
+    def Dataset(self):
+        if self._Dataset is None:
+            try:
+                from netCDF4.Dataset import Dataset
+                self.log
+            except ImportError:
+                Dataset = NotAModule(self._name)
+            self._Dataset = Dataset
+        return self._Dataset
+
+_netCDF4 = netCDF4_imports()
+
 class astropy_imports(object):
     _name = "astropy"
     _pyfits = None
