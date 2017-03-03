@@ -1064,6 +1064,10 @@ def load_particles(data, length_unit = None, bbox=None,
         "particle_position_x", "particle_position_y", and "particle_position_z".
     length_unit : float
         Conversion factor from simulation length units to centimeters
+    bbox : array_like (xdim:zdim, LE:RE), optional
+        Size of computational domain in units of the length_unit
+    sim_time : float, optional
+        The simulation time in seconds
     mass_unit : float
         Conversion factor from simulation mass units to grams
     time_unit : float
@@ -1072,10 +1076,6 @@ def load_particles(data, length_unit = None, bbox=None,
         Conversion factor from simulation velocity units to cm/s
     magnetic_unit : float
         Conversion factor from simulation magnetic units to gauss
-    bbox : array_like (xdim:zdim, LE:RE), optional
-        Size of computational domain in units of the length_unit
-    sim_time : float, optional
-        The simulation time in seconds
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
