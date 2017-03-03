@@ -37,7 +37,8 @@ from yt.data_objects.profiles import \
     Profile3DFromDataset
 from yt.data_objects.static_output import \
     Dataset, \
-    ParticleFile
+    ParticleFile, \
+    validate_index_order
 from yt.extern.six import \
     string_types
 from yt.funcs import \
@@ -235,10 +236,10 @@ class YTDataContainerDataset(YTDataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 index_order=None, index_filename=None, units_override=None,
                  unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+        self.index_order = validate_index_order(index_order)
+        self.index_filename=index_filename
         super(YTDataContainerDataset, self).__init__(filename, dataset_type,
             units_override=units_override, unit_system=unit_system)
 
@@ -248,8 +249,7 @@ class YTDataContainerDataset(YTDataset):
         self.particle_types = self.particle_types_raw
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
 
     def _setup_gas_alias(self):
         "Alias the grid type to gas by making a particle union."

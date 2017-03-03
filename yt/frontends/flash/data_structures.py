@@ -21,11 +21,12 @@ import weakref
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
-    Dataset, ParticleFile
+    Dataset, \
+    ParticleFile, \
+    validate_index_order
 from yt.funcs import \
     mylog, \
-    setdefaultattr, \
-    iterable
+    setdefaultattr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -469,18 +470,7 @@ class FLASHParticleDataset(FLASHDataset):
                  index_order=None,
                  index_filename=None,
                  unit_system = "cgs"):
-
-        if index_order is None:
-            self.index_order = (7, 5)
-        elif not iterable(index_order):
-            self.index_order = (int(index_order), 1)
-        else:
-            if len(index_order) != 2:
-                raise RuntimeError(
-                    'Tried to load a dataset with index_order={}, but '
-                    'index_order\nmust be an integer or a two-element tuple of '
-                    'integers.'.format(index_order))
-            self.index_order = tuple([int(o) for o in index_order])
+        self.index_order = validate_index_order(index_order)
         self.index_filename=index_filename
 
         if self._handle is not None: return
