@@ -74,8 +74,15 @@ class ParticleIndex(Index):
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
-        self.data_files = [cls(self.dataset, self.io, template % {'num':i}, i)
-                           for i in range(ndoms)]
+        if ndoms > 1:
+            self.data_files = \
+              [cls(self.dataset, self.io, template % {'num':i}, i)
+               for i in range(ndoms)]
+        else:
+            self.data_files = \
+              [cls(self.dataset, self.io,
+                   self.dataset.parameter_filename, 0)]
+
         index_ptype = self.index_ptype
         if index_ptype == "all":
             self.total_particles = sum(
