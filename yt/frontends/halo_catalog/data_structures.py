@@ -49,19 +49,18 @@ class HaloCatalogDataset(SavedDataset):
                   "domain_left_edge", "domain_right_edge")
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 index_order=None, index_filename=None, units_override=None,
                  unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
+                                                 index_order=index_order,
+                                                 index_filename=index_filename,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
 
     def _parse_parameter_file(self):
         self.refine_by = 2
         self.dimensionality = 3
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(self.dimensionality, "int32") * nz
+        self.domain_dimensions = np.ones(self.dimensionality, "int32")
         self.periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
