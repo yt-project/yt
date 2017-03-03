@@ -1025,8 +1025,6 @@ class StreamParticlesDataset(StreamDataset):
     _dataset_type = "stream_particles"
     file_count = 1
     filename_template = "stream_file"
-    n_ref = 64
-    over_refine_factor = 1
 
     def __init__(self, stream_handler, storage_filename=None,
                  geometry='cartesian', unit_system='cgs'):
@@ -1044,8 +1042,7 @@ def load_particles(data, length_unit = None, bbox=None,
                    sim_time=0.0, mass_unit = None, time_unit = None,
                    velocity_unit=None, magnetic_unit=None,
                    periodicity=(True, True, True),
-                   n_ref = 64, over_refine_factor = 1, geometry = "cartesian",
-                   unit_system="cgs"):
+                   geometry = "cartesian", unit_system="cgs"):
     r"""Load a set of particles into yt as a
     :class:`~yt.frontends.stream.data_structures.StreamParticleHandler`.
 
@@ -1082,9 +1079,6 @@ def load_particles(data, length_unit = None, bbox=None,
     periodicity : tuple of booleans
         Determines whether the data will be treated as periodic along
         each axis
-    n_ref : int
-        The number of particles that result in refining an oct used for
-        indexing the particles.
 
     Examples
     --------
@@ -1098,7 +1092,7 @@ def load_particles(data, length_unit = None, bbox=None,
 
     """
 
-    domain_dimensions = np.ones(3, "int32") * (1 << over_refine_factor)
+    domain_dimensions = np.ones(3, "int32")
     nprocs = 1
     if bbox is None:
         bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]], 'float64')
@@ -1166,8 +1160,6 @@ def load_particles(data, length_unit = None, bbox=None,
     handler.cosmology_simulation = 0
 
     sds = StreamParticlesDataset(handler, geometry=geometry, unit_system=unit_system)
-    sds.n_ref = n_ref
-    sds.over_refine_factor = over_refine_factor
 
     return sds
 
