@@ -25,7 +25,7 @@ import weakref
 from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.static_output import \
-    Dataset, \
+    ParticleDataset, \
     ParticleFile
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
@@ -132,17 +132,14 @@ class GadgetFOFHDF5File(ParticleFile):
         self.total_offset = 0 # I think this is no longer needed
         super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
 
-class GadgetFOFDataset(Dataset):
+class GadgetFOFDataset(ParticleDataset):
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFFieldInfo
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
-                 n_ref=16, over_refine_factor=1, index_ptype="all",
+                 index_order=None, index_filename=None,
                  unit_base=None, units_override=None, unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        self.index_ptype = index_ptype
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
@@ -151,9 +148,10 @@ class GadgetFOFDataset(Dataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetFOFDataset. "+
                                "Use unit_base instead.")
-        super(GadgetFOFDataset, self).__init__(filename, dataset_type,
-                                               units_override=units_override,
-                                               unit_system=unit_system)
+        super(GadgetFOFDataset, self).__init__(
+            filename, dataset_type, units_override=units_override,
+            index_order=index_order, index_filename=index_filename,
+            unit_system=unit_system)
 
     def add_field(self, *args, **kwargs):
         super(GadgetFOFDataset, self).add_field(*args, **kwargs)
@@ -193,8 +191,7 @@ class GadgetFOFDataset(Dataset):
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * \
           self.parameters["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = self.parameters["Redshift"]
@@ -417,7 +414,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
         return data
 
-class GadgetFOFHaloDataset(Dataset):
+class GadgetFOFHaloDataset(ParticleDataset):
     _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFHaloFieldInfo
