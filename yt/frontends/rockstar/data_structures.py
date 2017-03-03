@@ -86,8 +86,7 @@ class RockstarDataset(ParticleDataset):
         self.domain_left_edge = np.array([0.0,0.0,0.0])
         self.domain_right_edge = np.array([hvals['box_size']] * 3)
 
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.parameters.update(hvals)
 
     def _set_code_unit_attributes(self):
