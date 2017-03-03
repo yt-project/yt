@@ -24,7 +24,8 @@ from yt.data_objects.static_output import \
     Dataset, ParticleFile
 from yt.funcs import \
     mylog, \
-    setdefaultattr
+    setdefaultattr, \
+    iterable
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -459,20 +460,34 @@ class FLASHParticleFile(ParticleFile):
 
 class FLASHParticleDataset(FLASHDataset):
     _index_class = ParticleIndex
-    over_refine_factor = 1
     filter_bbox = False
     _file_class = FLASHParticleFile
 
     def __init__(self, filename, dataset_type='flash_particle_hdf5',
                  storage_filename = None,
                  units_override = None,
-                 n_ref = 64, unit_system = "cgs"):
+                 index_order=None,
+                 index_filename=None,
+                 unit_system = "cgs"):
+
+        if index_order is None:
+            self.index_order = (7, 5)
+        elif not iterable(index_order):
+            self.index_order = (int(index_order), 1)
+        else:
+            if len(index_order) != 2:
+                raise RuntimeError(
+                    'Tried to load a dataset with index_order={}, but '
+                    'index_order\nmust be an integer or a two-element tuple of '
+                    'integers.'.format(index_order))
+            self.index_order = tuple([int(o) for o in index_order])
+        self.index_filename=index_filename
 
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)
-        self.n_ref = n_ref
         self.refine_by = 2
-        Dataset.__init__(self, filename, dataset_type, units_override=units_override,
+        Dataset.__init__(self, filename, dataset_type,
+                         units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
 
@@ -480,9 +495,8 @@ class FLASHParticleDataset(FLASHDataset):
         # Let the superclass do all the work but then
         # fix the domain dimensions
         super(FLASHParticleDataset, self)._parse_parameter_file()
-        nz = 1 << self.over_refine_factor
         domain_dimensions = np.zeros(3, "int32")
-        domain_dimensions[:self.dimensionality] = nz
+        domain_dimensions[:self.dimensionality] = 1
         self.domain_dimensions = domain_dimensions
         self.filename_template = self.parameter_filename
         self.file_count = 1
