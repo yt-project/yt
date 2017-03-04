@@ -431,17 +431,16 @@ class HTTPSDFRead(SDFRead):
 
     Parameters
     ----------
-    filename: string
-    The filename associated with the data to be loaded.
-    header: string, optional
-    If separate from the data file, a file containing the
-    header can be specified. Default: None.
+    filename : string
+        The filename associated with the data to be loaded.
+    header : string, optional
+        If separate from the data file, a file containing the
+        header can be specified. Default: None.
 
     Returns
     -------
     self : SDFRead object
-    Dict-like container of parameters and data.
-
+        Dict-like container of parameters and data.
 
     References
     ----------
@@ -1270,11 +1269,15 @@ class SDFIndex(object):
         Return list of data chunks for a cell on the given level
         plus a padding around the cell, for a list of fields.
 
-        Returns:
-            data: A list of dictionaries of data.
+        Returns
+        -------
+            data: list
+                A list of dictionaries of data.
 
-        chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
-                                             8.0, ['x','y','z','ident'])
+        Examples
+        --------
+        >>> chunks = midx.get_padded_bbox_data(6, np.array([128]*3),
+        ...                                    8.0, ['x','y','z','ident'])
 
         """
         _ensure_xyz_fields(fields)
