@@ -49,6 +49,7 @@ recipeclean:
 html:
 	sphinx-apidoc -o source/reference/api/ -e ../yt ../yt/extern/* \
 		$(shell find ../yt -name "*tests*" -type d) ../yt/utilities/voropp*
+	sed -e '/show-inheritance/ a\ \ \ \ :inherited-members:' -i source/reference/api/yt*.rst
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
 	@echo "Build finished. The HTML pages are in $(BUILDDIR)/html."
