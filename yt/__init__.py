@@ -72,7 +72,7 @@ categories goes here.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.3.4"
+__version__ = "3.3.5"
 
 # First module imports
 import numpy as np # For modern purposes
