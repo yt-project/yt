@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.abspath('../extensions/'))
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
               'sphinx.ext.pngmath', 'sphinx.ext.viewcode',
               'sphinx.ext.napoleon', 'yt_cookbook', 'yt_colormaps',
-              'config_help']
+              'config_help', 'yt_showfields']
 
 if not on_rtd:
     extensions.append('sphinx.ext.autosummary')
