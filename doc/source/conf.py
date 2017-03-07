@@ -228,13 +228,6 @@ latex_documents = [
 # If true, show URL addresses after external links.
 #latex_show_urls = False
 
-# Additional stuff for the LaTeX preamble.
-latex_elements = dict(preamble=r"""
-\renewcommand{\AA}{\text{\r{A}}} % Allow \AA in math mode
-\usepackage[utf8]{inputenc}      % Allow unicode symbols in text
-\DeclareUnicodeCharacter {212B} {\AA}                  % Angstrom
-""")
-
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []
 
