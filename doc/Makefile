@@ -47,9 +47,9 @@ recipeclean:
 
 html:
 ifneq ($(READTHEDOCS),True)
-	sphinx-apidoc -o source/reference/api/ -e ../yt ../yt/extern/* \
-		$(shell find ../yt -name "*tests*" -type d) ../yt/utilities/voropp*
-	perl -i -p -e 's/show-inheritance/inherited-members/g;' source/reference/api/yt*.rst
+	SPHINX_APIDOC_OPTIONS=members,undoc-members,inherited-members,show-inheritance sphinx-apidoc \
+        -o source/reference/api/ \
+        -e ../yt ../yt/extern/* $(shell find ../yt -name "*tests*" -type d) ../yt/utilities/voropp*
 endif
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo
