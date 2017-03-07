@@ -11,9 +11,9 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys, os, glob, re
-from sphinx.search import WordCollector
-from docutils.nodes import comment, title, Text, SkipNode
+import sys
+import os
+import glob
 
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
