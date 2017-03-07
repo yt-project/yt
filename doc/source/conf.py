@@ -30,7 +30,7 @@ sys.path.insert(0, os.path.abspath('../extensions/'))
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx',
-              'sphinx.ext.pngmath', 'sphinx.ext.viewcode',
+              'sphinx.ext.mathjax', 'sphinx.ext.viewcode',
               'sphinx.ext.napoleon', 'yt_cookbook', 'yt_colormaps',
               'config_help']
 
@@ -229,11 +229,11 @@ latex_documents = [
 #latex_show_urls = False
 
 # Additional stuff for the LaTeX preamble.
-latex_preamble = r"""
+latex_elements = dict(preamble=r"""
 \renewcommand{\AA}{\text{\r{A}}} % Allow \AA in math mode
 \usepackage[utf8]{inputenc}      % Allow unicode symbols in text
 \DeclareUnicodeCharacter {212B} {\AA}                  % Angstrom
-"""
+""")
 
 # Documents to append as an appendix to all manuals.
 #latex_appendices = []
