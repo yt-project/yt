@@ -11,6 +11,8 @@ def setup(app):
 class ShowFields(Directive):
     required_arguments = 0
     optional_arguments = 0
+    parallel_read_safe = True
+    parallel_write_safe = True
 
     def run(self):
         rst_file = self.state_machine.document.attributes['source']
