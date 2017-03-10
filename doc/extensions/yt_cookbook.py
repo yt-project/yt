@@ -23,7 +23,7 @@ def setup(app):
 
     return retdict
 
-data_patterns = ["*.h5", "*.out", "*.dat"]
+data_patterns = ["*.h5", "*.out", "*.dat", "*.mp4"]
 
 class CookbookScript(Directive):
     required_arguments = 1
