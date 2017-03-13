@@ -45,6 +45,25 @@ class ExodusIISimulation(DatasetSeries):
         self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["filename"])
 
+    def __iter__(self):
+        for o in self._pre_outputs:
+            fn, step = o
+            ds = load(fn, step=step)
+            self._setup_function(ds)
+            yield ds
+
+    def __getitem__(self, key):
+        if isinstance(key, slice):
+            if isinstance(key.start, float):
+                return self.get_range(key.start, key.stop)
+            # This will return a sliced up object!
+            return DatasetSeries(self._pre_outputs[key], self.parallel)
+        o = self._pre_outputs[key]
+        fn, step = o
+        o = load(fn, step=step)
+        self._setup_function(o)
+        return o
+
     def get_time_series(self, parallel=False, setup_function=None):
         r"""
         Instantiate a DatasetSeries object for a set of outputs.
@@ -55,15 +74,15 @@ class ExodusIISimulation(DatasetSeries):
         Fine-level filtering is currently not implemented.
         
         """
-        
+
         all_outputs = self.all_outputs
         ds_list = []
         for output in all_outputs:
             num_steps = output['num_steps']
             fn = output['filename']
             for step in range(num_steps):
-                ds = ExodusIIDataset(fn, step=step)
-                ds_list.append(ds)
+                # ds = ExodusIIDataset(fn, step=step)
+                ds_list.append((fn, step))
         super(ExodusIISimulation, self).__init__(ds_list, 
                                                  parallel=parallel, 
                                                  setup_function=setup_function)
