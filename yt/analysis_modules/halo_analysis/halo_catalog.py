@@ -478,10 +478,12 @@ class HaloCatalog(ParallelAnalysisInterface):
                         field_types=ftypes, extra_attrs=extra_attrs)
 
     def add_default_quantities(self, field_type='halos'):
-        self.add_quantity("particle_identifier", field_type=field_type,prepend=True)
-        self.add_quantity("particle_mass", field_type=field_type,prepend=True)
-        self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
-        self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
-        self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
-        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
-
+        for field in ["particle_identifier", "particle_mass",
+                      "particle_position_x", "particle_position_y",
+                      "particle_position_z", "virial_radius"]:
+            field_name = (field_type, field)
+            if field_name not in self.halos_ds.field_list:
+                mylog.warn("Halo dataset %s has no field %s." %
+                           (self.halos_ds, str(field_name)))
+                continue
+            self.add_quantity(field, field_type=field_type, prepend=True)
