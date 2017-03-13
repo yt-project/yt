@@ -122,10 +122,12 @@ cdef class ParticleDepositOperation:
         cdef np.int64_t gid = getattr(gobj, "id", -1)
         cdef np.float64_t dds[3]
         cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
         cdef int dims[3]
         for i in range(3):
             dds[i] = gobj.dds[i]
             left_edge[i] = gobj.LeftEdge[i]
+            right_edge[i] = gobj.RightEdge[i]
             dims[i] = gobj.ActiveDimensions[i]
         for i in range(positions.shape[0]):
             # Now we process
@@ -133,6 +135,12 @@ cdef class ParticleDepositOperation:
                 field_vals[j] = field_pointers[j,i]
             for j in range(3):
                 pos[j] = positions[i, j]
+            continue_loop = False
+            for j in range(3):
+                if pos[j] < left_edge[j] or pos[j] > right_edge[j]:
+                    continue_loop = True
+            if continue_loop:
+                continue
             self.process(dims, left_edge, dds, 0, pos, field_vals, gid)
             if self.update_values == 1:
                 for j in range(nf):
