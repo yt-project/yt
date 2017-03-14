@@ -14,6 +14,7 @@ A wrapper class for h5py file objects.
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _h5py as h5py
+from contextlib import contextmanager
 
 class HDF5FileHandler(object):
     handle = None
@@ -67,8 +68,13 @@ class FITSFileHandler(HDF5FileHandler):
     def close(self):
         self.handle.close()
 
-class NetCDF4FileHandler(object):
+class NetCDF4FileHandler():
     def __init__(self, filename):
+        self.filename = filename
+
+    @contextmanager
+    def open_ds(self):
         from netCDF4 import Dataset
-        ds = Dataset(filename)
-        self.dataset = ds
+        ds = Dataset(self.filename)
+        yield ds
+        ds.close()
