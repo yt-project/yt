@@ -26,7 +26,7 @@ class ExodusIISimulation(DatasetSeries):
 
     simulation_directory : str
         The directory that contain the simulation data.
-
+    
     Examples
     --------
     >>> import yt
@@ -36,7 +36,7 @@ class ExodusIISimulation(DatasetSeries):
     ...     print ds.current_time
 
     """
-
+    
     def __init__(self, simulation_directory, find_outputs=False):
         self.simulation_directory = simulation_directory
         fn_pattern = "%s/*" % self.simulation_directory
@@ -71,7 +71,7 @@ class ExodusIISimulation(DatasetSeries):
         created with all potential datasets created by the simulation.
 
         Fine-level filtering is currently not implemented.
-
+        
         """
 
         all_outputs = self.all_outputs
@@ -81,10 +81,10 @@ class ExodusIISimulation(DatasetSeries):
             fn = output['filename']
             for step in range(num_steps):
                 ds_list.append((fn, step))
-        super(ExodusIISimulation, self).__init__(ds_list,
-                                                 parallel=parallel,
+        super(ExodusIISimulation, self).__init__(ds_list, 
+                                                 parallel=parallel, 
                                                  setup_function=setup_function)
-
+        
     def _check_for_outputs(self, potential_outputs):
         r"""
         Check a list of files to see if they are valid datasets.
