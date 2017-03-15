@@ -327,7 +327,6 @@ class AMReXParticleHeader(object):
 class BoxlibHierarchy(GridIndex):
 
     grid = BoxlibGrid
-    pheader = BoxLibParticleHeader
 
     def __init__(self, ds, dataset_type='boxlib_native'):
         self.dataset_type = dataset_type
@@ -552,12 +551,21 @@ class BoxlibHierarchy(GridIndex):
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.dataset)
 
-    def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
+    def _determine_particle_output_type(self, directory_name):
+        header_filename =  self.ds.output_dir + "/" + directory_name + "/Header"
+        with open(header_filename, "r") as f:
+            version_string = f.readline().strip()
+            if version_string.startswith("Version_Two"):
+                return AMReXParticleHeader
+            else:
+                return BoxLibParticleHeader
 
-        self.particle_headers[directory_name] = self.pheader(self.ds,
-                                                             directory_name,
-                                                             is_checkpoint,
-                                                             extra_field_names)
+    def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
+        pheader = self._determine_particle_output_type(directory_name)
+        self.particle_headers[directory_name] = pheader(self.ds,
+                                                        directory_name,
+                                                        is_checkpoint,
+                                                        extra_field_names)
 
         base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
 
@@ -1326,8 +1334,6 @@ def _guess_pcast(vals):
 
 class WarpXHierarchy(BoxlibHierarchy):
 
-    pheader = AMReXParticleHeader
-
     def __init__(self, ds, dataset_type="boxlib_native"):
         super(WarpXHierarchy, self).__init__(ds, dataset_type)
 
@@ -1439,8 +1445,6 @@ class WarpXDataset(BoxlibDataset):
 
 
 class AMReXHierarchy(BoxlibHierarchy):
-
-    pheader = AMReXParticleHeader
 
     def __init__(self, ds, dataset_type="boxlib_native"):
         super(AMReXHierarchy, self).__init__(ds, dataset_type)
