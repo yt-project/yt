@@ -15,6 +15,7 @@ A wrapper class for h5py file objects.
 
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.on_demand_imports import NotAModule
+from contextlib import contextmanager
 
 def valid_hdf5_signature(fn):
     signature = b'\x89HDF\r\n\x1a\n'
@@ -107,6 +108,11 @@ def warn_netcdf(fn):
 
 class NetCDF4FileHandler(object):
     def __init__(self, filename):
+        self.filename = filename
+
+    @contextmanager
+    def open_ds(self):
         from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
-        ds = netCDF4.Dataset(filename)
-        self.dataset = ds
+        ds = netCDF4.Dataset(self.filename)
+        yield ds
+        ds.close()

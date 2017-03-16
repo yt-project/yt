@@ -434,7 +434,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     Parameters
     ----------
-    objects : iterable
+    objects : Iterable
         The list of objects to dispatch to different processors.
     njobs : int
         How many jobs to spawn.  By default, one job will be dispatched for
@@ -540,7 +540,7 @@ def parallel_ring(objects, generator_func, mutable = False):
 
     Parameters
     ----------
-    objects : iterable
+    objects : Iterable
         The list of objects to operate on.
     generator_func : callable
         This function will be called on each object, and the results yielded.

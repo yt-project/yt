@@ -79,13 +79,13 @@
 # LLC, and shall not be used for advertising or product endorsement
 # purposes.
 
-"""MPI_Import defines an mpi-aware import hook. The standard use of
-this module is as follows:
+"""``MPI_Import`` defines an mpi-aware import hook. The standard use of
+this module is as follows::
 
-   from MPI_Import import mpi_import
-   with mpi_import():
-      import foo
-      import bar
+    from MPI_Import import mpi_import
+    with mpi_import():
+        import foo
+        import bar
 
 Within the with block, the standard import statement is replaced by an
 MPI-aware import statement. The rank 0 process finds the location of
@@ -94,35 +94,35 @@ processes load that module.
 
 One CRITICAL detail: any code inside the mpi_import block must be
 executed exactly the same on all of the MPI ranks. For example,
-consider this:
+consider this::
 
-def foo():
-   import mpi
-   if mpi.rank == 0:
-      bar = someFunction()
-   bar = mpi.bcast(bar,root=0)
+    def foo():
+        import mpi
+        if mpi.rank == 0:
+            bar = someFunction()
+        bar = mpi.bcast(bar,root=0)
+    
+    def someFunction():
+        import os
+        return os.name
 
-def someFunction():
-   import os
-   return os.name
-
-If foo() is called during the import process, then things may go very
+If ``foo()`` is called during the import process, then things may go very
 wrong. If the os module hasn't been loaded, then the rank 0 process
 will find os and broadcast its location. Since there's no
-corresponding bcast for rank > 0, the other processes will receive
+corresponding bcast for ``rank > 0``, the other processes will receive
 that broadcast instead of the broadcast for bar, resulting in
-undefined behavior. Similarly, if rank >0 process encounters an import
-that rank 0 does not encounter, that process will either hang waiting
+undefined behavior. Similarly, if ``rank > 0`` process encounters an import
+that ``rank`` 0 does not encounter, that process will either hang waiting
 for the bcast, or it will receive an out-of-order bcast.
 
 The import hook provides a way to test whether we're using this
 importer, which can be used to disable rank-asymmetric behavior in a
-module import:
+module import::
 
-from yt.extern.six.moves import builtins
-hasattr(builtins.__import__,"mpi_import")
+    from yt.extern.six.moves import builtins
+    hasattr(builtins.__import__,"mpi_import")
 
-This evaluates to True only when we're in an mpi_import() context
+This evaluates to True only when we're in an ``mpi_import()`` context
 manager.
 
 There are some situations where rank-dependent code may be necessary.
@@ -130,66 +130,66 @@ One such example is pyMPI's synchronizeQueuedOutput function, which
 tends to cause deadlocks when it is executed inside an mpi_imported
 module. In that case, we provide a hook to execute a function after
 the mpi_import hook has been replaced by the standard import hook.
-Here is an example showing the use of this feature:
+Here is an example showing the use of this feature::
 
-# encapsulate the rank-asymmetric code in a function
-def f():
-    if mpi.rank == 0:
-        doOneThing()
+    # encapsulate the rank-asymmetric code in a function
+    def f():
+        if mpi.rank == 0:
+            doOneThing()
+        else:
+            doSomethingElse()
+
+    # Either importer is None (standard import) or it's a reference to
+    # the mpi_import object that owns the current importer.
+    from yt.extern.six.moves import builtins
+    importer = getattr(builtins.__import__,"mpi_import",None)
+    if importer:
+        importer.callAfterImport(f)
     else:
-        doSomethingElse()
+        # If we're using the standard import, then we'll execute the
+        # code in f immediately
+        f()
 
-# Either importer is None (standard import) or it's a reference to
-# the mpi_import object that owns the current importer.
-from yt.extern.six.moves import builtins
-importer = getattr(builtins.__import__,"mpi_import",None)
-if importer:
-    importer.callAfterImport(f)
-else:
-    # If we're using the standard import, then we'll execute the
-    # code in f immediately
-    f()
-
-WARNING: the callAfterImport feature is not intended for casual use.
+WARNING: the ``callAfterImport`` feature is not intended for casual use.
 Usually it will be sufficient (and preferable) to either remove the
 rank-asymmetric code or explicitly move it outside of the 'with
 mpi_import' block. callAfterImport is provided for the (hopefully
 rare!) cases where this does not suffice.
 
+Some implementation details
+---------------------------
 
-Some implementation details:
+* This code is based on knee.py, which is an example of a pure Python
+  hierarchical import that was included with Python 2.6 distributions.
 
--This code is based on knee.py, which is an example of a pure Python
- hierarchical import that was included with Python 2.6 distributions.
+* Python PEP 302 defines another way to override import by using finder
+  and loader objects, which behave similarly to the imp.find_module and
+  imp.load_module functions in __import_module__ below. Unfortunately,
+  the implementation of PEP 302 is such that the path for the module
+  has already been found by the time that the "finder" object is
+  constructed, so it's not suitable for our purposes.
 
--Python PEP 302 defines another way to override import by using finder
- and loader objects, which behave similarly to the imp.find_module and
- imp.load_module functions in __import_module__ below. Unfortunately,
- the implementation of PEP 302 is such that the path for the module
- has already been found by the time that the "finder" object is
- constructed, so it's not suitable for our purposes.
+* This module uses pyMPI. It was originally designed with mpi4py, and
+  switching back to mpi4py requires only minor modifications. To
+  quickly substitute mpi4py for pyMPI, the 'import mpi' line below can
+  be replaced with the following wrapper::
 
--This module uses pyMPI. It was originally designed with mpi4py, and
- switching back to mpi4py requires only minor modifications. To
- quickly substitute mpi4py for pyMPI, the 'import mpi' line below can
- be replaced with the following wrapper:
+    from mpi4py import MPI
+    class mpi(object):
+        rank = MPI.COMM_WORLD.Get_rank()
+        @staticmethod
+        def bcast(obj=None,root=0):
+            return MPI.COMM_WORLD.bcast(obj,root)
 
-from mpi4py import MPI
-class mpi(object):
-    rank = MPI.COMM_WORLD.Get_rank()
-    @staticmethod
-    def bcast(obj=None,root=0):
-        return MPI.COMM_WORLD.bcast(obj,root)
-
--An alternate version of this module had rank 0 perform all of the
- lookups, and then broadcast the locations all-at-once when that
- process reached the end of the context manager. This was somewhat
- faster than the current implementation, but was prone to deadlock
- when loading modules containing MPI synchronization points.
-
--The 'level' parameter to the import hook is not handled correctly; we
- treat it as if it were -1 (try relative and absolute imports). For
- more information about the level parameter, run 'help(__import__)'.
+* An alternate version of this module had rank 0 perform all of the
+  lookups, and then broadcast the locations all-at-once when that
+  process reached the end of the context manager. This was somewhat
+  faster than the current implementation, but was prone to deadlock
+  when loading modules containing MPI synchronization points.
+  
+* The ``level`` parameter to the import hook is not handled correctly; we
+  treat it as if it were -1 (try relative and absolute imports). For
+  more information about the level parameter, run ``help(__import__)``.
 """
 from __future__ import print_function
 

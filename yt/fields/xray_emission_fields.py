@@ -72,7 +72,7 @@ class XrayEmissivityIntegrator(object):
 
     Parameters
     ----------
-    table_type: string
+    table_type : string
         The type of data to use when computing the emissivity values. If "cloudy",
         a file called "cloudy_emissivity.h5" is used, for photoionized
         plasmas. If, "apec", a file called "apec_emissivity.h5" is used for 

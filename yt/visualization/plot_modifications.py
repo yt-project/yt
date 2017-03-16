@@ -277,8 +277,6 @@ class PlotCallback(object):
 
 class VelocityCallback(PlotCallback):
     """
-    annotate_velocity(factor=16, scale=None, scale_units=None, normalize=False):
-
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
     length unit using *scale_units* (see
@@ -326,8 +324,6 @@ class VelocityCallback(PlotCallback):
 
 class MagFieldCallback(PlotCallback):
     """
-    annotate_magnetic_field(factor=16, scale=None, scale_units=None, normalize=False):
-
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
     length unit using *scale_units* (see
@@ -364,9 +360,6 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     """
-    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None,
-                    normalize=False, bv_x=0, bv_y=0):
-
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints
     *scale* is the data units per arrow length unit using *scale_units*
@@ -435,10 +428,6 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     """
-    annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
-                     plot_args=None, label=False, text_args=None,
-                     data_source=None):
-
     Add contours in *field* to the plot.  *ncont* governs the number of
     contours generated, *factor* governs the number of points used in the
     interpolation, *take_log* governs how it is contoured and *clim* gives
@@ -561,10 +550,6 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
-                   periodic=True, min_level=None, max_level=None,
-                   cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
-
     Draws grids on an existing PlotWindow object.  Adds grid boundaries to a
     plot, optionally with alpha-blending. By default, colors different levels of
     grids with different colors going from white to black, but you can change to
@@ -685,9 +670,6 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     """
-    annotate_streamlines(field_x, field_y, factor=16,
-                         density=1, plot_args=None):
-
     Add streamlines to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
@@ -746,8 +728,6 @@ class StreamlineCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     """
-    annotate_line(p1, p2, coord_system="data", plot_args=None):
-
     Overplot a line with endpoints at p1 and p2.  p1 and p2
     should be 2D or 3D coordinates consistent with the coordinate
     system denoted in the "coord_system" keyword.
@@ -827,8 +807,6 @@ class LinePlotCallback(PlotCallback):
 
 class ImageLineCallback(LinePlotCallback):
     """
-    annotate_image_line(p1, p2, coord_system="axis", plot_args=None):
-
     This callback is deprecated, as it is simply a wrapper around
     the LinePlotCallback (ie annotate_image()).  The only difference is
     that it uses coord_system="axis" by default. Please see LinePlotCallback
@@ -850,8 +828,6 @@ class ImageLineCallback(LinePlotCallback):
 
 class CuttingQuiverCallback(PlotCallback):
     """
-    annotate_cquiver(field_x, field_y, factor)
-
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     """
@@ -907,8 +883,6 @@ class CuttingQuiverCallback(PlotCallback):
 
 class ClumpContourCallback(PlotCallback):
     """
-    annotate_clumps(clumps, plot_args=None)
-
     Take a list of *clumps* and plot them as a set of contours.
     """
     _type_name = "clumps"
@@ -955,10 +929,6 @@ class ClumpContourCallback(PlotCallback):
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, width=0.003, head_length=None,
-                   head_width=0.02, starting_pos=None,
-                   coord_system='data', plot_args=None):
-
     Overplot an arrow pointing at a position for highlighting a specific
     feature.  By default, arrow points from lower left to the designated
     position "pos" with arrow length "length".  Alternatively, if
@@ -1100,8 +1070,6 @@ class ArrowCallback(PlotCallback):
 
 class MarkerAnnotateCallback(PlotCallback):
     """
-    annotate_marker(pos, marker='x', coord_system="data", plot_args=None):
-
     Overplot a marker on a position for highlighting specific features.
 
     Parameters
@@ -1174,9 +1142,6 @@ class MarkerAnnotateCallback(PlotCallback):
 
 class SphereCallback(PlotCallback):
     """
-    annotate_sphere(center, radius, circle_args=None,
-                    coord_system='data', text=None, text_args=None):
-
     Overplot a circle with designated center and radius with optional text.
 
     Parameters
@@ -1276,9 +1241,6 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, coord_system='data', text_args=None,
-                  inset_box_args=None):
-
     Overplot text on the plot at a specified position. If you desire an inset
     box around your text, set one with the inset_box_args dictionary
     keyword.
@@ -1372,9 +1334,6 @@ class TextLabelCallback(PlotCallback):
 
 class PointAnnotateCallback(TextLabelCallback):
     """
-    annotate_point(pos, text, coord_system='data', text_args=None,
-                   inset_box_args=None)
-
     This callback is deprecated, as it is simply a wrapper around
     the TextLabelCallback (ie annotate_text()).  Please see TextLabelCallback
     for more information.
@@ -1396,10 +1355,6 @@ class PointAnnotateCallback(TextLabelCallback):
 
 class HaloCatalogCallback(PlotCallback):
     """
-    annotate_halos(halo_catalog, circle_args=None,
-        width=None, annotate_field=None,
-        text_args=None, factor=1.0)
-
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
     virial radius of each halo.
@@ -1527,9 +1482,6 @@ class HaloCatalogCallback(PlotCallback):
 
 class ParticleCallback(PlotCallback):
     """
-    annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1,
-                       ptype='all', minimum_mass=None, alpha=1.0)
-
     Adds particle positions, based on a thick slab along *axis* with a
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
@@ -1639,8 +1591,6 @@ class ParticleCallback(PlotCallback):
 
 class TitleCallback(PlotCallback):
     """
-    annotate_title(title)
-
     Accepts a *title* and adds it to the plot
     """
     _type_name = "title"
@@ -1658,8 +1608,6 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    annotate_mesh_lines()
-
     Adds mesh lines to the plot. Only works for unstructured or 
     semi-structured mesh data. For structured grid data, see
     GridBoundaryCallback or CellEdgesCallback.
@@ -1734,8 +1682,6 @@ class MeshLinesCallback(PlotCallback):
 
 class TriangleFacetsCallback(PlotCallback):
     """
-    annotate_triangle_facets(triangle_vertices, plot_args=None )
-
     Intended for representing a slice of a triangular faceted
     geometry in a slice plot.
 
@@ -1777,12 +1723,6 @@ class TriangleFacetsCallback(PlotCallback):
 
 class TimestampCallback(PlotCallback):
     """
-    annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True,
-                       redshift=False, time_format="t = {time:.0f} {units}",
-                       time_unit=None, redshift_format="z = {redshift:.2f}",
-                       draw_inset_box=False, coord_system='axis',
-                       text_args=None, inset_box_args=None)
-
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
@@ -1961,11 +1901,6 @@ class TimestampCallback(PlotCallback):
 
 class ScaleCallback(PlotCallback):
     """
-    annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
-                   max_frac=0.16, min_frac=0.015, coord_system='axis',
-                   text_args=None, size_bar_args=None, draw_inset_box=False,
-                   inset_box_args=None)
-
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
     the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
@@ -2175,8 +2110,6 @@ class ScaleCallback(PlotCallback):
 
 class RayCallback(PlotCallback):
     """
-    annotate_ray(ray, plot_args=None)
-
     Adds a line representing the projected path of a ray across the plot.
     The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
@@ -2327,11 +2260,6 @@ class RayCallback(PlotCallback):
 
 class LineIntegralConvolutionCallback(PlotCallback):
     """
-    annotate_line_integral_convolution(field_x, field_y, texture=None,
-                                       kernellen=50., lim=(0.5,0.6),
-                                       cmap='binary', alpha=0.8,
-                                       const_alpha=False):
-
     Add the line integral convolution to the plot for vector fields
     visualization. Two component of vector fields needed to be provided
     (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
@@ -2408,12 +2336,12 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                                  plot.data,
                                                  self.field_x,
                                                  bounds,
-                                                 (nx,ny))
+                                                 (ny,nx))
         pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
                                                  self.field_y,
                                                  bounds,
-                                                 (nx,ny))
+                                                 (ny,nx))
 
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
@@ -2447,8 +2375,6 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
 class CellEdgesCallback(PlotCallback):
     """
-    annotate_cell_edges(line_width=0.002, alpha = 1.0, color = 'black')
-
     Annotate cell edges.  This is done through a second call to pixelize, where
     the distance from a pixel to a cell boundary in pixels is compared against
     the `line_width` argument.  The secondary image is colored as `color` and

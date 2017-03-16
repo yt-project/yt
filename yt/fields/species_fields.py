@@ -126,8 +126,8 @@ def add_species_aliases(registry, ftype, alias_species, species):
     """
     This takes a field registry, a fluid type, and two species names.  
     The first species name is one you wish to alias to an existing species
-    name.  For instance you might alias all "H_p0" fields to "H_" fields
-    to indicate that "H_" fields are really just neutral hydrogen fields.
+    name.  For instance you might alias all "H_p0" fields to "H\_" fields
+    to indicate that "H\_" fields are really just neutral hydrogen fields.
     This function registers field aliases for the density, number_density,
     mass, and fraction fields between the two species given in the arguments.
     """

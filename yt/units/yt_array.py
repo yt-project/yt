@@ -228,7 +228,7 @@ class YTArray(np.ndarray):
     Parameters
     ----------
 
-    input_array : iterable
+    input_array : Iterable
         A tuple, list, or array to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
         The units of the array. Powers must be specified using python
