@@ -101,7 +101,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                                           rleft, rright, zleft, zright, \
                                           cleft, cright, thetaleft, thetaright, \
                                           tmleft, tpleft, tmright, tpright, tsect
-    cdef np.ndarray[np.int64_t, ndim=1, cast=True] inds, tinds, sinds
+    cdef np.ndarray[np.int_t, ndim=1, cast=True] inds, tinds, sinds
     cdef np.ndarray[np.float64_t, ndim=2] xyz, rztheta, ptemp, b1, b2, dsect
 
     # set up  points
