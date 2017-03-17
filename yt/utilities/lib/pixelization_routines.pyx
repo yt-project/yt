@@ -745,6 +745,8 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = P1Sampler1D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
+    elif ndim == 2 and nvertices == 9:
+        sampler = Q2Sampler2D()
     elif ndim == 2 and nvertices == 6:
         sampler = T2Sampler2D()
     elif ndim == 3 and nvertices == 10:
