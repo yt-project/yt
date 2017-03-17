@@ -33,10 +33,10 @@ def check_all_vertices(sampler, vertices, field_values):
     NV = vertices.shape[0]
     NDIM = vertices.shape[1]
     x = np.empty(NDIM)
-    # import pdb; pdb.set_trace()
     for i in range(NV):
         x = vertices[i]
         val = sampler(vertices, field_values, x)
+        assert_almost_equal(val, field_values[i])
 
 
 def test_P1Sampler1D():
@@ -84,11 +84,11 @@ def test_Q2Sampler2D():
                          [7., 4.],
                          [10., 15.],
                          [4., 12.],
-                         [3., 3.],
-                         [9., 8.],
-                         [6., 14.],
-                         [3., 6.],
-                         [4., 8.]])
+                         [4.5, 3.5],
+                         [8.5, 9.5],
+                         [7., 13.5],
+                         [3., 7.5],
+                         [5.75, 8.5]])
 
     field_values = np.array([7., 27., 40., 12., 13., 30., 22., 9., 16.])
 
