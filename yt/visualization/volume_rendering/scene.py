@@ -501,6 +501,7 @@ class Scene(object):
 
         for k, source in self.transparent_sources:
             im = source.render(camera, zbuffer=opaque)
+            opaque.rgba = im
 
         return im
 
@@ -795,7 +796,7 @@ class Scene(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol object, or astropy
                       units object

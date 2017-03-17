@@ -903,7 +903,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
     Parameters
     ----------
-    base_ds : Dataset
+    base_ds : `~yt.data_objects.static_output.Dataset`
         This is any static output.  It can also be a stream static output, for
         instance as returned by load_uniform_data.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
@@ -1167,7 +1167,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     r"""Define the cell coordinates and cell neighbors of a hexahedral mesh
     for a semistructured grid. Used to specify the connectivity and
     coordinates parameters used in
-    :function:`~yt.frontends.stream.data_structures.load_hexahedral_mesh`.
+    :func:`~yt.frontends.stream.data_structures.load_hexahedral_mesh`.
 
     Parameters
     ----------

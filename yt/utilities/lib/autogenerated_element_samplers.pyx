@@ -68,6 +68,31 @@ cdef void Q1Jacobian2D(double* rcol,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True) 
+cdef void Q2Function2D(double* fx,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: 
+	fx[0] = (1 + x[0])*(-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[16] - 0.5*(1 + x[0])*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[8] - 0.5*(1 + x[0])*(-1 + x[0])*x[1]*(1 + x[1])*vertices[12] - phys_x[0] - 0.5*x[0]*(-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[14] + 0.25*x[0]*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[0] + 0.25*x[0]*(-1 + x[0])*x[1]*(1 + x[1])*vertices[6] - 0.5*x[0]*(1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[10] + 0.25*x[0]*(1 + x[0])*x[1]*(-1 + x[1])*vertices[2] + 0.25*x[0]*(1 + x[0])*x[1]*(1 + x[1])*vertices[4];
+	fx[1] = (1 + x[0])*(-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[17] - 0.5*(1 + x[0])*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[9] - 0.5*(1 + x[0])*(-1 + x[0])*x[1]*(1 + x[1])*vertices[13] - phys_x[1] - 0.5*x[0]*(-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[15] + 0.25*x[0]*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[1] + 0.25*x[0]*(-1 + x[0])*x[1]*(1 + x[1])*vertices[7] - 0.5*x[0]*(1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[11] + 0.25*x[0]*(1 + x[0])*x[1]*(-1 + x[1])*vertices[3] + 0.25*x[0]*(1 + x[0])*x[1]*(1 + x[1])*vertices[5];
+
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True) 
+cdef void Q2Jacobian2D(double* rcol,
+                       double* scol,
+                       double* x,
+                       double* vertices,
+                       double* phys_x) nogil: 
+	rcol[0] = -0.5*(-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[14] + (-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[16] + 0.25*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[0] - 0.5*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[8] + 0.25*(-1 + x[0])*x[1]*(1 + x[1])*vertices[6] - 0.5*(-1 + x[0])*x[1]*(1 + x[1])*vertices[12] - 0.5*(1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[10] + (1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[16] + 0.25*(1 + x[0])*x[1]*(-1 + x[1])*vertices[2] - 0.5*(1 + x[0])*x[1]*(-1 + x[1])*vertices[8] + 0.25*(1 + x[0])*x[1]*(1 + x[1])*vertices[4] - 0.5*(1 + x[0])*x[1]*(1 + x[1])*vertices[12] - 0.5*x[0]*(1 + x[1])*(-1 + x[1])*vertices[10] - 0.5*x[0]*(1 + x[1])*(-1 + x[1])*vertices[14] + 0.25*x[0]*x[1]*(-1 + x[1])*vertices[0] + 0.25*x[0]*x[1]*(-1 + x[1])*vertices[2] + 0.25*x[0]*x[1]*(1 + x[1])*vertices[4] + 0.25*x[0]*x[1]*(1 + x[1])*vertices[6];
+	scol[0] = -0.5*(-1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[8] + (-1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[16] + 0.25*(-1 + x[1])*x[0]*(-1 + x[0])*vertices[0] - 0.5*(-1 + x[1])*x[0]*(-1 + x[0])*vertices[14] + 0.25*(-1 + x[1])*x[0]*(1 + x[0])*vertices[2] - 0.5*(-1 + x[1])*x[0]*(1 + x[0])*vertices[10] - 0.5*(1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[12] + (1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[16] + 0.25*(1 + x[1])*x[0]*(-1 + x[0])*vertices[6] - 0.5*(1 + x[1])*x[0]*(-1 + x[0])*vertices[14] + 0.25*(1 + x[1])*x[0]*(1 + x[0])*vertices[4] - 0.5*(1 + x[1])*x[0]*(1 + x[0])*vertices[10] - 0.5*x[1]*(1 + x[0])*(-1 + x[0])*vertices[8] - 0.5*x[1]*(1 + x[0])*(-1 + x[0])*vertices[12] + 0.25*x[1]*x[0]*(-1 + x[0])*vertices[0] + 0.25*x[1]*x[0]*(-1 + x[0])*vertices[6] + 0.25*x[1]*x[0]*(1 + x[0])*vertices[2] + 0.25*x[1]*x[0]*(1 + x[0])*vertices[4];
+	rcol[1] = -0.5*(-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[15] + (-1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[17] + 0.25*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[1] - 0.5*(-1 + x[0])*x[1]*(-1 + x[1])*vertices[9] + 0.25*(-1 + x[0])*x[1]*(1 + x[1])*vertices[7] - 0.5*(-1 + x[0])*x[1]*(1 + x[1])*vertices[13] - 0.5*(1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[11] + (1 + x[0])*(1 + x[1])*(-1 + x[1])*vertices[17] + 0.25*(1 + x[0])*x[1]*(-1 + x[1])*vertices[3] - 0.5*(1 + x[0])*x[1]*(-1 + x[1])*vertices[9] + 0.25*(1 + x[0])*x[1]*(1 + x[1])*vertices[5] - 0.5*(1 + x[0])*x[1]*(1 + x[1])*vertices[13] - 0.5*x[0]*(1 + x[1])*(-1 + x[1])*vertices[11] - 0.5*x[0]*(1 + x[1])*(-1 + x[1])*vertices[15] + 0.25*x[0]*x[1]*(-1 + x[1])*vertices[1] + 0.25*x[0]*x[1]*(-1 + x[1])*vertices[3] + 0.25*x[0]*x[1]*(1 + x[1])*vertices[5] + 0.25*x[0]*x[1]*(1 + x[1])*vertices[7];
+	scol[1] = -0.5*(-1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[9] + (-1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[17] + 0.25*(-1 + x[1])*x[0]*(-1 + x[0])*vertices[1] - 0.5*(-1 + x[1])*x[0]*(-1 + x[0])*vertices[15] + 0.25*(-1 + x[1])*x[0]*(1 + x[0])*vertices[3] - 0.5*(-1 + x[1])*x[0]*(1 + x[0])*vertices[11] - 0.5*(1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[13] + (1 + x[1])*(1 + x[0])*(-1 + x[0])*vertices[17] + 0.25*(1 + x[1])*x[0]*(-1 + x[0])*vertices[7] - 0.5*(1 + x[1])*x[0]*(-1 + x[0])*vertices[15] + 0.25*(1 + x[1])*x[0]*(1 + x[0])*vertices[5] - 0.5*(1 + x[1])*x[0]*(1 + x[0])*vertices[11] - 0.5*x[1]*(1 + x[0])*(-1 + x[0])*vertices[9] - 0.5*x[1]*(1 + x[0])*(-1 + x[0])*vertices[13] + 0.25*x[1]*x[0]*(-1 + x[0])*vertices[1] + 0.25*x[1]*x[0]*(-1 + x[0])*vertices[7] + 0.25*x[1]*x[0]*(1 + x[0])*vertices[3] + 0.25*x[1]*x[0]*(1 + x[0])*vertices[5];
+
+ 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True) 
 cdef void Tet2Function3D(double* fx,
                        double* x,
                        double* vertices,

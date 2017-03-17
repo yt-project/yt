@@ -405,8 +405,8 @@ class BoxlibDataset(Dataset):
     periodicity = (True, True, True)
 
     def __init__(self, output_dir,
-                 cparam_filename="inputs",
-                 fparam_filename="probin",
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -459,6 +459,8 @@ class BoxlibDataset(Dataset):
             return False
         args = inspect.getcallargs(cls.__init__, args, kwargs)
         # This might need to be localized somehow
+        if args['cparam_filename'] is None:
+            return True  # Treat as generic boxlib data
         inputs_filename = os.path.join(
             os.path.dirname(os.path.abspath(output_dir)),
             args['cparam_filename'])
@@ -820,7 +822,7 @@ class OrionDataset(BoxlibDataset):
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
         if any(("maestro" in line.lower() for line in lines)): return False
-        if any(("geometry.prob_lo" in line for line in lines)): return True
+        if any(("hyp." in line for line in lines)): return True
         return False
 
 
@@ -847,6 +849,22 @@ class CastroDataset(BoxlibDataset):
 
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename='inputs',
+                 fparam_filename='probin',
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+
+        super(CastroDataset, self).__init__(output_dir,
+                                            cparam_filename,
+                                            fparam_filename,
+                                            dataset_type,
+                                            storage_filename,
+                                            units_override,
+                                            unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -915,6 +933,22 @@ class CastroDataset(BoxlibDataset):
 class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename='inputs',
+                 fparam_filename='probin',
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+        
+        super(MaestroDataset, self).__init__(output_dir,
+                                             cparam_filename,
+                                             fparam_filename,
+                                             dataset_type,
+                                             storage_filename,
+                                             units_override,
+                                             unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -992,6 +1026,22 @@ class NyxDataset(BoxlibDataset):
 
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename='inputs',
+                 fparam_filename='probin',
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+
+        super(NyxDataset, self).__init__(output_dir,
+                                         cparam_filename,
+                                         fparam_filename,
+                                         dataset_type,
+                                         storage_filename,
+                                         units_override,
+                                         unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):

@@ -353,13 +353,13 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     This dataset allows you to easily explore orientations and
     handiness in VR and other renderings
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
-    N: integer
+    N : integer
        The number of cells along each direction
 
-    scale: float
+    scale : float
        A spatial scale, the domain boundaries will be multiplied by scale to
        test datasets that have spatial different scales (e.g. data in CGS units)
 
@@ -811,17 +811,17 @@ def check_results(func):
     Examples
     --------
 
-    @check_results
-    def my_func(ds):
-        return ds.domain_width
+    >>> @check_results
+    ... def my_func(ds):
+    ...     return ds.domain_width
 
-    my_func(ds)
+    >>> my_func(ds)
 
-    @check_results
-    def field_checker(dd, field_name):
-        return dd[field_name]
+    >>> @check_results
+    ... def field_checker(dd, field_name):
+    ...     return dd[field_name]
 
-    field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -952,9 +952,12 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         with the units of ``actual`` and ``desired``. If no units are attached,
         assumes the same units as ``desired``. Defaults to zero.
 
+    Notes
+    -----
     Also accepts additional keyword arguments accepted by
     :func:`numpy.testing.assert_allclose`, see the documentation of that
     function for details.
+
     """
     # Create a copy to ensure this function does not alter input arrays
     act = YTArray(actual)

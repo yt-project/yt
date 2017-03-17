@@ -23,6 +23,7 @@ cimport numpy as np
 import numpy as np
 from selection_routines cimport SelectorObject
 cimport cython
+from cython cimport floating
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -261,10 +262,6 @@ cdef class ParticleOctreeContainer(OctreeContainer):
                         self.visit(o.children[cind(i,j,k)], counts, level + 1)
         return
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 cdef np.uint64_t ONEBIT=1
 
 cdef class ParticleRegions:
@@ -299,7 +296,7 @@ cdef class ParticleRegions:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _mask_positions(self, np.ndarray[anyfloat, ndim=2] pos,
+    cdef void _mask_positions(self, np.ndarray[floating, ndim=2] pos,
                               np.uint64_t file_id, int filter):
         # TODO: Replace with the bitarray
         cdef np.int64_t no = pos.shape[0]

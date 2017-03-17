@@ -455,7 +455,7 @@ class BlockCollection(SceneComponent):
 
         Parameters
         ----------
-        camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
             A simple camera object.
 
         """
@@ -620,7 +620,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
 
         """
         self.camera = camera
@@ -836,7 +836,7 @@ class SceneGraph(ColorBarSceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
 
         """
         self.camera = camera
