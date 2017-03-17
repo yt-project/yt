@@ -69,19 +69,17 @@ class ParticleIndex(Index):
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
-    def _initialize_particle_handler(self):
-        self._setup_data_io()
+    def _setup_filenames(self):
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
-        if ndoms > 1:
-            self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i)
-               for i in range(ndoms)]
-        else:
-            self.data_files = \
-              [cls(self.dataset, self.io,
-                   self.dataset.parameter_filename, 0)]
+        self.data_files = \
+          [cls(self.dataset, self.io, template % {'num':i}, i)
+           for i in range(ndoms)]
+
+    def _initialize_particle_handler(self):
+        self._setup_data_io()
+        self._setup_filenames()
 
         index_ptype = self.index_ptype
         if index_ptype == "all":
