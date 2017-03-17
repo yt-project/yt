@@ -342,15 +342,31 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
                                double* mapped_x,
                                double* vertices,
                                double* physical_x) nogil:
+        '''
+
+        x: solution vector; holds unit/mapped coordinates
+        xk: temporary vector for holding solution of current iteration
+        f: residual vector
+        r, s, t: three columns of Jacobian matrix corresponding to unit/mapped
+                 coordinates r, s, and t
+        d: Jacobian determinant
+        s_n: Newton step vector
+        lam: fraction of Newton step by which to change x
+        alpha: constant proportional to how much residual required to decrease
+        err_c: Error of current iteration
+        err_plus: Error of next iteration
+        
+        '''
         cdef int i
-        cdef double d
+        cdef double d, lam
         cdef double[3] f
         cdef double[3] r
         cdef double[3] s
         cdef double[3] t
-        cdef double[3] x
+        cdef double[3] x, xk, s_n
         cdef int iterations = 0
-        cdef double err
+        cdef double err_c, err_plus
+        cdef double alpha = 1e-4
 
         # initial guess
         for i in range(3):
@@ -358,20 +374,38 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
 
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f, 3)
+        err_c = maxnorm(f, 3)
 
         # begin Newton iteration
-        while (err > self.tolerance and iterations < self.max_iter):
+        while (err_c > self.tolerance and iterations < self.max_iter):
             self.jac(r, s, t, x, vertices, physical_x)
             d = determinant_3x3(r, s, t)
-            x[0] = x[0] - (determinant_3x3(f, s, t)/d)
-            x[1] = x[1] - (determinant_3x3(r, f, t)/d)
-            x[2] = x[2] - (determinant_3x3(r, s, f)/d)
-            self.func(f, x, vertices, physical_x)
-            err = maxnorm(f, 3)
+
+            s_n[0] = - (determinant_3x3(f, s, t)/d)
+            s_n[1] = - (determinant_3x3(r, f, t)/d)
+            s_n[2] = - (determinant_3x3(r, s, f)/d)
+            xk[0] = x[0] + s_n[0]
+            xk[1] = x[1] + s_n[1]
+            xk[2] = x[2] + s_n[2]
+            self.func(f, xk, vertices, physical_x)
+            err_plus = maxnorm(f, 3)
+            
+            lam = 1
+            while err_plus > err_c * (1. - alpha * lam) and lam > 1e-6:
+                lam = lam / 2
+                xk[0] = x[0] + lam * s_n[0]
+                xk[1] = x[1] + lam * s_n[1]
+                xk[2] = x[2] + lam * s_n[2]
+                self.func(f, xk, vertices, physical_x)
+                err_plus = maxnorm(f, 3)
+
+            x[0] = xk[0]
+            x[1] = xk[1]
+            x[2] = xk[2]
+            err_c = err_plus
             iterations += 1
 
-        if (err > self.tolerance):
+        if (err_c > self.tolerance):
             # we did not converge, set bogus value
             for i in range(3):
                 mapped_x[i] = -99.0
@@ -746,7 +780,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
     def __init__(self):
         super(NonlinearSolveSampler2D, self).__init__()
         self.tolerance = 1.0e-9
-        self.max_iter = 100
+        self.max_iter = 10
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -755,10 +789,24 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
                                double* mapped_x,
                                double* vertices,
                                double* physical_x) nogil:
+        '''
+
+        x: solution vector; holds unit/mapped coordinates
+        xk: temporary vector for holding solution of current iteration
+        f: residual vector
+        A: Jacobian matrix (derivative of residual vector wrt x)
+        d: Jacobian determinant
+        s_n: Newton step vector
+        lam: fraction of Newton step by which to change x
+        alpha: constant proportional to how much residual required to decrease
+        err_c: Error of current iteration
+        err_plus: Error of next iteration
+        
+        '''
         cdef int i
         cdef double d, lam
         cdef double[2] f
-        cdef double[2] x, xk, s
+        cdef double[2] x, xk, s_n
         cdef double[4] A
         cdef int iterations = 0
         cdef double err_c, err_plus
@@ -777,25 +825,24 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
             self.jac(&A[0], &A[2], x, vertices, physical_x)
             d = (A[0]*A[3] - A[1]*A[2])
 
-            s[0] = -( A[3]*f[0] - A[2]*f[1]) / d
-            s[1] = -(-A[1]*f[0] + A[0]*f[1]) / d
-            xk[0] = x[0] + s[0]
-            xk[1] = x[1] + s[1]
-
+            s_n[0] = -( A[3]*f[0] - A[2]*f[1]) / d
+            s_n[1] = -(-A[1]*f[0] + A[0]*f[1]) / d
+            xk[0] = x[0] + s_n[0]
+            xk[1] = x[1] + s_n[1]
             self.func(f, xk, vertices, physical_x)
             err_plus = maxnorm(f, 2)
+            
             lam = 1
             while err_plus > err_c * (1. - alpha * lam) and lam > 1e-6:
                 lam = lam / 2
-                xk[0] = x[0] + lam * s[0]
-                xk[1] = x[1] + lam * s[1]
+                xk[0] = x[0] + lam * s_n[0]
+                xk[1] = x[1] + lam * s_n[1]
                 self.func(f, xk, vertices, physical_x)
                 err_plus = maxnorm(f, 2)
 
             x[0] = xk[0]
             x[1] = xk[1]
             err_c = err_plus
-                
             iterations += 1
 
         if (err_c > self.tolerance):
