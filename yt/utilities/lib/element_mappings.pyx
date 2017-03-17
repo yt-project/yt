@@ -746,7 +746,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
     def __init__(self):
         super(NonlinearSolveSampler2D, self).__init__()
         self.tolerance = 1.0e-9
-        self.max_iter = 10
+        self.max_iter = 100
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -756,12 +756,13 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
                                double* vertices,
                                double* physical_x) nogil:
         cdef int i
-        cdef double d
+        cdef double d, lam
         cdef double[2] f
-        cdef double[2] x
+        cdef double[2] x, xk, s
         cdef double[4] A
         cdef int iterations = 0
-        cdef double err
+        cdef double err_c, err_plus
+        cdef double alpha = 1e-4
 
         # initial guess
         for i in range(2):
@@ -769,29 +770,41 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
 
         # initial error norm
         self.func(f, x, vertices, physical_x)
-        err = maxnorm(f, 2)
+        err_c = maxnorm(f, 2)
 
         # begin Newton iteration
-        while (err > self.tolerance and iterations < self.max_iter):
+        while (err_c > self.tolerance and iterations < self.max_iter):
             self.jac(&A[0], &A[2], x, vertices, physical_x)
             d = (A[0]*A[3] - A[1]*A[2])
 
-            x[0] -= ( A[3]*f[0] - A[2]*f[1]) / d
-            x[1] -= (-A[1]*f[0] + A[0]*f[1]) / d
+            s[0] = -( A[3]*f[0] - A[2]*f[1]) / d
+            s[1] = -(-A[1]*f[0] + A[0]*f[1]) / d
+            xk[0] = x[0] + s[0]
+            xk[1] = x[1] + s[1]
 
-            self.func(f, x, vertices, physical_x)
-            err = maxnorm(f, 2)
+            self.func(f, xk, vertices, physical_x)
+            err_plus = maxnorm(f, 2)
+            lam = 1
+            while err_plus > err_c * (1. - alpha * lam) and lam > 1e-6:
+                lam = lam / 2
+                xk[0] = x[0] + lam * s[0]
+                xk[1] = x[1] + lam * s[1]
+                self.func(f, xk, vertices, physical_x)
+                err_plus = maxnorm(f, 2)
+
+            x[0] = xk[0]
+            x[1] = xk[1]
+            err_c = err_plus
+                
             iterations += 1
 
-        if (err > self.tolerance):
+        if (err_c > self.tolerance):
             # we did not converge, set bogus value
             for i in range(2):
                 mapped_x[i] = -99.0
         else:
             for i in range(2):
                 mapped_x[i] = x[i]
-                with gil:
-                    print(mapped_x[i])
 
 
 cdef class Q1Sampler2D(NonlinearSolveSampler2D):

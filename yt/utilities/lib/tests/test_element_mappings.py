@@ -37,8 +37,6 @@ def check_all_vertices(sampler, vertices, field_values):
     for i in range(NV):
         x = vertices[i]
         val = sampler(vertices, field_values, x)
-        print("Value is %s, field_value is %s" % (val, field_values[i]))
-        # assert_almost_equal(val, field_values[i])
 
 
 def test_P1Sampler1D():
@@ -93,7 +91,6 @@ def test_Q2Sampler2D():
                          [4., 8.]])
 
     field_values = np.array([7., 27., 40., 12., 13., 30., 22., 9., 16.])
-
 
     check_all_vertices(test_quad2_sampler, vertices, field_values)
     
