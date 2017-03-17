@@ -1458,7 +1458,8 @@ more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
-:ref:`halo_catalog`.
+:ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
+to the other halo catalogs shown here.
 
 .. _rockstar:
 
@@ -1599,6 +1600,39 @@ information.  At this time, halo member particles cannot be loaded.
    ad = ds.all_data()
    # The halo mass
    print(ad["FOF", "particle_mass"])
+
+.. _halocatalog:
+
+HaloCatalog
+^^^^^^^^^^^
+
+These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
+In the case where multiple files were produced, one need only provide the path
+to a single one of them.  The field type for all fields is "halos".  The fields
+available here are similar to other catalogs.  Any addition
+:ref:`halo_catalog_quantities` will also be accessible as fields.
+
++-------------------+---------------------------+
+| HaloCatalog field | yt field name             |
++===================+===========================+
+| halo id           | particle_identifier       |
++-------------------+---------------------------+
+| virial mass       | particle_mass             |
++-------------------+---------------------------+
+| virial radius     | virial_radius             |
++-------------------+---------------------------+
+| halo position     | particle_position_(x,y,z) |
++-------------------+---------------------------+
+| halo velocity     | particle_velocity_(x,y,z) |
++-------------------+---------------------------+
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("catalogs/catalog.0.h5")
+   ad = ds.all_data()
+   # The halo mass
+   print(ad["halos", "particle_mass"])
 
 .. _loading-openpmd-data:
 

@@ -747,6 +747,7 @@ def get_output_filename(name, keyword, suffix):
 
     With a name provided by the user, this will decide how to 
     appropriately name the output file by the following rules:
+
     1. if name is None, the filename will be the keyword plus 
        the suffix.
     2. if name ends with "/", assume name is a directory and 

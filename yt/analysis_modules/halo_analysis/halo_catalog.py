@@ -72,11 +72,11 @@ class HaloCatalog(ParallelAnalysisInterface):
     --------
 
     >>> # create profiles or overdensity vs. radius for each halo and save to disk
-    >>> from yt.mods import *
+    >>> import yt
     >>> from yt.analysis_modules.halo_analysis.api import *
-    >>> data_ds = load("DD0064/DD0064")
-    >>> halos_ds = load("rockstar_halos/halos_64.0.bin",
-    ...                 output_dir="halo_catalogs/catalog_0064")
+    >>> data_ds = yt.load("DD0064/DD0064")
+    >>> halos_ds = yt.load("rockstar_halos/halos_64.0.bin",
+    ...                    output_dir="halo_catalogs/catalog_0064")
     >>> hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
     >>> # filter out halos with mass < 1e13 Msun
     >>> hc.add_filter("quantity_value", "particle_mass", ">", 1e13, "Msun")
@@ -91,7 +91,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     >>> hc.create()
 
     >>> # load in the saved halo catalog and all the profile data
-    >>> halos_ds = load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
+    >>> halos_ds = yt.load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
     >>> hc = HaloCatalog(halos_ds=halos_ds,
                          output_dir="halo_catalogs/catalog_0064")
     >>> hc.add_callback("load_profiles", output_dir="profiles")

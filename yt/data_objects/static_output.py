@@ -194,6 +194,8 @@ class MutableAttribute(object):
         self.data = weakref.WeakKeyDictionary()
 
     def __get__(self, instance, owner):
+        if not instance:
+            return None
         ret = self.data.get(instance, None)
         try:
             ret = ret.copy()
@@ -1056,7 +1058,7 @@ class Dataset(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
