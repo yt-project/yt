@@ -209,8 +209,8 @@ The default is zero, which is equivalent to including all stars.
 There are two ways to write out the data once the spectrum has been calculated.
 The command ``write_out`` outputs two columns of data:
 
-  1. Wavelength :math:`(\text{\AA})`
-  2. Flux (Luminosity per unit wavelength :math:`(\mathrm{\rm{L}_\odot} / \text{\AA})` , where
+  1. Wavelength (:math:`\text{Angstroms}`)
+  2. Flux (Luminosity per unit wavelength :math:`(\mathrm{\rm{L}_\odot} / \text{Angstrom})` , where
        :math:`\mathrm{\rm{L}_\odot} = 3.826 \cdot 10^{33}\, \mathrm{ergs / s}` ).
 
 and can be called simply, specifying the output file:
@@ -225,7 +225,7 @@ which is the wavelength in Angstroms of the flux to normalize the
 distribution to. The default is 5200 Angstroms. This command outputs the data
 in two columns:
 
-  1. Wavelength :math:`(\text{\AA})`
+  1. Wavelength :math:`(\text{Angstroms})`
   2. Relative flux normalized to the flux at *flux_norm*.
 
 .. code-block:: python
