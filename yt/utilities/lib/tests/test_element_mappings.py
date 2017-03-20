@@ -21,6 +21,7 @@ from yt.utilities.lib.element_mappings import \
     test_hex_sampler, \
     test_tri_sampler, \
     test_quad_sampler, \
+    test_quad2_sampler, \
     test_hex20_sampler, \
     test_wedge_sampler, \
     test_tri2_sampler, \
@@ -76,6 +77,23 @@ def test_Q1Sampler2D():
 
     check_all_vertices(test_quad_sampler, vertices, field_values)
 
+
+def test_Q2Sampler2D():
+
+    vertices = np.array([[2., 3.],
+                         [7., 4.],
+                         [10., 15.],
+                         [4., 12.],
+                         [4.5, 3.5],
+                         [8.5, 9.5],
+                         [7., 13.5],
+                         [3., 7.5],
+                         [5.75, 8.5]])
+
+    field_values = np.array([7., 27., 40., 12., 13., 30., 22., 9., 16.])
+
+    check_all_vertices(test_quad2_sampler, vertices, field_values)
+    
 
 def test_Q1Sampler3D():
     vertices = np.array([[2.00657905, 0.6888599,  1.4375],

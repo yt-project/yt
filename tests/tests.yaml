@@ -63,9 +63,10 @@ answer_tests:
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
 
-  local_unstructured_002:
+  local_unstructured_004:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
+    - yt/visualization/tests/test_mesh_slices.py:test_quad2
     - yt/visualization/tests/test_mesh_slices.py:test_multi_region
 
   local_boxlib_003:
