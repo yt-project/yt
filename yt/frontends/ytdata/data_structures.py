@@ -275,7 +275,7 @@ class YTDataContainerDataset(YTDataset):
             # since this is now particle-like data.
             data_type = self.parameters.get("data_type")
             container_type = self.parameters.get("container_type")
-            ex_container_type = ["cutting", "proj", "ray", "slice"]
+            ex_container_type = ["cutting", "proj", "ray", "slice", "cut_region"]
             if data_type == "yt_light_ray" or container_type in ex_container_type:
                 mylog.info("Returning an all_data data container.")
                 return self.all_data()

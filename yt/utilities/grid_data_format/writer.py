@@ -50,11 +50,13 @@ def write_to_gdf(ds, gdf_path, fields=None,
     dataset_units : dictionary, optional
         A dictionary of (value, unit) tuples to set the default units
         of the dataset. Keys can be:
-            "length_unit"
-            "time_unit"
-            "mass_unit"
-            "velocity_unit"
-            "magnetic_unit"
+
+        * "length_unit"
+        * "time_unit"
+        * "mass_unit"
+        * "velocity_unit"
+        * "magnetic_unit"
+
         If not specified, these will carry over from the parent
         dataset.
     particle_type_name : string, optional

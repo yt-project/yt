@@ -1986,7 +1986,7 @@ class YTBooleanContainer(YTSelectionContainer3D):
     multiple data objects.
 
     This object is not designed to be created directly; it is designed to be
-    created implicitly by using one of the bitwise operations (&, |, ^, ~) on
+    created implicitly by using one of the bitwise operations (&, \|, ^, \~) on
     one or two other data objects.  These correspond to the appropriate boolean
     operations, and the resultant object can be nested.
 

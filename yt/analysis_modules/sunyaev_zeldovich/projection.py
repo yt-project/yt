@@ -78,7 +78,7 @@ class SZProjection(object):
 
     Parameters
     ----------
-    ds : Dataset
+    ds : ~yt.data_objects.static_output.Dataset 
         The dataset
     freqs : array_like
         The frequencies (in GHz) at which to compute the SZ spectral distortion.

@@ -79,7 +79,7 @@ class SDFDataset(ParticleDataset):
                  unit_system="cgs"):
         if bounding_box is not None:
             self._subspace = True
-            bbox = np.array(bounding_box, dtype="float32")
+            bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
             self.domain_left_edge = bbox[:,0]
@@ -122,8 +122,7 @@ class SDFDataset(ParticleDataset):
         except:
             self.unique_identifier = time.time()
 
-
-        if None in (self.domain_left_edge, self.domain_right_edge):
+        if self.domain_left_edge is None or self.domain_right_edge is None:
             R0 = self.parameters['R0']
             if 'offset_center' in self.parameters and self.parameters['offset_center']:
                 self.domain_left_edge = np.array([0, 0, 0], dtype=np.float64)

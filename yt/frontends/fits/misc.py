@@ -49,7 +49,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
 
     Parameters
     ----------
-    ds : Dataset
+    ds : `~yt.data_objects.static_output.Dataset`
         The FITS events file dataset to add the counts fields to.
     ebounds : list of tuples
         A list of tuples, one for each field, with (emin, emax) as the

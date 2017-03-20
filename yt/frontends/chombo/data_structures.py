@@ -34,7 +34,8 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.file_handler import \
-    HDF5FileHandler
+    HDF5FileHandler, \
+    warn_h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.lib.misc_utilities import \
@@ -729,6 +730,8 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        warn_h5py(args[0])
 
         if not is_chombo_hdf5(args[0]):
             return False
