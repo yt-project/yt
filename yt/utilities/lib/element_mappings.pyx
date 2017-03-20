@@ -344,6 +344,10 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
                                double* physical_x) nogil:
         '''
 
+        A thorough description of Newton's method and modifications for global
+        convergence can be found in Dennis's text "Numerical Methods for
+        Unconstrained Optimization and Nonlinear Equations."
+
         x: solution vector; holds unit/mapped coordinates
         xk: temporary vector for holding solution of current iteration
         f: residual vector
@@ -352,11 +356,16 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
         d: Jacobian determinant
         s_n: Newton step vector
         lam: fraction of Newton step by which to change x
-        alpha: constant proportional to how much residual required to decrease
+        alpha: constant proportional to how much residual required to decrease.
+               1e-4 is value of alpha recommended by Dennis
         err_c: Error of current iteration
         err_plus: Error of next iteration
-        
+        min_lam: minimum fraction of Newton step that the line search is allowed
+                 to take. General experience suggests that lambda values smaller
+                 than 1e-3 will not significantly reduce the residual, but we
+                 set to 1e-6 just to be safe
         '''
+        
         cdef int i
         cdef double d, lam
         cdef double[3] f
@@ -367,6 +376,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
         cdef int iterations = 0
         cdef double err_c, err_plus
         cdef double alpha = 1e-4
+        cdef double min_lam = 1e-6
 
         # initial guess
         for i in range(3):
@@ -391,7 +401,7 @@ cdef class NonlinearSolveSampler3D(ElementSampler):
             err_plus = maxnorm(f, 3)
             
             lam = 1
-            while err_plus > err_c * (1. - alpha * lam) and lam > 1e-6:
+            while err_plus > err_c * (1. - alpha * lam) and lam > min_lam:
                 lam = lam / 2
                 xk[0] = x[0] + lam * s_n[0]
                 xk[1] = x[1] + lam * s_n[1]
@@ -791,6 +801,10 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
                                double* physical_x) nogil:
         '''
 
+        A thorough description of Newton's method and modifications for global
+        convergence can be found in Dennis's text "Numerical Methods for
+        Unconstrained Optimization and Nonlinear Equations."
+
         x: solution vector; holds unit/mapped coordinates
         xk: temporary vector for holding solution of current iteration
         f: residual vector
@@ -798,11 +812,16 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
         d: Jacobian determinant
         s_n: Newton step vector
         lam: fraction of Newton step by which to change x
-        alpha: constant proportional to how much residual required to decrease
+        alpha: constant proportional to how much residual required to decrease.
+               1e-4 is value of alpha recommended by Dennis
         err_c: Error of current iteration
         err_plus: Error of next iteration
-        
+        min_lam: minimum fraction of Newton step that the line search is allowed
+                 to take. General experience suggests that lambda values smaller
+                 than 1e-3 will not significantly reduce the residual, but we
+                 set to 1e-6 just to be safe
         '''
+        
         cdef int i
         cdef double d, lam
         cdef double[2] f
@@ -811,6 +830,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
         cdef int iterations = 0
         cdef double err_c, err_plus
         cdef double alpha = 1e-4
+        cdef double min_lam = 1e-6
 
         # initial guess
         for i in range(2):
@@ -833,7 +853,7 @@ cdef class NonlinearSolveSampler2D(ElementSampler):
             err_plus = maxnorm(f, 2)
             
             lam = 1
-            while err_plus > err_c * (1. - alpha * lam) and lam > 1e-6:
+            while err_plus > err_c * (1. - alpha * lam) and lam > min_lam:
                 lam = lam / 2
                 xk[0] = x[0] + lam * s_n[0]
                 xk[1] = x[1] + lam * s_n[1]
