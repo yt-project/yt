@@ -270,7 +270,7 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
 .. code-block:: bash
 
-  $ conda install yt
+  $ conda install -c conda-forge yt
 
 which will install stable branch of yt along with all of its dependencies.
 
@@ -284,7 +284,7 @@ it from our custom anaconda channel:
 
 .. code-block:: bash
 
-  $ conda install -c http://use.yt/with_conda/ yt
+  $ conda install -c http://use.yt/with_conda/ -c conda-forge yt
 
 New packages for development branch are built after every pull request is
 merged. In order to make sure you are running latest version, it's recommended
@@ -292,7 +292,12 @@ to update frequently:
 
 .. code-block:: bash
 
-  $ conda update -c http://use.yt/with_conda/ yt
+  $ conda update -c http://use.yt/with_conda/ -c conda-forge yt
+
+We recommend trying to install dependencies from conda-forge as indicated above
+since focused individual communities stand a better chance of successfully
+maintaining build recipes. However, if you wish to use the default anaconda
+packages, simply remove ``-c conda-forge`` during conda installation.
 
 Location of our channel can be added to ``.condarc`` to avoid retyping it during
 each *conda* invocation. Please refer to `Conda Manual
