@@ -2033,10 +2033,6 @@ class ScaleCallback(PlotCallback):
 
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
-        if plot.aspect != 1.0:
-            raise NotImplementedError(
-                "Scale callback has only been implemented for plots with no "
-                "aspect ratio scaling. (aspect = {%s})".format(plot._aspect))
 
         # Setting pos overrides corner argument
         if self.pos is None:
@@ -2076,8 +2072,8 @@ class ScaleCallback(PlotCallback):
         text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
-
-        size_vertical = self.size_bar_args.pop('size_vertical', .005)
+        size_vertical = self.size_bar_args.pop(
+            'size_vertical', .005 * plot.aspect)
         fontproperties = self.size_bar_args.pop(
             'fontproperties', plot.font_properties.copy())
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
