@@ -78,7 +78,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
 
-  local_boxlib_particles_002:
+  local_boxlib_particles_003:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
