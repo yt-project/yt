@@ -279,6 +279,9 @@ which will install stable branch of yt along with all of its dependencies.
 Nightly Conda Builds
 ^^^^^^^^^^^^^^^^^^^^
 
+**Note**: Nightly builds for OS X are currently unavailable. OS X users that
+want the most recent yt are encouraged to go to :ref:`conda-source-build`.
+
 If you would like to install latest development version of yt, you can download
 it from our custom anaconda channel:
 
@@ -314,7 +317,7 @@ conda environment:
 
 .. code-block:: bash
 
-  $ conda install cython mercurial sympy ipython matplotlib
+  $ conda install -c conda-forge cython mercurial sympy ipython matplotlib netCDF4
 
 In addition, you will need a C compiler installed.
 
