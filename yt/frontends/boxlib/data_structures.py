@@ -144,7 +144,7 @@ class BoxLibParticleHeader(object):
     def __init__(self, ds, directory_name, is_checkpoint, 
                  extra_field_names=None):
 
-        self.species_name = directory_name
+        self.particle_type = directory_name
         header_filename =  ds.output_dir + "/" + directory_name + "/Header"
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
@@ -198,23 +198,23 @@ class BoxLibParticleHeader(object):
     def _generate_particle_fields(self, extra_field_names):
 
         # these are the 'base' integer fields
-        self.known_int_fields = [(self.species_name, "particle_id"),
-                                 (self.species_name, "particle_cpu"),
-                                 (self.species_name, "particle_cell_x"),
-                                 (self.species_name, "particle_cell_y"),
-                                 (self.species_name, "particle_cell_z")]
+        self.known_int_fields = [(self.particle_type, "particle_id"),
+                                 (self.particle_type, "particle_cpu"),
+                                 (self.particle_type, "particle_cell_x"),
+                                 (self.particle_type, "particle_cell_y"),
+                                 (self.particle_type, "particle_cell_z")]
         self.known_int_fields = self.known_int_fields[0:self.num_int_base]
 
         # these are extra integer fields
         extra_int_fields = ["particle_int_comp%d" % i 
                             for i in range(self.num_int_extra)]
-        self.known_int_fields.extend([(self.species_name, field) 
+        self.known_int_fields.extend([(self.particle_type, field) 
                                       for field in extra_int_fields])
 
         # these are the base real fields
-        self.known_real_fields = [(self.species_name, "particle_position_x"),
-                                  (self.species_name, "particle_position_y"),
-                                  (self.species_name, "particle_position_z")]
+        self.known_real_fields = [(self.particle_type, "particle_position_x"),
+                                  (self.particle_type, "particle_position_y"),
+                                  (self.particle_type, "particle_position_z")]
         self.known_real_fields = self.known_real_fields[0:self.num_real_base]
 
         # these are the extras
@@ -224,7 +224,7 @@ class BoxLibParticleHeader(object):
             extra_field_names = ["particle_real_comp%d" % i 
                                  for i in range(self.num_real_extra)]
 
-        self.known_real_fields.extend([(self.species_name, field) 
+        self.known_real_fields.extend([(self.particle_type, field) 
                                        for field in extra_field_names])
 
         self.known_fields = self.known_int_fields + self.known_real_fields
@@ -241,7 +241,7 @@ class AMReXParticleHeader(object):
     def __init__(self, ds, directory_name, is_checkpoint, 
                  extra_field_names=None):
 
-        self.species_name = directory_name
+        self.particle_type = directory_name
         header_filename =  ds.output_dir + "/" + directory_name + "/Header"
         self.real_component_names = []
         self.int_component_names = []
@@ -299,20 +299,20 @@ class AMReXParticleHeader(object):
     def _generate_particle_fields(self):
 
         # these are the 'base' integer fields
-        self.known_int_fields = [(self.species_name, "particle_id"),
-                                 (self.species_name, "particle_cpu")]
+        self.known_int_fields = [(self.particle_type, "particle_id"),
+                                 (self.particle_type, "particle_cpu")]
         self.known_int_fields = self.known_int_fields[0:self.num_int_base]
 
-        self.known_int_fields.extend([(self.species_name, "particle_" + field) 
+        self.known_int_fields.extend([(self.particle_type, "particle_" + field) 
                                        for field in self.int_component_names])
 
         # these are the base real fields
-        self.known_real_fields = [(self.species_name, "particle_position_x"),
-                                  (self.species_name, "particle_position_y"),
-                                  (self.species_name, "particle_position_z")]
+        self.known_real_fields = [(self.particle_type, "particle_position_x"),
+                                  (self.particle_type, "particle_position_y"),
+                                  (self.particle_type, "particle_position_z")]
         self.known_real_fields = self.known_real_fields[0:self.num_real_base]
 
-        self.known_real_fields.extend([(self.species_name, "particle_" + field) 
+        self.known_real_fields.extend([(self.particle_type, "particle_" + field) 
                                        for field in self.real_component_names])
 
         self.known_fields = self.known_int_fields + self.known_real_fields
