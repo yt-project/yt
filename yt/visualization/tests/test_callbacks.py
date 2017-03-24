@@ -107,32 +107,38 @@ def test_scale_callback():
         ds = fake_amr_ds(fields = ("density",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_scale()
-        yield assert_fname, p.save(prefix)[0]
+        assert_fname(p.save(prefix)[0])
+        p = ProjectionPlot(ds, ax, "density", width=(0.5, 1.0))
+        p.annotate_scale()
+        assert_fname(p.save(prefix)[0])
+        p = ProjectionPlot(ds, ax, "density", width=(1.0, 1.5))
+        p.annotate_scale()
+        assert_fname(p.save(prefix)[0])
         p = SlicePlot(ds, ax, "density")
         p.annotate_scale()
-        yield assert_fname, p.save(prefix)[0]
+        assert_fname(p.save(prefix)[0])
         p = OffAxisSlicePlot(ds, vector, "density")
         p.annotate_scale()
-        yield assert_fname, p.save(prefix)[0]
+        assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
         p = SlicePlot(ds, "x", "density")
         p.annotate_scale(corner='upper_right', coeff=10., unit='kpc')
-        yield assert_fname, p.save(prefix)[0]
+        assert_fname(p.save(prefix)[0])
         p = SlicePlot(ds, "x", "density")
         p.annotate_scale(text_args={"size": 24})
-        yield assert_fname, p.save(prefix)[0]
+        assert_fname(p.save(prefix)[0])
         p = SlicePlot(ds, "x", "density")
         p.annotate_scale(text_args={"font": 24})
-        yield assert_raises, YTPlotCallbackError
+        assert_raises(YTPlotCallbackError)
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_scale()
-        yield assert_raises, YTDataTypeUnsupported, p.save, prefix
+        assert_raises(YTDataTypeUnsupported, p.save, prefix)
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_scale(coord_system="axis")
-        yield assert_raises, YTDataTypeUnsupported, p.save, prefix
+        assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
 def test_line_callback():
     with _cleanup_fname() as prefix:
