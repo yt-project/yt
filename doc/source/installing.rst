@@ -314,7 +314,7 @@ conda environment:
 
 .. code-block:: bash
 
-  $ conda install cython mercurial sympy ipython matplotlib
+  $ conda install -c conda-forge cython mercurial sympy ipython matplotlib netCDF4
 
 In addition, you will need a C compiler installed.
 
