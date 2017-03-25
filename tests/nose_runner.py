@@ -98,7 +98,7 @@ if __name__ == "__main__":
     tasks = multiprocessing.JoinableQueue()
     results = multiprocessing.Queue()
 
-    num_consumers = os.environ.get('NUM_WORKERS', 6)
+    num_consumers = int(os.environ.get('NUM_WORKERS', 6))
     consumers = [NoseWorker(tasks, results) for i in range(num_consumers)]
     for w in consumers:
         w.start()
