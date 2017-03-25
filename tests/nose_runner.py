@@ -28,12 +28,17 @@ class NoseWorker(multiprocessing.Process):
             result = next_task()
             self.task_queue.task_done()
             self.result_queue.put(result)
+            if next_task.exclusive:
+                print("%s: Exiting (exclusive)" % proc_name)
+                break
         return
 
 class NoseTask(object):
-    def __init__(self, argv):
+    def __init__(self, job):
+        argv, exclusive = job
         self.argv = argv
         self.name = argv[0]
+        self.exclusive = exclusive
 
     def __call__(self):
         old_stderr = sys.stderr
@@ -69,12 +74,12 @@ def generate_tasks_input():
                       if DROP_TAG not in line])
     tests = yaml.load(data)
 
-    base_argv = ['--local-dir=%s' % answers_dir,
+    base_argv = ['--local-dir=%s' % answers_dir, '-s', '--nologcapture',
                  '--with-answer-testing', '--answer-big-data', '--local']
     args = []
 
     for test in list(tests["other_tests"].keys()):
-        args.append([test] + tests["other_tests"][test])
+        args.append(([test] + tests["other_tests"][test], True))
     for answer in list(tests["answer_tests"].keys()):
         if tests["answer_tests"][answer] is None:
             continue
@@ -82,10 +87,10 @@ def generate_tasks_input():
         argv += base_argv
         argv.append('--answer-name=%s' % argv[0])
         argv += tests["answer_tests"][answer]
-        args.append(argv)
+        args.append((argv, False))
 
-    args = [item + ['-s', '--nologcapture', '--xunit-file=%s.xml' % item[0]]
-            for item in args]
+    args = [(item + ['--xunit-file=%s.xml' % item[0]], exclusive)
+            for item, exclusive in args]
     return args
 
 if __name__ == "__main__":
@@ -100,6 +105,8 @@ if __name__ == "__main__":
 
     num_jobs = 0
     for job in generate_tasks_input():
+        if job[1]:
+            num_consumers -= 1  # take into account exclusive jobs
         tasks.put(NoseTask(job))
         num_jobs += 1
 
@@ -110,5 +117,4 @@ if __name__ == "__main__":
 
     while num_jobs:
         result = results.get()
-        print(result)
         num_jobs -= 1
