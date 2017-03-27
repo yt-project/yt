@@ -122,10 +122,12 @@ cdef class ParticleDepositOperation:
         cdef np.int64_t gid = getattr(gobj, "id", -1)
         cdef np.float64_t dds[3]
         cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
         cdef int dims[3]
         for i in range(3):
             dds[i] = gobj.dds[i]
             left_edge[i] = gobj.LeftEdge[i]
+            right_edge[i] = gobj.RightEdge[i]
             dims[i] = gobj.ActiveDimensions[i]
         for i in range(positions.shape[0]):
             # Now we process
@@ -133,15 +135,21 @@ cdef class ParticleDepositOperation:
                 field_vals[j] = field_pointers[j,i]
             for j in range(3):
                 pos[j] = positions[i, j]
+            continue_loop = False
+            for j in range(3):
+                if pos[j] < left_edge[j] or pos[j] > right_edge[j]:
+                    continue_loop = True
+            if continue_loop:
+                continue
             self.process(dims, left_edge, dds, 0, pos, field_vals, gid)
             if self.update_values == 1:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j]
 
-    cdef void process(self, int dim[3], np.float64_t left_edge[3],
-                      np.float64_t dds[3], np.int64_t offset,
-                      np.float64_t ppos[3], np.float64_t[:] fields,
-                      np.int64_t domain_ind):
+    cdef int process(self, int dim[3], np.float64_t left_edge[3],
+                     np.float64_t dds[3], np.int64_t offset,
+                     np.float64_t ppos[3], np.float64_t[:] fields,
+                     np.int64_t domain_ind) except -1:
         raise NotImplementedError
 
 cdef class CountParticles(ParticleDepositOperation):
@@ -152,20 +160,21 @@ cdef class CountParticles(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="int64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset, # offset into IO field
-                      np.float64_t ppos[3], # this particle's position
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset, # offset into IO field
+                     np.float64_t ppos[3], # this particle's position
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
         # here we do our thing; this is the kernel
         cdef int ii[3]
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i])/dds[i])
         self.count[ii[2], ii[1], ii[0], offset] += 1
+        return 0
 
     def finalize(self):
         arr = np.asarray(self.count)
@@ -188,14 +197,14 @@ cdef class SimpleSmooth(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset,
-                      np.float64_t ppos[3],
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset,
+                     np.float64_t ppos[3],
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
         cdef int ii[3]
         cdef int ib0[3]
         cdef int ib1[3]
@@ -210,7 +219,7 @@ cdef class SimpleSmooth(ParticleDepositOperation):
             ib0[i] = ii[i] - half_len
             ib1[i] = ii[i] + half_len
             if ib0[i] >= dim[i] or ib1[i] <0:
-                return
+                return 0
             ib0[i] = iclip(ib0[i], 0, dim[i] - 1)
             ib1[i] = iclip(ib1[i], 0, dim[i] - 1)
         for i from ib0[0] <= i <= ib1[0]:
@@ -233,6 +242,7 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                 for k from ib0[2] <= k <= ib1[2]:
                     dist = self.temp[k,j,i,offset] / kernel_sum
                     self.data[k,j,i,offset] += fields[1] * dist
+        return 0
 
     def finalize(self):
         return self.odata
@@ -246,20 +256,20 @@ cdef class SumParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset,
-                      np.float64_t ppos[3],
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset,
+                     np.float64_t ppos[3],
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
         cdef int ii[3]
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
         self.sum[ii[2], ii[1], ii[0], offset] += fields[0]
-        return
+        return 0
 
     def finalize(self):
         sum = np.asarray(self.sum)
@@ -288,14 +298,14 @@ cdef class StdParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset,
-                      np.float64_t ppos[3],
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset,
+                     np.float64_t ppos[3],
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
         cdef int ii[3]
         cdef int i, cell_index
         cdef float k, mk, qk
@@ -313,6 +323,7 @@ cdef class StdParticleField(ParticleDepositOperation):
             self.qk[ii[2], ii[1], ii[0], offset] = \
                 qk + (k - 1.0) * (fields[0] - mk) * (fields[0] - mk) / k
         self.i[ii[2], ii[1], ii[0], offset] += 1
+        return 0
 
     def finalize(self):
         # This is the standard variance
@@ -338,14 +349,14 @@ cdef class CICDeposit(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset, # offset into IO field
-                      np.float64_t ppos[3], # this particle's position
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset, # offset into IO field
+                     np.float64_t ppos[3], # this particle's position
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
 
         cdef int i, j, k
         cdef np.uint64_t ii
@@ -371,6 +382,8 @@ cdef class CICDeposit(ParticleDepositOperation):
                     self.field[ind[2] - k, ind[1] - j, ind[0] - i, offset] += \
                         fields[0]*rdds[0][i]*rdds[1][j]*rdds[2][k]
 
+        return 0
+
     def finalize(self):
         rv = np.asarray(self.field)
         rv.shape = self.nvals
@@ -390,20 +403,21 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype='float64', order='F'), 4)
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset,
-                      np.float64_t ppos[3],
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset,
+                     np.float64_t ppos[3],
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
         cdef int ii[3]
         cdef int i
         for i in range(3):
             ii[i] = <int>((ppos[i] - left_edge[i]) / dds[i])
         self.w[ii[2], ii[1], ii[0], offset] += fields[1]
         self.wf[ii[2], ii[1], ii[0], offset] += fields[0] * fields[1]
+        return 0
 
     def finalize(self):
         wf = np.asarray(self.wf)
@@ -422,15 +436,16 @@ cdef class MeshIdentifier(ParticleDepositOperation):
         self.update_values = 1
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
+    cdef int process(self, int dim[3],
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
                       np.float64_t[:] fields,
                       np.int64_t domain_ind
-                      ):
+                      ) except -1:
         fields[0] = domain_ind
+        return 0
 
     def finalize(self):
         return
@@ -448,14 +463,14 @@ cdef class NNParticleField(ParticleDepositOperation):
         self.distfield[:] = np.inf
 
     @cython.cdivision(True)
-    cdef void process(self, int dim[3],
-                      np.float64_t left_edge[3],
-                      np.float64_t dds[3],
-                      np.int64_t offset,
-                      np.float64_t ppos[3],
-                      np.float64_t[:] fields,
-                      np.int64_t domain_ind
-                      ):
+    cdef int process(self, int dim[3],
+                     np.float64_t left_edge[3],
+                     np.float64_t dds[3],
+                     np.int64_t offset,
+                     np.float64_t ppos[3],
+                     np.float64_t[:] fields,
+                     np.int64_t domain_ind
+                     ) except -1:
         # This one is a bit slow.  Every grid cell is going to be iterated
         # over, and we're going to deposit particles in it.
         cdef int i, j, k
@@ -477,7 +492,7 @@ cdef class NNParticleField(ParticleDepositOperation):
                     gpos[2] += dds[2]
                 gpos[1] += dds[1]
             gpos[0] += dds[0]
-        return
+        return 0
 
     def finalize(self):
         nn = np.asarray(self.nnfield)
