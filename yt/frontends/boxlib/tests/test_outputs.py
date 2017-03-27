@@ -144,22 +144,22 @@ def test_castro_particle_io():
     assert(np.all(np.logical_and(reg['particle_position_y'] <= right_edge[1], 
                                  reg['particle_position_y'] >= left_edge[1])))
 
-langmuir = "LangmuirWave/plt00020"
+langmuir = "LangmuirWave/plt00020_v2"
 @requires_ds(langmuir)
 def test_langmuir():
     ds = data_dir_load(langmuir)
-    yield assert_equal, str(ds), "plt00020"
+    yield assert_equal, str(ds), "plt00020_v2"
     for test in small_patch_amr(ds, _warpx_fields, 
                                 input_center="c",
                                 input_weight="Ex"):
         test_langmuir.__name__ = test.description
         yield test
 
-plasma = "PlasmaAcceleration/plt00030"
+plasma = "PlasmaAcceleration/plt00030_v2"
 @requires_ds(plasma)
 def test_plasma():
     ds = data_dir_load(plasma)
-    yield assert_equal, str(ds), "plt00030"
+    yield assert_equal, str(ds), "plt00030_v2"
     for test in small_patch_amr(ds, _warpx_fields,
                                 input_center="c",
                                 input_weight="Ex"):

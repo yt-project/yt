@@ -49,6 +49,15 @@ def test_tri2():
     for field in ds.field_list:
         yield compare(ds, field, "answers_tri2_%s_%s" % (field[0], field[1]))
 
+quad2 = "SecondOrderQuads/lid_driven_out.e"
+
+@requires_ds(quad2)
+def test_quad2():
+    ds = data_dir_load(quad2, kwargs={'step':-1})
+    field_list = [('all', 'T'), ('all', 'vel_x'), ('all', 'vel_y')]
+    for field in field_list:
+        yield compare(ds, field, "answers_quad2_%s_%s" % (field[0], field[1]))
+
 multi_region = "MultiRegion/two_region_example_out.e"
 
 @requires_ds(multi_region)

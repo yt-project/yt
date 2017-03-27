@@ -111,7 +111,18 @@ def test_arbitrary_grid():
             obj = ds.arbitrary_grid(LE, RE, dims)
             deposited_mass = obj["deposit", "all_density"].sum() * volume
 
-            yield assert_equal, deposited_mass, ds.quan(1.0, 'g')
+            assert_equal(deposited_mass, ds.quan(1.0, 'g'))
+
+            LE = np.array([0.00, 0.00, 0.00])
+            RE = np.array([0.05, 0.05, 0.05])
+            dims = np.array([ncells, ncells, ncells])
+
+            obj = ds.arbitrary_grid(LE, RE, dims)
+
+            deposited_mass = obj["deposit", "all_density"].sum()
+
+            assert_equal(deposited_mass, 0)
+
 
     # Test that we get identical results to the covering grid for unigrid data.
     # Testing AMR data is much harder.
