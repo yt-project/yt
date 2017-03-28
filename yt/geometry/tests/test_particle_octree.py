@@ -61,11 +61,11 @@ def test_add_particles_random():
         total_count = np.zeros(len(tc), dtype="int32")
         for i in sorted(tc):
             total_count[i] = tc[i]
-        yield assert_equal, octree.nocts, total_count.sum()
+        assert_equal(octree.nocts, total_count.sum())
         # This visits every cell -- including those covered by octs.
         #for dom in range(ndom):
         #    level_count += octree.count_levels(total_count.size-1, dom, mask)
-        yield assert_equal, total_count, [1, 8, 64, 64, 256, 536, 1856, 1672]
+        assert_equal(total_count, [1, 8, 64, 64, 256, 536, 1856, 1672])
 
 def test_save_load_octree():
     np.random.seed(int(0x4d3d3d3))
@@ -85,15 +85,15 @@ def test_save_load_octree():
     always = AlwaysSelector(None)
     ir1 = octree.ires(always)
     ir2 = loaded.ires(always)
-    yield assert_equal, ir1, ir2
+    assert_equal(ir1, ir2)
 
     fc1 = octree.fcoords(always)
     fc2 = loaded.fcoords(always)
-    yield assert_equal, fc1, fc2
+    assert_equal(fc1, fc2)
 
     fw1 = octree.fwidth(always)
     fw2 = loaded.fwidth(always)
-    yield assert_equal, fw1, fw2
+    assert_equal(fw1, fw2)
 
 def test_particle_octree_counts():
     np.random.seed(int(0x4d3d3d3))
@@ -112,9 +112,9 @@ def test_particle_octree_counts():
         dd = ds.all_data()
         bi = dd["io","mesh_id"]
         v = np.bincount(bi.astype("intp"))
-        yield assert_equal, v.max() <= n_ref, True
+        assert_equal(v.max() <= n_ref, True)
         bi2 = dd["all","mesh_id"]
-        yield assert_equal, bi, bi2
+        assert_equal(bi, bi2)
 
 def test_particle_overrefine():
     np.random.seed(int(0x4d3d3d3))
@@ -140,9 +140,9 @@ def test_particle_overrefine():
             dd2 = ds2.all_data()
             v2 = dict((a, getattr(dd2, a)) for a in _attrs)
             for a in sorted(v1):
-                yield assert_equal, v1[a].size * f, v2[a].size
+                assert_equal(v1[a].size * f, v2[a].size)
             cv2 = dd2["cell_volume"].sum(dtype="float64")
-            yield assert_equal, cv1, cv2
+            assert_equal(cv1, cv2)
 
 index_ptype_snap = "snapshot_033/snap_033.0.hdf5"
 @requires_file(index_ptype_snap)
@@ -156,8 +156,8 @@ def test_particle_index_ptype():
     cv = dd["cell_volume"]
     cv_all = dd_all["cell_volume"]
     cv_pt0 = dd_pt0["cell_volume"]
-    yield assert_equal, cv.shape, cv_all.shape
-    yield assert_equal, cv.sum(dtype="float64"), cv_pt0.sum(dtype="float64")
+    assert_equal(cv.shape, cv_all.shape)
+    assert_equal(cv.sum(dtype="float64"), cv_pt0.sum(dtype="float64"))
 
 class FakeDS:
     domain_left_edge = None
@@ -209,20 +209,15 @@ def test_particle_regions():
             fr.set_edges(i)
             selector = RegionSelector(fr)
             df = reg.identify_data_files(selector)
-            yield assert_equal, len(df), 1
-            yield assert_equal, df[0], i
+            assert_equal(len(df), 1)
+            assert_equal(df[0], i)
             pos[:,0] += 1.0
 
         for mask in reg.masks:
             maxs = np.unique(mask.max(axis=-1).max(axis=-1))
             mins = np.unique(mask.min(axis=-1).min(axis=-1))
-            yield assert_equal, maxs, mins
-            yield assert_equal, maxs, np.unique(mask)
-
-if __name__=="__main__":
-    for i in test_add_particles_random():
-        i[0](*i[1:])
-    time.sleep(1)
+            assert_equal(maxs, mins)
+            assert_equal(maxs, np.unique(mask))
 
 def test_position_location():
     np.random.seed(int(0x4d3d3d3))
@@ -246,5 +241,6 @@ os33 = "snapshot_033/snap_033.0.hdf5"
 @requires_file(os33)
 def test_get_smallest_dx():
     ds = yt.load(os33)
-    yield assert_equal, ds.index.get_smallest_dx(), \
-        ds.domain_width / (ds.domain_dimensions*2.**(ds.index.max_level))
+    small_dx = (
+        ds.domain_width / (ds.domain_dimensions*2.**(ds.index.max_level)))
+    assert_equal(ds.index.get_smallest_dx(), small_dx)
