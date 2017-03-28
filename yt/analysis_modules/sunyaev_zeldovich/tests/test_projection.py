@@ -113,7 +113,8 @@ def test_projection():
     deltaI = np.zeros((3,nx,ny))
     for i in range(3):
         deltaI[i,:,:] = full_szpack3d(ds, xinit[i])
-        yield assert_almost_equal, deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6
+        assert_almost_equal(
+            deltaI[i,:,:], np.array(szprj["%d_GHz" % int(freqs[i])]), 6)
 
 M7 = "DD0010/moving7_0010"
 @requires_module("SZpack")
