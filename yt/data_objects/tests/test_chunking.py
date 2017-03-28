@@ -34,7 +34,7 @@ def test_chunking():
                 coords['i'][t] = uconcatenate(coords['i'][t])
                 coords['f'][t].sort()
                 coords['i'][t].sort()
-            yield assert_equal, coords['f']['io'], coords['f']['all']
-            yield assert_equal, coords['f']['io'], coords['f']['spatial']
-            yield assert_equal, coords['i']['io'], coords['i']['all']
-            yield assert_equal, coords['i']['io'], coords['i']['spatial']
+            assert_equal(coords['f']['io'], coords['f']['all'])
+            assert_equal(coords['f']['io'], coords['f']['spatial'])
+            assert_equal(coords['i']['io'], coords['i']['all'])
+            assert_equal(coords['i']['io'], coords['i']['spatial'])

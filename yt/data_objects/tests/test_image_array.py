@@ -26,14 +26,14 @@ def test_rgba_rescale():
     im_arr = ImageArray(dummy_image(10.0, 4))
 
     new_im = im_arr.rescale(inline=False)
-    yield assert_equal, im_arr[:, :, :3].max(), 2 * 10.
-    yield assert_equal, im_arr[:, :, 3].max(), 3 * 10.
-    yield assert_equal, new_im[:, :, :3].sum(axis=2).max(), 1.0
-    yield assert_equal, new_im[:, :, 3].max(), 1.0
+    assert_equal(im_arr[:, :, :3].max(), 2 * 10.)
+    assert_equal(im_arr[:, :, 3].max(), 3 * 10.)
+    assert_equal(new_im[:, :, :3].sum(axis=2).max(), 1.0)
+    assert_equal(new_im[:, :, 3].max(), 1.0)
 
     im_arr.rescale()
-    yield assert_equal, im_arr[:, :, :3].sum(axis=2).max(), 1.0
-    yield assert_equal, im_arr[:, :, 3].max(), 1.0
+    assert_equal(im_arr[:, :, :3].sum(axis=2).max(), 1.0)
+    assert_equal(im_arr[:, :, 3].max(), 1.0)
 
 
 class TestImageArray(unittest.TestCase):

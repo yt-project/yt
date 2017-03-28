@@ -54,9 +54,8 @@ def test_profiles():
 
                 for p1d in [direct_profile, indirect_profile_s,
                             indirect_profile_t]:
-                    yield assert_equal, p1d["index", "ones"].sum(), nv
-                    yield assert_rel_equal, tt, \
-                        p1d["gas", "temperature"].sum(), 7
+                    assert_equal(p1d["index", "ones"].sum(), nv)
+                    assert_rel_equal(tt, p1d["gas", "temperature"].sum(), 7)
 
                 p2d = Profile2D(
                     dd,
@@ -64,8 +63,8 @@ def test_profiles():
                     "temperature", nb, tmi*e1, tma*e2, lf,
                     weight_field=None)
                 p2d.add_fields(["ones", "temperature"])
-                yield assert_equal, p2d["ones"].sum(), nv
-                yield assert_rel_equal, tt, p2d["temperature"].sum(), 7
+                assert_equal(p2d["ones"].sum(), nv)
+                assert_rel_equal(tt, p2d["temperature"].sum(), 7)
 
                 p3d = Profile3D(
                     dd,
@@ -74,39 +73,39 @@ def test_profiles():
                     "dinosaurs",   nb, dmi*e1, dma*e2, lf,
                     weight_field=None)
                 p3d.add_fields(["ones", "temperature"])
-                yield assert_equal, p3d["ones"].sum(), nv
-                yield assert_rel_equal, tt, p3d["temperature"].sum(), 7
+                assert_equal(p3d["ones"].sum(), nv)
+                assert_rel_equal(tt, p3d["temperature"].sum(), 7)
 
         p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False,
                         weight_field = None)
         p1d.add_fields("ones")
         av = nv / nb
-        yield assert_equal, p1d["ones"], np.ones(nb)*av
+        assert_equal(p1d["ones"], np.ones(nb)*av)
 
         # We re-bin ones with a weight now
         p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False,
                         weight_field = "temperature")
         p1d.add_fields(["ones"])
-        yield assert_equal, p1d["ones"], np.ones(nb)
+        assert_equal(p1d["ones"], np.ones(nb))
 
         # Verify we can access "ones" after adding a new field
         # See issue 988
         p1d.add_fields(["density"])
-        yield assert_equal, p1d["ones"], np.ones(nb)
+        assert_equal(p1d["ones"], np.ones(nb))
 
         p2d = Profile2D(dd, "x", nb, 0.0, 1.0, False,
                             "y", nb, 0.0, 1.0, False,
                             weight_field = None)
         p2d.add_fields("ones")
         av = nv / nb**2
-        yield assert_equal, p2d["ones"], np.ones((nb, nb))*av
+        assert_equal(p2d["ones"], np.ones((nb, nb))*av)
 
         # We re-bin ones with a weight now
         p2d = Profile2D(dd, "x", nb, 0.0, 1.0, False,
                             "y", nb, 0.0, 1.0, False,
                             weight_field = "temperature")
         p2d.add_fields(["ones"])
-        yield assert_equal, p2d["ones"], np.ones((nb, nb))
+        assert_equal(p2d["ones"], np.ones((nb, nb)))
 
         p3d = Profile3D(dd, "x", nb, 0.0, 1.0, False,
                             "y", nb, 0.0, 1.0, False,
@@ -114,7 +113,7 @@ def test_profiles():
                             weight_field = None)
         p3d.add_fields("ones")
         av = nv / nb**3
-        yield assert_equal, p3d["ones"], np.ones((nb, nb, nb))*av
+        assert_equal(p3d["ones"], np.ones((nb, nb, nb))*av)
 
         # We re-bin ones with a weight now
         p3d = Profile3D(dd, "x", nb, 0.0, 1.0, False,
@@ -122,7 +121,7 @@ def test_profiles():
                             "z", nb, 0.0, 1.0, False,
                             weight_field = "temperature")
         p3d.add_fields(["ones"])
-        yield assert_equal, p3d["ones"], np.ones((nb,nb,nb))
+        assert_equal(p3d["ones"], np.ones((nb,nb,nb)))
 
 extrema_s = {'particle_position_x': (0, 1)}
 logs_s = {'particle_position_x': False}
@@ -138,32 +137,32 @@ def test_particle_profiles():
         p1d = Profile1D(dd, "particle_position_x", 128,
                         0.0, 1.0, False, weight_field = None)
         p1d.add_fields(["particle_ones"])
-        yield assert_equal, p1d["particle_ones"].sum(), 32**3
+        assert_equal(p1d["particle_ones"].sum(), 32**3)
 
         p1d = create_profile(dd, ["particle_position_x"], ["particle_ones"],
                              weight_field=None, n_bins=128, extrema=extrema_s,
                              logs=logs_s)
-        yield assert_equal, p1d["particle_ones"].sum(), 32**3
+        assert_equal(p1d["particle_ones"].sum(), 32**3)
 
         p1d = create_profile(dd,
                              [("all", "particle_position_x")],
                              [("all", "particle_ones")],
                              weight_field=None, n_bins=128, extrema=extrema_t,
                              logs=logs_t)
-        yield assert_equal, p1d["particle_ones"].sum(), 32**3
+        assert_equal(p1d["particle_ones"].sum(), 32**3)
 
         p2d = Profile2D(dd, "particle_position_x", 128, 0.0, 1.0, False,
                             "particle_position_y", 128, 0.0, 1.0, False,
                         weight_field = None)
         p2d.add_fields(["particle_ones"])
-        yield assert_equal, p2d["particle_ones"].sum(), 32**3
+        assert_equal(p2d["particle_ones"].sum(), 32**3)
 
         p3d = Profile3D(dd, "particle_position_x", 128, 0.0, 1.0, False,
                             "particle_position_y", 128, 0.0, 1.0, False,
                             "particle_position_z", 128, 0.0, 1.0, False,
                         weight_field = None)
         p3d.add_fields(["particle_ones"])
-        yield assert_equal, p3d["particle_ones"].sum(), 32**3
+        assert_equal(p3d["particle_ones"].sum(), 32**3)
 
 def test_mixed_particle_mesh_profiles():
     ds = fake_random_ds(32, particles=10)

@@ -32,8 +32,8 @@ def test_domain_sphere():
     # Set the bulk velocity field parameter
     sp1.set_field_parameter("bulk_velocity", bulk_vel)
 
-    yield assert_equal, np.any(sp0["radial_velocity"] ==
-                               sp1["radial_velocity"]), False
+    assert_equal(np.any(sp0["radial_velocity"] == sp1["radial_velocity"]),
+                 False)
 
     # Radial profile without correction
     # Note we set n_bins = 8 here.
@@ -50,12 +50,12 @@ def test_domain_sphere():
                          logs = {'radius': False},
                          n_bins = 8)
 
-    yield assert_equal, rp0.x_bins, rp1.x_bins
-    yield assert_equal, rp0.used, rp1.used
-    yield assert_equal, rp0.used.sum() > rp0.used.size/2.0, True
-    yield assert_equal, np.any(rp0["radial_velocity"][rp0.used] ==
-                               rp1["radial_velocity"][rp1.used]), \
-                               False
+    assert_equal(rp0.x_bins, rp1.x_bins)
+    assert_equal(rp0.used, rp1.used)
+    assert_equal(rp0.used.sum() > rp0.used.size/2.0, True)
+    assert_equal(np.any(rp0["radial_velocity"][rp0.used] ==
+                        rp1["radial_velocity"][rp1.used]),
+                 False)
 
     ref_sp = ds.sphere("c", 0.25)
     for f in _fields_to_compare:
@@ -64,4 +64,4 @@ def test_domain_sphere():
         sp = ds.sphere(center, 0.25)
         for f in _fields_to_compare:
             sp[f].sort()
-            yield assert_equal, sp[f], ref_sp[f]
+            assert_equal(sp[f], ref_sp[f])
