@@ -52,6 +52,7 @@ def add_contour_field(ds, contour_key):
                  validators=[ValidateSpatial(0)],
                  take_log=False,
                  display_field=False,
+                 sampling_type='cell',
                  units='')
 
 class Clump(TreeContainer):
