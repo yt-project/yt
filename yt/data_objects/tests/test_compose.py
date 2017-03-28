@@ -34,7 +34,7 @@ def test_compose_no_overlap():
     empty = np.array([])
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
-        ds.add_field(("index", "ID"), function=_IDFIELD)
+        ds.add_field(("index", "ID"), sampling_type='cell', function=_IDFIELD)
 
         # position parameters for initial region
         center = [0.25]*3
@@ -81,7 +81,7 @@ def test_compose_overlap():
     """
     for n in [1, 2, 4, 8]:
         ds = fake_random_ds(64, nprocs=n)
-        ds.add_field(("index", "ID"), function=_IDFIELD)
+        ds.add_field(("index", "ID"), sampling_type='cell', function=_IDFIELD)
 
         # position parameters for initial region
         center = [0.4, 0.5, 0.5]
