@@ -30,7 +30,7 @@ sedov = "sedov/sedov_tst_0004.h5"
 @requires_ds(sedov)
 def test_sedov_tunnel():
     ds = data_dir_load(sedov)
-    yield assert_equal, str(ds), "sedov_tst_0004"
+    assert_equal(str(ds), "sedov_tst_0004")
     for test in small_patch_amr(ds, _fields):
         test_sedov_tunnel.__name__ = test.description
         yield test

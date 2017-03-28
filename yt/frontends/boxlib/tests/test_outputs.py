@@ -39,7 +39,7 @@ radadvect = "RadAdvect/plt00000"
 @requires_ds(radadvect)
 def test_radadvect():
     ds = data_dir_load(radadvect)
-    yield assert_equal, str(ds), "plt00000"
+    assert_equal(str(ds), "plt00000")
     for test in small_patch_amr(ds, _orion_fields):
         test_radadvect.__name__ = test.description
         yield test
@@ -48,7 +48,7 @@ rt = "RadTube/plt00500"
 @requires_ds(rt)
 def test_radtube():
     ds = data_dir_load(rt)
-    yield assert_equal, str(ds), "plt00500"
+    assert_equal(str(ds), "plt00500")
     for test in small_patch_amr(ds, _orion_fields):
         test_radtube.__name__ = test.description
         yield test
@@ -57,7 +57,7 @@ star = "StarParticles/plrd01000"
 @requires_ds(star)
 def test_star():
     ds = data_dir_load(star)
-    yield assert_equal, str(ds), "plrd01000"
+    assert_equal(str(ds), "plrd01000")
     for test in small_patch_amr(ds, _orion_fields):
         test_star.__name__ = test.description
         yield test
@@ -66,7 +66,7 @@ LyA = "Nyx_LyA/plt00000"
 @requires_ds(LyA)
 def test_LyA():
     ds = data_dir_load(LyA)
-    yield assert_equal, str(ds), "plt00000"
+    assert_equal(str(ds), "plt00000")
     for test in small_patch_amr(ds, _nyx_fields,
                                 input_center="c",
                                 input_weight="Ne"):
@@ -110,7 +110,7 @@ RT_particles = "RT_particles/plt00050"
 @requires_ds(RT_particles)
 def test_RT_particles():
     ds = data_dir_load(RT_particles)
-    yield assert_equal, str(ds), "plt00050"
+    assert_equal(str(ds), "plt00050")
     for test in small_patch_amr(ds, _castro_fields):
         test_RT_particles.__name__ = test.description
         yield test
@@ -148,7 +148,7 @@ langmuir = "LangmuirWave/plt00020_v2"
 @requires_ds(langmuir)
 def test_langmuir():
     ds = data_dir_load(langmuir)
-    yield assert_equal, str(ds), "plt00020_v2"
+    assert_equal(str(ds), "plt00020_v2")
     for test in small_patch_amr(ds, _warpx_fields, 
                                 input_center="c",
                                 input_weight="Ex"):
@@ -159,7 +159,7 @@ plasma = "PlasmaAcceleration/plt00030_v2"
 @requires_ds(plasma)
 def test_plasma():
     ds = data_dir_load(plasma)
-    yield assert_equal, str(ds), "plt00030_v2"
+    assert_equal(str(ds), "plt00030_v2")
     for test in small_patch_amr(ds, _warpx_fields,
                                 input_center="c",
                                 input_weight="Ex"):

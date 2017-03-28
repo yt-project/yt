@@ -34,7 +34,7 @@ g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 @requires_ds(g8)
 def test_fields_g8():
     ds = data_dir_load(g8)
-    yield assert_equal, str(ds), os.path.basename(g8)
+    assert_equal(str(ds), os.path.basename(g8))
     for field in _fields:
         yield FieldValuesTest(g8, field, particle_type=True)
 
@@ -42,7 +42,7 @@ def test_fields_g8():
 @requires_ds(g1)
 def test_fields_g1():
     ds = data_dir_load(g1)
-    yield assert_equal, str(ds), os.path.basename(g1)
+    assert_equal(str(ds), os.path.basename(g1))
     for field in _fields:
         yield FieldValuesTest(g1, field, particle_type=True)
 

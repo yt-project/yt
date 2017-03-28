@@ -41,12 +41,12 @@ def test_out():
                   ('connect2', 'conv_marker'),
                   ('connect2', 'convected'),
                   ('connect2', 'diffused')]
-    yield assert_equal, str(ds), "out.e"
-    yield assert_equal, ds.dimensionality, 3
-    yield assert_equal, ds.current_time, 0.0
-    yield assert_array_equal, ds.parameters['nod_names'], ['convected', 'diffused']
-    yield assert_equal, ds.parameters['num_meshes'], 2
-    yield assert_array_equal, ds.field_list, field_list
+    assert_equal(str(ds), "out.e")
+    assert_equal(ds.dimensionality, 3)
+    assert_equal(ds.current_time, 0.0)
+    assert_array_equal(ds.parameters['nod_names'], ['convected', 'diffused'])
+    assert_equal(ds.parameters['num_meshes'], 2)
+    assert_array_equal(ds.field_list, field_list)
 
 out_s002 = "ExodusII/out.e-s002"
 
@@ -66,10 +66,10 @@ def test_out002():
                   ('connect2', 'conv_marker'),
                   ('connect2', 'convected'),
                   ('connect2', 'diffused')]
-    yield assert_equal, str(ds), "out.e-s002"
-    yield assert_equal, ds.dimensionality, 3
-    yield assert_equal, ds.current_time, 2.0
-    yield assert_array_equal, ds.field_list, field_list
+    assert_equal(str(ds), "out.e-s002")
+    assert_equal(ds.dimensionality, 3)
+    assert_equal(ds.current_time, 2.0)
+    assert_array_equal(ds.field_list, field_list)
 
 gold = "ExodusII/gold.e"
 
@@ -78,8 +78,8 @@ gold = "ExodusII/gold.e"
 def test_gold():
     ds = data_dir_load(gold)
     field_list = [('all', 'forced'), ('connect1', 'forced')]
-    yield assert_equal, str(ds), "gold.e"
-    yield assert_array_equal, ds.field_list, field_list
+    assert_equal(str(ds), "gold.e")
+    assert_array_equal(ds.field_list, field_list)
 
 big_data = "MOOSE_sample_data/mps_out.e"
 
