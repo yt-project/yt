@@ -31,10 +31,10 @@ def test_export_frb():
     frb_ds = frb.export_dataset(fields=["density"], nprocs=8)
     dd_frb = frb_ds.all_data()
 
-    yield assert_equal, frb_ds.domain_left_edge.v, np.array([0.25,0.25,0.0])
-    yield assert_equal, frb_ds.domain_right_edge.v, np.array([0.75,0.75,1.0])
-    yield assert_equal, frb_ds.domain_width.v, np.array([0.5,0.5,1.0])
-    yield assert_equal, frb_ds.domain_dimensions, np.array([64,64,1], dtype="int64")
-    yield assert_allclose_units, frb["density"].sum(), \
-        dd_frb.quantities.total_quantity("density")
-    yield assert_equal, frb_ds.index.num_grids, 8
+    assert_equal(frb_ds.domain_left_edge.v, np.array([0.25,0.25,0.0]))
+    assert_equal(frb_ds.domain_right_edge.v, np.array([0.75,0.75,1.0]))
+    assert_equal(frb_ds.domain_width.v, np.array([0.5,0.5,1.0]))
+    assert_equal(frb_ds.domain_dimensions, np.array([64,64,1], dtype="int64"))
+    assert_allclose_units(frb["density"].sum(),
+                          dd_frb.quantities.total_quantity("density"))
+    assert_equal(frb_ds.index.num_grids, 8)

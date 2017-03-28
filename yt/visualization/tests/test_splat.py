@@ -50,9 +50,9 @@ def test_splat():
     before_hash = image.copy()
     fn = 'tmp.png'
     yt.write_bitmap(image, fn)
-    yield assert_equal, os.path.exists(fn), True
+    assert_equal(os.path.exists(fn), True)
     os.remove(fn)
-    yield assert_equal, before_hash, image
+    assert_equal(before_hash, image)
 
     os.chdir(curdir)
     # clean up
