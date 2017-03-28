@@ -238,15 +238,23 @@ def test_add_field_unit_semantics():
     def unitless_data(field, data):
             return np.ones(data['density'].shape)
 
-    ds.add_field(('gas','density_alias_no_units'), function=density_alias)
-    ds.add_field(('gas','density_alias_auto'), function=density_alias,
-                 units='auto', dimensions='density')
-    ds.add_field(('gas','density_alias_wrong_units'), function=density_alias,
+    ds.add_field(('gas','density_alias_no_units'), sampling_type='cell',
+                 function=density_alias)
+    ds.add_field(('gas','density_alias_auto'), sampling_type='cell',
+                 function=density_alias, units='auto', dimensions='density')
+    ds.add_field(('gas','density_alias_wrong_units'),
+                 function=density_alias,
+                 sampling_type='cell',
                  units='m/s')
-    ds.add_field(('gas','density_alias_unparseable_units'), function=density_alias,
+    ds.add_field(('gas','density_alias_unparseable_units'),
+                 sampling_type='cell',
+                 function=density_alias,
                  units='dragons')
-    ds.add_field(('gas','density_alias_auto_wrong_dims'), function=density_alias,
-                 units='auto', dimensions="temperature")
+    ds.add_field(('gas','density_alias_auto_wrong_dims'),
+                 function=density_alias,
+                 sampling_type='cell',
+                 units='auto',
+                 dimensions="temperature")
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_no_units')
     assert_raises(YTFieldUnitError, get_data, ds, 'density_alias_wrong_units')
     assert_raises(YTFieldUnitParseError, get_data, ds,
@@ -256,11 +264,22 @@ def test_add_field_unit_semantics():
     dens = ad['density_alias_auto']
     assert_equal(str(dens.units), 'g/cm**3')
 
-    ds.add_field(('gas','dimensionless'), function=unitless_data)
-    ds.add_field(('gas','dimensionless_auto'), function=unitless_data,
-                 units='auto', dimensions='dimensionless')
-    ds.add_field(('gas','dimensionless_explicit'), function=unitless_data, units='')
-    ds.add_field(('gas','dimensionful'), function=unitless_data, units='g/cm**3')
+    ds.add_field(('gas','dimensionless'),
+                 sampling_type='cell',
+                 function=unitless_data)
+    ds.add_field(('gas','dimensionless_auto'),
+                 function=unitless_data,
+                 sampling_type='cell',
+                 units='auto',
+                 dimensions='dimensionless')
+    ds.add_field(('gas','dimensionless_explicit'),
+                 function=unitless_data,
+                 sampling_type='cell',
+                 units='')
+    ds.add_field(('gas','dimensionful'),
+                 sampling_type='cell',
+                 function=unitless_data,
+                 units='g/cm**3')
 
     assert_equal(str(ad['dimensionless'].units), 'dimensionless')
     assert_equal(str(ad['dimensionless_auto'].units), 'dimensionless')
@@ -281,7 +300,8 @@ def test_add_field_string():
     def density_alias(field, data):
         return data['density']
 
-    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+    ds.add_field('density_alias', sampling_type='cell',
+                 function=density_alias, units='g/cm**3')
 
     ad['density_alias']
     assert ds.derived_field_list[0] == 'density_alias'
@@ -292,7 +312,8 @@ def test_add_field_string_aliasing():
     def density_alias(field, data):
         return data['density']
 
-    ds.add_field('density_alias', function=density_alias, units='g/cm**3')
+    ds.add_field('density_alias', sampling_type='cell',
+                 function=density_alias, units='g/cm**3')
 
     ds.field_info['density_alias']
     ds.field_info['gas', 'density_alias']
@@ -302,8 +323,9 @@ def test_add_field_string_aliasing():
     def pmass_alias(field, data):
         return data['particle_mass']
         
-    ds.add_field('particle_mass_alias', function=pmass_alias, 
-                 units='g', particle_type=True)
+    ds.add_field('particle_mass_alias', function=pmass_alias,
+                 sampling_type='particle',
+                 units='g')
 
     ds.field_info['particle_mass_alias']
     ds.field_info['all', 'particle_mass_alias']

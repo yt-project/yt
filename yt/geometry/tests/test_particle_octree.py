@@ -15,7 +15,6 @@ Tests for particle octree
 
 
 import numpy as np
-import time
 
 from yt.frontends.stream.data_structures import load_particles
 from yt.geometry.oct_container import \
