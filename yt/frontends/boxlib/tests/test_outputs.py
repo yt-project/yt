@@ -223,5 +223,4 @@ def test_WarpXDataset():
 
 @requires_file(rt)
 def test_units_override():
-    for test in units_override_check(rt):
-        yield test
+    units_override_check(rt)

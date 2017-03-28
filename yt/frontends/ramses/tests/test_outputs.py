@@ -57,8 +57,7 @@ def test_RAMSESDataset():
 
 @requires_file(output_00080)
 def test_units_override():
-    for test in units_override_check(output_00080):
-        yield test
+    units_override_check(output_00080)
 
 
 ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'

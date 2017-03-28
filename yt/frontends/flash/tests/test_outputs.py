@@ -55,8 +55,7 @@ def test_FLASHDataset():
 
 @requires_file(sloshing)
 def test_units_override():
-    for test in units_override_check(sloshing):
-        yield test
+    units_override_check(sloshing)
 
 fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 

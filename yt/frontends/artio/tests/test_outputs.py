@@ -57,5 +57,4 @@ def test_ARTIODataset():
 
 @requires_file(sizmbhloz)
 def test_units_override():
-    for test in units_override_check(sizmbhloz):
-        yield test
+    units_override_check(sizmbhloz)

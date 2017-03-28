@@ -71,5 +71,4 @@ def test_GAMERDataset():
 
 @requires_file(jet)
 def test_units_override():
-    for test in units_override_check(jet):
-        yield test
+    units_override_check(jet)

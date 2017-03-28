@@ -66,5 +66,4 @@ def test_MoabHex8Dataset():
 
 @requires_file(c5)
 def test_units_override():
-    for test in units_override_check(c5):
-        yield test
+    units_override_check(c5)

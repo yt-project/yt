@@ -47,8 +47,7 @@ def test_velocity_field():
 
 @requires_file(vf)
 def test_units_override():
-    for test in units_override_check(vf):
-        yield test
+    units_override_check(vf)
 
 @requires_file(grs)
 def test_FITSDataset():

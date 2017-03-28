@@ -43,5 +43,4 @@ def test_GDFDataset():
 
 @requires_file(sedov)
 def test_units_override():
-    for test in units_override_check(sedov):
-        yield test
+    units_override_check(sedov)

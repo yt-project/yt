@@ -92,15 +92,12 @@ def test_PlutoDataset():
 
 @requires_file(zp)
 def test_units_override_zp():
-    for test in units_override_check(zp):
-        yield test
+    units_override_check(zp)
 
 @requires_file(gc)
 def test_units_override_gc():
-    for test in units_override_check(gc):
-        yield test
+    units_override_check(gc)
 
 @requires_file(kho)
 def test_units_override_kho():
-    for test in units_override_check(kho):
-        yield test
+    units_override_check(kho)

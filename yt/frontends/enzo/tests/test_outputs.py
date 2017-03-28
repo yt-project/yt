@@ -122,8 +122,7 @@ def test_ecp():
 
 @requires_file(enzotiny)
 def test_units_override():
-    for test in units_override_check(enzotiny):
-        yield test
+    units_override_check(enzotiny)
 
 @requires_ds(ecp, big_data=True)
 def test_nuclei_density_fields():

@@ -116,5 +116,4 @@ def test_ARTDataset():
 
 @requires_file(d9p)
 def test_units_override():
-    for test in units_override_check(d9p):
-        yield test
+    units_override_check(d9p)
