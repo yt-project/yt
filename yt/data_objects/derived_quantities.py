@@ -32,8 +32,14 @@ derived_quantity_registry = {}
 
 def get_position_fields(field, data):
     axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
-    if field[0] in data.ds.particle_types:
-        position_fields = [(field[0], 'particle_position_%s' % d)
+    field = data._determine_fields(field)[0]
+    finfo = data.ds.field_info[field]
+    if finfo.sampling_type == 'particle':
+        if finfo.alias_field:
+            ftype = finfo.alias_name[0]
+        else:
+            ftype = finfo.name[0]
+        position_fields = [(ftype, 'particle_position_%s' % d)
                            for d in axis_names]
     else:
         position_fields = axis_names

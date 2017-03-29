@@ -860,6 +860,7 @@ class Dataset(object):
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
         """
+        self.index
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
