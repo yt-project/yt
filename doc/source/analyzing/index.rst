@@ -22,4 +22,5 @@ multiple processors to accomplish tasks faster.
    generating_processed_data
    saving_data
    time_series_analysis
+   particle_trajectories
    parallel_computation

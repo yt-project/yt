@@ -34,6 +34,7 @@ class AthenaFieldInfo(FieldInfoContainer):
         ("cell_centered_B_x", (b_units, [], None)),
         ("cell_centered_B_y", (b_units, [], None)),
         ("cell_centered_B_z", (b_units, [], None)),
+        ("gravitational_potential", ("code_velocity**2", ["gravitational_potential"], None)),
     )
 
 # In Athena, conservative or primitive variables may be written out.
@@ -50,82 +51,64 @@ class AthenaFieldInfo(FieldInfoContainer):
             vel_field = ("athena", "velocity_%s" % comp)
             mom_field = ("athena", "momentum_%s" % comp)
             if vel_field in self.field_list:
-                self.add_output_field(vel_field, units="code_length/code_time")
+                self.add_output_field(vel_field, sampling_type="cell",  units="code_length/code_time")
                 self.alias(("gas","velocity_%s" % comp), vel_field,
                            units=unit_system["velocity"])
             elif mom_field in self.field_list:
-                self.add_output_field(mom_field,
+                self.add_output_field(mom_field, sampling_type="cell",
                                       units="code_mass/code_time/code_length**2")
-                self.add_field(("gas","velocity_%s" % comp),
+                self.add_field(("gas","velocity_%s" % comp), sampling_type="cell",
                                function=velocity_field(comp), units = unit_system["velocity"])
         # Add pressure, energy, and temperature fields
-        def ekin1(data):
-            return 0.5*(data["athena","momentum_x"]**2 +
-                        data["athena","momentum_y"]**2 +
-                        data["athena","momentum_z"]**2)/data["athena","density"]
-        def ekin2(data):
-            return 0.5*(data["athena","velocity_x"]**2 +
-                        data["athena","velocity_y"]**2 +
-                        data["athena","velocity_z"]**2)*data["athena","density"]
-        def emag(data):
-            return 0.5*(data["cell_centered_B_x"]**2 +
-                        data["cell_centered_B_y"]**2 +
-                        data["cell_centered_B_z"]**2)
         def eint_from_etot(data):
             eint = data["athena","total_energy"]
-            eint -= ekin1(data)
+            eint -= data["gas","kinetic_energy"]
             if ("athena","cell_centered_B_x") in self.field_list:
-                eint -= emag(data)
+                eint -= data["gas","magnetic_energy"]
             return eint
         def etot_from_pres(data):
             etot = data["athena","pressure"]/(data.ds.gamma-1.)
-            etot += ekin2(data)
+            etot += data["gas", "kinetic_energy"]
             if ("athena","cell_centered_B_x") in self.field_list:
-                etot += emag(data)
+                etot += data["gas", "magnetic_energy"]
             return etot
         if ("athena","pressure") in self.field_list:
-            self.add_output_field(("athena","pressure"),
+            self.add_output_field(("athena","pressure"), sampling_type="cell",
                                   units=pres_units)
             self.alias(("gas","pressure"),("athena","pressure"),
                        units=unit_system["pressure"])
             def _thermal_energy(field, data):
                 return data["athena","pressure"] / \
                        (data.ds.gamma-1.)/data["athena","density"]
-            self.add_field(("gas","thermal_energy"),
+            self.add_field(("gas","thermal_energy"), sampling_type="cell",
                            function=_thermal_energy,
                            units=unit_system["specific_energy"])
             def _total_energy(field, data):
                 return etot_from_pres(data)/data["athena","density"]
-            self.add_field(("gas","total_energy"),
+            self.add_field(("gas","total_energy"), sampling_type="cell",
                            function=_total_energy,
                            units=unit_system["specific_energy"])
         elif ("athena","total_energy") in self.field_list:
-            self.add_output_field(("athena","total_energy"),
+            self.add_output_field(("athena","total_energy"), sampling_type="cell",
                                   units=pres_units)
-            def _pressure(field, data):
-                return eint_from_etot(data)*(data.ds.gamma-1.0)
-            self.add_field(("gas","pressure"), function=_pressure,
-                           units=unit_system["pressure"])
             def _thermal_energy(field, data):
                 return eint_from_etot(data)/data["athena","density"]
-            self.add_field(("gas","thermal_energy"),
+            self.add_field(("gas","thermal_energy"), sampling_type="cell",
                            function=_thermal_energy,
                            units=unit_system["specific_energy"])
             def _total_energy(field, data):
                 return data["athena","total_energy"]/data["athena","density"]
-            self.add_field(("gas","total_energy"),
+            self.add_field(("gas","total_energy"), sampling_type="cell",
                            function=_total_energy,
                            units=unit_system["specific_energy"])
-
+        # Add temperature field
         def _temperature(field, data):
             if data.has_field_parameter("mu"):
                 mu = data.get_field_parameter("mu")
             else:
                 mu = 0.6
             return mu*mh*data["gas","pressure"]/data["gas","density"]/kboltz
-        self.add_field(("gas","temperature"), function=_temperature,
+        self.add_field(("gas","temperature"), sampling_type="cell",  function=_temperature,
                        units=unit_system["temperature"])
 
         setup_magnetic_field_aliases(self, "athena", ["cell_centered_B_%s" % ax for ax in "xyz"])
-
-

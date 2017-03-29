@@ -75,7 +75,7 @@ INST_SCIPY=0    # Install scipy?
 INST_H5PY=1     # Install h5py?
 INST_ASTROPY=0  # Install astropy?
 INST_NOSE=1     # Install nose?
-INST_NETCDF4=0  # Install netcdf4 and its python bindings?
+INST_NETCDF4=1  # Install netcdf4 and its python bindings?
 
 # These options allow you to customize the builds of yt dependencies.
 # They are only used if INST_CONDA=0.
@@ -535,9 +535,9 @@ then
     if [ $INST_CONDA -eq 0 ]
     then
         echo "This script can only install netcdf4 through conda."
-        echo "Please set INST_CONDA to 1"
-        echo "and re-run the install script"
-        exit 1
+        echo "Please set INST_CONDA to 1 to install netcdf4"
+        echo "Setting INST_NETCDF4=0"
+        INST_NETCDF4=0
     fi
 fi
 
@@ -1429,25 +1429,24 @@ else # INST_CONDA -eq 1
         YT_DEPS+=('netcdf4')   
     fi
     
-    # Here is our dependency list for yt
-    log_cmd conda update --yes conda
+    log_cmd ${DEST_DIR}/bin/conda update --yes conda
     
     log_cmd echo "DEPENDENCIES" ${YT_DEPS[@]}
     for YT_DEP in "${YT_DEPS[@]}"; do
         echo "Installing $YT_DEP"
-        log_cmd conda install --yes ${YT_DEP}
+        log_cmd ${DEST_DIR}/bin/conda install --yes ${YT_DEP}
     done
 
     if [ $INST_PY3 -eq 1 ]
     then
         echo "Installing mercurial"
-        log_cmd conda create -y -n py27 python=2.7 mercurial
+        log_cmd ${DEST_DIR}/bin/conda create -y -n py27 python=2.7 mercurial
         log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
     fi
 
-    log_cmd pip install python-hglib
+    log_cmd ${DEST_DIR}/bin/pip install python-hglib
 
-    log_cmd hg clone https://bitbucket.org/yt_analysis/yt_conda ${DEST_DIR}/src/yt_conda
+    log_cmd ${DEST_DIR}/bin/hg clone https://bitbucket.org/yt_analysis/yt_conda ${DEST_DIR}/src/yt_conda
     
     if [ $INST_EMBREE -eq 1 ]
     then
@@ -1474,17 +1473,17 @@ else # INST_CONDA -eq 1
         ( ${GETFILE} "$PYEMBREE_URL" 2>&1 ) 1>> ${LOG_FILE} || do_exit
         log_cmd unzip ${DEST_DIR}/src/master.zip
         pushd ${DEST_DIR}/src/pyembree-master &> /dev/null
-        log_cmd python setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
+        log_cmd ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py install build_ext -I${DEST_DIR}/include -L${DEST_DIR}/lib
         popd &> /dev/null
     fi
 
     if [ $INST_ROCKSTAR -eq 1 ]
     then
         echo "Building Rockstar"
-        ( hg clone http://bitbucket.org/MatthewTurk/rockstar ${DEST_DIR}/src/rockstar/ 2>&1 ) 1>> ${LOG_FILE}
-        ROCKSTAR_PACKAGE=$(conda build ${DEST_DIR}/src/yt_conda/rockstar --output)
-        log_cmd conda build ${DEST_DIR}/src/yt_conda/rockstar
-        log_cmd conda install $ROCKSTAR_PACKAGE
+        ( ${DEST_DIR}/bin/hg clone http://bitbucket.org/MatthewTurk/rockstar ${DEST_DIR}/src/rockstar/ 2>&1 ) 1>> ${LOG_FILE}
+        ROCKSTAR_PACKAGE=$(${DEST_DIR}/bin/conda build ${DEST_DIR}/src/yt_conda/rockstar --output)
+        log_cmd ${DEST_DIR}/bin/conda build ${DEST_DIR}/src/yt_conda/rockstar
+        log_cmd ${DEST_DIR}/bin/conda install $ROCKSTAR_PACKAGE
         ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
     fi
 
@@ -1493,20 +1492,21 @@ else # INST_CONDA -eq 1
     then
         if [ $INST_PY3 -eq 1 ]
         then
-            log_cmd pip install pyx
+            log_cmd ${DEST_DIR}/bin/pip install pyx
         else
-            log_cmd pip install pyx==0.12.1
+            log_cmd ${DEST_DIR}/bin/pip install pyx==0.12.1
         fi
     fi
 
     if [ $INST_YT_SOURCE -eq 0 ]
     then
         echo "Installing yt"
-        log_cmd conda install -c conda-forge --yes yt
+        log_cmd ${DEST_DIR}/bin/conda install -c conda-forge --yes yt
     else
         echo "Building yt from source"
         YT_DIR="${DEST_DIR}/src/yt-hg"
-        log_cmd hg clone -r ${BRANCH} https://bitbucket.org/yt_analysis/yt ${YT_DIR}
+        log_cmd ${DEST_DIR}/bin/hg clone https://bitbucket.org/yt_analysis/yt ${YT_DIR}
+        log_cmd ${DEST_DIR}/bin/hg -R ${YT_DIR} up -C ${BRANCH}
         if [ $INST_EMBREE -eq 1 ]
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg
@@ -1517,7 +1517,7 @@ else # INST_CONDA -eq 1
             ROCKSTAR_LIBRARY_PATH=${DEST_DIR}/lib
         fi
         pushd ${YT_DIR} &> /dev/null
-        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH python setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
+        ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
         popd &> /dev/null
     fi
 

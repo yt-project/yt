@@ -25,6 +25,7 @@ import subprocess
 import tempfile
 import json
 import pprint
+import textwrap
 
 from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
@@ -36,7 +37,8 @@ from yt.funcs import \
     mylog, \
     ensure_dir_exists, \
     update_hg, \
-    enable_plugins
+    enable_plugins, \
+    download_file
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
@@ -272,7 +274,7 @@ _common_options = dict(
     unit    = dict(short="-u", longname="--unit",
                    action="store", type=str,
                    dest="unit", default='1',
-                   help="Desired units"),
+                   help="Desired axes units"),
     center  = dict(short="-c", longname="--center",
                    action="store", type=float,
                    dest="center", default=None,
@@ -908,7 +910,11 @@ class YTNotebookUploadCmd(YTCommand):
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
             "weight", "skip", "cmap", "output", "grids", "time", "ds", "max",
-            "log", "linear")
+            "log", "linear",
+            dict(short="-fu", longname="--field-unit",
+                 action="store", type=str,
+                 dest="field_unit", default=None,
+                 help="Desired field units"))
 
     name = "plot"
 
@@ -957,8 +963,10 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = ds.current_time.in_units("yr")
-                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+                plt.annotate_timestamp()
+
+            if args.field_unit:
+                plt.set_unit(args.field, args.field_unit)
 
             plt.set_cmap(args.field, args.cmap)
             plt.set_log(args.field, args.takelog)
@@ -1304,6 +1312,76 @@ class YTSearchCmd(YTCommand):
         print("Identified %s records output to %s" % (
               len(records), args.output))
 
+class YTDownloadData(YTCommand):
+
+    args = (
+        dict(short="filename", action="store", type=str,
+             help="The name of the file to download", nargs='?',
+             default=''), 
+        dict(short="location", action="store", type=str, nargs='?',
+             help="The location in which to place the file, can be "
+                  "\"supp_data_dir\", \"test_data_dir\", or any valid "
+                  "path on disk. ", default=''),
+        dict(longname="--overwrite", short="-c",
+             help="Overwrite existing file.",
+             action="store_true", default=False),
+        dict(longname="--list", short="-l",
+             help="Display all available files.",
+             action="store_true", default=False),
+    )
+    description = \
+        """
+        Download a file from http://yt-project.org/data and save it to a 
+        particular location. Files can be saved to the locations provided 
+        by the "test_data_dir" or "supp_data_dir" configuration entries, or
+        any valid path to a location on disk.
+        """
+    name = "download"
+
+    def __call__(self, args):
+        if args.list:
+            self.get_list()
+            return
+        if not args.filename:
+            raise RuntimeError('You need to provide a filename. See --help '
+                               'for details or use --list to get available '
+                               'datasets.')
+        elif not args.location:
+            raise RuntimeError('You need to specify download location. See '
+                               '--help for details.')
+        data_url = "http://yt-project.org/data/%s" % args.filename
+        if args.location in ["test_data_dir", "supp_data_dir"]:
+            data_dir = ytcfg.get("yt", args.location)
+            if data_dir == "/does/not/exist":
+                raise RuntimeError("'%s' is not configured!" % args.location)
+        else:
+            data_dir = args.location
+        if not os.path.exists(data_dir):
+            print("The directory '%s' does not exist. Creating..." % data_dir)
+            os.mkdir(data_dir)
+        data_file = os.path.join(data_dir, args.filename)
+        if os.path.exists(data_file) and not args.overwrite:
+            raise IOError("File '%s' exists and overwrite=False!" % data_file)
+        print("Attempting to download file: %s" % args.filename)
+        fn = download_file(data_url, data_file)
+
+        if not os.path.exists(fn):
+            raise IOError("The file '%s' did not download!!" % args.filename)
+        print("File: %s downloaded successfully to %s" %
+              (args.filename, data_file))
+
+    def get_list(self):
+        data = urllib.request.urlopen(
+            'http://yt-project.org/data/datafiles.json').read().decode('utf8')
+        data = json.loads(data)
+        for key in data:
+            for ds in data[key]:
+                ds['fullname'] = ds['url'].replace(
+                    'http://yt-project.org/data/', '')
+                print('{fullname} ({size}) type: {code}'.format(**ds))
+                for line in textwrap.wrap(ds['description']):
+                    print('\t', line)
+
 def run_main():
     args = parser.parse_args()
     # The following is a workaround for a nasty Python 3 bug:
@@ -1314,7 +1392,7 @@ def run_main():
     except AttributeError:
         parser.print_help()
         sys.exit(0)
-        
+
     args.func(args)
 
 if __name__ == "__main__": run_main()

@@ -41,7 +41,6 @@ Example Notebooks
 
    notebook_tutorial
    custom_colorbar_tickmarks
-   embedded_webm_animation
    gadget_notebook
    owls_notebook
    ../visualizing/transfer_function_helper

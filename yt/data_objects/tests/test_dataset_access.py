@@ -1,10 +1,34 @@
+import numpy as np
+
 from yt.testing import \
     assert_equal, \
     fake_amr_ds, \
     fake_particle_ds, \
-    fake_random_ds
+    fake_random_ds, \
+    requires_file
+from yt.utilities.answer_testing.framework import \
+    data_dir_load
 
 # This will test the "dataset access" method.
+
+def test_box_creation():
+    ds = fake_random_ds(32, length_unit=2)
+    left_edge = ds.arr([0.2, 0.2, 0.2], 'cm')
+    right_edge = ds.arr([0.6, 0.6, 0.6], 'cm')
+    center = (left_edge + right_edge)/2
+
+    boxes = [
+        ds.box(left_edge, right_edge),
+        ds.box(0.5*np.array(left_edge), 0.5*np.array(right_edge)),
+        ds.box((0.5*left_edge).tolist(), (0.5*right_edge).tolist())
+    ]
+
+    region = ds.region(center, left_edge, right_edge)
+
+    for b in boxes:
+        assert_equal(b.left_edge, region.left_edge)
+        assert_equal(b.right_edge, region.right_edge)
+        assert_equal(b.center, region.center)
 
 def test_region_from_d():
     ds = fake_amr_ds(fields=["density"])
@@ -48,3 +72,10 @@ def test_particle_counts():
 
     pds = fake_particle_ds(npart=128)
     assert pds.particle_type_counts == {'io': 128}
+
+
+g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+@requires_file(g30)
+def test_checksum():
+    assert fake_random_ds(16).checksum == 'notafile'
+    assert data_dir_load(g30).checksum == '6169536e4b9f737ce3d3ad440df44c58'

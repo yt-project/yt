@@ -26,13 +26,16 @@ the transformation of a variable mesh of points consisting of positions and
 sizes into a fixed-size array that appears like an image.  This process is that
 of pixelization, which yt handles transparently internally.  You can access
 this functionality by constructing a
-:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` (or
-:class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`) and
-supplying to it your :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
+:class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer` and supplying
+to it your :class:`~yt.data_objects.data_containers.YTSelectionContainer2D`
 object, as well as some information about how you want the final image to look.
 You can specify both the bounds of the image (in the appropriate x-y plane) and
-the resolution of the output image.  You can then have yt pixelize any
-field you like.
+the resolution of the output image.  You can then have yt pixelize any field
+you like.
+
+.. note:: In previous versions of yt, there was a special class of
+          FixedResolutionBuffer for off-axis slices.  This is no longer
+          necessary.
 
 To create :class:`~yt.data_objects.data_containers.YTSelectionContainer2D` objects, you can
 access them as described in :ref:`data-objects`, specifically the section
@@ -107,11 +110,10 @@ density within a sphere can be created in the following way:
    import yt
    ds = yt.load("galaxy0030/galaxy0030")
    source = ds.sphere( "c", (10, "kpc"))
-   profile = yt.create_profile(source,
-                               [("gas", "density")],          # the bin field
-                               [("gas", "temperature"),       # profile field
-                                ("gas", "radial_velocity")],  # profile field
-                               weight_field=("gas", "cell_mass"))
+   profile = source.profile([("gas", "density")],          # the bin field
+                            [("gas", "temperature"),       # profile field
+                             ("gas", "radial_velocity")],  # profile field
+                            weight_field=("gas", "cell_mass"))
 
 The binning, weight, and profile data can now be access as:
 
@@ -142,11 +144,10 @@ can be created as follows:
 
 .. code-block:: python
 
-   profile2d = yt.create_profile(source,
-                                 [("gas", "density"),      # the x bin field
-                                  ("gas", "temperature")], # the y bin field
-                                 [("gas", "cell_mass")],   # the profile field
-                                 weight_field=None)
+   profile2d = source.profile([("gas", "density"),      # the x bin field
+                               ("gas", "temperature")], # the y bin field
+                              [("gas", "cell_mass")],   # the profile field
+                              weight_field=None)
 
 Accessing the x, y, and profile fields work just as with one-dimensional profiles:
 
@@ -161,7 +162,10 @@ the generation of 1D profiles that correspond to 2D profiles.  For instance, a
 phase plot that shows the distribution of mass in the density-temperature
 plane, with the average temperature overplotted.  The
 :func:`~matplotlib.pyplot.pcolormesh` function can be used to manually plot
-the 2D profile.
+the 2D profile.  If you want to generate a default profile plot, you can simply
+call:::
+
+  profile.plot()
 
 Three-dimensional profiles can be generated and accessed following
 the same procedures.  Additional keyword arguments are available to control

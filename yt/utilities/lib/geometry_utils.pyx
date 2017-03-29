@@ -16,6 +16,7 @@ Simple integrators for the radiative transfer equation
 import numpy as np
 cimport numpy as np
 cimport cython
+from cython cimport floating
 from libc.stdlib cimport malloc, free
 from yt.utilities.lib.fp_utils cimport fclip, i64clip
 from libc.math cimport copysign, fabs
@@ -348,16 +349,12 @@ def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
         morton_indices[i] = mi
     return morton_indices
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.int64_t position_to_morton(np.ndarray[anyfloat, ndim=1] pos_x,
-                        np.ndarray[anyfloat, ndim=1] pos_y,
-                        np.ndarray[anyfloat, ndim=1] pos_z,
+cdef np.int64_t position_to_morton(np.ndarray[floating, ndim=1] pos_x,
+                        np.ndarray[floating, ndim=1] pos_y,
+                        np.ndarray[floating, ndim=1] pos_z,
                         np.float64_t dds[3], np.float64_t DLE[3],
                         np.float64_t DRE[3],
                         np.ndarray[np.uint64_t, ndim=1] ind,
@@ -499,6 +496,7 @@ cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
         p.points[p.count][j] = p0[j] + vec[j] * t
     p.count += 1
 
+@cython.cdivision(True)
 def triangle_plane_intersect(int ax, np.float64_t coord,
                              np.ndarray[np.float64_t, ndim=3] triangles):
     cdef np.float64_t p0[3]

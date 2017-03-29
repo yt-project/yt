@@ -31,7 +31,7 @@ from yt.funcs import mylog, get_pbar, iterable, ensure_list
 from yt.utilities.physical_constants import clight
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import assert_same_wcs
+from yt.visualization.fits_image import assert_same_wcs
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     communication_system, parallel_root_only, get_mpi_type, \
     parallel_capable

@@ -80,7 +80,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("particle_mass", ("code_mass", [], None)),
         ("particle_identifier", ("", ["particle_index"], None)),
         ("particle_refinement_level", ("", [], None)),
-        ("particle_age", ("code_time", [], None)),
+        ("particle_age", ("code_time", ['age'], None)),
         ("particle_metallicity", ("", [], None)),
     )
 
@@ -89,7 +89,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             rv = data["gas", "pressure"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
             return rv
-        self.add_field(("gas", "temperature"), function=_temperature,
+        self.add_field(("gas", "temperature"), sampling_type="cell",  function=_temperature,
                         units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
 
@@ -106,8 +106,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 d = {'lognH': np.log10(_X*data["density"]/mh).ravel(),
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
-                return rv
-            self.add_field(name = name, function=_func,
+                # Return array in unit 'per volume' consistently with line below
+                return data.ds.arr(rv, 'code_length**-3')
+            self.add_field(name = name, sampling_type="cell", function=_func,
                                  units = "code_length**-3")
         avals = {}
         tvals = {}
@@ -121,10 +122,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if var.size == n1*n2:
                     tvals[tname] = var.reshape((n1, n2), order='F')
                 else:
-                    var = var.reshape((n1, n2, var.size / (n1*n2)), order='F')
+                    var = var.reshape((n1, n2, var.size // (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = var[:,:,i]
-        
+
         for n in tvals:
             interp = BilinearFieldInterpolator(tvals[n],
                         (avals["lognH"], avals["logT"]),

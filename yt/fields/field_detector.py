@@ -193,6 +193,7 @@ class FieldDetector(defaultdict):
 
     fp_units = {
         'bulk_velocity' : 'cm/s',
+        'bulk_magnetic_field': 'G',
         'center' : 'cm',
         'normal' : '',
         'cp_x_vec': '',
@@ -207,8 +208,9 @@ class FieldDetector(defaultdict):
         if self.field_parameters and param in self.field_parameters:
             return self.field_parameters[param]
         self.requested_parameters.append(param)
-        if param in ['bulk_velocity', 'center', 'normal']:
-            return self.ds.arr(np.random.random(3) * 1e-2, self.fp_units[param])
+        if param in ['center', 'normal'] or param.startswith('bulk'):
+            return self.ds.arr(
+                np.random.random(3) * 1e-2, self.fp_units[param])
         elif param in ['surface_height']:
             return self.ds.quan(0.0, 'code_length')
         elif param in ['axis']:

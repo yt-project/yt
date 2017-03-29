@@ -13,8 +13,12 @@ from __future__ import absolute_import
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-from io import BytesIO
 import matplotlib
+import numpy as np
+
+from distutils.version import LooseVersion
+from io import BytesIO
+
 from yt.funcs import \
     get_image_suffix, \
     mylog, \
@@ -22,7 +26,7 @@ from yt.funcs import \
     get_brewer_cmap, \
     matplotlib_style_context, \
     get_interactivity
-import numpy as np
+
 
 backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                        'FigureManagerGTK'],
@@ -98,7 +102,9 @@ class PlotMPL(object):
             self.manager = canvas_classes[1](self.canvas, 1)
         for which in ['major', 'minor']:
             for axis in 'xy':
-                self.axes.tick_params(which=which, axis=axis, direction='in')
+                self.axes.tick_params(
+                    which=which, axis=axis, direction='in', top=True, right=True
+                )
 
     def _set_canvas(self):
         self.interactivity = get_interactivity()
@@ -168,6 +174,14 @@ class PlotMPL(object):
             if font_color is not None:
                 label.set_color(self.font_color)
 
+    def _repr_png_(self):
+        from ._mpl_imports import FigureCanvasAgg
+        canvas = FigureCanvasAgg(self.figure)
+        f = BytesIO()
+        with matplotlib_style_context():
+            canvas.print_figure(f)
+        f.seek(0)
+        return f.read()
 
 class ImagePlotMPL(PlotMPL):
     """A base class for yt plots made using imshow
@@ -203,8 +217,14 @@ class ImagePlotMPL(PlotMPL):
                                       aspect=aspect, vmax=self.zmax, cmap=cmap,
                                       interpolation='nearest')
         if (cbnorm == 'symlog'):
-            formatter = matplotlib.ticker.LogFormatterMathtext()
-            self.cb = self.figure.colorbar(self.image, self.cax, format=formatter)
+            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+                formatter_kwargs = {}
+            else:
+                formatter_kwargs = dict(linthresh=cblinthresh)
+            formatter = matplotlib.ticker.LogFormatterMathtext(
+                **formatter_kwargs)
+            self.cb = self.figure.colorbar(
+                self.image, self.cax, format=formatter)
             yticks = list(-10**np.arange(np.floor(np.log10(-data.min())),\
                           np.rint(np.log10(cblinthresh))-1, -1)) + [0] + \
                      list(10**np.arange(np.rint(np.log10(cblinthresh)),\
@@ -214,15 +234,6 @@ class ImagePlotMPL(PlotMPL):
             self.cb = self.figure.colorbar(self.image, self.cax)
         for which in ['major', 'minor']:
             self.cax.tick_params(which=which, axis='y', direction='in')
-
-    def _repr_png_(self):
-        from ._mpl_imports import FigureCanvasAgg
-        canvas = FigureCanvasAgg(self.figure)
-        f = BytesIO()
-        with matplotlib_style_context():
-            canvas.print_figure(f)
-        f.seek(0)
-        return f.read()
 
     def _get_best_layout(self):
 
@@ -357,6 +368,7 @@ class ImagePlotMPL(PlotMPL):
         self._toggle_colorbar(True)
         return self
 
+
 def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
                    cbar_padding = 0.4):
     r"""Construct a multiple axes plot object, with or without a colorbar, into
@@ -440,3 +452,5 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
             ax.clear()
             cbars.append(ax)
     return fig, tr, cbars
+
+

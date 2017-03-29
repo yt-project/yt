@@ -13,12 +13,16 @@ Testsuite for PlotWindow class
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import itertools
+import matplotlib
 import numpy as np
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
+
+from distutils.version import LooseVersion
 from nose.tools import assert_true
+
 from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
@@ -30,6 +34,7 @@ from yt.utilities.exceptions import \
 from yt.visualization.api import \
     SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
 from collections import OrderedDict
 
@@ -423,6 +428,13 @@ def test_on_off_compare():
 
     assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
 
+    sl_on.set_buff_size((800, 400))
+    sl_on._recreate_frb()
+    sl_off.set_buff_size((800, 400))
+    sl_off._recreate_frb()
+
+    assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+
 def test_plot_particle_field_error():
     ds = fake_random_ds(32, particles=100)
 
@@ -443,4 +455,102 @@ def test_plot_particle_field_error():
         for field_name_list in field_names:
             assert_raises(
                 YTInvalidFieldType, object, ds, normal, field_name_list)
+
+def test_setup_origin():
+    origin_inputs = ('domain',
+                     'left-window',
+                     'center-domain',
+                     'lower-right-window',
+                     ('window',),
+                     ('right', 'domain'),
+                     ('lower', 'window'),
+                     ('lower', 'right', 'window'),
+                     (0.5, 0.5, 'domain'),
+                     ((50, 'cm'), (50, 'cm'), 'domain'))
+    w=(10, 'cm')
+
+    ds = fake_random_ds(32, length_unit=100.0)
+    generated_limits = []
+    #lower limit -> llim
+    #upper limit -> ulim
+    #                 xllim xulim yllim yulim
+    correct_limits = [45.0, 55.0, 45.0, 55.0,
+                      0.0, 10.0, 0.0, 10.0,
+                      -5.0, 5.0, -5.0, 5.0,
+                      -10.0, 0, 0, 10.0,
+                      0.0, 10.0, 0.0, 10.0,
+                      -55.0, -45.0, -55.0, -45.0,
+                      -5.0, 5.0, 0.0, 10.0,
+                      -10.0, 0, 0, 10.0,
+                      -5.0, 5.0, -5.0, 5.0,
+                      -5.0, 5.0, -5.0, 5.0
+                      ]
+    for o in origin_inputs:
+        slc = SlicePlot(ds, 2, 'density', width=w, origin=o)
+        ax = slc.plots['density'].axes
+        xlims = ax.get_xlim()
+        ylims = ax.get_ylim()
+        lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
+        for l in lims:
+            generated_limits.append(l)
+    assert_array_almost_equal(correct_limits, generated_limits)
+
+def test_frb_regen():
+    ds = fake_random_ds(32)
+    slc = SlicePlot(ds, 2, 'density')
+    slc.set_buff_size(1200)
+    assert_equal(slc.frb['density'].shape, (1200, 1200))
+
+def test_set_background_color():
+    ds = fake_random_ds(32)
+    plot = SlicePlot(ds, 2, 'density')
+    for field in ['density', ('gas', 'density')]:
+        plot.set_background_color(field, 'red')
+        ax = plot.plots[field].axes
+        if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
+            assert_equal(ax.get_axis_bgcolor(), 'red')
+        else:
+            assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
+
+def test_set_unit():
+    ds = fake_random_ds(32, fields=('temperature',), units=('K',))
+    slc = SlicePlot(ds, 2, 'temperature')
+
+    orig_array = slc.frb['gas', 'temperature'].copy()
+
+    slc.set_unit('temperature', 'degF')
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert_array_almost_equal(np.array(slc.frb['gas', 'temperature']),
+                              np.array(orig_array)*1.8 - 459.67)
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+
+    slc.set_buff_size(800)
+
+    slc.set_unit('temperature', 'K')
+    assert str(slc.frb['gas', 'temperature'].units) == 'K'
+    assert_array_almost_equal(slc.frb['gas', 'temperature'], orig_array)
+
+    slc.set_unit('temperature', 'keV', equivalency='thermal')
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+    assert_array_almost_equal(slc.frb['gas', 'temperature'],
+                              (orig_array*kboltz).to('keV'))
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit with an equivalency
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+
+    # test that destroying the FRB then changing the unit using an equivalency
+    # doesn't error out, see issue #1316
+    slc = SlicePlot(ds, 2, 'temperature')
+    slc.set_buff_size(1000)
+    slc.set_unit('temperature', 'keV', equivalency='thermal')
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
 

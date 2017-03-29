@@ -102,6 +102,8 @@ class GadgetSimulation(SimulationTimeSeries):
             self.box_size = self.box_size * self.length_unit
             self.domain_left_edge = self.domain_left_edge * self.length_unit
             self.domain_right_edge = self.domain_right_edge * self.length_unit
+            self.unit_registry.add("unitary", float(self.box_size.in_base()),
+                                   self.length_unit.units.dimensions)
         else:
             # Read time from file for non-cosmological sim
             self.time_unit = self.quan(

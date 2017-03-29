@@ -13,10 +13,11 @@ HaloCatalog object
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
 
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
 from yt.funcs import \
     ensure_dir, \
     mylog
@@ -71,11 +72,11 @@ class HaloCatalog(ParallelAnalysisInterface):
     --------
 
     >>> # create profiles or overdensity vs. radius for each halo and save to disk
-    >>> from yt.mods import *
+    >>> import yt
     >>> from yt.analysis_modules.halo_analysis.api import *
-    >>> data_ds = load("DD0064/DD0064")
-    >>> halos_ds = load("rockstar_halos/halos_64.0.bin",
-    ...                 output_dir="halo_catalogs/catalog_0064")
+    >>> data_ds = yt.load("DD0064/DD0064")
+    >>> halos_ds = yt.load("rockstar_halos/halos_64.0.bin",
+    ...                    output_dir="halo_catalogs/catalog_0064")
     >>> hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
     >>> # filter out halos with mass < 1e13 Msun
     >>> hc.add_filter("quantity_value", "particle_mass", ">", 1e13, "Msun")
@@ -90,7 +91,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     >>> hc.create()
 
     >>> # load in the saved halo catalog and all the profile data
-    >>> halos_ds = load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
+    >>> halos_ds = yt.load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
     >>> hc = HaloCatalog(halos_ds=halos_ds,
                          output_dir="halo_catalogs/catalog_0064")
     >>> hc.add_callback("load_profiles", output_dir="profiles")
@@ -431,13 +432,16 @@ class HaloCatalog(ParallelAnalysisInterface):
                     key, quantity = action
                     if quantity in self.halos_ds.field_info:
                         new_halo.quantities[key] = \
-                          self.data_source[quantity][int(i)].in_cgs()
+                          self.data_source[quantity][int(i)]
                     elif callable(quantity):
                         new_halo.quantities[key] = quantity(new_halo)
                 else:
-                    raise RuntimeError("Action must be a callback, filter, or quantity.")
+                    raise RuntimeError(
+                        "Action must be a callback, filter, or quantity.")
 
             if halo_filter:
+                for quantity in new_halo.quantities.values():
+                    quantity.convert_to_base()
                 self.catalog.append(new_halo.quantities)
 
             if save_halos and halo_filter:
@@ -458,27 +462,20 @@ class HaloCatalog(ParallelAnalysisInterface):
         mylog.info("Saving halo catalog (%d halos) to %s." %
                    (n_halos, os.path.join(self.output_dir,
                                          self.output_prefix)))
-        out_file = h5py.File(filename, 'w')
-        for attr in ["current_redshift", "current_time",
-                     "domain_dimensions",
-                     "cosmological_simulation", "omega_lambda",
-                     "omega_matter", "hubble_constant"]:
-            out_file.attrs[attr] = getattr(self.halos_ds, attr)
-        for attr in ["domain_left_edge", "domain_right_edge"]:
-            out_file.attrs[attr] = getattr(self.halos_ds, attr).in_cgs()
-        out_file.attrs["data_type"] = "halo_catalog"
-        out_file.attrs["num_halos"] = n_halos
+        extra_attrs = {"data_type": "halo_catalog",
+                       "num_halos": n_halos}
+        data = {}
+        ftypes = {}
         if n_halos > 0:
-            field_data = np.empty(n_halos)
             for key in self.quantities:
-                units = ""
-                if hasattr(self.catalog[0][key], "units"):
-                    units = str(self.catalog[0][key].units)
-                for i in range(n_halos):
-                    field_data[i] = self.catalog[i][key]
-                dataset = out_file.create_dataset(str(key), data=field_data)
-                dataset.attrs["units"] = units
-        out_file.close()
+                # This sets each field to be saved in the root hdf5 group,
+                # as per the HaloCatalog format.
+                ftypes[key] = "."
+                data[key] = self.halos_ds.arr(
+                    [halo[key] for halo in self.catalog])
+
+        save_as_dataset(self.halos_ds, filename, data,
+                        field_types=ftypes, extra_attrs=extra_attrs)
 
     def add_default_quantities(self, field_type='halos'):
         self.add_quantity("particle_identifier", field_type=field_type,prepend=True)

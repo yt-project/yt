@@ -23,7 +23,6 @@ import os
 
 import matplotlib
 import numpy as np
-from io import BytesIO
 
 
 from .base_plot_types import \
@@ -85,6 +84,7 @@ class AxesContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
         self.ylim = {}
+        self.xlim = (None, None)
         super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
@@ -235,7 +235,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-        
+
     @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
@@ -326,20 +326,16 @@ class ProfilePlot(object):
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
-        from . import _mpl_imports as mpl
         ret = ''
-        unique = set(self.figures.values())
-        if len(unique) < len(self.figures):
+        unique = set(self.plots.values())
+        if len(unique) < len(self.plots):
             iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.figures)
-        for uid, fig in iters:
-            canvas = mpl.FigureCanvasAgg(fig)
-            f = BytesIO()
+            iters = iteritems(self.plots)
+        for uid, plot in iters:
             with matplotlib_style_context():
-                canvas.print_figure(f)
-            f.seek(0)
-            img = base64.b64encode(f.read()).decode()
+                img = plot._repr_png_()
+            img = base64.b64encode(img).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
                    r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
@@ -362,6 +358,7 @@ class ProfilePlot(object):
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
             axes.set_ylim(*self.axes.ylim[fname])
+            axes.set_xlim(*self.axes.xlim)
             if any(self.label):
                 axes.legend(loc="best")
         self._set_font_properties()
@@ -544,6 +541,7 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
+        self.axes.xlim = (xmin, xmax)
         for i, p in enumerate(self.profiles):
             if xmin is None:
                 xmi = p.x_bins.min()

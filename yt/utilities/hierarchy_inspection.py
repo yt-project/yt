@@ -12,7 +12,7 @@ def find_lowest_subclasses(candidates):
 
     Parameters
     ----------
-    candidates : iterable
+    candidates : Iterable
         An interable object that is a collection of classes to find the lowest
         subclass of.
 

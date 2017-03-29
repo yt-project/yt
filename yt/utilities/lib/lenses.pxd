@@ -45,8 +45,8 @@ cdef struct ImageContainer:
     np.float64_t *y_vec
 
 
-ctypedef void calculate_extent_function(ImageContainer *image,
-            VolumeContainer *vc, np.int64_t rv[4]) nogil
+ctypedef int calculate_extent_function(ImageContainer *image,
+            VolumeContainer *vc, np.int64_t rv[4]) nogil except -1
 
 ctypedef void generate_vector_info_function(ImageContainer *im,
             np.int64_t vi, np.int64_t vj,

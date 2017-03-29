@@ -15,6 +15,8 @@ ytdata frontend tests using enzo_tiny_cosmology
 
 from yt.convenience import \
     load
+from yt.data_objects.api import \
+    create_profile
 from yt.frontends.ytdata.api import \
     YTDataContainerDataset, \
     YTSpatialPlotDataset, \
@@ -32,12 +34,21 @@ from yt.utilities.answer_testing.framework import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
-from yt.data_objects.api import \
-    create_profile
+from yt.visualization.profile_plotter import \
+    ProfilePlot, \
+    PhasePlot
 import numpy as np
 import tempfile
 import os
 import shutil
+
+def compare_unit_attributes(ds1, ds2):
+    attrs = ('length_unit', 'mass_unit', 'time_unit',
+             'velocity_unit', 'magnetic_unit')
+    for attr in attrs:
+        u1 = getattr(ds1, attr, None)
+        u2 = getattr(ds2, attr, None)
+        assert u1 == u2
 
 class YTDataFieldTest(AnswerTestingTest):
     _type_name = "YTDataTest"
@@ -85,9 +96,16 @@ def test_datacontainer_data():
     fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
     full_fn = os.path.join(tmpdir, fn)
     sphere_ds = load(full_fn)
+    compare_unit_attributes(ds, sphere_ds)
     assert isinstance(sphere_ds, YTDataContainerDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
+    cr = ds.cut_region(sphere, ['obj["temperature"] > 1e4'])
+    fn = cr.save_as_dataset(fields=["temperature"])
+    full_fn = os.path.join(tmpdir, fn)
+    cr_ds = load(full_fn)
+    assert isinstance(cr_ds, YTDataContainerDataset)
+    assert (cr["temperature"] == cr_ds.data["temperature"]).all()
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
@@ -101,6 +119,7 @@ def test_grid_datacontainer_data():
     fn = cg.save_as_dataset(fields=["density", "particle_mass"])
     full_fn = os.path.join(tmpdir, fn)
     cg_ds = load(full_fn)
+    compare_unit_attributes(ds, cg_ds)
     assert isinstance(cg_ds, YTGridDataset)
 
     yield YTDataFieldTest(full_fn, ("grid", "density"))
@@ -109,6 +128,7 @@ def test_grid_datacontainer_data():
     frb = my_proj.to_frb(1.0, (800, 800))
     fn = frb.save_as_dataset(fields=["density"])
     frb_ds = load(fn)
+    compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     os.chdir(curdir)
@@ -124,6 +144,7 @@ def test_spatial_data():
     fn = proj.save_as_dataset()
     full_fn = os.path.join(tmpdir, fn)
     proj_ds = load(full_fn)
+    compare_unit_attributes(ds, proj_ds)
     assert isinstance(proj_ds, YTSpatialPlotDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
     os.chdir(curdir)
@@ -141,7 +162,12 @@ def test_profile_data():
     fn = profile_1d.save_as_dataset()
     full_fn = os.path.join(tmpdir, fn)
     prof_1d_ds = load(full_fn)
+    compare_unit_attributes(ds, prof_1d_ds)
     assert isinstance(prof_1d_ds, YTProfileDataset)
+
+    p1 = ProfilePlot(prof_1d_ds.data, "density", "temperature",
+                     weight_field="cell_mass")
+    p1.save()
 
     yield YTDataFieldTest(full_fn, "temperature", geometric=False)
     yield YTDataFieldTest(full_fn, "x", geometric=False)
@@ -152,7 +178,13 @@ def test_profile_data():
     fn = profile_2d.save_as_dataset()
     full_fn = os.path.join(tmpdir, fn)
     prof_2d_ds = load(full_fn)
+    compare_unit_attributes(ds, prof_2d_ds)
     assert isinstance(prof_2d_ds, YTProfileDataset)
+
+    p2 = PhasePlot(prof_2d_ds.data, "density", "temperature",
+                   "cell_mass", weight_field=None)
+    p2.save()
+
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     yield YTDataFieldTest(full_fn, "x", geometric=False)
     yield YTDataFieldTest(full_fn, "temperature", geometric=False)
@@ -176,6 +208,7 @@ def test_nonspatial_data():
     save_as_dataset(ds, fn, my_data)
     full_fn = os.path.join(tmpdir, fn)
     array_ds = load(full_fn)
+    compare_unit_attributes(ds, array_ds)
     assert isinstance(array_ds, YTNonspatialDataset)
     yield YTDataFieldTest(full_fn, "region_density", geometric=False)
     yield YTDataFieldTest(full_fn, "sphere_density", geometric=False)
