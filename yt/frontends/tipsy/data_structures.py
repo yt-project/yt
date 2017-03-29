@@ -43,13 +43,12 @@ if sys.version_info > (3,):
     long = int
 
 class TipsyFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        # To go above 1 domain, we need to include an indexing step in the
-        # IOHandler, rather than simply reading from a single file.
-        assert file_id == 0
-        super(TipsyFile, self).__init__(ds, io, filename, file_id)
-        io._create_dtypes(self)
-        io._update_domain(self)#Check automatically what the domain size is
+    def __init__(self, ds, io, filename, file_id, range=None):
+        super(TipsyFile, self).__init__(ds, io, filename, file_id, range)
+        if not hasattr(io, '_field_list'):
+            io._create_dtypes(self)
+            # Check automatically what the domain size is
+            io._update_domain(self) 
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_particle_offsets(self)

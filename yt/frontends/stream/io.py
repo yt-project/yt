@@ -174,7 +174,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                                        data_file.ds.domain_right_edge)
             yield ptype, pos
 
-    def _get_smoothing_length(self, data_file, dtype):
+    def _get_smoothing_length(self, data_file, dtype, shape):
         ptype = self.ds._sph_ptype
         return self.fields[data_file.filename][ptype, 'smoothing_length']
 

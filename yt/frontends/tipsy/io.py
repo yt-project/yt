@@ -20,12 +20,11 @@ import numpy as np
 from numpy.lib.recfunctions import append_fields
 import os
 
+from yt.geometry.particle_geometry_handler import CHUNKSIZE
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as \
     mylog
-
-CHUNKSIZE = 10000000
 
 
 class IOHandlerTipsyBinary(BaseIOHandler):
@@ -93,9 +92,10 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             if field == "Coordinates":
                 eps = np.finfo(rv[field].dtype).eps
                 for i in range(3):
-                    rv[field][:, i] = np.clip(rv[field][:, i],
-                                              self.domain_left_edge[i] + eps,
-                                              self.domain_right_edge[i] - eps)
+                    rv[field][:, i] = np.clip(
+                        rv[field][:, i],
+                        self.ds.domain_left_edge[i].v + eps,
+                        self.ds.domain_right_edge[i].v - eps)
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
@@ -119,6 +119,9 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                          for ax in 'xyz']
                     del p
                     yield ptype, d
+
+    def _get_smoothing_length(self, data_file, dtype, shape):
+        return np.ones(shape[0])
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -250,6 +253,7 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 stop = ind + count
                 while ind < stop:
                     c = min(CHUNKSIZE, stop - ind)
+                    ind += c
                     pp = np.fromfile(f, dtype=self._pdtypes[ptype],
                                      count=c)
                     mis = np.empty(3, dtype="float64")
@@ -267,11 +271,14 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     yield ptype, pos
 
     def _count_particles(self, data_file):
-        npart = {
-            "Gas": data_file.ds.parameters['nsph'],
-            "Stars": data_file.ds.parameters['nstar'],
-            "DarkMatter": data_file.ds.parameters['ndark']
-        }
+        pcount = np.array([data_file.ds.parameters['nsph'],
+                           data_file.ds.parameters['nstar'],
+                           data_file.ds.parameters['ndark']])
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            np.clip(pcount - si, 0, ei - si, out=pcount)
+        ptypes = ['Gas', 'Stars', 'DarkMatter']
+        npart = dict((ptype, v) for ptype, v in zip(ptypes, pcount))
         return npart
 
     @classmethod

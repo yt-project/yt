@@ -96,7 +96,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _get_smoothing_length(self, data_file, position_dtype=None):
+    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptype
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
@@ -388,7 +388,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 pp.shape = (count, 3)
                 yield ptype, pp
 
-    def _get_smoothing_length(self, data_file, position_dtype):
+    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ret = self._get_field(data_file, 'SmoothingLength', 'Gas')
         if position_dtype is not None and ret.dtype != position_dtype:
             # Sometimes positions are stored in double precision

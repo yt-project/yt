@@ -29,6 +29,8 @@ from yt.geometry.geometry_handler import \
 from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.data_objects.particle_container import ParticleContainer
 
+CHUNKSIZE = 64**3
+
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
     _global_mesh = False
@@ -75,7 +77,6 @@ class ParticleIndex(Index):
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
         self.data_files = []
-        CHUNKSIZE = 64**3
         fi = 0
         for i in range(ndoms):
             start = 0
@@ -166,8 +167,10 @@ class ParticleIndex(Index):
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
             for ptype, pos in self.io._yield_coordinates(data_file):
-                if hasattr(self.ds, '_sph_ptype') and ptype == self.ds._sph_ptype:
-                    hsml = self.io._get_smoothing_length(data_file, pos.dtype)
+                ds = self.ds
+                if hasattr(ds, '_sph_ptype') and ptype == ds._sph_ptype:
+                    hsml = self.io._get_smoothing_length(
+                        data_file, pos.dtype, pos.shape)
                 else:
                     hsml = None
                 self.regions._coarse_index_data_file(
@@ -188,7 +191,8 @@ class ParticleIndex(Index):
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if hasattr(self.ds, '_sph_ptype') and ptype == self.ds._sph_ptype:
-                    hsml = self.io._get_smoothing_length(data_file, pos.dtype)
+                    hsml = self.io._get_smoothing_length(
+                        data_file, pos.dtype, pos.shape)
                 else:
                     hsml = None
                 nsub_mi = self.regions._refined_index_data_file(
