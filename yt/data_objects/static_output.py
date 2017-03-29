@@ -744,9 +744,11 @@ class Dataset(object):
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
-            to_guess = ["all", self.default_fluid_type] \
-                     + list(self.fluid_types) \
-                     + list(self.particle_types)
+            if hasattr(self, '_sph_ptype'):
+                to_guess = [self.default_fluid_type, 'all']
+            else:
+                to_guess = ['all', self.default_fluid_type]
+            to_guess +=  list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)

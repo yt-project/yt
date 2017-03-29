@@ -1151,6 +1151,12 @@ class YTDataContainer(object):
                 finfo = self.ds._get_field_info("unknown", fname)
                 if finfo.sampling_type == "particle":
                     ftype = self._current_particle_type
+                    if hasattr(self.ds, '_sph_ptype'):
+                        ptype = self.ds._sph_ptype
+                        if finfo.name[0] == ptype:
+                            ftype = finfo.name[0]
+                        elif finfo.alias_field and finfo.alias_name[0] == ptype:
+                            ftype = self._current_fluid_type
                 else:
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.ds.field_info:
