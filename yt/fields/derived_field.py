@@ -273,6 +273,12 @@ class DerivedField(object):
             return True
         return False
 
+    @property
+    def alias_name(self):
+        if self.alias_field:
+            return self._function.alias_name
+        return None
+
     def __repr__(self):
         if PY2:
             func_name = self._function.func_name
@@ -281,7 +287,7 @@ class DerivedField(object):
         if self._function == NullFunc:
             s = "On-Disk Field "
         elif func_name == "_TranslationFunc":
-            s = "Alias Field for \"%s\" " % (self._function.alias_name,)
+            s = "Alias Field for \"%s\" " % (self.alias_name,)
         else:
             s = "Derived Field "
         if isinstance(self.name, tuple):
