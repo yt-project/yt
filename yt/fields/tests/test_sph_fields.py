@@ -43,23 +43,25 @@ def test_sph_field_semantics():
 
 def sph_fields_validate(ds_fn):
     ds = yt.load(ds_fn, **(load_kwargs[ds_fn]))
-    ad = ds.al_data()
+    ad = ds.all_data()
     for gf, pf in gas_fields_to_particle_fields.items():
         gas_field = ad['gas', gf]
         part_field = ad[ds._sph_ptype, pf]
 
         assert_array_almost_equal(gas_field, part_field)
 
-    npart = ds.particle_type_counts[ds._sph_ptype]
+        npart = ds.particle_type_counts[ds._sph_ptype]
+        err_msg = "Field %s is not the correct shape" % (gf,)
+        assert_equal(npart, gas_field.shape[0], err_msg=err_msg)
+
+    dd = ds.r[0.4:0.6, 0.4:0.6, 0.4:0.6]
 
     for i, ax in enumerate('xyz'):
-        ad.set_field_parameter(
+        dd.set_field_parameter(
             'cp_%s_vec' % (ax,), yt.YTArray([1, 1, 1]))
-        ad.set_field_parameter('axis', i)
-    ad.set_field_parameter('omega_baryon', 0.3)
+        dd.set_field_parameter('axis', i)
+    dd.set_field_parameter('omega_baryon', 0.3)
 
     for f in ds.fields.gas:
-        gas_field = ad[f]
-        err_msg = "Field %s is not the correct shape" % (f,)
-        assert_equal(npart, gas_field.shape[0], err_msg=err_msg)
+        gas_field = dd[f]
 
