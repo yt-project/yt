@@ -804,8 +804,16 @@ def ensure_dir_exists(path):
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
-    if not os.path.exists(path):
+    if os.path.exists(path):
+        return path
+
+    try:
         only_on_root(os.makedirs, path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
     return path
 
 def validate_width_tuple(width):
