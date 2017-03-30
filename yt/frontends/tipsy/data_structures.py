@@ -329,3 +329,8 @@ class TipsyDataset(SPHDataset):
     @deprecate(replacement='cosmological_simulation')
     def comoving(self):
         return self.cosmological_simulation == 1.0
+
+    # _instantiated_index = None
+    # @property
+    # def index(self):
+    #     index_nosoft = super(TipsyDataset, self).index

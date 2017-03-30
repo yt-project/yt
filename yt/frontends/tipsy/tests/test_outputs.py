@@ -118,3 +118,10 @@ def test_tipsy_galaxy():
 def test_TipsyDataset():
     assert isinstance(data_dir_load(pkdgrav), TipsyDataset)
     assert isinstance(data_dir_load(gasoline_dmonly), TipsyDataset)
+
+
+@requires_file(tipsy_gal)
+def test_tipsy_index():
+    ds = data_dir_load(tipsy_gal)
+    sl = ds.slice('z', 0.0)
+    assert sl['gas', 'density'].shape[0]!=0
