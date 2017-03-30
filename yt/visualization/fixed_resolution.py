@@ -648,24 +648,31 @@ class ParticleImageBuffer(FixedResolutionBuffer):
 
         # splat particles
         buff = np.zeros(self.buff_size)
+        buff_mask = np.zeros(self.buff_size).astype('int')
         add_points_to_greyscale_image(buff,
+                                      buff_mask,
                                       px[mask],
                                       py[mask],
                                       splat_vals)
+        # remove values in no-particle region
+        buff[buff_mask==0] = np.nan
         ia = ImageArray(buff, input_units=data.units,
                         info=self._get_info(item))
 
         # divide by the weight_field, if needed
         if weight_field is not None:
             weight_buff = np.zeros(self.buff_size)
+            weight_buff_mask = np.zeros(self.buff_size).astype('int')
             add_points_to_greyscale_image(weight_buff,
+                                          weight_buff_mask,
                                           px[mask],
                                           py[mask],
                                           weight_data[mask])
             weight_array = ImageArray(weight_buff,
                                       input_units=weight_data.units,
                                       info=self._get_info(item))
-
+            # remove values in no-particle region
+            weight_buff[weight_buff_mask==0] = np.nan
             locs = np.where(weight_array > 0)
             ia[locs] /= weight_array[locs]
 
