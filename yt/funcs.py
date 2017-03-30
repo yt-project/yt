@@ -781,13 +781,7 @@ def get_output_filename(name, keyword, suffix):
         name = keyword
     name = os.path.expanduser(name)
     if name[-1] == os.sep and not os.path.isdir(name):
-        try:
-            os.mkdir(name)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            else:
-                raise
+        ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
     if not name.endswith(suffix):

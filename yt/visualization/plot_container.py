@@ -34,6 +34,7 @@ from yt.config import \
 from yt.funcs import \
     get_image_suffix, \
     get_ipython_api_version, iterable, \
+    ensure_dir, \
     ensure_list
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
@@ -576,13 +577,7 @@ class ImagePlotContainer(object):
             name = str(self.ds)
         name = os.path.expanduser(name)
         if name[-1] == os.sep and not os.path.isdir(name):
-            try:
-                os.mkdir(name)
-            except OSError as e:
-                if e.errno == errno.EEXIST:
-                    pass
-                else:
-                    raise
+            ensure_dir(name)
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
         if suffix is None:

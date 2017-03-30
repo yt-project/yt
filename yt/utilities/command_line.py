@@ -31,6 +31,7 @@ from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
+    ensure_dir, \
     ensure_list, \
     get_hg_version, \
     get_yt_version, \
@@ -1358,7 +1359,7 @@ class YTDownloadData(YTCommand):
             data_dir = args.location
         if not os.path.exists(data_dir):
             print("The directory '%s' does not exist. Creating..." % data_dir)
-            os.mkdir(data_dir)
+            ensure_dir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.overwrite:
             raise IOError("File '%s' exists and overwrite=False!" % data_file)
