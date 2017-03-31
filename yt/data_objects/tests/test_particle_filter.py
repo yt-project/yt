@@ -64,3 +64,5 @@ def test_covering_grid_particle_filter():
         
         assert_equal(cg['stars', 'particle_ones'].shape[0],
                      grid['stars', 'particle_ones'].shape[0])
+        assert_equal(cg['stars', 'particle_mass'].shape[0],
+                     grid['stars', 'particle_mass'].shape[0])
