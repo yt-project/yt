@@ -388,10 +388,10 @@ unfamiliar, please visit :ref:`loading-data`.
 To make things easier to load these sample datasets, you can add the parent
 directory to your downloaded sample data to your *yt path*.
 If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.yt/config``, yt will search this path for them.
+in ``~/.config/yt/ytrc``, yt will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
-the appropriate item to ``~/.yt/config``, and no matter which directory you are
+the appropriate item to ``~/.config/yt/ytrc``, and no matter which directory you are
 in when running yt, it will also check in *that* directory.
 
 
@@ -437,19 +437,18 @@ if you are in an IPython notebook or running a long or parallel script. On the o
 hand, you may want it to output a lot more, since you can't figure out exactly what's going
 wrong, and you want to output some debugging information. The yt log level can be
 changed using the :ref:`configuration-file`, either by setting it in the
-``$HOME/.yt/config`` file:
+``$HOME/.config/yt/ytrc`` file:
 
 .. code-block:: bash
 
-   [yt]
-   loglevel = 10 # This sets the log level to "DEBUG"
+   $ yt config set yt loglevel 10  # This sets the log level to "DEBUG"
 
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 
 .. code-block:: python
 
-   from yt.config import ytcfg
-   ytcfg["yt","loglevel"] = "40" # This sets the log level to "ERROR"
+   from yt.funcs import mylog
+   mylog.setLevel(40) # This sets the log level to "ERROR"
 
 which in this case would suppress everything below error messages. For reference, the numerical
 values corresponding to different log levels are:
@@ -486,7 +485,7 @@ entry: ::
       author = {{Turk}, M.~J. and {Smith}, B.~D. and {Oishi}, J.~S. and {Skory}, S. and
    	{Skillman}, S.~W. and {Abel}, T. and {Norman}, M.~L.},
        title = "{yt: A Multi-code Analysis Toolkit for Astrophysical Simulation Data}",
-     journal = {\apjs},
+     journal = {The Astrophysical Journal Supplement Series},
    archivePrefix = "arXiv",
       eprint = {1011.3514},
     primaryClass = "astro-ph.IM",
@@ -494,7 +493,8 @@ entry: ::
         year = 2011,
        month = jan,
       volume = 192,
-       pages = {9-+},
+         eid = {9},
+       pages = {9},
          doi = {10.1088/0067-0049/192/1/9},
       adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}

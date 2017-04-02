@@ -1,13 +1,6 @@
-"""
-API for particle_trajectories
-"""
-from __future__ import absolute_import
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+from yt.funcs import issue_deprecation_warning
 
-from .particle_trajectories import ParticleTrajectories
+issue_deprecation_warning("Particle trajectories are now available from DatasetSeries "
+                          "objects as ts.particle_trajectories. The ParticleTrajectories "
+                          "analysis module is deprecated.")
+from yt.data_objects.particle_trajectories import ParticleTrajectories

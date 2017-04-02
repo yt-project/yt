@@ -92,7 +92,7 @@ default_unit_symbol_lut = {
     "Lsun": (luminosity_sun_ergs_per_sec, dimensions.power, 0.0, r"L_\odot"),
     "Tsun": (temp_sun_kelvin, dimensions.temperature, 0.0, r"T_\odot"),
     "Zsun": (metallicity_sun, dimensions.dimensionless, 0.0, r"Z_\odot"),
-    "Mjup": (mass_jupiter_grams, dimensions.mass, 0.0, r"M_{\rm{Jup}"),
+    "Mjup": (mass_jupiter_grams, dimensions.mass, 0.0, r"M_{\rm{Jup}}"),
     "Mearth": (mass_earth_grams, dimensions.mass, 0.0, r"M_\oplus"),
 
     # astro distances
@@ -124,8 +124,8 @@ default_unit_symbol_lut = {
     "me": (mass_electron_grams, dimensions.mass, 0.0, r"m_e"),
     "mp": (mass_hydrogen_grams, dimensions.mass, 0.0, r"m_p"),
     "mol": (1.0/amu_grams, dimensions.dimensionless, 0.0, r"\rm{mol}"),
-    'Sv': (cm_per_m**2, dimensions.specific_energy, 0.0,
-           r"\rm{Sv}"),
+    'Sv': (cm_per_m**2, dimensions.specific_energy, 0.0, r"\rm{Sv}"),
+    "rayleigh": (0.25e6/np.pi, dimensions.count_intensity, 0.0, r"\rm{R}"),
 
     # for AstroPy compatibility
     "solMass": (mass_sun_grams, dimensions.mass, 0.0, r"M_\odot"),
@@ -187,7 +187,7 @@ latex_prefixes = {
     "u": r"\mu",
     }
 
-prefixable_units = (
+prefixable_units = [
     "m",
     "pc",
     "mcm",
@@ -217,7 +217,7 @@ prefixable_units = (
     "ohm",
     "statohm",
     "Sv",
-)
+]
 
 default_base_units = {
     dimensions.mass: 'g',

@@ -37,17 +37,17 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
-            registry.add_field(("index", "d%s" % ax), function = f1,
+            registry.add_field(("index", "d%s" % ax), sampling_type="cell",  function = f1,
                                display_field = False,
                                units = "code_length")
-            registry.add_field(("index", "path_element_%s" % ax), function = f1,
+            registry.add_field(("index", "path_element_%s" % ax), sampling_type="cell",  function = f1,
                                display_field = False,
                                units = "code_length")
-            registry.add_field(("index", "%s" % ax), function = f2,
+            registry.add_field(("index", "%s" % ax), sampling_type="cell",  function = f2,
                                display_field = False,
                                units = "code_length")
             f3 = _get_vert_fields(axi)
-            registry.add_field(("index", "vertex_%s" % ax), function = f3,
+            registry.add_field(("index", "vertex_%s" % ax), sampling_type="cell",  function = f3,
                                display_field = False,
                                units = "code_length")
         def _cell_volume(field, data):
@@ -55,7 +55,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             rv *= data["index", "dy"]
             rv *= data["index", "dz"]
             return rv
-        registry.add_field(("index", "cell_volume"), function=_cell_volume,
+        registry.add_field(("index", "cell_volume"), sampling_type="cell",  function=_cell_volume,
                            display_field=False, units = "code_length**3")
         registry.check_derived_fields(
             [("index", "dx"), ("index", "dy"), ("index", "dz"),
@@ -68,11 +68,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
             ftype, fname = field
-            mesh_id = int(ftype[-1]) - 1
-            mesh = index.meshes[mesh_id]
-            coords = mesh.connectivity_coords
-            indices = mesh.connectivity_indices
-            offset = mesh._index_offset
+            if ftype == "all":
+                mesh_id = 0
+                indices = np.concatenate([mesh.connectivity_indices for mesh in index.mesh_union])
+            else:
+                mesh_id = int(ftype[-1]) - 1
+                indices = index.meshes[mesh_id].connectivity_indices
+
+            coords = index.meshes[mesh_id].connectivity_coords
+            offset = index.meshes[mesh_id]._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
             buff_size = size[0:dimension] + (1,) + size[dimension:]
@@ -98,12 +102,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
-            elif field_data.shape[1] == 10:
-                # tetrahedral
-                mylog.warning("High order elements not yet supported, " +
-                              "dropping to 1st order.")
-                field_data = field_data[:,0:4]
-                indices = indices[:, 0:4]
 
             img = pixelize_element_mesh(coords,
                                         indices,
@@ -113,7 +111,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # re-order the array and squeeze out the dummy dim
             return np.squeeze(np.transpose(img, (yax, xax, ax)))
 
-        elif dimension < 3:
+        elif self.axis_id.get(dimension, dimension) < 3:
             return self._ortho_pixelize(data_source, field, bounds, size,
                                         antialias, dimension, periodic)
         else:
@@ -128,22 +126,24 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = pixelize_cartesian(data_source['px'], data_source['py'],
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        pixelize_cartesian(buff, data_source['px'], data_source['py'],
                              data_source['pdx'], data_source['pdy'],
-                             data_source[field], size[0], size[1],
+                             data_source[field],
                              bounds, int(antialias),
-                             period, int(periodic)).transpose()
+                             period, int(periodic))
         return buff
 
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
-        indices = np.argsort(data_source['dx'])[::-1]
-        buff = pixelize_off_axis_cartesian(
+        indices = np.argsort(data_source['pdx'])[::-1]
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        pixelize_off_axis_cartesian(buff,
                               data_source['x'], data_source['y'],
                               data_source['z'], data_source['px'],
                               data_source['py'], data_source['pdx'],
                               data_source['pdy'], data_source['pdz'],
                               data_source.center, data_source._inv_mat, indices,
-                              data_source[field], size[0], size[1], bounds).transpose()
+                              data_source[field], bounds)
         return buff
 
     def convert_from_cartesian(self, coord):
@@ -172,4 +172,3 @@ class CartesianCoordinateHandler(CoordinateHandler):
     @property
     def period(self):
         return self.ds.domain_width
-

@@ -13,14 +13,22 @@ Clump finding helper classes
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import copy
 import numpy as np
 import uuid
 
 from yt.fields.derived_field import \
     ValidateSpatial
-from yt.funcs import mylog, iterable
-from yt.extern.six import string_types
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.funcs import \
+    deprecate, \
+    get_output_filename, \
+    iterable, \
+    mylog
+from yt.extern.six import \
+    string_types
+from yt.utilities.tree_container import \
+    TreeContainer
 
 from .clump_info_items import \
     clump_info_registry
@@ -46,28 +54,40 @@ def add_contour_field(ds, contour_key):
                  display_field=False,
                  units='')
 
-class Clump(object):
+class Clump(TreeContainer):
     children = None
     def __init__(self, data, field, parent=None,
-                 clump_info=None, validators=None):
+                 clump_info=None, validators=None,
+                 base=None, contour_key=None,
+                 contour_id=None):
         self.data = data
         self.field = field
         self.parent = parent
         self.quantities = data.quantities
         self.min_val = self.data[field].min()
         self.max_val = self.data[field].max()
+        self.info = {}
+
+        # is this the parent clump?
+        if base is None:
+            base = self
+            self.total_clumps = 0
+            if clump_info is None:
+                self.set_default_clump_info()
+            else:
+                self.clump_info = clump_info
+
+        self.base = base
+        self.clump_id = self.base.total_clumps
+        self.base.total_clumps += 1
+        self.contour_key = contour_key
+        self.contour_id = contour_id
 
         if parent is not None:
             self.data.parent = self.parent.data
 
-        # List containing characteristics about clumps that are to be written 
-        # out by the write routines.
-        if clump_info is None:
-            self.set_default_clump_info()
-        else:
-            # Clump info will act the same if add_info_item is called 
-            # before or after clump finding.
-            self.clump_info = copy.deepcopy(clump_info)
+        if parent is not None:
+            self.data.parent = self.parent.data
 
         if validators is None:
             validators = []
@@ -85,7 +105,7 @@ class Clump(object):
         if self.children is None: return
         for child in self.children:
             child.add_validator(validator)
-        
+
     def add_info_item(self, info_item, *args, **kwargs):
         "Adds an entry to clump_info list and tells children to do the same."
 
@@ -125,10 +145,11 @@ class Clump(object):
         for child in self.children:
             child.clear_clump_info()
 
+    @deprecate("Clump.save_as_dataset")
     def write_info(self, level, f_ptr):
         "Writes information for clump using the list of items in clump_info."
 
-        for item in self.clump_info:
+        for item in self.base.clump_info:
             value = item(self)
             f_ptr.write("%s%s\n" % ('\t'*level, value))
 
@@ -159,8 +180,190 @@ class Clump(object):
                 # Using "ones" here will speed things up.
                 continue
             self.children.append(Clump(new_clump, self.field, parent=self,
-                                       clump_info=self.clump_info,
-                                       validators=self.validators))
+                                       validators=self.validators,
+                                       base=self.base,
+                                       contour_key=contour_key,
+                                       contour_id=cid))
+
+    def __iter__(self):
+        yield self
+        if self.children is None:
+            return
+        for child in self.children:
+            for a_node in child:
+                yield a_node
+
+    def save_as_dataset(self, filename=None, fields=None):
+        r"""Export clump tree to a reloadable yt dataset.
+
+        This function will take a clump object and output a dataset
+        containing the fields given in the ``fields`` list and all info
+        items.  The resulting dataset can be reloaded as a yt dataset.
+
+        Parameters
+        ----------
+        filename : str, optional
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset and the clump
+            index.
+        fields : list of strings or tuples, optional
+            If this is supplied, it is the list of fields to be saved to
+            disk.
+
+        Returns
+        -------
+        filename : str
+            The name of the file that has been created.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> from yt.analysis_modules.level_sets.api import \
+        ...         Clump, find_clumps
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
+        ...                       (8, 'kpc'), (1, 'kpc'))
+        >>> field = ("gas", "density")
+        >>> step = 2.0
+        >>> c_min = 10**np.floor(np.log10(data_source[field]).min()  )
+        >>> c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+        >>> master_clump = Clump(data_source, field)
+        >>> master_clump.add_info_item("center_of_mass")
+        >>> master_clump.add_validator("min_cells", 20)
+        >>> find_clumps(master_clump, c_min, c_max, step)
+        >>> fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+        >>> new_ds = yt.load(fn)
+        >>> print (ds.tree["clump", "cell_mass"])
+        1296926163.91 Msun
+        >>> print ds.tree["grid", "density"]
+        [  2.54398434e-26   2.46620353e-26   2.25120154e-26 ...,   1.12879234e-25
+           1.59561490e-25   1.09824903e-24] g/cm**3
+        >>> print ds.tree["all", "particle_mass"]
+        [  4.25472446e+38   4.25472446e+38   4.25472446e+38 ...,   2.04238266e+38
+           2.04523901e+38   2.04770938e+38] g
+        >>> print ds.tree.children[0]["clump", "cell_mass"]
+        909636495.312 Msun
+        >>> print ds.leaves[0]["clump", "cell_mass"]
+        3756566.99809 Msun
+        >>> print ds.leaves[0]["grid", "density"]
+        [  6.97820274e-24   6.58117370e-24   7.32046082e-24   6.76202430e-24
+           7.41184837e-24   6.76981480e-24   6.94287213e-24   6.56149658e-24
+           6.76584569e-24   6.94073710e-24   7.06713082e-24   7.22556526e-24
+           7.08338898e-24   6.78684331e-24   7.40647040e-24   7.03050456e-24
+           7.12438678e-24   6.56310217e-24   7.23201662e-24   7.17314333e-24] g/cm**3
+
+        """
+
+        ds = self.data.ds
+        keyword = "%s_clump_%d" % (str(ds), self.clump_id)
+        filename = get_output_filename(filename, keyword, ".h5")
+
+        # collect clump info fields
+        clump_info = dict([(ci.name, []) for ci in self.base.clump_info])
+        clump_info.update(
+            dict([(field, []) for field in ["clump_id", "parent_id",
+                                            "contour_key", "contour_id"]]))
+        for clump in self:
+            clump_info["clump_id"].append(clump.clump_id)
+            if clump.parent is None:
+                parent_id = -1
+            else:
+                parent_id = clump.parent.clump_id
+            clump_info["parent_id"].append(parent_id)
+
+            contour_key = clump.contour_key
+            if contour_key is None: contour_key = -1
+            clump_info["contour_key"].append(contour_key)
+            contour_id = clump.contour_id
+            if contour_id is None: contour_id = -1
+            clump_info["contour_id"].append(contour_id)
+
+            for ci in self.base.clump_info:
+                ci(clump)
+                clump_info[ci.name].append(clump.info[ci.name][1])
+        for ci in clump_info:
+            if hasattr(clump_info[ci][0], "units"):
+                clump_info[ci] = ds.arr(clump_info[ci])
+            else:
+                clump_info[ci] = np.array(clump_info[ci])
+
+        ftypes = dict([(ci, "clump") for ci in clump_info])
+
+        # collect data fields
+        if fields is not None:
+            contour_fields = \
+              [("index", "contours_%s" % ckey)
+               for ckey in np.unique(clump_info["contour_key"]) \
+               if str(ckey) != "-1"]
+
+            ptypes = []
+            field_data = {}
+            need_grid_positions = False
+            for f in self.base.data._determine_fields(fields) + contour_fields:
+                field_data[f] = self.base[f]
+                if ds.field_info[f].particle_type:
+                    if f[0] not in ptypes:
+                        ptypes.append(f[0])
+                    ftypes[f] = f[0]
+                else:
+                    need_grid_positions = True
+                    ftypes[f] = "grid"
+
+            if len(ptypes) > 0:
+                for ax in "xyz":
+                    for ptype in ptypes:
+                        p_field = (ptype, "particle_position_%s" % ax)
+                        if p_field in ds.field_info and \
+                          p_field not in field_data:
+                            ftypes[p_field] = p_field[0]
+                            field_data[p_field] = self.base[p_field]
+
+                for clump in self:
+                    if clump.contour_key is None:
+                        continue
+                    for ptype in ptypes:
+                        cfield = (ptype, "contours_%s" % clump.contour_key)
+                        if cfield not in field_data:
+                            field_data[cfield] = \
+                              clump.data._part_ind(ptype).astype(np.int64)
+                            ftypes[cfield] = ptype
+                        field_data[cfield][clump.data._part_ind(ptype)] = \
+                          clump.contour_id
+
+            if need_grid_positions:
+                for ax in "xyz":
+                    g_field = ("index", ax)
+                    if g_field in ds.field_info and \
+                      g_field not in field_data:
+                        field_data[g_field] = self.base[g_field]
+                        ftypes[g_field] = "grid"
+                    g_field = ("index", "d" + ax)
+                    if g_field in ds.field_info and \
+                      g_field not in field_data:
+                        ftypes[g_field] = "grid"
+                        field_data[g_field] = self.base[g_field]
+
+            if self.contour_key is not None:
+                cfilters = {}
+                for field in field_data:
+                    if ftypes[field] == "grid":
+                        ftype = "index"
+                    else:
+                        ftype = field[0]
+                    cfield = (ftype, "contours_%s" % self.contour_key)
+                    if cfield not in cfilters:
+                        cfilters[cfield] = field_data[cfield] == self.contour_id
+                    field_data[field] = field_data[field][cfilters[cfield]]
+
+        clump_info.update(field_data)
+        extra_attrs = {"data_type": "yt_clump_tree",
+                       "container_type": "yt_clump_tree"}
+        save_as_dataset(ds, filename, clump_info,
+                        field_types=ftypes,
+                        extra_attrs=extra_attrs)
+
+        return filename
 
     def pass_down(self,operation):
         """
@@ -270,6 +473,7 @@ def get_lowest_clumps(clump, clump_list=None):
 
     return clump_list
 
+@deprecate("Clump.save_as_dataset")
 def write_clump_index(clump, level, fh):
     top = False
     if isinstance(fh, string_types):
@@ -287,6 +491,7 @@ def write_clump_index(clump, level, fh):
     if top:
         fh.close()
 
+@deprecate("Clump.save_as_dataset")
 def write_clumps(clump, level, fh):
     top = False
     if isinstance(fh, string_types):

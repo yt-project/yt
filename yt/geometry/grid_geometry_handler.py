@@ -392,8 +392,12 @@ class GridIndex(Index):
                 for g in grids:
                     this_loop[g.id - g._id_offset] = 1
                 fast_index2 = self.grid_tree.selector(this_loop)
+                # Now, the order of the grids array is probably not the same as
+                # the order in the fast_index, so we need to ask the fast_index
+                # to sort it.
                 chunk_size = self._count_selection(dobj, grids,
                         fast_index = fast_index2)
+                grids = self.grids[np.asarray(fast_index2.grid_order)].tolist()
                 dc = YTDataChunk(dobj, "io", grids, chunk_size,
                         cache = cache, fast_index = fast_index2)
                 # We allow four full chunks to be included.

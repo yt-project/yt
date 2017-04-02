@@ -95,22 +95,17 @@ throughout your system).
 Running the Install Script
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To get the installation script for the ``stable`` branch of the code,
-download it using the following command:
+You can download the installation script with the following command:
 
 .. code-block:: bash
 
-  $ wget http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
+  $ wget http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
 
 If you do not have ``wget``, the following should also work:
 
 .. code-block:: bash
 
-  $ curl -OL http://bitbucket.org/yt_analysis/yt/raw/stable/doc/install_script.sh
-
-If you wish to install a different version of yt (see :ref:`branches-of-yt`),
-replace ``stable`` with the appropriate branch name (e.g. ``yt``, ``yt-2.x``) in
-the path above to get the correct install script.
+  $ curl -OL http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
 the `miniconda python distrubtion <http://conda.pydata.org/miniconda.html>`_,
@@ -275,7 +270,7 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
 .. code-block:: bash
 
-  $ conda install yt
+  $ conda install -c conda-forge yt
 
 which will install stable branch of yt along with all of its dependencies.
 
@@ -289,7 +284,7 @@ it from our custom anaconda channel:
 
 .. code-block:: bash
 
-  $ conda install -c http://use.yt/with_conda/ yt
+  $ conda install -c http://use.yt/with_conda/ -c conda-forge yt
 
 New packages for development branch are built after every pull request is
 merged. In order to make sure you are running latest version, it's recommended
@@ -297,7 +292,12 @@ to update frequently:
 
 .. code-block:: bash
 
-  $ conda update -c http://use.yt/with_conda/ yt
+  $ conda update -c http://use.yt/with_conda/ -c conda-forge yt
+
+We recommend trying to install dependencies from conda-forge as indicated above
+since focused individual communities stand a better chance of successfully
+maintaining build recipes. However, if you wish to use the default anaconda
+packages, simply remove ``-c conda-forge`` during conda installation.
 
 Location of our channel can be added to ``.condarc`` to avoid retyping it during
 each *conda* invocation. Please refer to `Conda Manual
@@ -314,7 +314,7 @@ conda environment:
 
 .. code-block:: bash
 
-  $ conda install cython mercurial sympy ipython matplotlib
+  $ conda install -c conda-forge cython mercurial sympy ipython matplotlib netCDF4
 
 In addition, you will need a C compiler installed.
 

@@ -37,9 +37,11 @@ cdef class GridTreeSelector:
     cdef GridTree tree
     cdef np.uint8_t[:] mask
     cdef np.uint8_t[:] grid_mask
+    cdef public np.int64_t[:] grid_order
     cdef np.uint64_t size
     cdef np.uint64_t cell_count
     cdef np.uint8_t initialized
+    cdef np.uint64_t _counter
 
     cdef void visit_grids(self, GridVisitor visitor, SelectorObject selector)
     cdef void recursively_visit_grid(self,

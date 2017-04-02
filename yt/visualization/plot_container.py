@@ -13,7 +13,9 @@ A base class for "image" plots with colorbars.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 from yt.extern.six.moves import builtins
-from yt.extern.six import iteritems
+from yt.extern.six import  \
+    iteritems, \
+    string_types
 
 import base64
 import errno
@@ -21,6 +23,7 @@ import numpy as np
 import matplotlib
 import os
 
+from distutils.version import LooseVersion
 from collections import defaultdict
 from functools import wraps
 
@@ -34,6 +37,8 @@ from yt.funcs import \
     ensure_list
 from yt.utilities.exceptions import \
     YTNotInsideNotebook
+from yt.visualization.color_maps import \
+    yt_colormaps
 
 def invalidate_data(f):
     @wraps(f)
@@ -291,6 +296,36 @@ class ImagePlotContainer(object):
         return self
 
     @invalidate_plot
+    def set_background_color(self, field, color=None):
+        """set the background color to match provided color
+
+        Parameters
+        ----------
+        field : string
+            the field to set the colormap
+            if field == 'all', applies to all plots.
+        color : string or RGBA tuple (optional)
+            if set, set the background color to this color
+            if unset, background color is set to the bottom value of 
+            the color map
+
+        """
+        actual_field = self.data_source._determine_fields(field)[0]
+        if color is None:
+            cmap = self._colormaps[actual_field]
+            if isinstance(cmap, string_types):
+                try:
+                    cmap = yt_colormaps[cmap]
+                except KeyError:
+                    cmap = getattr(matplotlib.cm, cmap)
+            color = cmap(0)
+        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+            self.plots[actual_field].axes.set_axis_bgcolor(color)
+        else:
+            self.plots[actual_field].axes.set_facecolor(color)
+        return self
+
+    @invalidate_plot
     def set_zlim(self, field, zmin, zmax, dynamic_range=None):
         """set the scale of the colormap
 
@@ -428,45 +463,51 @@ class ImagePlotContainer(object):
     @invalidate_plot
     @invalidate_figure
     def set_font(self, font_dict=None):
-        """set the font and font properties
+        """
+
+        Set the font and font properties.
 
         Parameters
         ----------
+
         font_dict : dict
-        A dict of keyword parameters to be passed to
-        :py:class:`matplotlib.font_manager.FontProperties`.
+            A dict of keyword parameters to be passed to 
+            :class:`matplotlib.font_manager.FontProperties`.
 
-        Possible keys include
-        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
-          'monospace'.
-        * style - The font style. Either normal, italic or oblique.
-        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
-          'orange'.
-        * variant: Either normal or small-caps.
-        * size: Either an relative value of xx-small, x-small, small, medium,
-          large, x-large, xx-large or an absolute font size, e.g. 12
-        * stretch: A numeric value in the range 0-1000 or one of
-          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
-          semi-expanded, expanded, extra-expanded or ultra-expanded
-        * weight: A numeric value in the range 0-1000 or one of ultralight,
-          light, normal, regular, book, medium, roman, semibold, demibold, demi,
-          bold, heavy, extra bold, or black
+            Possible keys include:
 
-        See the matplotlib font manager API documentation for more details.
-        http://matplotlib.org/api/font_manager_api.html
+            * family - The font family. Can be serif, sans-serif, cursive,
+              'fantasy' or 'monospace'.
+            * style - The font style. Either normal, italic or oblique.
+            * color - A valid color string like 'r', 'g', 'red', 'cobalt',
+              and 'orange'.
+            * variant - Either normal or small-caps.
+            * size - Either a relative value of xx-small, x-small, small,
+              medium, large, x-large, xx-large or an absolute font size, e.g. 12
+            * stretch - A numeric value in the range 0-1000 or one of
+              ultra-condensed, extra-condensed, condensed, semi-condensed,
+              normal, semi-expanded, expanded, extra-expanded or ultra-expanded
+            * weight - A numeric value in the range 0-1000 or one of ultralight,
+              light, normal, regular, book, medium, roman, semibold, demibold,
+              demi, bold, heavy, extra bold, or black
+
+            See the matplotlib font manager API documentation for more details.
+            http://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
+
         Mathtext axis labels will only obey the `size` and `color` keyword.
 
         Examples
         --------
+
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
         >>> slc = SlicePlot(ds, 'x', 'Density')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24, 'color':'blue'})
+        ...               'weight':'bold', 'size':24, 'color':'blue'})
 
         """
         from matplotlib.font_manager import FontProperties
@@ -614,15 +655,18 @@ class ImagePlotContainer(object):
         >>> slc.show()
 
         """
-        if "__IPYTHON__" in dir(builtins):
-            api_version = get_ipython_api_version()
-            if api_version in ('0.10', '0.11'):
-                self._send_zmq()
-            else:
-                from IPython.display import display
-                display(self)
+        interactivity = self.plots[list(self.plots.keys())[0]].interactivity
+        if interactivity:
+            for k,v in sorted(iteritems(self.plots)):
+                v.show()
         else:
-            raise YTNotInsideNotebook
+            if "__IPYTHON__" in dir(builtins):
+                api_version = get_ipython_api_version()
+                if api_version in ('0.10', '0.11'):
+                    self._send_zmq()
+                else:
+                    from IPython.display import display
+                    display(self)
 
     @validate_plot
     def display(self, name=None, mpl_kwargs=None):

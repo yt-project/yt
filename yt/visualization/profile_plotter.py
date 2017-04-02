@@ -23,7 +23,6 @@ import os
 
 import matplotlib
 import numpy as np
-from io import BytesIO
 
 
 from .base_plot_types import \
@@ -85,6 +84,7 @@ class AxesContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
         self.ylim = {}
+        self.xlim = (None, None)
         super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
@@ -235,7 +235,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-        
+
     @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
@@ -326,20 +326,16 @@ class ProfilePlot(object):
     def _repr_html_(self):
         """Return an html representation of the plot object. Will display as a
         png for each WindowPlotMPL instance in self.plots"""
-        from . import _mpl_imports as mpl
         ret = ''
-        unique = set(self.figures.values())
-        if len(unique) < len(self.figures):
+        unique = set(self.plots.values())
+        if len(unique) < len(self.plots):
             iters = izip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.figures)
-        for uid, fig in iters:
-            canvas = mpl.FigureCanvasAgg(fig)
-            f = BytesIO()
+            iters = iteritems(self.plots)
+        for uid, plot in iters:
             with matplotlib_style_context():
-                canvas.print_figure(f)
-            f.seek(0)
-            img = base64.b64encode(f.read()).decode()
+                img = plot._repr_png_()
+            img = base64.b64encode(img).decode()
             ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
                    r'src="data:image/png;base64,{0}"><br>'.format(img)
         return ret
@@ -362,6 +358,7 @@ class ProfilePlot(object):
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
             axes.set_ylim(*self.axes.ylim[fname])
+            axes.set_xlim(*self.axes.xlim)
             if any(self.label):
                 axes.legend(loc="best")
         self._set_font_properties()
@@ -544,6 +541,7 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
+        self.axes.xlim = (xmin, xmax)
         for i, p in enumerate(self.profiles):
             if xmin is None:
                 xmi = p.x_bins.min()
@@ -1071,45 +1069,51 @@ class PhasePlot(ImagePlotContainer):
 
     @invalidate_plot
     def set_font(self, font_dict=None):
-        """set the font and font properties
+        """
+
+        Set the font and font properties.
 
         Parameters
         ----------
+
         font_dict : dict
-        A dict of keyword parameters to be passed to
-        :py:class:`matplotlib.font_manager.FontProperties`.
+            A dict of keyword parameters to be passed to 
+            :class:`matplotlib.font_manager.FontProperties`.
 
-        Possible keys include
-        * family - The font family. Can be serif, sans-serif, cursive, 'fantasy' or
-          'monospace'.
-        * style - The font style. Either normal, italic or oblique.
-        * color - A valid color string like 'r', 'g', 'red', 'cobalt', and
-          'orange'.
-        * variant: Either normal or small-caps.
-        * size: Either an relative value of xx-small, x-small, small, medium,
-          large, x-large, xx-large or an absolute font size, e.g. 12
-        * stretch: A numeric value in the range 0-1000 or one of
-          ultra-condensed, extra-condensed, condensed, semi-condensed, normal,
-          semi-expanded, expanded, extra-expanded or ultra-expanded
-        * weight: A numeric value in the range 0-1000 or one of ultralight,
-          light, normal, regular, book, medium, roman, semibold, demibold, demi,
-          bold, heavy, extra bold, or black
+            Possible keys include:
 
-        See the matplotlib font manager API documentation for more details.
-        http://matplotlib.org/api/font_manager_api.html
+            * family - The font family. Can be serif, sans-serif, cursive,
+              'fantasy', or 'monospace'.
+            * style - The font style. Either normal, italic or oblique.
+            * color - A valid color string like 'r', 'g', 'red', 'cobalt', 
+              and 'orange'.
+            * variant - Either normal or small-caps.
+            * size - Either a relative value of xx-small, x-small, small, 
+              medium, large, x-large, xx-large or an absolute font size, e.g. 12
+            * stretch - A numeric value in the range 0-1000 or one of
+              ultra-condensed, extra-condensed, condensed, semi-condensed,
+              normal, semi-expanded, expanded, extra-expanded or ultra-expanded
+            * weight - A numeric value in the range 0-1000 or one of ultralight,
+              light, normal, regular, book, medium, roman, semibold, demibold,
+              demi, bold, heavy, extra bold, or black
+
+            See the matplotlib font manager API documentation for more details.
+            http://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----
+
         Mathtext axis labels will only obey the `size` and `color` keyword.
 
         Examples
         --------
+
         This sets the font to be 24-pt, blue, sans-serif, italic, and
         bold-face.
 
         >>> prof = ProfilePlot(ds.all_data(), 'density', 'temperature')
         >>> slc.set_font({'family':'sans-serif', 'style':'italic',
-                          'weight':'bold', 'size':24, 'color':'blue'})
+        ...               'weight':'bold', 'size':24, 'color':'blue'})
 
         """
         from matplotlib.font_manager import FontProperties

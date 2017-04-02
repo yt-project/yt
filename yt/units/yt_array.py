@@ -16,6 +16,7 @@ from __future__ import print_function
 import copy
 import numpy as np
 
+from distutils.version import LooseVersion
 from functools import wraps
 from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
@@ -27,7 +28,7 @@ from numpy import \
     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
     logical_or, logical_xor, logical_not, maximum, minimum, fmax, fmin, \
     isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
-    modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs
+    modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs, spacing
 
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
@@ -205,7 +206,7 @@ unary_operators = (
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
     rad2deg, invert, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
-    signbit, floor, ceil, trunc, modf, frexp, fabs
+    signbit, floor, ceil, trunc, modf, frexp, fabs, spacing
 )
 
 binary_operators = (
@@ -227,7 +228,7 @@ class YTArray(np.ndarray):
     Parameters
     ----------
 
-    input_array : iterable
+    input_array : Iterable
         A tuple, list, or array to attach units to
     input_units : String unit specification, unit symbol object, or astropy units
         The units of the array. Powers must be specified using python
@@ -365,6 +366,7 @@ class YTArray(np.ndarray):
         floor: passthrough_unit,
         ceil: passthrough_unit,
         trunc: passthrough_unit,
+        spacing: passthrough_unit,
     }
 
     __array_priority__ = 2.0
@@ -389,17 +391,18 @@ class YTArray(np.ndarray):
                     "ds.arr(%s, \"%s\")" % (input_array, input_units)
                     )
         if isinstance(input_array, YTArray):
+            ret = input_array.view(cls)
             if input_units is None:
                 if registry is None:
                     pass
                 else:
                     units = Unit(str(input_array.units), registry=registry)
-                    input_array.units = units
+                    ret.units = units
             elif isinstance(input_units, Unit):
-                input_array.units = input_units
+                ret.units = input_units
             else:
-                input_array.units = Unit(input_units, registry=registry)
-            return input_array.view(cls)
+                ret.units = Unit(input_units, registry=registry)
+            return ret
         elif isinstance(input_array, np.ndarray):
             pass
         elif iterable(input_array) and input_array:
@@ -596,21 +599,24 @@ class YTArray(np.ndarray):
             The unit that you wish to convert to.
         equiv : string
             The equivalence you wish to use. To see which equivalencies are
-            supported for this unitful quantity, try the :meth:`list_equivalencies`
-            method.
+            supported for this unitful quantity, try the
+            :meth:`list_equivalencies` method.
 
         Examples
         --------
         >>> a = yt.YTArray(1.0e7,"K")
         >>> a.to_equivalent("keV", "thermal")
         """
-        unit_quan = YTQuantity(1.0, unit, registry=self.units.registry)
+        conv_unit = Unit(unit, registry=self.units.registry)
         this_equiv = equivalence_registry[equiv]()
-        if self.has_equivalent(equiv) and (unit_quan.has_equivalent(equiv) or this_equiv._one_way):
-            new_arr = this_equiv.convert(self, unit_quan.units.dimensions, **kwargs)
+        oneway_or_equivalent = (
+            conv_unit.has_equivalent(equiv) or this_equiv._one_way)
+        if self.has_equivalent(equiv) and oneway_or_equivalent:
+            new_arr = this_equiv.convert(
+                self, conv_unit.dimensions, **kwargs)
             if isinstance(new_arr, tuple):
                 try:
-                    return YTArray(new_arr[0], new_arr[1]).in_units(unit)
+                    return type(self)(new_arr[0], new_arr[1]).in_units(unit)
                 except YTUnitConversionError:
                     raise YTInvalidUnitEquivalence(equiv, self.units, unit)
             else:
@@ -623,21 +629,14 @@ class YTArray(np.ndarray):
         Lists the possible equivalencies associated with this YTArray or
         YTQuantity.
         """
-        for k,v in equivalence_registry.items():
-            if self.has_equivalent(k):
-                print(v())
+        self.units.list_equivalencies()
 
     def has_equivalent(self, equiv):
         """
         Check to see if this YTArray or YTQuantity has an equivalent unit in
         *equiv*.
         """
-        try:
-            this_equiv = equivalence_registry[equiv]()
-        except KeyError:
-            raise KeyError("No such equivalence \"%s\"." % equiv)
-        old_dims = self.units.dimensions
-        return old_dims in this_equiv.dims
+        return self.units.has_equivalent(equiv)
 
     def ndarray_view(self):
         """
@@ -717,7 +716,7 @@ class YTArray(np.ndarray):
         >>> c = yt.YTArray.from_pint(b)
         """
         p_units = []
-        for base, exponent in arr.units.items():
+        for base, exponent in arr._units.items():
             bs = convert_pint_units(base)
             p_units.append("%s**(%s)" % (bs, Rational(exponent)))
         p_units = "*".join(p_units)
@@ -1392,17 +1391,16 @@ def uconcatenate(arrs, axis=0):
     v = validate_numpy_wrapper_units(v, arrs)
     return v
 
-def ucross(arr1,arr2, registry=None):
+def ucross(arr1, arr2, registry=None, axisa=-1, axisb=-1, axisc=-1, axis=None):
     """Applies the cross product to two YT arrays.
 
     This wrapper around numpy.cross preserves units.
     See the documentation of numpy.cross for full
     details.
     """
-
-    v = np.cross(arr1,arr2)
+    v = np.cross(arr1, arr2, axisa=axisa, axisb=axisb, axisc=axisc, axis=axis)
     units = arr1.units * arr2.units
-    arr = YTArray(v,units, registry=registry)
+    arr = YTArray(v, units, registry=registry)
     return arr
 
 def uintersect1d(arr1, arr2, assume_unique=False):
@@ -1443,12 +1441,34 @@ def uunion1d(arr1, arr2):
     v = validate_numpy_wrapper_units(v, [arr1, arr2])
     return v
 
-def unorm(data):
+def unorm(data, ord=None, axis=None, keepdims=False):
     """Matrix or vector norm that preserves units
 
-    This is a wrapper around np.linalg.norm that preserves units.
+    This is a wrapper around np.linalg.norm that preserves units. See
+    the documentation for that function for descriptions of the keyword
+    arguments.
+
+    The keepdims argument is ignored if the version of numpy installed is
+    older than numpy 1.10.0.
     """
-    return YTArray(np.linalg.norm(data), data.units)
+    if LooseVersion(np.__version__) < LooseVersion('1.10.0'):
+        norm = np.linalg.norm(data, ord=ord, axis=axis)
+    else:
+        norm = np.linalg.norm(data, ord=ord, axis=axis, keepdims=keepdims)
+    if norm.shape == ():
+        return YTQuantity(norm, data.units)
+    return YTArray(norm, data.units)
+
+def udot(op1, op2):
+    """Matrix or vector dot product that preservs units
+
+    This is a wrapper around np.dot that preserves units.
+    """
+    dot = np.dot(op1.d, op2.d)
+    units = op1.units*op2.units
+    if dot.shape == ():
+        return YTQuantity(dot, units)
+    return YTArray(dot, units)
 
 def uvstack(arrs):
     """Stack arrays in sequence vertically (row wise) while preserving units

@@ -29,6 +29,8 @@ npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
 
 void eval_gradient(int ds[3], npy_float64 dp[3], npy_float64 *data, npy_float64 *grad);
 
+void offset_fill(int *ds, npy_float64 *data, npy_float64 *gridval);
+
 void vertex_interp(npy_float64 v1, npy_float64 v2, npy_float64 isovalue,
                    npy_float64 vl[3], npy_float64 dds[3],
                    npy_float64 x, npy_float64 y, npy_float64 z,

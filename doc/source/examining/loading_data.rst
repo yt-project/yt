@@ -98,13 +98,13 @@ To load ARTIO data, you can specify a command such as this:
 
    ds = load("./A11QR1/s11Qzm1h2_a1.0000.art")
 
-.. _loading_athena_data:
+.. _loading-athena-data:
 
 Athena Data
 -----------
 
-Athena 4.x VTK data is *mostly* supported and cared for by John
-ZuHone. Both uniform grid and SMR datasets are supported.
+Athena 4.x VTK data is supported and cared for by John ZuHone. Both uniform grid
+and SMR datasets are supported.
 
 .. note:
    yt also recognizes Fargo3D data written to VTK files as
@@ -138,10 +138,107 @@ data, call ``load`` with the base file in the ``id0`` directory:
 which will pick up all of the files in the different ``id*`` directories for
 the entire dataset.
 
-yt works in cgs ("Gaussian") units by default, but Athena data is not
-normally stored in these units. If you would like to convert data to
-cgs units, you may supply conversions for length, time, and mass to ``load`` using
-the ``units_override`` functionality:
+The default unit system in yt is cgs ("Gaussian") units, but Athena data is not
+normally stored in these units, so the code unit system is the default unit
+system for Athena data. This means that answers to field queries from data
+objects and plots of data will be expressed in code units. Note that the default
+conversions from these units will still be in terms of cgs units, e.g. 1
+``code_length`` equals 1 cm, and so on. If you would like to provided different
+conversions, you may supply conversions for length, time, and mass to ``load``
+using the ``units_override`` functionality:
+
+.. code-block:: python
+
+   import yt
+
+   units_override = {"length_unit": (1.0, "Mpc"),
+                     "time_unit": (1.0, "Myr"),
+                     "mass_unit": (1.0e14, "Msun")}
+
+   ds = yt.load("id0/cluster_merger.0250.vtk", units_override=units_override)
+
+This means that the yt fields, e.g. ``("gas","density")``,
+``("gas","velocity_x")``, ``("gas","magnetic_field_x")``, will be in cgs units
+(or whatever unit system was specified), but the Athena fields, e.g.,
+``("athena","density")``, ``("athena","velocity_x")``,
+``("athena","cell_centered_B_x")``, will be in code units.
+
+Some 3D Athena outputs may have large grids (especially parallel datasets
+subsequently joined with the ``join_vtk`` script), and may benefit from being
+subdivided into "virtual grids". For this purpose, one can pass in the
+``nprocs`` parameter:
+
+.. code-block:: python
+
+   import yt
+
+   ds = yt.load("sloshing.0000.vtk", nprocs=8)
+
+which will subdivide each original grid into ``nprocs`` grids.
+
+.. note::
+
+    Virtual grids are only supported (and really only necessary) for 3D data.
+
+Alternative values for the following simulation parameters may be specified
+using a ``parameters`` dict, accepting the following keys:
+
+* ``Gamma``: ratio of specific heats, Type: Float
+* ``geometry``: Geometry type, currently accepts ``"cartesian"`` or
+  ``"cylindrical"``
+* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values
+  corresponding to each dimension
+
+.. code-block:: python
+
+   import yt
+
+   parameters = {"gamma":4./3., "geometry":"cylindrical",
+                 "periodicity":(False,False,False)}
+
+   ds = yt.load("relativistic_jet_0000.vtk", parameters=parameters)
+
+.. rubric:: Caveats
+
+* yt primarily works with primitive variables. If the Athena dataset contains
+  conservative variables, the yt primitive fields will be generated from the
+  conserved variables on disk.
+* Special relativistic datasets may be loaded, but at this time not all of
+  their fields are fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is
+  currently assumed that their relationship is that of an ideal a
+  :math:`\gamma`-law equation of state. This will be rectified in a future
+  release.
+* Domains may be visualized assuming periodicity.
+* Particle list data is currently unsupported.
+
+.. note::
+
+   The old behavior of supplying unit conversions using a ``parameters``
+   dict supplied to ``load`` for Athena datasets is still supported, but is
+   being deprecated in favor of ``units_override``, which provides the same
+   functionality.
+
+.. _loading-athena-pp-data:
+
+Athena++ Data
+-------------
+
+Athena++ HDF5 data is supported and cared for by John ZuHone. Uniform-grid, SMR,
+and AMR datasets in cartesian coordinates are fully supported. Support for
+curvilinear coordinates and logarithmic cell sizes exists, but is preliminary.
+For the latter type of dataset, the data will be loaded in as a semi-structured
+mesh dataset. See :ref:`loading-semi-structured-mesh-data` for more details on
+how this works in yt.
+
+The default unit system in yt is cgs ("Gaussian") units, but Athena++ data is
+not normally stored in these units, so the code unit system is the default unit
+system for Athena++ data. This means that answers to field queries from data
+objects and plots of data will be expressed in code units. Note that the default
+conversions from these units will still be in terms of cgs units, e.g. 1
+``code_length`` equals 1 cm, and so on. If you would like to provided different
+conversions, you may supply conversions for length, time, and mass to ``load``
+using the ``units_override`` functionality:
 
 .. code-block:: python
 
@@ -151,73 +248,39 @@ the ``units_override`` functionality:
                      "time_unit"(1.0,"Myr"),
                      "mass_unit":(1.0e14,"Msun")}
 
-   ds = yt.load("id0/cluster_merger.0250.vtk", units_override=units_override)
+   ds = yt.load("AM06/AM06.out1.00400.athdf", units_override=units_override)
 
-This means that the yt fields, e.g. ``("gas","density")``, ``("gas","x-velocity")``,
-``("gas","magnetic_field_x")``, will be in cgs units, but the Athena fields, e.g.,
-``("athena","density")``, ``("athena","velocity_x")``, ``("athena","cell_centered_B_x")``, will be
-in code units.
-
-Some 3D Athena outputs may have large grids (especially parallel datasets subsequently joined with
-the `join_vtk` script), and may benefit from being subdivided into "virtual grids". For this purpose,
-one can pass in the `nprocs` parameter:
-
-.. code-block:: python
-
-   import yt
-
-   ds = yt.load("sloshing.0000.vtk", nprocs=8)
-
-which will subdivide each original grid into `nprocs` grids.
-
-.. note::
-
-    Virtual grids are only supported (and really only necessary) for 3D data.
-
-Alternative values for the following simulation parameters may be specified using a ``parameters``
-dict, accepting the following keys:
-
-* ``Gamma``: ratio of specific heats, Type: Float
-* ``geometry``: Geometry type, currently accepts ``"cartesian"`` or ``"cylindrical"``
-* ``periodicity``: Is the domain periodic? Type: Tuple of boolean values corresponding to each dimension
-
-.. code-block:: python
-
-   import yt
-
-   parameters = {"gamma":4./3., "geometry":"cylindrical", "periodicity":(False,False,False)}
-
-   ds = yt.load("relativistic_jet_0000.vtk", parameters=parameters)
+This means that the yt fields, e.g. ``("gas","density")``,
+``("gas","velocity_x")``, ``("gas","magnetic_field_x")``, will be in cgs units
+(or whatever unit system was specified), but the Athena fields, e.g.,
+``("athena_pp","density")``, ``("athena_pp","vel1")``, ``("athena_pp","Bcc1")``,
+will be in code units.
 
 .. rubric:: Caveats
 
-* yt primarily works with primitive variables. If the Athena
-  dataset contains conservative variables, the yt primitive fields will be generated from the
+* yt primarily works with primitive variables. If the Athena++ dataset contains
+  conservative variables, the yt primitive fields will be generated from the
   conserved variables on disk.
-* Special relativistic datasets may be loaded, but are not fully supported. In particular, the relationships between
-  quantities such as pressure and thermal energy will be incorrect, as it is currently assumed that their relationship
-  is that of an ideal a :math:`\gamma`-law equation of state.
+* Special relativistic datasets may be loaded, but at this time not all of their
+  fields are fully supported. In particular, the relationships between
+  quantities such as pressure and thermal energy will be incorrect, as it is
+  currently assumed that their relationship is that of an ideal
+  :math:`\gamma`-law equation of state. This will be rectified in a future
+  release.
 * Domains may be visualized assuming periodicity.
-* Particle list data is currently unsupported.
-
-.. note::
-
-   The old behavior of supplying unit conversions using a ``parameters``
-   dict supplied to ``load`` for Athena datasets is still supported, but is being deprecated in
-   favor of ``units_override``, which provides the same functionality.
 
 .. _loading-orion-data:
 
 BoxLib Data
 -----------
 
-yt has been tested with BoxLib data generated by Orion, Nyx, Maestro and
-Castro.  Currently it is cared for by a combination of Andrew Myers, Chris
+yt has been tested with BoxLib data generated by Orion, Nyx, Maestro, Castro, 
+and WarpX. Currently it is cared for by a combination of Andrew Myers, Chris
 Malone, Matthew Turk, and Mike Zingale.
 
 To load a BoxLib dataset, you can use the ``yt.load`` command on
 the plotfile directory name.  In general, you must also have the
-``inputs`` file in the base directory, but Maestro and Castro will get
+``inputs`` file in the base directory, but Maestro, Castro, and WarpX will get
 all the necessary parameter information from the ``job_info`` file in
 the plotfile directory.  For instance, if you were in a
 directory with the following files:
@@ -245,7 +308,7 @@ You would feed it the filename ``pltgmlcs5600``:
    import yt
    ds = yt.load("pltgmlcs5600")
 
-For Maestro and Castro, you would not need the ``inputs`` file, and you
+For Maestro, Castro, and WarpX, you would not need the ``inputs`` file, and you
 would have a ``job_info`` file in the plotfile directory.
 
 .. rubric:: Caveats
@@ -253,7 +316,9 @@ would have a ``job_info`` file in the plotfile directory.
 * yt does not read the Maestro base state (although you can have Maestro
   map it to a full Cartesian state variable before writing the plotfile
   to get around this).  E-mail the dev list if you need this support.
-* yt does not know about particles in Maestro.
+* yt supports BoxLib particle data stored in the standard format used 
+  by Nyx and WarpX. It currently does not support the ASCII particle
+  data used by Maestro and Castro.
 * For Maestro, yt aliases either "tfromp" or "tfromh to" ``temperature``
   depending on the value of the ``use_tfromp`` runtime parameter.
 * For Maestro, some velocity fields like ``velocity_magnitude`` or
@@ -325,7 +390,7 @@ mentioned.
   of length 1.0 in "code length" which may produce strange results for volume
   quantities.
 
-.. _loading-fits-data:
+.. _loading-exodusii-data:
 
 Exodus II Data
 --------------
@@ -481,6 +546,7 @@ each vertex in the mesh by 1.0 unit in the z-direction:
     ds = yt.load("MOOSE_sample_data/mps_out.e", step=10,
                   displacements={'connect2': (5.0, [0.0, 0.0, 1.0])})
 
+.. _loading-fits-data:
 
 FITS Data
 ---------
@@ -833,8 +899,8 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
    ds = yt.load("snapshot_061.hdf5")
 
 Gadget data in raw binary format can also be loaded with the ``load`` command.
-This is only supported for snapshots created with the ``SnapFormat`` parameter
-set to 1 (the standard for Gadget-2).
+This is supported for snapshots created with the ``SnapFormat`` parameter
+set to 1 (the standard for Gadget-2) or 2.
 
 .. code-block:: python
 
@@ -883,6 +949,21 @@ The number of cells in an oct is defined by the expression
 
 It's recommended that if you want higher-resolution, try reducing the value of
 ``n_ref`` to 32 or 16.
+
+Also yt can be set to generate the global mesh index according to a specific
+type of particles instead of all the particles through the parameter
+``index_ptype``. For example, to build the octree only according to the
+``"PartType0"`` particles, you can do:
+
+.. code-block:: python
+
+   ds = yt.load("snapshot_061.hdf5", index_ptype="PartType0")
+
+By default, ``index_ptype`` is set to ``"all"``, which means all the particles.
+Currently this feature only works for the Gadget HDF5 and OWLS datasets. To
+bring the feature to other frontends, it's recommended to refer to this
+`PR <https://bitbucket.org/yt_analysis/yt/pull-requests/1985/add-particle-type-aware-octree/diff>`_
+for implementation details.
 
 .. _gadget-field-spec:
 
@@ -1027,6 +1108,8 @@ argument of this form:
 
 yt will utilize length, mass and time to set up all other units.
 
+.. _loading-gamer-data:
+
 GAMER Data
 ----------
 
@@ -1037,8 +1120,8 @@ GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the da
    import yt
    ds = yt.load("InteractingJets/jet_000002")
 
-Currently GAMER does not assume any unit for non-cosmological simulations. To specify the units for yt,
-you need to supply conversions for length, time, and mass to ``load`` using the ``units_override`` functionality:
+For simulations without units (i.e., OPT__UNIT = 0), you can supply conversions for
+length, time, and mass to ``load`` using the ``units_override`` functionality:
 
 .. code-block:: python
 
@@ -1050,6 +1133,8 @@ you need to supply conversions for length, time, and mass to ``load`` using the 
 
 This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, but the GAMER fields,
 e.g., ``("gamer","Dens")``, will be in code units.
+
+Particle data are supported and are always stored in the same file as the grid data.
 
 .. rubric:: Caveats
 
@@ -1162,6 +1247,8 @@ zero.
 * Particles may be difficult to integrate.
 * Data must already reside in memory.
 
+.. _loading-semi-structured-mesh-data:
+
 Semi-Structured Grid Data
 -------------------------
 
@@ -1244,23 +1331,37 @@ Here is an example of how to load an in-memory, unstructured mesh dataset:
 
 .. code-block:: python
 
-   import yt
-   import numpy
-   from yt.utilities.exodusII_reader import get_data
+    import yt
+    import numpy as np
 
-   coords, connectivity, data = get_data("MOOSE_sample_data/out.e-s010")
+    coords = np.array([[0.0, 0.0],
+                       [1.0, 0.0],
+                       [1.0, 1.0],
+                       [0.0, 1.0]], dtype=np.float64)
 
-This uses a publically available `MOOSE <http://mooseframework.org/>`
-dataset along with the get_data function to parse the coords, connectivity,
-and data. Then, these can be loaded as an in-memory dataset as follows:
+     connect = np.array([[0, 1, 3],
+                         [1, 2, 3]], dtype=np.int64)
+
+     data = {}
+     data['connect1', 'test'] = np.array([[0.0, 1.0, 3.0],
+                                          [1.0, 2.0, 3.0]], dtype=np.float64)
+
+Here, we have made up a simple, 2D unstructured mesh dataset consisting of two
+triangles and one node-centered data field. This data can be loaded as an in-memory
+dataset as follows:
 
 .. code-block:: python
 
-    mesh_id = 0
-    ds = yt.load_unstructured_mesh(data[mesh_id], connectivity[mesh_id], coords[mesh_id])
+    ds = yt.load_unstructured_mesh(connect, coords, data)
 
-Note that load_unstructured_mesh can take either a single or a list of meshes.
-Here, we have selected only the first mesh to load.
+Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
+Here, we only have one mesh. The in-memory dataset can then be visualized as usual,
+e.g.:
+
+.. code-block:: python
+
+    sl = yt.SlicePlot(ds, 'z', 'test')
+    sl.annotate_mesh_lines()
 
 .. rubric:: Caveats
 
@@ -1342,24 +1443,92 @@ For Gizmo outputs written as raw binary outputs, you may have to specify
 a bounding box, field specification, and units as are done for standard 
 Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 
-.. _loading-pyne-data:
+.. _halo-catalog-data:
 
 Halo Catalog Data
 -----------------
 
 yt has support for reading halo catalogs produced by Rockstar and the inline
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
-particle datasets where each particle represents a single halo.  Member particles
-for individual halos can be accessed through halo data containers.  Further halo
-analysis can be performed using :ref:`halo_catalog`.
+particle datasets where each particle represents a single halo.  For example,
+this means that the `particle_mass` field refers to the mass of the halos.  For
+Gadget FOF/SUBFIND catalogs, the member particles for a given halo can be
+accessed by creating `halo` data containers.  See :ref:`halo_containers` for
+more information.
 
-In the case where halo catalogs are written to multiple files, one must only
-give the path to one of them.
+If you have access to both the halo catalog and the simulation snapshot from
+the same redshift, additional analysis can be performed for each halo using
+:ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
+to the other halo catalogs shown here.
+
+.. _rockstar:
+
+Rockstar
+^^^^^^^^
+
+Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
+In the case where multiple files were produced, one need only provide the path
+to a single one of them.  The field type for all fields is "halos".  Some fields
+of note available from Rockstar are:
+
++----------------+---------------------------+
+| Rockstar field | yt field name             |
++================+===========================+
+| halo id        | particle_identifier       |
++----------------+---------------------------+
+| virial mass    | particle_mass             |
++----------------+---------------------------+
+| virial radius  | virial_radius             |
++----------------+---------------------------+
+| halo position  | particle_position_(x,y,z) |
++----------------+---------------------------+
+| halo velocity  | particle_velocity_(x,y,z) |
++----------------+---------------------------+
+
+Numerous other Rockstar fields exist.  To see them, check the field list by
+typing `ds.field_list` for a dataset loaded as `ds`.  Like all other datasets,
+fields must be accessed through :ref:`Data-objects`.
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ad = ds.all_data()
+   # halo masses
+   print(ad["halos", "particle_mass"])
+   # halo radii
+   print(ad["halos", "virial_radius"])
+
+.. _gadget_fof:
 
 Gadget FOF/SUBFIND
 ^^^^^^^^^^^^^^^^^^
 
-The two field types for GadgetFOF data are "Group" (FOF) and "Subhalo" (SUBFIND).
+Gadget FOF/SUBFIND halo catalogs work in the same way as those created by
+:ref:`rockstar`, except there are two field types: `FOF` for friend-of-friends
+groups and `Subhalo` for halos found with the SUBFIND substructure finder.
+Also like Rockstar, there are a number of fields specific to these halo
+catalogs.
+
++-------------------+---------------------------+
+| FOF/SUBFIND field | yt field name             |
++===================+===========================+
+| halo id           | particle_identifier       |
++-------------------+---------------------------+
+| halo mass         | particle_mass             |
++-------------------+---------------------------+
+| halo position     | particle_position_(x,y,z) |
++-------------------+---------------------------+
+| halo velocity     | particle_velocity_(x,y,z) |
++-------------------+---------------------------+
+| num. of particles | particle_number           |
++-------------------+---------------------------+
+| num. of subhalos  | subhalo_number (FOF only) |
++-------------------+---------------------------+
+
+Many other fields exist, especially for SUBFIND subhalos.  Check the field
+list by typing `ds.field_list` for a dataset loaded as `ds`.  Like all
+other datasets, fields must be accessed through :ref:`Data-objects`.
 
 .. code-block:: python
 
@@ -1384,6 +1553,11 @@ underscore and the index.
 
    # x component of the spin
    print(ad["Subhalo", "SubhaloSpin_0"])
+
+.. _halo_containers:
+
+Halo Data Containers
+^^^^^^^^^^^^^^^^^^^^
 
 Halo member particles are accessed by creating halo data containers with the
 type of halo ("Group" or "Subhalo") and the halo id.  Scalar values for halos
@@ -1416,8 +1590,8 @@ OWLS FOF/SUBFIND
 ^^^^^^^^^^^^^^^^
 
 OWLS halo catalogs have a very similar structure to regular Gadget halo catalogs.
-The two field types are "FOF" and "SUBFIND".  At this time, halo member particles
-cannot be loaded.
+The two field types are `FOF` and `SUBFIND`.  See :ref:`gadget_fof` for more
+information.  At this time, halo member particles cannot be loaded.
 
 .. code-block:: python
 
@@ -1427,19 +1601,91 @@ cannot be loaded.
    # The halo mass
    print(ad["FOF", "particle_mass"])
 
-Rockstar
-^^^^^^^^
+.. _halocatalog:
 
-Rockstar halo catalogs are loaded by providing the path to one of the .bin files.
-The single field type available is "halos".
+HaloCatalog
+^^^^^^^^^^^
+
+These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
+In the case where multiple files were produced, one need only provide the path
+to a single one of them.  The field type for all fields is "halos".  The fields
+available here are similar to other catalogs.  Any addition
+:ref:`halo_catalog_quantities` will also be accessible as fields.
+
++-------------------+---------------------------+
+| HaloCatalog field | yt field name             |
++===================+===========================+
+| halo id           | particle_identifier       |
++-------------------+---------------------------+
+| virial mass       | particle_mass             |
++-------------------+---------------------------+
+| virial radius     | virial_radius             |
++-------------------+---------------------------+
+| halo position     | particle_position_(x,y,z) |
++-------------------+---------------------------+
+| halo velocity     | particle_velocity_(x,y,z) |
++-------------------+---------------------------+
 
 .. code-block:: python
 
    import yt
-   ds = yt.load("rockstar_halos/halos_0.0.bin")
+   ds = yt.load("catalogs/catalog.0.h5")
    ad = ds.all_data()
    # The halo mass
    print(ad["halos", "particle_mass"])
+
+.. _loading-openpmd-data:
+
+openPMD Data
+------------
+
+`openPMD <http://www.openpmd.org>`_ is an open source meta-standard and naming
+scheme for mesh based data and particle data. It does not actually define a file
+format.
+
+HDF5-containers respecting the minimal set of meta information from
+versions 1.0.0 and 1.0.1 of the standard are compatible.
+Support for the ED-PIC extension is not available. Mesh data in cartesian coordinates
+and particle data can be read by this frontend.
+
+To load the first in-file iteration of a openPMD datasets using the standard HDF5
+output format:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load('example-3d/hdf5/data00000100.h5')
+
+If you operate on large files, you may want to modify the virtual chunking behaviour through
+``open_pmd_virtual_gridsize``. The supplied value is an estimate of the size of a single read request
+for each particle attribute/mesh (in Byte).
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5', open_pmd_virtual_gridsize=10e4)
+  sp = yt.SlicePlot(ds, 'x', 'rho')
+  sp.show()
+
+Particle data is fully supported:
+
+.. code-block:: python
+
+  import yt
+  ds = yt.load('example-3d/hdf5/data00000100.h5')
+  ad = f.all_data()
+  ppp = yt.ParticlePhasePlot(ad, 'particle_position_y', 'particle_momentum_y', 'particle_weighting')
+  ppp.show()
+
+.. rubric:: Caveats
+
+* 1D, 2D and 3D data is compatible, but lower dimensional data might yield
+  strange results since it gets padded and treated as 3D. Extraneous dimensions are
+  set to be of length 1.0m and have a width of one cell.
+* The frontend has hardcoded logic for renaming the openPMD ``position``
+  of particles to ``positionCoarse``
+
+.. _loading-pyne-data:
 
 PyNE Data
 ---------
@@ -1553,7 +1799,9 @@ Specifying Tipsy Cosmological Parameters and Setting Default Units
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Cosmological parameters can be specified to Tipsy to enable computation of
-default units.  The parameters recognized are of this form:
+default units.  For example do the following, to load a Tipsy dataset whose
+path is stored in the variable ``my_filename`` with specified cosmology
+parameters:
 
 .. code-block:: python
 
@@ -1562,14 +1810,21 @@ default units.  The parameters recognized are of this form:
                            'omega_matter': 0.272,
                            'hubble_constant': 0.702}
 
-If you wish to set the default units directly, you can do so by using the
+   ds = yt.load(my_filename,
+                cosmology_parameters=cosmology_parameters)
+
+If you wish to set the unit system directly, you can do so by using the
 ``unit_base`` keyword in the load statement.
 
  .. code-block:: python
 
     import yt
+
     ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
 
+See the documentation for the
+:class:`~yt.frontends.tipsy.data_structures.TipsyDataset` class for more
+information.
 
 Loading Cosmological Simulations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

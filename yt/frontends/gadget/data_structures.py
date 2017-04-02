@@ -26,7 +26,7 @@ import os
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
-    ParticleDataset
+    SPHDataset
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -46,10 +46,24 @@ def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
+    
+def _get_gadget_format(filename):
+    # check and return gadget binary format
+    f = open(filename, 'rb')
+    (rhead,) = struct.unpack('<I',f.read(4))
+    f.close()
+    if (rhead == 134217728) | (rhead == 8):
+        return 2
+    elif (rhead == 65536) | (rhead == 256):
+        return 1
+    else:
+        raise RuntimeError("Incorrect Gadget format %s!" % str(rhead))
 
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with open(filename, "rb") as f:
+            if _get_gadget_format(filename) == 2:
+                f.seek(f.tell()+16)
             self.header = read_record(f, ds._header_spec)
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
@@ -62,7 +76,7 @@ class GadgetBinaryFile(ParticleFile):
             field_list, self.total_particles,
             self._position_offset, self._file_size)
 
-class GadgetDataset(ParticleDataset):
+class GadgetDataset(SPHDataset):
     _index_class = ParticleIndex
     _file_class = GadgetBinaryFile
     _field_info_class = GadgetFieldInfo
@@ -75,6 +89,8 @@ class GadgetDataset(ParticleDataset):
                  additional_fields=(),
                  unit_base=None, n_ref=64,
                  over_refine_factor=1,
+                 kernel_name=None,
+                 index_ptype="all",
                  bounding_box = None,
                  header_spec = "default",
                  field_spec = "default",
@@ -88,8 +104,7 @@ class GadgetDataset(ParticleDataset):
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+        self.index_ptype = index_ptype
         self.storage_filename = None
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
@@ -107,7 +122,10 @@ class GadgetDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
-        super(GadgetDataset, self).__init__(filename, dataset_type, unit_system=unit_system)
+        super(GadgetDataset, self).__init__(
+            filename, dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
             self.length_unit.convert_to_units('kpccm/h')
@@ -133,6 +151,8 @@ class GadgetDataset(ParticleDataset):
         # in the GADGET-2 user guide.
 
         f = open(self.parameter_filename, 'rb')
+        if _get_gadget_format(self.parameter_filename) == 2:
+            f.seek(f.tell()+16)
         hvals = read_record(f, self._header_spec)
         for i in hvals:
             if len(hvals[i]) == 1:
@@ -279,10 +299,10 @@ class GadgetDataset(ParticleDataset):
     @staticmethod
     def _validate_header(filename):
         '''
-        This method automatically detects whether the Gadget file is big/little endian 
-        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a 
-        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file 
-        is a Gadget binary file, and endianswap is the endianness character '>' or '<'. 
+        This method automatically detects whether the Gadget file is big/little endian
+        and is not corrupt/invalid using the first 4 bytes in the file.  It returns a
+        tuple of (Valid, endianswap) where Valid is a boolean that is true if the file
+        is a Gadget binary file, and endianswap is the endianness character '>' or '<'.
         '''
         try:
             f = open(filename,'rb')
@@ -291,9 +311,9 @@ class GadgetDataset(ParticleDataset):
                 f = open(filename+".0")
             except IOError:
                 return False, 1
-        
+
         # First int32 is 256 for a Gadget2 binary file with SnapFormat=1,
-        # 8 for a Gadget2 binary file with SnapFormat=2 file, 
+        # 8 for a Gadget2 binary file with SnapFormat=2 file,
         # or the byte swapped equivalents (65536 and 134217728).
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
@@ -309,16 +329,17 @@ class GadgetDataset(ParticleDataset):
             endianswap = '>'
         # Disabled for now (does any one still use SnapFormat=2?)
         # If so, alternate read would be needed based on header.
-        # elif rhead == 8:
-        #     return True, '<'
-        # elif rhead == 134217728:
-        #     return True, '>'
+        # Enabled Format2 here
+        elif rhead == 8:
+            return True, '<'
+        elif rhead == 134217728:
+            return True, '>'
         else:
             f.close()
             return False, 1
         # Read in particle number from header
         np0 = sum(struct.unpack(endianswap+'IIIIII',f.read(6*4)))
-        # Read in size of position block. It should be 4 bytes per float, 
+        # Read in size of position block. It should be 4 bytes per float,
         # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
         f.seek(4+256+4,0)
         np1 = struct.unpack(endianswap+'I',f.read(4))[0]/(4*3)
@@ -343,6 +364,8 @@ class GadgetHDF5Dataset(GadgetDataset):
     def __init__(self, filename, dataset_type="gadget_hdf5",
                  unit_base = None, n_ref=64,
                  over_refine_factor=1,
+                 kernel_name=None,
+                 index_ptype="all",
                  bounding_box = None,
                  units_override=None,
                  unit_system="cgs"):
@@ -353,8 +376,9 @@ class GadgetHDF5Dataset(GadgetDataset):
                                "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor,
-            bounding_box = bounding_box, unit_system=unit_system)
+            over_refine_factor=over_refine_factor, index_ptype=index_ptype,
+            kernel_name=kernel_name, bounding_box=bounding_box,
+            unit_system=unit_system)
 
     def _get_hvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")

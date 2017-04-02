@@ -278,17 +278,17 @@ Overplot Grids
 Overplot Cell Edges
 ~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_cell_edges(line_width=1.0, alpha = 1.0,
-                                  color = (0.0, 0.0, 0.0))
+.. function:: annotate_cell_edges(line_width=0.002, alpha=1.0, color='black')
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.CellEdgesCallback`.)
 
-    Annotate the edges of cells, where the ``line_width`` in pixels is specified.
-    The ``alpha`` of the overlaid image and the ``color`` of the lines are also
-    specifiable.  Note that because the lines are drawn from both sides of a
-    cell, the image sometimes has the effect of doubling the line width.
-    Color here is in RGB float values (0 to 1).
+    Annotate the edges of cells, where the ``line_width`` relative to size of
+    the longest plot axis is specified.  The ``alpha`` of the overlaid image and
+    the ``color`` of the lines are also specifiable.  Note that because the
+    lines are drawn from both sides of a cell, the image sometimes has the
+    effect of doubling the line width.  Color here is a matplotlib color name or
+    a 3-tuple of RGB float values.
 
 .. python-script::
 
@@ -304,8 +304,10 @@ Overplot Halo Annotations
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_halos(self, halo_catalog, circle_args=None, \
-                             width=None, annotate_field=None, text_args=None, \
-                             factor=1.0)
+                             width=None, annotate_field=None, \
+                             radius_field='virial_radius', \
+                             center_field_prefix="particle_position", \
+                             text_args=None, factor=1.0)
 
    (This is a proxy for
    :class:`~yt.visualization.plot_modifications.HaloCatalogCallback`.)
@@ -321,11 +323,22 @@ Overplot Halo Annotations
    with the annotate_field, which accepts a field contained in the halo catalog
    to add text to the plot near the halo (example: ``annotate_field=
    'particle_mass'`` will write the halo mass next to each halo, whereas
-   ``'particle_identifier'`` shows the halo number).  font_kwargs contains the
-   arguments controlling the text appearance of the annotated field.
-   Factor is the number the virial radius is multiplied by for plotting the
-   circles. Ex: ``factor=2.0`` will plot circles with twice the radius of each
-   halo virial radius.
+   ``'particle_identifier'`` shows the halo number). The size of the circles is
+   found from the field ``radius_field`` which is ``'virial_radius'`` by
+   default. If another radius has been found as part of your halo analysis
+   workflow, you can save that field and use it as the ``radius_field`` to
+   change the size of the halos. The position of each halo is determined using
+   ``center_field_prefix`` in the following way. If ``'particle_position'``
+   is the value of ``center_field_prefix`` as is the default, the x value of
+   the halo position is stored in the field ``'particle_position_x'``, y is
+   ``'particle_position_y'``, and z is ``'particle_position_z'``. If you have
+   stored another set of coordinates for each halo as part of your halo
+   analysis as fields such as ``'halo_position_x'``, you can use these fields
+   to determine halo position by passing ``'halo_position'`` to
+   ``center_field_prefix``. font_kwargs contains the arguments controlling the
+   text appearance of the annotated field. Factor is the number the virial
+   radius is multiplied by for plotting the circles. Ex: ``factor=2.0`` will
+   plot circles with twice the radius of each halo virial radius.
 
 .. python-script::
 
@@ -420,7 +433,7 @@ Overplotting Particle Positions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 .. function:: annotate_particles(self, width, p_size=1.0, col='k', marker='o',\
-                                 stride=1.0, ptype=None, minimum_mass=None, \
+                                 stride=1, ptype='all', minimum_mass=None, \
                                  alpha=1.0)
 
    (This is a proxy for

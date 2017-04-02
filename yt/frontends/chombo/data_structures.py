@@ -23,7 +23,9 @@ from six import string_types
 from stat import \
     ST_CTIME
 
-from yt.funcs import mylog
+from yt.funcs import \
+    mylog, \
+    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.extern import six
@@ -32,7 +34,8 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.file_handler import \
-    HDF5FileHandler
+    HDF5FileHandler, \
+    warn_h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.lib.misc_utilities import \
@@ -275,14 +278,19 @@ class ChomboDataset(Dataset):
         self.parameters["EOSType"] = -1 # default
 
     def _set_code_unit_attributes(self):
-        mylog.warning("Setting code length to be 1.0 cm")
-        mylog.warning("Setting code mass to be 1.0 g")
-        mylog.warning("Setting code time to be 1.0 s")
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.magnetic_unit = self.quan(np.sqrt(4.*np.pi), "gauss")
-        self.velocity_unit = self.length_unit / self.time_unit
+        if not hasattr(self, 'length_unit'):
+            mylog.warning("Setting code length unit to be 1.0 cm")
+        if not hasattr(self, 'mass_unit'):
+            mylog.warning("Setting code mass unit to be 1.0 g")
+        if not hasattr(self, 'time_unit'):
+            mylog.warning("Setting code time unit to be 1.0 s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'magnetic_unit',
+                       self.quan(np.sqrt(4.*np.pi), "gauss"))
+        setdefaultattr(self, 'velocity_unit',
+                       self.length_unit / self.time_unit)
 
     def _localize(self, f, default):
         if f is None:
@@ -486,11 +494,11 @@ class PlutoDataset(ChomboDataset):
 
         if pluto_ini_file_exists:
             lines=[line.strip() for line in open(pluto_ini_filename)]
-            self.domain_left_edge = np.zeros(self.dimensionality)
-            self.domain_right_edge = np.zeros(self.dimensionality)
+            domain_left_edge = np.zeros(self.dimensionality)
+            domain_right_edge = np.zeros(self.dimensionality)
             for il,ll in enumerate(lines[lines.index('[Grid]')+2:lines.index('[Grid]')+2+self.dimensionality]):
-                self.domain_left_edge[il] = float(ll.split()[2])
-                self.domain_right_edge[il] = float(ll.split()[-1])
+                domain_left_edge[il] = float(ll.split()[2])
+                domain_right_edge[il] = float(ll.split()[-1])
             self.periodicity = [0]*3
             for il,ll in enumerate(lines[lines.index('[Boundary]')+2:lines.index('[Boundary]')+2+6:2]):
                 self.periodicity[il] = (ll.split()[1] == 'periodic')
@@ -498,6 +506,8 @@ class PlutoDataset(ChomboDataset):
             for il,ll in enumerate(lines[lines.index('[Parameters]')+2:]):
                 if (ll.split()[0] == 'GAMMA'):
                     self.gamma = float(ll.split()[1])
+            self.domain_left_edge = domain_left_edge
+            self.domain_right_edge = domain_right_edge
         else:
             self.domain_left_edge = self._calc_left_edge()
             self.domain_right_edge = self._calc_right_edge()
@@ -720,6 +730,8 @@ class ChomboPICDataset(ChomboDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+
+        warn_h5py(args[0])
 
         if not is_chombo_hdf5(args[0]):
             return False

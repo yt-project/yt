@@ -21,7 +21,9 @@ cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_scene as rtcs
-from grid_traversal cimport ImageSampler, \
+from .image_samplers cimport \
+    ImageSampler
+from .lenses cimport \
     ImageContainer
 from cython.parallel import prange, parallel, threadid
 from yt.visualization.image_writer import apply_colormap

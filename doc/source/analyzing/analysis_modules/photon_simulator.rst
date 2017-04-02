@@ -3,6 +3,14 @@
 Constructing Mock X-ray Observations
 ------------------------------------
 
+.. warning:: 
+
+  The ``photon_simulator`` analysis module has been deprecated; it is
+  no longer being updated, and it will be removed in a future version
+  of yt. Users are encouraged to download and use the
+  `pyXSIM <http://hea-www.cfa.harvard.edu/~jzuhone/pyxsim>`_ package 
+  instead. 
+
 .. note::
 
   If you just want to create derived fields for X-ray emission,
@@ -99,9 +107,9 @@ cold fronts.
    To work out the following examples, you should install
    `AtomDB <http://www.atomdb.org>`_ and get the files from the
    `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ auxiliary
-   data package (see the ``xray_data`` `README <xray_data_README.html>`_
-   for details on the latter). Make sure that in what follows you
-   specify the full path to the locations of these files.
+   data package (see the :ref:`xray_data_README` for details on the latter). 
+   Make sure that in what follows you specify the full path to the locations 
+   of these files.
 
 To generate photons from this dataset, we have several different things
 we need to set up. The first is a standard yt data object. It could

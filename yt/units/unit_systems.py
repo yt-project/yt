@@ -79,10 +79,9 @@ class UnitSystem(object):
 
     def __getitem__(self, key):
         if isinstance(key, string_types):
-            if key not in self._dims:
-                self._dims.append(key)
             key = getattr(dimensions, key)
-        if key not in self.units_map:
+        um = self.units_map
+        if key not in um or um[key].dimensions is not key:
             units = _get_system_unit_string(key, self.units_map)
             self.units_map[key] = Unit(units, registry=self.registry)
         return self.units_map[key]
@@ -109,10 +108,16 @@ class UnitSystem(object):
                 repr += "  %s: %s\n" % (key, self.units_map[dim])
         return repr
 
-def create_code_unit_system(ds):
-    code_unit_system = UnitSystem(str(ds), "code_length", "code_mass", "code_time",
-                                  "code_temperature", registry=ds.unit_registry)
+def create_code_unit_system(ds, current_mks_unit=None):
+    code_unit_system = UnitSystem(
+        str(ds), "code_length", "code_mass", "code_time", "code_temperature",
+        current_mks_unit=current_mks_unit, registry=ds.unit_registry)
     code_unit_system["velocity"] = "code_velocity"
+    if current_mks_unit:
+        code_unit_system["magnetic_field_mks"] = "code_magnetic"
+    else:
+        code_unit_system["magnetic_field_cgs"] = "code_magnetic"
+    code_unit_system["pressure"] = "code_pressure"
 
 cgs_unit_system = UnitSystem("cgs", "cm", "g", "s")
 cgs_unit_system["energy"] = "erg"
@@ -147,3 +152,14 @@ geometrized_unit_system = UnitSystem("geometrized", "l_geom", "m_geom", "t_geom"
 planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", temperature_unit="T_pl")
 planck_unit_system["energy"] = "E_pl"
 planck_unit_system["charge_cgs"] = "q_pl"
+
+
+cgs_ampere_unit_system = UnitSystem('cgs-ampere', 'cm', 'g', 's',
+                                    current_mks_unit='A')
+cgs_ampere_unit_system["energy"] = "erg"
+cgs_ampere_unit_system["specific_energy"] = "erg/g"
+cgs_ampere_unit_system["pressure"] = "dyne/cm**2"
+cgs_ampere_unit_system["force"] = "dyne"
+cgs_ampere_unit_system["magnetic_field_cgs"] = "gauss"
+cgs_ampere_unit_system["charge_cgs"] = "esu"
+cgs_ampere_unit_system["current_cgs"] = "statA"

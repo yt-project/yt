@@ -61,7 +61,7 @@ def periodic_position(pos, ds):
     pos : array
         An array of floats.
 
-    ds : Dataset
+    ds : ~yt.data_objects.static_output.Dataset 
         A simulation static output.
 
     Examples
@@ -852,7 +852,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     Parameters
     ----------
     maxr : scalar
-        should be max(|x|, |y|)
+        should be ``max(|x|, |y|)``
 
     aspect : scalar
         The aspect ratio of width / height for the projection.

@@ -17,7 +17,7 @@ from .render_source import VolumeSource
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
 from yt.funcs import mylog, iterable
-from yt.utilities.lib.grid_traversal import \
+from yt.utilities.lib.partitioned_grid import \
     PartitionedGrid
 from yt.data_objects.api import ImageArray
 import numpy as np
@@ -127,10 +127,8 @@ def off_axis_projection(data_source, center, normal_vector,
     funits = data_source.ds._get_field_info(item).units
 
     vol = VolumeSource(data_source, item)
-    ptf = ProjectionTransferFunction()
-    vol.set_transfer_function(ptf)
     if weight is None:
-        vol.set_fields([item])
+        vol.set_field(item)
     else:
         # This is a temporary field, which we will remove at the end.
         weightfield = ("index", "temp_weightfield")
@@ -138,16 +136,17 @@ def off_axis_projection(data_source, center, normal_vector,
             def temp_weightfield(a, b):
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
-                return tr
             return temp_weightfield
-        data_source.ds.field_info.add_field(weightfield,
+        data_source.ds.field_info.add_field(weightfield, sampling_type="cell",
             function=_make_wf(item, weight))
         # Now we have to tell the dataset to add it and to calculate
         # its dependencies..
         deps, _ = data_source.ds.field_info.check_derived_fields([weightfield])
         data_source.ds.field_dependencies.update(deps)
-        fields = [weightfield, weight]
-        vol.set_fields(fields)
+        vol.set_field(weightfield)
+        vol.set_weight_field(weight)
+    ptf = ProjectionTransferFunction()
+    vol.set_transfer_function(ptf)
     camera = sc.add_camera(data_source)
     camera.set_width(width)
     if not iterable(resolution):
@@ -155,36 +154,37 @@ def off_axis_projection(data_source, center, normal_vector,
     camera.resolution = resolution
     if not iterable(width):
         width = data_source.ds.arr([width]*3)
-    camera.position = center - width[2]*normal_vector
+    normal = np.array(normal_vector)
+    normal = normal / np.linalg.norm(normal)
+
+    camera.position = center - width[2]*normal
     camera.focus = center
-    
+
     # If north_vector is None, we set the default here.
-    # This is chosen so that if normal_vector is one of the 
+    # This is chosen so that if normal_vector is one of the
     # cartesian coordinate axes, the projection will match
     # the corresponding on-axis projection.
     if north_vector is None:
         vecs = np.identity(3)
-        t = np.cross(vecs, normal_vector).sum(axis=1)
+        t = np.cross(vecs, normal).sum(axis=1)
         ax = t.argmax()
-        east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
-        north_vector = np.cross(normal_vector, east_vector).ravel()
-    camera.switch_orientation(normal_vector,
-                              north_vector)
+        east_vector = np.cross(vecs[ax, :], normal).ravel()
+        north = np.cross(normal, east_vector).ravel()
+    else:
+        north = np.array(north_vector)
+        north = north / np.linalg.norm(north)
+    camera.switch_orientation(normal, north)
 
     sc.add_source(vol)
 
     vol.set_sampler(camera, interpolated=False)
     assert (vol.sampler is not None)
 
-    mylog.debug("Casting rays")
-    double_check = False
-    if double_check:
-        for brick in vol.volume.bricks:
-            for data in brick.my_data:
-                if np.any(np.isnan(data)):
-                    raise RuntimeError
+    fields = [vol.field]
+    if vol.weight_field is not None:
+        fields.append(vol.weight_field)
 
-    fields = vol.field
+    mylog.debug("Casting rays")
 
     for i, (grid, mask) in enumerate(data_source.blocks):
         data = [(grid[f] * mask).astype("float64") for f in fields]
@@ -197,6 +197,9 @@ def off_axis_projection(data_source, center, normal_vector,
 
     image = vol.finalize_image(camera, vol.sampler.aimage)
     image = ImageArray(image, funits, registry=data_source.ds.unit_registry, info=image.info)
+
+    if weight is not None:
+        data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
     if method == "integrate":
         if weight is None:

@@ -1,7 +1,9 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-from libc.math cimport erf
+
+cdef extern from "platform_dep.h":
+    double erf(double x)
     
 @cython.cdivision(True)
 @cython.boundscheck(False)

@@ -16,7 +16,7 @@ import numpy as np
 import random
 
 from yt.testing import \
-    assert_equal, assert_raises
+    assert_equal, assert_raises, fake_amr_ds
 from yt.frontends.stream.api import \
     load_amr_grids
 
@@ -125,3 +125,12 @@ def test_grid_arrays_view():
     yield assert_equal, grid_arr['right_edge'], ds.index.grid_right_edge
     yield assert_equal, grid_arr['dims'], ds.index.grid_dimensions
     yield assert_equal, grid_arr['level'], ds.index.grid_levels[:,0]
+
+def test_grid_selector():
+    ds = fake_amr_ds()
+    tree = ds.index.grid_tree
+    sp = ds.sphere('c', 0.5)
+    gsel = tree.selector()
+    gcount = gsel.count(sp.selector)
+    scount = sp["ones"].size
+    assert_equal(gcount, scount)

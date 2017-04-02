@@ -8,7 +8,7 @@ ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 im, sc = yt.volume_render(ds, field=("gas","density"), fname="v0.png", sigma_clip=6.0)
 
 sc.camera.set_width(ds.arr(0.1,'code_length'))
-tf = sc.get_source(0).transfer_function
+tf = sc.get_source().transfer_function
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
         alpha=np.logspace(-3,0,4), colormap = 'RdBu_r')
@@ -19,7 +19,7 @@ sc.save("v1.png", sigma_clip=6.0)
 # accentuate the outer regions of the galaxy. Let's start by bringing up the
 # alpha values for each contour to go between 0.1 and 1.0
 
-tf = sc.get_source(0).transfer_function
+tf = sc.get_source().transfer_function
 tf.clear()
 tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
         alpha=np.logspace(0,0,4), colormap = 'RdBu_r')

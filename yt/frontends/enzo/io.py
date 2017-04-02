@@ -158,7 +158,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 self._misses += 1
                 ftype, fname = field
                 if fname in gds:
-                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0,2)
+                    rv[(ftype, fname)] = gds.get(fname).value.swapaxes(0, -1)
                 else:
                     rv[(ftype, fname)] = np.zeros(g.ActiveDimensions)
             if self._cache_on:
@@ -187,7 +187,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 gf = self._cached_fields.get(g.id, {})
                 data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
-                data_view = data.swapaxes(0,2)
+                data_view = data.swapaxes(0, -1)
                 nd = 0
                 for field in fields:
                     if field in gf:
@@ -278,7 +278,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 fid = h5py.h5f.open(b(g.filename), h5py.h5f.ACC_RDONLY)
                 fn = g.filename
             data = np.empty(g.ActiveDimensions[::-1], dtype=h5_type)
-            data_view = data.swapaxes(0,2)
+            data_view = data.swapaxes(0, -1)
             for field in fluid_fields:
                 if field in gf:
                     self._hits += 1
@@ -440,7 +440,8 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             f = h5py.File(g.filename, 'r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
-                rv[(ftype, fname)] = np.atleast_3d(gds.get(fname).value)
+                rv[(ftype, fname)] = np.atleast_3d(
+                    gds.get(fname).value.transpose())
             f.close()
             return rv
         if size is None:

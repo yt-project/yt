@@ -29,8 +29,7 @@ def test_spherical_coordinates():
     # don't think it is avoidable as of right now.  Real datasets will almost
     # certainly be correct, if this is correct to 3 decimel places.
     yield assert_almost_equal, dd["cell_volume"].sum(dtype="float64"), \
-                        (4.0/3.0) * np.pi*ds.domain_width[0]**3, \
-                        3 # Allow for GENEROUS error on the volume ...
+                        (4.0/3.0) * np.pi*ds.domain_width[0]**3
     yield assert_equal, dd["index", "path_element_r"], dd["index", "dr"]
     yield assert_equal, dd["index", "path_element_theta"], \
                         dd["index", "r"] * dd["index", "dtheta"]

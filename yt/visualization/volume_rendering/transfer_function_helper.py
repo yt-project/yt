@@ -14,12 +14,16 @@ rendering.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import matplotlib
+import numpy as np
+
+from distutils.version import LooseVersion
+
 from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
 from yt.visualization.volume_rendering.transfer_functions import \
     ColorTransferFunction
 from yt.extern.six import BytesIO
-import numpy as np
 
 
 class TransferFunctionHelper(object):
@@ -47,7 +51,7 @@ class TransferFunctionHelper(object):
         self.log = False
         self.tf = None
         self.bounds = None
-        self.grey_opacity = True 
+        self.grey_opacity = False
         self.profiles = {}
 
     def set_bounds(self, bounds=None):
@@ -83,8 +87,9 @@ class TransferFunctionHelper(object):
         field: string
             The field to be rendered.
         """
+        if field != self.field:
+            self.log = self.ds._get_field_info(field).take_log
         self.field = field
-        self.log = self.ds._get_field_info(self.field).take_log
 
     def set_log(self, log):
         """
@@ -98,8 +103,6 @@ class TransferFunctionHelper(object):
             Sets whether the transfer function should use log or linear space.
         """
         self.log = log
-        self.ds.index
-        self.ds._get_field_info(self.field).take_log = log
 
     def build_transfer_function(self):
         """
@@ -118,7 +121,7 @@ class TransferFunctionHelper(object):
         """
         if self.bounds is None:
             mylog.info('Calculating data bounds. This may take a while.' +
-                       '  Set the .bounds to avoid this.')
+                       '  Set the TranferFunctionHelper.bounds to avoid this.')
             self.set_bounds()
 
         if self.log:
@@ -132,12 +135,18 @@ class TransferFunctionHelper(object):
         return self.tf
 
     def setup_default(self):
-        """docstring for setup_default"""
-        if self.log:
-            mi, ma = np.log10(self.bounds[0]), np.log10(self.bounds[1])
+        """Setup a default colormap
+
+        Creates a ColorTransferFunction including 10 gaussian layers whose
+        colors smaple the 'spectral' colormap. Also attempts to scale the
+        transfer function to produce a natural contrast ratio.
+
+        """
+        if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
+            colormap_name = 'spectral'
         else:
-            mi, ma = self.bounds
-        self.tf.add_layers(10, colormap='spectral')
+            colormap_name = 'nipy_spectral'
+        self.tf.add_layers(10, colormap=colormap_name)
         factor = self.tf.funcs[-1].y.size / self.tf.funcs[-1].y.sum()
         self.tf.funcs[-1].y *= 2*factor
 
@@ -162,6 +171,7 @@ class TransferFunctionHelper(object):
         from matplotlib.figure import Figure
         if self.tf is None:
             self.build_transfer_function()
+            self.setup_default()
         tf = self.tf
         if self.log:
             xfunc = np.logspace

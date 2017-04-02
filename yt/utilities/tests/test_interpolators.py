@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 
 from yt.testing import \
@@ -54,7 +55,7 @@ def test_linear_interpolator_3d():
                np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j]))
     tfi = lin.TrilinearFieldInterpolator(random_data,
             (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True)
-    yield assert_array_equal, tfi(fv), random_data
+    yield assert_array_almost_equal, tfi(fv), random_data
 
     # randomly spaced bins
     size = 64
@@ -74,10 +75,10 @@ def test_ghost_zone_extrapolation():
     ds = fake_random_ds(16)
 
     g = ds.index.grids[0]
+    vec = g.get_vertex_centered_data(['x', 'y', 'z'], no_ghost=True)
     for i, ax in enumerate('xyz'):
         xc = g[ax]
 
-        xv = g.get_vertex_centered_data(ax, no_ghost=True)
         tf = lin.TrilinearFieldInterpolator(xc,
                 (g.LeftEdge[0] + g.dds[0]/2.0,
                     g.RightEdge[0] - g.dds[0]/2.0,
@@ -97,6 +98,22 @@ def test_ghost_zone_extrapolation():
                                   xz, np.array([0.0, 0.0, 0.0], dtype="f8"))
 
         ii = (lx, ly, lz)[i]
-        yield assert_array_equal, ii, xv
+        yield assert_array_equal, ii, vec[ax]
         yield assert_array_equal, ii, xi
         yield assert_array_equal, ii, xz
+
+
+def test_get_vertex_centered_data():
+    ds = fake_random_ds(16)
+    g = ds.index.grids[0]
+
+    vec_list = g.get_vertex_centered_data([('gas', 'density')], no_ghost=True)
+    with warnings.catch_warnings(record=True) as w:
+        warnings.simplefilter('always')
+        vec_str = g.get_vertex_centered_data('density', no_ghost=True)
+        assert len(w) == 1
+        assert issubclass(w[-1].category, DeprecationWarning)
+        assert 'requires list of fields' in str(w[-1].message)
+    vec_tuple = g.get_vertex_centered_data(('gas', 'density'), no_ghost=True) 
+    assert_array_equal(vec_list[('gas', 'density')], vec_str)
+    assert_array_equal(vec_list[('gas', 'density')], vec_tuple)

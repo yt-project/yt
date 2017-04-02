@@ -22,12 +22,14 @@ import os
 from .fields import \
     RockstarFieldInfo
 
-from yt.utilities.cosmology import Cosmology
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
+from yt.funcs import \
+    setdefaultattr
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
+from yt.utilities.cosmology import Cosmology
 import yt.utilities.fortran_utils as fpu
 
 from .definitions import \
@@ -92,10 +94,10 @@ class RockstarDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         z = self.current_redshift
-        self.length_unit = self.quan(1.0 / (1.0+z), "Mpc / h")
-        self.mass_unit = self.quan(1.0, "Msun / h")
-        self.velocity_unit = self.quan(1.0, "km / s")
-        self.time_unit = self.length_unit / self.velocity_unit
+        setdefaultattr(self, 'length_unit', self.quan(1.0 / (1.0+z), "Mpc / h"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "Msun / h"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "km / s"))
+        setdefaultattr(self, 'time_unit', self.length_unit / self.velocity_unit)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

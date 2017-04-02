@@ -17,6 +17,24 @@ taking a quick look at simulation outputs.  Simple mechanisms exist for making
 plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
 which are described below.
 
+.. _viewing-plots:
+
+Viewing Plots
+-------------
+
+YT uses an environment neutral plotting mechanism that detects the appropriate
+matplotlib configuration for a given environment, however it defaults to a basic
+renderer. To utilize interactive plots in matplotlib supported
+environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` function. Below is an
+example in a jupyter notebook environment, but the same command should work
+in other environments as well:
+
+.. code-block:: python
+ 
+   %matplotlib notebook
+   import yt
+   yt.toggle_interactivity()
+
 .. _simple-inspection:
 
 Slices & Projections
@@ -301,7 +319,7 @@ following:
 Off Axis Projection Plots
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Internally, off axis projections are created using :ref:`the-camera-interface`
+Internally, off axis projections are created using :ref:`camera`
 by applying the
 :class:`~yt.visualization.volume_rendering.transfer_functions.ProjectionTransferFunction`.
 In this use case, the volume renderer casts a set of plane parallel rays, one
@@ -423,7 +441,7 @@ a dataset that uses 6-node wedge elements:
    sl = yt.SlicePlot(ds, 2, ('connect2', 'diffused'))
    sl.save()
 
-Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
+Slices can also be used to examine 2D unstructured mesh datasets, but the
 slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
 an example using another MOOSE dataset that uses triangular mesh elements:
 
@@ -432,6 +450,17 @@ an example using another MOOSE dataset that uses triangular mesh elements:
    import yt
    ds = yt.load('MOOSE_sample_data/out.e')
    sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
+
+You may run into situations where you have a variable you want to visualize that
+exists on multiple mesh blocks. To view the variable on ``all`` mesh blocks,
+simply pass ``all`` as the first argument of the field tuple:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MultiRegion/two_region_example_out.e", step=-1)
+   sl = yt.SlicePlot(ds, 'z', ('all', 'diffused'))
    sl.save()
 
 
@@ -504,6 +533,33 @@ the axes unit labels.
 The same result could have been accomplished by explicitly setting the ``width``
 to ``(.01, 'Mpc')``.
 
+Set image units
+~~~~~~~~~~~~~~~
+
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_axes_unit` allows
+the customization of the units used for the image and colorbar.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.set_unit('density', 'Msun/pc**3')
+   slc.save()
+
+If the unit you would like to convert to needs an equivalency, this can be
+specified via the ``equivalency`` keyword argument of ``set_unit``. For
+example, let's make a plot of the temperature field, but present it using
+an energy unit instead of a temperature unit:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'temperature', width=(10,'kpc'))
+   slc.set_unit('temperature', 'keV', equivalency='thermal')
+   slc.save()
+
 Set the plot center
 ~~~~~~~~~~~~~~~~~~~
 
@@ -519,6 +575,27 @@ two element tuples.
    slc.set_center((0.5, 0.503))
    slc.save()
 
+Flipping the plot view axes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
+with the assumption that the eastern direction on the plot forms a right handed
+coordinate system with the ``normal`` and ``north_vector`` for the system, whether
+explicitly or implicitly defined. This setting can be toggled or explicitly defined
+by the user at initialization:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   #slicing with non right-handed coordinates
+   slc = yt.SlicePlot(ds, 'x', 'velocity_x', right_handed=False)
+   slc.annotate_title('Not Right Handed')
+   slc.save("NotRightHanded.png")
+
+   #switching to right-handed coordinates
+   slc.toggle_right_handed()
+   slc.annotate_title('Right Handed')
+   slc.save("Standard.png")
 
 .. _hiding-colorbar-and-axes:
 
@@ -604,6 +681,21 @@ under symlog scale with the linear range of ``(0, linthresh)``.
    slc.set_log('x-velocity', True, linthresh=1.e1)
    slc.save()
 
+The :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_background_color`
+function accepts a field name and a color (optional). If color is given, the function
+will set the plot's background color to that. If not, it will set it to the bottom
+value of the color map.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(1.5, 'Mpc'))
+   slc.set_background_color('density')
+   slc.save('bottom_colormap_background')
+   slc.set_background_color('density', color='black')
+   slc.save('black_background')
+
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
 
@@ -685,6 +777,7 @@ function for the colorbar axis.
    slc.set_minorticks('all', 'off')
    slc.set_cbar_minorticks('all', 'off')
    slc.save()
+
 
 .. _matplotlib-customization:
 

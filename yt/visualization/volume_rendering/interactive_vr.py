@@ -20,6 +20,8 @@ import matplotlib.cm as cm
 import numpy as np
 import ctypes
 
+from yt.config import \
+    ytcfg
 from yt.utilities.math_utils import \
     get_translate_matrix, \
     get_scale_matrix, \
@@ -115,7 +117,7 @@ class IDVCamera(object):
         self.aspect_ratio = aspect_ratio
         
         # set cmap
-        cmap = cm.get_cmap("algae")   # TODO: get default_cmap
+        cmap = cm.get_cmap(ytcfg.get("yt", "default_colormap"))
         self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
         self.cmap_min = 1e55
         self.cmap_max = -1e55
@@ -453,7 +455,7 @@ class BlockCollection(SceneComponent):
 
         Parameters
         ----------
-        camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
             A simple camera object.
 
         """
@@ -618,7 +620,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
 
         """
         self.camera = camera
@@ -834,7 +836,7 @@ class SceneGraph(ColorBarSceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
 
         """
         self.camera = camera

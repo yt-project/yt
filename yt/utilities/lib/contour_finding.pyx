@@ -16,18 +16,20 @@ A two-pass contour finding algorithm
 import numpy as np
 cimport numpy as np
 cimport cython
+from cython cimport floating
 from libc.stdlib cimport malloc, free, realloc
 from yt.geometry.selection_routines cimport \
-    SelectorObject, AlwaysSelector, OctreeSubsetSelector, \
-    anyfloat
+    SelectorObject, AlwaysSelector, OctreeSubsetSelector
 from yt.utilities.lib.fp_utils cimport imax
 from yt.geometry.oct_container cimport \
     OctreeContainer, OctInfo
 from yt.geometry.oct_visitors cimport \
     Oct
-from .amr_kdtools cimport _find_node, Node
-from .grid_traversal cimport VolumeContainer, PartitionedGrid, \
-    vc_index, vc_pos_index
+from .amr_kdtools cimport Node
+from .partitioned_grid cimport \
+    PartitionedGrid
+from .volume_container cimport \
+    VolumeContainer, vc_index, vc_pos_index
 import sys
 
 cdef inline ContourID *contour_create(np.int64_t contour_id,
@@ -446,7 +448,7 @@ cdef void construct_boundary_relationships(Node trunk, ContourTree tree,
                                 pos[ax] = vc0.dims[ax]
                                 my_pos[ax] = vc0.dims[ax]-1
                             get_spos(vc0, pos[0], pos[1], pos[2], ax, spos)
-                            adj_node = _find_node(trunk, spos)
+                            adj_node = trunk._find_node(spos)
                             vc1 = vcs[adj_node.node_ind]
                             if spos_contained(vc1, spos):
                                 index = vc_index(vc0, my_pos[0],
@@ -520,7 +522,7 @@ cdef class ParticleContourTree(ContourTree):
     @cython.wraparound(False)
     def identify_contours(self, OctreeContainer octree,
                                 np.ndarray[np.int64_t, ndim=1] dom_ind,
-                                np.ndarray[anyfloat, ndim=2] positions,
+                                np.ndarray[floating, ndim=2] positions,
                                 np.ndarray[np.int64_t, ndim=1] particle_ids,
                                 int domain_id, int domain_offset):
         cdef np.ndarray[np.int64_t, ndim=1] pdoms, pcount, pind, doff
@@ -558,7 +560,7 @@ cdef class ParticleContourTree(ContourTree):
             pdoms[i] = offset
         pind = np.argsort(pdoms)
         cdef np.int64_t *ipind = <np.int64_t*> pind.data
-        cdef anyfloat *fpos = <anyfloat*> positions.data
+        cdef floating *fpos = <floating*> positions.data
         # pind is now the pointer into the position and particle_ids array.
         for i in range(positions.shape[0]):
             offset = pdoms[pind[i]]
@@ -640,7 +642,7 @@ cdef class ParticleContourTree(ContourTree):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef void link_particles(self, ContourID **container,
-                                   anyfloat *positions,
+                                   floating *positions,
                                    np.int64_t *pind,
                                    np.int64_t pcount,
                                    np.int64_t noffset,

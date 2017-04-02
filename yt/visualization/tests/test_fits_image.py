@@ -20,7 +20,7 @@ from yt.testing import fake_random_ds, requires_module
 from yt.convenience import load
 from numpy.testing import \
     assert_equal
-from yt.utilities.fits_image import \
+from yt.visualization.fits_image import \
     FITSImageData, FITSProjection, \
     FITSSlice, FITSOffAxisSlice, \
     FITSOffAxisProjection, \
@@ -112,6 +112,16 @@ def test_fits_image():
                                      depth_res=128, depth=(0.5,"unitary"))
 
     yield assert_equal, fid4.get_data("density"), fits_oap.get_data("density")
+
+    fid4.create_sky_wcs([30., 45.], (1.0, "arcsec/kpc"), replace_old_wcs=False)
+    assert fid4.wcs.wcs.cunit[0] == "cm"
+    assert fid4.wcs.wcs.cunit[1] == "cm"
+    assert fid4.wcs.wcs.ctype[0] == "linear"
+    assert fid4.wcs.wcs.ctype[1] == "linear"
+    assert fid4.wcsa.wcs.cunit[0] == "deg"
+    assert fid4.wcsa.wcs.cunit[1] == "deg"
+    assert fid4.wcsa.wcs.ctype[0] == "RA---TAN"
+    assert fid4.wcsa.wcs.ctype[1] == "DEC--TAN"
 
     cvg = ds.covering_grid(ds.index.max_level, [0.25,0.25,0.25],
                            [32, 32, 32], fields=["density","temperature"])

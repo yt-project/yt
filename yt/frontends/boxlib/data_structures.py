@@ -16,18 +16,21 @@ Data structures for BoxLib Codes
 import inspect
 import os
 import re
+from collections import namedtuple
 
 from stat import ST_CTIME
 
 import numpy as np
+import glob
 
 from yt.funcs import \
+    ensure_tuple, \
     mylog, \
-    ensure_tuple
+    setdefaultattr
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.extern.six.moves import zip as izip
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
+from yt.units import YTQuantity
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
@@ -38,9 +41,10 @@ from yt.utilities.io_handler import \
 
 from .fields import \
     BoxlibFieldInfo, \
+    NyxFieldInfo, \
     MaestroFieldInfo, \
-    CastroFieldInfo
-
+    CastroFieldInfo, \
+    WarpXFieldInfo
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.
@@ -73,6 +77,7 @@ class BoxlibGrid(AMRGridPatch):
         self._base_offset = offset
         self._parent_id = []
         self._children_ids = []
+        self._pdata = {}
 
     def _prepare_grid(self):
         super(BoxlibGrid, self)._prepare_grid()
@@ -125,8 +130,8 @@ class BoxlibGrid(AMRGridPatch):
         if dlevel != 1:
             raise NotImplementedError
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
-        startIndex = np.maximum(0, cgi / rf - gi)
-        endIndex = np.minimum((cgi + child.ActiveDimensions) / rf - gi,
+        startIndex = np.maximum(0, cgi // rf - gi)
+        endIndex = np.minimum((cgi + child.ActiveDimensions) // rf - gi,
                               self.ActiveDimensions)
         endIndex += (startIndex == endIndex)
         mask[startIndex[0]:endIndex[0],
@@ -134,13 +139,200 @@ class BoxlibGrid(AMRGridPatch):
              startIndex[2]:endIndex[2]] = tofill
 
 
+class BoxLibParticleHeader(object):
+
+    def __init__(self, ds, directory_name, is_checkpoint, 
+                 extra_field_names=None):
+
+        self.particle_type = directory_name
+        header_filename =  ds.output_dir + "/" + directory_name + "/Header"
+        with open(header_filename, "r") as f:
+            self.version_string = f.readline().strip()
+
+            particle_real_type = self.version_string.split('_')[-1]
+            particle_real_type = self.version_string.split('_')[-1]
+            if particle_real_type == 'double':
+                self.real_type = np.float64
+            elif particle_real_type == 'single':
+                self.real_type = np.float32
+            else:
+                raise RuntimeError("yt did not recognize particle real type.")
+            self.int_type = np.int32
+
+            self.dim = int(f.readline().strip())
+            self.num_int_base = 2 + self.dim
+            self.num_real_base = self.dim
+            self.num_int_extra = 0  # this should be written by Boxlib, but isn't
+            self.num_real_extra = int(f.readline().strip())
+            self.num_int = self.num_int_base + self.num_int_extra
+            self.num_real = self.num_real_base + self.num_real_extra            
+            self.num_particles = int(f.readline().strip())
+            self.max_next_id = int(f.readline().strip())
+            self.finest_level = int(f.readline().strip())
+            self.num_levels = self.finest_level + 1
+
+            # Boxlib particles can be written in checkpoint or plotfile mode
+            # The base integer fields are only there for checkpoints, but some
+            # codes use the checkpoint format for plotting
+            if not is_checkpoint:
+                self.num_int_base = 0
+                self.num_int_extra = 0
+                self.num_int = 0
+
+            self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
+            self.data_map = {}
+            for level_num in range(self.num_levels):
+                self.grids_per_level[level_num] = int(f.readline().strip())
+                self.data_map[level_num] = {}
+            
+            pfd = namedtuple("ParticleFileDescriptor",
+                             ["file_number", "num_particles", "offset"])
+
+            for level_num in range(self.num_levels):
+                for grid_num in range(self.grids_per_level[level_num]):
+                    entry = [int(val) for val in f.readline().strip().split()]
+                    self.data_map[level_num][grid_num] = pfd(*entry)
+
+        self._generate_particle_fields(extra_field_names)
+
+    def _generate_particle_fields(self, extra_field_names):
+
+        # these are the 'base' integer fields
+        self.known_int_fields = [(self.particle_type, "particle_id"),
+                                 (self.particle_type, "particle_cpu"),
+                                 (self.particle_type, "particle_cell_x"),
+                                 (self.particle_type, "particle_cell_y"),
+                                 (self.particle_type, "particle_cell_z")]
+        self.known_int_fields = self.known_int_fields[0:self.num_int_base]
+
+        # these are extra integer fields
+        extra_int_fields = ["particle_int_comp%d" % i 
+                            for i in range(self.num_int_extra)]
+        self.known_int_fields.extend([(self.particle_type, field) 
+                                      for field in extra_int_fields])
+
+        # these are the base real fields
+        self.known_real_fields = [(self.particle_type, "particle_position_x"),
+                                  (self.particle_type, "particle_position_y"),
+                                  (self.particle_type, "particle_position_z")]
+        self.known_real_fields = self.known_real_fields[0:self.num_real_base]
+
+        # these are the extras
+        if extra_field_names is not None:
+            assert(len(extra_field_names) == self.num_real_extra)
+        else:
+            extra_field_names = ["particle_real_comp%d" % i 
+                                 for i in range(self.num_real_extra)]
+
+        self.known_real_fields.extend([(self.particle_type, field) 
+                                       for field in extra_field_names])
+
+        self.known_fields = self.known_int_fields + self.known_real_fields
+
+        self.particle_int_dtype = np.dtype([(t[1], self.int_type) 
+                                            for t in self.known_int_fields])
+
+        self.particle_real_dtype = np.dtype([(t[1], self.real_type) 
+                                            for t in self.known_real_fields])
+
+
+class AMReXParticleHeader(object):
+
+    def __init__(self, ds, directory_name, is_checkpoint, 
+                 extra_field_names=None):
+
+        self.particle_type = directory_name
+        header_filename =  ds.output_dir + "/" + directory_name + "/Header"
+        self.real_component_names = []
+        self.int_component_names = []
+        with open(header_filename, "r") as f:
+            self.version_string = f.readline().strip()
+
+            particle_real_type = self.version_string.split('_')[-1]
+            particle_real_type = self.version_string.split('_')[-1]
+            if particle_real_type == 'double':
+                self.real_type = np.float64
+            elif particle_real_type == 'single':
+                self.real_type = np.float32
+            else:
+                raise RuntimeError("yt did not recognize particle real type.")
+            self.int_type = np.int32
+
+            self.dim = int(f.readline().strip())
+            self.num_int_base = 2
+            self.num_real_base = self.dim
+            self.num_real_extra = int(f.readline().strip())
+            for i in range(self.num_real_extra):
+                self.real_component_names.append(f.readline().strip())
+            self.num_int_extra = int(f.readline().strip())
+            for i in range(self.num_int_extra):
+                self.int_component_names.append(f.readline().strip())
+            self.num_int = self.num_int_base + self.num_int_extra
+            self.num_real = self.num_real_base + self.num_real_extra
+            self.is_checkpoint = bool(int(f.readline().strip()))
+            self.num_particles = int(f.readline().strip())
+            self.max_next_id = int(f.readline().strip())
+            self.finest_level = int(f.readline().strip())
+            self.num_levels = self.finest_level + 1
+
+            if not self.is_checkpoint:
+                self.num_int_base = 0
+                self.num_int_extra = 0
+                self.num_int = 0
+
+            self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
+            self.data_map = {}
+            for level_num in range(self.num_levels):
+                self.grids_per_level[level_num] = int(f.readline().strip())
+                self.data_map[level_num] = {}
+            
+            pfd = namedtuple("ParticleFileDescriptor",
+                             ["file_number", "num_particles", "offset"])
+
+            for level_num in range(self.num_levels):
+                for grid_num in range(self.grids_per_level[level_num]):
+                    entry = [int(val) for val in f.readline().strip().split()]
+                    self.data_map[level_num][grid_num] = pfd(*entry)
+
+        self._generate_particle_fields()
+
+    def _generate_particle_fields(self):
+
+        # these are the 'base' integer fields
+        self.known_int_fields = [(self.particle_type, "particle_id"),
+                                 (self.particle_type, "particle_cpu")]
+        self.known_int_fields = self.known_int_fields[0:self.num_int_base]
+
+        self.known_int_fields.extend([(self.particle_type, "particle_" + field) 
+                                       for field in self.int_component_names])
+
+        # these are the base real fields
+        self.known_real_fields = [(self.particle_type, "particle_position_x"),
+                                  (self.particle_type, "particle_position_y"),
+                                  (self.particle_type, "particle_position_z")]
+        self.known_real_fields = self.known_real_fields[0:self.num_real_base]
+
+        self.known_real_fields.extend([(self.particle_type, "particle_" + field) 
+                                       for field in self.real_component_names])
+
+        self.known_fields = self.known_int_fields + self.known_real_fields
+
+        self.particle_int_dtype = np.dtype([(t[1], self.int_type) 
+                                            for t in self.known_int_fields])
+
+        self.particle_real_dtype = np.dtype([(t[1], self.real_type) 
+                                            for t in self.known_real_fields])
+
+
 class BoxlibHierarchy(GridIndex):
+
     grid = BoxlibGrid
 
     def __init__(self, ds, dataset_type='boxlib_native'):
         self.dataset_type = dataset_type
         self.header_filename = os.path.join(ds.output_dir, 'Header')
         self.directory = ds.output_dir
+        self.particle_headers = {}
 
         GridIndex.__init__(self, ds, dataset_type)
         self._cache_endianness(self.grids[-1])
@@ -359,6 +551,41 @@ class BoxlibHierarchy(GridIndex):
     def _setup_data_io(self):
         self.io = io_registry[self.dataset_type](self.dataset)
 
+    def _determine_particle_output_type(self, directory_name):
+        header_filename =  self.ds.output_dir + "/" + directory_name + "/Header"
+        with open(header_filename, "r") as f:
+            version_string = f.readline().strip()
+            if version_string.startswith("Version_Two"):
+                return AMReXParticleHeader
+            else:
+                return BoxLibParticleHeader
+
+    def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
+        pheader = self._determine_particle_output_type(directory_name)
+        self.particle_headers[directory_name] = pheader(self.ds,
+                                                        directory_name,
+                                                        is_checkpoint,
+                                                        extra_field_names)
+
+        base_particle_fn = self.ds.output_dir + '/' + directory_name + "/Level_%d/DATA_%.4d"
+
+        gid = 0
+        for lev, data in self.particle_headers[directory_name].data_map.items():
+            for pdf in data.values():
+                pdict = self.grids[gid]._pdata
+                pdict[directory_name] = {}
+                pdict[directory_name]["particle_filename"] = base_particle_fn % \
+                                                             (lev, pdf.file_number)
+                pdict[directory_name]["offset"] = pdf.offset
+                pdict[directory_name]["NumberOfParticles"] = pdf.num_particles
+                self.grid_particle_count[gid] += pdf.num_particles
+                self.grids[gid].NumberOfParticles += pdf.num_particles
+                gid += 1
+
+        # add particle fields to field_list
+        pfield_list = self.particle_headers[directory_name].known_fields
+        self.field_list.extend(pfield_list)
+
 
 class BoxlibDataset(Dataset):
     """
@@ -373,8 +600,8 @@ class BoxlibDataset(Dataset):
     periodicity = (True, True, True)
 
     def __init__(self, output_dir,
-                 cparam_filename="inputs",
-                 fparam_filename="probin",
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -405,6 +632,8 @@ class BoxlibDataset(Dataset):
             "materials.gamma", 1.6667)
 
     def _localize_check(self, fn):
+        if fn is None:
+            return None
         # If the file exists, use it.  If not, set it to None.
         root_dir = os.path.dirname(self.output_dir)
         full_fn = os.path.join(root_dir, fn)
@@ -425,6 +654,8 @@ class BoxlibDataset(Dataset):
             return False
         args = inspect.getcallargs(cls.__init__, args, kwargs)
         # This might need to be localized somehow
+        if args['cparam_filename'] is None:
+            return True  # Treat as generic boxlib data
         inputs_filename = os.path.join(
             os.path.dirname(os.path.abspath(output_dir)),
             args['cparam_filename'])
@@ -608,10 +839,10 @@ class BoxlibDataset(Dataset):
             self._setup2d()
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, "cm")
-        self.mass_unit = self.quan(1.0, "g")
-        self.time_unit = self.quan(1.0, "s")
-        self.velocity_unit = self.quan(1.0, "cm/s")
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
 
     def _setup1d(self):
         # self._index_class = BoxlibHierarchy1D
@@ -634,7 +865,9 @@ class BoxlibDataset(Dataset):
         self.domain_right_edge = \
             np.concatenate([self.domain_right_edge, [1.0]])
         if self.geometry == "cylindrical":
-            self.domain_right_edge[2] = 2.0 * np.pi
+            dre = self.domain_right_edge
+            dre[2] = 2.0 * np.pi
+            self.domain_right_edge = dre
         tmp = self.domain_dimensions.tolist()
         tmp.append(1)
         self.domain_dimensions = np.array(tmp)
@@ -689,7 +922,7 @@ class OrionHierarchy(BoxlibHierarchy):
 
     def _read_particles(self):
         """
-        reads in particles and assigns them to grids. Will search for
+        Reads in particles and assigns them to grids. Will search for
         Star particles, then sink particles if no star particle file
         is found, and finally will simply note that no particles are
         found if neither works. To add a new Orion particle type,
@@ -777,17 +1010,56 @@ class OrionDataset(BoxlibDataset):
         if os.path.exists(jobinfo_filename):
             return False
         # Now we check for all the others
+        warpx_jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
+        if os.path.exists(warpx_jobinfo_filename):
+            return False
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
         if any(("nyx." in line for line in lines)): return False
         if any(("maestro" in line.lower() for line in lines)): return False
-        if any(("geometry.prob_lo" in line for line in lines)): return True
+        if any(("hyp." in line for line in lines)): return True
         return False
+
+
+class CastroHierarchy(BoxlibHierarchy):
+
+    def __init__(self, ds, dataset_type='castro_native'):
+        super(CastroHierarchy, self).__init__(ds, dataset_type)
+
+        if ("particles" in self.ds.parameters):
+
+            # extra beyond the base real fields that all Boxlib
+            # particles have, i.e. the xyz positions
+            castro_extra_real_fields = ['particle_velocity_x',
+                                        'particle_velocity_y',
+                                        'particle_velocity_z']
+
+            is_checkpoint = True
+
+            self._read_particles("Tracer", is_checkpoint, 
+                                 castro_extra_real_fields[0:self.ds.dimensionality])
 
 
 class CastroDataset(BoxlibDataset):
 
+    _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename='inputs',
+                 fparam_filename='probin',
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+
+        super(CastroDataset, self).__init__(output_dir,
+                                            cparam_filename,
+                                            fparam_filename,
+                                            dataset_type,
+                                            storage_filename,
+                                            units_override,
+                                            unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -818,6 +1090,10 @@ class CastroDataset(BoxlibDataset):
                 if any(b in line for b in bcs):
                     p, v = line.strip().split(":")
                     self.parameters[p] = v.strip()
+                if "git hash" in line:
+                    # line format: codename git hash:  the-hash
+                    fields = line.split(":")
+                    self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)
             
             # runtime parameters that we overrode follow "Inputs File
@@ -841,11 +1117,33 @@ class CastroDataset(BoxlibDataset):
             if not self.parameters['-z'] == "interior": periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
-    
+        if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
+            # we have particles
+            self.parameters["particles"] = 1 
+            self.particle_types = ("Tracer",)
+            self.particle_types_raw = self.particle_types
+
+
 
 class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename='inputs',
+                 fparam_filename='probin',
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+        
+        super(MaestroDataset, self).__init__(output_dir,
+                                             cparam_filename,
+                                             fparam_filename,
+                                             dataset_type,
+                                             storage_filename,
+                                             units_override,
+                                             unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -905,47 +1203,40 @@ class NyxHierarchy(BoxlibHierarchy):
 
     def __init__(self, ds, dataset_type='nyx_native'):
         super(NyxHierarchy, self).__init__(ds, dataset_type)
-        self._read_particle_header()
 
-    def _read_particle_header(self):
-        if not self.ds.parameters["particles"]:
-            self.pgrid_info = np.zeros((self.num_grids, 3), dtype='int64')
-            return
-        for fn in ['particle_position_%s' % ax for ax in 'xyz'] + \
-                  ['particle_mass'] +  \
-                  ['particle_velocity_%s' % ax for ax in 'xyz']:
-            self.field_list.append(("io", fn))
-        header = open(os.path.join(self.ds.output_dir, "DM", "Header"))
-        version = header.readline()  # NOQA
-        ndim = header.readline()  # NOQA
-        nfields = header.readline()  # NOQA
-        ntotalpart = int(header.readline())  # NOQA
-        nextid = header.readline()  # NOQA
-        maxlevel = int(header.readline())  # NOQA
+        # extra beyond the base real fields that all Boxlib
+        # particles have, i.e. the xyz positions
+        nyx_extra_real_fields = ['particle_mass',
+                                 'particle_velocity_x',
+                                 'particle_velocity_y',
+                                 'particle_velocity_z']
 
-        # Skip over how many grids on each level; this is degenerate
-        for i in range(maxlevel + 1):
-            header.readline()
+        is_checkpoint = False
 
-        grid_info = np.fromiter((int(i) for line in header.readlines()
-                                 for i in line.split()),
-                                dtype='int64',
-                                count=3*self.num_grids).reshape((self.num_grids, 3))
-        # we need grid_info in `populate_grid_objects`, so save it to self
-
-        for g, pg in izip(self.grids, grid_info):
-            g.particle_filename = os.path.join(self.ds.output_dir, "DM",
-                                               "Level_%s" % (g.Level),
-                                               "DATA_%04i" % pg[0])
-            g.NumberOfParticles = pg[1]
-            g._particle_offset = pg[2]
-
-        self.grid_particle_count[:, 0] = grid_info[:, 1]
+        self._read_particles("DM", is_checkpoint, 
+                             nyx_extra_real_fields[0:self.ds.dimensionality+1])
 
 
 class NyxDataset(BoxlibDataset):
 
     _index_class = NyxHierarchy
+    _field_info_class = NyxFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename='inputs',
+                 fparam_filename='probin',
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+
+        super(NyxDataset, self).__init__(output_dir,
+                                         cparam_filename,
+                                         fparam_filename,
+                                         dataset_type,
+                                         storage_filename,
+                                         units_override,
+                                         unit_system)
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
@@ -1008,14 +1299,15 @@ class NyxDataset(BoxlibDataset):
         if os.path.isdir(os.path.join(self.output_dir, "DM")):
             # we have particles
             self.parameters["particles"] = 1 
-            self.particle_types = ("io",)
+            self.particle_types = ("DM",)
             self.particle_types_raw = self.particle_types
 
     def _set_code_unit_attributes(self):
-        self.mass_unit = self.quan(1.0, "Msun")
-        self.time_unit = self.quan(1.0 / 3.08568025e19, "s")
-        self.length_unit = self.quan(1.0 / (1 + self.current_redshift), "Mpc")
-        self.velocity_unit = self.length_unit / self.time_unit
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "Msun"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0 / 3.08568025e19, "s"))
+        setdefaultattr(self, 'length_unit',
+                       self.quan(1.0 / (1 + self.current_redshift), "Mpc"))
+        setdefaultattr(self, 'velocity_unit', self.length_unit / self.time_unit)
 
 def _guess_pcast(vals):
     # Now we guess some things about the parameter and its type
@@ -1038,3 +1330,160 @@ def _guess_pcast(vals):
     if len(vals) == 1:
         vals = vals[0]
     return vals
+
+
+class WarpXHierarchy(BoxlibHierarchy):
+
+    def __init__(self, ds, dataset_type="boxlib_native"):
+        super(WarpXHierarchy, self).__init__(ds, dataset_type)
+
+        is_checkpoint = True
+        for ptype in self.ds.particle_types:
+            self._read_particles(ptype, is_checkpoint)
+        
+        # Additional WarpX particle information (used to set up species)
+        with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
+
+            # skip to the end, where species info is written out
+            line = f.readline()
+            while line and line != ')\n':
+                line = f.readline()
+            line = f.readline()
+
+            # Read in the species information
+            species_id = 0
+            while line:
+                line = line.strip().split()
+                charge = YTQuantity(float(line[0]), "C")
+                mass = YTQuantity(float(line[1]), "kg")
+                charge_name = 'particle%.1d_charge' % species_id
+                mass_name = 'particle%.1d_mass' % species_id
+                self.parameters[charge_name] = charge
+                self.parameters[mass_name] = mass
+                line = f.readline()
+                species_id += 1
+    
+def _skip_line(line):
+    if len(line) == 0:
+        return True
+    if line[0] == '\n':
+        return True
+    if line[0] == "=":
+        return True
+    if line[0] == ' ':
+        return True
+
+
+class WarpXDataset(BoxlibDataset):
+
+    _index_class = WarpXHierarchy
+    _field_info_class = WarpXFieldInfo
+
+    def __init__(self, output_dir,
+                 cparam_filename=None,
+                 fparam_filename=None,
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="mks"):
+
+        super(WarpXDataset, self).__init__(output_dir,
+                                           cparam_filename,
+                                           fparam_filename,
+                                           dataset_type,
+                                           storage_filename,
+                                           units_override,
+                                           unit_system)
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # fill our args
+        output_dir = args[0]
+        # boxlib datasets are always directories
+        if not os.path.isdir(output_dir): return False
+        header_filename = os.path.join(output_dir, "Header")
+        jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
+        if not os.path.exists(header_filename):
+            # We *know* it's not boxlib if Header doesn't exist.
+            return False
+        if os.path.exists(jobinfo_filename):
+            return True
+        return False
+
+    def _parse_parameter_file(self):
+        super(WarpXDataset, self)._parse_parameter_file()
+        jobinfo_filename = os.path.join(self.output_dir, "warpx_job_info")
+        with open(jobinfo_filename, "r") as f:
+            for line in f.readlines():
+                if _skip_line(line):
+                    continue
+                l = line.strip().split(":")
+                if len(l) == 2:
+                    self.parameters[l[0].strip()] = l[1].strip()
+                l = line.strip().split("=")
+                if len(l) == 2:
+                    self.parameters[l[0].strip()] = l[1].strip()
+                
+        # set the periodicity based on the integer BC runtime parameters
+        is_periodic = self.parameters['geometry.is_periodic'].split()
+        periodicity = [bool(val) for val in is_periodic]
+        self.periodicity = ensure_tuple(periodicity)
+
+        species_list = []
+        species_dirs = glob.glob(self.output_dir + "/particle*")
+        for species in species_dirs:
+            species_list.append(species[len(self.output_dir)+1:])
+        self.particle_types = tuple(species_list)
+        self.particle_types_raw = self.particle_types
+
+
+    def _set_code_unit_attributes(self):
+        setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "m/s"))
+
+
+class AMReXHierarchy(BoxlibHierarchy):
+
+    def __init__(self, ds, dataset_type="boxlib_native"):
+        super(AMReXHierarchy, self).__init__(ds, dataset_type)
+        
+        if ("particles" in self.ds.parameters):
+            is_checkpoint = True
+            for ptype in self.ds.particle_types:
+                self._read_particles(ptype, is_checkpoint)
+
+
+class AMReXDataset(BoxlibDataset):
+    
+    _index_class = AMReXHierarchy
+
+    def __init__(self, output_dir,
+                 cparam_filename=None,
+                 fparam_filename=None,
+                 dataset_type='boxlib_native',
+                 storage_filename=None,
+                 units_override=None,
+                 unit_system="cgs"):
+
+        super(AMReXDataset, self).__init__(output_dir,
+                                           cparam_filename,
+                                           fparam_filename,
+                                           dataset_type,
+                                           storage_filename,
+                                           units_override,
+                                           unit_system)
+
+    def _parse_parameter_file(self):
+        super(AMReXDataset, self)._parse_parameter_file()
+        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = [cpt.split("/")[-2] for cpt in particle_types]
+        if len(particle_types) > 0:
+            self.parameters["particles"] = 1
+            self.particle_types = tuple(particle_types)
+            self.particle_types_raw = self.particle_types
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return False

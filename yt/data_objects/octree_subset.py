@@ -17,8 +17,9 @@ Subsets of octrees
 import numpy as np
 
 from yt.data_objects.data_containers import \
-    YTFieldData, \
     YTSelectionContainer
+from yt.data_objects.field_data import \
+    YTFieldData
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 
@@ -92,7 +93,7 @@ class OctreeSubset(YTSelectionContainer):
     def _reshape_vals(self, arr):
         nz = self.nz
         if len(arr.shape) <= 2:
-            n_oct = arr.shape[0] / (nz**3)
+            n_oct = arr.shape[0] // (nz**3)
         else:
             n_oct = max(arr.shape)
         if arr.size == nz*nz*nz*n_oct:
@@ -189,7 +190,7 @@ class OctreeSubset(YTSelectionContainer):
                          dtype="float64")
         # We should not need the following if we know in advance all our fields
         # need no casting.
-        fields = [np.asarray(f, dtype="float64") for f in fields]
+        fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
         op.process_octree(self.oct_handler, self.domain_ind, pos, fields,
             self.domain_id, self._domain_offset)
         vals = op.finalize()
@@ -374,13 +375,15 @@ class OctreeSubset(YTSelectionContainer):
 
     @cell_count_cache
     def select_fcoords(self, dobj):
-        return self.oct_handler.fcoords(dobj.selector, domain_id = self.domain_id,
-                                        num_cells = self._cell_count)
+        fcoords = self.oct_handler.fcoords(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
+        return self.ds.arr(fcoords, 'code_length')
 
     @cell_count_cache
     def select_fwidth(self, dobj):
-        return self.oct_handler.fwidth(dobj.selector, domain_id = self.domain_id,
-                                       num_cells = self._cell_count)
+        fwidth = self.oct_handler.fwidth(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
+        return self.ds.arr(fwidth, 'code_length')
 
     @cell_count_cache
     def select_ires(self, dobj):

@@ -21,6 +21,8 @@ from yt.convenience import \
 from yt.funcs import mylog
 from yt.utilities.cosmology import \
     Cosmology
+from yt.utilities.physical_constants import \
+    c
 
 class CosmologySplice(object):
     """
@@ -40,7 +42,8 @@ class CosmologySplice(object):
             omega_lambda=self.simulation.omega_lambda)
 
     def create_cosmology_splice(self, near_redshift, far_redshift,
-                                minimal=True, deltaz_min=0.0,
+                                minimal=True, max_box_fraction=1.0,
+                                deltaz_min=0.0,
                                 time_data=True, redshift_data=True):
         r"""Create list of datasets capable of spanning a redshift
         interval.
@@ -63,6 +66,15 @@ class CosmologySplice(object):
             many entries as possible within the redshift
             interval.
             Default: True.
+        max_box_fraction : float
+            In terms of the size of the domain, the maximum length a light
+            ray segment can be in order to span the redshift interval from
+            one dataset to another.  If using a zoom-in simulation, this
+            parameter can be set to the length of the high resolution
+            region so as to limit ray segments to that size.  If the
+            high resolution region is not cubical, the smallest side
+            should be used.
+            Default: 1.0 (the size of the box)
         deltaz_min : float
             Specifies the minimum delta z between consecutive datasets
             in the returned
@@ -109,6 +121,7 @@ class CosmologySplice(object):
                 output['next'] = self.splice_outputs[i + 1]
 
         # Calculate maximum delta z for each data dump.
+        self.max_box_fraction = max_box_fraction
         self._calculate_deltaz_max()
 
         # Calculate minimum delta z for each data dump.
@@ -118,11 +131,12 @@ class CosmologySplice(object):
  
         if near_redshift == far_redshift:
             self.simulation.get_time_series(redshifts=[near_redshift])
-            cosmology_splice.append({'time': self.simulation[0].current_time,
-                                     'redshift': self.simulation[0].current_redshift,
-                                     'filename': os.path.join(self.simulation[0].fullpath,
-                                                              self.simulation[0].basename),
-                                     'next': None})
+            cosmology_splice.append(
+                {'time': self.simulation[0].current_time,
+                 'redshift': self.simulation[0].current_redshift,
+                 'filename': os.path.join(self.simulation[0].fullpath,
+                                          self.simulation[0].basename),
+                 'next': None})
             mylog.info("create_cosmology_splice: Using %s for z = %f ." %
                        (cosmology_splice[0]['filename'], near_redshift))
             return cosmology_splice
@@ -133,36 +147,39 @@ class CosmologySplice(object):
             z_Tolerance = 1e-3
             z = far_redshift
 
-            # fill redshift space with datasets
-            while ((z > near_redshift) and
-                   (np.abs(z - near_redshift) > z_Tolerance)):
+            # Sort data outputs by proximity to current redshift.
+            self.splice_outputs.sort(key=lambda obj:np.fabs(z - obj['redshift']))
+            cosmology_splice.append(self.splice_outputs[0])
+            z = cosmology_splice[-1]["redshift"]
+            z_target = z - cosmology_splice[-1]["dz_max"]
 
-                # For first data dump, choose closest to desired redshift.
-                if (len(cosmology_splice) == 0):
-                    # Sort data outputs by proximity to current redshift.
-                    self.splice_outputs.sort(key=lambda obj:np.fabs(z - \
-                        obj['redshift']))
-                    cosmology_splice.append(self.splice_outputs[0])
+            # fill redshift space with datasets
+            while ((z_target > near_redshift) and
+                   (np.abs(z_target - near_redshift) > z_Tolerance)):
 
                 # Move forward from last slice in stack until z > z_max.
-                else:
-                    current_slice = cosmology_splice[-1]
-                    while current_slice['next'] is not None and \
-                            (z < current_slice['next']['redshift'] or \
-                                 np.abs(z - current_slice['next']['redshift']) <
-                                 z_Tolerance):
-                        current_slice = current_slice['next']
+                current_slice = cosmology_splice[-1]
 
-                    if current_slice is cosmology_splice[-1]:
-                        near_redshift = cosmology_splice[-1]['redshift'] - \
-                          cosmology_splice[-1]['dz_max']
-                        mylog.error("Cosmology splice incomplete due to insufficient data outputs.")
+                while current_slice["next"] is not None:
+                    current_slice = current_slice['next']
+                    if current_slice["next"] is None:
                         break
-                    else:
-                        cosmology_splice.append(current_slice)
+                    if current_slice["next"]["redshift"] < z_target:
+                        break
 
-                z = cosmology_splice[-1]['redshift'] - \
-                  cosmology_splice[-1]['dz_max']
+                if current_slice["redshift"] < z_target:
+                    raise RuntimeError(
+                        ("Cannot create cosmology splice: " +
+                         "Getting from z = %f to %f requires " +
+                         "max_box_fraction = %f, but max_box_fraction "
+                         "is set to %f") %
+                         (z, z_target, (z - current_slice["redshift"]) /
+                          cosmology_splice[-1]["dz_max"],
+                          max_box_fraction))
+
+                cosmology_splice.append(current_slice)
+                z = current_slice["redshift"]
+                z_target = z - current_slice["dz_max"]
 
         # Make light ray using maximum number of datasets (minimum spacing).
         else:
@@ -189,8 +206,8 @@ class CosmologySplice(object):
         mylog.info("create_cosmology_splice: Used %d data dumps to get from z = %f to %f." %
                    (len(cosmology_splice), far_redshift, near_redshift))
         
-        # change the 'next' and 'previous' pointers to point to the correct outputs for the created
-        # splice
+        # change the 'next' and 'previous' pointers to point to the correct outputs
+        # for the created splice
         for i, output in enumerate(cosmology_splice):
             if len(cosmology_splice) == 1:
                 output['previous'] = None
@@ -254,7 +271,8 @@ class CosmologySplice(object):
                 rounded += np.power(10.0, (-1.0*decimals))
             z = rounded
 
-            deltaz_max = self._deltaz_forward(z, self.simulation.box_size)
+            deltaz_max = self._deltaz_forward(z, self.simulation.box_size *
+                                              self.max_box_fraction)
             outputs.append({'redshift': z, 'dz_max': deltaz_max})
             z -= deltaz_max
 
@@ -272,72 +290,23 @@ class CosmologySplice(object):
         from z to (z - delta z).
         """
 
-        d_Tolerance = 1e-4
-        max_Iterations = 100
-
-        target_distance = self.simulation.box_size
-
+        target_distance = self.simulation.box_size * \
+          self.max_box_fraction
         for output in self.splice_outputs:
-            z = output['redshift']
+            output['dz_max'] = self._deltaz_forward(output['redshift'],
+                                                    target_distance)
 
-            # Calculate delta z that corresponds to the length of the box
-            # at a given redshift using Newton's method.
-            z1 = z
-            z2 = z1 - 0.1 # just an initial guess
-            distance1 = self.simulation.quan(0.0, "Mpccm / h")
-            distance2 = self.cosmology.comoving_radial_distance(z2, z)
-            iteration = 1
-
-            while ((np.abs(distance2-target_distance)/distance2) > d_Tolerance):
-                m = (distance2 - distance1) / (z2 - z1)
-                z1 = z2
-                distance1 = distance2
-                z2 = ((target_distance - distance2) / m.in_units("Mpccm / h")) + z2
-                distance2 = self.cosmology.comoving_radial_distance(z2, z)
-                iteration += 1
-                if (iteration > max_Iterations):
-                    mylog.error("calculate_deltaz_max: Warning - max iterations " +
-                                "exceeded for z = %f (delta z = %f)." %
-                                (z, np.abs(z2 - z)))
-                    break
-            output['dz_max'] = np.abs(z2 - z)
-            
     def _calculate_deltaz_min(self, deltaz_min=0.0):
         r"""Calculate delta z that corresponds to a single top grid pixel
         going from z to (z - delta z).
         """
 
-        d_Tolerance = 1e-4
-        max_Iterations = 100
-
         target_distance = self.simulation.box_size / \
           self.simulation.domain_dimensions[0]
-
         for output in self.splice_outputs:
-            z = output['redshift']
-
-            # Calculate delta z that corresponds to the length of a
-            # top grid pixel at a given redshift using Newton's method.
-            z1 = z
-            z2 = z1 - 0.01 # just an initial guess
-            distance1 = self.simulation.quan(0.0, "Mpccm / h")
-            distance2 = self.cosmology.comoving_radial_distance(z2, z)
-            iteration = 1
-
-            while ((np.abs(distance2 - target_distance) / distance2) > d_Tolerance):
-                m = (distance2 - distance1) / (z2 - z1)
-                z1 = z2
-                distance1 = distance2
-                z2 = ((target_distance - distance2) / m.in_units("Mpccm / h")) + z2
-                distance2 = self.cosmology.comoving_radial_distance(z2, z)
-                iteration += 1
-                if (iteration > max_Iterations):
-                    mylog.error("calculate_deltaz_max: Warning - max iterations " +
-                                "exceeded for z = %f (delta z = %f)." %
-                                (z, np.abs(z2 - z)))
-                    break
-            # Use this calculation or the absolute minimum specified by the user.
-            output['dz_min'] = max(np.abs(z2 - z), deltaz_min)
+            zf = self._deltaz_forward(output['redshift'],
+                                      target_distance)
+            output['dz_min'] = max(zf, deltaz_min)
 
     def _deltaz_forward(self, z, target_distance):
         r"""Calculate deltaz corresponding to moving a comoving distance
@@ -347,10 +316,13 @@ class CosmologySplice(object):
         d_Tolerance = 1e-4
         max_Iterations = 100
 
-        # Calculate delta z that corresponds to the length of the
-        # box at a given redshift.
         z1 = z
-        z2 = z1 - 0.1 # just an initial guess
+        # Use Hubble's law for initial guess
+        target_distance = self.cosmology.quan(target_distance.to("Mpccm / h"))
+        v = self.cosmology.hubble_parameter(z) * target_distance
+        v = min(v, 0.9 * c)
+        dz = np.sqrt((1. + v/c) / (1. - v/c)) - 1.
+        z2 = z1 - dz
         distance1 = self.cosmology.quan(0.0, "Mpccm / h")
         distance2 = self.cosmology.comoving_radial_distance(z2, z)
         iteration = 1

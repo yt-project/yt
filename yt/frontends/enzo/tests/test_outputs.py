@@ -38,7 +38,8 @@ active_particle_cosmology = 'ActiveParticleCosmology/DD0046/DD0046'
 ecp = "enzo_cosmology_plus/DD0046/DD0046"
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
-
+toro1d = "ToroShockTube/DD0001/data0001"
+kh2d = "EnzoKelvinHelmholtz/DD0011/DD0011"
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
@@ -84,6 +85,22 @@ def test_galaxy0030():
         test_galaxy0030.__name__ = test.description
         yield test
     assert_equal(ds.particle_type_counts, {'io': 1124453})
+
+@requires_ds(toro1d)
+def test_toro1d():
+    ds = data_dir_load(toro1d)
+    assert_equal(str(ds), 'data0001')
+    for test in small_patch_amr(ds, ds.field_list):
+        test_toro1d.__name__ = test.description
+        yield test
+
+@requires_ds(kh2d)
+def test_kh2d():
+    ds = data_dir_load(kh2d)
+    assert_equal(str(ds), 'DD0011')
+    for test in small_patch_amr(ds, ds.field_list):
+        test_toro1d.__name__ = test.description
+        yield test
 
 @requires_ds(enzotiny)
 def test_simulated_halo_mass_function():
