@@ -170,7 +170,9 @@ class FieldInfoContainer(dict):
                 sml_name, "density", alias_name, self,
                 num_neighbors)
             uni_alias_name = alias_name
-            if 'particle_' in alias_name:
+            if 'particle_position_' in alias_name:
+                uni_alias_name = alias_name.replace('particle_position_', '')
+            elif 'particle_' in alias_name:
                 uni_alias_name = alias_name.replace('particle_', '')
             new_aliases.append(
                 ((ftype, uni_alias_name), (ptype, alias_name), )

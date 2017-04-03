@@ -564,6 +564,21 @@ class Dataset(object):
             nfields = self.add_particle_union(pu)
             if nfields == 0:
                 mylog.debug("zero common fields: skipping particle union 'all'")
+        if "nbody" not in self.particle_types:
+            mylog.debug("Creating Particle Union 'all'")
+            ptypes = list(self.particle_types_raw)
+            if hasattr(self, '_sph_ptype'):
+                ptypes.remove(self._sph_ptype)
+            if ptypes:
+                nbody_ptypes = []
+                for ptype in ptypes:
+                    if (ptype, 'particle_mass') in self.field_info:
+                        nbody_ptypes.append(ptype)
+                pu = ParticleUnion("nbody", nbody_ptypes)
+                nfields = self.add_particle_union(pu)
+                if nfields == 0:
+                    mylog.debug(
+                        "zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
