@@ -48,7 +48,14 @@ class IOHandlerStream(BaseIOHandler):
             raise NotImplementedError
         rv = {}
         for field in fields:
-            rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
+            nodal_flag = self.ds.nodal_flags[field[1]]
+            num_nodes = 2**sum(nodal_flag)
+            if num_nodes > 0:
+                rv[field] = self.ds.arr(np.empty((size, num_nodes), 
+                                                 dtype="float64"))
+            else:
+                rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
+
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)

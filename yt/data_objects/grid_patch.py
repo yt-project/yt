@@ -90,7 +90,9 @@ class AMRGridPatch(YTSelectionContainer):
             return tr
         finfo = self.ds._get_field_info(*fields[0])
         if not finfo.particle_type:
-            return tr.reshape(self.ActiveDimensions)
+            num_nodes = 2**sum(finfo.nodal_flag)
+            new_shape = list(self.ActiveDimensions) + [num_nodes]
+            return tr.reshape(new_shape)
         return tr
 
     def convert(self, datatype):
@@ -374,11 +376,35 @@ class AMRGridPatch(YTSelectionContainer):
                 self._last_count = mask.sum()
         return mask
 
+    def _get_nodal_slices(self, shape, nodal_flag):
+        slices = []
+        dir_slices = [[] for _ in range(3)]
+
+        for i in range(3):
+            if nodal_flag[i]:
+                dir_slices[i] = [slice(0, shape[i]-1), slice(1, shape[i])]
+            else:
+                dir_slices[i] = [slice(0, shape[i])]
+        
+        for i, sl_i in enumerate(dir_slices[0]):
+            for j, sl_j in enumerate(dir_slices[1]):
+                for k, sl_k in enumerate(dir_slices[2]):
+                    slices.append([sl_i, sl_j, sl_k])
+                
+        return slices
+
     def select(self, selector, source, dest, offset):
+        nodal_flag = source.shape - self.ActiveDimensions
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask]
+        nodal_flag = source.shape - self.ActiveDimensions
+        if sum(nodal_flag) == 0:
+            dest[offset:offset+count] = source[mask]
+        else:
+            slices = self._get_nodal_slices(source.shape, nodal_flag)
+            for i , sl in enumerate(slices):
+                dest[offset:offset+count, i] = source[sl][mask]
         return count
 
     def count(self, selector):
@@ -386,6 +412,15 @@ class AMRGridPatch(YTSelectionContainer):
         if mask is None: return 0
         return self._last_count
 
+    def count_nodal(self, selector, nodal_flag):
+        # We don't cache the selector results
+        mask = self._get_selector_mask(selector)
+        if mask is None: return 0
+        pad_width = [(0, nodal) for nodal in nodal_flag]
+        mask = np.pad(mask, pad_width, 'edge')
+        count = mask.sum()
+        return count
+        
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
         count = selector.count_points(x,y,z, 0.0)

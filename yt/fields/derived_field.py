@@ -110,6 +110,8 @@ class DerivedField(object):
         self.vector_field = vector_field
         self.ds = ds
 
+        self.nodal_flag = [0, 0, 0]
+
         self._function = function
 
         if validators:
