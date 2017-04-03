@@ -72,6 +72,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                            function=_cell_volume,
                            display_field=False,
                            units = "code_length**3")
+        registry.alias(('index', 'volume'), ('index', 'cell_volume'))
 
         registry.check_derived_fields(
             [("index", "dx"), ("index", "dy"), ("index", "dz"),

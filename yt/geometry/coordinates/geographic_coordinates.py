@@ -116,6 +116,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
                            sampling_type="cell",
                            function=_SphericalVolume,
                            units = "code_length**3")
+        registry.alias(('index', 'volume'), ('index', 'cell_volume'))
 
         def _path_radial_axis(field, data):
             return data["index", "d%s" % self.radial_axis]
