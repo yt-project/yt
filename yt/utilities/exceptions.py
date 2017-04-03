@@ -649,3 +649,13 @@ class YTBooleanObjectsWrongDataset(YTException):
 
     def __str__(self):
         return "Boolean data objects must share a common dataset object."
+
+class YTDynamicalDarkEnergyError(YTException):
+    def __init__(self, use_dark_factor, w_0, w_a):
+        self.use_dark_factor = use_dark_factor
+        self.w_0 = w_0
+        self.w_a = w_a
+
+    def __str__(self):
+        return "Dark factor on: %s, but w_0 = %s and w_a = %s are not set." % \
+                (self.use_dark_factor, self.w_0, self.w_a)

@@ -25,7 +25,8 @@ class SPHDataset(ParticleDataset):
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
                  n_ref=64, over_refine_factor=1,
-                 kernel_name=None):
+                 kernel_name=None, use_dark_factor = False, w_0 = None,
+                 w_a = None):
         if kernel_name is None:
             self.kernel_name = self.default_kernel_name
         else:
@@ -33,7 +34,8 @@ class SPHDataset(ParticleDataset):
         super(SPHDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor)
+            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            use_dark_factor = use_dark_factor, w_0 = w_0, w_a = w_a)
 
     def add_smoothed_particle_field(self, smooth_field,
                                     method="volume_weighted", nneighbors=64,
