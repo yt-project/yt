@@ -791,10 +791,7 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    if not my_dir:
-        return
-    if not os.path.exists(my_dir):
-        only_on_root(os.makedirs, my_dir)
+    ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
@@ -802,7 +799,7 @@ def ensure_dir(path):
         return path
 
     try:
-        only_on_root(os.makedirs, path)
+        os.makedirs(path)
     except OSError as e:
         if e.errno == errno.EEXIST:
             pass

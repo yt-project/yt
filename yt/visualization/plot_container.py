@@ -18,7 +18,6 @@ from yt.extern.six import  \
     string_types
 
 import base64
-import errno
 import numpy as np
 import matplotlib
 import os
