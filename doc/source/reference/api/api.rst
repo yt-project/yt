@@ -874,6 +874,7 @@ Cosmology Calculator
    ~yt.utilities.cosmology.Cosmology.expansion_factor
    ~yt.utilities.cosmology.Cosmology.z_from_t
    ~yt.utilities.cosmology.Cosmology.t_from_z
+   ~yt.utilities.cosmology.Cosmology.get_dark_factor
 
 Testing Infrastructure
 ----------------------
