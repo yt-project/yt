@@ -83,14 +83,6 @@ gadget_field_specs = dict(
                    ("NStarsSpawned", ("Gas", "Stars")),
                    ("StellarAge", "Stars")
     ),
-    nd_dm = ( "Coordinates",
-              "Velocities",
-              "ParticleIDs",
-              "Mass",
-              ("Temperature", "Halo"),
-              ("Density", "Halo"),
-              ("SmoothingLength", "Halo"),
-    ),
 )
 
 gadget_hdf5_ptypes  = (

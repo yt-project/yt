@@ -62,7 +62,6 @@ class Cosmology(object):
         The flag to either use the cosmological constant (False, default)
         or to use the parameterization of w(a) as given in Linder 2002. This,
         along with w_0 and w_a, only matters in the function expansion_factor.
-        Right now, this is only implemented for Gadget.
     w_0 : float, optional
         The Linder 2002 parameterization of w(a) is: w(a) = w_0 + w_a(1 - a).
         w_0 is w(a = 1). Only matters if use_dark_factor = True. Default is None.
@@ -86,8 +85,8 @@ class Cosmology(object):
                  unit_registry = None,
                  unit_system = "cgs",
                  use_dark_factor = False,
-                 w_0 = None,
-                 w_a = None):
+                 w_0 = -1.0,
+                 w_a = 0.0):
         self.omega_matter = float(omega_matter)
         self.omega_lambda = float(omega_lambda)
         self.omega_curvature = float(omega_curvature)
@@ -106,17 +105,8 @@ class Cosmology(object):
         # For non-standard dark energy. If false, use default cosmological constant
         # This only affects the expansion_factor function.
         self.use_dark_factor = use_dark_factor
-        self.dark_factor = 1.0
         self.w_0 = w_0
         self.w_a = w_a
-
-        # Do a quick error check on the dark energy parameters. If use_dark_factor
-        # is set to true, we have to make sure that w_0 and w_a are set, as well.
-        # That is, w_0 and w_a must not be None.
-        if self.use_dark_factor != False:
-            if (self.w_0 == None) or (self.w_a == None):
-                mylog.error("Dynamical dark energy turned on but w_0 and/or w_a is not set!")
-                raise YTDynamicalDarkEnergyError(self.use_dark_factor, self.w_0, self.w_a)
 
     def hubble_distance(self):
         r"""
@@ -415,15 +405,15 @@ class Cosmology(object):
 
         # Use non-standard dark energy
         if self.use_dark_factor:
-            self.dark_factor = self.get_dark_factor(z)
+            dark_factor = self.get_dark_factor(z)
 
         # Use default cosmological constant
         else:
-            self.dark_factor = 1.0
+            dark_factor = 1.0
 
         return np.sqrt(self.omega_matter * ((1 + z)**3.0) + 
                        self.omega_curvature * ((1 + z)**2.0) + 
-                       (self.omega_lambda * self.dark_factor))
+                       (self.omega_lambda * dark_factor))
 
     def inverse_expansion_factor(self, z):
         return 1 / self.expansion_factor(z)
@@ -599,9 +589,8 @@ class Cosmology(object):
 
         Parameters
         ----------
-        z:  Redshift in question
-        w0: The value of w(z = 0). This is a class member.
-        wa: The value of dw/dz |_z = 0. This is a class member.
+        z:  float
+            Redshift
         """
 
         # Get value of scale factor a corresponding to redshift z

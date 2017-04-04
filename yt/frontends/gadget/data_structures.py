@@ -98,8 +98,8 @@ class GadgetDataset(SPHDataset):
                  units_override=None,
                  unit_system="cgs",
                  use_dark_factor = False,
-                 w_0 = None,
-                 w_a = None):
+                 w_0 = -1.0,
+                 w_a = 0.0):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -128,8 +128,7 @@ class GadgetDataset(SPHDataset):
         super(GadgetDataset, self).__init__(
             filename, dataset_type=dataset_type, unit_system=unit_system,
             n_ref=n_ref, over_refine_factor=over_refine_factor,
-            kernel_name=kernel_name, use_dark_factor = use_dark_factor,
-            w_0 = w_0, w_a = w_a)
+            kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
             self.length_unit.convert_to_units('kpccm/h')

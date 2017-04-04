@@ -262,8 +262,7 @@ class Dataset(object):
         return obj
 
     def __init__(self, filename, dataset_type=None, file_style=None,
-                 units_override=None, unit_system="cgs", use_dark_factor = False,
-                 w_0 = None, w_a = None):
+                 units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -294,11 +293,6 @@ class Dataset(object):
             self.read_from_backup = True
         if len(self.directory) == 0:
             self.directory = "."
-
-        # Dynamical Dark Energy parameters
-        self.use_dark_factor = use_dark_factor
-        self.w_0 = w_0
-        self.w_a = w_a
 
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
@@ -1451,11 +1445,9 @@ class ParticleDataset(Dataset):
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
-                 n_ref=64, over_refine_factor=1, use_dark_factor = False,
-                 w_0 = None, w_a = None):
+                 n_ref=64, over_refine_factor=1):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
         super(ParticleDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
-            units_override=units_override, unit_system=unit_system,
-            use_dark_factor = use_dark_factor, w_0 = w_0, w_a = w_a)
+            units_override=units_override, unit_system=unit_system)
