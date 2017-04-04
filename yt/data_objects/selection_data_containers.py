@@ -268,7 +268,7 @@ class YTSlice(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
-    _container_fields = ("px", "py", "pdx", "pdy")
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
         YTSelectionContainer2D.__init__(self, axis, ds,
@@ -285,12 +285,58 @@ class YTSlice(YTSelectionContainer2D):
             return self._current_chunk.fcoords[:,xax]
         elif field == "py":
             return self._current_chunk.fcoords[:,yax]
+        elif field == "pz":
+            return self._current_chunk.fcoords[:,self.axis]
         elif field == "pdx":
             return self._current_chunk.fwidth[:,xax] * 0.5
         elif field == "pdy":
             return self._current_chunk.fwidth[:,yax] * 0.5
+        elif field == "pdz":
+            return self._current_chunk.fwidth[:,self.axis] * 0.5            
         else:
             raise KeyError(field)
+
+    _index_map = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
+                           [0, 1, 0, 1, 0, 1, 0, 1],
+                           [0, 0, 1, 1, 0, 0, 1, 1],
+                           [0, 1, 2, 3, 0, 1, 2, 3],
+                           [0, 0, 0, 0, 1, 1, 1, 1],
+                           [0, 1, 0, 1, 2, 3, 2, 3],
+                           [0, 0, 1, 1, 2, 2, 3, 3],
+                           [0, 1, 2, 3, 4, 5, 6, 7]])
+
+    def _get_linear_index(self, nodal_flag):
+        return 1*nodal_flag[2] + 2*nodal_flag[1] + 4*nodal_flag[0]
+
+    def _get_indices(self, nodal_flag):
+        li = self._get_linear_index(nodal_flag)
+        return self._index_map[li]
+        
+    def _get_nodal_data(self, field):
+        finfo = self.ds._get_field_info(field)
+        nodal_flag = finfo.nodal_flag
+        field_data = self.__getitem__(field)
+        inds = self._get_indices(nodal_flag)
+        return field_data[:, inds]
+
+    def _get_nodal_px_py(self, nodal_flag):
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        axes = [xax, yax]
+
+        ps = []
+        for ax in axes:
+            coords = self.fcoords[:, ax]
+            if nodal_flag[ax]:
+                fwidth = self.fwidth[:, ax]
+                p = np.empty((coords.shape[0], 2), dtype='float64')
+                p[:, 0] = coords - 0.5*fwidth
+                p[:, 1] = coords + 0.5*fwidth
+            else:
+                p = np.atleast_2d(coords).transpose()
+            ps.append(p)
+    
+        return ps
 
     @property
     def _mrep(self):
