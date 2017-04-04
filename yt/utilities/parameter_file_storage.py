@@ -19,7 +19,6 @@ from itertools import islice
 
 from yt.config import ytcfg
 from yt.funcs import \
-    ensure_dir, \
     mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_simple_proxy
@@ -86,7 +85,7 @@ class ParameterFileStore(object):
         dbn = self._get_db_name()
         dbdir = os.path.dirname(dbn)
         try:
-            if not os.path.isdir(dbdir): ensure_dir(dbdir)
+            if not os.path.isdir(dbdir): os.mkdir(dbdir)
         except OSError:
             raise NoParameterShelf()
         open(dbn, 'ab') # make sure it exists, allow to close
