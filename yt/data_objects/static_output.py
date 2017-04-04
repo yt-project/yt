@@ -963,12 +963,18 @@ class Dataset(object):
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
+
+            # Set dynamical dark energy parameters
+            use_dark_factor = getattr(self, 'use_dark_factor', False)
+            w_0 = getattr(self, 'w_0', -1.0)
+            w_a = getattr(self, 'w_a', 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda, \
-                              use_dark_factor = self.use_dark_factor,
-                              w_0 = self.w_0, w_a = self.w_a)
+                              omega_lambda=self.omega_lambda,
+                              use_dark_factor = use_dark_factor,
+                              w_0 = w_0, w_a = w_a)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
