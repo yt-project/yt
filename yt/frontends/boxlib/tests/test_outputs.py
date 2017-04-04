@@ -246,5 +246,6 @@ def test_nyx_no_part():
          ('boxlib', 'zmom')])
 
     ds = data_dir_load(nyx_no_particles)
-    assert_equal(sorted(ds.field_list, fields))
+    assert_equal(sorted(ds.field_list), fields)
+
 
