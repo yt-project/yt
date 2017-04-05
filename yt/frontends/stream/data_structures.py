@@ -150,11 +150,11 @@ class StreamHandler(object):
     def get_fields(self):
         return self.fields.all_fields
 
-    def get_particle_type(self, field) :
+    def get_particle_type(self, field):
 
-        if field in self.particle_types :
+        if field in self.particle_types:
             return self.particle_types[field]
-        else :
+        else:
             return False
 
 class StreamHierarchy(GridIndex):
@@ -252,7 +252,7 @@ class StreamHierarchy(GridIndex):
         else:
             self.io = io_registry[self.dataset_type](self.ds)
 
-    def update_data(self, data, units = None):
+    def update_data(self, data, units=None):
 
         """
         Update the stream data with a new data dict. If fields already exist,
@@ -266,20 +266,20 @@ class StreamHierarchy(GridIndex):
         particle_types = set_particle_types(data[0])
         ftype = "io"
 
-        for key in data[0].keys() :
+        for key in data[0].keys():
             if key is "number_of_particles": continue
             self.stream_handler.particle_types[key] = particle_types[key]
 
-        for i, grid in enumerate(self.grids) :
-            if "number_of_particles" in data[i] :
+        for i, grid in enumerate(self.grids):
+            if "number_of_particles" in data[i]:
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
             for fname in data[i]:
                 if fname in grid.field_data:
                     grid.field_data.pop(fname, None)
                 elif (ftype, fname) in grid.field_data:
-                    grid.field_data.pop( ("io", fname) )
+                    grid.field_data.pop((ftype, fname))
                 self.stream_handler.fields[grid.id][fname] = data[i][fname]
-            
+
         # We only want to create a superset of fields here.
         self._detect_output_fields()
         self.ds.create_field_info()
@@ -303,7 +303,13 @@ class StreamDataset(Dataset):
         self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
-        name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
+        particle_types = []
+        for k, v in self.stream_handler.particle_types.items():
+            if v:
+                particle_types.append(k[0])
+        self.particle_types = tuple(set(particle_types))
+        self.particle_types_raw = self.particle_types
+        name = "InMemoryParameterFile_%s" % uuid.uuid4().hex
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
         Dataset.__init__(self, name, self._dataset_type,
@@ -1116,7 +1122,6 @@ def load_particles(data, length_unit = None, bbox=None,
     data = pdata # Drop reference count
     update_field_names(data)
     particle_types = set_particle_types(data)
-
     sfh.update({'stream_file':data})
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
