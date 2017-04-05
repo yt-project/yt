@@ -111,7 +111,10 @@ class GadgetDataset(SPHDataset):
                  long_ids = False,
                  units_override=None,
                  header_offset = 0,
-                 unit_system="cgs"):
+                 unit_system="cgs",
+                 use_dark_factor = False,
+                 w_0 = -1.0,
+                 w_a = 0.0):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)

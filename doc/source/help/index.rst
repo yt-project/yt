@@ -72,8 +72,8 @@ Now try running yt again with:
 
   $ yt --help
 
-If you continue to see errors, you should try contacting us via IRC or email
-but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
+If you continue to see errors, you should try contacting us via Slack, IRC or
+email but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
 
 .. _search-the-documentation:
 
@@ -170,17 +170,24 @@ the problem!
 
 .. _irc:
 
-Go on IRC to ask a question
----------------------------
+Go on Slack or IRC to ask a question
+------------------------------------
 
-If you want a fast, interactive experience, you could try jumping into our IRC
-channel to get your questions answered in a chatroom style environment.  You
-don't even need to have any special IRC client in order to join.  We are the
-#yt channel on irc.freenode.net, but you can also connect using your web
-browser by going to http://yt-project.org/irc.html .  There are usually 2-8
-members of the user base and development team online, so you'll probably get
-your answers quickly.  Remember to bring the information from the
-:ref:`last step <isolate_and_document>`.
+If you want a fast, interactive experience, you could try jumping into our Slack
+or IRC channels to get your questions answered in a chatroom style environment.
+
+To join our slack channel you will need to request an invite by going to
+http://yt-project.org/development.html, click the "Join as @ Slack!" button, and
+fill out the form. You will get an invite as soon as an administrator approves
+your request.
+
+Alternatively you can go to our IRC channel, which does not require an
+invite. You don't even need to have any special IRC client in order to join the
+IRC channel.  We are the #yt channel on irc.freenode.net, but you can also
+connect using your web browser by going to http://yt-project.org/irc.html .
+There are usually 2-8 members of the user base and development team online, so
+you'll probably get your answers quickly.  Remember to bring the information
+from the :ref:`last step <isolate_and_document>`.
 
 .. _mailing-list:
 
