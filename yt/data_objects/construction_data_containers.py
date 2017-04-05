@@ -260,6 +260,11 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         field = field or []
         field = self._determine_fields(ensure_list(field))
 
+        for f in field:
+            nodal_flag = self.ds._get_field_info(f).nodal_flag
+            if any(nodal_flag):
+                raise RuntimeError("Nodal fields are currently not supported for projections.")
+
         if not self.deserialize(field):
             self.get_data(field)
             self.serialize()
