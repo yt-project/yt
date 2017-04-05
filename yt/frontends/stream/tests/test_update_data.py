@@ -2,7 +2,7 @@ from yt.testing import fake_random_ds
 from yt.data_objects.profiles import create_profile
 from numpy.random import uniform
 
-def test_update_data() :
+def test_update_data():
     ds = fake_random_ds(64, nprocs=8)
     ds.index
     dims = (32,32,32)
@@ -13,4 +13,4 @@ def test_update_data() :
     prj["temperature"]
     dd = ds.all_data()
     profile = create_profile(dd, "density", "temperature", 10)
-    profile["temperature"]                             
+    profile["temperature"]
