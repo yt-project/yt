@@ -95,7 +95,7 @@ class DerivedField(object):
                  take_log=True, validators=None,
                  particle_type=None, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
-                 dimensions=None, ds=None):
+                 dimensions=None, ds=None, nodal_flag=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -110,7 +110,10 @@ class DerivedField(object):
         self.vector_field = vector_field
         self.ds = ds
 
-        self.nodal_flag = [0, 0, 0]
+        if nodal_flag is None:
+            self.nodal_flag = [0, 0, 0]
+        else:
+            self.nodal_flag = nodal_flag
 
         self._function = function
 
