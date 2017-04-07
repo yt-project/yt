@@ -40,6 +40,7 @@ from yt.utilities.lib.element_mappings cimport \
 from yt.geometry.particle_deposit cimport \
     kernel_func, get_kernel_func
 from cython.parallel cimport prange
+from cpython.exc cimport PyErr_CheckSignals
 
 cdef int TABLE_NVALS=512
 
@@ -819,6 +820,9 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
     
     with nogil:
         for j in prange(0, posx.shape[0]):
+            if j % 1000 == 0:
+                with gil:
+                    PyErr_CheckSignals()
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, buff.shape[0])
@@ -900,6 +904,9 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
 
     with nogil:
         for j in prange(0, posx.shape[0]):
+            if j % 1000 == 0:
+                with gil:
+                    PyErr_CheckSignals()
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
             x0 = iclip(x0-1, 0, buff.shape[0])
