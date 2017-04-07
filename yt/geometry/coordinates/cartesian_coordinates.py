@@ -151,7 +151,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
             period = period.in_units("code_length").d
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        if isinstance(data_source.ds, particle_datasets) and field[0] == 'gas':
+        is_sph_field = field[0] in 'gas'
+        if hasattr(data_source.ds, '_sph_ptype'):
+            is_sph_field |= field[0] in data_source.ds._sph_ptype
+        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
             ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
@@ -167,6 +170,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     left_edge=le, right_edge=re, center=data_source.center,
                     data_source=data_source.data_source
                 )
+                bnds = data_source.ds.arr(
+                    bounds, 'code_length').in_units('cm').tolist()
                 buff = pixelize_sph_kernel_projection(
                     proj_reg[ptype, px_name].in_units('cm'),
                     proj_reg[ptype, py_name].in_units('cm'),
@@ -175,7 +180,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     proj_reg[ptype, 'density'].in_units('g/cm**3'),
                     proj_reg[ptype, 'density'].in_units(ounits),
                     size[0], size[1],
-                    data_source.ds.arr(bounds, 'code_length').in_units('cm').tolist()).transpose()
+                    bnds).transpose()
             elif isinstance(data_source, YTSlice):
                 buff = pixelize_sph_kernel_slice(
                     data_source[ptype, px_name],

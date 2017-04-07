@@ -130,6 +130,9 @@ cython_extensions = [
     Extension("yt.utilities.lib.mesh_triangulation",
               ["yt/utilities/lib/mesh_triangulation.pyx"],
               depends=["yt/utilities/lib/mesh_triangulation.h"]),
+    Extension("yt.utilities.lib.particle_kdtree_tools",
+              ["yt/utilities/lib/particle_kdtree_tools.pyx"],
+              language="c++"),
     Extension("yt.utilities.lib.pixelization_routines",
               ["yt/utilities/lib/pixelization_routines.pyx",
                "yt/utilities/lib/pixelization_constants.c"],
@@ -189,7 +192,7 @@ lib_exts = [
     "particle_mesh_operations", "depth_first_octree", "fortran_reader",
     "interpolators", "misc_utilities", "basic_octree", "image_utilities",
     "points_in_volume", "quad_tree", "ray_integrators", "mesh_utilities",
-    "amr_kdtools", "lenses", "distance_queue", "allocation_container"
+    "amr_kdtools", "lenses", "distance_queue", "allocation_container",
 ]
 for ext_name in lib_exts:
     cython_extensions.append(
@@ -333,7 +336,9 @@ class build_ext(_build_ext):
         else:
             __builtins__.__NUMPY_SETUP__ = False
         import numpy
+        import cykdtree
         self.include_dirs.append(numpy.get_include())
+        self.include_dirs.append(cykdtree.get_include())
 
 class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
