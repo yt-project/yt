@@ -94,7 +94,7 @@ class AMRGridPatch(YTSelectionContainer):
         if not finfo.particle_type:
             num_nodes = 2**sum(finfo.nodal_flag)
             new_shape = list(self.ActiveDimensions) + [num_nodes]
-            return tr.reshape(new_shape)
+            return np.squeeze(tr.reshape(new_shape))
         return tr
 
     def convert(self, datatype):
