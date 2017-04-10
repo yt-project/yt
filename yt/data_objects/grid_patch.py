@@ -396,15 +396,6 @@ class AMRGridPatch(YTSelectionContainer):
         if mask is None: return 0
         return self._last_count
 
-    def count_nodal(self, selector, nodal_flag):
-        # We don't cache the selector results
-        mask = self._get_selector_mask(selector)
-        if mask is None: return 0
-        pad_width = [(0, nodal) for nodal in nodal_flag]
-        mask = np.pad(mask, pad_width, 'edge')
-        count = mask.sum()
-        return count
-        
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
         count = selector.count_points(x,y,z, 0.0)
