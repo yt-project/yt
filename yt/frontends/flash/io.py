@@ -18,7 +18,6 @@ from itertools import groupby
 
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.utilities.lib.geometry_utils import \
     compute_morton
@@ -60,6 +59,22 @@ class IOHandlerFLASH(BaseIOHandler):
     def _read_particles(self, fields_to_read, type, args, grid_list,
             count_list, conv_factors):
         pass
+
+    def io_iter(self, chunks, fields):
+        f = self._handle
+        for chunk in chunks:
+            for field in fields:
+                # Note that we *prefer* to iterate over the fields on the
+                # outside; here, though, we're iterating over them on the
+                # inside because we may exhaust our chunks.
+                ftype, fname = field
+                ds = f["/%s" % fname]
+                for gs in grid_sequences(chunk.objs):
+                    start = gs[0].id - gs[0]._id_offset
+                    end = gs[-1].id - gs[-1]._id_offset + 1
+                    data = ds[start:end,:,:,:]
+                    for i, g in enumerate(gs):
+                        yield field, g, self._read_obj_field(g, field, (data, i))
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
@@ -104,31 +119,18 @@ class IOHandlerFLASH(BaseIOHandler):
                     data = p_fields[start:end, fi]
                     yield (ptype, field), data[mask]
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
-        chunks = list(chunks)
-        if any((ftype != "flash" for ftype, fname in fields)):
-            raise NotImplementedError
-        f = self._handle
-        rv = {}
-        for field in fields:
-            ftype, fname = field
-            # Always use *native* 64-bit float.
-            rv[field] = np.empty(size, dtype="=f8")
-        ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [f2 for f1, f2 in fields], ng)
-        for field in fields:
-            ftype, fname = field
-            ds = f["/%s" % fname]
-            ind = 0
-            for chunk in chunks:
-                for gs in grid_sequences(chunk.objs):
-                    start = gs[0].id - gs[0]._id_offset
-                    end = gs[-1].id - gs[-1]._id_offset + 1
-                    data = ds[start:end,:,:,:].transpose()
-                    for i, g in enumerate(gs):
-                        ind += g.select(selector, data[...,i], rv[field], ind)
-        return rv
+    def _read_obj_field(self, obj, field, ds_offset = None):
+        if ds_offset is None: ds_offset = (None, -1)
+        ds, offset = ds_offset
+        # our context here includes datasets and whatnot that are opened in the
+        # hdf5 file
+        if ds is None:
+            ds = self._handle["/%s" % field[1]]
+        if offset == -1:
+            data = ds[obj.id - obj._id_offset, :,:,:].transpose()
+        else:
+            data = ds[offset, :,:,:].transpose()
+        return data
 
     def _read_chunk_data(self, chunk, fields):
         f = self._handle
