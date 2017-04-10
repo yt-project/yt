@@ -391,13 +391,3 @@ setup(
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
 )
-
-# This info about 'ckdtree' should be incorporated somehow...
-#    setup(maintainer="SciPy Developers",
-#          author="Anne Archibald",
-#          maintainer_email="scipy-dev@scipy.org",
-#          description="Spatial algorithms and data structures",
-#          url="http://www.scipy.org",
-#          license="SciPy License (BSD Style)",
-#          **configuration(top_path='').todict()
-#   )
