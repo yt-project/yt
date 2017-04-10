@@ -379,7 +379,6 @@ class AMRGridPatch(YTSelectionContainer):
         return mask
 
     def select(self, selector, source, dest, offset):
-        nodal_flag = source.shape - self.ActiveDimensions
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
