@@ -17,7 +17,6 @@ import numpy as np
 
 from yt.utilities.operator_registry import \
      OperatorRegistry
-from yt.utilities.spatial import KDTree
 
 from .halo_callbacks import HaloCallback
 
