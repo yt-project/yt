@@ -789,35 +789,40 @@ cdef class SPHKernelInterpolationTable:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
-                                   np.float64_t[:] hsml, np.float64_t[:] pmass,
-                                   np.float64_t[:] pdens,
-                                   np.float64_t[:] quantity_to_smooth,
-                                   np.intp_t xsize, np.intp_t ysize,
-                                   bounds, kernel_name="cubic"):
+def pixelize_sph_kernel_projection(
+        np.float64_t[:, :] buff,
+        np.float64_t[:] posx,
+        np.float64_t[:] posy,
+        np.float64_t[:] hsml,
+        np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        bounds,
+        kernel_name="cubic"):
 
+    cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t qxy2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
     cdef int index, i, j
 
-    cdef np.float64_t[:, :] buff = np.zeros((xsize, ysize), dtype='f8')
+    xsize, ysize = buff.shape[0], buff.shape[1]
 
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
     y_max = bounds[3]
 
-    dx = (x_max - x_min) / buff.shape[0]
-    dy = (y_max - y_min) / buff.shape[1]
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
     idx = 1.0/dx
     idy = 1.0/dy
 
     if kernel_name not in kernel_tables:
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
-    
+
     with nogil:
         for j in prange(0, posx.shape[0]):
             if j % 1000 == 0:
@@ -825,13 +830,13 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
                     PyErr_CheckSignals()
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, buff.shape[0])
-            x1 = iclip(x1+1, 0, buff.shape[0])
+            x0 = iclip(x0-1, 0, xsize)
+            x1 = iclip(x1+1, 0, xsize)
 
             y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
             y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, buff.shape[1])
-            y1 = iclip(y1+1, 0, buff.shape[1])
+            y0 = iclip(y0-1, 0, ysize)
+            y1 = iclip(y1+1, 0, ysize)
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             ih_j2 = 1.0/h_j2
@@ -863,36 +868,39 @@ def pixelize_sph_kernel_projection(np.float64_t[:] posx, np.float64_t[:] posy,
                     # see equation 32 of the SPLASH paper
                     buff[xi, yi] +=  coeff * itab.interpolate(qxy2)
 
-    return np.array(buff)
-
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
-                              np.float64_t[:] hsml, np.float64_t[:] pmass,
-                              np.float64_t[:] pdens,
-                              np.float64_t[:] quantity_to_smooth,
-                              np.intp_t xsize, np.intp_t ysize,
-                              bounds, kernel_name="cubic",
-                              use_normalization=True):
+def pixelize_sph_kernel_slice(
+        np.float64_t[:, :] buff,
+        np.float64_t[:] posx, np.float64_t[:] posy,
+        np.float64_t[:] hsml, np.float64_t[:] pmass,
+        np.float64_t[:] pdens,
+        np.float64_t[:] quantity_to_smooth,
+        bounds, kernel_name="cubic",
+        use_normalization=True):
 
+    cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, w_j, coeff
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t qxy, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
     cdef int index, i, j
-    cdef np.float64_t[:, :] buff_num = np.zeros((xsize, ysize), dtype='f8')
-    cdef np.float64_t[:, :] buff_denom = np.zeros((xsize, ysize), dtype='f8')
-    cdef np.float64_t[:, :] buff = np.zeros((xsize, ysize))
+    cdef np.float64_t[:, :] buff_num
+    cdef np.float64_t[:, :] buff_denom
+
+    xsize, ysize = buff.shape[0], buff.shape[1]
+    buff_num = np.zeros((xsize, ysize), dtype='f8')
+    buff_denom = np.zeros((xsize, ysize), dtype='f8')
 
     x_min = bounds[0]
     x_max = bounds[1]
     y_min = bounds[2]
     y_max = bounds[3]
 
-    dx = (x_max - x_min) / buff.shape[0]
-    dy = (y_max - y_min) / buff.shape[1]
+    dx = (x_max - x_min) / xsize
+    dy = (y_max - y_min) / ysize
     idx = 1.0/dx
     idy = 1.0/dy
 
@@ -909,13 +917,13 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
                     PyErr_CheckSignals()
             x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
             x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, buff.shape[0])
-            x1 = iclip(x1+1, 0, buff.shape[0])
+            x0 = iclip(x0-1, 0, xsize)
+            x1 = iclip(x1+1, 0, xsize)
 
             y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
             y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, buff.shape[1])
-            y1 = iclip(y1+1, 0, buff.shape[1])
+            y0 = iclip(y0-1, 0, ysize)
+            y1 = iclip(y1+1, 0, ysize)
 
             h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
             h_j = math.sqrt(h_j2)
@@ -963,5 +971,4 @@ def pixelize_sph_kernel_slice(np.float64_t[:] posx, np.float64_t[:] posy,
             for yi in range(ysize):
                 if buff_denom[xi, yi] == 0:
                     continue
-                buff[xi, yi] = buff_num[xi, yi] / buff_denom[xi, yi]
-    return np.array(buff)
+                buff[xi, yi] += buff_num[xi, yi] / buff_denom[xi, yi]
