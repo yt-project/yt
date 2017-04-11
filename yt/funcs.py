@@ -1011,7 +1011,7 @@ def get_requests():
 def dummy_context_manager(*args, **kwargs):
     yield
 
-def matplotlib_style_context(style_name=None, after_reset=True):
+def matplotlib_style_context(style_name=None, after_reset=False):
     """Returns a context manager for controlling matplotlib style.
 
     Arguments are passed to matplotlib.style.context() if specified. Defaults
@@ -1021,11 +1021,13 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = 'classic'
+        style_name = {
+            'mathtext.fontset': 'cm',
+            'mathtext.fallback_to_cm': True,
+        }
     try:
         import matplotlib.style
-        if style_name in matplotlib.style.available:
-            return matplotlib.style.context(style_name, after_reset=after_reset)
+        return matplotlib.style.context(style_name, after_reset=after_reset)
     except ImportError:
         pass
     return dummy_context_manager()
