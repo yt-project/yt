@@ -958,7 +958,7 @@ cdef class RegionSelector(SelectorObject):
     cdef np.float64_t right_edge[3]
     cdef np.float64_t right_edge_shift[3]
     cdef bint loose_selection
-    cdef bint check_period
+    cdef bint check_period[3]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -976,9 +976,9 @@ cdef class RegionSelector(SelectorObject):
         # This is for if we want to include zones that overlap and whose
         # centers are not strictly included.
         self.loose_selection = getattr(dobj, "loose_selection", False)
-        self.check_period = False
 
         for i in range(3):
+            self.check_period[i] = False
             region_width[i] = RE[i] - LE[i]
             p[i] = dobj.ds.periodicity[i]
             if region_width[i] <= 0:
@@ -993,7 +993,7 @@ cdef class RegionSelector(SelectorObject):
                 # without any adjustments.  This is for short-circuiting the
                 # short-circuit of the loop down below in mask filling.
                 if LE[i] < DLE[i] or LE[i] > DRE[i] or RE[i] > DRE[i]:
-                    self.check_period = True
+                    self.check_period[i] = True
                 # shift so left_edge guaranteed in domain
                 if LE[i] < DLE[i]:
                     LE[i] += DW[i]
@@ -1089,10 +1089,14 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t r2 = radius**2
         cdef np.float64_t dmin = 0
         for i in range(3):
-            if pos[i] < self.left_edge[i]:
-                dmin += (pos[i] - self.left_edge[i])**2
+            if self.periodicity[i] and self.check_period[i]:
+                p = pos[i] + self.right_edge_shift[i]
+            else:
+                p = pos[i]
+            if p < self.left_edge[i]:
+                dmin += (p - self.left_edge[i])**2
             elif pos[i] > self.right_edge[i]:
-                dmin += (pos[i] - self.right_edge[i])**2
+                dmin += (p - self.right_edge[i])**2
         return int(dmin <= r2)
 
     @cython.boundscheck(False)
@@ -1116,14 +1120,13 @@ cdef class RegionSelector(SelectorObject):
         #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
         #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
         #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
-        if not self.check_period:
-            for i in range(3):
+        for i in range(3):
+            if not self.check_period[i]:
                 si[i] = <int> ((self.left_edge[i] - left_edge[i])/dds[i])
                 ei[i] = <int> ((self.right_edge[i] - left_edge[i])/dds[i])
                 si[i] = iclip(si[i] - 1, 0, dim[i])
                 ei[i] = iclip(ei[i] + 1, 0, dim[i])
-        else:
-            for i in range(3):
+            else:
                 si[i] = 0
                 ei[i] = dim[i]
         with nogil:
