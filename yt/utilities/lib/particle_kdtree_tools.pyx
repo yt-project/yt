@@ -64,7 +64,8 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef np.float64_t* nearby_position
     cdef np.float64_t* pos
     cdef np.float64_t* positions = &input_positions[0, 0]
-    cdef uint64_t i, j, k, neighbor_id
+    cdef uint64_t neighbor_id
+    cdef int i, j, k
     with nogil:
         for i in range(n_particles):
             if i % 1000 == 0:
