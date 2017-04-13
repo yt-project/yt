@@ -1086,6 +1086,7 @@ cdef class RegionSelector(SelectorObject):
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         # adapted from http://stackoverflow.com/a/4579192/1382869
         cdef int i
+        cdef np.float64_t p
         cdef np.float64_t r2 = radius**2
         cdef np.float64_t dmin = 0
         for i in range(3):
