@@ -20,7 +20,8 @@ import numpy as np
 from numpy.lib.recfunctions import append_fields
 import os
 
-from yt.geometry.particle_geometry_handler import CHUNKSIZE
+from yt.geometry.particle_geometry_handler import \
+    CHUNKSIZE
 from yt.frontends.sph.io import \
     IOHandlerSPH
 from yt.utilities.lib.particle_kdtree_tools import \
@@ -125,15 +126,20 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     hsml = self._hsml
                     yield ptype, d, hsml
 
-    def _get_smoothing_length(self, data_file, dtype, shape):
-        if hasattr(self, '_hsml'):
-            return self._hsml
-        ppos = [p for _, p in self._yield_coordinates(
-            data_file, needed_ptype=self.ds._sph_ptype)]
-        ppos = np.concatenate(ppos)
+    def _generate_smoothing_length(self, data_files):
+        positions = []
+        for data_file in data_files:
+            for _, ppos in self._yield_coordinates(
+                    data_file, needed_ptype=self.ds._sph_ptype):
+                positions.append(ppos)
+        if positions == []:
+            return
+        positions = np.concatenate(positions)
         self._hsml = generate_smoothing_length(
-            ppos, self.ds._kdtree, self.ds._num_neighbors)
-        return self._hsml
+            positions, self.ds._kdtree, self.ds._num_neighbors)
+
+    def _get_smoothing_length(self, data_file, dtype, shape):
+        return self._hsml[data_file.start:data_file.end]
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)

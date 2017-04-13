@@ -18,7 +18,6 @@ cimport numpy as np
 
 cimport cython
 
-
 from cpython.exc cimport PyErr_CheckSignals
 from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t
 from cython.operator cimport dereference as deref
@@ -28,6 +27,8 @@ cdef extern from "<algorithm>" namespace "std" nogil:
 
 from libcpp.vector cimport vector
 from libc.math cimport sqrt
+
+from yt.funcs import get_pbar
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -66,10 +67,12 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef np.float64_t* positions = &input_positions[0, 0]
     cdef uint64_t neighbor_id
     cdef int i, j, k
+    pbar = get_pbar("Calculating smoothing length", n_particles)
     with nogil:
         for i in range(n_particles):
             if i % 1000 == 0:
                 with gil:
+                    pbar.update(i)
                     PyErr_CheckSignals()
             # This section is optimized. Here we're using pointer arithmetic
             # to get a reference to the place in input_positions where the
@@ -111,5 +114,5 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             sort[vector[np.float64_t].iterator](
                 squared_distances.begin(), squared_distances.end())
             smoothing_length[i] = sqrt(squared_distances[n_neighbors])
-
+    pbar.finish()
     return np.array(smoothing_length)
