@@ -333,7 +333,10 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             self._field_list.append(('Gas', 'smoothing_length'))
 
         # Find out which auxiliaries we have and what is their format
-        tot_parts = np.sum(list(data_file.total_particles.values()))
+        tot_parts = np.sum(
+            [data_file.ds.parameters['nsph'],
+             data_file.ds.parameters['nstar'],
+             data_file.ds.parameters['ndark']])
         endian = data_file.ds.endian
         self._aux_pdtypes = {}
         self._aux_fields = []
@@ -349,12 +352,20 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             # the binary files can be either floats, ints, or doubles.  We're
             # going to use a try-catch cascade to determine the format.
             filesize = os.stat(filename).st_size
-            if np.fromfile(filename, np.dtype(endian + 'i4'),
-                           count=1) != tot_parts:
+            dtype = np.dtype(endian + 'i4')
+            tot_parts_from_file = np.fromfile(filename, dtype, count=1)
+            if tot_parts_from_file != tot_parts:
                 with open(filename, 'rb') as f:
                     header_nparts = f.readline()
-                    if int(header_nparts) != tot_parts:
-                        raise RuntimeError
+                    try:
+                        if int(header_nparts) != tot_parts:
+                            raise RuntimeError
+                    except ValueError:
+                        msg = (
+                            'Auxiliary file %s contains %i particles but '
+                            'expected %i particles' % (
+                                filename, tot_parts_from_file, tot_parts))
+                        raise RuntimeError(msg)
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
                 self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'd')])
