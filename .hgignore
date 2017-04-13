@@ -54,6 +54,7 @@ yt/utilities/lib/mesh_traversal.cpp
 yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
+yt/utilities/lib/particle_kdtree_tools.cpp
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/partitioned_grid.c
 yt/utilities/lib/primitives.c

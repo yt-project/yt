@@ -31,6 +31,7 @@ cimport numpy as np
 from selection_routines cimport SelectorObject, AlwaysSelector
 cimport cython
 from cython cimport floating
+from cpython.exc cimport PyErr_CheckSignals
 from collections import defaultdict
 from yt.funcs import get_pbar
 
@@ -1821,8 +1822,9 @@ cdef class ParticleBitmapSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void recursive_morton_mask(self, np.int32_t level, np.float64_t pos[3], 
-                                    np.float64_t dds[3], np.uint64_t mi1):
+    cdef int recursive_morton_mask(
+        self, np.int32_t level, np.float64_t pos[3], 
+        np.float64_t dds[3], np.uint64_t mi1) except -1:
         cdef np.uint64_t mi2
         cdef np.float64_t npos[3]
         cdef np.float64_t rpos[3]
@@ -1832,6 +1834,7 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
         cdef int i, j, k, m, sbbox
+        PyErr_CheckSignals()
         for i in range(3):
             ndds[i] = dds[i]/2
         nlevel = level + 1
@@ -1871,6 +1874,7 @@ cdef class ParticleBitmapSelector:
                             DLE[m] = self.DLE[m] + ndds[m]*ind1[m]*self.max_index2
                         mi2 = bounded_morton_dds(npos[0], npos[1], npos[2], DLE, ndds)
                         self.add_refined(mi1,mi2,sbbox)
+        return 0
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

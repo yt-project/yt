@@ -564,6 +564,21 @@ class Dataset(object):
             nfields = self.add_particle_union(pu)
             if nfields == 0:
                 mylog.debug("zero common fields: skipping particle union 'all'")
+        if "nbody" not in self.particle_types:
+            mylog.debug("Creating Particle Union 'all'")
+            ptypes = list(self.particle_types_raw)
+            if hasattr(self, '_sph_ptype'):
+                ptypes.remove(self._sph_ptype)
+            if ptypes:
+                nbody_ptypes = []
+                for ptype in ptypes:
+                    if (ptype, 'particle_mass') in self.field_info:
+                        nbody_ptypes.append(ptype)
+                pu = ParticleUnion("nbody", nbody_ptypes)
+                nfields = self.add_particle_union(pu)
+                if nfields == 0:
+                    mylog.debug(
+                        "zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
@@ -793,11 +808,11 @@ class Dataset(object):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, mx, my, mz = \
+        max_val, max_loc = \
             source.quantities.max_location(field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, mx, my, mz)
-        return max_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+                   max_val, max_loc[0], max_loc[1], max_loc[2])
+        return max_val, max_loc
 
     def find_min(self, field):
         """
@@ -805,11 +820,11 @@ class Dataset(object):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        min_val, mx, my, mz = \
+        min_val, min_loc = \
             source.quantities.min_location(field)
         mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              min_val, mx, my, mz)
-        return min_val, self.arr([mx, my, mz], 'code_length', dtype="float64")
+                   min_val, min_loc[0], min_loc[1], min_loc[2])
+        return min_val, min_loc
 
     def find_field_values_at_point(self, fields, coords):
         """
@@ -860,6 +875,7 @@ class Dataset(object):
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
         """
+        self.index
         if find_max: c = self.find_max("density")[1]
         else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
         return self.region(c,
@@ -973,10 +989,18 @@ class Dataset(object):
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
+
+            # Set dynamical dark energy parameters
+            use_dark_factor = getattr(self, 'use_dark_factor', False)
+            w_0 = getattr(self, 'w_0', -1.0)
+            w_a = getattr(self, 'w_a', 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda)
+                              omega_lambda=self.omega_lambda,
+                              use_dark_factor = use_dark_factor,
+                              w_0 = w_0, w_a = w_a)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)

@@ -32,8 +32,14 @@ derived_quantity_registry = {}
 
 def get_position_fields(field, data):
     axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
-    if field[0] in data.ds.particle_types:
-        position_fields = [(field[0], 'particle_position_%s' % d)
+    field = data._determine_fields(field)[0]
+    finfo = data.ds.field_info[field]
+    if finfo.sampling_type == 'particle':
+        if finfo.alias_field:
+            ftype = finfo.alias_name[0]
+        else:
+            ftype = finfo.name[0]
+        position_fields = [(ftype, 'particle_position_%s' % d)
                            for d in axis_names]
     else:
         position_fields = axis_names
@@ -202,12 +208,12 @@ class TotalMass(TotalQuantity):
     def __call__(self):
         self.data_source.ds.index
         fi = self.data_source.ds.field_info
-        if ("gas", "cell_mass") in fi:
-            gas = super(TotalMass, self).__call__([('gas', 'cell_mass')])
+        if ("gas", "mass") in fi:
+            gas = super(TotalMass, self).__call__([('gas', 'mass')])
         else:
             gas = self.data_source.ds.arr([0], 'g')
-        if ("all", "particle_mass") in fi:
-            part = super(TotalMass, self).__call__([('all', 'particle_mass')])
+        if ("nbody", "particle_mass") in fi:
+            part = super(TotalMass, self).__call__([('nbody', 'particle_mass')])
         else:
             part = self.data_source.ds.arr([0], 'g')
         return self.data_source.ds.arr([gas, part])
@@ -238,30 +244,29 @@ class CenterOfMass(DerivedQuantity):
 
     """
     def count_values(self, use_gas = True, use_particles = False):
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
+        finfo = self.data_source.ds.field_info
+        includes_gas = ("gas", "mass") in finfo
+        includes_particles = ("nbody", "particle_mass") in finfo
+
+        self.use_gas = use_gas & includes_gas
+        self.use_particles = use_particles & includes_particles
+
         self.num_vals = 0
-        if use_gas:
+        if self.use_gas:
             self.num_vals += 4
-        if use_particles:
+        if self.use_particles:
             self.num_vals += 4
 
     def process_chunk(self, data, use_gas = True, use_particles = False):
-        use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
         vals = []
-        if use_gas:
+        if self.use_gas:
             vals += [(data["gas", ax] *
-                      data["gas", "cell_mass"]).sum(dtype=np.float64)
+                      data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
-        if use_particles:
-            vals += [(data["all", "particle_position_%s" % ax] *
-                      data["all", "particle_mass"]).sum(dtype=np.float64)
+            vals.append(data["gas", "mass"].sum(dtype=np.float64))
+        if self.use_particles:
+            vals += [(data["nbody", "particle_position_%s" % ax] *
+                      data["nbody", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
             vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
         return vals
@@ -319,14 +324,14 @@ class BulkVelocity(DerivedQuantity):
         vals = []
         if use_gas:
             vals += [(data["gas", "velocity_%s" % ax] *
-                      data["gas", "cell_mass"]).sum(dtype=np.float64)
+                      data["gas", "mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+            vals.append(data["gas", "mass"].sum(dtype=np.float64))
         if use_particles:
-            vals += [(data["all", "particle_velocity_%s" % ax] *
-                      data["all", "particle_mass"]).sum(dtype=np.float64)
+            vals += [(data["nbody", "particle_velocity_%s" % ax] *
+                      data["nbody", "particle_mass"]).sum(dtype=np.float64)
                      for ax in 'xyz']
-            vals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+            vals.append(data["nbody", "particle_mass"].sum(dtype=np.float64))
         return vals
 
     def reduce_intermediate(self, values):
@@ -442,9 +447,9 @@ class AngularMomentumVector(DerivedQuantity):
         # create the index if it doesn't exist yet
         self.data_source.ds.index
         self.use_gas = use_gas & \
-            (("gas", "cell_mass") in self.data_source.ds.field_info)
+            (("gas", "mass") in self.data_source.ds.field_info)
         self.use_particles = use_particles & \
-            (("all", "particle_mass") in self.data_source.ds.field_info)
+            (("nbody", "particle_mass") in self.data_source.ds.field_info)
         if self.use_gas:
             num_vals += 4
         if self.use_particles:
@@ -455,14 +460,14 @@ class AngularMomentumVector(DerivedQuantity):
         rvals = []
         if self.use_gas:
             rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
-                           data["gas", "cell_mass"]).sum(dtype=np.float64) \
+                           data["gas", "mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
-            rvals.append(data["gas", "cell_mass"].sum(dtype=np.float64))
+            rvals.append(data["gas", "mass"].sum(dtype=np.float64))
         if self.use_particles:
-            rvals.extend([(data["all", "particle_specific_angular_momentum_%s" % axis] *
-                           data["all", "particle_mass"]).sum(dtype=np.float64) \
+            rvals.extend([(data["nbody", "particle_specific_angular_momentum_%s" % axis] *
+                           data["nbody", "particle_mass"]).sum(dtype=np.float64) \
                           for axis in "xyz"])
-            rvals.append(data["all", "particle_mass"].sum(dtype=np.float64))
+            rvals.append(data["nbody", "particle_mass"].sum(dtype=np.float64))
         return rvals
 
     def reduce_intermediate(self, values):
@@ -600,7 +605,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MaxLocation, self).__call__(field, sample_fields)
-        if len(rv) == 1: rv = rv[0]
+        rv = [rv[0], self.data_source.ds.arr(rv[1:])]
         return rv
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
@@ -650,7 +655,7 @@ class MinLocation(SampleAtMinFieldValues):
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
         rv = super(MinLocation, self).__call__(field, sample_fields)
-        if len(rv) == 1: rv = rv[0]
+        rv = [rv[0], self.data_source.ds.arr(rv[1:])]
         return rv
 
 class SpinParameter(DerivedQuantity):
@@ -691,22 +696,22 @@ class SpinParameter(DerivedQuantity):
 
     def process_chunk(self, data, use_gas=True, use_particles=True):
         use_gas &= \
-          (("gas", "cell_mass") in self.data_source.ds.field_info)
+          (("gas", "mass") in self.data_source.ds.field_info)
         use_particles &= \
-          (("all", "particle_mass") in self.data_source.ds.field_info)
+          (("nbody", "particle_mass") in self.data_source.ds.field_info)
         e = data.ds.quan(0., "erg")
         j = data.ds.quan(0., "g*cm**2/s")
         m = data.ds.quan(0., "g")
         if use_gas:
             e += (data["gas", "kinetic_energy"] *
-                  data["gas", "cell_volume"]).sum(dtype=np.float64)
+                  data["gas", "volume"]).sum(dtype=np.float64)
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
-            m += data["gas", "cell_mass"].sum(dtype=np.float64)
+            m += data["gas", "mass"].sum(dtype=np.float64)
         if use_particles:
-            e += (data["all", "particle_velocity_magnitude"]**2 *
-                  data["all", "particle_mass"]).sum(dtype=np.float64)
-            j += data["all", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
-            m += data["all", "particle_mass"].sum(dtype=np.float64)
+            e += (data["nbody", "particle_velocity_magnitude"]**2 *
+                  data["nbody", "particle_mass"]).sum(dtype=np.float64)
+            j += data["nbody", "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
+            m += data["nbody", "particle_mass"].sum(dtype=np.float64)
         return (e, j, m)
 
     def reduce_intermediate(self, values):

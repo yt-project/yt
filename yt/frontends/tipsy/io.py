@@ -21,13 +21,15 @@ from numpy.lib.recfunctions import append_fields
 import os
 
 from yt.geometry.particle_geometry_handler import CHUNKSIZE
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.frontends.sph.io import \
+    IOHandlerSPH
+from yt.utilities.lib.particle_kdtree_tools import \
+    generate_smoothing_length
 from yt.utilities.logger import ytLogger as \
     mylog
 
 
-class IOHandlerTipsyBinary(BaseIOHandler):
+class IOHandlerTipsyBinary(IOHandlerSPH):
     _dataset_type = "tipsy"
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
@@ -84,6 +86,8 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 rv[field][:, 0] = vals[field]['x'][mask]
                 rv[field][:, 1] = vals[field]['y'][mask]
                 rv[field][:, 2] = vals[field]['z'][mask]
+            elif field == 'smoothing_length':
+                rv[field] = self._hsml[mask].copy()
             else:
                 rv[field] = np.empty(size, dtype="float64")
                 if size == 0:
@@ -118,10 +122,18 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     d = [p["Coordinates"][ax].astype("float64")
                          for ax in 'xyz']
                     del p
-                    yield ptype, d
+                    hsml = self._hsml
+                    yield ptype, d, hsml
 
     def _get_smoothing_length(self, data_file, dtype, shape):
-        return np.ones(shape[0])
+        if hasattr(self, '_hsml'):
+            return self._hsml
+        ppos = [p for _, p in self._yield_coordinates(
+            data_file, needed_ptype=self.ds._sph_ptype)]
+        ppos = np.concatenate(ppos)
+        self._hsml = generate_smoothing_length(
+            ppos, self.ds._kdtree, self.ds._num_neighbors)
+        return self._hsml
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -179,10 +191,15 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                     total += p.size
                     if afields:
                         p = append_fields(p, afields, auxdata)
-                    mask = selector.select_points(
-                        p["Coordinates"]['x'].astype("float64"),
-                        p["Coordinates"]['y'].astype("float64"),
-                        p["Coordinates"]['z'].astype("float64"), 0.0)
+                    x = p["Coordinates"]['x'].astype("float64")
+                    y = p["Coordinates"]['y'].astype("float64")
+                    z = p["Coordinates"]['z'].astype("float64")
+                    if ptype == 'Gas':
+                        hsml = self._hsml
+                        assert hsml.shape[0] == p.shape[0]
+                    else:
+                        hsml = 0
+                    mask = selector.select_points(x, y, z, hsml)
                     if mask is None:
                         continue
                     tf = self._fill_fields(field_list, p, mask, data_file)
@@ -240,12 +257,14 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         ds.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
                              DW.units.dimensions)
 
-    def _yield_coordinates(self, data_file):
+    def _yield_coordinates(self, data_file, needed_ptype=None):
         ds = data_file.ds
         ind = 0
         with open(data_file.filename, "rb") as f:
             f.seek(ds._header_offset)
             for iptype, ptype in enumerate(self._ptypes):
+                if needed_ptype is not None and ptype != needed_ptype:
+                    continue
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0:
@@ -310,8 +329,14 @@ class IOHandlerTipsyBinary(BaseIOHandler):
                 continue
             self._field_list.append((ptype, field))
 
+        if 'Gas' in self._pdtypes.keys():
+            self._field_list.append(('Gas', 'smoothing_length'))
+
         # Find out which auxiliaries we have and what is their format
-        tot_parts = np.sum(list(data_file.total_particles.values()))
+        tot_parts = np.sum(
+            [data_file.ds.parameters['nsph'],
+             data_file.ds.parameters['nstar'],
+             data_file.ds.parameters['ndark']])
         endian = data_file.ds.endian
         self._aux_pdtypes = {}
         self._aux_fields = []
@@ -327,12 +352,20 @@ class IOHandlerTipsyBinary(BaseIOHandler):
             # the binary files can be either floats, ints, or doubles.  We're
             # going to use a try-catch cascade to determine the format.
             filesize = os.stat(filename).st_size
-            if np.fromfile(filename, np.dtype(endian + 'i4'),
-                           count=1) != tot_parts:
+            dtype = np.dtype(endian + 'i4')
+            tot_parts_from_file = np.fromfile(filename, dtype, count=1)
+            if tot_parts_from_file != tot_parts:
                 with open(filename, 'rb') as f:
                     header_nparts = f.readline()
-                    if int(header_nparts) != tot_parts:
-                        raise RuntimeError
+                    try:
+                        if int(header_nparts) != tot_parts:
+                            raise RuntimeError
+                    except ValueError:
+                        msg = (
+                            'Auxiliary file %s contains %i particles but '
+                            'expected %i particles' % (
+                                filename, tot_parts_from_file, tot_parts))
+                        raise RuntimeError(msg)
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
                 self._aux_pdtypes[afield] = np.dtype([('aux', endian + 'd')])

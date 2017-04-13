@@ -1,3 +1,4 @@
+import yt
 import numpy as np
 
 from yt.data_objects.profiles import \
@@ -195,3 +196,28 @@ def test_mixed_particle_mesh_profiles():
     assert_raises(
         YTIllDefinedProfile, PhasePlot, ad, 'particle_radius', 'particle_mass',
         'particle_ones')
+
+def test_particle_profile_negative_field():
+    # see Issue #1340
+    n_particles = int(1e4)
+
+    ppx, ppy, ppz = np.random.normal(size=[3, n_particles])
+    pvx, pvy, pvz = - np.ones((3, n_particles))
+
+    data = {'particle_position_x': ppx,
+            'particle_position_y': ppy,
+            'particle_position_z': ppz,
+            'particle_velocity_x': pvx,
+            'particle_velocity_y': pvy,
+            'particle_velocity_z': pvz}
+
+    bbox = 1.1*np.array([[min(ppx), max(ppx)], [min(ppy), max(ppy)], [min(ppz), max(ppz)]])
+    ds = yt.load_particles(data, bbox=bbox)
+    ad = ds.all_data()
+
+    profile = yt.create_profile(
+        ad,
+        ["particle_position_x", "particle_position_y"],
+        "particle_velocity_x",
+        weight_field=None)
+    assert profile['particle_velocity_x'].min() < 0

@@ -72,6 +72,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                            function=_cell_volume,
                            display_field=False,
                            units = "code_length**3")
+        registry.alias(('index', 'volume'), ('index', 'cell_volume'))
 
         registry.check_derived_fields(
             [("index", "dx"), ("index", "dy"), ("index", "dz"),
@@ -150,7 +151,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
             period = period.in_units("code_length").d
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
-        if isinstance(data_source.ds, particle_datasets) and field[0] == 'gas':
+        is_sph_field = field[0] in 'gas'
+        if hasattr(data_source.ds, '_sph_ptype'):
+            is_sph_field |= field[0] in data_source.ds._sph_ptype
+        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
             ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
@@ -166,29 +170,37 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     left_edge=le, right_edge=re, center=data_source.center,
                     data_source=data_source.data_source
                 )
-                buff = pixelize_sph_kernel_projection(
-                    proj_reg[ptype, px_name].in_units('cm'),
-                    proj_reg[ptype, py_name].in_units('cm'),
-                    proj_reg[ptype, 'smoothing_length'].in_units('cm'),
-                    proj_reg[ptype, 'particle_mass'].in_units('g'),
-                    proj_reg[ptype, 'density'].in_units('g/cm**3'),
-                    proj_reg[ptype, 'density'].in_units(ounits),
-                    size[0], size[1],
-                    data_source.ds.arr(bounds, 'code_length').in_units('cm').tolist()).transpose()
+                bnds = data_source.ds.arr(
+                    bounds, 'code_length').in_units('cm').tolist()
+                buff = np.zeros(size, dtype='float64')
+                for chunk in proj_reg.chunks([], 'io'):
+                    pixelize_sph_kernel_projection(
+                        buff,
+                        chunk[ptype, px_name].in_units('cm'),
+                        chunk[ptype, py_name].in_units('cm'),
+                        chunk[ptype, 'smoothing_length'].in_units('cm'),
+                        chunk[ptype, 'particle_mass'].in_units('g'),
+                        chunk[ptype, 'density'].in_units('g/cm**3'),
+                        chunk[field].in_units(ounits),
+                        bnds)
             elif isinstance(data_source, YTSlice):
-                buff = pixelize_sph_kernel_slice(
-                    data_source[ptype, px_name],
-                    data_source[ptype, py_name],
-                    data_source[ptype, 'smoothing_length'],
-                    data_source[ptype, 'particle_mass'],
-                    data_source[ptype, 'density'],
-                    data_source[ptype, 'density'].in_units(ounits),
-                    size[0], size[1], bounds,
-                    use_normalization=False).transpose()
+                buff = np.zeros(size, dtype='float64')
+                for chunk in data_source.chunks([], 'io'):
+                    pixelize_sph_kernel_slice(
+                        buff,
+                        chunk[ptype, px_name],
+                        chunk[ptype, py_name],
+                        chunk[ptype, 'smoothing_length'],
+                        chunk[ptype, 'particle_mass'],
+                        chunk[ptype, 'density'],
+                        chunk[field].in_units(ounits),
+                        bounds,
+                        use_normalization=False)
             else:
                 raise NotImplementedError(
                     "A pixelization routine has not been implemented for %s "
                     "data objects" % str(type(data_source)))
+            buff = buff.transpose()
         else:
             pixelize_cartesian(buff,
                                data_source['px'], data_source['py'],

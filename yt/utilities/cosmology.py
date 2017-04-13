@@ -58,6 +58,17 @@ class Cosmology(object):
     unit_system : :class:`yt.units.unit_systems.UnitSystem`, optional
         The units system to use when making calculations. If not specified,
         cgs units are assumed.
+    use_dark_factor: Bool, optional
+        The flag to either use the cosmological constant (False, default)
+        or to use the parameterization of w(a) as given in Linder 2002. This,
+        along with w_0 and w_a, only matters in the function expansion_factor.
+    w_0 : float, optional
+        The Linder 2002 parameterization of w(a) is: w(a) = w_0 + w_a(1 - a).
+        w_0 is w(a = 1). Only matters if use_dark_factor = True. Default is None.
+        Cosmological constant case corresponds to w_0 = -1.
+    w_a : float, optional
+        See w_0. w_a is the derivative of w(a) evaluated at a = 1. Cosmological
+        constant case corresponds to w_a = 0. Default is None. 
 
     Examples
     --------
@@ -72,7 +83,10 @@ class Cosmology(object):
                  omega_lambda = 0.73,
                  omega_curvature = 0.0,
                  unit_registry = None,
-                 unit_system = "cgs"):
+                 unit_system = "cgs",
+                 use_dark_factor = False,
+                 w_0 = -1.0,
+                 w_a = 0.0):
         self.omega_matter = float(omega_matter)
         self.omega_lambda = float(omega_lambda)
         self.omega_curvature = float(omega_curvature)
@@ -87,6 +101,12 @@ class Cosmology(object):
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
         self.unit_system = unit_system
+        
+        # For non-standard dark energy. If false, use default cosmological constant
+        # This only affects the expansion_factor function.
+        self.use_dark_factor = use_dark_factor
+        self.w_0 = w_0
+        self.w_a = w_a
 
     def hubble_distance(self):
         r"""
@@ -382,9 +402,18 @@ class Cosmology(object):
         cosmological distances.
         
         """
+
+        # Use non-standard dark energy
+        if self.use_dark_factor:
+            dark_factor = self.get_dark_factor(z)
+
+        # Use default cosmological constant
+        else:
+            dark_factor = 1.0
+
         return np.sqrt(self.omega_matter * ((1 + z)**3.0) + 
                        self.omega_curvature * ((1 + z)**2.0) + 
-                       self.omega_lambda)
+                       (self.omega_lambda * dark_factor))
 
     def inverse_expansion_factor(self, z):
         return 1 / self.expansion_factor(z)
@@ -547,6 +576,31 @@ class Cosmology(object):
         my_time = t0 / self.hubble_constant
     
         return my_time.in_base(self.unit_system)
+
+    def get_dark_factor(self, z):
+        """
+        This function computes the additional term that enters the expansion factor
+        when using non-standard dark energy. See Dolag et al 2004 eq. 7 for ref (but
+        note that there's a typo in his eq. There should be no negative sign).
+
+        At the moment, this only works using the parameterization given in Linder 2002
+        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an analytic
+        expression. It is also only functional for Gadget simulations, at the moment.
+
+        Parameters
+        ----------
+        z:  float
+            Redshift
+        """
+
+        # Get value of scale factor a corresponding to redshift z
+        scale_factor = 1.0 / (1.0 + z)
+
+        # Evaluate exponential using Linder02 parameterization
+        dark_factor = np.power(scale_factor, -3.0 * (1.0 + self.w_0 + self.w_a)) * \
+                      np.exp(-3.0 * self.w_a * (1.0 - scale_factor))
+
+        return dark_factor
 
     _arr = None
     @property

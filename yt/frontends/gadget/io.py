@@ -77,7 +77,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
                 else:
                     hsml = 0.0
-                yield ptype, (x, y, z, hsml)
+                yield ptype, (x, y, z), hsml
             f.close()
 
     def _yield_coordinates(self, data_file):
@@ -323,7 +323,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
                 hsml = self._read_field_from_file(
                     f, tp[ptype], "SmoothingLength")
-                yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2], hsml)
+                yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
             f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):

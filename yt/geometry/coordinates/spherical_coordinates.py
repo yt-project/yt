@@ -113,6 +113,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
                            sampling_type="cell",
                            function=_SphericalVolume,
                            units = "code_length**3")
+        registry.alias(('index', 'volume'), ('index', 'cell_volume'))
 
         def _path_r(field, data):
             return data["index", "dr"]

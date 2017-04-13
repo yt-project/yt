@@ -499,9 +499,9 @@ class YTNonIndexedDataContainer(YTException):
         self.cont = cont
 
     def __str__(self):
-        return "The data container (%s) is of an unindexed type.\n" + \
-               "This operations such as ires, icoords, fcoords and fwidth " + \
-               "will not work on it."
+        return ("The data container (%s) is an unindexed type.  "
+                "Operations such as ires, icoords, fcoords and fwidth "
+                "will not work on it." % type(self.cont))
 
 class YTGDFUnknownGeometry(Exception):
     def __init__(self, geometry):
