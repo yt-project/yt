@@ -46,7 +46,7 @@ class ParticleContainer(YTSelectionContainer):
         self._last_mask = None
         self._last_selector_id = None
         self._current_particle_type = 'all'
-        # self._current_fluid_type = self.ds.default_fluid_type
+        self._current_fluid_type = self.ds.default_fluid_type
         if hasattr(base_region, "base_selector"):
             self.base_selector = base_region.base_selector
             self.base_region = base_region.base_region
@@ -63,10 +63,15 @@ class ParticleContainer(YTSelectionContainer):
             
     @property
     def selector(self):
-        raise YTDataSelectorNotImplemented(self.oc_type_name)
+        # raise YTDataSelectorNotImplemented(self._type_name)
+        return self.base_selector
+
+    def count_particles(self, selector, x, y, z):
+        count = selector.count_points(x,y,z,0.0)
+        return count
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
+        mask = selector.select_points(x,y,z,0.0)
         return mask
 
     @contextlib.contextmanager
@@ -98,4 +103,4 @@ class ParticleContainer(YTSelectionContainer):
     select_ires = _non_indexed('select_ires')
     select = _non_indexed('select')
     count = _non_indexed('count')
-    count_particles = _non_indexed('count_particles')
+    # count_particles = _non_indexed('count_particles')

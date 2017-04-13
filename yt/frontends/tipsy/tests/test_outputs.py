@@ -123,5 +123,9 @@ def test_TipsyDataset():
 @requires_file(tipsy_gal)
 def test_tipsy_index():
     ds = data_dir_load(tipsy_gal)
+    ad = ds.all_data()
+    print(ad['gas', 'density'].shape)
+    print(ad['Gas', 'smoothing_length'].shape)
     sl = ds.slice('z', 0.0)
+    print(sl['gas', 'density'].shape)
     assert sl['gas', 'density'].shape[0]!=0

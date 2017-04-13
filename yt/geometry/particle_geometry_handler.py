@@ -148,6 +148,7 @@ class ParticleIndex(Index):
                 self.regions.index_order1, self.regions.index_order2)
         else:
             fname = self.index_filename
+        print(fname,os.path.isfile(fname))
 
         try:
             rflag = self.regions.load_bitmasks(fname)
