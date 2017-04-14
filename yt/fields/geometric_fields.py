@@ -44,7 +44,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         Relative to the coordinate system defined by the *center* field
         parameter.
         """
-        return get_radius(data, "")
+        return get_radius(data, "", field.name[0])
 
     registry.add_field(("index", "radius"), sampling_type="cell", 
                        function=_radius,
