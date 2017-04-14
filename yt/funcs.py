@@ -781,13 +781,7 @@ def get_output_filename(name, keyword, suffix):
         name = keyword
     name = os.path.expanduser(name)
     if name[-1] == os.sep and not os.path.isdir(name):
-        try:
-            os.mkdir(name)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            else:
-                raise
+        ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
     if not name.endswith(suffix):
@@ -797,15 +791,20 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    if not my_dir:
-        return
-    if not os.path.exists(my_dir):
-        only_on_root(os.makedirs, my_dir)
+    ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
-    if not os.path.exists(path):
-        only_on_root(os.makedirs, path)
+    if os.path.exists(path):
+        return path
+
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
     return path
 
 def validate_width_tuple(width):
