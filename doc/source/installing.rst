@@ -416,8 +416,19 @@ details on how to build yt from source in Windows.
 
 .. _source-installation:
 
-Installing yt Using ``pip`` or From Source
-++++++++++++++++++++++++++++++++++++++++++
+Installing yt Using ``pip``
++++++++++++++++++++++++++++
+
+If you already have a python installation that you manage using ``pip`` you can
+install the latest release of yt by doing::
+
+  $ pip install yt
+
+If you do not have root access you may need to append ``--user`` to install to a
+location in your home folder.
+
+Installing yt from source
++++++++++++++++++++++++++
 
 .. note::
 
@@ -432,28 +443,20 @@ source include:
 - A C compiler such as ``gcc`` or ``clang``
 - ``Python 2.7``, ``Python 3.4``, or ``Python 3.5``
 
-In addition, building yt from source requires several python packages
+In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install numpy matplotlib cython sympy
+  $ pip install numpy cython
 
 You may also want to install some of yt's optional dependencies, including
 ``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``, or
 ``astropy``,
 
-From here, you can use ``pip`` (which comes with ``Python``) to install the
-latest stable version of yt:
-
-.. code-block:: bash
-
-  $ pip install yt
-
-The source code for yt may be found at the Bitbucket project site and can also
-be utilized for installation. If you prefer to install the development version
-of yt instead of the latest stable release, you will need ``mercurial`` to clone
-the official repo:
+The source code for yt may be found on Bitbucket. If you prefer to install the
+development version of yt instead of the latest stable release, you will need
+``mercurial`` to clone the official repo:
 
 .. code-block:: bash
 
@@ -476,10 +479,10 @@ This will install yt into a folder in your home directory
 ``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
 the ``setuptools`` documentation for the additional options.
 
-If you are unable to locate the ``yt`` executable (i.e. ``yt version`` failes),
-then you likely need to add the ``$HOME/.local/bin`` (or the equivalent on your
-OS) to your PATH. Some linux distributions do not include this directory in the
-default search path.
+If you are unable to locate the ``yt`` executable (i.e. executing ``yt version``
+at the bash command line fails), then you likely need to add the
+``$HOME/.local/bin`` (or the equivalent on your OS) to your PATH. Some linux
+distributions do not include this directory in the default search path.
 
 If you choose this installation method, you do not need to run any activation
 script since this will install yt into your global python environment.
@@ -494,9 +497,9 @@ repository the "active" installed copy:
   $ hg update yt
   $ python setup.py develop --user --prefix=
 
-As above, you can leave off ``--user --prefix=`` if you want to install yt into the default
-package install path.  If you do not have write access for this location, you
-might need to use ``sudo``.
+As above, you can leave off ``--user --prefix=`` if you want to install yt into
+the default package install path.  If you do not have write access for this
+location, you might need to use ``sudo``.
 
 Build errors with ``setuptools`` or ``distribute``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
