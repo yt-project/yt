@@ -224,3 +224,28 @@ def test_WarpXDataset():
 @requires_file(rt)
 def test_units_override():
     units_override_check(rt)
+
+nyx_no_particles = "nyx_sedov_plt00086"
+@requires_file(nyx_no_particles)
+def test_nyx_no_part():
+    assert isinstance(data_dir_load(nyx_no_particles), NyxDataset)
+
+    fields = sorted(
+        [('boxlib', 'H'), ('boxlib', 'He'), ('boxlib', 'MachNumber'),
+         ('boxlib', 'Ne'), ('boxlib', 'Rank'), ('boxlib', 'StateErr'),
+         ('boxlib', 'Temp'), ('boxlib', 'X(H)'), ('boxlib', 'X(He)'),
+         ('boxlib', 'density'), ('boxlib', 'divu'), ('boxlib', 'eint_E'),
+         ('boxlib', 'eint_e'), ('boxlib', 'entropy'), ('boxlib', 'forcex'),
+         ('boxlib', 'forcey'), ('boxlib', 'forcez'), ('boxlib', 'kineng'),
+         ('boxlib', 'logden'), ('boxlib', 'magmom'), ('boxlib', 'magvel'),
+         ('boxlib', 'magvort'), ('boxlib', 'pressure'), ('boxlib', 'rho_E'),
+         ('boxlib', 'rho_H'), ('boxlib', 'rho_He'), ('boxlib', 'rho_e'),
+         ('boxlib', 'soundspeed'), ('boxlib', 'x_velocity'), ('boxlib', 'xmom'),
+         ('boxlib', 'y_velocity'), ('boxlib', 'ymom'), ('boxlib', 'z_velocity'),
+         ('boxlib', 'zmom')])
+
+    ds = data_dir_load(nyx_no_particles)
+    assert_equal(sorted(ds.field_list), fields)
+
+
+>>>>>>> merge rev:    f119d6d90c9f yt - ngoldbau: Merged in ngoldbaum/yt (pul...

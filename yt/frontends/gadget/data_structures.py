@@ -96,7 +96,10 @@ class GadgetDataset(SPHDataset):
                  field_spec = "default",
                  ptype_spec = "default",
                  units_override=None,
-                 unit_system="cgs"):
+                 unit_system="cgs",
+                 use_dark_factor = False,
+                 w_0 = -1.0,
+                 w_a = 0.0):
         if self._instantiated: return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
@@ -122,6 +125,12 @@ class GadgetDataset(SPHDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetDataset. "+
                                "Use unit_base instead.")
+
+        # Set dark energy parameters before cosmology object is created
+        self.use_dark_factor = use_dark_factor
+        self.w_0 = w_0
+        self.w_a = w_a
+
         super(GadgetDataset, self).__init__(
             filename, dataset_type=dataset_type, unit_system=unit_system,
             n_ref=n_ref, over_refine_factor=over_refine_factor,
