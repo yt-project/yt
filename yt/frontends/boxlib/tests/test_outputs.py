@@ -246,6 +246,3 @@ def test_nyx_no_part():
 
     ds = data_dir_load(nyx_no_particles)
     assert_equal(sorted(ds.field_list), fields)
-
-
->>>>>>> merge rev:    f119d6d90c9f yt - ngoldbau: Merged in ngoldbaum/yt (pul...
