@@ -21,8 +21,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     data_dir_load, \
-    GridValuesTest, \
-    FieldValuesTest
+    GridValuesTest
 from yt.frontends.boxlib.api import \
     OrionDataset, \
     NyxDataset, \
