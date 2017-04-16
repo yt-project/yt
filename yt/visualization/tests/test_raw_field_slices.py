@@ -10,14 +10,8 @@ Tests for making slices through raw fields
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import os
-import os.path
-import tempfile
-import shutil
-import numpy as np
+
 import yt
-from yt.testing import fake_tetrahedral_ds
-from yt.testing import fake_hexahedral_ds
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
