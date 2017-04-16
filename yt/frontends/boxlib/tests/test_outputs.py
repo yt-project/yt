@@ -20,7 +20,9 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
-    data_dir_load
+    data_dir_load, \
+    GridValuesTest, \
+    FieldValuesTest
 from yt.frontends.boxlib.api import \
     OrionDataset, \
     NyxDataset, \
@@ -204,6 +206,17 @@ def test_warpx_particle_io():
 
     assert(np.all(np.logical_and(reg['particle_position_z'] <= right_edge[2], 
                                  reg['particle_position_z'] >= left_edge[2])))
+
+
+_raw_fields = [('raw', 'Bx'), ('raw', 'Ey'), ('raw', 'jz')]
+
+raw_fields = "Laser/plt00015"
+@requires_ds(raw_fields)
+def test_raw_fields():
+    ds_fn = raw_fields
+    for field in _raw_fields:
+        yield GridValuesTest(ds_fn, field)
+
 
 @requires_file(rt)
 def test_OrionDataset():
