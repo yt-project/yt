@@ -49,35 +49,13 @@ class TipsyFile(ParticleFile):
             io._create_dtypes(self)
             # Check automatically what the domain size is
             io._update_domain(self) 
+        self._calculate_offsets(io._field_list)
 
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_particle_offsets(self)
 
-class TipsyIndex(ParticleIndex):
-    def _initialize_index(self):
-        self._initialize_kdtree()
-        super(TipsyIndex, self)._initialize_index()
-
-    def _initialize_kdtree(self):
-        from cykdtree import PyKDTree
-        positions = []
-        for data_file in self.data_files:
-            for _, ppos in self.io._yield_coordinates(
-                    data_file, needed_ptype=self.ds._sph_ptype):
-                positions.append(ppos)
-        if positions == []:
-            return
-        positions = np.concatenate(positions)
-        self.ds._kdtree = PyKDTree(
-            positions,
-            left_edge=self.ds.domain_left_edge,
-            right_edge=self.ds.domain_right_edge,
-            periodic=np.array(self.ds.periodicity),
-            leafsize=int(self.ds._num_neighbors)
-        )
-
 class TipsyDataset(SPHDataset):
-    _index_class = TipsyIndex
+    _index_class = ParticleIndex
     _file_class = TipsyFile
     _field_info_class = TipsyFieldInfo
     _particle_mass_name = "Mass"

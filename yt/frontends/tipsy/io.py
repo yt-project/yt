@@ -24,6 +24,8 @@ from yt.geometry.particle_geometry_handler import \
     CHUNKSIZE
 from yt.frontends.sph.io import \
     IOHandlerSPH
+from yt.frontends.tipsy.definitions import \
+    npart_mapping
 from yt.utilities.lib.particle_kdtree_tools import \
     generate_smoothing_length
 from yt.utilities.logger import ytLogger as \
@@ -72,7 +74,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
-    def _fill_fields(self, fields, vals, mask, data_file):
+    def _fill_fields(self, fields, vals, hsml, mask, data_file):
         if mask is None:
             size = 0
         else:
@@ -88,7 +90,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 rv[field][:, 1] = vals[field]['y'][mask]
                 rv[field][:, 2] = vals[field]['z'][mask]
             elif field == 'smoothing_length':
-                rv[field] = self._hsml[mask].copy()
+                rv[field] = hsml[mask]
             else:
                 rv[field] = np.empty(size, dtype="float64")
                 if size == 0:
@@ -114,7 +116,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             f = open(data_file.filename, "rb")
             for ptype, field_list in sorted(ptf.items(),
                                             key=lambda a: poff[a[0]]):
-                f.seek(poff[ptype], os.SEEK_SET)
+                f.seek(poff[ptype])
                 total = 0
                 while total < tp[ptype]:
                     count = min(self._chunksize, tp[ptype] - total)
@@ -123,10 +125,17 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     d = [p["Coordinates"][ax].astype("float64")
                          for ax in 'xyz']
                     del p
-                    hsml = self._hsml
+                    hsml = self._read_smoothing_length(data_file, count)
                     yield ptype, d, hsml
 
+    @property
+    def hsml_filename(self):
+        return '%s-%s' % (self.ds.parameter_filename, 'hsml')
+
     def _generate_smoothing_length(self, data_files):
+        from cykdtree import PyKDTree
+        if os.path.exists(self.hsml_filename):
+            return
         positions = []
         for data_file in data_files:
             for _, ppos in self._yield_coordinates(
@@ -135,11 +144,28 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if positions == []:
             return
         positions = np.concatenate(positions)
-        self._hsml = generate_smoothing_length(
-            positions, self.ds._kdtree, self.ds._num_neighbors)
+        kdtree = PyKDTree(
+            positions,
+            left_edge=self.ds.domain_left_edge,
+            right_edge=self.ds.domain_right_edge,
+            periodic=np.array(self.ds.periodicity),
+            leafsize=int(self.ds._num_neighbors)
+        )
+        hsml = generate_smoothing_length(
+            positions, kdtree, self.ds._num_neighbors)
+        del kdtree
+        dtype = self._pdtypes['Gas']['Coordinates'][0]
+        hsml.astype(dtype).tofile(self.hsml_filename)
+
+    def _read_smoothing_length(self, data_file, count):
+        dtype = self._pdtypes['Gas']['Coordinates'][0]
+        with open(self.hsml_filename, 'rb') as f:
+            f.seek(data_file.start*dtype.itemsize)
+            hsmls = np.fromfile(f, dtype, count=count)
+        return hsmls.astype('float64')
 
     def _get_smoothing_length(self, data_file, dtype, shape):
-        return self._hsml[data_file.start:data_file.end]
+        return self._read_smoothing_length(data_file, shape[0])
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -149,8 +175,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
             poff = data_file.field_offsets
-            aux_fields_offsets = \
-                self._calculate_particle_offsets_aux(data_file)
+            aux_fields_offsets = self._calculate_particle_offsets_aux(data_file)
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
 
@@ -161,56 +186,50 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
             for ptype, field_list in sorted(ptf.items(),
                                             key=lambda a: poff[a[0]]):
-                f.seek(poff[ptype], os.SEEK_SET)
+                f.seek(poff[ptype])
                 afields = list(set(field_list).intersection(self._aux_fields))
+                count = min(self._chunksize, tp[ptype])
+                p = np.fromfile(f, self._pdtypes[ptype], count=count)
+                auxdata = []
+                if data_file.total_particles[ptype] == 0:
+                    continue
                 for afield in afields:
-                    aux_fh[afield].seek(
-                        aux_fields_offsets[afield][ptype][0], os.SEEK_SET)
-
-                total = 0
-                while total < tp[ptype]:
-                    count = min(self._chunksize, tp[ptype] - total)
-                    p = np.fromfile(f, self._pdtypes[ptype], count=count)
-
-                    auxdata = []
-                    for afield in afields:
-                        if isinstance(self._aux_pdtypes[afield], np.dtype):
-                            auxdata.append(
-                                np.fromfile(aux_fh[afield],
-                                            self._aux_pdtypes[afield],
-                                            count=count)
-                            )
-                        else:
-                            aux_fh[afield].seek(0, os.SEEK_SET)
-                            sh = aux_fields_offsets[afield][ptype][0] + total
-                            sf = aux_fields_offsets[afield][ptype][1] + \
-                                tp[ptype] - count - total
-                            if tp[ptype] > 0:
-                                aux = np.genfromtxt(
-                                    aux_fh[afield], skip_header=sh,
-                                    skip_footer=sf
-                                )
-                                if aux.ndim < 1:
-                                    aux = np.array([aux])
-                                auxdata.append(aux)
-
-                    total += p.size
-                    if afields:
-                        p = append_fields(p, afields, auxdata)
-                    x = p["Coordinates"]['x'].astype("float64")
-                    y = p["Coordinates"]['y'].astype("float64")
-                    z = p["Coordinates"]['z'].astype("float64")
-                    if ptype == 'Gas':
-                        hsml = self._hsml
-                        assert hsml.shape[0] == p.shape[0]
+                    aux_fh[afield].seek(aux_fields_offsets[afield][ptype])
+                    if isinstance(self._aux_pdtypes[afield], np.dtype):
+                        auxdata.append(np.fromfile(
+                            aux_fh[afield],
+                            self._aux_pdtypes[afield],
+                            count=count)
+                        )
                     else:
-                        hsml = 0
-                    mask = selector.select_points(x, y, z, hsml)
-                    if mask is None:
-                        continue
-                    tf = self._fill_fields(field_list, p, mask, data_file)
-                    for field in field_list:
-                        yield (ptype, field), tf.pop(field)
+                        par = self.ds.parameters
+                        nlines = 1 + par['nsph'] + par['ndark'] + par['nstar']
+                        aux_fh[afield].seek(0)
+                        sh = aux_fields_offsets[afield][ptype]
+                        sf = nlines - count - sh
+                        if tp[ptype] > 0:
+                            aux = np.genfromtxt(
+                                aux_fh[afield], skip_header=sh,
+                                skip_footer=sf
+                            )
+                            if aux.ndim < 1:
+                                aux = np.array([aux])
+                            auxdata.append(aux)
+                if afields:
+                    p = append_fields(p, afields, auxdata)
+                x = p["Coordinates"]['x'].astype("float64")
+                y = p["Coordinates"]['y'].astype("float64")
+                z = p["Coordinates"]['z'].astype("float64")
+                if ptype == 'Gas':
+                    hsml = self._read_smoothing_length(data_file, count)
+                else:
+                    hsml = 0.
+                mask = selector.select_points(x, y, z, hsml)
+                if mask is None:
+                    continue
+                tf = self._fill_fields(field_list, p, hsml, mask, data_file)
+                for field in field_list:
+                    yield (ptype, field), tf.pop(field)
 
             # close all file handles
             f.close()
@@ -264,36 +283,33 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                              DW.units.dimensions)
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
-        ds = data_file.ds
-        ind = 0
         with open(data_file.filename, "rb") as f:
-            f.seek(ds._header_offset)
+            poff = data_file.field_offsets
             for iptype, ptype in enumerate(self._ptypes):
+                if ptype not in poff:
+                    continue
+                f.seek(poff[ptype])
                 if needed_ptype is not None and ptype != needed_ptype:
                     continue
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0:
                     continue
-                stop = ind + count
-                while ind < stop:
-                    c = min(CHUNKSIZE, stop - ind)
-                    ind += c
-                    pp = np.fromfile(f, dtype=self._pdtypes[ptype],
-                                     count=c)
-                    mis = np.empty(3, dtype="float64")
-                    mas = np.empty(3, dtype="float64")
-                    for axi, ax in enumerate('xyz'):
-                        mi = pp["Coordinates"][ax].min()
-                        ma = pp["Coordinates"][ax].max()
-                        mylog.debug(
-                            "Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
-                        mis[axi] = mi
-                        mas[axi] = ma
-                    pos = np.empty((pp.size, 3), dtype="float64")
-                    for i, ax in enumerate("xyz"):
-                        pos[:,i] = pp["Coordinates"][ax]
-                    yield ptype, pos
+                pp = np.fromfile(f, dtype=self._pdtypes[ptype],
+                                 count=count)
+                mis = np.empty(3, dtype="float64")
+                mas = np.empty(3, dtype="float64")
+                for axi, ax in enumerate('xyz'):
+                    mi = pp["Coordinates"][ax].min()
+                    ma = pp["Coordinates"][ax].max()
+                    mylog.debug(
+                        "Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
+                    mis[axi] = mi
+                    mas[axi] = ma
+                pos = np.empty((pp.size, 3), dtype="float64")
+                for i, ax in enumerate("xyz"):
+                    pos[:,i] = pp["Coordinates"][ax]
+                yield ptype, pos
 
     def _count_particles(self, data_file):
         pcount = np.array([data_file.ds.parameters['nsph'],
@@ -350,6 +366,9 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             afield = f.rsplit('.')[-1]
             filename = data_file.filename + '.' + afield
             if not os.path.exists(filename): continue
+            if afield in ['log', 'parameter']:
+                # Amiga halo finder makes files like this we need to ignore
+                continue
             self._aux_fields.append(afield)
         for afield in self._aux_fields:
             filename = data_file.filename + '.' + afield
@@ -396,31 +415,42 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _calculate_particle_offsets(self, data_file):
         field_offsets = {}
         pos = data_file.ds._header_offset
-        for ptype in self._ptypes:
-            field_offsets[ptype] = pos
-            if data_file.total_particles[ptype] == 0:
+        for i, ptype in enumerate(self._ptypes):
+            if ptype not in self._pdtypes:
                 continue
             size = self._pdtypes[ptype].itemsize
+            field_offsets[ptype] = pos
+            params = self.ds.parameters
+            if params[npart_mapping[ptype]] > CHUNKSIZE:
+                 for j in range(i):
+                     npart = params[npart_mapping[self._ptypes[j]]]
+                     spart = self._pdtypes[self._ptypes[j]].itemsize
+                     if npart > CHUNKSIZE:
+                         field_offsets[ptype] += npart*spart
+                 field_offsets[ptype] += data_file.start*size
             pos += data_file.total_particles[ptype] * size
         return field_offsets
 
     def _calculate_particle_offsets_aux(self, data_file):
         aux_fields_offsets = {}
-        tp = data_file.total_particles
+        params = self.ds.parameters
         for afield in self._aux_fields:
             aux_fields_offsets[afield] = {}
             if isinstance(self._aux_pdtypes[afield], np.dtype):
                 pos = 4  # i4
-                for ptype in self._ptypes:
-                    aux_fields_offsets[afield][ptype] = (pos, 0)
-                    if data_file.total_particles[ptype] == 0:
-                        continue
-                    size = np.dtype(self._aux_pdtypes[afield]).itemsize
-                    pos += data_file.total_particles[ptype] * size
+                size = np.dtype(self._aux_pdtypes[afield]).itemsize
             else:
-                aux_fields_offsets[afield].update(
-                    {'Gas': (1, tp["DarkMatter"] + tp["Stars"]),
-                     'DarkMatter': (1 + tp["Gas"], tp["Stars"]),
-                     'Stars': (1 + tp["DarkMatter"] + tp["Gas"], 0)}
-                )
+                pos = 1
+                size = 1
+            for i, ptype in enumerate(self._ptypes):
+                if data_file.total_particles[ptype] == 0:
+                    continue
+                elif params[npart_mapping[ptype]] > CHUNKSIZE:
+                    for j in range(i):
+                        npart = params[npart_mapping[self._ptypes[j]]]
+                        if npart > CHUNKSIZE:
+                            pos += npart*size
+                    pos += data_file.start*size
+                aux_fields_offsets[afield][ptype] = pos
+                pos += data_file.total_particles[ptype] * size
         return aux_fields_offsets

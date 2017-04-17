@@ -149,6 +149,9 @@ class ParticleIndex(Index):
         else:
             fname = self.index_filename
 
+        if hasattr(self.io, '_generate_smoothing_length'):
+            self.io._generate_smoothing_length(self.data_files)
+
         try:
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
@@ -163,8 +166,6 @@ class ParticleIndex(Index):
             rflag = self.regions.check_bitmasks()
 
     def _initialize_coarse_index(self):
-        if hasattr(self.io, '_generate_smoothing_length'):
-            self.io._generate_smoothing_length(self.data_files)
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):
             pb.update(i)
