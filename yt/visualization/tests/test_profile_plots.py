@@ -133,12 +133,12 @@ class TestProfilePlotSave(unittest.TestCase):
     @parameterized.expand(param.explicit((fname, )) for fname in TEST_FLNMS)
     def test_profile_plot(self, fname):
         for p in self.profiles:
-            yield assert_fname(p.save(fname)[0])
+            assert_fname(p.save(fname)[0])
 
     @parameterized.expand(param.explicit((fname, )) for fname in TEST_FLNMS)
     def test_phase_plot(self, fname):
         for p in self.phases:
-            assert assert_fname(p.save(fname)[0])
+            assert_fname(p.save(fname)[0])
 
     def test_ipython_repr(self):
         self.profiles[0]._repr_html_()

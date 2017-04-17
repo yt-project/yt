@@ -57,15 +57,15 @@ def test_grid_tree():
     grid_indices = [grid.id - grid._id_offset for grid in test_ds.index.grids]
     grid_nchild = [len(grid.Children) for grid in test_ds.index.grids]
 
-    yield assert_equal, levels, grid_levels
-    yield assert_equal, indices, grid_indices
-    yield assert_equal, nchild, grid_nchild
+    assert_equal(levels, grid_levels)
+    assert_equal(indices, grid_indices)
+    assert_equal(nchild, grid_nchild)
 
     for i, grid in enumerate(test_ds.index.grids):
         if grid_nchild[i] > 0:
             grid_children = np.array([child.id - child._id_offset
                                       for child in grid.Children])
-            yield assert_equal, grid_children, children[i]
+            assert_equal(grid_children, children[i])
 
 def test_find_points():
     """Main test suite for MatchPoints"""
@@ -98,30 +98,29 @@ def test_find_points():
                 pt_level = grid.Level
                 grid_inds[ind] = grid.id - grid._id_offset
 
-    yield assert_equal, point_grid_inds, grid_inds
+    assert_equal(point_grid_inds, grid_inds)
 
     # Test wheter find_points works for lists
     point_grids, point_grid_inds = test_ds.index._find_points(randx.tolist(),
                                                               randy.tolist(),
                                                               randz.tolist())
-    yield assert_equal, point_grid_inds, grid_inds
+    assert_equal(point_grid_inds, grid_inds)
 
     # Test if find_points works for scalar
     ind = random.randint(0, num_points - 1)
     point_grids, point_grid_inds = test_ds.index._find_points(randx[ind],
                                                               randy[ind],
                                                               randz[ind])
-    yield assert_equal, point_grid_inds, grid_inds[ind]
+    assert_equal(point_grid_inds, grid_inds[ind])
 
     # Test if find_points fails properly for non equal indices' array sizes
-    yield assert_raises, AssertionError, test_ds.index._find_points, \
-        [0], 1.0, [2, 3]
+    assert_raises(AssertionError, test_ds.index._find_points, [0], 1.0, [2, 3])
 
 def test_grid_arrays_view():
     ds = setup_test_ds()
     tree = ds.index._get_grid_tree()
     grid_arr = tree.grid_arrays
-    yield assert_equal, grid_arr['left_edge'], ds.index.grid_left_edge
-    yield assert_equal, grid_arr['right_edge'], ds.index.grid_right_edge
-    yield assert_equal, grid_arr['dims'], ds.index.grid_dimensions
-    yield assert_equal, grid_arr['level'], ds.index.grid_levels[:,0]
+    assert_equal(grid_arr['left_edge'], ds.index.grid_left_edge)
+    assert_equal(grid_arr['right_edge'], ds.index.grid_right_edge)
+    assert_equal(grid_arr['dims'], ds.index.grid_dimensions)
+    assert_equal(grid_arr['level'], ds.index.grid_levels[:,0])

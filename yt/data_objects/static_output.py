@@ -1195,7 +1195,7 @@ class Dataset(object):
                 sampling_type = "particle"
         if sampling_type is None:
             warnings.warn("Because 'sampling_type' not specified, yt will "
-                          "assume a cell 'sampling_type'")
+                          "assume a cell 'sampling_type'", stacklevel=2)
             sampling_type = "cell"
         self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)

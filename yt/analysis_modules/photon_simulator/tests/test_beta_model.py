@@ -10,9 +10,13 @@ A unit test for the photon_simulator analysis module.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.analysis_modules.photon_simulator.api import \
-    XSpecThermalModel, XSpecAbsorbModel, \
-    ThermalPhotonModel, PhotonList
+import warnings
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    from yt.analysis_modules.photon_simulator.api import \
+        XSpecThermalModel, XSpecAbsorbModel, \
+        ThermalPhotonModel, PhotonList
 from yt.config import ytcfg
 from yt.testing import requires_file, requires_module
 import numpy as np
