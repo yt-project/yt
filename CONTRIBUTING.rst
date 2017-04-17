@@ -339,7 +339,7 @@ repository directory.
 
 .. code-block:: bash
 
-   $ python2.7 setup.py develop
+   $ python setup.py develop
 
 This will rebuild all C modules as well.
 
@@ -441,14 +441,14 @@ can rebuild these modules by executing:
 
 .. code-block:: bash
 
-  $ python2.7 setup.py develop
+  $ python setup.py develop
 
 If you have previously "installed" via ``setup.py install`` you have to
 re-install:
 
 .. code-block:: bash
 
-  $ python2.7 setup.py install
+  $ python setup.py install
 
 Only one of these two options is needed.
 
@@ -470,13 +470,13 @@ Additionally, the syntax for the setup command is slightly different; you must t
 
 .. code-block:: bash
 
-  $ python2.7 setup.py build --compiler=mingw32 develop
+  $ python setup.py build --compiler=mingw32 develop
 
 or
 
 .. code-block:: bash
 
-  $ python2.7 setup.py build --compiler=mingw32 install
+  $ python setup.py build --compiler=mingw32 install
 
 .. _requirements-for-code-submission:
 
