@@ -301,7 +301,13 @@ forked repository, namely run at a local command line:
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
 a local directory of the same name as the repository in the current working
-directory. You should also run the following command, to make sure you are at
+directory.
+
+.. code-block:: bash
+
+   $ cd <REPOSITORY_NAME>
+
+You should also run the following command, to make sure you are at
 the "yt" branch, and not other ones like "stable" (this will be important
 later when you want to submit your pull requests):
 
@@ -315,7 +321,6 @@ For example, the following command would show you the last 5 changesets
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
    $ hg log -l 5
 
 Using the revision specifier (the number or hash identifier next to each
@@ -334,7 +339,6 @@ repository directory.
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
    $ python2.7 setup.py develop
 
 This will rebuild all C modules as well.
@@ -767,7 +771,7 @@ And then navigate to the root of the yt repository and run ``flake8`` on the
 
 .. code-block:: bash
 
-    $ cd $YT_HG
+    $ cd <REPOSITORY_NAME>
     $ flake8 ./yt
 
 This will print out any ``flake8`` errors or warnings that your newly added code
