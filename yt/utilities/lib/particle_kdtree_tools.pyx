@@ -67,7 +67,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef np.float64_t* positions = &input_positions[0, 0]
     cdef uint64_t neighbor_id
     cdef int i, j, k
-    pbar = get_pbar("Calculating smoothing length", n_particles)
+    pbar = get_pbar("Generate smoothing length", n_particles)
     with nogil:
         for i in range(n_particles):
             if i % 1000 == 0:
@@ -114,5 +114,6 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             sort[vector[np.float64_t].iterator](
                 squared_distances.begin(), squared_distances.end())
             smoothing_length[i] = sqrt(squared_distances[n_neighbors])
+    pbar.update(n_particles-1)
     pbar.finish()
     return np.array(smoothing_length)
