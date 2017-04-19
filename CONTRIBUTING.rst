@@ -519,41 +519,37 @@ how to structure and write your code.
 
 .. _mercurial-with-yt:
 
-How to Use Mercurial with yt
+How to Use git with yt
 ----------------------------
 
-If you're new to Mercurial, these three resources are pretty great for learning
+If you're new to git, the following resource is pretty great for learning
 the ins and outs:
 
-* http://hginit.com/
-* http://hgbook.red-bean.com/read/
-* http://mercurial-scm.org/
-* http://mercurial-scm.org/wiki
+* https://git-scm.com/
 
 The commands that are essential for using Mercurial include:
 
-* ``hg help`` which provides help for any Mercurial command. For example, you
-  can learn more about the ``log`` command by doing ``hg help log``. Other useful
-  topics to use with ``hg help`` are ``hg help glossary``, ``hg help config``,
-  ``hg help extensions``, and ``hg help revsets``.
-* ``hg commit`` which commits changes in the working directory to the
-  repository, creating a new "changeset object."
-* ``hg add`` which adds a new file to be tracked by Mercurial.  This does
-  not change the working directory.
-* ``hg pull`` which pulls (from an optional path specifier) changeset
-  objects from a remote source.  The working directory is not modified.
-* ``hg push`` which sends (to an optional path specifier) changeset objects
-  to a remote source.  The working directory is not modified.
-* ``hg log`` which shows a log of all changeset objects in the current
-  repository.  Use ``-G`` to show a graph of changeset objects and their
-  relationship.
-* ``hg update`` which (with an optional "revision" specifier) updates the
-  state of the working directory to match a changeset object in the
-  repository.
-* ``hg merge`` which combines two changesets to make a union of their lines
-  of development.  This updates the working directory.
+* ``git <command> --help`` which provides help for any git command. For example, you
+  can learn more about the ``log`` command by doing ``git log --help``.
+* ``git add <paths>`` which stages changes to the specified paths for subsequent
+  committing (see below). 
+* ``git commit`` which commits staged changes (stage using ``git add`` as above)
+  in the working directory to the repository, creating a new "revision."
+* ``git merge <branch>`` which merges the revisions from the specified branch
+  into the current branch, creating a union of their lines of development. This
+  updates the working directory.
+* ``git pull <remote> <branch>`` which pulls revisions from the specified branch of the
+  specified remote repository into the current local branch. Equivalent to ``git
+  fetch <remote>`` and then ``git merge <remote>/<branch>``. This updates the
+  working directory.
+* ``git push <remote>`` which sends revisions on local branches to matching
+  branches on the specified remote. ``git push <remote> <branch>`` will only
+  push changes for the specified branch.
+* ``git log`` which shows a log of all revisions on the current branch. There
+  are many options you can pass to ``git log`` to get additional
+  information. One example is ``git log --oneline --decorate --graph --all``.
 
-We are happy to asnswers questions about Mercurial use on our IRC, slack
+We are happy to answer questions about git use on our IRC, slack
 chat or on the mailing list to walk you through any troubles you might have.
 Here are some general suggestions for using Mercurial with yt:
 
