@@ -452,32 +452,6 @@ re-install:
 
 Only one of these two options is needed.
 
-.. _windows-developing:
-
-Developing yt on Windows
-------------------------
-
-If you plan to develop yt on Windows, it is necessary to use the `MinGW
-<http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
-Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. The libpython package must be
-installed from Anaconda as well. These can both be installed with a single command:
-
-.. code-block:: bash
-
-  $ conda install libpython mingw
-
-Additionally, the syntax for the setup command is slightly different; you must type:
-
-.. code-block:: bash
-
-  $ python setup.py build --compiler=mingw32 develop
-
-or
-
-.. code-block:: bash
-
-  $ python setup.py build --compiler=mingw32 install
-
 .. _requirements-for-code-submission:
 
 Requirements for Code Submission
