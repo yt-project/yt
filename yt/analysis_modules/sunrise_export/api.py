@@ -13,5 +13,10 @@ API for Sunrise Export code
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+issue_deprecation_warning(
+    "The sunrise_exporter module has been deprecated. This code has been "
+    "moved to the yt attic (https://bitbucket.org/yt_analysis/yt_attic) and "
+    "will be removed in a future release.")
+
 from .sunrise_exporter import \
     export_to_sunrise
