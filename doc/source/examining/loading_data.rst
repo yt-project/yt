@@ -342,7 +342,10 @@ defined, with the "raw" field type:
     ds = yt.load("Laser/plt00015/")
     print(ds.field_list)
 
-Instead of returning one field value per cell selected, raw fields return a 
+The raw fields in WarpX are nodal in at least one direction. We define a field
+to be "nodal" in a given direction if the field data is defined at the "low"
+and "high" sides of the cell in that direction, rather than at the cell center.
+Instead of returning one field value per cell selected, nodal fields return a 
 number of values, depending on their centering. This centering is marked by
 a `nodal_flag` that describes whether the fields is nodal in each dimension.
 ``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while 
