@@ -435,6 +435,14 @@ If you have made changes to any C or Cython (``.pyx``) modules, you have to
 rebuild yt.  If your changes have exclusively been to Python modules, you will
 not need to re-build, but (see below) you may need to re-install.
 
+Note that you will need a functioning compilation environment to build yt. On
+linux this typically means installing the package that sets up a basic build
+environment (e.g. ``build-essential`` on Debian and Ubuntu). On MacOS this means
+installing the XCode command line tools. On Windows this means installing the
+version of the Microsoft Visual C++ compiler that is appropriate for your
+version of Python. See `the Python wiki
+<https://wiki.python.org/moin/WindowsCompilers>`_ for more details.
+
 If you are running from a clone that is executable in-place (i.e., has been
 installed via the installation script or you have run ``setup.py develop``) you
 can rebuild these modules by executing:
