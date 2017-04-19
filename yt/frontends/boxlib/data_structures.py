@@ -1428,7 +1428,11 @@ class WarpXDataset(BoxlibDataset):
         # set the periodicity based on the integer BC runtime parameters
         is_periodic = self.parameters['geometry.is_periodic'].split()
         periodicity = [bool(val) for val in is_periodic]
+        for _ in range(self.dimensionality, 3):
+            periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
+
+        
 
         species_list = []
         species_dirs = glob.glob(self.output_dir + "/particle*")
