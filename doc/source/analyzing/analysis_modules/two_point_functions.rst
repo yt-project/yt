@@ -1,5 +1,11 @@
 .. _two_point_functions:
 
+.. note::
+
+   This module has been deprecated as it is unmaintained.  The code has been
+   moved to the `yt attic <https://bitbucket.org/yt_analysis/yt_attic>`__.
+   If you'd like to take it over, please do!
+
 Two Point Functions
 ===================
 .. sectionauthor:: Stephen Skory <sskory@physics.ucsd.edu>
