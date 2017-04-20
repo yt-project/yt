@@ -54,7 +54,7 @@ increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
 The easiest way to help out is to fork the main yt repository (where the
-documentation lives in the ``doc`` directory in the root of the yt Mercurial
+documentation lives in the ``doc`` directory in the root of the yt git
 repository) and then make your changes in your own fork.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
@@ -210,19 +210,19 @@ How to Develop yt
 yt is a community project!
 
 We are very happy to accept patches, features, and bugfixes from any member of
-the community!  yt is developed using Mercurial, primarily because it enables
-very easy and straightforward submission of changesets.  We're eager to hear
+the community!  yt is developed using git, primarily because it enables
+very easy and straightforward submission of revisions.  We're eager to hear
 from you, and if you are developing yt, we encourage you to subscribe to the
 `developer mailing list
 <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_. Please feel
 free to hack around, commit changes, and send them upstream.
 
-.. note:: If you already know how to use the `Mercurial version control system
-   <http://mercurial-scm.org>`_ and are comfortable with handling it yourself,
-   the quickest way to contribute to yt is to `fork us on BitBucket
-   <http://bitbucket.org/yt_analysis/yt/fork>`_, make your changes, push the
+.. note:: If you already know how to use the `git version control system
+   <https://git-scm.com/>`_ and are comfortable with handling it yourself,
+   the quickest way to contribute to yt is to `fork us on GitHub
+   <https://github.com/yt-project/yt/fork>`_, make your changes, push the
    changes to your fork and issue a `pull request
-   <http://bitbucket.org/yt_analysis/yt/pull-requests>`_.  The rest of this
+   <https://github.com/yt-project/yt/pulls>`_.  The rest of this
    document is just an explanation of how to do that.
 
 See :ref:`code-style-guide` for more information about coding style in yt and
@@ -258,7 +258,7 @@ Submitting Changes
 We provide a brief introduction to submitting changes here.  yt thrives on the
 strength of its communities (http://arxiv.org/abs/1301.7064 has further
 discussion) and we encourage contributions from any user.  While we do not
-discuss version control, Mercurial or the advanced usage of BitBucket in detail
+discuss version control, git, or the advanced usage of GitHub in detail
 here, we do provide an outline of how to submit changes and we are happy to
 provide further assistance or guidance.
 
@@ -551,14 +551,16 @@ The commands that are essential for using Mercurial include:
 
 We are happy to answer questions about git use on our IRC, slack
 chat or on the mailing list to walk you through any troubles you might have.
-Here are some general suggestions for using Mercurial with yt:
+Here are some general suggestions for using git with yt:
 
-* Named branches are to be avoided.  Try using bookmarks (``see hg help
-  bookmark``) to track work.  (`More info about bookmarks is available on the
-  Mercurial wiki <http://mercurial-scm.org/wiki/Bookmarks>`_)
-* Make sure you set a username in your ``~/.hgrc`` before you commit any
-  changes!  All of the tutorials above will describe how to do this as one of
-  the very first steps.
+* Although not necessary, a common development work flow is to create a local
+  named branch other than ``master`` to address a feature request or bugfix. If
+  the dev work addresses a specific yt GitHub issue, you may include that issue
+  number in the branch name. For example, if you want to work on issue number X
+  regarding a cool new slice plot feature, you might name the branch:
+  ``cool_new_plot_feature_X``. When you're ready to share your work, push your
+  feature branch to your remote and create a pull request to the ``master``
+  branch of the yt-project's repository.
 * When contributing changes, you might be asked to make a handful of
   modifications to your source code.  We'll work through how to do this with
   you, and try to make it as painless as possible.
@@ -568,13 +570,11 @@ Here are some general suggestions for using Mercurial with yt:
   discussion from process from BitBucket's website, even if your pull request
   is merged.
 * You should only need one fork.  To keep it in sync, you can sync from the
-  website. See Bitbucket's `Blog Post
-  <https://blog.bitbucket.org/2013/02/04/syncing-and-merging-come-to-bitbucket/>`_
-  about this. See :ref:`sharing-changes` for a description of the basic workflow
+  website. See :ref:`sharing-changes` for a description of the basic workflow
   and :ref:`multiple-PRs` for a discussion about what to do when you want to
   have multiple open pull requests at the same time.
-* If you run into any troubles, stop by IRC (see :ref:`irc`) or the mailing
-  list.
+* If you run into any troubles, stop by IRC (see :ref:`irc`), Slack, or the
+  mailing list.
 
 .. _sharing-changes:
 
@@ -583,7 +583,7 @@ Making and Sharing Changes
 
 The simplest way to submit changes to yt is to do the following:
 
-* Build yt from the Mercurial repository
+* Build yt from the git repository
 * Navigate to the root of the yt repository
 * Make some changes and commit them
 * Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
@@ -595,18 +595,22 @@ Here's a more detailed flowchart of how to submit changes.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-hg``.  Alternatively see
    :ref:`source-installation` for instructions on how to build yt from the
-   Mercurial repository. (Below, in :ref:`reading-source`, we describe how to
+   git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.)
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
-#. Fork yt on BitBucket.  (This step only has to be done once.)  You can do
+#. Fork yt on GitHub.  (This step only has to be done once.)  You can do
    this at: https://bitbucket.org/yt_analysis/yt/fork.  Call this repository
    yt.
-#. Create a bookmark to track your work. For example: ``hg bookmark
-   my-first-pull-request``
-#. Commit these changes, using ``hg commit``.  This can take an argument
-   which is a series of filenames, if you have some changes you do not want
-   to commit.
+#. Create a uniquely named branch to track your work. For example: ``git
+   checkout -b my-first-pull-request``
+#. Stage your changes using ``git add <paths>``.  This command take an argument
+   which is a series of filenames whose changes you want to commit. After
+   staging, execute ``git commit -m "<Commit description>. Addresses Issue
+   #X"``. Note that supplying an actual GitHub issue # in place of ``X`` will
+   cause your commit to appear in the issue tracker after pushing to your
+   remote. This can be very helpful for others who are interested in what work
+   is being done in connection to that issue.
 #. Remember that this is a large development effort and to keep the code
    accessible to everyone, good documentation is a must.  Add in source code
    comments for what you are doing.  Add in docstrings
@@ -616,31 +620,35 @@ Here's a more detailed flowchart of how to submit changes.
 #. If your changes include new functionality or cover an untested area of the
    code, add a test.  (See :ref:`testing` for more information.)  Commit
    these changes as well.
-#. Push your changes to your new fork using the command::
+#. Add your remote repository with a unique name identifier. It can be anything;
+   your GitHub user name is one possible choice::
 
-      hg push -B my-first-pull-request https://bitbucket.org/YourUsername/yt/
+      git remote add <YourUniqueIdentifier> https://github.com/YourUsername/yt/
+  
+#. Push your changes to your remote fork using the unique identifier you just
+   created and the command::
 
-   Where you should substitute the name of the bookmark you are working on for
-   ``my-first-pull-request``. If you end up doing considerable development, you
-   can set an alias in the file ``.hg/hgrc`` to point to this path.
+      git push <YourUniqueIdentifier> my-first-pull-request
+
+   Where you should substitute the name of the feature branch you are working on for
+   ``my-first-pull-request``.
 
    .. note::
      Note that the above approach uses HTTPS as the transfer protocol
-     between your machine and BitBucket.  If you prefer to use SSH - or
+     between your machine and GitHub.  If you prefer to use SSH - or
      perhaps you're behind a proxy that doesn't play well with SSL via
-     HTTPS - you may want to set up an `SSH key`_ on BitBucket.  Then, you use
-     the syntax ``ssh://hg@bitbucket.org/YourUsername/yt``, or equivalent, in
-     place of ``https://bitbucket.org/YourUsername/yt`` in Mercurial commands.
+     HTTPS - you may want to set up an `SSH key`_ on GitHub.  Then, you use
+     the syntax ``ssh://git@github.com/YourUsername/yt``, or equivalent, in
+     place of ``https://github.com/YourUsername/yt`` in git commands.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
      .. _SSH key: https://confluence.atlassian.com/display/BITBUCKET/Set+up+SSH+for+Mercurial
 
 #. Issue a pull request at
-   https://bitbucket.org/YourUsername/yt/pull-request/new
+   https://github.com/yt-project/yt/pull/new/master
    A pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
-
 
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or even requesting
@@ -650,98 +658,25 @@ straightforward.
 #. Make requested changes, or leave a comment indicating why you don't think
    they should be made.
 #. Commit those changes to your local repository.
-#. Push the changes to your fork:
+#. Push the changes to your fork::
 
-      hg push https://bitbucket.org/YourUsername/yt/
+      git push <YourRemoteIdentifier> <YourBranchName>
 
 #. Your pull request will be automatically updated.
 
 .. _multiple-PRs:
 
-Working with Multiple BitBucket Pull Requests
----------------------------------------------
+Working with Multiple GitHub Pull Requests
+------------------------------------------
 
-Once you become active developing for yt, you may be working on
-various aspects of the code or bugfixes at the same time.  Currently,
-BitBucket's *modus operandi* for pull requests automatically updates
-your active pull request with every ``hg push`` of commits that are a
-descendant of the head of your pull request.  In a normal workflow,
-this means that if you have an active pull request, make some changes
-locally for, say, an unrelated bugfix, then push those changes back to
-your fork in the hopes of creating a *new* pull request, you'll
-actually end up updating your current pull request!
-
-There are a few ways around this feature of BitBucket that will allow
-for multiple pull requests to coexist; we outline one such method
-below.  We assume that you have a fork of yt at
-``http://bitbucket.org/YourUsername/Your_yt`` (see
-:ref:`sharing-changes` for instructions on creating a fork) and that
-you have an active pull request to the main repository.
-
-The main issue with starting another pull request is to make sure that
-your push to BitBucket doesn't go to the same head as your
-existing pull request and trigger BitBucket's auto-update feature.
-Here's how to get your local repository away from your current pull
-request head using `revsets <http://www.selenic.com/hg/help/revsets>`_
-and your ``hgrc`` file:
-
-#. Set up a Mercurial path for the main yt repository (note this is a convenience
-   step and only needs to be done once).  Add the following to your
-   ``Your_yt/.hg/hgrc``::
-
-     [paths]
-     upstream = https://bitbucket.org/yt_analysis/yt
-
-   This will create a path called ``upstream`` that is aliased to the URL of the
-   main yt repository.
-#. Now we'll use revsets_ to update your local repository to the tip of the
-   ``upstream`` path:
-
-   .. code-block:: bash
-
-      $ hg pull upstream
-      $ hg update -r "remote(yt, 'upstream')"
-
-After the above steps, your local repository should be at the current head of
-the ``yt`` branch in the main yt repository.  If you find yourself doing this a
-lot, it may be worth aliasing this task in your ``hgrc`` file by adding
-something like::
-
-  [alias]
-  ytupdate = update -r "remote(yt, 'upstream')"
-
-And then you can just issue ``hg ytupdate`` to get at the current head of the
-``yt`` branch on main yt repository.
-
-Make sure you are on the branch you want to be on, and then you can make changes
-and ``hg commit`` them.  If you prefer working with `bookmarks
-<http://mercurial-scm.org/wiki/Bookmarks>`_, you may want to make a bookmark
-before committing your changes, such as ``hg bookmark mybookmark``.
-
-To push your changes on a bookmark to bitbucket, you can issue the following
-command:
-
-.. code-block:: bash
-
-    $ hg push -B myfeature https://bitbucket.org/YourUsername/Your_yt
-
-The ``-B`` means "publish my bookmark, the changeset the bookmark is pointing
-at, and any ancestors of that changeset that aren't already on the remote
-server".
-
-To push to your fork on BitBucket if you didn't use a bookmark, you issue the
-following:
-
-.. code-block:: bash
-
-  $ hg push -r . -f https://bitbucket.org/YourUsername/Your_yt
-
-The ``-r .`` means "push only the commit I'm standing on and any ancestors."
-The ``-f`` is to force Mecurial to do the push since we are creating a new
-remote head without a bookmark.
-
-You can then go to the BitBucket interface and issue a new pull request based on
-your last changes, as usual.
+Dealing with multiple pull requests on GitHub is straightforward. Development on
+one feature should be isolated in one named branch, say ``feature_1`` while
+development of another feature should be in another named branch, say
+``feature_2``. A push to remote ``feature_1`` will automatically update any
+active PR for which ``feature_1`` is a pointer to the ``HEAD`` commit. A push to
+``feature_1`` *will not* update any pull requests involving ``feature_2`` which
+should be a breath of relief to anyone familiar with BitBucket's multiple PR
+behavior. 
 
 .. _code-style-guide:
 
