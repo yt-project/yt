@@ -44,9 +44,9 @@ def test_particle_generator():
     # Test to make sure we ended up with the right number of particles per grid
     particles1.apply_to_stream()
     particles_per_grid1 = [grid.NumberOfParticles for grid in ds.index.grids]
-    yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
+    assert_equal(particles_per_grid1, particles1.NumberOfParticles)
     particles_per_grid1 = [len(grid["particle_position_x"]) for grid in ds.index.grids]
-    yield assert_equal, particles_per_grid1, particles1.NumberOfParticles
+    assert_equal(particles_per_grid1, particles1.NumberOfParticles)
 
     tags = uconcatenate([grid["particle_index"] for grid in ds.index.grids])
     assert(np.unique(tags).size == num_particles)
@@ -81,23 +81,23 @@ def test_particle_generator():
     #Test the number of particles again
     particles2.apply_to_stream()
     particles_per_grid2 = [grid.NumberOfParticles for grid in ds.index.grids]
-    yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
+    assert_equal(particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles)
 
     [grid.field_data.clear() for grid in ds.index.grids]
     particles_per_grid2 = [len(grid["particle_position_x"]) for grid in ds.index.grids]
-    yield assert_equal, particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles
+    assert_equal(particles_per_grid2, particles1.NumberOfParticles+particles2.NumberOfParticles)
 
     #Test the uniqueness of tags
     tags = np.concatenate([grid["particle_index"] for grid in ds.index.grids])
     tags.sort()
-    yield assert_equal, tags, np.arange((np.product(pdims)+num_particles))
+    assert_equal(tags, np.arange((np.product(pdims)+num_particles)))
 
     # Test that the old particles have zero for the new field
     old_particle_temps = [grid["particle_gas_temperature"][:particles_per_grid1[i]]
                           for i, grid in enumerate(ds.index.grids)]
     test_zeros = [np.zeros((particles_per_grid1[i])) 
                   for i, grid in enumerate(ds.index.grids)]
-    yield assert_equal, old_particle_temps, test_zeros
+    assert_equal(old_particle_temps, test_zeros)
 
     #Now dump all of these particle fields out into a dict
     pdata = {}
@@ -111,10 +111,6 @@ def test_particle_generator():
     
     #Test the number of particles again
     particles_per_grid3 = [grid.NumberOfParticles for grid in ds.index.grids]
-    yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
+    assert_equal(particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles)
     particles_per_grid2 = [len(grid["particle_position_z"]) for grid in ds.index.grids]
-    yield assert_equal, particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles
-
-if __name__=="__main__":
-    for n, i in enumerate(test_particle_generator()):
-        i[0](*i[1:])
+    assert_equal(particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles)

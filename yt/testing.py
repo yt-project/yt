@@ -576,7 +576,7 @@ def units_override_check(fn):
         unit_attr = getattr(ds2, "%s_unit" % u, None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
-    yield assert_equal, attrs1, attrs2
+    assert_equal(attrs1, attrs2)
 
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.

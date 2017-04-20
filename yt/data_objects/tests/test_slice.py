@@ -54,13 +54,13 @@ def test_slice():
             for wf in ["density", None]:
                 slc = ds.slice(ax, slc_pos)
                 shifted_slc = ds.slice(ax, slc_pos + grid_eps)
-                yield assert_equal, slc["ones"].sum(), slc["ones"].size
-                yield assert_equal, slc["ones"].min(), 1.0
-                yield assert_equal, slc["ones"].max(), 1.0
-                yield assert_equal, np.unique(slc["px"]), uc[xax]
-                yield assert_equal, np.unique(slc["py"]), uc[yax]
-                yield assert_equal, np.unique(slc["pdx"]), 0.5 / dims[xax]
-                yield assert_equal, np.unique(slc["pdy"]), 0.5 / dims[yax]
+                assert_equal(slc["ones"].sum(), slc["ones"].size)
+                assert_equal(slc["ones"].min(), 1.0)
+                assert_equal(slc["ones"].max(), 1.0)
+                assert_equal(np.unique(slc["px"]), uc[xax])
+                assert_equal(np.unique(slc["py"]), uc[yax])
+                assert_equal(np.unique(slc["pdx"]), 0.5 / dims[xax])
+                assert_equal(np.unique(slc["pdy"]), 0.5 / dims[yax])
                 pw = slc.to_pw(fields='density')
                 for p in pw.plots.values():
                     tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
@@ -72,25 +72,19 @@ def test_slice():
                     shifted_frb = shifted_slc.to_frb((1.0, 'unitary'), 64)
                     for slc_field in ['ones', 'density']:
                         fi = ds._get_field_info(slc_field)
-                        yield assert_equal, frb[slc_field].info['data_source'], \
-                            slc.__str__()
-                        yield assert_equal, frb[slc_field].info['axis'], \
-                            ax
-                        yield assert_equal, frb[slc_field].info['field'], \
-                            slc_field
-                        yield assert_equal, frb[slc_field].units, \
-                            Unit(fi.units)
-                        yield assert_equal, frb[slc_field].info['xlim'], \
-                            frb.bounds[:2]
-                        yield assert_equal, frb[slc_field].info['ylim'], \
-                            frb.bounds[2:]
-                        yield assert_equal, frb[slc_field].info['center'], \
-                            slc.center
-                        yield assert_equal, frb[slc_field].info['coord'], \
-                            slc_pos
-                        yield assert_equal, frb[slc_field], \
-                            shifted_frb[slc_field]
-            yield assert_equal, wf, None
+                        assert_equal(frb[slc_field].info['data_source'],
+                                     slc.__str__())
+                        assert_equal(frb[slc_field].info['axis'], ax)
+                        assert_equal(frb[slc_field].info['field'], slc_field)
+                        assert_equal(frb[slc_field].units, Unit(fi.units))
+                        assert_equal(frb[slc_field].info['xlim'],
+                                     frb.bounds[:2])
+                        assert_equal(frb[slc_field].info['ylim'],
+                                     frb.bounds[2:])
+                        assert_equal(frb[slc_field].info['center'], slc.center)
+                        assert_equal(frb[slc_field].info['coord'], slc_pos)
+                        assert_equal(frb[slc_field], shifted_frb[slc_field])
+            assert_equal(wf, None)
     teardown_func(fns)
 
 
@@ -106,4 +100,4 @@ def test_slice_over_outer_boundary():
     ds = fake_random_ds(64, nprocs=8, fields=["density"], negative=[False])
     slc = ds.slice(2, 1.0)
     slc["density"]
-    yield assert_equal, slc["density"].size, 0
+    assert_equal(slc["density"].size, 0)

@@ -1204,17 +1204,18 @@ class NyxHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type='nyx_native'):
         super(NyxHierarchy, self).__init__(ds, dataset_type)
 
-        # extra beyond the base real fields that all Boxlib
-        # particles have, i.e. the xyz positions
-        nyx_extra_real_fields = ['particle_mass',
-                                 'particle_velocity_x',
-                                 'particle_velocity_y',
-                                 'particle_velocity_z']
+        if ("particles" in self.ds.parameters):
+            # extra beyond the base real fields that all Boxlib
+            # particles have, i.e. the xyz positions
+            nyx_extra_real_fields = ['particle_mass',
+                                     'particle_velocity_x',
+                                     'particle_velocity_y',
+                                     'particle_velocity_z']
 
-        is_checkpoint = False
+            is_checkpoint = False
 
-        self._read_particles("DM", is_checkpoint, 
-                             nyx_extra_real_fields[0:self.ds.dimensionality+1])
+            self._read_particles("DM", is_checkpoint, 
+                                 nyx_extra_real_fields[0:self.ds.dimensionality+1])
 
 
 class NyxDataset(BoxlibDataset):
@@ -1427,7 +1428,11 @@ class WarpXDataset(BoxlibDataset):
         # set the periodicity based on the integer BC runtime parameters
         is_periodic = self.parameters['geometry.is_periodic'].split()
         periodicity = [bool(val) for val in is_periodic]
+        for _ in range(self.dimensionality, 3):
+            periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
+
+        
 
         species_list = []
         species_dirs = glob.glob(self.output_dir + "/particle*")

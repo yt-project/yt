@@ -781,13 +781,7 @@ def get_output_filename(name, keyword, suffix):
         name = keyword
     name = os.path.expanduser(name)
     if name[-1] == os.sep and not os.path.isdir(name):
-        try:
-            os.mkdir(name)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            else:
-                raise
+        ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
     if not name.endswith(suffix):
@@ -797,15 +791,20 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    if not my_dir:
-        return
-    if not os.path.exists(my_dir):
-        only_on_root(os.makedirs, my_dir)
+    ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
-    if not os.path.exists(path):
-        only_on_root(os.makedirs, path)
+    if os.path.exists(path):
+        return path
+
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
     return path
 
 def validate_width_tuple(width):
@@ -1011,7 +1010,7 @@ def get_requests():
 def dummy_context_manager(*args, **kwargs):
     yield
 
-def matplotlib_style_context(style_name=None, after_reset=True):
+def matplotlib_style_context(style_name=None, after_reset=False):
     """Returns a context manager for controlling matplotlib style.
 
     Arguments are passed to matplotlib.style.context() if specified. Defaults
@@ -1021,11 +1020,13 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = 'classic'
+        style_name = {
+            'mathtext.fontset': 'cm',
+            'mathtext.fallback_to_cm': True,
+        }
     try:
         import matplotlib.style
-        if style_name in matplotlib.style.available:
-            return matplotlib.style.context(style_name, after_reset=after_reset)
+        return matplotlib.style.context(style_name, after_reset=after_reset)
     except ImportError:
         pass
     return dummy_context_manager()

@@ -75,7 +75,10 @@ ytcfg_defaults = dict(
 CONFIG_DIR = os.environ.get(
     'XDG_CONFIG_HOME', os.path.join(os.path.expanduser('~'), '.config', 'yt'))
 if not os.path.exists(CONFIG_DIR):
-    os.makedirs(CONFIG_DIR)
+    try: 
+        os.makedirs(CONFIG_DIR)
+    except OSError:
+        warnings.warn("unable to create yt config directory")
 
 CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, 'ytrc')
 _OLD_CONFIG_FILE = os.path.join(os.path.expanduser('~'), '.yt', 'config')
@@ -116,8 +119,11 @@ if os.path.exists(_OLD_CONFIG_FILE):
 if not os.path.exists(CURRENT_CONFIG_FILE):
     cp = configparser.ConfigParser()
     cp.add_section("yt")
-    with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
-        cp.write(new_cfg)
+    try:
+        with open(CURRENT_CONFIG_FILE, 'w') as new_cfg:
+            cp.write(new_cfg)
+    except IOError:
+        warnings.warn("unable to write new config file")
 
 class YTConfigParser(configparser.ConfigParser, object):
     def __setitem__(self, key, val):

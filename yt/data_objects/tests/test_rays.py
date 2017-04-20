@@ -30,7 +30,7 @@ def test_ray():
             p2 = ds.arr(pp2[:,i] + 1e-8 * np.random.random(3), 'code_length')
 
             my_ray = ds.ray(p1, p2)
-            yield assert_rel_equal, my_ray['dts'].sum(), unitary, 14
+            assert_rel_equal(my_ray['dts'].sum(), unitary, 14)
             ray_cells = my_ray['dts'] > 0
 
             # find cells intersected by the ray
@@ -47,10 +47,10 @@ def test_ray():
             tout = tout.min(axis=0)
             my_cells = (tin < tout) & (tin < 1) & (tout > 0)
 
-            yield assert_equal, ray_cells.sum(), my_cells.sum()
-            yield assert_rel_equal, my_ray['density'][ray_cells].sum(), \
-                                    my_all['density'][my_cells].sum(), 14
-            yield assert_rel_equal, my_ray['dts'].sum(), unitary, 14
+            assert_equal(ray_cells.sum(), my_cells.sum())
+            assert_rel_equal(my_ray['density'][ray_cells].sum(),
+                             my_all['density'][my_cells].sum(), 14)
+            assert_rel_equal(my_ray['dts'].sum(), unitary, 14)
 
 @requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
 def test_ray_in_particle_octree():

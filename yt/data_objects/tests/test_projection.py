@@ -44,8 +44,8 @@ def test_projection():
         # test if projections inherit the field parameters of their data sources
         dd.set_field_parameter("bulk_velocity", np.array([0,1,2]))
         proj = ds.proj("density", 0, data_source=dd)
-        yield assert_equal, dd.field_parameters["bulk_velocity"], \
-          proj.field_parameters["bulk_velocity"]
+        assert_equal(dd.field_parameters["bulk_velocity"],
+                     proj.field_parameters["bulk_velocity"])
 
         # Some simple projection tests with single grids
         for ax, an in enumerate("xyz"):
@@ -54,17 +54,18 @@ def test_projection():
             for wf in ['density', ("gas", "density"), None]:
                 proj = ds.proj(["ones", "density"], ax, weight_field=wf)
                 if wf is None:
-                    yield assert_equal, proj["ones"].sum(), LENGTH_UNIT*proj["ones"].size
-                    yield assert_equal, proj["ones"].min(), LENGTH_UNIT
-                    yield assert_equal, proj["ones"].max(), LENGTH_UNIT
+                    assert_equal(proj["ones"].sum(),
+                                 LENGTH_UNIT*proj["ones"].size)
+                    assert_equal(proj["ones"].min(), LENGTH_UNIT)
+                    assert_equal(proj["ones"].max(), LENGTH_UNIT)
                 else:
-                    yield assert_equal, proj["ones"].sum(), proj["ones"].size
-                    yield assert_equal, proj["ones"].min(), 1.0
-                    yield assert_equal, proj["ones"].max(), 1.0
-                yield assert_equal, np.unique(proj["px"]), uc[xax]
-                yield assert_equal, np.unique(proj["py"]), uc[yax]
-                yield assert_equal, np.unique(proj["pdx"]), 1.0/(dims[xax]*2.0)
-                yield assert_equal, np.unique(proj["pdy"]), 1.0/(dims[yax]*2.0)
+                    assert_equal(proj["ones"].sum(), proj["ones"].size)
+                    assert_equal(proj["ones"].min(), 1.0)
+                    assert_equal(proj["ones"].max(), 1.0)
+                assert_equal(np.unique(proj["px"]), uc[xax])
+                assert_equal(np.unique(proj["py"]), uc[yax])
+                assert_equal(np.unique(proj["pdx"]), 1.0/(dims[xax]*2.0))
+                assert_equal(np.unique(proj["pdy"]), 1.0/(dims[yax]*2.0))
                 plots = [proj.to_pw(fields='density'), proj.to_pw()]
                 for pw in plots:
                     for p in pw.plots.values():
@@ -75,16 +76,15 @@ def test_projection():
                 frb = proj.to_frb((1.0, 'unitary'), 64)
                 for proj_field in ['ones', 'density', 'temperature']:
                     fi = ds._get_field_info(proj_field)
-                    yield assert_equal, frb[proj_field].info['data_source'], \
-                        proj.__str__()
-                    yield assert_equal, frb[proj_field].info['axis'], \
-                        ax
-                    yield assert_equal, frb[proj_field].info['field'], \
-                        proj_field
+                    assert_equal(frb[proj_field].info['data_source'],
+                                 proj.__str__())
+                    assert_equal(frb[proj_field].info['axis'], ax)
+                    assert_equal(frb[proj_field].info['field'], proj_field)
                     field_unit = Unit(fi.units)
                     if wf is not None:
-                        yield assert_equal, frb[proj_field].units, \
-                            Unit(field_unit, registry=ds.unit_registry)
+                        assert_equal(
+                            frb[proj_field].units,
+                            Unit(field_unit, registry=ds.unit_registry))
                     else:
                         if frb[proj_field].units.is_code_unit:
                             proj_unit = "code_length"
@@ -93,26 +93,23 @@ def test_projection():
                         if field_unit != '' and field_unit != Unit():
                             proj_unit = \
                                 "({0}) * {1}".format(field_unit, proj_unit)
-                        yield assert_equal, frb[proj_field].units, \
-                            Unit(proj_unit, registry=ds.unit_registry)
-                    yield assert_equal, frb[proj_field].info['xlim'], \
-                        frb.bounds[:2]
-                    yield assert_equal, frb[proj_field].info['ylim'], \
-                        frb.bounds[2:]
-                    yield assert_equal, frb[proj_field].info['center'], \
-                        proj.center
+                        assert_equal(
+                            frb[proj_field].units,
+                            Unit(proj_unit, registry=ds.unit_registry))
+                    assert_equal(frb[proj_field].info['xlim'], frb.bounds[:2])
+                    assert_equal(frb[proj_field].info['ylim'], frb.bounds[2:])
+                    assert_equal(frb[proj_field].info['center'], proj.center)
                     if wf is None:
-                        yield assert_equal, \
-                            frb[proj_field].info['weight_field'], wf
+                        assert_equal(frb[proj_field].info['weight_field'], wf)
                     else:
-                        yield assert_equal, \
-                            frb[proj_field].info['weight_field'], \
-                            proj.data_source._determine_fields(wf)[0]
+                        assert_equal(
+                            frb[proj_field].info['weight_field'],
+                            proj.data_source._determine_fields(wf)[0])
             # wf == None
-            yield assert_equal, wf, None
+            assert_equal(wf, None)
             v1 = proj["density"].sum()
             v2 = (LENGTH_UNIT * dd["density"] * dd["d%s" % an]).sum()
-            yield assert_rel_equal, v1, v2, 10
+            assert_rel_equal(v1, v2, 10)
     teardown_func(fns)
 
 

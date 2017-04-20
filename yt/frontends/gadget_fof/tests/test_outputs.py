@@ -69,7 +69,7 @@ def test_subhalos():
 
     # Test that all subhalo particles are contained within
     # their parent group.
-    yield assert_equal, total_sub, total_int
+    assert_equal(total_sub, total_int)
 
 @requires_file(g298)
 def test_halo_masses():
@@ -85,7 +85,7 @@ def test_halo_masses():
         # Check that masses from halo containers are the same
         # as the array of all masses.  This will test getting
         # scalar fields for halos correctly.
-        yield assert_array_equal, ad[ptype, "particle_mass"], mass
+        assert_array_equal(ad[ptype, "particle_mass"], mass)
 
 # fof/subhalo catalog with no member ids in first file
 g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"

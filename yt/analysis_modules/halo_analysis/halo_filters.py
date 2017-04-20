@@ -16,8 +16,9 @@ Halo filter object
 import numpy as np
 
 from yt.utilities.operator_registry import \
-     OperatorRegistry
-from yt.utilities.spatial import KDTree
+    OperatorRegistry
+from yt.utilities.on_demand_imports import \
+    _scipy as scipy
 
 from .halo_callbacks import HaloCallback
 
@@ -95,7 +96,8 @@ def _create_parent_dict(data_source, ptype="halos"):
     rad = data_source[ptype, "virial_radius"].in_units("Mpc").to_ndarray()
     ids = data_source[ptype, "particle_identifier"].to_ndarray().astype("int")
     parents = -1 * np.ones_like(ids, dtype="int")
-    my_tree = KDTree(pos)
+    boxsize = data_source.ds.domain_width.in_units('Mpc')
+    my_tree = scipy.spatial.cKDTree(pos, boxsize=boxsize)
 
     for i in range(ids.size):
         neighbors = np.array(

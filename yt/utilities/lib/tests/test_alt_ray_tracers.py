@@ -65,20 +65,20 @@ def test_cylindrical_ray_trace():
         t, s, rztheta, inds = cylindrical_ray_trace(p1, p2, left_grid, right_grid)
         npoints = len(t)
 
-        yield check_monotonic_inc, t
-        yield assert_less_equal, 0.0, t[0]
-        yield assert_less_equal, t[-1], 1.0
+        check_monotonic_inc(t)
+        assert_less_equal(0.0, t[0])
+        assert_less_equal(t[-1], 1.0)
 
-        yield check_monotonic_inc, s
-        yield assert_less_equal, 0.0, s[0]
-        yield assert_less_equal, s[-1], pathlen
-        yield assert_equal, npoints, len(s)
+        check_monotonic_inc(s)
+        assert_less_equal(0.0, s[0])
+        assert_less_equal(s[-1], pathlen)
+        assert_equal(npoints, len(s))
 
-        yield assert_equal, (npoints, 3), rztheta.shape
-        yield check_bounds, rztheta[:,0],  0.0, 1.0
-        yield check_bounds, rztheta[:,1], -1.0, 1.0
-        yield check_bounds, rztheta[:,2],  0.0, 2*np.pi
-        yield check_monotonic_inc, rztheta[:,2]
+        assert_equal((npoints, 3), rztheta.shape)
+        check_bounds(rztheta[:,0],  0.0, 1.0)
+        check_bounds(rztheta[:,1], -1.0, 1.0)
+        check_bounds(rztheta[:,2],  0.0, 2*np.pi)
+        check_monotonic_inc(rztheta[:,2])
 
-        yield assert_equal, npoints, len(inds)
-        yield check_bounds, inds, 0, len(left_grid)-1
+        assert_equal(npoints, len(inds))
+        check_bounds(inds, 0, len(left_grid)-1)

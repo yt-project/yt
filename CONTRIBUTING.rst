@@ -54,7 +54,7 @@ increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
 The easiest way to help out is to fork the main yt repository (where the
-documentation lives in the ``doc`` directory in the root of the yt mercurial
+documentation lives in the ``doc`` directory in the root of the yt Mercurial
 repository) and then make your changes in your own fork.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
@@ -210,14 +210,14 @@ How to Develop yt
 yt is a community project!
 
 We are very happy to accept patches, features, and bugfixes from any member of
-the community!  yt is developed using mercurial, primarily because it enables
+the community!  yt is developed using Mercurial, primarily because it enables
 very easy and straightforward submission of changesets.  We're eager to hear
 from you, and if you are developing yt, we encourage you to subscribe to the
 `developer mailing list
 <http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org>`_. Please feel
 free to hack around, commit changes, and send them upstream.
 
-.. note:: If you already know how to use the `mercurial version control system
+.. note:: If you already know how to use the `Mercurial version control system
    <http://mercurial-scm.org>`_ and are comfortable with handling it yourself,
    the quickest way to contribute to yt is to `fork us on BitBucket
    <http://bitbucket.org/yt_analysis/yt/fork>`_, make your changes, push the
@@ -258,7 +258,7 @@ Submitting Changes
 We provide a brief introduction to submitting changes here.  yt thrives on the
 strength of its communities (http://arxiv.org/abs/1301.7064 has further
 discussion) and we encourage contributions from any user.  While we do not
-discuss version control, mercurial or the advanced usage of BitBucket in detail
+discuss version control, Mercurial or the advanced usage of BitBucket in detail
 here, we do provide an outline of how to submit changes and we are happy to
 provide further assistance or guidance.
 
@@ -301,7 +301,13 @@ forked repository, namely run at a local command line:
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
 a local directory of the same name as the repository in the current working
-directory. You should also run the following command, to make sure you are at
+directory.
+
+.. code-block:: bash
+
+   $ cd <REPOSITORY_NAME>
+
+You should also run the following command, to make sure you are at
 the "yt" branch, and not other ones like "stable" (this will be important
 later when you want to submit your pull requests):
 
@@ -315,7 +321,6 @@ For example, the following command would show you the last 5 changesets
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
    $ hg log -l 5
 
 Using the revision specifier (the number or hash identifier next to each
@@ -334,8 +339,7 @@ repository directory.
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
-   $ python2.7 setup.py develop
+   $ python setup.py develop
 
 This will rebuild all C modules as well.
 
@@ -350,7 +354,7 @@ computer.  If you build yt using the install script, the source is available at
 to obtain the yt source code if you did not build yt using the install
 script.
 
-The root directory of the yt mercurial repository contains a number of
+The root directory of the yt Mercurial repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
 code is contained in the yt subdirectory.  This directory its self contains
 the following subdirectories:
@@ -437,14 +441,14 @@ can rebuild these modules by executing:
 
 .. code-block:: bash
 
-  $ python2.7 setup.py develop
+  $ python setup.py develop
 
 If you have previously "installed" via ``setup.py install`` you have to
 re-install:
 
 .. code-block:: bash
 
-  $ python2.7 setup.py install
+  $ python setup.py install
 
 Only one of these two options is needed.
 
@@ -466,13 +470,13 @@ Additionally, the syntax for the setup command is slightly different; you must t
 
 .. code-block:: bash
 
-  $ python2.7 setup.py build --compiler=mingw32 develop
+  $ python setup.py build --compiler=mingw32 develop
 
 or
 
 .. code-block:: bash
 
-  $ python2.7 setup.py build --compiler=mingw32 install
+  $ python setup.py build --compiler=mingw32 install
 
 .. _requirements-for-code-submission:
 
@@ -526,15 +530,15 @@ the ins and outs:
 * http://mercurial-scm.org/
 * http://mercurial-scm.org/wiki
 
-The commands that are essential for using mercurial include:
+The commands that are essential for using Mercurial include:
 
-* ``hg help`` which provides help for any mercurial command. For example, you
+* ``hg help`` which provides help for any Mercurial command. For example, you
   can learn more about the ``log`` command by doing ``hg help log``. Other useful
   topics to use with ``hg help`` are ``hg help glossary``, ``hg help config``,
   ``hg help extensions``, and ``hg help revsets``.
 * ``hg commit`` which commits changes in the working directory to the
   repository, creating a new "changeset object."
-* ``hg add`` which adds a new file to be tracked by mercurial.  This does
+* ``hg add`` which adds a new file to be tracked by Mercurial.  This does
   not change the working directory.
 * ``hg pull`` which pulls (from an optional path specifier) changeset
   objects from a remote source.  The working directory is not modified.
@@ -549,13 +553,13 @@ The commands that are essential for using mercurial include:
 * ``hg merge`` which combines two changesets to make a union of their lines
   of development.  This updates the working directory.
 
-We are happy to asnswers questions about mercurial use on our IRC, slack
+We are happy to asnswers questions about Mercurial use on our IRC, slack
 chat or on the mailing list to walk you through any troubles you might have.
-Here are some general suggestions for using mercurial with yt:
+Here are some general suggestions for using Mercurial with yt:
 
 * Named branches are to be avoided.  Try using bookmarks (``see hg help
   bookmark``) to track work.  (`More info about bookmarks is available on the
-  mercurial wiki <http://mercurial-scm.org/wiki/Bookmarks>`_)
+  Mercurial wiki <http://mercurial-scm.org/wiki/Bookmarks>`_)
 * Make sure you set a username in your ``~/.hgrc`` before you commit any
   changes!  All of the tutorials above will describe how to do this as one of
   the very first steps.
@@ -583,7 +587,7 @@ Making and Sharing Changes
 
 The simplest way to submit changes to yt is to do the following:
 
-* Build yt from the mercurial repository
+* Build yt from the Mercurial repository
 * Navigate to the root of the yt repository
 * Make some changes and commit them
 * Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
@@ -595,7 +599,7 @@ Here's a more detailed flowchart of how to submit changes.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-hg``.  Alternatively see
    :ref:`source-installation` for instructions on how to build yt from the
-   mercurial repository. (Below, in :ref:`reading-source`, we describe how to
+   Mercurial repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.)
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
@@ -767,7 +771,7 @@ And then navigate to the root of the yt repository and run ``flake8`` on the
 
 .. code-block:: bash
 
-    $ cd $YT_HG
+    $ cd <REPOSITORY_NAME>
     $ flake8 ./yt
 
 This will print out any ``flake8`` errors or warnings that your newly added code
