@@ -49,7 +49,7 @@ INST_PY3=1          # Install Python 3 instead of Python 2. If this is turned
                     # in Python 3.
 INST_GIT=1          # Install git or not?  If git is not already installed, yt
                     # cannot be installed from source. Ignored if INST_CONDA=0
-INT_HG=0            # Install Mercurial or not? Ignored if INST_CONDA=0.
+INST_HG=0           # Install Mercurial or not? Ignored if INST_CONDA=0.
 INST_EMBREE=0       # Install dependencies needed for Embree-accelerated 
                     # ray tracing
 
@@ -841,9 +841,6 @@ then
     LAPACK='lapack-3.4.2'
     PNG='libpng-1.6.3'
     MATPLOTLIB='matplotlib-1.5.1'
-    GIT='git-2.12.2'
-    LIBCURL='curl-7.54.0'
-    EXPAT='expat-2.2.0'
     NOSE='nose-1.3.7'
     NUMPY='numpy-1.11.0'
     GITPYTHON='GitPython-2.1.3'
@@ -874,12 +871,9 @@ then
     echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
     echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
     echo 'a0e78b5027a3a49cf8e77dc0d26f5f380dcd80f7b309b6121199acd5e1d94f48482864a9eee3bd397f7ac6f07fe1d3c21bf517217df3c72e8e3d105b7c2ae58e  matplotlib-1.5.1.tar.gz' > matplotlib-1.5.1.tar.gz.sha512
-    echo '67ce429436277c1fd64ee2a48326cdeec4a25a4f3bfa2dec84b5207752f8e09d5061c94dbd2c7f8bedc42f8df2142ed69b002d2d7d350cf6a40ac1e2736514e0  git-2.12.2.tar.gz' > git-2.12.2.tar.gz.sha512
     echo 'e65c914f621f8da06b9ab11a0ff2763d6e29b82ce2aaed56da0e3773dc899d9deb1f20015789d44c65a5dad7214520f5b659b3f8d7695fb207ad3f78e5cf1b62  nose-1.3.7.tar.gz' > nose-1.3.7.tar.gz.sha512
     echo '92c1889397ad013e25da3a0657fc01e787d528fc19c29cc2acd286c3f07d41b984252583457b1b9259fc303afbe9694565cdcf5752eb4ecb950cc7a99ec1ad8b  numpy-1.11.0.tar.gz' > numpy-1.11.0.tar.gz.sha512
     echo '918ff1765a85a818619165c2bcbb0d417f35c979c2f42f1bb7e41636696c0cb4d6837725f3655fbdfebea966476d1255ee18adabe9ed5536455b63336a1f399d  GitPython-2.1.3.tar.gz' > GitPython-2.1.3.tar.gz.sha512
-    echo '3e3af56373d223cfe0d434a305254fadaa6308aac85fae053fd31abfaa014f66bdcc921039a2a1c1650559f37dd056e5839e284f5022586db9cdff5662ee0b8b  expat-2.2.0.tar.gz' > expat-2.2.0.tar.gz.sha512
-    echo '57f73a4ffece65f4e12e30b1d4be4f54f434693ba64d32eca0da036830389854b699a6e0ad6c3d9e847eab73981de6d8ebdb1820cc8a40a5d163aec37ab554aa  curl-7.54.0.tar.gz' > curl-7.54.0.tar.gz.sha512
     echo 'de6409d75a3ff3cf1e5391d3b09126f0bc7e1a40a15f9bee244195638fe2f8481fca032896d8534623e6122ff59aaf669664e27ff89cf1b094a5ce7312f220b7  scipy-0.17.0.tar.gz' > scipy-0.17.0.tar.gz.sha512
     echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
     echo '977db6e9bc6a5918cceb255981a57e85e7060c0922aefd2968b004d25d704e25a5cb5bbe09eb387e8695581e23e2825d9c40310068fe25ece7e9c23037a21f39  sympy-1.0.tar.gz' > sympy-1.0.tar.gz.sha512
