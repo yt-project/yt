@@ -30,7 +30,7 @@ INST_YT_SOURCE=0   # Should yt itself be installed from source?
 # INST_CONDA=0
 # INST_YT_SOURCE=1
 
-BRANCH="yt" # This is the branch we will install from for source installs
+BRANCH="master" # This is the branch we will install from for source installs
 
 # What follows are some other options that you may or may not need to change.
 
