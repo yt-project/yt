@@ -47,8 +47,8 @@ YT_DIR=""
 INST_PY3=1          # Install Python 3 instead of Python 2. If this is turned
                     # on, all Python packages (including yt) will be installed
                     # in Python 3.
-INST_GIT=1          # Install git or not?  If git is not already
-                    # installed, yt cannot be installed from source.
+INST_GIT=1          # Install git or not?  If git is not already installed, yt
+                    # cannot be installed from source. Ignored if INST_CONDA=0
 INT_HG=0            # Install Mercurial or not? Ignored if INST_CONDA=0.
 INST_EMBREE=0       # Install dependencies needed for Embree-accelerated 
                     # ray tracing
@@ -148,6 +148,10 @@ else
         echo "yt must be compiled from source if INST_CONDA is set to 0"
         echo "Please set INST_YT_SOURCE to 1 and re-run."
         exit 1
+    fi
+    if [ $INST_GIT -eq 1 ]
+    then
+        INST_GIT=0
     fi
     DEST_SUFFIX="yt-`uname -m`"
 fi
@@ -398,9 +402,10 @@ function host_specific
         echo "  * gcc-{,c++,gfortran}"
         echo "  * make"
         echo "  * patch"
+        echo "  * git"
         echo
         echo "You can accomplish this by executing:"
-        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip git"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
@@ -414,11 +419,12 @@ function host_specific
         echo "  * libuuid-devel"
         echo "  * zip"
         echo "  * gcc-c++"
+        echo "  * git"
         echo
         echo "You can accomplish this by executing:"
         echo
         echo "$ sudo zypper install -t pattern devel_C_C++"
-        echo "$ sudo zypper install gcc-c++ libopenssl-devel libuuid-devel zip"
+        echo "$ sudo zypper install git-core gcc-c++ libopenssl-devel libuuid-devel zip"
         echo
         echo "I am also setting special configure arguments to Python to"
         echo "specify control lib/lib64 issues."
@@ -438,10 +444,11 @@ function host_specific
         echo "  * uuid-dev"
         echo "  * libfreetype6-dev"
         echo "  * tk-dev"
+        echo "  * git"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev git"
         echo
         echo
         echo " Additionally, if you want to put yt's lib dir in your LD_LIBRARY_PATH"
@@ -835,6 +842,8 @@ then
     PNG='libpng-1.6.3'
     MATPLOTLIB='matplotlib-1.5.1'
     GIT='git-2.12.2'
+    LIBCURL='curl-7.54.0'
+    EXPAT='expat-2.2.0'
     NOSE='nose-1.3.7'
     NUMPY='numpy-1.11.0'
     GITPYTHON='GitPython-2.1.3'
@@ -869,6 +878,8 @@ then
     echo 'e65c914f621f8da06b9ab11a0ff2763d6e29b82ce2aaed56da0e3773dc899d9deb1f20015789d44c65a5dad7214520f5b659b3f8d7695fb207ad3f78e5cf1b62  nose-1.3.7.tar.gz' > nose-1.3.7.tar.gz.sha512
     echo '92c1889397ad013e25da3a0657fc01e787d528fc19c29cc2acd286c3f07d41b984252583457b1b9259fc303afbe9694565cdcf5752eb4ecb950cc7a99ec1ad8b  numpy-1.11.0.tar.gz' > numpy-1.11.0.tar.gz.sha512
     echo '918ff1765a85a818619165c2bcbb0d417f35c979c2f42f1bb7e41636696c0cb4d6837725f3655fbdfebea966476d1255ee18adabe9ed5536455b63336a1f399d  GitPython-2.1.3.tar.gz' > GitPython-2.1.3.tar.gz.sha512
+    echo '3e3af56373d223cfe0d434a305254fadaa6308aac85fae053fd31abfaa014f66bdcc921039a2a1c1650559f37dd056e5839e284f5022586db9cdff5662ee0b8b  expat-2.2.0.tar.gz' > expat-2.2.0.tar.gz.sha512
+    echo '57f73a4ffece65f4e12e30b1d4be4f54f434693ba64d32eca0da036830389854b699a6e0ad6c3d9e847eab73981de6d8ebdb1820cc8a40a5d163aec37ab554aa  curl-7.54.0.tar.gz' > curl-7.54.0.tar.gz.sha512
     echo 'de6409d75a3ff3cf1e5391d3b09126f0bc7e1a40a15f9bee244195638fe2f8481fca032896d8534623e6122ff59aaf669664e27ff89cf1b094a5ce7312f220b7  scipy-0.17.0.tar.gz' > scipy-0.17.0.tar.gz.sha512
     echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
     echo '977db6e9bc6a5918cceb255981a57e85e7060c0922aefd2968b004d25d704e25a5cb5bbe09eb387e8695581e23e2825d9c40310068fe25ece7e9c23037a21f39  sympy-1.0.tar.gz' > sympy-1.0.tar.gz.sha512
@@ -885,7 +896,6 @@ then
     [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
     [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
     [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
-    [ $INST_GIT -eq 1 ] && get_ytproject $GIT.tar.gz
     if [ $INST_PY3 -eq 1 ]
     then
         get_ytproject $PYTHON3.tgz
@@ -1068,25 +1078,12 @@ then
     # Install setuptools
     do_setup_py $SETUPTOOLS
 
-    if [ $INST_GIT -eq 1 ]
+    if type -p git &>/dev/null
     then
-        [ ! -e $GIT ] && tar xfz $GIT.tar.gz
-        echo "Installing git"
-        cd $GIT
-        ( ./configure --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make clean 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        touch done
-        cd ..
-        GIT_EXE=${DEST_DIR}/bin/git
+        GIT_EXE="git"
     else
-        if type -p git &>/dev/null
-        then
-            GIT_EXE="git"
-        else
-            echo "Cannot find git. Please set INST_GIT=1."
-            do_exit
-        fi
+        echo "Cannot find git. Please install git."
+        do_exit
     fi
 
     if [ -z "$YT_DIR" ]
@@ -1298,14 +1295,6 @@ then
         echo
         echo "The source for yt is located at:"
         echo "    $YT_DIR"
-        if [ $INST_GIT -eq 1 ]
-        then
-            echo
-            echo "Git has also been installed:"
-            echo
-            echo "$GIT_EXE"
-            echo
-        fi
         echo
         echo "For support, see the website and join the mailing list:"
         echo
