@@ -33,11 +33,11 @@ from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
     ensure_dir, \
     ensure_list, \
-    get_hg_version, \
+    get_hg_or_git_version, \
     get_yt_version, \
     mylog, \
     ensure_dir_exists, \
-    update_hg, \
+    update_hg_or_git, \
     enable_plugins, \
     download_file
 from yt.extern.six import add_metaclass, string_types
@@ -83,7 +83,7 @@ def _add_arg(sc, arg):
 
 def _print_failed_source_update(reinstall=False):
     print()
-    print("The yt package is not installed from a mercurial repository,")
+    print("The yt package is not installed from a git repository,")
     print("so you must update this installation manually.")
     if 'Continuum Analytics' in sys.version or 'Anaconda' in sys.version:
         # see http://stackoverflow.com/a/21318941/1382869 for why we need
@@ -100,6 +100,13 @@ def _print_failed_source_update(reinstall=False):
             print("To update all of your packages, you can do:")
             print()
             print("    $ conda update --all")
+    else:
+        print("If you manage your python dependencies with pip, you may")
+        print("want to do:")
+        print()
+        print("    $ pip install -U yt")
+        print()
+        print("to update your yt installation.")
 
 def _print_installation_information(path):
     import yt
@@ -117,7 +124,7 @@ def _print_installation_information(path):
     print()
     print("---")
     print("Version = %s" % yt.__version__)
-    vstring = get_hg_version(path)
+    vstring = get_hg_or_git_version(path)
     if vstring is not None:
         print("Changeset = %s" % vstring.strip().decode("utf-8"))
     print("---")
@@ -223,7 +230,9 @@ class GetParameterFiles(argparse.Action):
 _common_options = dict(
     all     = dict(longname="--all", dest="reinstall",
                    default=False, action="store_true",
-                   help="Reinstall the full yt stack in the current location."),
+                   help=("Reinstall the full yt stack in the current location."
+                         "  This option has been deprecated and may not work "
+                         "correctly."),),
     ds      = dict(short="ds", action=GetParameterFiles,
                    nargs="+", help="datasets to run on"),
     ods     = dict(action=GetParameterFiles, dest="ds",
@@ -416,7 +425,6 @@ _common_options = dict(
 
 def _get_yt_stack_date():
     if "YT_DEST" not in os.environ:
-        print("Could not determine when yt stack was last updated.")
         return
     date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
     if not os.path.exists(date_file):
@@ -703,8 +711,7 @@ class YTInstInfoCmd(YTCommand):
         if vstring is not None:
             print("This installation CAN be automatically updated.")
             if opts.update_source:
-                update_hg(path)
-                print("Updated successfully.")
+                update_hg_or_git(path)
                 _get_yt_stack_date()
         elif opts.update_source:
             _print_failed_source_update()
@@ -1125,8 +1132,7 @@ class YTUpdateCmd(YTCommand):
         if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
-            update_hg(path, skip_rebuild=opts.reinstall)
-            print("Updated successfully.")
+            update_hg_or_git(path)
             _get_yt_stack_date()
             if opts.reinstall:
                 _update_yt_stack(path)

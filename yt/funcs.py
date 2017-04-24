@@ -512,7 +512,16 @@ class NoCUDAException(Exception):
 class YTEmptyClass(object):
     pass
 
-def update_hg(path, skip_rebuild = False):
+def update_hg_or_git(path):
+    if os.path.exists(os.sep.join([path, '.hg'])):
+        update_hg(path)
+    elif os.path.exists(os.sep.join([path, '.git'])):
+        update_git(path)
+
+def update_git(path):
+    raise RuntimeError
+
+def update_hg(path):
     try:
         import hglib
     except ImportError:
@@ -521,21 +530,27 @@ def update_hg(path, skip_rebuild = False):
         return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
     with hglib.open(path) as repo:
-        repo.pull()
+        repo.pull(b'https://bitbucket.org/yt_analysis/yt')
         ident = repo.identify().decode("utf-8")
         if "+" in ident:
-            print("Can't rebuild modules by myself.")
-            print("You will have to do this yourself.  Here's a sample commands:")
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
             print("")
             print("    $ cd %s" % (path))
-            print("    $ hg up")
+            print("    $ hg up -C yt  # This will delete any unsaved changes")
             print("    $ %s setup.py develop" % (sys.executable))
+            print("")
             return 1
         print("Updating the repository")
         f.write("Updating the repository\n\n")
-        repo.update(check=True)
+        books = repo.bookmarks()[0]
+        books = [b[0].decode('utf8') for b in books]
+        if 'master' in books:
+            repo.update('master', check=True)
+        else:
+            repo.update('yt', check=True)
         f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
-        if skip_rebuild: return
         f.write("Rebuilding modules\n\n")
         p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
                              cwd=path, stdout = subprocess.PIPE,
@@ -548,6 +563,16 @@ def update_hg(path, skip_rebuild = False):
             sys.exit(1)
         f.write("Successful!\n")
         print("Updated successfully.")
+
+def get_hg_or_git_version(path):
+    if os.path.exists(os.sep.join([path, '.hg'])):
+        return get_hg_version(path)
+    elif os.path.exists(os.sep.join([path, '.git'])):
+        return get_git_version(path)
+    return None
+
+def get_git_version(path):
+    raise RuntimeError
 
 def get_hg_version(path):
     try:
