@@ -519,7 +519,56 @@ def update_hg_or_git(path):
         update_git(path)
 
 def update_git(path):
-    raise RuntimeError
+    try:
+        import git
+    except ImportError:
+        print("Updating and precise version information requires ")
+        print("gitpython to be installed.")
+        print("Try: pip install gitpython")
+        return -1
+    with open(os.path.join(path, "yt_updater.log"), "a") as f:
+        with git.Repo(path) as repo:
+            if repo.is_dirty(untracked_files=True):
+                print("Changes have been made to the yt source code so I won't ")
+                print("update the code. You will have to do this yourself.")
+                print("Here's a set of sample commands:")
+                print("")
+                print("    $ cd %s" % (path))
+                print("    $ git stash")
+                print("    $ git checkout master")
+                print("    $ git pull")
+                print("    $ git stash pop")
+                print("    $ %s setup.py develop" % (sys.executable))
+                print("")
+                return 1
+            if repo.active_branch.name != 'master':
+                print("yt repository is not tracking the master branch so I won't ")
+                print("update the code. You will have to do this yourself.")
+                print("Here's a set of sample commands:")
+                print("")
+                print("    $ cd %s" % (path))
+                print("    $ git checkout master")
+                print("    $ git pull")
+                print("    $ %s setup.py develop" % (sys.executable))
+                print("")
+                return 1
+            print("Updating the repository")
+            f.write("Updating the repository\n\n")
+            old_version = repo.git.rev_parse('HEAD', short=12)
+            try:
+                remote = repo.remotes.yt_upstream
+            except AttributeError:
+                remote = repo.create_remote(
+                    'yt_upstream', url='https://github.com/yt-project/yt')
+                remote.fetch()
+            master = repo.heads.master
+            master.set_tracking_branch(remote.refs.master)
+            master.checkout()
+            remote.pull()
+            new_version = repo.git.rev_parse('HEAD', short=12)
+            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+            rebuild_modules(path, f)
+    print('Updated successfully')
 
 def update_hg(path):
     try:
@@ -551,18 +600,22 @@ def update_hg(path):
         else:
             repo.update('yt', check=True)
         f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
-        f.write("Rebuilding modules\n\n")
-        p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
-                             cwd=path, stdout = subprocess.PIPE,
-                             stderr = subprocess.STDOUT)
-        stdout, stderr = p.communicate()
-        f.write(stdout.decode('utf-8'))
-        f.write("\n\n")
-        if p.returncode:
-            print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
-            sys.exit(1)
-        f.write("Successful!\n")
-        print("Updated successfully.")
+        rebuild_modules(path, f)
+    print("Updated successfully.")
+
+def rebuild_modules(path, f):
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
+                         cwd=path, stdout = subprocess.PIPE,
+                         stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout.decode('utf-8'))
+    f.write("\n\n")
+    if p.returncode:
+        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+        sys.exit(1)
+    f.write("Successful!\n")
+
 
 def get_hg_or_git_version(path):
     if os.path.exists(os.sep.join([path, '.hg'])):
@@ -572,7 +625,19 @@ def get_hg_or_git_version(path):
     return None
 
 def get_git_version(path):
-    raise RuntimeError
+    try:
+        import git
+    except ImportError:
+        print("Updating and precise version information requires ")
+        print("gitpython to be installed.")
+        print("Try: pip install gitpython")
+        return None
+    try:
+        with git.Repo(path) as repo:
+            return repo.git.rev_parse('HEAD', short=12)
+    except git.InvalidGitRepositoryError:
+        # path is not a git repository
+        return None
 
 def get_hg_version(path):
     try:
@@ -584,7 +649,7 @@ def get_hg_version(path):
         return None
     try:
         with hglib.open(path) as repo:
-            return repo.identify()
+            return repo.identify().decode('utf-8')
     except hglib.error.ServerError:
         # path is not an hg repository
         return None

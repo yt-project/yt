@@ -126,7 +126,7 @@ def _print_installation_information(path):
     print("Version = %s" % yt.__version__)
     vstring = get_hg_or_git_version(path)
     if vstring is not None:
-        print("Changeset = %s" % vstring.strip().decode("utf-8"))
+        print("Changeset = %s" % vstring.strip())
     print("---")
     return vstring
     
