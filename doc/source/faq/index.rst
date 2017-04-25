@@ -75,10 +75,10 @@ you need to rebuild the source.  You can do this automatically by running:
 
 .. code-block:: bash
 
-    cd $YT_HG
+    cd $YT_GIT
     python setup.py develop
 
-where ``$YT_HG`` is the path to the yt mercurial repository.
+where ``$YT_GIT`` is the path to the yt git repository.
 
 This error tends to occur when there are changes in the underlying cython
 files that need to be rebuilt, like after a major code update or in switching
