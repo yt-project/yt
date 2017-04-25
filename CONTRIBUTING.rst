@@ -22,7 +22,7 @@ There are five main communication channels for yt:
    You can connect through our web
    gateway without any special client, at http://yt-project.org/irc.html .
    *IRC is the first stop for conversation!*
- * Many yt developers participate in the yt Slack community. Slack is a free 
+ * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
    on this page: http://yt-project.org/community.html
@@ -58,14 +58,14 @@ documentation lives in the ``doc`` directory in the root of the yt git
 repository) and then make your changes in your own fork.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
-more information about contributing your changes to yt on bitbucket.
+more information about contributing your changes to yt on GitHub.
 
 Gallery Images and Videos
 -------------------------
 
 If you have an image or video you'd like to display in the image or video
 galleries, getting it included it easy!  You can either fork the `yt homepage
-repository <http://bitbucket.org/yt_analysis/website>`_ and add it there, or
+repository <http://github.com/yt-project/website>`_ and add it there, or
 email it to us and we'll add it to the `Gallery
 <http://yt-project.org/gallery.html>`_.
 
@@ -80,20 +80,20 @@ Contributing code is another excellent way to participate -- whether it's
 bug fixes, new features, analysis modules, or a new code frontend.  See
 :ref:`creating_frontend` for more details.
 
-The process is pretty simple: fork on BitBucket, make changes, issue a pull
+The process is pretty simple: fork on GitHub, make changes, issue a pull
 request.  We can then go back and forth with comments in the pull request, but
 usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use BitBucket.
+use GitHub.
 
 Online Presence
 ---------------
 
 Some of these fall under the other items, but if you'd like to help out with
 the website or any of the other ways yt is presented online, please feel free!
-Almost everything is kept in hg repositories on BitBucket, and it is very easy
+Almost everything is kept in git repositories on GitHub, and it is very easy
 to fork and contribute back changes.
 
 Please feel free to dig in and contribute changes.
@@ -238,8 +238,8 @@ Open Issues
 -----------
 
 If you're interested in participating in yt development, take a look at the
-`issue tracker on bitbucket
-<https://bitbucket.org/yt_analysis/yt/issues?milestone=easy?status=new>`_.
+`issue tracker on GitHub
+<https://github.com/yt-project/yt/issues>`_.
 Issues are marked with a milestone of "easy", "moderate", or "difficult"
 depending on the estimated level of difficulty for fixing the issue. While we
 try to triage the issue tracker regularly, it may be the case that issues marked
@@ -248,9 +248,8 @@ is the default value.
 
 Here are some predefined issue searches that might be useful:
 
-* Unresolved issues `marked "easy" <https://bitbucket.org/yt_analysis/yt/issues?milestone=easy&status=open&status=new>`_.
-* Unresolved issues `marked "easy" or "moderate" <https://bitbucket.org/yt_analysis/yt/issues?milestone=easy&milestone=moderate&status=open&status=new>`_
-* `All unresolved issues <https://bitbucket.org/yt_analysis/yt/issues?status=open&status=new>`_
+* Unresolved issues `marked "easy" <https://github.com/yt-project/yt/issues?utf8=%E2%9C%93&q=is%3Aissue%20is%3Aopen%20milestone%3Aeasy>`_.
+* `All unresolved issues <https://github.com/yt-project/yt/issues>`_
 
 Submitting Changes
 ------------------
@@ -275,28 +274,26 @@ package, which we'll happily link to.
 How To Get The Source Code For Editing
 ++++++++++++++++++++++++++++++++++++++
 
-yt is hosted on BitBucket, and you can see all of the yt repositories at
-http://bitbucket.org/yt_analysis/.  With the yt installation script you should have a
-copy of Mercurial for checking out pieces of code.  Make sure you have followed
+yt is hosted on GitHub, and you can see all of the yt repositories at
+https://github.com/yt-project/.  With the yt installation script you should have a
+copy of git for checking out pieces of code.  Make sure you have followed
 the steps above for bootstrapping your development (to assure you have a
-bitbucket account, etc.)
+GitHub account, etc.)
 
 In order to modify the source code for yt, we ask that you make a "fork" of the
-main yt repository on bitbucket.  A fork is simply an exact copy of the main
+main yt repository on GitHub.  A fork is simply an exact copy of the main
 repository (along with its history) that you will now own and can make
 modifications as you please.  You can create a personal fork by visiting the yt
-bitbucket webpage at https://bitbucket.org/yt_analysis/yt/ .  After logging in,
-you should see an option near the top right labeled "fork".  Click this option,
-and then click the fork repository button on the subsequent page.  You now have
+GitHub webpage at https://github.com/yt-project/yt/ .  After logging in,
+you should see an option near the top right labeled "fork". You now have
 a forked copy of the yt repository for your own personal modification.
 
-This forked copy exists on the bitbucket repository, so in order to access
-it locally, follow the instructions at the top of that webpage for that
-forked repository, namely run at a local command line:
+This forked copy exists on the GitHub repository, so in order to access
+it locally you must clone it onto your machine from the command line:
 
 .. code-block:: bash
 
-   $ hg clone http://bitbucket.org/<USER>/<REPOSITORY_NAME>
+   $ git clone https://github.com/<USER>/yt
 
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
@@ -307,21 +304,19 @@ directory.
 
    $ cd <REPOSITORY_NAME>
 
-You should also run the following command, to make sure you are at
-the "yt" branch, and not other ones like "stable" (this will be important
-later when you want to submit your pull requests):
+Verify that you are on the master branch of yt by running:
 
 .. code-block:: bash
 
-   $ hg update yt
+   $ git branch
 
-You can see any past state of the code by using the hg log command.
-For example, the following command would show you the last 5 changesets
+You can see any past state of the code by using the git log command.
+For example, the following command would show you the last 5 revisions
 (modifications to the code) that were submitted to that repository.
 
 .. code-block:: bash
 
-   $ hg log -l 5
+   $ git log -n 5
 
 Using the revision specifier (the number or hash identifier next to each
 changeset), you can update the local repository to any past state of the
@@ -329,7 +324,7 @@ code (a previous changeset or version) by executing the command:
 
 .. code-block:: bash
 
-   $ hg up revision_specifier
+   $ git checkout revision_specifier
 
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
@@ -350,11 +345,11 @@ How To Read The Source Code
 
 If you just want to *look* at the source code, you may already have it on your
 computer.  If you build yt using the install script, the source is available at
-``$YT_DEST/src/yt-hg``.  See :ref:`source-installation` for more details about
+``$YT_DEST/src/yt-git``.  See :ref:`source-installation` for more details about
 to obtain the yt source code if you did not build yt using the install
 script.
 
-The root directory of the yt Mercurial repository contains a number of
+The root directory of the yt git repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
 code is contained in the yt subdirectory.  This directory its self contains
 the following subdirectories:
@@ -517,22 +512,22 @@ these requirements.  They are pretty easy to meet, and we're also happy to help
 out with them.  In :ref:`code-style-guide` there is a list of handy tips for
 how to structure and write your code.
 
-.. _mercurial-with-yt:
+.. _git-with-yt:
 
 How to Use git with yt
-----------------------------
+----------------------
 
 If you're new to git, the following resource is pretty great for learning
 the ins and outs:
 
 * https://git-scm.com/
 
-The commands that are essential for using Mercurial include:
+The commands that are essential for using git include:
 
 * ``git <command> --help`` which provides help for any git command. For example, you
   can learn more about the ``log`` command by doing ``git log --help``.
 * ``git add <paths>`` which stages changes to the specified paths for subsequent
-  committing (see below). 
+  committing (see below).
 * ``git commit`` which commits staged changes (stage using ``git add`` as above)
   in the working directory to the repository, creating a new "revision."
 * ``git merge <branch>`` which merges the revisions from the specified branch
@@ -566,9 +561,6 @@ Here are some general suggestions for using git with yt:
   you, and try to make it as painless as possible.
 * Your test may fail automated style checks. See :ref:`code-style-guide` for
   more information about automatically verifying your code style.
-* Please avoid deleting your yt forks, as that deletes the pull request
-  discussion from process from BitBucket's website, even if your pull request
-  is merged.
 * You should only need one fork.  To keep it in sync, you can sync from the
   website. See :ref:`sharing-changes` for a description of the basic workflow
   and :ref:`multiple-PRs` for a discussion about what to do when you want to
@@ -586,21 +578,21 @@ The simplest way to submit changes to yt is to do the following:
 * Build yt from the git repository
 * Navigate to the root of the yt repository
 * Make some changes and commit them
-* Fork the `yt repository on BitBucket <https://bitbucket.org/yt_analysis/yt>`_
+* Fork the `yt repository on GitHub <https://github.com/yt-project/yt>`_
 * Push the changesets to your fork
 * Issue a pull request.
 
 Here's a more detailed flowchart of how to submit changes.
 
 #. If you have used the installation script, the source code for yt can be
-   found in ``$YT_DEST/src/yt-hg``.  Alternatively see
+   found in ``$YT_DEST/src/yt-git``.  Alternatively see
    :ref:`source-installation` for instructions on how to build yt from the
    git repository. (Below, in :ref:`reading-source`, we describe how to
    find items of interest.)
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
 #. Fork yt on GitHub.  (This step only has to be done once.)  You can do
-   this at: https://bitbucket.org/yt_analysis/yt/fork.  Call this repository
+   this at: https://github.com/yt-project/yt/fork.  Call this repository
    yt.
 #. Create a uniquely named branch to track your work. For example: ``git
    checkout -b my-first-pull-request``
@@ -643,7 +635,7 @@ Here's a more detailed flowchart of how to submit changes.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
-     .. _SSH key: https://confluence.atlassian.com/display/BITBUCKET/Set+up+SSH+for+Mercurial
+     .. _SSH key: https://help.github.com/articles/connecting-to-github-with-ssh/
 
 #. Issue a pull request at
    https://github.com/yt-project/yt/pull/new/master
