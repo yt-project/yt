@@ -4,7 +4,7 @@
 
    This module has been deprecated as it no longer functions correctly and is
    unmaintained.  The code has been moved to the `yt attic
-   <https://bitbucket.org/yt_analysis/yt_attic>`__. If you'd like to take it
+   <https://github.com/yt-project/yt_attic>`__. If you'd like to take it
    over, please do!
 
 Halo Mass Function
