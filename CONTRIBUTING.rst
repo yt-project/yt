@@ -666,9 +666,7 @@ one feature should be isolated in one named branch, say ``feature_1`` while
 development of another feature should be in another named branch, say
 ``feature_2``. A push to remote ``feature_1`` will automatically update any
 active PR for which ``feature_1`` is a pointer to the ``HEAD`` commit. A push to
-``feature_1`` *will not* update any pull requests involving ``feature_2`` which
-should be a breath of relief to anyone familiar with BitBucket's multiple PR
-behavior. 
+``feature_1`` *will not* update any pull requests involving ``feature_2``.
 
 .. _code-style-guide:
 
