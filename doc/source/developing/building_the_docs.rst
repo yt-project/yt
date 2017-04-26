@@ -19,9 +19,9 @@ docs section describing how the new code works and how to use it, it could
 include a recipe in the cookbook section, or it could simply be adding a note
 in the relevant docs text somewhere.
 
-The documentation exists in the main mercurial code repository for yt in the
-``doc`` directory (i.e. ``$YT_HG/doc/source`` where ``$YT_HG`` is the path of
-the yt mercurial repository).  It is organized hierarchically into the main
+The documentation exists in the main code repository for yt in the
+``doc`` directory (i.e. ``$YT_GIT/doc/source`` where ``$YT_GIT`` is the path of
+the yt git repository).  It is organized hierarchically into the main
 categories of:
 
 * Visualizing

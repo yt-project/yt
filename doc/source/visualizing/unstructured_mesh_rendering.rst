@@ -29,7 +29,7 @@ script can be downloaded by doing:
 
 .. code-block:: bash
 
-  wget http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
+  wget https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
 
 and then run like so:
 
@@ -64,7 +64,7 @@ Once Embree and pyembree are installed, you must rebuild yt from source in order
 the unstructured mesh rendering capability. Once again, if embree is installed in a
 location that is not part of your default search path, you must tell yt where to find it.
 There are a number of ways to do this. One way is to again manually pass in the flags
-when running the setup script in the yt-hg directory:
+when running the setup script in the yt-git directory:
 
 .. code-block:: bash
 
@@ -77,7 +77,7 @@ you could just run
 
    python setup.py develop
 
-as usual. Finally, if you create a file called embree.cfg in the yt-hg directory with
+as usual. Finally, if you create a file called embree.cfg in the yt-git directory with
 the location of the embree installation, the setup script will find this and use it,
 provided EMBREE_DIR is not set. An example embree.cfg file could like this:
 

@@ -16,7 +16,7 @@ written to analyze 3D grid-based astrophysical simulation data,
 it has grown to handle any kind of data represented in a 2D or 3D volume.
 yt is an Python-based open source project and is open for anyone to use or
 contribute code.  The entire source code and history is available to all
-at https://bitbucket.org/yt_analysis/yt .
+at http://github.com/yt-project/yt .
 
 .. _who-is-yt:
 
@@ -31,7 +31,7 @@ contributions to the code, see
 `our members website. <http://yt-project.org/members.html>`_
 
 For an up-to-date list of everyone who has contributed to the yt codebase,
-see the current `CREDITS <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ file.
+see the current `CREDITS <https://github.com/yt-project/yt/blob/master/CREDITS>`_ file.
 For a more detailed breakup of contributions made by individual users, see out
 `Open HUB page <https://www.openhub.net/p/yt_amr/contributors?query=&sort=commits>`_.
 
