@@ -439,7 +439,7 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.ParticleProfile
    ~yt.data_objects.profiles.create_profile
 
-.. _clump_finding:
+.. _clump_finding_ref:
 
 Clump Finding
 ^^^^^^^^^^^^^
