@@ -396,8 +396,7 @@ Installing yt on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Installation on 64-bit Microsoft Windows platforms is supported using Anaconda
-(see :ref:`anaconda-installation`) and via ``pip``. Also see
-:ref:`windows-developing` for details on how to build yt from source in Windows.
+(see :ref:`anaconda-installation`) and via ``pip``.
 
 .. _source-installation:
 
