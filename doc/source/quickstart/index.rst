@@ -25,11 +25,11 @@ https://demo.use.yt.
 
 If you're running the tutorial from your own system and you do not already have
 the yt repository, the easiest way to get the repository is to clone it using
-git:
+mercurial:
 
 .. code-block:: bash
 
-   git clone https://github.com/yt-project/yt
+   hg clone https://bitbucket.org/yt_analysis/yt
 
 Now start the IPython notebook from within the repository (we presume you have
 yt installed):

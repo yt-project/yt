@@ -379,12 +379,12 @@ to a clone that you have already made, and do the following:
 
 .. code-block:: bash
 
-  $ cd /path/to/yt-git
+  $ cd /path/to/yt-hg
   $ ./clean.sh
   $ echo /path/to/rockstar > rockstar.cfg
   $ python setup.py develop
 
-Here ``/path/to/yt-git`` is the path to your clone of the yt mercurial repository
+Here ``/path/to/yt-hg`` is the path to your clone of the yt mercurial repository
 and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
 rockstar.
 
@@ -623,7 +623,7 @@ C code requires a compilation step for big changes like this):
 
 .. code-block:: bash
 
-  $ cd yt-<machine>/src/yt-git
+  $ cd yt-<machine>/src/yt-hg
   $ hg update <desired-version>
   $ python setup.py develop
 
