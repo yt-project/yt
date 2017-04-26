@@ -59,7 +59,7 @@ loading yt either from the command line or from within python also fails, it
 may simply mean you need to rebuild the yt source (some of the c-code in yt
 needs to be rebuilt after major changes).  You can do this by navigating to
 the root of the yt mercurial repository.  If you installed with the all-in-one
-installer script, this is the ``yt-<machine>/src/yt-hg`` directory.  Then
+installer script, this is the ``yt-<machine>/src/yt-git`` directory.  Then
 execute these commands:
 
 .. code-block:: bash

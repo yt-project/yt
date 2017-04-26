@@ -28,7 +28,7 @@ To reveal this, go to a command line and type:
     $ yt version
 
     yt module located at:
-        /Users/username/src/yt-x86_64/src/yt-hg
+        /Users/username/src/yt-x86_64/src/yt-git
     The supplemental repositories are located at:
         /Users/username/src/yt-x86_64/src/yt-supplemental
 
