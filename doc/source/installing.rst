@@ -550,7 +550,7 @@ for more details.
 .. _switching-between-yt-versions:
 
 Switching versions of yt: ``yt-2.x``, ``stable``, and ``master`` branches
----------------------------------------------------------------------
+-------------------------------------------------------------------------
 
 Here we explain how to switch between different development branches of yt. 
 
