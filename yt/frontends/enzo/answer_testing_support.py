@@ -27,8 +27,23 @@ from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     GridValuesTest, \
     ProjectionValuesTest, \
-    temp_cwd, \
-    AssertWrapper
+    temp_cwd
+
+
+class AssertWrapper(object):
+    """
+    Used to wrap a numpy testing assertion, in order to provide a useful name
+    for a given assertion test.
+    """
+    def __init__(self, description, *args):
+        # The key here is to add a description attribute, which nose will pick
+        # up.
+        self.args = args
+        self.description = description
+
+    def __call__(self):
+        self.args[0](*self.args[1:])
+
 
 def requires_outputlog(path = ".", prefix = ""):
     def ffalse(func):
