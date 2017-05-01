@@ -5,7 +5,8 @@ import shutil
 import unittest
 from yt.data_objects.image_array import ImageArray
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    requires_module
 
 
 def setup():
@@ -55,6 +56,7 @@ class TestImageArray(unittest.TestCase):
 
         assert str(new_im.units) == 'km'
 
+    @requires_module('h5py')
     def test_image_array_hdf5(self):
         myinfo = {'field': 'dinosaurs', 'east_vector': np.array([1., 0., 0.]),
                   'north_vector': np.array([0., 0., 1.]),

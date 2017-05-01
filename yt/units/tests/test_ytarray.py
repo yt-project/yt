@@ -39,7 +39,8 @@ from yt.units.yt_array import \
 from yt.utilities.exceptions import \
     YTUnitOperationError, YTUfuncUnitError
 from yt.testing import \
-    fake_random_ds, requires_module, \
+    fake_random_ds, \
+    requires_module, \
     assert_allclose_units
 from yt.funcs import fix_length
 from yt.units.unit_symbols import \
@@ -976,7 +977,8 @@ def test_subclass():
     assert_isinstance(a[:], YTASubclass)
     assert_isinstance(a[:2], YTASubclass)
     assert_isinstance(YTASubclass(yta), YTASubclass)
-    
+
+@requires_module('h5py')
 def test_h5_io():
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
