@@ -49,6 +49,7 @@ class IOHandlerStream(BaseIOHandler):
         rv = {}
         for field in fields:
             rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
+
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",
                     size, [f2 for f1, f2 in fields], ng)

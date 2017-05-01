@@ -325,6 +325,53 @@ would have a ``job_info`` file in the plotfile directory.
   ``mach_number`` will always use the on-disk value, and not have yt
   derive it, due to the complex interplay of the base state velocity.
 
+Viewing raw fields in WarpX
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Most BoxLib codes output cell-centered data. If the underlying discretization
+is not cell-centered, then fields are typically averaged to cell centers before 
+they are written to plot files for visualization. WarpX, however, has the option
+to output the raw (i.e., not averaged to cell centers) data as well.  If you
+run your WarpX simulation with ``warpx.plot_raw_fields = 1`` in your inputs
+file, then you should get an additional ``raw_fields`` subdirectory inside your
+plot file. When you load this dataset, yt will have additional on-disk fields
+defined, with the "raw" field type:
+
+.. code-block:: python
+    import yt
+    ds = yt.load("Laser/plt00015/")
+    print(ds.field_list)
+
+The raw fields in WarpX are nodal in at least one direction. We define a field
+to be "nodal" in a given direction if the field data is defined at the "low"
+and "high" sides of the cell in that direction, rather than at the cell center.
+Instead of returning one field value per cell selected, nodal fields return a 
+number of values, depending on their centering. This centering is marked by
+a `nodal_flag` that describes whether the fields is nodal in each dimension.
+``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while 
+``nodal_flag = [0, 0, 1]`` means that the field is nodal in the z direction
+and cell centered in the others, i.e. it is defined on the z faces of each cell.
+``nodal_flag = [1, 1, 0]`` would mean that the field is centered in the z direction,
+but nodal in the other two, i.e. it lives on the four cell edges that are normal
+to the z direction.
+
+..code-block:: python
+    ad = ds.all_data()
+    print(ds.field_info[('raw', 'Ex')].nodal_flag)
+    print(ad['raw', 'Ex'].shape)
+    print(ds.field_info[('raw', 'Bx')].nodal_flag)
+    print(ad['raw', 'Bx'].shape)
+    print(ds.field_info[('boxlib', 'Bx')].nodal_flag)
+    print(ad['boxlib', 'Bx'].shape)
+
+Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
+are returned, corresponding to the four edges in each cell on which the variable
+is defined. ``('raw', 'Bx')`` is nodal in one direction, so two values are returned 
+per cell. The standard, averaged-to-cell-centers fields are still available.
+
+Currently, slices and data selection are implemented for nodal fields. Projections,
+volume rendering, and many of the analysis modules will not work.
+
 .. _loading-pluto-data:
 
 Pluto Data
