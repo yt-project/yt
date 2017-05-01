@@ -307,7 +307,7 @@ cdef np.uint64_t _const2c = 0x1249249249249249
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef inline np.uint64_t spread_bits(np.uint64_t x):
+cdef inline np.uint64_t spread_bits(np.uint64_t x) nogil:
     # This magic comes from http://stackoverflow.com/questions/1024754/how-to-compute-a-3d-morton-number-interleave-the-bits-of-3-ints
     x=(x|(x<<20))&_const20
     x=(x|(x<<10))&_const10
@@ -352,7 +352,7 @@ def get_morton_indices_unravel(np.ndarray[np.uint64_t, ndim=1] left_x,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef np.int64_t position_to_morton(np.ndarray[floating, ndim=1] pos_x,
+cdef np.int64_t positions_to_morton(np.ndarray[floating, ndim=1] pos_x,
                         np.ndarray[floating, ndim=1] pos_y,
                         np.ndarray[floating, ndim=1] pos_z,
                         np.float64_t dds[3], np.float64_t DLE[3],
@@ -363,10 +363,7 @@ cdef np.int64_t position_to_morton(np.ndarray[floating, ndim=1] pos_x,
     cdef np.uint64_t ii[3]
     cdef np.float64_t p[3]
     cdef np.int64_t i, j, use
-    cdef np.uint64_t DD[3]
     cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
-    for i in range(3):
-        DD[i] = <np.uint64_t> ((DRE[i] - DLE[i]) / dds[i])
     for i in range(pos_x.shape[0]):
         use = 1
         p[0] = <np.float64_t> pos_x[i]
@@ -380,7 +377,7 @@ cdef np.int64_t position_to_morton(np.ndarray[floating, ndim=1] pos_x,
                     break
                 return i
             ii[j] = <np.uint64_t> ((p[j] - DLE[j])/dds[j])
-            ii[j] = i64clip(ii[j], 0, DD[j] - 1)
+            ii[j] = i64clip(ii[j], 0, (1 << ORDER_MAX) - 1)
         if use == 0:
             ind[i] = FLAG
             continue
@@ -391,7 +388,25 @@ cdef np.int64_t position_to_morton(np.ndarray[floating, ndim=1] pos_x,
         ind[i] = mi
     return pos_x.shape[0]
 
-DEF ORDER_MAX=20
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef np.uint64_t position_to_morton(
+    np.float64_t px, np.float64_t py, np.float64_t pz,
+    np.float64_t dds[3], np.float64_t[:] dle, np.float64_t[:] dre) nogil:
+    cdef np.uint64_t mi = 0
+    cdef np.uint64_t ii[3]
+    ii[0] = <np.uint64_t> ((px - dle[0]) / dds[0])
+    ii[1] = <np.uint64_t> ((py - dle[1]) / dds[1])
+    ii[2] = <np.uint64_t> ((pz - dle[2]) / dds[2])
+    for i in range(3):
+        ii[i] = i64clip(ii[i], 0, (1 << ORDER_MAX) - 1)
+    mi |= spread_bits(ii[2]) << 0
+    mi |= spread_bits(ii[1]) << 1
+    mi |= spread_bits(ii[0]) << 2
+    return mi
+
+cdef int ORDER_MAX=20
 
 def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
                    domain_left_edge, domain_right_edge, filter_bbox = False):
@@ -412,11 +427,11 @@ def compute_morton(np.ndarray pos_x, np.ndarray pos_y, np.ndarray pos_z,
     ind = np.zeros(pos_x.shape[0], dtype="uint64")
     cdef np.int64_t rv
     if pos_x.dtype == np.float32:
-        rv = position_to_morton[np.float32_t](
+        rv = positions_to_morton[np.float32_t](
                 pos_x, pos_y, pos_z, dds, DLE, DRE, ind,
                 filter)
     elif pos_x.dtype == np.float64:
-        rv = position_to_morton[np.float64_t](
+        rv = positions_to_morton[np.float64_t](
                 pos_x, pos_y, pos_z, dds, DLE, DRE, ind,
                 filter)
     else:
