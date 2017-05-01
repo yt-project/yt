@@ -336,13 +336,13 @@ class GadgetDataset(SPHDataset):
             endianswap = '<'
         elif rhead == 65536:
             endianswap = '>'
-        # Disabled for now (does any one still use SnapFormat=2?)
-        # If so, alternate read would be needed based on header.
         # Enabled Format2 here
         elif rhead == 8:
-            return True, '<'
+            f.close()
+            return True, 'float32'
         elif rhead == 134217728:
-            return True, '>'
+            f.close()
+            return True, 'float32'
         else:
             f.close()
             return False, 1
@@ -355,7 +355,9 @@ class GadgetDataset(SPHDataset):
         f.close()
         # Compare
         if np0 == np1:
-            return True, endianswap
+            return True, 'float32'
+        elif np1 == 2*np0:
+            return True, 'float64'
         else:
             return False, 1
 
