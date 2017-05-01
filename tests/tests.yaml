@@ -49,6 +49,7 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
+    - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
@@ -77,6 +78,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_CastroDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
+    - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
   local_boxlib_particles_003:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
