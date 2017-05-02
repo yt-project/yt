@@ -37,7 +37,8 @@ from yt.utilities.logger import ytLogger as mylog
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
-    gadget_ptype_specs
+    gadget_ptype_specs, \
+    SNAP_FORMAT_2_OFFSET
 
 from .fields import \
     GadgetFieldInfo
@@ -71,10 +72,10 @@ class GadgetBinaryFile(ParticleFile):
         gformat = _get_gadget_format(filename)
         with open(filename, "rb") as f:
             if gformat[0] == 2:
-                f.seek(f.tell() + 16)
+                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
             self.header = read_record(f, ds._header_spec, endian=gformat[1])
             if gformat[0] == 2:
-                f.seek(f.tell() + 16)
+                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
@@ -173,7 +174,7 @@ class GadgetDataset(SPHDataset):
         gformat = _get_gadget_format(self.parameter_filename)
         f = open(self.parameter_filename, 'rb')
         if gformat[0] == 2:
-            f.seek(f.tell() + 16)
+            f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
         hvals = read_record(f, self._header_spec, endian=gformat[1])
         for i in hvals:
             if len(hvals[i]) == 1:
@@ -355,10 +356,10 @@ class GadgetDataset(SPHDataset):
         # Enabled Format2 here
         elif rhead == 8:
             f.close()
-            return True, 'float32'
+            return True, 'f8'
         elif rhead == 134217728:
             f.close()
-            return True, 'float32'
+            return True, 'f4'
         else:
             f.close()
             return False, 1
@@ -371,9 +372,9 @@ class GadgetDataset(SPHDataset):
         f.close()
         # Compare
         if np0 == np1:
-            return True, 'float32'
+            return True, 'f4'
         elif np1 == 2*np0:
-            return True, 'float64'
+            return True, 'f8'
         else:
             return False, 1
 

@@ -30,7 +30,8 @@ from .data_structures import \
     _get_gadget_format
 
 from .definitions import \
-    gadget_hdf5_ptypes
+    gadget_hdf5_ptypes, \
+    SNAP_FORMAT_2_OFFSET
 
 
 class IOHandlerGadgetHDF5(BaseIOHandler):
@@ -324,8 +325,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             arr = arr.reshape((count // factor, factor), order="C")
         return arr.astype(self._float_type)
 
-    def get_morton_from_position(self, data_file, count, offset_count,
-                                 regions, DLE, DRE):
+    def _get_morton_from_position(self, data_file, count, offset_count,
+                                  regions, DLE, DRE):
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4 + offset_count * 12)
@@ -333,7 +334,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             pp = np.fromfile(f, dtype=self._endian + self._float_type,
                              count=count * 3)
             pp.shape = (count, 3)
-            pp = pp.astype(np._float_type)
+            pp = pp.astype(self._float_type)
         regions.add_data_file(pp, data_file.file_id,
                                   data_file.ds.filter_bbox)
         morton = compute_morton(pp[:, 0], pp[:, 1], pp[:, 2], DLE, DRE,
@@ -343,9 +344,10 @@ class IOHandlerGadgetBinary(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
+        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
         if self.index_ptype == "all":
             count = sum(data_file.total_particles.values())
-            return self.get_morton_from_position(
+            return self._get_morton_from_position(
                 data_file, count, 0, regions, DLE, DRE)
         else:
             idpos = self._ptypes.index(self.index_ptype)
@@ -353,7 +355,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
             account = [0] + [data_file.total_particles.get(ptype)
                              for ptype in self._ptypes]
             account = np.cumsum(account)
-            return self.get_morton_from_position(
+            return self._get_morton_from_position(
                 data_file, account, account[idpos], regions, DLE, DRE)
 
     def _count_particles(self, data_file):
@@ -368,7 +370,8 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         # field_list is (ftype, fname) but the blocks are ordered
         # (fname, ftype) in the file.
         if self._format == 2:
-            pos = offset - 16  # already added in data_structures: L76
+            # Need to subtract offset due to extra header block
+            pos = offset - SNAP_FORMAT_2_OFFSET
         else:
             pos = offset
         fs = self._field_size
