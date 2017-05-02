@@ -40,6 +40,8 @@ def surface_mesh_render():
 
     ds = fake_tetrahedral_ds()
     for field in ds.field_list:
+        if field[0] == 'all':
+            continue
         sc = Scene()
         sc.add_source(MeshSource(ds, field))
         sc.add_camera()
@@ -48,6 +50,8 @@ def surface_mesh_render():
 
     ds = fake_hexahedral_ds()
     for field in ds.field_list:
+        if field[0] == 'all':
+            continue
         sc = Scene()
         sc.add_source(MeshSource(ds, field))
         sc.add_camera()
