@@ -1647,7 +1647,7 @@ class StreamUnstructuredIndex(UnstructuredIndex):
         coords = ensure_list(self.stream_handler.fields.pop("coordinates"))
         connec = ensure_list(self.stream_handler.fields.pop("connectivity"))
         self.meshes = [StreamUnstructuredMesh(
-          i, self.index_filename, c1, c2, self)
+                       i, self.index_filename, c1, c2, self)
                        for i, (c1, c2) in enumerate(zip(connec, repeat(coords[0])))]
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
