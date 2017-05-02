@@ -350,17 +350,19 @@ class ProfilePlot(object):
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
 
-        for (fname, axes), profile in zip(self.axes.items(), self.profiles):
-            xscale, yscale = self._get_field_log(fname, profile)
-            xtitle, ytitle = self._get_field_title(fname, profile)
-            axes.set_xscale(xscale)
-            axes.set_yscale(yscale)
-            axes.set_xlabel(xtitle)
-            axes.set_ylabel(ytitle)
-            axes.set_ylim(*self.axes.ylim[fname])
-            axes.set_xlim(*self.axes.xlim)
-            if any(self.label):
-                axes.legend(loc="best")
+        for profile in self.profiles:
+            for fname in profile.keys():
+                axes = self.axes[fname]
+                xscale, yscale = self._get_field_log(fname, profile)
+                xtitle, ytitle = self._get_field_title(fname, profile)
+                axes.set_xscale(xscale)
+                axes.set_yscale(yscale)
+                axes.set_xlabel(xtitle)
+                axes.set_ylabel(ytitle)
+                axes.set_ylim(*self.axes.ylim[fname])
+                axes.set_xlim(*self.axes.xlim)
+                if any(self.label):
+                    axes.legend(loc="best")
         self._set_font_properties()
         self._plot_valid = True
 

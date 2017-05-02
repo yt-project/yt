@@ -16,12 +16,14 @@ import os
 import tempfile
 import shutil
 import unittest
+import yt
 from yt.data_objects.profiles import create_profile
 from yt.extern.parameterized import\
     parameterized, param
 from yt.testing import \
     fake_random_ds, \
-    assert_array_almost_equal
+    assert_array_almost_equal, \
+    requires_file
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
@@ -143,3 +145,25 @@ class TestProfilePlotSave(unittest.TestCase):
     def test_ipython_repr(self):
         self.profiles[0]._repr_html_()
         self.phases[0]._repr_html_()
+
+
+ETC46 = "enzo_tiny_cosmology/DD0046/DD0046"
+
+@requires_file(ETC46)
+def test_profile_plot_multiple_field_multiple_plot():
+    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    sphere = ds.sphere("max", (1.0, "Mpc"))
+    profiles = []
+    profiles.append(yt.create_profile(
+        sphere, ["radius"],
+        fields=["density"],n_bins=32))
+    profiles.append(yt.create_profile(
+        sphere, ["radius"],
+        fields=["density"],n_bins=64))
+    profiles.append(yt.create_profile(
+        sphere, ["radius"],
+        fields=["dark_matter_density"],n_bins=64))
+
+    plot = yt.ProfilePlot.from_profiles(profiles)
+    with tempfile.NamedTemporaryFile(suffix='png') as f:
+        plot.save(name=f.name)
