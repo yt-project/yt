@@ -191,7 +191,7 @@ Athena
    ~yt.frontends.athena.io.IOHandlerAthena
 
 AMReX/Boxlib
-^^^^^^
+^^^^^^^^^^^^
 
 .. autosummary::
 
