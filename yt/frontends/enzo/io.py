@@ -151,7 +151,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
             node = "/Grid%08i/%s" % (obj.id, fname)
             dg = h5py.h5d.open(fid, b(node))
         except KeyError:
-            if fname == "Dark_Matter_Density": return None
+            if fname == "Dark_Matter_Density":
+                data[:] = 0
+                return data.T
             raise
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, data)
         # I don't know why, but on some installations of h5py this works, but
