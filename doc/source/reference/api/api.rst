@@ -190,7 +190,7 @@ Athena
    ~yt.frontends.athena.fields.AthenaFieldInfo
    ~yt.frontends.athena.io.IOHandlerAthena
 
-Boxlib
+AMReX/Boxlib
 ^^^^^^
 
 .. autosummary::
