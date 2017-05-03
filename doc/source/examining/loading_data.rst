@@ -1401,14 +1401,50 @@ dataset as follows:
 
     ds = yt.load_unstructured_mesh(connect, coords, data)
 
-Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
-Here, we only have one mesh. The in-memory dataset can then be visualized as usual,
-e.g.:
+The in-memory dataset can then be visualized as usual, e.g.:
 
 .. code-block:: python
 
     sl = yt.SlicePlot(ds, 'z', 'test')
     sl.annotate_mesh_lines()
+
+Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
+To load multiple meshes, you can do:
+
+.. code-block:: python
+
+   import yt
+   import numpy as np
+
+   coordsMulti = np.array([[0.0, 0.0],
+                           [1.0, 0.0],
+                           [1.0, 1.0],
+                           [0.0, 1.0]], dtype=np.float64)
+
+   connect1 = np.array([[0, 1, 3], ], dtype=np.int64)
+   connect2 = np.array([[1, 2, 3], ], dtype=np.int64)
+
+   data1 = {}
+   data2 = {}
+   data1['connect1', 'test'] = np.array([[0.0, 1.0, 3.0], ], dtype=np.float64)
+   data2['connect2', 'test'] = np.array([[1.0, 2.0, 3.0], ], dtype=np.float64)
+
+   connectList = [connect1, connect2]
+   dataList    = [data1, data2]
+
+   ds = yt.load_unstructured_mesh(connectList, coordsMulti, dataList)
+
+   # only plot the first mesh
+   sl = yt.SlicePlot(ds, 'z', ('connect1', 'test'))
+
+   # only plot the second
+   sl = yt.SlicePlot(ds, 'z', ('connect2', 'test'))
+   
+   # plot both
+   sl = yt.SlicePlot(ds, 'z', ('all', 'test'))
+
+Note that you must respect the field naming convention that fields on the first
+mesh will have the type 'connect1', fields on the second will have 'connect2', etc...
 
 .. rubric:: Caveats
 

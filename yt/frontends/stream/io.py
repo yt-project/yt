@@ -263,26 +263,36 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        chunk = chunks[0]
-        mesh_id = chunk.objs[0].mesh_id
         rv = {}
         for field in fields:
-            if field in self.ds._node_fields:
-                nodes_per_element = self.fields[mesh_id][field].shape[1]
-                rv[field] = np.empty((size, nodes_per_element), dtype="float64")
+            ftype, fname = field
+            if ftype == "all":
+                ci = np.concatenate([mesh.connectivity_indices
+                                     for mesh in self.ds.index.mesh_union])
             else:
-                rv[field] = np.empty(size, dtype="float64")
-        ngrids = sum(len(chunk.objs) for chunk in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s blocks",
-                    size, [fname for ftype, fname in fields], ngrids)
+                mesh_id = int(ftype[-1]) - 1
+                m = self.ds.index.meshes[mesh_id]
+                ci = m.connectivity_indices
+            num_elem = ci.shape[0]
+            if fname in self.ds._node_fields:
+                nodes_per_element = ci.shape[1]
+                rv[field] = np.empty((num_elem, nodes_per_element), dtype="float64")
+            else:
+                rv[field] = np.empty(num_elem, dtype="float64")
         for field in fields:
             ind = 0
             ftype, fname = field
-            for chunk in chunks:
-                for g in chunk.objs:
-                    ds = self.fields[g.mesh_id].get(field, None)
-                    if ds is None:
-                        ds = self.fields[g.mesh_id][fname]
-                    ind += g.select(selector, ds, rv[field], ind) # caches
+            if ftype == "all":
+                objs = [mesh for mesh in self.ds.index.mesh_union]
+            else:
+                mesh_ids = [int(ftype[-1])]
+                chunk = chunks[mesh_ids[0] - 1]
+                objs = chunk.objs
+            for g in objs:
+                ds = self.fields[g.mesh_id].get(field, None)
+                if ds is None:
+                    f = ('connect%d' % (g.mesh_id + 1), fname)
+                    ds = self.fields[g.mesh_id][f]
+                ind += g.select(selector, ds, rv[field], ind) # caches
         return rv
 
