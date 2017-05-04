@@ -26,9 +26,9 @@ def test_cutting_plane():
         center = [0.5, 0.5, 0.5]
         normal = [1, 1, 1]
         cut = ds.cutting(normal, center)
-        yield assert_equal, cut["ones"].sum(), cut["ones"].size
-        yield assert_equal, cut["ones"].min(), 1.0
-        yield assert_equal, cut["ones"].max(), 1.0
+        assert_equal(cut["ones"].sum(), cut["ones"].size)
+        assert_equal(cut["ones"].min(), 1.0)
+        assert_equal(cut["ones"].max(), 1.0)
         pw = cut.to_pw(fields='density')
         for p in pw.plots.values():
             tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
@@ -39,20 +39,14 @@ def test_cutting_plane():
             frb = cut.to_frb(width, 64)
             for cut_field in ['ones', 'density']:
                 fi = ds._get_field_info("unknown", cut_field)
-                yield assert_equal, frb[cut_field].info['data_source'], \
-                    cut.__str__()
-                yield assert_equal, frb[cut_field].info['axis'], \
-                    4
-                yield assert_equal, frb[cut_field].info['field'], \
-                    cut_field
-                yield assert_equal, frb[cut_field].units, \
-                    Unit(fi.units)
-                yield assert_equal, frb[cut_field].info['xlim'], \
-                    frb.bounds[:2]
-                yield assert_equal, frb[cut_field].info['ylim'], \
-                    frb.bounds[2:]
-                yield assert_equal, frb[cut_field].info['length_to_cm'], \
-                    ds.length_unit.in_cgs()
-                yield assert_equal, frb[cut_field].info['center'], \
-                    cut.center
+                assert_equal(frb[cut_field].info['data_source'],
+                             cut.__str__())
+                assert_equal(frb[cut_field].info['axis'], 4)
+                assert_equal(frb[cut_field].info['field'], cut_field)
+                assert_equal(frb[cut_field].units, Unit(fi.units))
+                assert_equal(frb[cut_field].info['xlim'], frb.bounds[:2])
+                assert_equal(frb[cut_field].info['ylim'], frb.bounds[2:])
+                assert_equal(frb[cut_field].info['length_to_cm'],
+                             ds.length_unit.in_cgs())
+                assert_equal(frb[cut_field].info['center'], cut.center)
     teardown_func(fns)

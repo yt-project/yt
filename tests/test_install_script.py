@@ -8,7 +8,7 @@ import tempfile
 
 # dependencies that are always installed
 REQUIRED_DEPS = [
-    'mercurial',
+    'git',
     'jupyter',
     'numpy',
     'matplotlib',
@@ -17,12 +17,11 @@ REQUIRED_DEPS = [
     'nose',
     'sympy',
     'setuptools',
-    'hglib'
 ]
 
 # dependencies that aren't installed by default
 OPTIONAL_DEPS = [
-    'unstructured',
+    'embree',
     'pyx',
     'rockstar',
     'scipy',
@@ -31,17 +30,18 @@ OPTIONAL_DEPS = [
 
 # dependencies that are only installable when yt is built from source
 YT_SOURCE_ONLY_DEPS = [
-    'unstructured',
+    'embree',
     'rockstar'
 ]
 
-# dependencies that are only installable when yt is built from source under conda
+# dependencies that are only installable when yt is built from source under 
+# conda
 YT_SOURCE_CONDA_ONLY_DEPS = [
-    'unstructured'
+    'embree'
 ]
 
 DEPENDENCY_IMPORT_TESTS = {
-    'unstructured': "from yt.utilities.lib import mesh_traversal",
+    'embree': "from yt.utilities.lib import mesh_traversal",
     'rockstar': ("from yt.analysis_modules.halo_finding.rockstar "
                  "import rockstar_interface")
 }
@@ -60,7 +60,7 @@ def call_unix_command(command):
     finally:
         if len(output.splitlines()) > 25:
             print ('truncated output:')
-            print ('\n'.join((output.splitlines())[-25:]))
+            print ('\n'.join((output.decode().splitlines())[-25:]))
         else:
             print (output)
 
@@ -119,10 +119,10 @@ def verify_yt_installation(binary_yt, conda):
             continue
         if conda is False and dep in YT_SOURCE_CONDA_ONLY_DEPS:
             continue
-        elif dep == 'mercurial':
-            hg_path = os.sep.join([yt_dir, 'bin', 'hg'])
-            call_unix_command('{} --version'.format(hg_path))
-        elif dep in DEPENDENCY_IMPORT_TESTS:
+        if dep == 'git':
+            git_path = os.sep.join([yt_dir, 'bin', 'git'])
+            call_unix_command('{} --version'.format(git_path))
+        if dep in DEPENDENCY_IMPORT_TESTS:
             cmd = "{} -c '{}'"
             if dep == 'rockstar':
                 cmd = 'LD_LIBRARY_PATH={} '.format(

@@ -512,7 +512,65 @@ class NoCUDAException(Exception):
 class YTEmptyClass(object):
     pass
 
-def update_hg(path, skip_rebuild = False):
+def update_hg_or_git(path):
+    if os.path.exists(os.sep.join([path, '.hg'])):
+        update_hg(path)
+    elif os.path.exists(os.sep.join([path, '.git'])):
+        update_git(path)
+
+def update_git(path):
+    try:
+        import git
+    except ImportError:
+        print("Updating and precise version information requires ")
+        print("gitpython to be installed.")
+        print("Try: pip install gitpython")
+        return -1
+    with open(os.path.join(path, "yt_updater.log"), "a") as f:
+        with git.Repo(path) as repo:
+            if repo.is_dirty(untracked_files=True):
+                print("Changes have been made to the yt source code so I won't ")
+                print("update the code. You will have to do this yourself.")
+                print("Here's a set of sample commands:")
+                print("")
+                print("    $ cd %s" % (path))
+                print("    $ git stash")
+                print("    $ git checkout master")
+                print("    $ git pull")
+                print("    $ git stash pop")
+                print("    $ %s setup.py develop" % (sys.executable))
+                print("")
+                return 1
+            if repo.active_branch.name != 'master':
+                print("yt repository is not tracking the master branch so I won't ")
+                print("update the code. You will have to do this yourself.")
+                print("Here's a set of sample commands:")
+                print("")
+                print("    $ cd %s" % (path))
+                print("    $ git checkout master")
+                print("    $ git pull")
+                print("    $ %s setup.py develop" % (sys.executable))
+                print("")
+                return 1
+            print("Updating the repository")
+            f.write("Updating the repository\n\n")
+            old_version = repo.git.rev_parse('HEAD', short=12)
+            try:
+                remote = repo.remotes.yt_upstream
+            except AttributeError:
+                remote = repo.create_remote(
+                    'yt_upstream', url='https://github.com/yt-project/yt')
+                remote.fetch()
+            master = repo.heads.master
+            master.set_tracking_branch(remote.refs.master)
+            master.checkout()
+            remote.pull()
+            new_version = repo.git.rev_parse('HEAD', short=12)
+            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+            rebuild_modules(path, f)
+    print('Updated successfully')
+
+def update_hg(path):
     try:
         import hglib
     except ImportError:
@@ -521,33 +579,65 @@ def update_hg(path, skip_rebuild = False):
         return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
     with hglib.open(path) as repo:
-        repo.pull()
+        repo.pull(b'https://bitbucket.org/yt_analysis/yt')
         ident = repo.identify().decode("utf-8")
         if "+" in ident:
-            print("Can't rebuild modules by myself.")
-            print("You will have to do this yourself.  Here's a sample commands:")
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
             print("")
             print("    $ cd %s" % (path))
-            print("    $ hg up")
+            print("    $ hg up -C yt  # This will delete any unsaved changes")
             print("    $ %s setup.py develop" % (sys.executable))
+            print("")
             return 1
         print("Updating the repository")
         f.write("Updating the repository\n\n")
-        repo.update(check=True)
+        books = repo.bookmarks()[0]
+        books = [b[0].decode('utf8') for b in books]
+        if 'master' in books:
+            repo.update('master', check=True)
+        else:
+            repo.update('yt', check=True)
         f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
-        if skip_rebuild: return
-        f.write("Rebuilding modules\n\n")
-        p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
-                             cwd=path, stdout = subprocess.PIPE,
-                             stderr = subprocess.STDOUT)
-        stdout, stderr = p.communicate()
-        f.write(stdout.decode('utf-8'))
-        f.write("\n\n")
-        if p.returncode:
-            print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
-            sys.exit(1)
-        f.write("Successful!\n")
-        print("Updated successfully.")
+        rebuild_modules(path, f)
+    print("Updated successfully.")
+
+def rebuild_modules(path, f):
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
+                         cwd=path, stdout = subprocess.PIPE,
+                         stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout.decode('utf-8'))
+    f.write("\n\n")
+    if p.returncode:
+        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+        sys.exit(1)
+    f.write("Successful!\n")
+
+
+def get_hg_or_git_version(path):
+    if os.path.exists(os.sep.join([path, '.hg'])):
+        return get_hg_version(path)
+    elif os.path.exists(os.sep.join([path, '.git'])):
+        return get_git_version(path)
+    return None
+
+def get_git_version(path):
+    try:
+        import git
+    except ImportError:
+        print("Updating and precise version information requires ")
+        print("gitpython to be installed.")
+        print("Try: pip install gitpython")
+        return None
+    try:
+        with git.Repo(path) as repo:
+            return repo.git.rev_parse('HEAD', short=12)
+    except git.InvalidGitRepositoryError:
+        # path is not a git repository
+        return None
 
 def get_hg_version(path):
     try:
@@ -559,7 +649,7 @@ def get_hg_version(path):
         return None
     try:
         with hglib.open(path) as repo:
-            return repo.identify()
+            return repo.identify().decode('utf-8')
     except hglib.error.ServerError:
         # path is not an hg repository
         return None
@@ -747,6 +837,7 @@ def get_output_filename(name, keyword, suffix):
 
     With a name provided by the user, this will decide how to 
     appropriately name the output file by the following rules:
+
     1. if name is None, the filename will be the keyword plus 
        the suffix.
     2. if name ends with "/", assume name is a directory and 
@@ -780,13 +871,7 @@ def get_output_filename(name, keyword, suffix):
         name = keyword
     name = os.path.expanduser(name)
     if name[-1] == os.sep and not os.path.isdir(name):
-        try:
-            os.mkdir(name)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            else:
-                raise
+        ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
     if not name.endswith(suffix):
@@ -796,15 +881,20 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    if not my_dir:
-        return
-    if not os.path.exists(my_dir):
-        only_on_root(os.makedirs, my_dir)
+    ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
-    if not os.path.exists(path):
-        only_on_root(os.makedirs, path)
+    if os.path.exists(path):
+        return path
+
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
     return path
 
 def validate_width_tuple(width):
@@ -1010,7 +1100,7 @@ def get_requests():
 def dummy_context_manager(*args, **kwargs):
     yield
 
-def matplotlib_style_context(style_name=None, after_reset=True):
+def matplotlib_style_context(style_name=None, after_reset=False):
     """Returns a context manager for controlling matplotlib style.
 
     Arguments are passed to matplotlib.style.context() if specified. Defaults
@@ -1020,11 +1110,13 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = 'classic'
+        style_name = {
+            'mathtext.fontset': 'cm',
+            'mathtext.fallback_to_cm': True,
+        }
     try:
         import matplotlib.style
-        if style_name in matplotlib.style.available:
-            return matplotlib.style.context(style_name, after_reset=after_reset)
+        return matplotlib.style.context(style_name, after_reset=after_reset)
     except ImportError:
         pass
     return dummy_context_manager()

@@ -72,11 +72,11 @@ class HaloCatalog(ParallelAnalysisInterface):
     --------
 
     >>> # create profiles or overdensity vs. radius for each halo and save to disk
-    >>> from yt.mods import *
+    >>> import yt
     >>> from yt.analysis_modules.halo_analysis.api import *
-    >>> data_ds = load("DD0064/DD0064")
-    >>> halos_ds = load("rockstar_halos/halos_64.0.bin",
-    ...                 output_dir="halo_catalogs/catalog_0064")
+    >>> data_ds = yt.load("DD0064/DD0064")
+    >>> halos_ds = yt.load("rockstar_halos/halos_64.0.bin",
+    ...                    output_dir="halo_catalogs/catalog_0064")
     >>> hc = HaloCatalog(data_ds=data_ds, halos_ds=halos_ds)
     >>> # filter out halos with mass < 1e13 Msun
     >>> hc.add_filter("quantity_value", "particle_mass", ">", 1e13, "Msun")
@@ -91,7 +91,7 @@ class HaloCatalog(ParallelAnalysisInterface):
     >>> hc.create()
 
     >>> # load in the saved halo catalog and all the profile data
-    >>> halos_ds = load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
+    >>> halos_ds = yt.load("halo_catalogs/catalog_0064/catalog_0064.0.h5")
     >>> hc = HaloCatalog(halos_ds=halos_ds,
                          output_dir="halo_catalogs/catalog_0064")
     >>> hc.add_callback("load_profiles", output_dir="profiles")
@@ -478,10 +478,12 @@ class HaloCatalog(ParallelAnalysisInterface):
                         field_types=ftypes, extra_attrs=extra_attrs)
 
     def add_default_quantities(self, field_type='halos'):
-        self.add_quantity("particle_identifier", field_type=field_type,prepend=True)
-        self.add_quantity("particle_mass", field_type=field_type,prepend=True)
-        self.add_quantity("particle_position_x", field_type=field_type,prepend=True)
-        self.add_quantity("particle_position_y", field_type=field_type,prepend=True)
-        self.add_quantity("particle_position_z", field_type=field_type,prepend=True)
-        self.add_quantity("virial_radius", field_type=field_type,prepend=True)
-
+        for field in ["particle_identifier", "particle_mass",
+                      "particle_position_x", "particle_position_y",
+                      "particle_position_z", "virial_radius"]:
+            field_name = (field_type, field)
+            if field_name not in self.halos_ds.field_list:
+                mylog.warn("Halo dataset %s has no field %s." %
+                           (self.halos_ds, str(field_name)))
+                continue
+            self.add_quantity(field, field_type=field_type, prepend=True)

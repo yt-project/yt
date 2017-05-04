@@ -61,7 +61,7 @@ def periodic_position(pos, ds):
     pos : array
         An array of floats.
 
-    ds : Dataset
+    ds : ~yt.data_objects.static_output.Dataset 
         A simulation static output.
 
     Examples
@@ -852,7 +852,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     Parameters
     ----------
     maxr : scalar
-        should be max(|x|, |y|)
+        should be ``max(|x|, |y|)``
 
     aspect : scalar
         The aspect ratio of width / height for the projection.
@@ -1234,7 +1234,12 @@ def get_sph_theta(coords, normal):
 
     JdotCoords = np.sum(J*coords,axis=0)
 
-    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)) )
+    with np.errstate(invalid='ignore'):
+        ret = np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)))
+
+    ret[np.isnan(ret)] = 0
+
+    return ret
 
 def get_sph_phi(coords, normal):
     # We have freedom with respect to what axis (xprime) to define

@@ -691,7 +691,12 @@ class LightRay(CosmologySplice):
                     to_arr = YTArray
                 else:
                     to_arr = np.array
-                extra_attrs["light_ray_solution_%s" % key] = to_arr(lrsa)
+                arr = to_arr(lrsa)
+                # If we somehow create an object array, convert it to a string
+                # to avoid errors later
+                if arr.dtype == 'O':
+                    arr = arr.astype(str)
+                extra_attrs["light_ray_solution_%s" % key] = arr
 
         field_types = dict([(field, "grid") for field in data.keys()])
 

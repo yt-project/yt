@@ -71,8 +71,7 @@ def test_AM06_override():
 
 @requires_file(AM06)
 def test_units_override():
-    for test in units_override_check(AM06):
-        yield test
+    units_override_check(AM06)
 
 @requires_file(AM06)
 def test_AthenaPPDataset():

@@ -58,8 +58,8 @@ If for some reason the ``update`` command fails with errors, or any attempt at
 loading yt either from the command line or from within python also fails, it
 may simply mean you need to rebuild the yt source (some of the c-code in yt
 needs to be rebuilt after major changes).  You can do this by navigating to
-the root of the yt mercurial repository.  If you installed with the all-in-one
-installer script, this is the ``yt-<machine>/src/yt-hg`` directory.  Then
+the root of the yt git repository.  If you installed with the all-in-one
+installer script, this is the ``yt-<machine>/src/yt-git`` directory.  Then
 execute these commands:
 
 .. code-block:: bash
@@ -72,8 +72,8 @@ Now try running yt again with:
 
   $ yt --help
 
-If you continue to see errors, you should try contacting us via IRC or email
-but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
+If you continue to see errors, you should try contacting us via Slack, IRC or
+email but you may have to reinstall yt (see :ref:`getting-and-installing-yt`).
 
 .. _search-the-documentation:
 
@@ -112,13 +112,14 @@ Look at the source code
 We've done our best to make the source clean, and it is easily searchable from
 your computer.
 
-If you have not done so already (see :ref:`source-installation`), clone a copy of the yt mercurial repository and make it the 'active' installation by doing
+If you have not done so already (see :ref:`source-installation`), clone a copy
+of the yt git repository and make it the 'active' installation by doing
 
 .. code-block:: bash
 
   python setup.py develop
 
-in the root directory of the yt mercurial repository.
+in the root directory of the yt git repository.
 
 .. note::
 
@@ -126,7 +127,7 @@ in the root directory of the yt mercurial repository.
   script.  Building yt from source will not work if you do not have a C compiler
   installed.
 
-Once inside the yt mercurial repository, you can then search for the class,
+Once inside the yt git repository, you can then search for the class,
 function, or keyword which is giving you problems with ``grep -r *``, which will
 recursively search throughout the code base.  (For a much faster and cleaner
 experience, we recommend ``grin`` instead of ``grep -r *``.  To install ``grin``
@@ -137,7 +138,7 @@ look at the source to figure out what is going on.
 
 .. code-block:: bash
 
-  $ cd $YT-HG/yt
+  $ cd $YT_GIT/yt
   $ grep -r SlicePlot *         (or $ grin SlicePlot)
 
 This will print a number of locations in the yt source tree where ``SlicePlot``
@@ -170,17 +171,24 @@ the problem!
 
 .. _irc:
 
-Go on IRC to ask a question
----------------------------
+Go on Slack or IRC to ask a question
+------------------------------------
 
-If you want a fast, interactive experience, you could try jumping into our IRC
-channel to get your questions answered in a chatroom style environment.  You
-don't even need to have any special IRC client in order to join.  We are the
-#yt channel on irc.freenode.net, but you can also connect using your web
-browser by going to http://yt-project.org/irc.html .  There are usually 2-8
-members of the user base and development team online, so you'll probably get
-your answers quickly.  Remember to bring the information from the
-:ref:`last step <isolate_and_document>`.
+If you want a fast, interactive experience, you could try jumping into our Slack
+or IRC channels to get your questions answered in a chatroom style environment.
+
+To join our slack channel you will need to request an invite by going to
+http://yt-project.org/development.html, click the "Join as @ Slack!" button, and
+fill out the form. You will get an invite as soon as an administrator approves
+your request.
+
+Alternatively you can go to our IRC channel, which does not require an
+invite. You don't even need to have any special IRC client in order to join the
+IRC channel.  We are the #yt channel on irc.freenode.net, but you can also
+connect using your web browser by going to http://yt-project.org/irc.html .
+There are usually 2-8 members of the user base and development team online, so
+you'll probably get your answers quickly.  Remember to bring the information
+from the :ref:`last step <isolate_and_document>`.
 
 .. _mailing-list:
 
@@ -209,13 +217,12 @@ Submit a bug report
 -------------------
 
 If you have gone through all of the above steps, and you're still encountering
-problems, then you have found a bug.
-To submit a bug report, you can either directly create one through the
-BitBucket `web interface <http://bitbucket.org/yt_analysis/yt/issues/new>`_,
-or you can use the command line ``yt bugreport`` to interactively create one.
-Alternatively, email the ``yt-users`` mailing list and we will construct a new
-ticket in your stead.  Remember to include the information
-about your problem you identified in :ref:`this step <isolate_and_document>`.
+problems, then you have found a bug.  To submit a bug report, you can either
+directly create one through the GitHub `web interface
+<http://github.org/yt-project/yt/issues/new>`_.  Alternatively, email the
+``yt-users`` mailing list and we will construct a new ticket in your stead.
+Remember to include the information about your problem you identified in
+:ref:`this step <isolate_and_document>`.
 
 Special Issues
 --------------

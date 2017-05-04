@@ -124,8 +124,8 @@ class VolumeSource(RenderSource):
     data_source: :class:`AMR3DData` or :class:`Dataset`, optional
         This is the source to be rendered, which can be any arbitrary yt
         data object or dataset.
-    fields : string
-        The name of the field(s) to be rendered.
+    field : string
+        The name of the field to be rendered.
 
     Examples
     --------

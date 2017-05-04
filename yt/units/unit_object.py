@@ -222,9 +222,18 @@ class Unit(Expr):
             if registry is None:
                 registry = unit_expr.registry
             unit_expr = unit_expr.expr
-        elif hasattr(unit_expr, 'units'):
+        elif hasattr(unit_expr, 'units') and hasattr(unit_expr, 'value'):
             if isinstance(unit_expr.units, Unit):
-                unit_expr = unit_expr.units.expr
+                # something that looks like a YTArray, grab the unit and value
+                if unit_expr.shape != ():
+                    raise UnitParseError(
+                        'Cannot create a unit from a non-scalar YTArray, received: '
+                        '%s' % (unit_expr, ))
+                value = unit_expr.value
+                if value == 1:
+                    unit_expr = unit_expr.units.expr
+                else:
+                    unit_expr = unit_expr.value*unit_expr.units.expr
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \

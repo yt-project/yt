@@ -407,8 +407,6 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
 
-    fig.tight_layout()
-        
     suffix = get_image_suffix(filename)
 
     if suffix == '':
@@ -424,6 +422,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     else:
         mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas = FigureCanvasAgg(fig)
+
+    fig.tight_layout()
 
     canvas.print_figure(filename, dpi=dpi)
     return filename

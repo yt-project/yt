@@ -34,7 +34,7 @@ sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/sizmbhloz-clref04SNth-rs9_a0.9011
 def test_sizmbhloz():
     ds = data_dir_load(sizmbhloz)
     ds.max_range = 1024*1024
-    yield assert_equal, str(ds), "sizmbhloz-clref04SNth-rs9_a0.9011.art"
+    assert_equal(str(ds), "sizmbhloz-clref04SNth-rs9_a0.9011.art")
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     for dobj_name in dso:
         for field in _fields:
@@ -47,7 +47,7 @@ def test_sizmbhloz():
         dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        yield assert_equal, s1, s2
+        assert_equal(s1, s2)
     assert_equal(ds.particle_type_counts, {'N-BODY': 100000, 'STAR': 110650})
 
 
@@ -57,5 +57,4 @@ def test_ARTIODataset():
 
 @requires_file(sizmbhloz)
 def test_units_override():
-    for test in units_override_check(sizmbhloz):
-        yield test
+    units_override_check(sizmbhloz)

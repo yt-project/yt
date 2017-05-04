@@ -17,6 +17,7 @@ from yt.utilities.lib.fp_utils cimport iclip
 
 def add_points_to_greyscale_image(
         np.ndarray[np.float64_t, ndim=2] buffer,
+        np.ndarray[np.int_t,     ndim=2] buffer_mask,
         np.ndarray[np.float64_t, ndim=1] px,
         np.ndarray[np.float64_t, ndim=1] py,
         np.ndarray[np.float64_t, ndim=1] pv):
@@ -28,6 +29,7 @@ def add_points_to_greyscale_image(
         j = <int> (xs * px[pi])
         i = <int> (ys * py[pi])
         buffer[i, j] += pv[pi]
+        buffer_mask[i, j] = 1
     return
 
 def add_points_to_image(

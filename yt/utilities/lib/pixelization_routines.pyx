@@ -30,6 +30,7 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler3D, \
     Q1Sampler3D, \
     Q1Sampler2D, \
+    Q2Sampler2D, \
     S2Sampler3D, \
     W1Sampler3D, \
     T2Sampler2D, \
@@ -244,7 +245,7 @@ def pixelize_off_axis_cartesian(
                        np.float64_t[:] pdz,
                        np.float64_t[:] center,
                        np.float64_t[:,:] inv_mat,
-                       np.int64_t[:] indices,
+                       np.int_t[:] indices,
                        np.float64_t[:] data,
                        bounds):
     cdef np.float64_t x_min, x_max, y_min, y_max
@@ -609,6 +610,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = P1Sampler1D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
+    elif ndim == 2 and nvertices == 9:
+        sampler = Q2Sampler2D()
     elif ndim == 2 and nvertices == 6:
         sampler = T2Sampler2D()
     elif ndim == 3 and nvertices == 10:

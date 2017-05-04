@@ -84,6 +84,7 @@ class AxesContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
         self.ylim = {}
+        self.xlim = (None, None)
         super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
@@ -357,6 +358,7 @@ class ProfilePlot(object):
             axes.set_xlabel(xtitle)
             axes.set_ylabel(ytitle)
             axes.set_ylim(*self.axes.ylim[fname])
+            axes.set_xlim(*self.axes.xlim)
             if any(self.label):
                 axes.legend(loc="best")
         self._set_font_properties()
@@ -539,6 +541,7 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
+        self.axes.xlim = (xmin, xmax)
         for i, p in enumerate(self.profiles):
             if xmin is None:
                 xmi = p.x_bins.min()

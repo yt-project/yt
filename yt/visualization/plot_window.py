@@ -69,11 +69,13 @@ from yt.utilities.exceptions import \
     YTInvalidFieldType
 import yt.units.dimensions as dimensions
 
+MPL_VERSION = LooseVersion(matplotlib.__version__)
+
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
 # Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    if LooseVersion(matplotlib.__version__) < LooseVersion("1.2.0"):
+    if MPL_VERSION < LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
         if sys.version_info[0] == 3:
@@ -432,9 +434,9 @@ class PlotWindow(ImagePlotContainer):
             coordinate space can be given. If plain numeric types are input,
             units of `code_length` are assumed. Further examples:
 
-         ==================================                ============================
-         format                                            example
-         ==================================                ============================
+         ===============================================    ==================================
+         format                                             example
+         ===============================================    ==================================
          '{space}'                                          'domain'
          '{xloc}-{space}'                                   'left-window'
          '{yloc}-{space}'                                   'upper-domain'
@@ -445,7 +447,7 @@ class PlotWindow(ImagePlotContainer):
          ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ==================================                 ===========================
+         ===============================================    ==================================
 
         """
         self.origin = origin
@@ -1000,7 +1002,7 @@ class PWViewerMPL(PlotWindow):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if self._cbar_minorticks[f] is True:
+            if self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0'):
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 else:
@@ -1271,9 +1273,9 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ==================================                ============================
-         format                                            example
-         ==================================                ============================
+         ===============================================    ==================================
+         format                                             example
+         ===============================================    ==================================
          '{space}'                                          'domain'
          '{xloc}-{space}'                                   'left-window'
          '{yloc}-{space}'                                   'upper-domain'
@@ -1284,7 +1286,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ==================================                 ===========================
+         ===============================================    ==================================
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -1426,9 +1428,9 @@ class ProjectionPlot(PWViewerMPL):
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ==================================                ============================
-         format                                            example
-         ==================================                ============================
+         ===============================================    ==================================
+         format                                             example
+         ===============================================    ==================================
          '{space}'                                          'domain'
          '{xloc}-{space}'                                   'left-window'
          '{yloc}-{space}'                                   'upper-domain'
@@ -1439,7 +1441,7 @@ class ProjectionPlot(PWViewerMPL):
          ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ==================================                 ===========================
+         ===============================================    ==================================
 
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
@@ -1950,9 +1952,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ==================================                ============================
-         format                                            example
-         ==================================                ============================
+         ===============================================    ==================================
+         format                                             example
+         ===============================================    ==================================
          '{space}'                                          'domain'
          '{xloc}-{space}'                                   'left-window'
          '{yloc}-{space}'                                   'upper-domain'
@@ -1963,7 +1965,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ==================================                 ===========================
+         ===============================================    ==================================
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
         used in `AxisAlignedSlicePlot`.  This option sets the orientation of the

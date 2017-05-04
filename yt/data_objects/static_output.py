@@ -196,6 +196,8 @@ class MutableAttribute(object):
         self.data = weakref.WeakKeyDictionary()
 
     def __get__(self, instance, owner):
+        if not instance:
+            return None
         ret = self.data.get(instance, None)
         try:
             ret = ret.copy()
@@ -569,6 +571,7 @@ class Dataset(object):
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
         self.index.field_list = sorted(self.field_list)
+        self._last_freq = (None, None)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -969,10 +972,18 @@ class Dataset(object):
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
+
+            # Set dynamical dark energy parameters
+            use_dark_factor = getattr(self, 'use_dark_factor', False)
+            w_0 = getattr(self, 'w_0', -1.0)
+            w_a = getattr(self, 'w_a', 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda)
+                              omega_lambda=self.omega_lambda,
+                              use_dark_factor = use_dark_factor,
+                              w_0 = w_0, w_a = w_a)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
@@ -1062,7 +1073,7 @@ class Dataset(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
@@ -1193,7 +1204,7 @@ class Dataset(object):
                 sampling_type = "particle"
         if sampling_type is None:
             warnings.warn("Because 'sampling_type' not specified, yt will "
-                          "assume a cell 'sampling_type'")
+                          "assume a cell 'sampling_type'", stacklevel=2)
             sampling_type = "cell"
         self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
