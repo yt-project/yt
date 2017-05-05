@@ -1334,6 +1334,10 @@ else # INST_CONDA -eq 1
             echo "Going with x86_64 architecture."
             MINICONDA_OS="Linux-x86_64"
         fi
+    else
+        echo "The yt install script is not supported on the ${MYOS}"
+        echo "operating system."
+        exit 1
     fi
 
     if [ $INST_PY3 -eq 1 ]
