@@ -325,6 +325,53 @@ would have a ``job_info`` file in the plotfile directory.
   ``mach_number`` will always use the on-disk value, and not have yt
   derive it, due to the complex interplay of the base state velocity.
 
+Viewing raw fields in WarpX
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Most BoxLib codes output cell-centered data. If the underlying discretization
+is not cell-centered, then fields are typically averaged to cell centers before 
+they are written to plot files for visualization. WarpX, however, has the option
+to output the raw (i.e., not averaged to cell centers) data as well.  If you
+run your WarpX simulation with ``warpx.plot_raw_fields = 1`` in your inputs
+file, then you should get an additional ``raw_fields`` subdirectory inside your
+plot file. When you load this dataset, yt will have additional on-disk fields
+defined, with the "raw" field type:
+
+.. code-block:: python
+    import yt
+    ds = yt.load("Laser/plt00015/")
+    print(ds.field_list)
+
+The raw fields in WarpX are nodal in at least one direction. We define a field
+to be "nodal" in a given direction if the field data is defined at the "low"
+and "high" sides of the cell in that direction, rather than at the cell center.
+Instead of returning one field value per cell selected, nodal fields return a 
+number of values, depending on their centering. This centering is marked by
+a `nodal_flag` that describes whether the fields is nodal in each dimension.
+``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while 
+``nodal_flag = [0, 0, 1]`` means that the field is nodal in the z direction
+and cell centered in the others, i.e. it is defined on the z faces of each cell.
+``nodal_flag = [1, 1, 0]`` would mean that the field is centered in the z direction,
+but nodal in the other two, i.e. it lives on the four cell edges that are normal
+to the z direction.
+
+..code-block:: python
+    ad = ds.all_data()
+    print(ds.field_info[('raw', 'Ex')].nodal_flag)
+    print(ad['raw', 'Ex'].shape)
+    print(ds.field_info[('raw', 'Bx')].nodal_flag)
+    print(ad['raw', 'Bx'].shape)
+    print(ds.field_info[('boxlib', 'Bx')].nodal_flag)
+    print(ad['boxlib', 'Bx'].shape)
+
+Here, the field ``('raw', 'Ex')`` is nodal in two directions, so four values per cell
+are returned, corresponding to the four edges in each cell on which the variable
+is defined. ``('raw', 'Bx')`` is nodal in one direction, so two values are returned 
+per cell. The standard, averaged-to-cell-centers fields are still available.
+
+Currently, slices and data selection are implemented for nodal fields. Projections,
+volume rendering, and many of the analysis modules will not work.
+
 .. _loading-pluto-data:
 
 Pluto Data
@@ -1354,14 +1401,50 @@ dataset as follows:
 
     ds = yt.load_unstructured_mesh(connect, coords, data)
 
-Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
-Here, we only have one mesh. The in-memory dataset can then be visualized as usual,
-e.g.:
+The in-memory dataset can then be visualized as usual, e.g.:
 
 .. code-block:: python
 
     sl = yt.SlicePlot(ds, 'z', 'test')
     sl.annotate_mesh_lines()
+
+Note that load_unstructured_mesh can take either a single mesh or a list of meshes.
+To load multiple meshes, you can do:
+
+.. code-block:: python
+
+   import yt
+   import numpy as np
+
+   coordsMulti = np.array([[0.0, 0.0],
+                           [1.0, 0.0],
+                           [1.0, 1.0],
+                           [0.0, 1.0]], dtype=np.float64)
+
+   connect1 = np.array([[0, 1, 3], ], dtype=np.int64)
+   connect2 = np.array([[1, 2, 3], ], dtype=np.int64)
+
+   data1 = {}
+   data2 = {}
+   data1['connect1', 'test'] = np.array([[0.0, 1.0, 3.0], ], dtype=np.float64)
+   data2['connect2', 'test'] = np.array([[1.0, 2.0, 3.0], ], dtype=np.float64)
+
+   connectList = [connect1, connect2]
+   dataList    = [data1, data2]
+
+   ds = yt.load_unstructured_mesh(connectList, coordsMulti, dataList)
+
+   # only plot the first mesh
+   sl = yt.SlicePlot(ds, 'z', ('connect1', 'test'))
+
+   # only plot the second
+   sl = yt.SlicePlot(ds, 'z', ('connect2', 'test'))
+   
+   # plot both
+   sl = yt.SlicePlot(ds, 'z', ('all', 'test'))
+
+Note that you must respect the field naming convention that fields on the first
+mesh will have the type 'connect1', fields on the second will have 'connect2', etc...
 
 .. rubric:: Caveats
 
@@ -1458,7 +1541,8 @@ more information.
 
 If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
-:ref:`halo_catalog`.
+:ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
+to the other halo catalogs shown here.
 
 .. _rockstar:
 
@@ -1599,6 +1683,39 @@ information.  At this time, halo member particles cannot be loaded.
    ad = ds.all_data()
    # The halo mass
    print(ad["FOF", "particle_mass"])
+
+.. _halocatalog:
+
+HaloCatalog
+^^^^^^^^^^^
+
+These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
+In the case where multiple files were produced, one need only provide the path
+to a single one of them.  The field type for all fields is "halos".  The fields
+available here are similar to other catalogs.  Any addition
+:ref:`halo_catalog_quantities` will also be accessible as fields.
+
++-------------------+---------------------------+
+| HaloCatalog field | yt field name             |
++===================+===========================+
+| halo id           | particle_identifier       |
++-------------------+---------------------------+
+| virial mass       | particle_mass             |
++-------------------+---------------------------+
+| virial radius     | virial_radius             |
++-------------------+---------------------------+
+| halo position     | particle_position_(x,y,z) |
++-------------------+---------------------------+
+| halo velocity     | particle_velocity_(x,y,z) |
++-------------------+---------------------------+
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("catalogs/catalog.0.h5")
+   ad = ds.all_data()
+   # The halo mass
+   print(ad["halos", "particle_mass"])
 
 .. _loading-openpmd-data:
 

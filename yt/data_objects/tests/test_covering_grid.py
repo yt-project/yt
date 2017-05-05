@@ -22,42 +22,42 @@ def test_covering_grid():
             cg = ds.covering_grid(level, [0.0, 0.0, 0.0],
                     dn * ds.domain_dimensions)
             # Test coordinate generation
-            yield assert_equal, np.unique(cg["dx"]).size, 1
+            assert_equal(np.unique(cg["dx"]).size, 1)
             xmi = cg["x"].min()
             xma = cg["x"].max()
             dx = cg["dx"].flat[0:1]
             edges = ds.arr([[0,1],[0,1],[0,1]], 'code_length')
-            yield assert_equal, xmi, edges[0,0] + dx/2.0
-            yield assert_equal, xmi, cg["x"][0,0,0]
-            yield assert_equal, xmi, cg["x"][0,1,1]
-            yield assert_equal, xma, edges[0,1] - dx/2.0
-            yield assert_equal, xma, cg["x"][-1,0,0]
-            yield assert_equal, xma, cg["x"][-1,1,1]
-            yield assert_equal, np.unique(cg["dy"]).size, 1
+            assert_equal(xmi, edges[0,0] + dx/2.0)
+            assert_equal(xmi, cg["x"][0,0,0])
+            assert_equal(xmi, cg["x"][0,1,1])
+            assert_equal(xma, edges[0,1] - dx/2.0)
+            assert_equal(xma, cg["x"][-1,0,0])
+            assert_equal(xma, cg["x"][-1,1,1])
+            assert_equal(np.unique(cg["dy"]).size, 1)
             ymi = cg["y"].min()
             yma = cg["y"].max()
             dy = cg["dy"][0]
-            yield assert_equal, ymi, edges[1,0] + dy/2.0
-            yield assert_equal, ymi, cg["y"][0,0,0]
-            yield assert_equal, ymi, cg["y"][1,0,1]
-            yield assert_equal, yma, edges[1,1] - dy/2.0
-            yield assert_equal, yma, cg["y"][0,-1,0]
-            yield assert_equal, yma, cg["y"][1,-1,1]
-            yield assert_equal, np.unique(cg["dz"]).size, 1
+            assert_equal(ymi, edges[1,0] + dy/2.0)
+            assert_equal(ymi, cg["y"][0,0,0])
+            assert_equal(ymi, cg["y"][1,0,1])
+            assert_equal(yma, edges[1,1] - dy/2.0)
+            assert_equal(yma, cg["y"][0,-1,0])
+            assert_equal(yma, cg["y"][1,-1,1])
+            assert_equal(np.unique(cg["dz"]).size, 1)
             zmi = cg["z"].min()
             zma = cg["z"].max()
             dz = cg["dz"][0]
-            yield assert_equal, zmi, edges[2,0] + dz/2.0
-            yield assert_equal, zmi, cg["z"][0,0,0]
-            yield assert_equal, zmi, cg["z"][1,1,0]
-            yield assert_equal, zma, edges[2,1] - dz/2.0
-            yield assert_equal, zma, cg["z"][0,0,-1]
-            yield assert_equal, zma, cg["z"][1,1,-1]
+            assert_equal(zmi, edges[2,0] + dz/2.0)
+            assert_equal(zmi, cg["z"][0,0,0])
+            assert_equal(zmi, cg["z"][1,1,0])
+            assert_equal(zma, edges[2,1] - dz/2.0)
+            assert_equal(zma, cg["z"][0,0,-1])
+            assert_equal(zma, cg["z"][1,1,-1])
             # Now we test other attributes
-            yield assert_equal, cg["ones"].max(), 1.0
-            yield assert_equal, cg["ones"].min(), 1.0
-            yield assert_equal, cg["grid_level"], level
-            yield assert_equal, cg["cell_volume"].sum(), ds.domain_width.prod()
+            assert_equal(cg["ones"].max(), 1.0)
+            assert_equal(cg["ones"].min(), 1.0)
+            assert_equal(cg["grid_level"], level)
+            assert_equal(cg["cell_volume"].sum(), ds.domain_width.prod())
             for g in ds.index.grids:
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
@@ -65,7 +65,7 @@ def test_covering_grid():
                     f = cg["density"][dn*di[0]+i:dn*(di[0]+dd[0])+i:dn,
                                       dn*di[1]+i:dn*(di[1]+dd[1])+i:dn,
                                       dn*di[2]+i:dn*(di[2]+dd[2])+i:dn]
-                    yield assert_equal, f, g["density"]
+                    assert_equal(f, g["density"])
 
 def test_smoothed_covering_grid():
     # We decompose in different ways
@@ -75,9 +75,9 @@ def test_smoothed_covering_grid():
             dn = ds.refine_by**level 
             cg = ds.smoothed_covering_grid(level, [0.0, 0.0, 0.0],
                     dn * ds.domain_dimensions)
-            yield assert_equal, cg["ones"].max(), 1.0
-            yield assert_equal, cg["ones"].min(), 1.0
-            yield assert_equal, cg["cell_volume"].sum(), ds.domain_width.prod()
+            assert_equal(cg["ones"].max(), 1.0)
+            assert_equal(cg["ones"].min(), 1.0)
+            assert_equal(cg["cell_volume"].sum(), ds.domain_width.prod())
             for g in ds.index.grids:
                 if level != g.Level: continue
                 di = g.get_global_startindex()
@@ -86,7 +86,7 @@ def test_smoothed_covering_grid():
                     f = cg["density"][dn*di[0]+i:dn*(di[0]+dd[0])+i:dn,
                                       dn*di[1]+i:dn*(di[1]+dd[1])+i:dn,
                                       dn*di[2]+i:dn*(di[2]+dd[2])+i:dn]
-                    yield assert_equal, f, g["density"]
+                    assert_equal(f, g["density"])
 
 
 def test_arbitrary_grid():
@@ -111,7 +111,18 @@ def test_arbitrary_grid():
             obj = ds.arbitrary_grid(LE, RE, dims)
             deposited_mass = obj["deposit", "all_density"].sum() * volume
 
-            yield assert_equal, deposited_mass, ds.quan(1.0, 'g')
+            assert_equal(deposited_mass, ds.quan(1.0, 'g'))
+
+            LE = np.array([0.00, 0.00, 0.00])
+            RE = np.array([0.05, 0.05, 0.05])
+            dims = np.array([ncells, ncells, ncells])
+
+            obj = ds.arbitrary_grid(LE, RE, dims)
+
+            deposited_mass = obj["deposit", "all_density"].sum()
+
+            assert_equal(deposited_mass, 0)
+
 
     # Test that we get identical results to the covering grid for unigrid data.
     # Testing AMR data is much harder.
@@ -122,7 +133,7 @@ def test_arbitrary_grid():
                     2**ref_level * ds.domain_dimensions)
             ag = ds.arbitrary_grid([0.0, 0.0, 0.0], [1.0, 1.0, 1.0],
                     2**ref_level * ds.domain_dimensions)
-            yield assert_almost_equal, cg["density"], ag["density"]
+            assert_almost_equal(cg["density"], ag["density"])
 
 output_00080 = "output_00080/info_00080.txt"
 @requires_file(output_00080)

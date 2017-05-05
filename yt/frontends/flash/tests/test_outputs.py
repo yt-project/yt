@@ -33,7 +33,7 @@ sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 @requires_ds(sloshing, big_data=True)
 def test_sloshing():
     ds = data_dir_load(sloshing)
-    yield assert_equal, str(ds), "sloshing_low_res_hdf5_plt_cnt_0300"
+    assert_equal(str(ds), "sloshing_low_res_hdf5_plt_cnt_0300")
     for test in small_patch_amr(ds, _fields):
         test_sloshing.__name__ = test.description
         yield test
@@ -44,7 +44,7 @@ wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 @requires_ds(wt)
 def test_wind_tunnel():
     ds = data_dir_load(wt)
-    yield assert_equal, str(ds), "windtunnel_4lev_hdf5_plt_cnt_0030"
+    assert_equal(str(ds), "windtunnel_4lev_hdf5_plt_cnt_0030")
     for test in small_patch_amr(ds, _fields_2d):
         test_wind_tunnel.__name__ = test.description
         yield test
@@ -55,8 +55,7 @@ def test_FLASHDataset():
 
 @requires_file(sloshing)
 def test_units_override():
-    for test in units_override_check(sloshing):
-        yield test
+    units_override_check(sloshing)
 
 fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 

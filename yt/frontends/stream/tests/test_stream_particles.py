@@ -64,8 +64,8 @@ def test_stream_particles():
     number_of_particles1 = np.sum([grid.NumberOfParticles for grid in ug1.index.grids])
     number_of_particles2 = np.sum([grid.NumberOfParticles for grid in ug2.index.grids])
 
-    yield assert_equal, number_of_particles1, num_particles
-    yield assert_equal, number_of_particles1, number_of_particles2
+    assert_equal(number_of_particles1, num_particles)
+    assert_equal(number_of_particles1, number_of_particles2)
 
     # Check to make sure the fields have been defined correctly
 
@@ -87,7 +87,7 @@ def test_stream_particles():
 
     amr1 = refine_amr(ug1, rc, fo, 3)
     for field in sorted(ug1.field_list):
-        yield assert_equal, (field in amr1.field_list), True
+        assert_equal((field in amr1.field_list), True)
 
     grid_data = []
 
@@ -112,8 +112,8 @@ def test_stream_particles():
     number_of_particles1 = [grid.NumberOfParticles for grid in amr1.index.grids]
     number_of_particles2 = [grid.NumberOfParticles for grid in amr2.index.grids]
 
-    yield assert_equal, np.sum(number_of_particles1), num_particles
-    yield assert_equal, number_of_particles1, number_of_particles2
+    assert_equal(np.sum(number_of_particles1), num_particles)
+    assert_equal(number_of_particles1, number_of_particles2)
 
     assert amr1._get_field_info("all", "particle_position_x").particle_type
     assert amr1._get_field_info("all", "particle_position_y").particle_type

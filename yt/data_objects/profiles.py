@@ -708,7 +708,7 @@ class ParticleProfile(Profile2D):
                  self.GridDimensions,
                  cell_size)
 
-            locs = storage.values[:, :, fi] > 0.0
+            locs = storage.values[:, :, fi] != 0.0
             storage.used[locs] = True
 
             if self.weight_field is not None:

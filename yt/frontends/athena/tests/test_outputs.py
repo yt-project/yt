@@ -33,7 +33,7 @@ cloud = "ShockCloud/id0/Cloud.0050.vtk"
 @requires_ds(cloud)
 def test_cloud():
     ds = data_dir_load(cloud)
-    yield assert_equal, str(ds), "Cloud.0050"
+    assert_equal(str(ds), "Cloud.0050")
     for test in small_patch_amr(ds, _fields_cloud):
         test_cloud.__name__ = test.description
         yield test
@@ -44,7 +44,7 @@ blast = "MHDBlast/id0/Blast.0100.vtk"
 @requires_ds(blast)
 def test_blast():
     ds = data_dir_load(blast)
-    yield assert_equal, str(ds), "Blast.0100"
+    assert_equal(str(ds), "Blast.0100")
     for test in small_patch_amr(ds, _fields_blast):
         test_blast.__name__ = test.description
         yield test
@@ -73,7 +73,7 @@ stripping = "RamPressureStripping/id0/rps.0062.vtk"
 @requires_ds(stripping, big_data=True)
 def test_stripping():
     ds = data_dir_load(stripping, kwargs={"units_override":uo_stripping})
-    yield assert_equal, str(ds), "rps.0062"
+    assert_equal(str(ds), "rps.0062")
     for test in small_patch_amr(ds, _fields_stripping):
         test_stripping.__name__ = test.description
         yield test
@@ -100,12 +100,16 @@ def test_nprocs():
     assert_equal(ds3.time_unit, u.Myr)
     assert_equal(ds3.mass_unit, 1e14*u.Msun)
 
-    yield assert_equal, sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure")
-    yield assert_allclose_units, sp1.quantities.total_quantity("pressure"), sp2.quantities.total_quantity("pressure")
+    assert_equal(sp1.quantities.extrema("pressure"),
+                 sp2.quantities.extrema("pressure"))
+    assert_allclose_units(sp1.quantities.total_quantity("pressure"),
+                          sp2.quantities.total_quantity("pressure"))
     for ax in "xyz":
-        yield assert_equal, sp1.quantities.extrema("velocity_%s" % ax), sp2.quantities.extrema("velocity_%s" % ax)
-    yield assert_allclose_units, sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
-    yield assert_equal, prj1["density"], prj2["density"]
+        assert_equal(sp1.quantities.extrema("velocity_%s" % ax),
+                     sp2.quantities.extrema("velocity_%s" % ax))
+    assert_allclose_units(sp1.quantities.bulk_velocity(),
+                          sp2.quantities.bulk_velocity())
+    assert_equal(prj1["density"], prj2["density"])
 
     ytcfg["yt","skip_dataset_cache"] = "False"
 

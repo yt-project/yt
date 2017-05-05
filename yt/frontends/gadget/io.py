@@ -306,7 +306,7 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         if name == "ParticleIDs":
             dt = "uint32"
         else:
-            dt = "float32"
+            dt = self._float_type
         if name in self._vector_fields:
             count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count = count)
@@ -319,11 +319,13 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         count = sum(data_file.total_particles.values())
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
+        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        self._field_size = np.dtype(self._float_type).itemsize
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
             # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype = 'float32', count = count*3)
+            pp = np.fromfile(f, dtype=self._float_type, count=count*3)
             pp.shape = (count, 3)
         regions.add_data_file(pp, data_file.file_id, data_file.ds.filter_bbox)
         morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE,
@@ -336,7 +338,6 @@ class IOHandlerGadgetBinary(BaseIOHandler):
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints
-    _field_size = 4
     def _calculate_field_offsets(self, field_list, pcount,
                                  offset, file_size = None):
         # field_list is (ftype, fname) but the blocks are ordered

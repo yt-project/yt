@@ -216,6 +216,17 @@ class Unit(Expr):
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
+        elif hasattr(unit_expr, 'units') and hasattr(unit_expr, 'value'):
+            # something that looks like a YTArray, grab the unit and value
+            if unit_expr.shape != ():
+                raise UnitParseError(
+                    'Cannot create a unit from a non-scalar YTArray, received: '
+                    '%s' % (unit_expr, ))
+            value = unit_expr.value
+            if value == 1:
+                unit_expr = unit_expr.units.expr
+            else:
+                unit_expr = unit_expr.value*unit_expr.units.expr
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \

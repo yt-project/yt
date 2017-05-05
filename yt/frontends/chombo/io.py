@@ -199,11 +199,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
 def parse_orion_sinks(fn):
     '''
-
     Orion sink particles are stored in text files. This function
     is for figuring what particle fields are present based on the
-    number of entries per line in the *.sink file.
-
+    number of entries per line in the \*.sink file.
     '''
 
     # Figure out the format of the particle file

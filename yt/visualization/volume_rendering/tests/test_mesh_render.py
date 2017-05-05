@@ -40,6 +40,8 @@ def surface_mesh_render():
 
     ds = fake_tetrahedral_ds()
     for field in ds.field_list:
+        if field[0] == 'all':
+            continue
         sc = Scene()
         sc.add_source(MeshSource(ds, field))
         sc.add_camera()
@@ -48,6 +50,8 @@ def surface_mesh_render():
 
     ds = fake_hexahedral_ds()
     for field in ds.field_list:
+        if field[0] == 'all':
+            continue
         sc = Scene()
         sc.add_source(MeshSource(ds, field))
         sc.add_camera()
@@ -164,6 +168,8 @@ def tet10_render(engine, field):
     ytcfg["yt", "ray_tracing_engine"] = engine
     ds = data_dir_load(tet10, kwargs={'step':-1})
     sc = create_scene(ds, field)
+    ms = sc.get_source(0)
+    ms.color_bounds = (-.01, .2)
     im = sc.render()
     return compare(ds, im, "%s_render_answers_tet10_%s_%s" %
                    (engine, field[0], field[1]))

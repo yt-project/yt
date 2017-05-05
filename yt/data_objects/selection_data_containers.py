@@ -268,7 +268,7 @@ class YTSlice(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
-    _container_fields = ("px", "py", "pdx", "pdy")
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
         YTSelectionContainer2D.__init__(self, axis, ds,
@@ -285,10 +285,14 @@ class YTSlice(YTSelectionContainer2D):
             return self._current_chunk.fcoords[:,xax]
         elif field == "py":
             return self._current_chunk.fcoords[:,yax]
+        elif field == "pz":
+            return self._current_chunk.fcoords[:,self.axis]
         elif field == "pdx":
             return self._current_chunk.fwidth[:,xax] * 0.5
         elif field == "pdy":
             return self._current_chunk.fwidth[:,yax] * 0.5
+        elif field == "pdz":
+            return self._current_chunk.fwidth[:,self.axis] * 0.5            
         else:
             raise KeyError(field)
 

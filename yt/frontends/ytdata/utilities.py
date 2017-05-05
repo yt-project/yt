@@ -239,4 +239,9 @@ def _yt_array_hdf5_attr(fh, attr, val):
         val = np.array(val)
         if val.dtype.kind == 'U':
             val = val.astype('|S')
-    fh.attrs[str(attr)] = val
+    try:
+        fh.attrs[str(attr)] = val
+    # This is raised if no HDF5 equivalent exists.
+    # In that case, save its string representation.
+    except TypeError:
+        fh.attrs[str(attr)] = str(val)

@@ -257,7 +257,7 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        if kwargs.get("particle_type", False):
+        if sampling_type == 'particle':
             ftype = 'all'
         else:
             ftype = self.ds.default_fluid_type

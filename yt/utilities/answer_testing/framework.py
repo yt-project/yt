@@ -992,21 +992,18 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
 def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
     if not can_run_ds(ds):
         return
-    yield AssertWrapper("%s_string_representation" % str(ds), assert_equal,
-                        str(ds), ds_str_repr)
+    assert_equal(str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    yield AssertWrapper("%s_all_data_part_shape" % str(ds), assert_equal,
-                        dd["particle_position"].shape, (ds_nparticles, 3))
+    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
-    yield AssertWrapper("%s_all_data_part_total" % str(ds), assert_equal,
-                        tot, ds_nparticles)
+    assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
         dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        yield AssertWrapper("%s_mask_test" % str(ds), assert_equal, s1, s2)
+        assert_equal(s1, s2)
         for field, weight_field in fields.items():
             if field[0] in ds.particle_types:
                 particle_type = True
@@ -1028,17 +1025,3 @@ def create_obj(ds, obj_type):
     cls = getattr(ds, obj_type[0])
     obj = cls(*obj_type[1])
     return obj
-
-class AssertWrapper(object):
-    """
-    Used to wrap a numpy testing assertion, in order to provide a useful name
-    for a given assertion test.
-    """
-    def __init__(self, description, *args):
-        # The key here is to add a description attribute, which nose will pick
-        # up.
-        self.args = args
-        self.description = description
-
-    def __call__(self):
-        self.args[0](*self.args[1:])

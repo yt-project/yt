@@ -54,7 +54,7 @@ def test_sphere_selector():
                              ds.domain_right_edge-ds.domain_left_edge,
                              ds.periodicity)
         # WARNING: this value has not been externally verified
-        yield assert_array_less, dist, 0.25
+        assert_array_less(dist, 0.25)
 
 def test_ellipsoid_selector():
     # generate fake data with a number of non-cubical grids
@@ -85,7 +85,7 @@ def test_ellipsoid_selector():
                              ds.domain_right_edge-ds.domain_left_edge,
                              ds.periodicity)
         # WARNING: this value has not been externally verified
-        yield assert_array_less, dist, ratios[0]
+        assert_array_less(dist, ratios[0])
 
     # aligned ellipsoid tests
     ratios = [0.25, 0.1, 0.1]
@@ -104,7 +104,7 @@ def test_ellipsoid_selector():
                                    ds.domain_right_edge-ds.domain_left_edge,
                                    ds.periodicity)/ratios[i])**2
         # WARNING: this value has not been externally verified
-        yield assert_array_less, dist2, 1.0
+        assert_array_less(dist2, 1.0)
 
 def test_slice_selector():
     # generate fake data with a number of non-cubical grids
@@ -116,9 +116,9 @@ def test_slice_selector():
             data = ds.slice(i, coord)
             data.get_data()
             v = data[d].to_ndarray()
-            yield assert_equal, data.shape[0], 64**2
-            yield assert_equal, data["ones"].shape[0], 64**2
-            yield assert_array_less, np.abs(v - coord), 1./128.+1e-6
+            assert_equal(data.shape[0], 64**2)
+            assert_equal(data["ones"].shape[0], 64**2)
+            assert_array_less(np.abs(v - coord), 1./128.+1e-6)
 
 def test_cutting_plane_selector():
     # generate fake data with a number of non-cubical grids
@@ -144,7 +144,7 @@ def test_cutting_plane_selector():
             cells1 = np.lexsort((data['x'],data['y'],data['z']))
             cells2 = np.lexsort((data2['x'],data2['y'],data2['z']))
             for d2 in 'xyz':
-                yield assert_equal, data[d2][cells1], data2[d2][cells2]
+                assert_equal(data[d2][cells1], data2[d2][cells2])
 
 #def test_region_selector():
 #

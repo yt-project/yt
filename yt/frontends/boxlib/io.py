@@ -22,6 +22,12 @@ from yt.utilities.io_handler import \
 from yt.funcs import mylog
 from yt.frontends.chombo.io import parse_orion_sinks
 
+def _remove_raw(all_fields, raw_fields):
+    centered_fields = set(all_fields)
+    for raw in raw_fields:
+        centered_fields.discard(raw)
+    return list(centered_fields)
+
 class IOHandlerBoxlib(BaseIOHandler):
 
     _dataset_type = "boxlib_native"
@@ -31,24 +37,57 @@ class IOHandlerBoxlib(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any((ftype != "boxlib" for ftype, fname in fields)):
+        if any(( not (ftype == "boxlib" or ftype == 'raw') for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
+        raw_fields = []
         for field in fields:
-            rv[field] = np.empty(size, dtype="float64")
+            if field[0] == "raw":
+                nodal_flag = self.ds.nodal_flags[field[1]]
+                num_nodes = 2**sum(nodal_flag)
+                rv[field] = np.empty((size, num_nodes), dtype="float64")
+                raw_fields.append(field)
+            else:
+                rv[field] = np.empty(size, dtype="float64")
+        centered_fields = _remove_raw(fields, raw_fields)
         ng = sum(len(c.objs) for c in chunks)
         mylog.debug("Reading %s cells of %s fields in %s grids",
                     size, [f2 for f1, f2 in fields], ng)
         ind = 0
         for chunk in chunks:
-            data = self._read_chunk_data(chunk, fields)
+            data = self._read_chunk_data(chunk, centered_fields)
             for g in chunk.objs:
                 for field in fields:
-                    ds = data[g.id].pop(field)
+                    if field in centered_fields:
+                        ds = data[g.id].pop(field)
+                    else:
+                        ds = self._read_raw_field(g, field)
                     nd = g.select(selector, ds, rv[field], ind) # caches
                 ind += nd
                 data.pop(g.id)
         return rv
+
+    def _read_raw_field(self, grid, field):
+        field_name = field[1]
+        base_dir = self.ds.index.raw_file
+
+        box_list = self.ds.index.raw_field_map[field_name][0]
+        fn_list = self.ds.index.raw_field_map[field_name][1]
+        offset_list = self.ds.index.raw_field_map[field_name][2]
+
+        filename = base_dir + fn_list[grid.id]
+        offset = offset_list[grid.id]
+        box = box_list[grid.id]
+        
+        lo = box[0]
+        hi = box[1]
+        shape = hi - lo + 1
+        with open(filename, "rb") as f:
+            f.seek(offset)
+            f.readline()  # always skip the first line
+            arr = np.fromfile(f, 'float64', np.product(shape))
+            arr = arr.reshape(shape, order='F')
+        return arr
 
     def _read_chunk_data(self, chunk, fields):
         data = {}
@@ -126,7 +165,11 @@ class IOHandlerBoxlib(BaseIOHandler):
                 rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
                 x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
                 y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
+                if (grid.ds.dimensionality == 2):
+                    z = np.ones_like(y)
+                    z *= 0.5*(grid.LeftEdge[2] + grid.RightEdge[2])
+                else:
+                    z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
                 mask = selector.select_points(x, y, z, 0.0)
 
                 if mask is None:
@@ -150,7 +193,11 @@ class IOHandlerBoxlib(BaseIOHandler):
                 rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
                 x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
                 y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
+                if (grid.ds.dimensionality == 2):
+                    z = np.ones_like(y)
+                    z *= 0.5*(grid.LeftEdge[2] + grid.RightEdge[2])
+                else:
+                    z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
                 mask = selector.select_points(x, y, z, 0.0)
 
                 if mask is None:

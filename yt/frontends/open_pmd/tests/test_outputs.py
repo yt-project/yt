@@ -64,14 +64,16 @@ def test_3d_out():
     domain_width = [2.08e-05, 2.08e-05, 2.01e-05] * np.ones_like(ds.domain_left_edge)
 
     assert isinstance(ds, OpenPMDDataset)
-    yield assert_equal, str(ds), "data00000100.h5"
-    yield assert_equal, ds.dimensionality, 3
-    yield assert_equal, ds.particle_types_raw, ('io',)
+    assert_equal(str(ds), "data00000100.h5")
+    assert_equal(ds.dimensionality, 3)
+    assert_equal(ds.particle_types_raw, ('io',))
     assert "all" in ds.particle_unions
-    yield assert_array_equal, ds.field_list, field_list
-    yield assert_array_equal, ds.domain_dimensions, domain_dimensions
-    yield assert_almost_equal, ds.current_time, 3.28471214521e-14 * np.ones_like(ds.current_time)
-    yield assert_almost_equal, ds.domain_right_edge - ds.domain_left_edge, domain_width
+    assert_array_equal(ds.field_list, field_list)
+    assert_array_equal(ds.domain_dimensions, domain_dimensions)
+    assert_almost_equal(ds.current_time,
+                        3.28471214521e-14 * np.ones_like(ds.current_time))
+    assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge,
+                        domain_width)
 
 
 @requires_file(twoD)
@@ -127,11 +129,13 @@ def test_2d_out():
     domain_width = [3.06e-05, 2.01e-05, 1e+0] * np.ones_like(ds.domain_left_edge)
 
     assert isinstance(ds, OpenPMDDataset)
-    yield assert_equal, str(ds), "data00000100.h5"
-    yield assert_equal, ds.dimensionality, 2
-    yield assert_equal, ds.particle_types_raw, ('Hydrogen1+', 'electrons')
+    assert_equal(str(ds), "data00000100.h5")
+    assert_equal(ds.dimensionality, 2)
+    assert_equal(ds.particle_types_raw, ('Hydrogen1+', 'electrons'))
     assert "all" in ds.particle_unions
-    yield assert_array_equal, ds.field_list, field_list
-    yield assert_array_equal, ds.domain_dimensions, domain_dimensions
-    yield assert_almost_equal, ds.current_time, 3.29025596712e-14 * np.ones_like(ds.current_time)
-    yield assert_almost_equal, ds.domain_right_edge - ds.domain_left_edge, domain_width
+    assert_array_equal(ds.field_list, field_list)
+    assert_array_equal(ds.domain_dimensions, domain_dimensions)
+    assert_almost_equal(ds.current_time,
+                        3.29025596712e-14 * np.ones_like(ds.current_time))
+    assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge,
+                        domain_width)

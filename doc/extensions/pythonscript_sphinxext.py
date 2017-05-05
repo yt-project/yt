@@ -1,4 +1,5 @@
 import tempfile
+import time
 import os
 import glob
 import shutil
@@ -37,12 +38,16 @@ class PythonScriptDirective(Directive):
             f.write(content)
 
         # Use sphinx logger?
+        uid = uuid.uuid4().hex[:8]
         print("")
+        print(">> Contents of the script: %s" % uid)
         print(content)
         print("")
 
+        start = time.time()
         subprocess.call(['python', 'temp.py'])
-
+        print(">> The execution of the script %s took %f s" %
+              (uid, time.time() - start))
         text = ''
         for im in sorted(glob.glob("*.png")):
             text += get_image_tag(im, image_dir, image_rel_dir)
