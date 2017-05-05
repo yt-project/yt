@@ -222,9 +222,6 @@ class GDFDataset(Dataset):
                 # comparisons are insufficient
                 unit = Unit(unit, registry=self.unit_registry)
                 if unit_name.endswith('_unit') and unit.dimensions is sympy_one:
-                    un = unit_name[:-5]
-                    un = un.replace('magnetic', 'magnetic_field', 1)
-                    unit = self.unit_system[un]
                     setdefaultattr(self, unit_name, self.quan(value, unit))
                 setdefaultattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
