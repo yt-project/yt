@@ -922,7 +922,8 @@ class Dataset(object):
 
     def _assign_unit_system(self, unit_system):
         current_mks_unit = None
-        if hasattr(self, 'magnetic_unit'):
+        magnetic_unit = getattr(self, 'magnetic_unit', None)
+        if magnetic_unit is not None:
             # if the magnetic unit is in T, we need to create the code unit
             # system as an MKS-like system
             if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
