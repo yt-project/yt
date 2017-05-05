@@ -123,6 +123,12 @@ class TestProfilePlotSave(unittest.TestCase):
         cls.phases = phases
         cls.ds = test_ds
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.profiles
+        del cls.phases
+        del cls.ds
+
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()

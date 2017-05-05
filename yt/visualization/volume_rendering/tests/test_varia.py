@@ -46,6 +46,7 @@ class VariousVRTests(TestCase):
         if self.use_tmpdir:
             os.chdir(self.curdir)
             shutil.rmtree(self.tmpdir)
+        del self.ds
 
     def test_simple_scene_creation(self):
         yt.create_scene(self.ds)
@@ -72,7 +73,7 @@ class VariousVRTests(TestCase):
         im, sc = yt.volume_render(self.ds)
 
         angle = 2 * np.pi
-        frames = 10
+        frames = 4
         for i in range(frames):
             sc.camera.yaw(angle / frames)
             sc.render()

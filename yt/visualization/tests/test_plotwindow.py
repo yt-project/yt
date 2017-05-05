@@ -266,6 +266,10 @@ class TestSetWidth(unittest.TestCase):
             self.ds = fake_random_ds(64)
             self.slc = SlicePlot(self.ds, 0, "density")
 
+    def tearDown(self):
+        del self.ds
+        del self.slc
+
     def _assert_05cm(self):
         assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
                          [(YTQuantity(0.25, 'cm'), YTQuantity(0.75, 'cm')),
@@ -353,17 +357,19 @@ class TestPlotWindowSave(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
-        del self.ds
-        del self.slc
-        del self.slices
-        del self.projections
-        del self.projections_ds
-        del self.projections_c
-        del self.projections_wf
-        del self.projections_w
-        del self.projection_m
-        del self.offaxis_slice
-        del self.offaxis_proj
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.slc
+        del cls.slices
+        del cls.projections
+        del cls.projections_ds
+        del cls.projections_c
+        del cls.projections_wf
+        del cls.projections_w
+        del cls.projection_m
+        del cls.offaxis_slice
+        del cls.offaxis_proj
 
     @parameterized.expand(
         param.explicit(item)

@@ -209,6 +209,11 @@ class TestParticlePhasePlotSave(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
+    @classmethod
+    def tearDownClass(cls):
+        del cls.ds
+        del cls.particle_phases
+
     @parameterized.expand(param.explicit((fname, )) for fname in TEST_FLNMS)
     def test_particle_phase_plot(self, fname):
         for p in self.particle_phases:
@@ -266,6 +271,15 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+
+    @classmethod
+    def tearDownClass(cls):
+        del cls.pplots
+        del cls.pplots_ds
+        del cls.pplots_c
+        del cls.pplots_wf
+        del cls.pplots_w
+        del cls.pplots_m
 
     @parameterized.expand(
         param.explicit(item)
