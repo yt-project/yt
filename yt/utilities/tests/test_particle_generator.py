@@ -13,7 +13,7 @@ from yt.units.yt_array import uconcatenate
 
 def test_particle_generator():
     # First generate our dataset
-    domain_dims = (64, 64, 64)
+    domain_dims = (32, 32, 32)
     dens = np.zeros(domain_dims) + 0.1
     temp = 4.*np.ones(domain_dims)
     fields = {"density": (dens, 'code_mass/code_length**3'),
@@ -47,8 +47,11 @@ def test_particle_generator():
 
     tags = uconcatenate([grid["particle_index"] for grid in ds.index.grids])
     assert(np.unique(tags).size == num_particles)
+
+    del tags
+    
     # Set up a lattice of particles
-    pdims = np.array([64,64,64])
+    pdims = np.array([32,32,32])
     def new_indices() :
         # We just add new indices onto the existing ones
         return np.arange((np.product(pdims)))+num_particles
@@ -75,6 +78,9 @@ def test_particle_generator():
     assert_almost_equal( ypos, ypred)
     assert_almost_equal( zpos, zpred)
 
+    del xpos, ypos, zpos
+    del xpred, ypred, zpred
+
     #Test the number of particles again
     particles2.apply_to_stream()
     particles_per_grid2 = [grid.NumberOfParticles for grid in ds.index.grids]
@@ -89,12 +95,17 @@ def test_particle_generator():
     tags.sort()
     assert_equal(tags, np.arange((np.product(pdims)+num_particles)))
 
+    del tags
+
     # Test that the old particles have zero for the new field
     old_particle_temps = [grid["particle_gas_temperature"][:particles_per_grid1[i]]
                           for i, grid in enumerate(ds.index.grids)]
     test_zeros = [np.zeros((particles_per_grid1[i])) 
                   for i, grid in enumerate(ds.index.grids)]
     assert_equal(old_particle_temps, test_zeros)
+
+    del old_particle_temps
+    del test_zeros
 
     #Now dump all of these particle fields out into a dict
     pdata = {}
