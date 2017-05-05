@@ -310,45 +310,7 @@ class TestSetWidth(unittest.TestCase):
 
 
 class TestPlotWindowSave(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        test_ds = fake_random_ds(64)
-        normal = [1, 1, 1]
-        ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
-        projections = []
-        projections_ds = []
-        projections_c = []
-        projections_wf = []
-        projections_w = {}
-        projections_m = []
-        for dim in range(3):
-            projections.append(ProjectionPlot(test_ds, dim, "density"))
-            projections_ds.append(ProjectionPlot(test_ds, dim, "density",
-                                                 data_source=ds_region))
-        for center in CENTER_SPECS:
-            projections_c.append(ProjectionPlot(test_ds, dim, "density",
-                                                center=center))
-        for width in WIDTH_SPECS:
-            projections_w[width] = ProjectionPlot(test_ds, dim, 'density',
-                                                  width=width)
-        for wf in WEIGHT_FIELDS:
-            projections_wf.append(ProjectionPlot(test_ds, dim, "density",
-                                                 weight_field=wf))
-        for m in PROJECTION_METHODS:
-            projections_m.append(ProjectionPlot(test_ds, dim, "density",
-                                                 method=m))
-
-        cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
-        cls.projections = projections
-        cls.projections_ds = projections_ds
-        cls.projections_c = projections_c
-        cls.projections_wf = projections_wf
-        cls.projections_w = projections_w
-        cls.projections_m = projections_m
-        cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
-        cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
-
+        
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()
@@ -358,77 +320,76 @@ class TestPlotWindowSave(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
-    @classmethod
-    def tearDownClass(cls):
-        del cls.slc
-        del cls.slices
-        del cls.projections
-        del cls.projections_ds
-        del cls.projections_c
-        del cls.projections_wf
-        del cls.projections_w
-        del cls.projection_m
-        del cls.offaxis_slice
-        del cls.offaxis_proj
+    def test_slice_plot(self):
+        test_ds = fake_random_ds(16)
+        for dim in range(3):
+            slc = SlicePlot(test_ds, dim, 'density')
+            for fname in TEST_FLNMS:
+                assert assert_fname(slc.save(fname)[0])
 
-    @parameterized.expand(
-        param.explicit(item)
-        for item in itertools.product(range(3), TEST_FLNMS))
-    def test_slice_plot(self, dim, fname):
-        assert assert_fname(self.slices[dim].save(fname)[0])
+    def test_repr_html(self):
+        test_ds = fake_random_ds(16)
+        slc = SlicePlot(test_ds, 0, 'density')
+        slc._repr_html_()
 
-    @parameterized.expand(
-        param.explicit(item)
-        for item in itertools.product(range(3), TEST_FLNMS))
-    def test_projection_plot(self, dim, fname):
-        assert assert_fname(self.projections[dim].save(fname)[0])
+    def test_projection_plot(self):
+        test_ds = fake_random_ds(16)
+        for dim in range(3):
+            proj = ProjectionPlot(test_ds, dim, 'density')
+            for fname in TEST_FLNMS:
+                assert assert_fname(proj.save(fname)[0])
 
-    @parameterized.expand([(0, ), (1, ), (2, )])
-    def test_projection_plot_ds(self, dim):
-        self.projections_ds[dim].save()
+    def test_projection_plot_ds(self):
+        test_ds = fake_random_ds(16)
+        reg = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+        for dim in range(3):
+            proj = ProjectionPlot(test_ds, dim, 'density', data_source=reg)
+            proj.save()
 
-    @parameterized.expand([(i, ) for i in range(len(CENTER_SPECS))])
-    def test_projection_plot_c(self, dim):
-        self.projections_c[dim].save()
+    def test_projection_plot_c(self):
+        test_ds = fake_random_ds(16)
+        for center in CENTER_SPECS:
+            proj = ProjectionPlot(test_ds, 0, 'density', center=center)
+            proj.save()
 
-    @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
-    def test_projection_plot_wf(self, dim):
-        self.projections_wf[dim].save()
+    def test_projection_plot_wf(self):
+        test_ds = fake_random_ds(16)
+        for wf in WEIGHT_FIELDS:
+            proj = ProjectionPlot(test_ds, 0, 'density', weight_field=wf)
+            proj.save()
 
-    @parameterized.expand([(i, ) for i in range(len(PROJECTION_METHODS))])
-    def test_projection_plot_m(self, dim):
-        self.projections_m[dim].save()
+    def test_projection_plot_m(self):
+        test_ds = fake_random_ds(16)
+        for method in PROJECTION_METHODS:
+            proj = ProjectionPlot(test_ds, 0, 'density', method=method)
+            proj.save()
 
-    @parameterized.expand(
-        param.explicit((fname, ))
-        for fname in TEST_FLNMS)
-    def test_offaxis_slice_plot(self, fname):
-        assert assert_fname(self.offaxis_slice.save(fname)[0])
+    def test_offaxis_slice_plot(self):
+        test_ds = fake_random_ds(16)
+        slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
+        for fname in TEST_FLNMS:
+            assert assert_fname(slc.save(fname)[0])
 
-    @parameterized.expand(
-        param.explicit((fname, ))
-        for fname in TEST_FLNMS)
-    def test_offaxis_projection_plot(self, fname):
-        assert assert_fname(self.offaxis_proj.save(fname)[0])
+    def test_offaxis_projection_plot(self):
+        test_ds = fake_random_ds(16)
+        prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
+        for fname in TEST_FLNMS:
+            assert assert_fname(prj.save(fname)[0])
 
-    def test_ipython_repr(self):
-        self.slices[0]._repr_html_()
+    def test_creation_with_width(self):
+        test_ds = fake_random_ds(16)
+        for width in WIDTH_SPECS:
+            xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
+            plot = ProjectionPlot(test_ds, 0, 'density', width=width)
 
-    @parameterized.expand(
-        param.explicit((width, ))
-        for width in WIDTH_SPECS)
-    def test_creation_with_width(self, width):
-        xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
-        plot = self.projections_w[width]
+            xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
+            ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
+            pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-        xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
-        ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
-        pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
-
-        [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-        [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-        [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-        assert_true(aun == plot._axes_unit_names)
+            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
+            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
+            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+            assert_true(aun == plot._axes_unit_names)
 
 def test_on_off_compare():
     # fake density field that varies in the x-direction only
