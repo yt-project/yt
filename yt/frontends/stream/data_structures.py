@@ -806,7 +806,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...          right_edge = [1.0, 1.0, 1.],
     ...          level = 0,
     ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0)
+    ...          number_of_particles = 0),
     ...     dict(left_edge = [0.25, 0.25, 0.25],
     ...          right_edge = [0.75, 0.75, 0.75],
     ...          level = 1,
