@@ -91,7 +91,7 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_info = {}
         self.field_data = YTFieldData()
         if weight_field is not None:
-            self.variance = YTFieldData()
+            self.standard_deviation = YTFieldData()
             weight_field = self.data_source._determine_fields(weight_field)[0]
         self.weight_field = weight_field
         self.field_units = {}
@@ -153,13 +153,13 @@ class ProfileND(ParallelAnalysisInterface):
 
         all_val = np.zeros_like(temp_storage.values)
         all_mean = np.zeros_like(temp_storage.mvalues)
-        all_var = np.zeros_like(temp_storage.qvalues)
+        all_std = np.zeros_like(temp_storage.qvalues)
         all_weight = np.zeros_like(temp_storage.weight_values)
         all_used = np.zeros_like(temp_storage.used, dtype="bool")
 
-        # Combine the weighted mean and variance from each processor.
-        # For two samples with total weight, mean, and variance 
-        # given by w, m, and s, their combined mean and variance are:
+        # Combine the weighted mean and standard_deviation from each processor.
+        # For two samples with total weight, mean, and standard_deviation 
+        # given by w, m, and s, their combined mean and standard_deviation are:
         # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
         # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
         #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
@@ -180,8 +180,8 @@ class ProfileND(ParallelAnalysisInterface):
                    all_store[p].weight_values)[all_store[p].used] / \
                    all_weight[all_store[p].used]
 
-                all_var[..., i][all_store[p].used] = \
-                  (old_weight * (all_var[..., i] +
+                all_std[..., i][all_store[p].used] = \
+                  (old_weight * (all_std[..., i] +
                                  (old_mean[..., i] - all_mean[..., i])**2) +
                    all_store[p].weight_values *
                    (all_store[p].qvalues[..., i] + 
@@ -189,7 +189,7 @@ class ProfileND(ParallelAnalysisInterface):
                      all_mean[..., i])**2))[all_store[p].used] / \
                     all_weight[all_store[p].used]
 
-        all_var = np.sqrt(all_var)
+        all_std = np.sqrt(all_std)
         del all_store
         self.used = all_used
         blank = ~all_used
@@ -206,10 +206,10 @@ class ProfileND(ParallelAnalysisInterface):
                 self.field_data[field] = \
                   array_like_field(self.data_source, 
                                    all_mean[...,i], field)
-                self.variance[field] = \
+                self.standard_deviation[field] = \
                   array_like_field(self.data_source,
-                                   all_var[...,i], field)
-                self.variance[field][blank] = 0.0
+                                   all_std[...,i], field)
+                self.standard_deviation[field][blank] = 0.0
             self.field_data[field][blank] = 0.0
             self.field_units[field] = self.field_data[field].units
             if isinstance(field, tuple):
