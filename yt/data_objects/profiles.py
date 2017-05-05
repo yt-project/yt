@@ -21,7 +21,8 @@ from yt.frontends.ytdata.utilities import \
 from yt.funcs import \
     get_output_filename, \
     ensure_list, \
-    iterable
+    iterable, \
+    issue_deprecation_warning
 from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
@@ -93,9 +94,19 @@ class ProfileND(ParallelAnalysisInterface):
         if weight_field is not None:
             self.standard_deviation = YTFieldData()
             weight_field = self.data_source._determine_fields(weight_field)[0]
+        else:
+            self.standard_deviation = None
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
+
+    @property
+    def variance(self):
+        issue_deprecation_warning("""
+profile.variance incorrectly returns the profile standard deviation and has 
+been deprecated, use profile.standard_deviation instead."""
+        )
+        return self.standard_deviation
 
     def add_fields(self, fields):
         """Add fields to profile
@@ -157,9 +168,9 @@ class ProfileND(ParallelAnalysisInterface):
         all_weight = np.zeros_like(temp_storage.weight_values)
         all_used = np.zeros_like(temp_storage.used, dtype="bool")
 
-        # Combine the weighted mean and standard_deviation from each processor.
-        # For two samples with total weight, mean, and standard_deviation 
-        # given by w, m, and s, their combined mean and standard_deviation are:
+        # Combine the weighted mean and standard deviation from each processor.
+        # For two samples with total weight, mean, and standard deviation 
+        # given by w, m, and s, their combined mean and standard deviation are:
         # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
         # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
         #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
