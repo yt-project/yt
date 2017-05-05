@@ -11,12 +11,9 @@ import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 from yt.units.yt_array import uconcatenate
 
-def setup() :
-    pass
-
 def test_particle_generator():
     # First generate our dataset
-    domain_dims = (128, 128, 128)
+    domain_dims = (64, 64, 64)
     dens = np.zeros(domain_dims) + 0.1
     temp = 4.*np.ones(domain_dims)
     fields = {"density": (dens, 'code_mass/code_length**3'),
@@ -114,3 +111,11 @@ def test_particle_generator():
     assert_equal(particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles)
     particles_per_grid2 = [len(grid["particle_position_z"]) for grid in ds.index.grids]
     assert_equal(particles_per_grid3, particles1.NumberOfParticles+particles2.NumberOfParticles)
+
+    del pdata
+    del ds
+    del particles1
+    del particles2
+    del fields
+    del dens
+    del temp

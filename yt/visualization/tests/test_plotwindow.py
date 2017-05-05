@@ -237,6 +237,8 @@ class TestHideAxesColorbar(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+        del self.ds
+        del self.slc
 
     def test_hide_show_axes(self):
         self.slc.hide_axes()
@@ -351,6 +353,17 @@ class TestPlotWindowSave(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+        del self.ds
+        del self.slc
+        del self.slices
+        del self.projections
+        del self.projections_ds
+        del self.projections_c
+        del self.projections_wf
+        del self.projections_w
+        del self.projection_m
+        del self.offaxis_slice
+        del self.offaxis_proj
 
     @parameterized.expand(
         param.explicit(item)
