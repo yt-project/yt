@@ -216,8 +216,16 @@ cdef class ImageSampler:
         self.image.vp_pos = None
         self.image.vp_dir = None
         self.image.zbuffer = None
-        self.image.camera_data = None
         self.image.image_used = None
+        self.image.mesh_lines = None
+        self.image.camera_data = None
+        self.aimage = None
+        self.acenter = None
+        self.ax_vec = None
+        self.ay_vec = None
+        self.azbuffer = None
+        self.aimage_used = None
+        self.amesh_lines = None
         free(self.image)
 
 cdef class ProjectionSampler(ImageSampler):
