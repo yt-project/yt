@@ -32,6 +32,8 @@ from yt.units.dimensions import \
     dimensionless as sympy_one
 from yt.units.unit_object import \
     Unit
+from yt.units.unit_systems import \
+    unit_system_registry
 from yt.utilities.exceptions import \
     YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import \
@@ -222,6 +224,12 @@ class GDFDataset(Dataset):
                 # comparisons are insufficient
                 unit = Unit(unit, registry=self.unit_registry)
                 if unit_name.endswith('_unit') and unit.dimensions is sympy_one:
+                    # Catch code units and if they are dimensionless,
+                    # assign CGS units. setdefaultattr will catch code units
+                    # which have already been set via units_override. 
+                    un = unit_name[:-5]
+                    un = un.replace('magnetic', 'magnetic_field', 1)
+                    unit = unit_system_registry["cgs"][un]
                     setdefaultattr(self, unit_name, self.quan(value, unit))
                 setdefaultattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
