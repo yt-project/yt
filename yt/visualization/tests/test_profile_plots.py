@@ -18,8 +18,6 @@ import shutil
 import unittest
 import yt
 from yt.data_objects.profiles import create_profile
-from yt.extern.parameterized import\
-    parameterized, param
 from yt.testing import \
     fake_random_ds, \
     assert_array_almost_equal, \

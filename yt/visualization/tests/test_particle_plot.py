@@ -12,13 +12,11 @@ Test suite for Particle Plots
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import itertools
 import os
 import tempfile
 import shutil
 import unittest
 from yt.data_objects.profiles import create_profile
-from yt.extern.parameterized import parameterized, param
 from yt.visualization.tests.test_plotwindow import \
     assert_fname, WIDTH_SPECS, ATTR_ARGS
 from yt.data_objects.particle_filters import add_particle_filter
