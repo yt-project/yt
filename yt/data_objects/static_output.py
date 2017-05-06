@@ -1041,9 +1041,8 @@ class Dataset(object):
         if len(self.units_override) == 0:
             return
         mylog.warning(
-            "Overriding code units. This is an experimental and potentially "
-            "dangerous option that may yield inconsistent results, and must be "
-            "used very carefully, and only if you know what you want from it.")
+            "Overriding code units: Use this option only if you know that the "
+            "dataset doesn't define the units correctly or at all.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
                           ("velocity","cm/s"), ("magnetic","gauss"),
                           ("temperature","K")]:
