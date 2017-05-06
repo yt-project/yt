@@ -1,1 +1,1 @@
-hg --config extensions.purge= purge --all yt
+git clean -f -d -x yt
