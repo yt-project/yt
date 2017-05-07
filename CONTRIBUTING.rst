@@ -302,7 +302,7 @@ directory.
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
+   $ cd yt
 
 Verify that you are on the master branch of yt by running:
 
@@ -351,7 +351,7 @@ script.
 
 The root directory of the yt git repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
-code is contained in the yt subdirectory.  This directory its self contains
+code is contained in the yt subdirectory.  This directory itself contains
 the following subdirectories:
 
 ``frontends``
@@ -597,7 +597,7 @@ Here's a more detailed flowchart of how to submit changes.
 #. Add your remote repository with a unique name identifier. It can be anything;
    your GitHub user name is one possible choice::
 
-      git remote add <YourUniqueIdentifier> https://github.com/YourUsername/yt/
+      git remote add <YourUniqueIdentifier> https://github.com/<USER>/yt
   
 #. Push your changes to your remote fork using the unique identifier you just
    created and the command::
@@ -612,8 +612,8 @@ Here's a more detailed flowchart of how to submit changes.
      between your machine and GitHub.  If you prefer to use SSH - or
      perhaps you're behind a proxy that doesn't play well with SSL via
      HTTPS - you may want to set up an `SSH key`_ on GitHub.  Then, you use
-     the syntax ``ssh://git@github.com/YourUsername/yt``, or equivalent, in
-     place of ``https://github.com/YourUsername/yt`` in git commands.
+     the syntax ``ssh://git@github.com/<USER>/yt``, or equivalent, in
+     place of ``https://github.com/<USER>/yt`` in git commands.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
@@ -670,11 +670,11 @@ need to install the ``flake8`` tool from ``pip``:
     $ pip install flake8
 
 And then navigate to the root of the yt repository and run ``flake8`` on the
-``yt`` folder:
+``yt`` subdirectory:
 
 .. code-block:: bash
 
-    $ cd <REPOSITORY_NAME>
+    $ cd yt
     $ flake8 ./yt
 
 This will print out any ``flake8`` errors or warnings that your newly added code
@@ -702,7 +702,7 @@ Source code style guide
    (something_else))`` should be rewritten as
    ``if something and something_else``. Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do
-   ``a = a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3``
+   ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
    should be ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
@@ -848,13 +848,13 @@ written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
     use the function.  Use the variables 'ds' for the dataset, 'pc' for
     a plot collection, 'c' for a center, and 'L' for a vector.
 
-    >>> a=[1,2,3]
-    >>> print [x + 3 for x in a]
+    >>> a = [1, 2, 3]
+    >>> print([x + 3 for x in a])
     [4, 5, 6]
-    >>> print "a\n\nb"
+    >>> print("a\n\nb")
     a
-    b
 
+    b
     """
 
 Variable Names and Enzo-isms
