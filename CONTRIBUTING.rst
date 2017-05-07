@@ -566,16 +566,23 @@ The simplest way to submit changes to yt is to do the following:
 
 Here's a more detailed flowchart of how to submit changes.
 
+#. Fork yt on GitHub.  (This step only has to be done once.)  You can do
+   this at: https://github.com/yt-project/yt/fork.  Call this repository
+   yt.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-git``.  Alternatively see
    :ref:`source-installation` for instructions on how to build yt from the
    git repository. (Below, in :ref:`reading-source`, we describe how to
-   find items of interest.)
+   find items of interest.) If you have already forked the repository then
+   you can clone your fork locally::
+
+     git clone https://github.com/<USER>/yt ./yt-git
+
+   This will create a local clone of your fork of yt in a folder named
+   ``yt-git``.
+
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
-#. Fork yt on GitHub.  (This step only has to be done once.)  You can do
-   this at: https://github.com/yt-project/yt/fork.  Call this repository
-   yt.
 #. Create a uniquely named branch to track your work. For example: ``git
    checkout -b my-first-pull-request``
 #. Stage your changes using ``git add <paths>``.  This command take an argument
@@ -594,15 +601,26 @@ Here's a more detailed flowchart of how to submit changes.
 #. If your changes include new functionality or cover an untested area of the
    code, add a test.  (See :ref:`testing` for more information.)  Commit
    these changes as well.
-#. Add your remote repository with a unique name identifier. It can be anything;
-   your GitHub user name is one possible choice::
+#. Add your remote repository with a unique name identifier. It can be anything
+   but it is conventional to call it ``origin``::
 
-      git remote add <YourUniqueIdentifier> https://github.com/<USER>/yt
-  
+     git remote add origin https://github.com/<USER>/yt
+
+   In addition, it is also useful to add a remote for the main yt repository.
+   By convention we name this remote ``upstream``::
+
+     git remote add upstream https://github.com/yt-project/yt
+
+   Note that if your forked the yt repository on github and then cloned from
+   there you will not need to add the ``origin`` remote. You can see names and
+   URLS of all the remotes you currently have configured with::
+
+     git remote -v
+
 #. Push your changes to your remote fork using the unique identifier you just
    created and the command::
 
-      git push <YourUniqueIdentifier> my-first-pull-request
+      git push origin my-first-pull-request
 
    Where you should substitute the name of the feature branch you are working on for
    ``my-first-pull-request``.
@@ -624,6 +642,12 @@ Here's a more detailed flowchart of how to submit changes.
    A pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
 
+#. Once you pull request is merged, stay up to date with the main yt repository
+   by pulling from the ``upstream`` remote::
+
+     git checkout master
+     git pull upstream master
+
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or even requesting
 tests.  The process for responding to pull request code review is relatively
@@ -634,7 +658,7 @@ straightforward.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
 
-      git push <YourRemoteIdentifier> <YourBranchName>
+      git push origin <YourBranchName>
 
 #. Your pull request will be automatically updated.
 
