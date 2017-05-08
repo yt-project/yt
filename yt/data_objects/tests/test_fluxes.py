@@ -101,3 +101,13 @@ class ExporterTests(TestCase):
 
         assert os.path.exists('my_galaxy_emis.obj')
         assert os.path.exists('my_galaxy_emis.mtl')
+
+@requires_file(ISOGAL)
+def test_correct_output_unit():
+    # see issue #1368
+    ds = load(ISOGAL)
+    x = y = z = .5
+    sp1 = ds.sphere((x,y,z), (300, 'kpc'))
+    Nmax = sp1.max('HI_Density')
+    sur = ds.surface(sp1,"HI_Density", .5*Nmax)
+    sur['x'][0]
