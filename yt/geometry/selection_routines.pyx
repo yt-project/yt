@@ -19,7 +19,7 @@ cimport numpy as np
 cimport cython
 from cython cimport floating
 from libc.stdlib cimport malloc, free
-from yt.utilities.lib.fnv_hash cimport _fnv_hash as fnv_hash
+from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors

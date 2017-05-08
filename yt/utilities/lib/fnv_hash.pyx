@@ -15,7 +15,7 @@ Fast hashing routines
 import numpy as np
 cimport numpy as np
 
-cdef np.int64_t _fnv_hash(unsigned char[:] octets):
+cdef np.int64_t c_fnv_hash(unsigned char[:] octets):
     # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
     # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
     cdef np.int64_t hash_val = 2166136261
@@ -26,4 +26,14 @@ cdef np.int64_t _fnv_hash(unsigned char[:] octets):
     return hash_val
 
 def fnv_hash(octets):
-    return _fnv_hash(octets)
+    """
+    
+    Create a FNV hash from a bytestring.
+    Info: http://www.isthe.com/chongo/tech/comp/fnv/index.html
+    
+    Parameters
+    ----------
+    octets : bytestring
+        The string of bytes to generate a hash from. 
+    """
+    return c_fnv_hash(octets)
