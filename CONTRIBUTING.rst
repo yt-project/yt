@@ -643,19 +643,6 @@ Here's a more detailed flowchart of how to submit changes.
 #. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
    pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
-#. Once your pull request is merged, sync up with the main yt repository by
-   pulling from the ``upstream`` remote::
-
-     git checkout master
-     git pull upstream master
-     git branch -d my-first-pull-request
-     git push origin --delete my-first-pull-request
-
-The last two commands will delete your branch locally as well as on ``origin``
-(i.e. your fork of the main yt repository on GitHub). These commands are
-optional but are nice for keeping your branch list manageable. You can also
-delete your branch on your fork by clicking the "delete branch" button on the
-page for the merged pull request on GitHub.
 
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or requesting
@@ -668,6 +655,28 @@ straightforward.
 #. Push the changes to your fork::
       git push origin my-first-pull-request
 #. Your pull request will be automatically updated.
+
+Once your pull request is merged, sync up with the main yt repository by pulling
+from the ``upstream`` remote::
+
+     git checkout master
+     git pull upstream master
+
+You might also want to sync your fork of yt on GitHub::
+
+     # sync my fork of yt with upstream
+     git push origin master
+
+And delete the branch for the merged pull request::
+
+     # delete branch for merged pull request
+     git branch -d my-first-pull-request
+     git push origin --delete my-first-pull-request
+
+These commands are optional but are nice for keeping your branch list
+manageable. You can also delete the branch on your fork of yt on GitHub by
+clicking the "delete branch" button on the page for the merged pull request on
+GitHub.
 
 .. _multiple-PRs:
 
