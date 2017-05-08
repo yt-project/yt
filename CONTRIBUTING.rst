@@ -293,7 +293,7 @@ it locally you must clone it onto your machine from the command line:
 
 .. code-block:: bash
 
-   $ git clone https://github.com/<USER>/yt
+   $ git clone https://github.com/<USER>/yt ./yt-git
 
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
@@ -302,7 +302,7 @@ directory.
 
 .. code-block:: bash
 
-   $ cd yt
+   $ cd yt-git
 
 Verify that you are on the master branch of yt by running:
 
@@ -567,8 +567,7 @@ The simplest way to submit changes to yt is to do the following:
 Here's a more detailed flowchart of how to submit changes.
 
 #. Fork yt on GitHub.  (This step only has to be done once.)  You can do
-   this at: https://github.com/yt-project/yt/fork.  Call this repository
-   yt.
+   this at: https://github.com/yt-project/yt/fork.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-git``.  Alternatively see
    :ref:`source-installation` for instructions on how to build yt from the
@@ -580,7 +579,6 @@ Here's a more detailed flowchart of how to submit changes.
 
    This will create a local clone of your fork of yt in a folder named
    ``yt-git``.
-
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
 #. Create a uniquely named branch to track your work. For example: ``git
@@ -602,7 +600,16 @@ Here's a more detailed flowchart of how to submit changes.
    code, add a test.  (See :ref:`testing` for more information.)  Commit
    these changes as well.
 #. Add your remote repository with a unique name identifier. It can be anything
-   but it is conventional to call it ``origin``::
+   but it is conventional to call it ``origin``.  You can see names and URLs of
+   all the remotes you currently have configured with::
+
+     git remote -v
+
+   If you already have an ``origin` remote, you can set it to your fork with::
+
+     git remote set-url origin https://github.com/<USER>/yt
+
+   If you do not have an ``origin`` remote you will need to add it::
 
      git remote add origin https://github.com/<USER>/yt
 
@@ -612,10 +619,7 @@ Here's a more detailed flowchart of how to submit changes.
      git remote add upstream https://github.com/yt-project/yt
 
    Note that if your forked the yt repository on github and then cloned from
-   there you will not need to add the ``origin`` remote. You can see names and
-   URLS of all the remotes you currently have configured with::
-
-     git remote -v
+   there you will not need to add the ``origin`` remote.
 
 #. Push your changes to your remote fork using the unique identifier you just
    created and the command::
@@ -698,7 +702,7 @@ And then navigate to the root of the yt repository and run ``flake8`` on the
 
 .. code-block:: bash
 
-    $ cd yt
+    $ cd yt-git
     $ flake8 ./yt
 
 This will print out any ``flake8`` errors or warnings that your newly added code
