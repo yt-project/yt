@@ -1880,8 +1880,11 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
         fluid_types += ['connect%d' % i]
     sds.fluid_types = tuple(fluid_types)
 
-    sds._node_fields = [[f[1] for f in m][0] for m in node_data if m]
-    sds._elem_fields = [[f[1] for f in m][0] for m in elem_data if m]
+    def flatten(l):
+        return [item for sublist in l for item in sublist]
+
+    sds._node_fields = flatten([[f[1] for f in m] for m in node_data if m])
+    sds._elem_fields = flatten([[f[1] for f in m] for m in elem_data if m])
     sds.default_field = [f for f in sds.field_list
                          if f[0] == 'connect1'][-1]
 
