@@ -280,6 +280,7 @@ def test_boolean_cylinders_overlap():
     b6 = bo6["index", "morton_index"]
     b6.sort()
     assert_array_equal(b6, np.setxor1d(i1, i2))
+    del ds
 
 def test_boolean_ellipsoids_no_overlap():
     r"""Test to make sure that boolean objects (ellipsoids, no overlap)
