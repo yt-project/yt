@@ -278,12 +278,8 @@ class AthenaPPDataset(Dataset):
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
 
-    def set_code_units(self):
-        super(AthenaPPDataset, self).set_code_units()
-        mag_unit = getattr(self, "magnetic_unit", None)
-        if mag_unit is None:
-            self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
-                                         (self.time_unit**2 * self.length_unit))
+        self.magnetic_unit = np.sqrt(4*np.pi * self.mass_unit /
+                                     (self.time_unit**2 * self.length_unit))
         self.magnetic_unit.convert_to_units("gauss")
         temp_unit = getattr(self, "temperature_unit", None)
         if temp_unit is None:
