@@ -605,7 +605,7 @@ Here's a more detailed flowchart of how to submit changes.
 
      git remote -v
 
-   If you already have an ``origin` remote, you can set it to your fork with::
+   If you already have an ``origin`` remote, you can set it to your fork with::
 
      git remote set-url origin https://github.com/<USER>/yt
 
@@ -618,7 +618,7 @@ Here's a more detailed flowchart of how to submit changes.
 
      git remote add upstream https://github.com/yt-project/yt
 
-   Note that if your forked the yt repository on github and then cloned from
+   Note that if you forked the yt repository on GitHub and then cloned from
    there you will not need to add the ``origin`` remote.
 
 #. Push your changes to your remote fork using the unique identifier you just
@@ -640,17 +640,21 @@ Here's a more detailed flowchart of how to submit changes.
      protocol.
 
      .. _SSH key: https://help.github.com/articles/connecting-to-github-with-ssh/
-
-#. Issue a pull request at
-   https://github.com/yt-project/yt/pull/new/master
-   A pull request is essentially just asking people to review and accept the
+#. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
+   pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
-
-#. Once you pull request is merged, stay up to date with the main yt repository
-   by pulling from the ``upstream`` remote::
+#. Once your pull request is merged, sync up with the main yt repository by
+   pulling from the ``upstream`` remote::
 
      git checkout master
      git pull upstream master
+     git branch -d my-first-pull-request
+     git push origin --delete my-first-pull-request
+
+The last two commands will delete your branch name locally and on your
+fork. These commands are optional but are nice for keeping your branch
+list manageable. You can also delete your branch on your fork by clicking
+the "delete branch" button on the pull request you opened.
 
 During the course of your pull request you may be asked to make changes.  These
 changes may be related to style issues, correctness issues, or even requesting
@@ -661,9 +665,7 @@ straightforward.
    they should be made.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
-
-      git push origin <YourBranchName>
-
+      git push origin my-first-pull-request
 #. Your pull request will be automatically updated.
 
 .. _multiple-PRs:
