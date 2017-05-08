@@ -275,6 +275,14 @@ See :ref:`opaque_rendering` for more information.
 
 .. yt_cookbook:: opaque_rendering.py
 
+Volume Rendering Multiple Fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can render multiple fields by adding new ``VolumeSource`` objects to the
+scene for each field you want to render.
+
+.. yt_cookbook:: render_two_fields.py
+
 .. _cookbook-amrkdtree_downsampling:
 
 Downsampling Data for Volume Rendering
