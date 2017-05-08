@@ -246,9 +246,9 @@ def profile(halo, bin_fields, profile_fields, n_bins=32, extrema=None, logs=None
         setattr(halo, storage, halo_store)
     halo_store.update(prof_store)
 
-    if hasattr(my_profile, "variance"):
-        variance_store = dict([(field, my_profile.variance[field]) \
-                           for field in my_profile.variance])
+    if my_profile.standard_deviation is not None:
+        variance_store = dict([(field, my_profile.standard_deviation[field]) \
+                               for field in my_profile.standard_deviation])
         variance_storage = "%s_variance" % storage
         if hasattr(halo, variance_storage):
             halo_variance_store = getattr(halo, variance_storage)

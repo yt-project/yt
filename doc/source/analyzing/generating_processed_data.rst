@@ -93,10 +93,10 @@ can be used to generate 1, 2, and 3D profiles.
 
 Profile objects can be created from any data object (see :ref:`data-objects`,
 specifically the section :ref:`available-objects` for more information) and are
-best thought of as distribution calculations.  They can either sum up or
-average one quantity with respect to one or more other quantities, and they do
-this over all the data contained in their source object.  When calculating average
-values, the variance will also be calculated.
+best thought of as distribution calculations.  They can either sum up or average
+one quantity with respect to one or more other quantities, and they do this over
+all the data contained in their source object.  When calculating average values,
+the standard deviation will also be calculated.
 
 To generate a profile, one need only specify the binning fields and the field
 to be profiled.  The binning fields are given together in a list.  The
@@ -131,16 +131,17 @@ have data.
 
    print(profile.used)
 
-If a weight field was given, the profile data will represent the weighted mean of
-a field.  In this case, the weighted variance will be calculated automatically and
-can be access via the ``profile.variance`` attribute.
+If a weight field was given, the profile data will represent the weighted mean
+of a field.  In this case, the weighted standard deviation will be calculated
+automatically and can be access via the ``profile.standard_deviation``
+attribute.
 
 .. code-block:: python
 
-   print(profile.variance["gas", "temperature"])
+   print(profile.standard_deviation["gas", "temperature"])
 
-A two-dimensional profile of the total gas mass in bins of density and temperature
-can be created as follows:
+A two-dimensional profile of the total gas mass in bins of density and
+temperature can be created as follows:
 
 .. code-block:: python
 
