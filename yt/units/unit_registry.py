@@ -57,6 +57,11 @@ class UnitRegistry:
     _unit_system_id = None
     @property
     def unit_system_id(self):
+        """
+        This is a unique identifier for the unit registry created 
+        from a FNV hash. It is needed to register a dataset's code
+        unit system in the unit system registry.
+        """
         if self._unit_system_id is None:
             hash_data = bytearray()
             for k, v in self.lut.items():
