@@ -15,7 +15,8 @@ from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_systems import UnitSystem
 from yt.units import dimensions
 from yt.convenience import load
-from yt.testing import assert_almost_equal, assert_allclose, requires_file
+from yt.testing import assert_almost_equal, assert_allclose, requires_file, \
+    fake_random_ds
 from yt.config import ytcfg
 
 def test_unit_systems():
@@ -133,3 +134,14 @@ def test_tesla_magnetic_unit():
             assert_allclose(magx.value, magnetic_field_x.value)
             assert_allclose(magnetic_field_x.to_equivalent('G', 'CGS').value,
                             magnetic_field_x.value*1e4)
+
+def test_code_unit_system_uniqueness():
+    ds1 = fake_random_ds(64)
+    ds2 = fake_random_ds(64, length_unit=2.0)
+    ds3 = fake_random_ds(64)
+
+    assert ds1.unit_registry.unit_system_id != ds2.unit_registry.unit_system_id
+    assert ds1.unit_registry.unit_system_id == ds3.unit_registry.unit_system_id
+
+    assert ds1.unit_registry.unit_system_id in unit_system_registry.keys()
+    assert ds2.unit_registry.unit_system_id in unit_system_registry.keys()
