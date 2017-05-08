@@ -651,13 +651,14 @@ Here's a more detailed flowchart of how to submit changes.
      git branch -d my-first-pull-request
      git push origin --delete my-first-pull-request
 
-The last two commands will delete your branch name locally and on your
-fork. These commands are optional but are nice for keeping your branch
-list manageable. You can also delete your branch on your fork by clicking
-the "delete branch" button on the pull request you opened.
+The last two commands will delete your branch locally as well as on ``origin``
+(i.e. your fork of the main yt repository on GitHub). These commands are
+optional but are nice for keeping your branch list manageable. You can also
+delete your branch on your fork by clicking the "delete branch" button on the
+page for the merged pull request on GitHub.
 
 During the course of your pull request you may be asked to make changes.  These
-changes may be related to style issues, correctness issues, or even requesting
+changes may be related to style issues, correctness issues, or requesting
 tests.  The process for responding to pull request code review is relatively
 straightforward.
 
