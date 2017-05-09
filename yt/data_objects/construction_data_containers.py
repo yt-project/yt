@@ -260,6 +260,11 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         field = field or []
         field = self._determine_fields(ensure_list(field))
 
+        for f in field:
+            nodal_flag = self.ds._get_field_info(f).nodal_flag
+            if any(nodal_flag):
+                raise RuntimeError("Nodal fields are currently not supported for projections.")
+
         if not self.deserialize(field):
             self.get_data(field)
             self.serialize()
@@ -630,9 +635,23 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            self[a] = f(self)
+            if f.particle_type:
+                self[a] = self._data_source[f]
+            else:
+                self[a] = f(self)
             self.field_data[a].convert_to_units(f.output_units)
-        if len(gen) > 0: self._generate_fields(gen)
+        if len(gen) > 0:
+            part_gen = []
+            cell_gen = []
+            for field in gen:
+                finfo = self.ds.field_info[field]
+                if finfo.particle_type:
+                    part_gen.append(field)
+                else:
+                    cell_gen.append(field)
+            self._generate_fields(cell_gen)
+            for p in part_gen:
+                self[p] = self._data_source[p]
 
     def _split_fields(self, fields_to_get):
         fill, gen = self.index._split_fields(fields_to_get)
@@ -722,12 +741,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions, kernel_name)
+        # We allocate number of zones, not number of octs. Everything inside
+        # this is fortran ordered because of the ordering in the octree deposit
+        # routines, so we reverse it here to match the convention there
+        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.copy(order="C")
+        # Fortran-ordered, so transpose.
+        return vals.transpose()
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):

@@ -20,13 +20,13 @@ def test_cylindrical_coordinates():
         fi = ("index", axis)
         fd = ("index", "d%s" % axis)
         ma = np.argmax(dd[fi])
-        yield assert_equal, dd[fi][ma] + dd[fd][ma] / 2.0, ds.domain_right_edge[i].d
+        assert_equal(dd[fi][ma] + dd[fd][ma] / 2.0, ds.domain_right_edge[i].d)
         mi = np.argmin(dd[fi])
-        yield assert_equal, dd[fi][mi] - dd[fd][mi] / 2.0, ds.domain_left_edge[i].d
-        yield assert_equal, dd[fd].max(), (ds.domain_width/ds.domain_dimensions)[i].d
-    yield assert_almost_equal, dd["cell_volume"].sum(dtype="float64"), \
-                        np.pi*ds.domain_width[0]**2 * ds.domain_width[1]
-    yield assert_equal, dd["index", "path_element_r"], dd["index", "dr"]
-    yield assert_equal, dd["index", "path_element_z"], dd["index", "dz"]
-    yield assert_equal, dd["index", "path_element_theta"], \
-                        dd["index", "r"] * dd["index", "dtheta"]
+        assert_equal(dd[fi][mi] - dd[fd][mi] / 2.0, ds.domain_left_edge[i].d)
+        assert_equal(dd[fd].max(), (ds.domain_width/ds.domain_dimensions)[i].d)
+    assert_almost_equal(dd["cell_volume"].sum(dtype="float64"),
+                        np.pi*ds.domain_width[0]**2 * ds.domain_width[1])
+    assert_equal(dd["index", "path_element_r"], dd["index", "dr"])
+    assert_equal(dd["index", "path_element_z"], dd["index", "dz"])
+    assert_equal(dd["index", "path_element_theta"],
+                 dd["index", "r"] * dd["index", "dtheta"])

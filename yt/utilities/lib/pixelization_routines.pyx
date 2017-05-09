@@ -30,6 +30,7 @@ from yt.utilities.lib.element_mappings cimport \
     P1Sampler3D, \
     Q1Sampler3D, \
     Q1Sampler2D, \
+    Q2Sampler2D, \
     S2Sampler3D, \
     W1Sampler3D, \
     T2Sampler2D, \
@@ -232,6 +233,171 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
+                             np.float64_t[:] px,
+                             np.float64_t[:] py,
+                             np.float64_t[:] pz,
+                             np.float64_t[:] pdx,
+                             np.float64_t[:] pdy,
+                             np.float64_t[:] pdz,
+                             np.float64_t[:, :] data,
+                             np.float64_t coord,
+                             bounds,
+                             int antialias = 1,
+                             period = None,
+                             int check_period = 1):
+    cdef np.float64_t x_min, x_max, y_min, y_max
+    cdef np.float64_t period_x = 0.0, period_y = 0.0
+    cdef np.float64_t width, height, px_dx, px_dy, ipx_dx, ipx_dy
+    cdef np.float64_t ld_x, ld_y, cx, cy, cz
+    cdef int i, j, p, xi, yi
+    cdef int lc, lr, rc, rr
+    cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
+    # These are the temp vars we get from the arrays
+    cdef np.float64_t oxsp, oysp, ozsp 
+    cdef np.float64_t xsp, ysp, zsp
+    cdef np.float64_t dxsp, dysp, dzsp
+    # Some periodicity helpers
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef int ii, jj, kk, ind
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+    x_min = bounds[0]
+    x_max = bounds[1]
+    y_min = bounds[2]
+    y_max = bounds[3]
+    width = x_max - x_min
+    height = y_max - y_min
+    px_dx = width / (<np.float64_t> buff.shape[1])
+    px_dy = height / (<np.float64_t> buff.shape[0])
+    ipx_dx = 1.0 / px_dx
+    ipx_dy = 1.0 / px_dy
+    if px.shape[0] != py.shape[0] or \
+       px.shape[0] != pz.shape[0] or \
+       px.shape[0] != pdx.shape[0] or \
+       px.shape[0] != pdy.shape[0] or \
+       px.shape[0] != pdz.shape[0] or \
+       px.shape[0] != data.shape[0]:
+        raise YTPixelizeError("Arrays are not of correct shape.")
+    xiter[0] = yiter[0] = 0
+    xiterv[0] = yiterv[0] = 0.0
+    # Here's a basic outline of what we're going to do here.  The xiter and
+    # yiter variables govern whether or not we should check periodicity -- are
+    # we both close enough to the edge that it would be important *and* are we
+    # periodic?
+    #
+    # The other variables are all either pixel positions or data positions.
+    # Pixel positions will vary regularly from the left edge of the window to
+    # the right edge of the window; px_dx and px_dy are the dx (cell width, not
+    # half-width).  ipx_dx and ipx_dy are the inverse, for quick math.
+    #
+    # The values in xsp, dxsp, x_min and their y counterparts, are the
+    # data-space coordinates, and are related to the data fed in.  We make some
+    # modifications for periodicity.
+    #
+    # Inside the finest loop, we compute the "left column" (lc) and "lower row"
+    # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
+    # depositing into them the data value.  Overlap computes the relative
+    # overlap of a data value with a pixel.
+    # 
+    # NOTE ON ROWS AND COLUMNS:
+    #
+    #   The way that images are plotting in matplotlib is somewhat different
+    #   from what most might expect.  The first axis of the array plotted is
+    #   what varies along the x axis.  So for instance, if you supply
+    #   origin='lower' and plot the results of an mgrid operation, at a fixed
+    #   'y' value you will see the results of that array held constant in the
+    #   first dimension.  Here is some example code:
+    #
+    #   import matplotlib.pyplot as plt
+    #   import numpy as np
+    #   x, y = np.mgrid[0:1:100j,0:1:100j]
+    #   plt.imshow(x, interpolation='nearest', origin='lower')
+    #   plt.imshow(y, interpolation='nearest', origin='lower')
+    #
+    #   The values in the image:
+    #       lower left:  arr[0,0]
+    #       lower right: arr[0,-1]
+    #       upper left:  arr[-1,0]
+    #       upper right: arr[-1,-1]
+    #
+    #   So what we want here is to fill an array such that we fill:
+    #       first axis : y_min .. y_max
+    #       second axis: x_min .. x_max
+    with nogil:
+        for p in range(px.shape[0]):
+            xiter[1] = yiter[1] = 999
+            oxsp = px[p]
+            oysp = py[p]
+            ozsp = pz[p]
+            dxsp = pdx[p]
+            dysp = pdy[p]
+            dzsp = pdz[p]
+            if check_period == 1:
+                if (oxsp - dxsp < x_min):
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif (oxsp + dxsp > x_max):
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if (oysp - dysp < y_min):
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif (oysp + dysp > y_max):
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+            overlap1 = overlap2 = 1.0
+            zsp = ozsp
+            for xi in range(2):
+                if xiter[xi] == 999: continue
+                xsp = oxsp + xiterv[xi]
+                if (xsp + dxsp < x_min) or (xsp - dxsp > x_max): continue
+                for yi in range(2):
+                    if yiter[yi] == 999: continue
+                    ysp = oysp + yiterv[yi]
+                    if (ysp + dysp < y_min) or (ysp - dysp > y_max): continue
+                    lc = <int> fmax(((xsp-dxsp-x_min)*ipx_dx),0)
+                    lr = <int> fmax(((ysp-dysp-y_min)*ipx_dy),0)
+                    # NOTE: This is a different way of doing it than in the C
+                    # routines.  In C, we were implicitly casting the
+                    # initialization to int, but *not* the conditional, which
+                    # was allowed an extra value:
+                    #     for(j=lc;j<rc;j++)
+                    # here, when assigning lc (double) to j (int) it got
+                    # truncated, but no similar truncation was done in the
+                    # comparison of j to rc (double).  So give ourselves a
+                    # bonus row and bonus column here.
+                    rc = <int> fmin(((xsp+dxsp-x_min)*ipx_dx + 1), buff.shape[1])
+                    rr = <int> fmin(((ysp+dysp-y_min)*ipx_dy + 1), buff.shape[0])
+                    # Note that we're iterating here over *y* in the i
+                    # direction.  See the note above about this.
+                    for i in range(lr, rr):
+                        lypx = px_dy * i + y_min
+                        rypx = px_dy * (i+1) + y_min
+                        for j in range(lc, rc):
+                            lxpx = px_dx * j + x_min
+                            rxpx = px_dx * (j+1) + x_min
+
+                            cx = (rxpx+lxpx)*0.5
+                            cy = (rypx+lypx)*0.5
+                            cz = coord
+
+                            ii = <int> (cx - xsp + dxsp)
+                            jj = <int> (cy - ysp + dysp)
+                            kk = <int> (cz - zsp + dzsp)
+
+                            ind = 4*ii + 2*jj + kk
+
+                            buff[i,j] = data[p, ind]
+
+
+@cython.cdivision(True)
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def pixelize_off_axis_cartesian(
                        np.float64_t[:,:] buff,
                        np.float64_t[:] x,
@@ -244,7 +410,7 @@ def pixelize_off_axis_cartesian(
                        np.float64_t[:] pdz,
                        np.float64_t[:] center,
                        np.float64_t[:,:] inv_mat,
-                       np.int64_t[:] indices,
+                       np.int_t[:] indices,
                        np.float64_t[:] data,
                        bounds):
     cdef np.float64_t x_min, x_max, y_min, y_max
@@ -609,6 +775,8 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
         sampler = P1Sampler1D()
     elif ndim == 2 and nvertices == 4:
         sampler = Q1Sampler2D()
+    elif ndim == 2 and nvertices == 9:
+        sampler = Q2Sampler2D()
     elif ndim == 2 and nvertices == 6:
         sampler = T2Sampler2D()
     elif ndim == 3 and nvertices == 10:

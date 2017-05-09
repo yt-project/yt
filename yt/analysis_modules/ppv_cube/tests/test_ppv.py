@@ -26,7 +26,7 @@ def test_ppv():
 
     np.random.seed(seed=0x4d3d3d3)
 
-    dims = (8,8,1024)
+    dims = (8, 8, 128)
     v_shift = 1.0e7*u.cm/u.s
     sigma_v = 2.0e7*u.cm/u.s
     T_0 = 1.0e8*u.Kelvin
@@ -46,7 +46,7 @@ def test_ppv():
     a = cube.data.mean(axis=(0,1)).v
     b = dv*np.exp(-((cube.vmid+v_shift)/v_th)**2)/(np.sqrt(np.pi)*v_th)
 
-    yield assert_allclose_units, a, b, 1.0e-2
+    assert_allclose_units(a, b, 1.0e-2)
 
     E_0 = 6.8*u.keV
 
@@ -58,4 +58,4 @@ def test_ppv():
 
     c = dE*np.exp(-((cube.vmid-E_shift)/delta_E)**2)/(np.sqrt(np.pi)*delta_E)
 
-    yield assert_allclose_units, a, c, 1.0e-2
+    assert_allclose_units(a, c, 1.0e-2)

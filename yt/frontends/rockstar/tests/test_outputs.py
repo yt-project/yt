@@ -31,7 +31,7 @@ r1 = "rockstar_halos/halos_0.0.bin"
 @requires_ds(r1)
 def test_fields_r1():
     ds = data_dir_load(r1)
-    yield assert_equal, str(ds), os.path.basename(r1)
+    assert_equal(str(ds), os.path.basename(r1))
     for field in _fields:
         yield FieldValuesTest(r1, field, particle_type=True)
 

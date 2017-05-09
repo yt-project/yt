@@ -29,7 +29,7 @@ grs = "radio_fits/grs-50-cube.fits"
 @requires_ds(grs)
 def test_grs():
     ds = data_dir_load(grs, cls=FITSDataset, kwargs={"nan_mask":0.0})
-    yield assert_equal, str(ds), "grs-50-cube.fits"
+    assert_equal(str(ds), "grs-50-cube.fits")
     for test in small_patch_amr(ds, _fields_grs, input_center="c", input_weight="ones"):
         test_grs.__name__ = test.description
         yield test
@@ -40,15 +40,14 @@ vf = "UnigridData/velocity_field_20.fits"
 @requires_ds(vf)
 def test_velocity_field():
     ds = data_dir_load(vf, cls=FITSDataset)
-    yield assert_equal, str(ds), "velocity_field_20.fits"
+    assert_equal(str(ds), "velocity_field_20.fits")
     for test in small_patch_amr(ds, _fields_vels, input_center="c", input_weight="ones"):
         test_velocity_field.__name__ = test.description
         yield test
 
 @requires_file(vf)
 def test_units_override():
-    for test in units_override_check(vf):
-        yield test
+    units_override_check(vf)
 
 @requires_file(grs)
 def test_FITSDataset():

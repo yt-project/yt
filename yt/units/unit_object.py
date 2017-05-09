@@ -216,6 +216,17 @@ class Unit(Expr):
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
+        elif hasattr(unit_expr, 'units') and hasattr(unit_expr, 'value'):
+            # something that looks like a YTArray, grab the unit and value
+            if unit_expr.shape != ():
+                raise UnitParseError(
+                    'Cannot create a unit from a non-scalar YTArray, received: '
+                    '%s' % (unit_expr, ))
+            value = unit_expr.value
+            if value == 1:
+                unit_expr = unit_expr.units.expr
+            else:
+                unit_expr = unit_expr.value*unit_expr.units.expr
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \
@@ -475,10 +486,10 @@ class Unit(Expr):
                 raise YTUnitsNotReducible(self, "cgs")
             return yt_base_unit
         else:
-            if unit_system == "code":
-                raise RuntimeError(r'You must refer to a dataset instance to convert to a '
-                                   r'code unit system. Try again with unit_system=ds instead, '
-                                   r'where \'ds\' is your dataset.')
+            if hasattr(unit_system, "unit_registry"):
+                unit_system = unit_system.unit_registry.unit_system_id
+            elif unit_system == "code":
+                unit_system = self.registry.unit_system_id
             unit_system = unit_system_registry[str(unit_system)]
             units_string = _get_system_unit_string(self.dimensions, unit_system.base_units)
             u = Unit(units_string, registry=self.registry)

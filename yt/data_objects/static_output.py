@@ -194,6 +194,8 @@ class MutableAttribute(object):
         self.data = weakref.WeakKeyDictionary()
 
     def __get__(self, instance, owner):
+        if not instance:
+            return None
         ret = self.data.get(instance, None)
         try:
             ret = ret.copy()
@@ -299,10 +301,10 @@ class Dataset(object):
         self.no_cgs_equiv_length = False
 
         self._create_unit_registry()
-        self._assign_unit_system(unit_system)
 
         self._parse_parameter_file()
         self.set_units()
+        self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
 
         # Because we need an instantiated class to check the ds's existence in
@@ -565,6 +567,7 @@ class Dataset(object):
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
         self.index.field_list = sorted(self.field_list)
+        self._last_freq = (None, None)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -918,9 +921,24 @@ class Dataset(object):
         return self.refine_by**(l1-l0)
 
     def _assign_unit_system(self, unit_system):
-        create_code_unit_system(self)
+        current_mks_unit = None
+        magnetic_unit = getattr(self, 'magnetic_unit', None)
+        if magnetic_unit is not None:
+            # if the magnetic unit is in T, we need to create the code unit
+            # system as an MKS-like system
+            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
+                if unit_system == "code":
+                    current_mks_unit = 'A'
+                elif unit_system == 'mks':
+                    pass
+                else:
+                    self.magnetic_unit = \
+                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
+            self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        create_code_unit_system(self.unit_registry, 
+                                current_mks_unit=current_mks_unit)
         if unit_system == "code":
-            unit_system = str(self)
+            unit_system = self.unit_registry.unit_system_id
         else:
             unit_system = str(unit_system).lower()
         self.unit_system = unit_system_registry[unit_system]
@@ -961,10 +979,18 @@ class Dataset(object):
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
+
+            # Set dynamical dark energy parameters
+            use_dark_factor = getattr(self, 'use_dark_factor', False)
+            w_0 = getattr(self, 'w_0', -1.0)
+            w_a = getattr(self, 'w_a', 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda)
+                              omega_lambda=self.omega_lambda,
+                              use_dark_factor = use_dark_factor,
+                              w_0 = w_0, w_a = w_a)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
@@ -993,21 +1019,6 @@ class Dataset(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        if hasattr(self, 'magnetic_unit'):
-            # if the magnetic unit is in T, we need to recreate the code unit
-            # system as an MKS-like system
-            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-
-                if self.unit_system == unit_system_registry[str(self)]:
-                    unit_system_registry.pop(str(self))
-                    create_code_unit_system(self, current_mks_unit='A')
-                    self.unit_system = unit_system_registry[str(self)]
-                elif str(self.unit_system) == 'mks':
-                    pass
-                else:
-                    self.magnetic_unit = \
-                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
-            self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         vel_unit = getattr(
             self, "velocity_unit", self.length_unit / self.time_unit)
         pressure_unit = getattr(
@@ -1030,9 +1041,8 @@ class Dataset(object):
         if len(self.units_override) == 0:
             return
         mylog.warning(
-            "Overriding code units. This is an experimental and potentially "
-            "dangerous option that may yield inconsistent results, and must be "
-            "used very carefully, and only if you know what you want from it.")
+            "Overriding code units: Use this option only if you know that the "
+            "dataset doesn't define the units correctly or at all.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
                           ("velocity","cm/s"), ("magnetic","gauss"),
                           ("temperature","K")]:
@@ -1056,7 +1066,7 @@ class Dataset(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
@@ -1184,7 +1194,7 @@ class Dataset(object):
                 sampling_type = "particle"
         if sampling_type is None:
             warnings.warn("Because 'sampling_type' not specified, yt will "
-                          "assume a cell 'sampling_type'")
+                          "assume a cell 'sampling_type'", stacklevel=2)
             sampling_type = "cell"
         self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
@@ -1249,16 +1259,15 @@ class Dataset(object):
             Create a grid field for particle quantities using given method.
             """
             pos = data[ptype, "particle_position"]
+            fields = [data[ptype, deposit_field]]
             if method == 'weighted_mean':
-                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field],
-                                                   data[ptype, weight_field]],
-                                             method=method, kernel_name=kernel_name),
-                                             input_units=units)
+                fields.append(data[ptype, weight_field])
+            fields = [np.ascontiguousarray(f) for f in fields]
+            d = data.deposit(pos, fields, method=method,
+                             kernel_name=kernel_name)
+            d = data.ds.arr(d, input_units=units)
+            if method == 'weighted_mean':
                 d[np.isnan(d)] = 0.0
-            else:
-                d = data.ds.arr(data.deposit(pos, [data[ptype, deposit_field]],
-                                             method=method, kernel_name=kernel_name),
-                                             input_units=units)
             return d
 
         self.add_field(

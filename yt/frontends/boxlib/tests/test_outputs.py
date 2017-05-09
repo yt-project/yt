@@ -20,7 +20,8 @@ from yt.testing import \
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
-    data_dir_load
+    data_dir_load, \
+    GridValuesTest
 from yt.frontends.boxlib.api import \
     OrionDataset, \
     NyxDataset, \
@@ -39,7 +40,7 @@ radadvect = "RadAdvect/plt00000"
 @requires_ds(radadvect)
 def test_radadvect():
     ds = data_dir_load(radadvect)
-    yield assert_equal, str(ds), "plt00000"
+    assert_equal(str(ds), "plt00000")
     for test in small_patch_amr(ds, _orion_fields):
         test_radadvect.__name__ = test.description
         yield test
@@ -48,7 +49,7 @@ rt = "RadTube/plt00500"
 @requires_ds(rt)
 def test_radtube():
     ds = data_dir_load(rt)
-    yield assert_equal, str(ds), "plt00500"
+    assert_equal(str(ds), "plt00500")
     for test in small_patch_amr(ds, _orion_fields):
         test_radtube.__name__ = test.description
         yield test
@@ -57,7 +58,7 @@ star = "StarParticles/plrd01000"
 @requires_ds(star)
 def test_star():
     ds = data_dir_load(star)
-    yield assert_equal, str(ds), "plrd01000"
+    assert_equal(str(ds), "plrd01000")
     for test in small_patch_amr(ds, _orion_fields):
         test_star.__name__ = test.description
         yield test
@@ -66,7 +67,7 @@ LyA = "Nyx_LyA/plt00000"
 @requires_ds(LyA)
 def test_LyA():
     ds = data_dir_load(LyA)
-    yield assert_equal, str(ds), "plt00000"
+    assert_equal(str(ds), "plt00000")
     for test in small_patch_amr(ds, _nyx_fields,
                                 input_center="c",
                                 input_weight="Ne"):
@@ -110,7 +111,7 @@ RT_particles = "RT_particles/plt00050"
 @requires_ds(RT_particles)
 def test_RT_particles():
     ds = data_dir_load(RT_particles)
-    yield assert_equal, str(ds), "plt00050"
+    assert_equal(str(ds), "plt00050")
     for test in small_patch_amr(ds, _castro_fields):
         test_RT_particles.__name__ = test.description
         yield test
@@ -144,22 +145,22 @@ def test_castro_particle_io():
     assert(np.all(np.logical_and(reg['particle_position_y'] <= right_edge[1], 
                                  reg['particle_position_y'] >= left_edge[1])))
 
-langmuir = "LangmuirWave/plt00020"
+langmuir = "LangmuirWave/plt00020_v2"
 @requires_ds(langmuir)
 def test_langmuir():
     ds = data_dir_load(langmuir)
-    yield assert_equal, str(ds), "plt00020"
+    assert_equal(str(ds), "plt00020_v2")
     for test in small_patch_amr(ds, _warpx_fields, 
                                 input_center="c",
                                 input_weight="Ex"):
         test_langmuir.__name__ = test.description
         yield test
 
-plasma = "PlasmaAcceleration/plt00030"
+plasma = "PlasmaAcceleration/plt00030_v2"
 @requires_ds(plasma)
 def test_plasma():
     ds = data_dir_load(plasma)
-    yield assert_equal, str(ds), "plt00030"
+    assert_equal(str(ds), "plt00030_v2")
     for test in small_patch_amr(ds, _warpx_fields,
                                 input_center="c",
                                 input_weight="Ex"):
@@ -205,6 +206,17 @@ def test_warpx_particle_io():
     assert(np.all(np.logical_and(reg['particle_position_z'] <= right_edge[2], 
                                  reg['particle_position_z'] >= left_edge[2])))
 
+
+_raw_fields = [('raw', 'Bx'), ('raw', 'Ey'), ('raw', 'jz')]
+
+raw_fields = "Laser/plt00015"
+@requires_ds(raw_fields)
+def test_raw_fields():
+    ds_fn = raw_fields
+    for field in _raw_fields:
+        yield GridValuesTest(ds_fn, field)
+
+
 @requires_file(rt)
 def test_OrionDataset():
     assert isinstance(data_dir_load(rt), OrionDataset)
@@ -223,5 +235,26 @@ def test_WarpXDataset():
 
 @requires_file(rt)
 def test_units_override():
-    for test in units_override_check(rt):
-        yield test
+    units_override_check(rt)
+
+nyx_no_particles = "nyx_sedov_plt00086"
+@requires_file(nyx_no_particles)
+def test_nyx_no_part():
+    assert isinstance(data_dir_load(nyx_no_particles), NyxDataset)
+
+    fields = sorted(
+        [('boxlib', 'H'), ('boxlib', 'He'), ('boxlib', 'MachNumber'),
+         ('boxlib', 'Ne'), ('boxlib', 'Rank'), ('boxlib', 'StateErr'),
+         ('boxlib', 'Temp'), ('boxlib', 'X(H)'), ('boxlib', 'X(He)'),
+         ('boxlib', 'density'), ('boxlib', 'divu'), ('boxlib', 'eint_E'),
+         ('boxlib', 'eint_e'), ('boxlib', 'entropy'), ('boxlib', 'forcex'),
+         ('boxlib', 'forcey'), ('boxlib', 'forcez'), ('boxlib', 'kineng'),
+         ('boxlib', 'logden'), ('boxlib', 'magmom'), ('boxlib', 'magvel'),
+         ('boxlib', 'magvort'), ('boxlib', 'pressure'), ('boxlib', 'rho_E'),
+         ('boxlib', 'rho_H'), ('boxlib', 'rho_He'), ('boxlib', 'rho_e'),
+         ('boxlib', 'soundspeed'), ('boxlib', 'x_velocity'), ('boxlib', 'xmom'),
+         ('boxlib', 'y_velocity'), ('boxlib', 'ymom'), ('boxlib', 'z_velocity'),
+         ('boxlib', 'zmom')])
+
+    ds = data_dir_load(nyx_no_particles)
+    assert_equal(sorted(ds.field_list), fields)

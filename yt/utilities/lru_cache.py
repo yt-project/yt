@@ -53,7 +53,7 @@ def _make_key(args, kwds, typed,
         return key[0]
     return _HashedSeq(key)
 
-def lru_cache(maxsize=100, typed=False):
+def lru_cache(maxsize=100, typed=False, make_key = _make_key):
     """Least-recently-used cache decorator.
     If *maxsize* is set to None, the LRU features are disabled and the cache
     can grow without bound.
@@ -77,7 +77,6 @@ def lru_cache(maxsize=100, typed=False):
         cache = dict()
         stats = [0, 0]                  # make statistics updateable non-locally
         HITS, MISSES = 0, 1             # names for the stats fields
-        make_key = _make_key
         cache_get = cache.get           # bound method to lookup key or return None
         _len = len                      # localize the global len() function
         lock = RLock()                  # because linkedlist updates aren't threadsafe
@@ -181,6 +180,8 @@ def lru_cache(maxsize=100, typed=False):
 
     return decorating_function
 ### End of backported lru_cache
+
+local_lru_cache = lru_cache
 
 if sys.version_info[:2] >= (3, 3):
     # 3.2 has an lru_cache with an incompatible API

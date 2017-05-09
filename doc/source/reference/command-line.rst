@@ -74,7 +74,7 @@ Plotting from the command line
 First, we'll discuss plotting from the command line, then we will give a brief
 summary of the functionality provided by each command line subcommand. This
 example uses the :code:`DD0010/moving7_0010` dataset distributed in the yt
-mercurial repository.
+git repository.
 
 First let's see what our options are for plotting:
 

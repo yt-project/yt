@@ -24,8 +24,9 @@ from .coordinate_handler import \
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian
+    pixelize_cartesian, pixelize_cartesian_nodal
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.utilities.nodal_data_utils import get_nodal_data
 
 
 class CartesianCoordinateHandler(CoordinateHandler):
@@ -102,12 +103,6 @@ class CartesianCoordinateHandler(CoordinateHandler):
                               "dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
-            elif field_data.shape[1] == 10:
-                # tetrahedral
-                mylog.warning("High order elements not yet supported, " +
-                              "dropping to 1st order.")
-                field_data = field_data[:,0:4]
-                indices = indices[:, 0:4]
 
             img = pixelize_element_mesh(coords,
                                         indices,
@@ -132,14 +127,27 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
-        buff = np.zeros((size[1], size[0]), dtype="f8")
-        pixelize_cartesian(buff, data_source['px'], data_source['py'],
-                             data_source['pdx'], data_source['pdy'],
-                             data_source[field],
-                             bounds, int(antialias),
-                             period, int(periodic))
-        return buff
 
+        buff = np.zeros((size[1], size[0]), dtype="f8")
+        
+        finfo = self.ds._get_field_info(field)
+        nodal_flag = finfo.nodal_flag
+        if np.any(nodal_flag):
+            nodal_data = get_nodal_data(data_source, field)
+            coord = data_source.coord.d
+            pixelize_cartesian_nodal(buff, 
+                                     data_source['px'], data_source['py'], data_source['pz'],
+                                     data_source['pdx'], data_source['pdy'], data_source['pdz'],
+                                     nodal_data, coord, bounds, int(antialias),
+                                     period, int(periodic))
+        else:
+            pixelize_cartesian(buff, data_source['px'], data_source['py'],
+                               data_source['pdx'], data_source['pdy'],
+                               data_source[field],
+                               bounds, int(antialias),
+                               period, int(periodic))
+        return buff
+            
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['pdx'])[::-1]
         buff = np.zeros((size[1], size[0]), dtype="f8")

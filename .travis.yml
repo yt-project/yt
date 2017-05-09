@@ -1,0 +1,61 @@
+language: python
+sudo: false
+cache:
+  pip: true
+  directories:
+    - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
+
+addons:
+  apt:
+    packages:
+      - libhdf5-serial-dev
+
+matrix:
+  include:
+    - python: 2.7
+    - python: 3.4
+    - python: 3.5
+    - python: 3.6
+    - os: osx
+      osx_image: xcode7.3
+      language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
+      cache:
+        pip: false
+        directories:
+          - $HOME/Library/Caches/pip
+          # `cache` does not support `env`-like `global` so copy-paste from top
+          - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
+
+before_install:
+  - |
+    if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
+      pip install --upgrade virtualenv
+      python -m virtualenv venv
+      source venv/bin/activate
+      export PATH=/usr/lib/ccache:$PATH
+    else
+      brew update
+      brew install ccache hdf5
+      export PATH=/usr/local/opt/ccache/libexec:$PATH
+    fi
+    mkdir -p $HOME/.config/yt
+    echo "[yt]" > $HOME/.config/yt/ytrc
+    echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
+    cat $HOME/.config/yt/ytrc
+
+install:
+  - |
+    # setup environment
+    ccache -s
+    # Upgrade pip and setuptools and wheel to get clean install
+    pip install --upgrade pip
+    pip install --upgrade wheel
+    pip install --upgrade setuptools
+    # Install dependencies
+    pip install mock numpy scipy cython matplotlib sympy fastcache nose flake8 h5py ipython nose-timer
+    # install yt
+    pip install -e .
+
+script:
+  - |
+    nosetests --nologcapture --with-timer -sv yt

@@ -71,7 +71,7 @@ m7 = "DD0010/moving7_0010"
 @requires_ds(m7)
 def test_moving7():
     ds = data_dir_load(m7)
-    yield assert_equal, str(ds), "moving7_0010"
+    assert_equal(str(ds), "moving7_0010")
     for test in small_patch_amr(m7, _fields):
         test_moving7.__name__ = test.description
         yield test
@@ -80,7 +80,7 @@ def test_moving7():
 def test_galaxy0030():
     ds = data_dir_load(g30)
     yield check_color_conservation(ds)
-    yield assert_equal, str(ds), "galaxy0030"
+    assert_equal(str(ds), "galaxy0030")
     for test in big_patch_amr(ds, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
@@ -122,18 +122,17 @@ def test_ecp():
 
 @requires_file(enzotiny)
 def test_units_override():
-    for test in units_override_check(enzotiny):
-        yield test
+    units_override_check(enzotiny)
 
 @requires_ds(ecp, big_data=True)
 def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
     ad = ds.all_data()
-    yield assert_array_equal, ad["H_nuclei_density"], \
-      (ad["H_number_density"] + ad["H_p1_number_density"])
-    yield assert_array_equal, ad["He_nuclei_density"], \
-      (ad["He_number_density"] + ad["He_p1_number_density"] +
-       ad["He_p2_number_density"])
+    assert_array_equal(ad["H_nuclei_density"],
+                       (ad["H_number_density"] + ad["H_p1_number_density"]))
+    assert_array_equal(ad["He_nuclei_density"],
+        (ad["He_number_density"] +
+         ad["He_p1_number_density"] + ad["He_p2_number_density"]))
 
 @requires_file(enzotiny)
 def test_EnzoDataset():

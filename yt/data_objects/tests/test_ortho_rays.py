@@ -25,5 +25,5 @@ def test_ortho_ray():
                    (np.abs(my_all[axes[my_axes[1]]] - ocoord[1]) <= 
                     0.5 * dx[my_axes[1]])
 
-        yield assert_equal, my_oray['density'].sum(), \
-                            my_all['density'][my_cells].sum()
+        assert_equal(my_oray['density'].sum(),
+                     my_all['density'][my_cells].sum())

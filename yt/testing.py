@@ -206,9 +206,11 @@ def fake_random_ds(
         if particle_fields is not None:
             for field, unit in zip(particle_fields, particle_field_units):
                 if field in ('particle_position', 'particle_velocity'):
-                    data['io', field] = (prng.random_sample((particles, 3)), unit)
+                    data['io', field] = (
+                        prng.random_sample((int(particles), 3)), unit)
                 else:
-                    data['io', field] = (prng.random_sample(size=particles), unit)
+                    data['io', field] = (
+                        prng.random_sample(size=int(particles)), unit)
         else:
             for f in ('particle_position_%s' % ax for ax in 'xyz'):
                 data['io', f] = (prng.random_sample(size=particles), 'code_length')
@@ -353,13 +355,13 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     This dataset allows you to easily explore orientations and
     handiness in VR and other renderings
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
-    N: integer
+    N : integer
        The number of cells along each direction
 
-    scale: float
+    scale : float
        A spatial scale, the domain boundaries will be multiplied by scale to
        test datasets that have spatial different scales (e.g. data in CGS units)
 
@@ -576,7 +578,7 @@ def units_override_check(fn):
         unit_attr = getattr(ds2, "%s_unit" % u, None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
-    yield assert_equal, attrs1, attrs2
+    assert_equal(attrs1, attrs2)
 
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
@@ -811,17 +813,17 @@ def check_results(func):
     Examples
     --------
 
-    @check_results
-    def my_func(ds):
-        return ds.domain_width
+    >>> @check_results
+    ... def my_func(ds):
+    ...     return ds.domain_width
 
-    my_func(ds)
+    >>> my_func(ds)
 
-    @check_results
-    def field_checker(dd, field_name):
-        return dd[field_name]
+    >>> @check_results
+    ... def field_checker(dd, field_name):
+    ...     return dd[field_name]
 
-    field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -893,7 +895,7 @@ def periodicity_cases(ds):
                 yield center
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
-             call_pdb = False):
+             call_pdb=False, module=None):
     from yt.utilities.on_demand_imports import _nose
     import sys
     from yt.utilities.logger import ytLogger as mylog
@@ -909,6 +911,8 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
         nose_argv.append('--with-answer-testing')
     if answer_big_data:
         nose_argv.append('--answer-big-data')
+    if module:
+        nose_argv.append(module)
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
@@ -952,9 +956,12 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         with the units of ``actual`` and ``desired``. If no units are attached,
         assumes the same units as ``desired``. Defaults to zero.
 
+    Notes
+    -----
     Also accepts additional keyword arguments accepted by
     :func:`numpy.testing.assert_allclose`, see the documentation of that
     function for details.
+
     """
     # Create a copy to ensure this function does not alter input arrays
     act = YTArray(actual)

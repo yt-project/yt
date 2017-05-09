@@ -48,24 +48,23 @@ will work best for you depends on your precise situation:
 
 .. _branches-of-yt:
 
-Branches of yt: ``yt``, ``stable``, and ``yt-2.x``
-++++++++++++++++++++++++++++++++++++++++++++++++++
+Branches of yt: ``master``, ``stable``, and ``yt-2.x``
+++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Before you install yt, you must decide which branch (i.e. version) of the code
 you prefer to use:
 
-* ``yt`` -- The most up-to-date *development* version with the most current
-  features but sometimes unstable (the development version of the next ``yt-3.x``
-  release).
+* ``master`` -- The most up-to-date *development* version with the most current
+  features but sometimes unstable (the development version of the next release).
 * ``stable`` -- The latest stable release of ``yt-3.x``.
 * ``yt-2.x`` -- The last stable release of ``yt-2.x``.
 
 If this is your first time using the code, we recommend using ``stable``, unless
 you specifically need some piece of brand-new functionality only available in
-``yt`` or need to run an old script developed for ``yt-2.x``.  There were major
+``master`` or need to run an old script developed for ``yt-2.x``.  There were major
 API and functionality changes made in yt for version 3.0.  For a detailed
 description of the changes between versions 2.x (e.g. branch ``yt-2.x``) and 3.x
-(e.g. branches ``yt`` and ``stable``) see :ref:`yt3differences`.  Lastly, don't
+(e.g. branches ``master`` and ``stable``) see :ref:`yt3differences`.  Lastly, don't
 feel like you're locked into one branch when you install yt, because you can
 easily change the active branch by following the instructions in
 :ref:`switching-between-yt-versions`.
@@ -78,7 +77,7 @@ All-in-One Installation Script
 Because installation of all of the interlocking parts necessary to install yt
 itself can be time-consuming, yt provides an all-in-one installation script
 which downloads and builds a fully-isolated installation of Python that includes
-NumPy, Matplotlib, H5py, Mercurial, and yt.
+NumPy, Matplotlib, H5py, git, and yt.
 
 The install script supports UNIX-like systems, including Linux, OS X, and most
 supercomputer and cluster environments. It is particularly suited for deployment
@@ -99,13 +98,13 @@ You can download the installation script with the following command:
 
 .. code-block:: bash
 
-  $ wget http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
+  $ wget https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
 
 If you do not have ``wget``, the following should also work:
 
 .. code-block:: bash
 
-  $ curl -OL http://bitbucket.org/yt_analysis/yt/raw/yt/doc/install_script.sh
+  $ curl -OL https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
 the `miniconda python distrubtion <http://conda.pydata.org/miniconda.html>`_,
@@ -119,7 +118,7 @@ several variables that are defined at the top of the script.
 
 If you would like to build yt from source, you will need to edit the install
 script and set ``INST_YT_SOURCE=1`` near the top. This will clone a copy of the
-yt mercurial repository and build yt form source. The default is
+yt git repository and build yt form source. The default is
 ``INST_YT_SOURCE=0``, which installs yt from a binary conda package.
 
 The install script can also build python and all yt dependencies from source. To
@@ -270,7 +269,7 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
 .. code-block:: bash
 
-  $ conda install yt
+  $ conda install -c conda-forge yt
 
 which will install stable branch of yt along with all of its dependencies.
 
@@ -284,7 +283,7 @@ it from our custom anaconda channel:
 
 .. code-block:: bash
 
-  $ conda install -c http://use.yt/with_conda/ yt
+  $ conda install -c http://use.yt/with_conda/ -c conda-forge yt
 
 New packages for development branch are built after every pull request is
 merged. In order to make sure you are running latest version, it's recommended
@@ -292,7 +291,12 @@ to update frequently:
 
 .. code-block:: bash
 
-  $ conda update -c http://use.yt/with_conda/ yt
+  $ conda update -c http://use.yt/with_conda/ -c conda-forge yt
+
+We recommend trying to install dependencies from conda-forge as indicated above
+since focused individual communities stand a better chance of successfully
+maintaining build recipes. However, if you wish to use the default anaconda
+packages, simply remove ``-c conda-forge`` during conda installation.
 
 Location of our channel can be added to ``.condarc`` to avoid retyping it during
 each *conda* invocation. Please refer to `Conda Manual
@@ -309,28 +313,15 @@ conda environment:
 
 .. code-block:: bash
 
-  $ conda install cython mercurial sympy ipython matplotlib
+  $ conda install -c conda-forge cython git sympy ipython matplotlib netCDF4
 
 In addition, you will need a C compiler installed.
-
-.. note::
-  
-  If you are using a python3 environment, ``conda`` will not be able to install
-  *mercurial*, which works only with python2. You can circumvent this issue by
-  creating a dedicated python2 environment and symlinking *hg* in your current
-  environment:
-
-  .. code-block:: bash
-
-   $ export CONDA_DIR=$(python -c 'import sys; print(sys.executable.split("/bin/python")[0])')
-   $ conda create -y -n py27 python=2.7 mercurial
-   $ ln -s ${CONDA_DIR}/envs/py27/bin/hg ${CONDA_DIR}/bin
 
 Clone the yt repository with:
 
 .. code-block:: bash
 
-  $ hg clone https://bitbucket.org/yt_analysis/yt
+  $ git clone https://github.com/yt-project/yt
 
 Once inside the yt directory, update to the appropriate branch and
 run ``setup.py develop``. For example, the following commands will allow you
@@ -338,8 +329,7 @@ to see the tip of the development branch.
 
 .. code-block:: bash
 
-  $ hg pull
-  $ hg update yt
+  $ git checkout master
   $ python setup.py develop
 
 This will make sure you are running a version of yt corresponding to the
@@ -358,7 +348,7 @@ instructions. First, clone Matt Turk's fork of rockstar and compile it:
 
 .. code-block:: bash
 
-  $ hg clone https://bitbucket.org/MatthewTurk/rockstar
+  $ git clone https://github.com/yt-project/rockstar
   $ cd rockstar
   $ make lib
 
@@ -369,17 +359,17 @@ Next, copy `librockstar.so` into the `lib` folder of your anaconda installation:
   $ cp librockstar.so /path/to/anaconda/lib
 
 Finally, you will need to recompile yt to enable the rockstar interface. Clone a
-copy of the yt mercurial repository (see :ref:`conda-source-build`), or navigate
+copy of the yt git repository (see :ref:`conda-source-build`), or navigate
 to a clone that you have already made, and do the following:
 
 .. code-block:: bash
 
-  $ cd /path/to/yt-hg
+  $ cd /path/to/yt-git
   $ ./clean.sh
   $ echo /path/to/rockstar > rockstar.cfg
   $ python setup.py develop
 
-Here ``/path/to/yt-hg`` is the path to your clone of the yt mercurial repository
+Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
 and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
 rockstar.
 
@@ -406,13 +396,23 @@ Installing yt on Windows
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 Installation on 64-bit Microsoft Windows platforms is supported using Anaconda
-(see :ref:`anaconda-installation`). Also see :ref:`windows-developing` for
-details on how to build yt from source in Windows.
+(see :ref:`anaconda-installation`) and via ``pip``.
 
 .. _source-installation:
 
-Installing yt Using ``pip`` or From Source
-++++++++++++++++++++++++++++++++++++++++++
+Installing yt Using ``pip``
++++++++++++++++++++++++++++
+
+If you already have a python installation that you manage using ``pip`` you can
+install the latest release of yt by doing::
+
+  $ pip install yt
+
+If you do not have root access you may need to append ``--user`` to install to a
+location in your home folder.
+
+Installing yt from source
++++++++++++++++++++++++++
 
 .. note::
 
@@ -423,38 +423,30 @@ To install yt from source, you must make sure you have yt's dependencies
 installed on your system. Right now, the dependencies to build yt from
 source include:
 
-- ``mercurial``
+- ``git``
 - A C compiler such as ``gcc`` or ``clang``
 - ``Python 2.7``, ``Python 3.4``, or ``Python 3.5``
 
-In addition, building yt from source requires several python packages
+In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install numpy matplotlib cython sympy
+  $ pip install numpy cython
 
 You may also want to install some of yt's optional dependencies, including
 ``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``, or
 ``astropy``,
 
-From here, you can use ``pip`` (which comes with ``Python``) to install the
-latest stable version of yt:
+The source code for yt may be found on GitHub. If you prefer to install the
+development version of yt instead of the latest stable release, you will need
+``git`` to clone the official repo:
 
 .. code-block:: bash
 
-  $ pip install yt
-
-The source code for yt may be found at the Bitbucket project site and can also
-be utilized for installation. If you prefer to install the development version
-of yt instead of the latest stable release, you will need ``mercurial`` to clone
-the official repo:
-
-.. code-block:: bash
-
-  $ hg clone https://bitbucket.org/yt_analysis/yt
+  $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ hg update yt
+  $ git checkout master
   $ python setup.py install --user --prefix=
 
 .. note::
@@ -471,27 +463,27 @@ This will install yt into a folder in your home directory
 ``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
 the ``setuptools`` documentation for the additional options.
 
-If you are unable to locate the ``yt`` executable (i.e. ``yt version`` failes),
-then you likely need to add the ``$HOME/.local/bin`` (or the equivalent on your
-OS) to your PATH. Some linux distributions do not include this directory in the
-default search path.
+If you are unable to locate the ``yt`` executable (i.e. executing ``yt version``
+at the bash command line fails), then you likely need to add the
+``$HOME/.local/bin`` (or the equivalent on your OS) to your PATH. Some linux
+distributions do not include this directory in the default search path.
 
 If you choose this installation method, you do not need to run any activation
 script since this will install yt into your global python environment.
 
-If you will be modifying yt, you can also make the clone of the yt mercurial
+If you will be modifying yt, you can also make the clone of the yt git
 repository the "active" installed copy:
 
 .. code-block:: bash
 
-  $ hg clone https://bitbucket.org/yt_analysis/yt
+  $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ hg update yt
+  $ git checkout master
   $ python setup.py develop --user --prefix=
 
-As above, you can leave off ``--user --prefix=`` if you want to install yt into the default
-package install path.  If you do not have write access for this location, you
-might need to use ``sudo``.
+As above, you can leave off ``--user --prefix=`` if you want to install yt into
+the default package install path.  If you do not have write access for this
+location, you might need to use ``sudo``.
 
 Build errors with ``setuptools`` or ``distribute``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -513,13 +505,13 @@ error messages for it if it's out of date. You can update with pip via
 
 or via your preferred method.   
 
-Keeping yt Updated via Mercurial
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Keeping yt Updated via Git
+^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If you want to maintain your yt installation via updates straight from the
-Bitbucket repository or if you want to do some development on your own, we
+GitHub repository or if you want to do some development on your own, we
 suggest you check out some of the :ref:`development docs <contributing-code>`,
-especially the sections on :ref:`Mercurial <mercurial-with-yt>` and
+especially the sections on :ref:`Git <git-with-yt>` and
 :ref:`building yt from source <building-yt>`.
 
 You can also make use of the following command to keep yt up to date from the
@@ -529,8 +521,8 @@ command line:
 
   $ yt update
 
-This will detect that you have installed yt from the mercurial repository, pull
-any changes from Bitbucket, and then recompile yt if necessary.
+This will detect that you have installed yt from the git repository, pull any
+changes from GitHub, and then recompile yt if necessary.
 
 .. _testing-installation:
 
@@ -556,8 +548,8 @@ for more details.
 
 .. _switching-between-yt-versions:
 
-Switching versions of yt: ``yt-2.x``, ``stable``, and ``yt`` branches
----------------------------------------------------------------------
+Switching versions of yt: ``yt-2.x``, ``stable``, and ``master`` branches
+-------------------------------------------------------------------------
 
 Here we explain how to switch between different development branches of yt. 
 
@@ -594,10 +586,10 @@ On the other hand, if the output from ``yt version`` looks like:
 
   ---
   Version = 3.3-dev
-  Changeset = d8eec89b2c86 (yt) tip
+  Changeset = d8eec89b2c86
   ---
 
-i.e. it refers to a specific changeset in the yt mercurial repository, then
+i.e. it refers to a specific changeset in the yt git repository, then
 you installed using ``INST_YT_SOURCE=1``.
 
 Conda-based installs (``INST_YT_SOURCE=0``)
@@ -608,15 +600,15 @@ In this case you can either install one of the nightly conda builds (see :ref:`n
 Source-based installs (``INST_YT_SOURCE=1``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-You already have the mercurial repository, so you simply need to switch
-which version you're using.  Navigate to the root of the yt mercurial
-repository, update to the desired version, and rebuild the source (some of the
+You already have the git repository, so you simply need to switch
+which version you're using.  Navigate to the root of the yt git
+repository, check out the desired version, and rebuild the source (some of the
 C code requires a compilation step for big changes like this):
 
 .. code-block:: bash
 
-  $ cd yt-<machine>/src/yt-hg
-  $ hg update <desired-version>
+  $ cd yt-<machine>/src/yt-git
+  $ git checkout <desired version>
   $ python setup.py develop
 
 Valid versions to jump to are described in :ref:`branches-of-yt`.
@@ -628,22 +620,21 @@ If You Installed yt Using from Source or Using pip
 ++++++++++++++++++++++++++++++++++++++++++++++++++
 
 If you have installed python via ``pip``, remove
-any extant installations of yt on your system and clone the source mercurial
+any extant installations of yt on your system and clone the git
 repository of yt as described in :ref:`source-installation`.
 
 .. code-block:: bash
 
   $ pip uninstall yt
-  $ hg clone https://bitbucket.org/yt_analysis/yt
+  $ git clone https://github.com/yt-project/yt
 
-Now, to switch between versions, you need to navigate to the root of
-the mercurial yt repository. Use mercurial to
-update to the appropriate version and recompile.
+Now, to switch between versions, you need to navigate to the root of the git yt
+repository. Use git to update to the appropriate version and recompile.
 
 .. code-block:: bash
 
   $ cd yt
-  $ hg update <desired-version>
+  $ git checkout <desired-version>
   $ python setup.py install --user --prefix=
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).

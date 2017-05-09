@@ -393,8 +393,6 @@ class Scene(object):
         rs = rensources[0]
         tf = rs.transfer_function
         label = rs.data_source.ds._get_field_info(rs.field).get_label()
-        if rs.log_field:
-            label = r'$\rm{log}\ $' + label
 
         ax = self._show_mpl(self._last_render.swapaxes(0, 1),
                             sigma_clip=sigma_clip, dpi=dpi)
@@ -501,6 +499,7 @@ class Scene(object):
 
         for k, source in self.transparent_sources:
             im = source.render(camera, zbuffer=opaque)
+            opaque.rgba = im
 
         return im
 
@@ -795,7 +794,7 @@ class Scene(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol object, or astropy
                       units object

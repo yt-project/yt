@@ -13,12 +13,16 @@ Tests for loading in-memory datasets
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
 import os
 import shutil
 import tempfile
 import unittest
 
-from yt.testing import assert_raises
+from yt.frontends.stream.data_structures import load_uniform_grid
+from yt.testing import \
+    assert_equal, \
+    assert_raises
 from yt.convenience import load
 from yt.utilities.exceptions import YTOutputNotIdentified
 
@@ -43,3 +47,15 @@ class TestEmptyLoad(unittest.TestCase):
         assert_raises(YTOutputNotIdentified, load, "not_a_file")
         assert_raises(YTOutputNotIdentified, load, "empty_file")
         assert_raises(YTOutputNotIdentified, load, "empty_directory")
+
+def test_dimensionless_field_units():
+    Z = np.random.uniform(size=(32,32,32))
+    d = np.random.uniform(size=(32,32,32))
+
+    data = {"density": d, "metallicity": Z}
+
+    ds = load_uniform_grid(data, (32,32,32))
+
+    dd = ds.all_data()
+
+    assert_equal(Z.max(), dd["metallicity"].max())

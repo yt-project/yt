@@ -35,12 +35,11 @@ def test_amr_kdtree_coverage():
     kd = AMRKDTree(ds)
 
     volume = kd.count_volume()
-    yield assert_equal, volume, \
-        np.prod(ds.domain_right_edge - ds.domain_left_edge)
+    assert_equal(volume, np.prod(ds.domain_right_edge - ds.domain_left_edge))
 
     cells = kd.count_cells()
     true_cells = ds.all_data().quantities['TotalQuantity']('Ones')[0]
-    yield assert_equal, cells, true_cells
+    assert_equal(cells, true_cells)
 
     # This largely reproduces the AMRKDTree.tree.check_tree() functionality
     tree_ok = True
@@ -59,7 +58,7 @@ def test_amr_kdtree_coverage():
         tree_ok *= np.all(grid.RightEdge >= nre)
         tree_ok *= np.all(dims > 0)
 
-    yield assert_equal, True, tree_ok
+    assert_equal(True, tree_ok)
 
 def test_amr_kdtree_set_fields():
     ds = fake_amr_ds(fields=["density", "pressure"])

@@ -301,7 +301,7 @@ def test_absorption_spectrum_fits():
 def test_voigt_profiles():
     a = 1.7e-4
     x = np.linspace(5.0, -3.6, 60)
-    yield assert_allclose_units, voigt_old(a, x), voigt_scipy(a, x), 1e-8
+    assert_allclose_units(voigt_old(a, x), voigt_scipy(a, x), 1e-8)
 
 @requires_file(GIZMO_PLUS)
 @requires_answer_testing()

@@ -41,7 +41,7 @@ def test_scivis():
     if not internet_on():
         return
     ds = SDFDataset(scivis_data)
-    yield assert_equal, str(ds), "ds14_scivis_0128_e4_dt04_1.0000"
+    assert_equal(str(ds), "ds14_scivis_0128_e4_dt04_1.0000")
     ad = ds.all_data()
     assert np.unique(ad['particle_position_x']).size > 1
     ProjectionPlot(ds, "z", _fields)
