@@ -252,7 +252,7 @@ class StreamHierarchy(GridIndex):
         else:
             self.io = io_registry[self.dataset_type](self.ds)
 
-    def update_data(self, data, units=None):
+    def update_data(self, data):
 
         """
         Update the stream data with a new data dict. If fields already exist,
@@ -260,25 +260,22 @@ class StreamHierarchy(GridIndex):
         already in the stream but not part of the data dict will be left
         alone. 
         """
-        [update_field_names(d) for d in data]
-        if units is not None:
-            self.stream_handler.field_units.update(units)
         particle_types = set_particle_types(data[0])
-        ftype = "io"
 
         for key in data[0].keys():
-            if key is "number_of_particles": continue
+            if key is "number_of_particles":
+                continue
             self.stream_handler.particle_types[key] = particle_types[key]
 
         for i, grid in enumerate(self.grids):
             if "number_of_particles" in data[i]:
                 grid.NumberOfParticles = data[i].pop("number_of_particles")
-            for fname in data[i]:
-                if fname in grid.field_data:
-                    grid.field_data.pop(fname, None)
-                elif (ftype, fname) in grid.field_data:
-                    grid.field_data.pop((ftype, fname))
-                self.stream_handler.fields[grid.id][fname] = data[i][fname]
+            field_units, gdata = unitify_data(data[i])
+            self.stream_handler.field_units.update(field_units)
+            for field in gdata:
+                if field in grid.field_data:
+                    grid.field_data.pop(field, None)
+                self.stream_handler.fields[grid.id][field] = gdata[field]
 
         # We only want to create a superset of fields here.
         self._detect_output_fields()
@@ -451,10 +448,10 @@ def assign_particle_data(ds, pdata):
         particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
                                           minlength=num_grids)
         particle_indices = np.zeros(num_grids + 1, dtype='int64')
-        if num_grids > 1 :
+        if num_grids > 1:
             np.add.accumulate(particle_grid_count.squeeze(),
                               out=particle_indices[1:])
-        else :
+        else:
             particle_indices[1] = particle_grid_count.squeeze()
 
         pdata.pop("number_of_particles", None)
@@ -468,7 +465,7 @@ def assign_particle_data(ds, pdata):
                 grid[key] = pdata[key][idxs][start:end]
             grid_pdata.append(grid)
 
-    else :
+    else:
         grid_pdata = [pdata]
 
     for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
@@ -536,7 +533,7 @@ def unitify_data(data):
         # overridden here.
         if any(f[0] == new_field[1] for f in known_fields) and \
            field_units[new_field] == "":
-            field_units.pop(new_field)
+               field_units.pop(new_field)
     data = new_data
     return field_units, data
 
