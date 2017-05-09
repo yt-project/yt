@@ -52,10 +52,10 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock numpy scipy cython matplotlib sympy fastcache nose flake8 h5py ipython
+    pip install mock numpy scipy cython matplotlib sympy fastcache nose flake8 h5py ipython nose-timer
     # install yt
     pip install -e .
 
 script:
   - |
-    nosetests -sv yt
+    nosetests --nologcapture --with-timer -sv yt
