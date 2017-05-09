@@ -170,13 +170,13 @@ class ParticleGenerator(object):
         grid_data = []
         for i,g in enumerate(self.ds.index.grids):
             data = {}
-            if clobber :
+            if clobber:
                 data["number_of_particles"] = self.NumberOfParticles[i]
-            else :
+            else:
                 data["number_of_particles"] = self.NumberOfParticles[i] + \
                                               g.NumberOfParticles
             grid_particles = self.get_for_grid(g)
-            for field in self.field_list :
+            for field in self.field_list:
                 if data["number_of_particles"] > 0:
                     # We have particles in this grid
                     if g.NumberOfParticles > 0 and not clobber:
@@ -187,9 +187,9 @@ class ParticleGenerator(object):
                         else:
                             # This one doesn't, set the previous particles' field
                             # values to zero
-                            prev_particles = np.zeros((g.NumberOfParticles))
+                            prev_particles = np.zeros(g.NumberOfParticles)
                             prev_particles = self.ds.arr(prev_particles,
-                                input_units = self.field_units[field])
+                                                         self.field_units[field])
                         data[field] = uconcatenate((prev_particles,
                                                     grid_particles[field]))
                     else:
