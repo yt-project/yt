@@ -851,7 +851,7 @@ class CuttingQuiverCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        indices = np.argsort(plot.data['dx'])[::-1]
+        indices = np.argsort(plot.data['dx'])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")

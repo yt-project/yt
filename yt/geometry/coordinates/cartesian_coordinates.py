@@ -149,7 +149,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         return buff
             
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
-        indices = np.argsort(data_source['pdx'])[::-1]
+        indices = np.argsort(data_source['pdx'])[::-1].astype(np.int_)
         buff = np.zeros((size[1], size[0]), dtype="f8")
         pixelize_off_axis_cartesian(buff,
                               data_source['x'], data_source['y'],
