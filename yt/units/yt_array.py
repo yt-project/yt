@@ -30,6 +30,12 @@ from numpy import \
     isreal, iscomplex, isfinite, isinf, isnan, signbit, copysign, nextafter, \
     modf, ldexp, frexp, fmod, floor, ceil, trunc, fabs, spacing
 
+try:
+    # numpy 1.13 or newer
+    from numpy import positive, divmod as divmod_, isnat, heaviside
+except ImportError:
+    positive, divmod_, isnat, heaviside = (None,)*4
+
 from yt.units.unit_object import Unit, UnitParseError
 from yt.units.unit_registry import UnitRegistry
 from yt.units.dimensions import \
@@ -206,7 +212,7 @@ unary_operators = (
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
     rad2deg, invert, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
-    signbit, floor, ceil, trunc, modf, frexp, fabs, spacing
+    signbit, floor, ceil, trunc, modf, frexp, fabs, spacing, positive, isnat
 )
 
 binary_operators = (
@@ -214,7 +220,7 @@ binary_operators = (
     remainder, mod, arctan2, hypot, bitwise_and, bitwise_or, bitwise_xor,
     left_shift, right_shift, greater, greater_equal, less, less_equal,
     not_equal, equal, logical_and, logical_or, logical_xor, maximum, minimum,
-    fmax, fmin, copysign, nextafter, ldexp, fmod,
+    fmax, fmin, copysign, nextafter, ldexp, fmod, divmod_, heaviside
 )
 
 trigonometric_operators = (
@@ -367,6 +373,10 @@ class YTArray(np.ndarray):
         ceil: passthrough_unit,
         trunc: passthrough_unit,
         spacing: passthrough_unit,
+        positive: passthrough_unit,
+        divmod_: passthrough_unit,
+        isnat: return_without_unit,
+        heaviside: preserve_units,
     }
 
     __array_priority__ = 2.0
