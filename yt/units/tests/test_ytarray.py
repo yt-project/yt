@@ -791,6 +791,7 @@ def binary_ufunc_comparison(ufunc, a, b):
         return
 
     ret = ufunc(a, b, out=out)
+    ret = ufunc(a, b)
 
     if ufunc is np.multiply:
         assert_true(ret.units == a.units*b.units)

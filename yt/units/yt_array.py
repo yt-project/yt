@@ -84,7 +84,7 @@ def sqrt_unit(unit):
 def multiply_units(unit1, unit2):
     return unit1 * unit2
 
-def preserve_units(unit1, unit2):
+def preserve_units(unit1, unit2=None):
     return unit1
 
 @lru_cache(maxsize=128, typed=False)
@@ -103,16 +103,16 @@ def divide_units(unit1, unit2):
 def reciprocal_unit(unit):
     return unit**-1
 
-def passthrough_unit(unit):
+def passthrough_unit(unit, unit2=None):
     return unit
 
-def return_without_unit(unit):
+def return_without_unit(unit, unit2=None):
     return None
 
 def arctan2_unit(unit1, unit2):
     return NULL_UNIT
 
-def comparison_unit(unit1, unit2):
+def comparison_unit(unit1, unit2=None):
     return None
 
 def invert_units(unit):
@@ -1177,6 +1177,101 @@ class YTArray(np.ndarray):
         else:
             return ret
 
+    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
+        if 'out' in kwargs:
+            out = kwargs['out'][0].view(np.ndarray)
+        else:
+            out = None
+        if method == '__call__':
+            func = ufunc
+        else:
+            func = getattr(ufunc, method)
+        if len(inputs) == 1:
+            u = getattr(inputs[0], 'units', None)
+            if u is None:
+                u = NULL_UNIT
+            if u.dimensions is angle and ufunc in trigonometric_operators:
+                inp = inputs[0].in_units('radian')
+            else:
+                inp = inputs[0]
+            if out is not None:
+                func(np.asarray(inp), out=out)
+                out_arr = out
+            else:
+                out_arr = func(np.asarray(inp))
+            unit = self._ufunc_registry[ufunc](u)
+            ret_class = type(self)
+        elif len(inputs) == 2:
+            if out is not None:
+                func(np.asarray(inputs[0]), np.asarray(inputs[1]), out=out)
+                out_arr = out
+            else:
+                out_arr = func(np.asarray(inputs[0]), np.asarray(inputs[1]))
+            oper1 = coerce_iterable_units(inputs[0])
+            oper2 = coerce_iterable_units(inputs[1])
+            cls1 = type(oper1)
+            cls2 = type(oper2)
+            unit1 = getattr(oper1, 'units', None)
+            unit2 = getattr(oper2, 'units', None)
+            ret_class = get_binary_op_return_class(cls1, cls2)
+            if unit1 is None:
+                unit1 = Unit(registry=getattr(unit2, 'registry', None))
+            if unit2 is None and ufunc is not power:
+                unit2 = Unit(registry=getattr(unit1, 'registry', None))
+            elif ufunc is power:
+                unit2 = oper2
+                if isinstance(unit2, np.ndarray):
+                    if isinstance(unit2, YTArray):
+                        if unit2.units.is_dimensionless:
+                            pass
+                        else:
+                            raise YTUnitOperationError(ufunc, unit1, unit2)
+                    unit2 = 1.0
+            unit_operator = self._ufunc_registry[ufunc]
+            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
+                # Allow comparisons, addition, and subtraction with
+                # dimensionless quantities or arrays filled with zeros.
+                u1d = unit1.is_dimensionless
+                u2d = unit2.is_dimensionless
+                if unit1 != unit2:
+                    any_nonzero = [np.any(oper1), np.any(oper2)]
+                    if any_nonzero[0] == np.bool_(False):
+                        unit1 = unit2
+                    elif any_nonzero[1] == np.bool_(False):
+                        unit2 = unit1
+                    elif not any([u1d, u2d]):
+                        if not unit1.same_dimensions_as(unit2):
+                            raise YTUnitOperationError(ufunc, unit1, unit2)
+                        else:
+                            raise YTUfuncUnitError(ufunc, unit1, unit2)
+            unit = unit_operator(unit1, unit2)
+            if unit_operator in (multiply_units, divide_units):
+                if unit.is_dimensionless and unit.base_value != 1.0:
+                    if not unit1.is_dimensionless:
+                        if unit1.dimensions == unit2.dimensions:
+                            out_arr = np.multiply(out_arr.view(np.ndarray),
+                                                  unit.base_value, out=out)
+                            unit = Unit(registry=unit.registry)
+        else:
+            raise RuntimeError("Support for the %s ufunc has not been added "
+                               "to YTArray." % str(ufunc))
+        if unit is None:
+            out_arr = np.array(out_arr, copy=False)
+        elif ufunc in (modf, divmod_):
+            out_arr = tuple((ret_class(o, unit) for o in out_arr))
+        elif out_arr.size == 1:
+            out_arr = YTQuantity(np.asarray(out_arr), unit)
+        else:
+            if ret_class is YTQuantity:
+                # This happens if you do ndarray * YTQuantity. Explicitly
+                # casting to YTArray avoids creating a YTQuantity with size > 1
+                out_arr = YTArray(np.asarray(out_arr), unit)
+            else:
+                out_arr = ret_class(np.asarray(out_arr), unit)
+        if 'out' in kwargs and hasattr(kwargs['out'][0], 'units'):
+            kwargs['out'][0].units = unit
+        return out_arr
+        
     def __array_wrap__(self, out_arr, context=None):
         ret = super(YTArray, self).__array_wrap__(out_arr, context)
         if isinstance(ret, YTQuantity) and ret.shape != ():
