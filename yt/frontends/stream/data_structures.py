@@ -18,7 +18,10 @@ import time
 import weakref
 import numpy as np
 import uuid
-from itertools import chain, product
+from itertools import \
+    chain, \
+    product, \
+    repeat
 
 from numbers import Number as numeric_type
 
@@ -71,6 +74,8 @@ from .fields import \
     StreamFieldInfo
 from yt.frontends.exodus_ii.util import \
     get_num_pseudo_dims
+from yt.data_objects.unions import MeshUnion
+
 
 class StreamGrid(AMRGridPatch):
     """
@@ -801,7 +806,7 @@ def load_amr_grids(grid_data, domain_dimensions,
     ...          right_edge = [1.0, 1.0, 1.],
     ...          level = 0,
     ...          dimensions = [32, 32, 32],
-    ...          number_of_particles = 0)
+    ...          number_of_particles = 0),
     ...     dict(left_edge = [0.25, 0.25, 0.25],
     ...          right_edge = [0.75, 0.75, 0.75],
     ...          level = 1,
@@ -1644,8 +1649,9 @@ class StreamUnstructuredIndex(UnstructuredIndex):
         coords = ensure_list(self.stream_handler.fields.pop("coordinates"))
         connec = ensure_list(self.stream_handler.fields.pop("connectivity"))
         self.meshes = [StreamUnstructuredMesh(
-          i, self.index_filename, c1, c2, self)
-          for i, (c1, c2) in enumerate(zip(connec, coords))]
+                       i, self.index_filename, c1, c2, self)
+                       for i, (c1, c2) in enumerate(zip(connec, repeat(coords[0])))]
+        self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -1655,6 +1661,8 @@ class StreamUnstructuredIndex(UnstructuredIndex):
 
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
+        fnames = list(set([fn for ft, fn in self.field_list]))
+        self.field_list += [('all', fname) for fname in fnames]
 
 class StreamUnstructuredMeshDataset(StreamDataset):
     _index_class = StreamUnstructuredIndex
@@ -1869,13 +1877,16 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     sds = StreamUnstructuredMeshDataset(handler, geometry=geometry,
                                         unit_system=unit_system)
 
-    fluid_types = ()
+    fluid_types = ['all']
     for i in range(1, num_meshes + 1):
-        fluid_types += ('connect%d' % i,)
-    sds.fluid_types = fluid_types
+        fluid_types += ['connect%d' % i]
+    sds.fluid_types = tuple(fluid_types)
 
-    sds._node_fields = node_data[0].keys()
-    sds._elem_fields = elem_data[0].keys()
+    def flatten(l):
+        return [item for sublist in l for item in sublist]
+
+    sds._node_fields = flatten([[f[1] for f in m] for m in node_data if m])
+    sds._elem_fields = flatten([[f[1] for f in m] for m in elem_data if m])
     sds.default_field = [f for f in sds.field_list
                          if f[0] == 'connect1'][-1]
 

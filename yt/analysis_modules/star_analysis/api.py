@@ -13,6 +13,13 @@ API for star_analysis
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.funcs import issue_deprecation_warning
+
+issue_deprecation_warning(
+    "The star_analysis module has been deprecated. This code has been moved "
+    "to the yt attic (https://bitbucket.org/yt_analysis/yt_attic) and will "
+    "be removed in a future release.")
+
 from .sfr_spectrum import \
     StarFormationRate, \
     SpectrumBuilder, \

@@ -854,7 +854,7 @@ class EnzoDataset(Dataset):
             self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
         else:
             self.unique_identifier = \
-                int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+                str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
             if len(self.domain_dimensions) < 3:
@@ -875,11 +875,6 @@ class EnzoDataset(Dataset):
             self.periodicity += (False, False)
 
         self.gamma = self.parameters["Gamma"]
-        # To be enabled when we can break old pickles:
-        #if "MetaDataSimulationUUID" in self.parameters:
-        #    self.unique_identifier = self.parameters["MetaDataSimulationUUID"]
-        self.unique_identifier = self.parameters.get("MetaDataDatasetUUID",
-                self.parameters.get("CurrentTimeIdentifier", None))
         if self.parameters["ComovingCoordinates"]:
             self.cosmological_simulation = 1
             self.current_redshift = self.parameters["CosmologyCurrentRedshift"]

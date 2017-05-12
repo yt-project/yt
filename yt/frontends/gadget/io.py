@@ -367,7 +367,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         if name == "ParticleIDs":
             dt = {True:'uint64', False:'uint32'}[self.ds.long_ids]
         else:
-            dt = "float32"
+            dt = self._float_type
         if name in self._vector_fields:
             count *= self._vector_fields[name]
         arr = np.fromfile(f, dtype=dt, count = count)
@@ -377,6 +377,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return np.asarray(arr, dtype="float64")
 
     def _yield_coordinates(self, data_file):
+        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        self._field_size = np.dtype(self._float_type).itemsize
         with open(data_file.filename, "rb") as f:
             # We add on an additionally 4 for the first record.
             f.seek(data_file._position_offset + 4)
@@ -384,7 +386,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if count == 0:
                     continue
                 # The first total_particles * 3 values are positions
-                pp = np.fromfile(f, dtype = 'float32', count = count*3)
+                pp = np.fromfile(f, dtype = self._float_type, count = count*3)
                 pp.shape = (count, 3)
                 yield ptype, pp
 
@@ -416,7 +418,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints
-    _field_size = 4
     def _calculate_field_offsets(self, field_list, pcount,
                                  offset, file_size = None):
         # field_list is (ftype, fname) but the blocks are ordered

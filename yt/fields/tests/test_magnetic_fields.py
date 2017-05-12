@@ -43,10 +43,10 @@ def test_magnetic_fields():
              dd2["magnetic_field_z"]**2)/(2.0*mu_0)
     emag2.convert_to_units("Pa")
 
-    yield assert_almost_equal, emag1, dd1["magnetic_energy"]
-    yield assert_almost_equal, emag2, dd2["magnetic_energy"]
+    assert_almost_equal(emag1, dd1["magnetic_energy"])
+    assert_almost_equal(emag2, dd2["magnetic_energy"])
 
     assert str(emag1.units) == str(dd1["magnetic_energy"].units)
     assert str(emag2.units) == str(dd2["magnetic_energy"].units)
 
-    yield assert_almost_equal, emag1.in_cgs(), emag2.in_cgs()
+    assert_almost_equal(emag1.in_cgs(), emag2.in_cgs())

@@ -149,6 +149,7 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.unit_object.define_unit
    ~yt.units.unit_object.Unit
    ~yt.units.unit_registry.UnitRegistry
+   ~yt.units.unit_systems.UnitSystem
    ~yt.units.yt_array.YTArray
    ~yt.units.yt_array.YTQuantity
    ~yt.units.yt_array.uconcatenate
@@ -189,8 +190,8 @@ Athena
    ~yt.frontends.athena.fields.AthenaFieldInfo
    ~yt.frontends.athena.io.IOHandlerAthena
 
-Boxlib
-^^^^^^
+AMReX/Boxlib
+^^^^^^^^^^^^
 
 .. autosummary::
 
@@ -438,7 +439,7 @@ to create these objects in a uniform manner.
    ~yt.data_objects.profiles.ParticleProfile
    ~yt.data_objects.profiles.create_profile
 
-.. _clump_finding:
+.. _clump_finding_ref:
 
 Clump Finding
 ^^^^^^^^^^^^^

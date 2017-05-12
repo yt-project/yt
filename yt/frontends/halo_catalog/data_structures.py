@@ -30,6 +30,20 @@ from yt.geometry.particle_geometry_handler import \
 from yt.data_objects.static_output import \
     ParticleFile
 
+class HaloCatalogParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        if ndoms > 1:
+            self.data_files = \
+              [cls(self.dataset, self.io, template % {'num':i}, i)
+               for i in range(ndoms)]
+        else:
+            self.data_files = \
+              [cls(self.dataset, self.io,
+                   self.dataset.parameter_filename, 0)]
+
 class HaloCatalogHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         with h5py.File(filename, "r") as f:

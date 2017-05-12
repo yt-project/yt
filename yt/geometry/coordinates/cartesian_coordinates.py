@@ -24,9 +24,12 @@ from .coordinate_handler import \
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian, pixelize_sph_kernel_slice, \
+    pixelize_cartesian, \
+    pixelize_cartesian_nodal, \
+    pixelize_sph_kernel_slice, \
     pixelize_sph_kernel_projection
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.utilities.nodal_data_utils import get_nodal_data
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -149,12 +152,22 @@ class CartesianCoordinateHandler(CoordinateHandler):
         period[1] = self.period[self.y_axis[dim]]
         if hasattr(period, 'in_units'):
             period = period.in_units("code_length").d
+
         buff = np.zeros((size[1], size[0]), dtype="f8")
         particle_datasets = (ParticleDataset, StreamParticlesDataset)
         is_sph_field = field[0] in 'gas'
         if hasattr(data_source.ds, '_sph_ptype'):
             is_sph_field |= field[0] in data_source.ds._sph_ptype
-        if isinstance(data_source.ds, particle_datasets) and is_sph_field:
+        finfo = self.ds._get_field_info(field)
+        if np.any(finfo.nodal_flag):
+            nodal_data = get_nodal_data(data_source, field)
+            coord = data_source.coord.d
+            pixelize_cartesian_nodal(buff, 
+                                     data_source['px'], data_source['py'], data_source['pz'],
+                                     data_source['pdx'], data_source['pdy'], data_source['pdz'],
+                                     nodal_data, coord, bounds, int(antialias),
+                                     period, int(periodic))
+        elif isinstance(data_source.ds, particle_datasets) and is_sph_field:
             ptype = data_source.ds._sph_ptype
             ounits = data_source.ds.field_info[field].output_units
             px_name = 'particle_position_%s' % self.axis_name[self.x_axis[dim]]
@@ -208,8 +221,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                data_source[field],
                                bounds, int(antialias),
                                period, int(periodic))
+        
         return buff
-
+            
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['pdx'])[::-1]
         buff = np.zeros((size[1], size[0]), dtype="f8")

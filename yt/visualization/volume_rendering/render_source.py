@@ -124,8 +124,8 @@ class VolumeSource(RenderSource):
     data_source: :class:`AMR3DData` or :class:`Dataset`, optional
         This is the source to be rendered, which can be any arbitrary yt
         data object or dataset.
-    fields : string
-        The name of the field(s) to be rendered.
+    field : string
+        The name of the field to be rendered.
 
     Examples
     --------
@@ -531,6 +531,9 @@ class MeshSource(OpaqueSource):
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
+        if self.field[0] == 'all':
+            raise NotImplementedError("Mesh unions are not implemented "
+                                       "for 3D rendering")
 
         if self.engine == 'embree':
             self.volume = mesh_traversal.YTEmbreeScene()

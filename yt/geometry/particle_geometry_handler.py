@@ -71,8 +71,7 @@ class ParticleIndex(Index):
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
-    def _initialize_particle_handler(self):
-        self._setup_data_io()
+    def _setup_filenames(self):
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class

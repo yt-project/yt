@@ -69,8 +69,6 @@ def test_add_particles_random():
         #    level_count += octree.count_levels(total_count.size-1, dom, mask)
         assert_equal(total_count, [1, 8, 64, 64, 256, 536, 1856, 1672])
 
-
-# ParticleBitmap testing
 class FakeDS:
     domain_left_edge = None
     domain_right_edge = None

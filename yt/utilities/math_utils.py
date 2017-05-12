@@ -1234,7 +1234,12 @@ def get_sph_theta(coords, normal):
 
     JdotCoords = np.sum(J*coords,axis=0)
 
-    return np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)) )
+    with np.errstate(invalid='ignore'):
+        ret = np.arccos( JdotCoords / np.sqrt(np.sum(coords**2,axis=0)))
+
+    ret[np.isnan(ret)] = 0
+
+    return ret
 
 def get_sph_phi(coords, normal):
     # We have freedom with respect to what axis (xprime) to define

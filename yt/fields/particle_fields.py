@@ -358,7 +358,7 @@ def standard_particle_fields(registry, ptype,
         Relative to the coordinate system defined by the *normal* vector,
         and *center* field parameters.
         """
-        return get_radius(data, "particle_position_")
+        return get_radius(data, "particle_position_", field.name[0])
 
     registry.add_field((ptype, "particle_radius"),
                        sampling_type="particle",

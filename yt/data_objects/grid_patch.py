@@ -29,6 +29,8 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented
 from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
+from yt.utilities.nodal_data_utils import \
+    get_nodal_slices
 
 class AMRGridPatch(YTSelectionContainer):
     _spatial = True
@@ -90,7 +92,9 @@ class AMRGridPatch(YTSelectionContainer):
             return tr
         finfo = self.ds._get_field_info(*fields[0])
         if not finfo.sampling_type == "particle":
-            return tr.reshape(self.ActiveDimensions)
+            num_nodes = 2**sum(finfo.nodal_flag)
+            new_shape = list(self.ActiveDimensions) + [num_nodes]
+            return np.squeeze(tr.reshape(new_shape))
         return tr
 
     def convert(self, datatype):
@@ -378,7 +382,13 @@ class AMRGridPatch(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask]
+        nodal_flag = source.shape - self.ActiveDimensions
+        if sum(nodal_flag) == 0:
+            dest[offset:offset+count] = source[mask]
+        else:
+            slices = get_nodal_slices(source.shape, nodal_flag)
+            for i , sl in enumerate(slices):
+                dest[offset:offset+count, i] = source[sl][mask]
         return count
 
     def count(self, selector):

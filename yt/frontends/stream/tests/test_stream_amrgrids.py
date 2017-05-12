@@ -26,7 +26,7 @@ def test_qt_overflow():
     def make_proj():
         p = ProjectionPlot(spf, 'x', ["density"], center='c', origin='native')
         return p
-    yield assert_raises, YTIntDomainOverflow, make_proj
+    assert_raises(YTIntDomainOverflow, make_proj)
 
 def test_refine_by():
     grid_data = []

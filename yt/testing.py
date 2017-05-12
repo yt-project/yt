@@ -206,9 +206,11 @@ def fake_random_ds(
         if particle_fields is not None:
             for field, unit in zip(particle_fields, particle_field_units):
                 if field in ('particle_position', 'particle_velocity'):
-                    data['io', field] = (prng.random_sample((particles, 3)), unit)
+                    data['io', field] = (
+                        prng.random_sample((int(particles), 3)), unit)
                 else:
-                    data['io', field] = (prng.random_sample(size=particles), unit)
+                    data['io', field] = (
+                        prng.random_sample(size=int(particles)), unit)
         else:
             for f in ('particle_position_%s' % ax for ax in 'xyz'):
                 data['io', f] = (prng.random_sample(size=particles), 'code_length')
@@ -610,7 +612,7 @@ def units_override_check(fn):
         unit_attr = getattr(ds2, "%s_unit" % u, None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
-    yield assert_equal, attrs1, attrs2
+    assert_equal(attrs1, attrs2)
 
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.

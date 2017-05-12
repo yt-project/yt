@@ -68,11 +68,13 @@ from yt.utilities.exceptions import \
     YTDataTypeUnsupported, \
     YTInvalidFieldType
 
+MPL_VERSION = LooseVersion(matplotlib.__version__)
+
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
 # Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    if LooseVersion(matplotlib.__version__) < LooseVersion("1.2.0"):
+    if MPL_VERSION < LooseVersion("1.2.0"):
         from matplotlib.pyparsing import ParseFatalException
     else:
         if sys.version_info[0] == 3:
@@ -994,7 +996,7 @@ class PWViewerMPL(PlotWindow):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if self._cbar_minorticks[f] is True:
+            if self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0'):
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 else:

@@ -20,6 +20,7 @@ import os
 from yt.config import \
     ytcfg
 from yt.funcs import \
+    ensure_dir, \
     mylog, \
     only_on_root
 from yt.analysis_modules.cosmological_observation.cosmology_splice import \
@@ -112,8 +113,7 @@ class LightCone(CosmologySplice):
         self.output_prefix = output_prefix
 
         # Create output directory.
-        if not os.path.exists(self.output_dir):
-            only_on_root(os.mkdir, self.output_dir)
+        ensure_dir(self.output_dir)
 
         # Calculate light cone solution.
         CosmologySplice.__init__(self, parameter_filename, simulation_type,
