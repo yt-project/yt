@@ -52,6 +52,13 @@ cdef extern from "math.h":
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
 
+cdef inline np.float64_t dot(np.float64_t* v1,
+                             np.float64_t* v2) nogil:
+    return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
+
+cdef inline np.float64_t norm(np.float64_t* v) nogil:
+    return sqrt(dot(v, v))
+
 # These routines are separated into a couple different categories:
 #
 #   * Routines for identifying intersections of an object with a bounding box
