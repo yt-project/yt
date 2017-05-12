@@ -158,7 +158,8 @@ class TestYTConfigMigration(TestYTConfig):
         
         my_plugin_name = _TEST_PLUGIN
         plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
-        os.remove(plugin_file)
+        if os.path.exists(plugin_file):
+            os.remove(plugin_file)
 
         old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
         for base_prefix in ('', CONFIG_DIR, old_config_dir):

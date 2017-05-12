@@ -11,6 +11,7 @@ from yt.testing import \
     assert_array_almost_equal_nulp, \
     assert_array_equal, \
     assert_raises, \
+    assert_allclose_units, \
     requires_file
 from yt.utilities.cosmology import \
     Cosmology
@@ -346,3 +347,13 @@ def test_field_inference():
     # If this is not true this means the result of field inference depends
     # on the order we did field detection, which is random in Python3
     assert_equal(ds._last_freq, (None, None))
+
+ISOGAL = 'IsolatedGalaxy/galaxy0030/galaxy0030'
+
+@requires_file(ISOGAL)
+def test_deposit_amr():
+    ds = load(ISOGAL)
+    for i, g in enumerate(ds.index.grids):
+        gpm = g['particle_mass'].sum()
+        dpm = g['deposit', 'all_mass'].sum()
+        assert_allclose_units(gpm, dpm)

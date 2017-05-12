@@ -787,7 +787,7 @@ class YTArray(np.ndarray):
         >>> a.write_hdf5('test_array_data.h5', dataset_name='dinosaurs',
         ...              info=myinfo)
         """
-        import h5py
+        from yt.utilities.on_demand_imports import _h5py as h5py
         from yt.extern.six.moves import cPickle as pickle
         if info is None:
             info = {}
