@@ -90,7 +90,7 @@ def test_smoothed_covering_grid():
 
 
 def test_arbitrary_grid():
-    for ncells in [64, 128, 256]:
+    for ncells in [32, 64]:
         for px in [0.125, 0.25, 0.55519]:
 
             particle_data = {

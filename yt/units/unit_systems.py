@@ -40,8 +40,8 @@ class UnitSystem(object):
     Parameters
     ----------
     name : string
-        The name of the unit system. Will be used as the key in the *unit_system_registry*
-        dict to reference the unit system by.
+        The name of the unit system. Will be used as the key in the 
+        *unit_system_registry* dict to reference the unit system by.
     length_unit : string
         The base length unit of this unit system.
     mass_unit : string
@@ -53,10 +53,11 @@ class UnitSystem(object):
     angle_unit : string, optional
         The base angle unit of this unit system. Defaults to "rad".
     curent_mks_unit : string, optional
-        The base current unit of this unit system. Only used in MKS or MKS-based unit systems.
+        The base current unit of this unit system. Only used in MKS 
+        or MKS-based unit systems.
     registry : :class:`yt.units.unit_registry.UnitRegistry` object
-        The unit registry associated with this unit system. Only useful for defining unit
-        systems based on code units.
+        The unit registry associated with this unit system. Only 
+        useful for defining unit systems based on code units.
     """
     def __init__(self, name, length_unit, mass_unit, time_unit,
                  temperature_unit="K", angle_unit="rad", current_mks_unit=None,
@@ -108,10 +109,11 @@ class UnitSystem(object):
                 repr += "  %s: %s\n" % (key, self.units_map[dim])
         return repr
 
-def create_code_unit_system(ds, current_mks_unit=None):
-    code_unit_system = UnitSystem(
-        str(ds), "code_length", "code_mass", "code_time", "code_temperature",
-        current_mks_unit=current_mks_unit, registry=ds.unit_registry)
+def create_code_unit_system(unit_registry, current_mks_unit=None):
+    code_unit_system = UnitSystem(unit_registry.unit_system_id, "code_length", 
+                                  "code_mass", "code_time", "code_temperature",
+                                  current_mks_unit=current_mks_unit, 
+                                  registry=unit_registry)
     code_unit_system["velocity"] = "code_velocity"
     if current_mks_unit:
         code_unit_system["magnetic_field_mks"] = "code_magnetic"
@@ -136,7 +138,8 @@ mks_unit_system["force"] = "N"
 mks_unit_system["magnetic_field_mks"] = "T"
 mks_unit_system["charge_mks"] = "C"
 
-imperial_unit_system = UnitSystem("imperial", "ft", "lbm", "s", temperature_unit="R")
+imperial_unit_system = UnitSystem("imperial", "ft", "lbm", "s", 
+                                  temperature_unit="R")
 imperial_unit_system["force"] = "lbf"
 imperial_unit_system["energy"] = "ft*lbf"
 imperial_unit_system["pressure"] = "lbf/ft**2"
@@ -147,9 +150,11 @@ galactic_unit_system["magnetic_field_cgs"] = "uG"
 
 solar_unit_system = UnitSystem("solar", "AU", "Mearth", "yr")
 
-geometrized_unit_system = UnitSystem("geometrized", "l_geom", "m_geom", "t_geom")
+geometrized_unit_system = UnitSystem("geometrized", "l_geom", 
+                                     "m_geom", "t_geom")
 
-planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", temperature_unit="T_pl")
+planck_unit_system = UnitSystem("planck", "l_pl", "m_pl", "t_pl", 
+                                temperature_unit="T_pl")
 planck_unit_system["energy"] = "E_pl"
 planck_unit_system["charge_cgs"] = "q_pl"
 

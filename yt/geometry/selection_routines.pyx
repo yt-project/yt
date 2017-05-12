@@ -20,7 +20,7 @@ cimport cython
 from libc.math cimport sqrt
 from cython cimport floating
 from libc.stdlib cimport malloc, free
-from libc.stdio cimport printf
+from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
 from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
@@ -51,23 +51,6 @@ cdef extern from "math.h":
 # define here to avoid the gil later
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
-
-cdef np.int64_t fnv_hash(unsigned char[:] octets):
-    # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
-    # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
-    cdef np.int64_t hash_val = 2166136261
-    cdef char octet
-    for octet in octets:
-        hash_val = hash_val ^ octet
-        hash_val = hash_val * 16777619
-    return hash_val
-
-cdef inline np.float64_t dot(np.float64_t* v1,
-                             np.float64_t* v2) nogil:
-    return v1[0]*v2[0] + v1[1]*v2[1] + v1[2]*v2[2]
-
-cdef inline np.float64_t norm(np.float64_t* v) nogil:
-    return sqrt(dot(v, v))
 
 # These routines are separated into a couple different categories:
 #

@@ -80,17 +80,17 @@ See :ref:`how-to-make-1d-profiles` for more information.
 
 .. yt_cookbook:: time_series_profiles.py
 
-.. _cookbook-profile-variance:
+.. _cookbook-profile-stddev:
 
-Profiles with Variance Values
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Profiles with Standard Deviation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This shows how to plot the variance for a 1D profile.  In this example, we
-manually create a 1D profile object, which gives us access to the variance
-data.
-See :ref:`how-to-make-1d-profiles` for more information.
+This shows how to plot a 1D profile with error bars indicating the standard
+deviation of the field values in each profile bin.  In this example, we manually
+create a 1D profile object, which gives us access to the standard deviation
+data.  See :ref:`how-to-make-1d-profiles` for more information.
 
-.. yt_cookbook:: profile_with_variance.py
+.. yt_cookbook:: profile_with_standard_deviation.py
 
 Making Plots of Multiple Fields Simultaneously
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

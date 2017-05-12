@@ -929,7 +929,7 @@ def periodicity_cases(ds):
                 yield center
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
-             call_pdb = False):
+             call_pdb=False, module=None):
     from yt.utilities.on_demand_imports import _nose
     import sys
     from yt.utilities.logger import ytLogger as mylog
@@ -945,6 +945,8 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
         nose_argv.append('--with-answer-testing')
     if answer_big_data:
         nose_argv.append('--answer-big-data')
+    if module:
+        nose_argv.append(module)
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
