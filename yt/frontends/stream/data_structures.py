@@ -465,7 +465,7 @@ def assign_particle_data(ds, pdata):
             grid["number_of_particles"] = pcount
             start = particle_indices[i]
             end = particle_indices[i+1]
-            for key in pdata.keys() :
+            for key in pdata.keys():
                 grid[key] = pdata[key][idxs][start:end]
             grid_pdata.append(grid)
 
@@ -951,7 +951,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
-            if fi.particle_type :
+            if fi.particle_type:
                 pdata[field] = uconcatenate([grid[field]
                                                for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
@@ -969,10 +969,10 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
         if callback is not None: callback(ds)
         grid_data = []
         for g in ds.index.grids:
-            gd = dict( left_edge = g.LeftEdge,
-                       right_edge = g.RightEdge,
-                       level = g.Level,
-                       dimensions = g.ActiveDimensions )
+            gd = dict(left_edge=g.LeftEdge,
+                       right_edge=g.RightEdge,
+                       level=g.Level,
+                       dimensions=g.ActiveDimensions)
             for field in ds.field_list:
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
@@ -987,13 +987,13 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 LE = sg.left_index * g.dds + ds.domain_left_edge
                 dims = sg.dimensions * ds.refine_by
                 grid = ds.smoothed_covering_grid(g.Level + 1, LE, dims)
-                gd = dict(left_edge = LE, right_edge = grid.right_edge,
-                          level = g.Level + 1, dimensions = dims)
+                gd = dict(left_edge=LE, right_edge=grid.right_edge,
+                          level=g.Level + 1, dimensions=dims)
                 for field in ds.field_list:
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = ds._get_field_info(*field)
-                    if not fi.particle_type :
+                    if not fi.particle_type:
                         gd[field] = grid[field]
                 grid_data.append(gd)
 

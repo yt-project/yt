@@ -31,7 +31,7 @@ def test_stream_particles():
 
     grid_data = []
 
-    for grid in amr0.index.grids :
+    for grid in amr0.index.grids:
 
         data = dict(left_edge = grid.LeftEdge,
                     right_edge = grid.RightEdge,
