@@ -300,12 +300,7 @@ class StreamDataset(Dataset):
         self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
-        particle_types = []
-        for k, v in self.stream_handler.particle_types.items():
-            if v:
-                particle_types.append(k[0])
-        self.particle_types = tuple(set(particle_types))
-        self.particle_types_raw = self.particle_types
+        self._find_particle_types()
         name = "InMemoryParameterFile_%s" % uuid.uuid4().hex
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
@@ -365,6 +360,14 @@ class StreamDataset(Dataset):
     @property
     def _skip_cache(self):
         return True
+
+    def _find_particle_types(self):
+        particle_types = []
+        for k, v in self.stream_handler.particle_types.items():
+            if v:
+                particle_types.append(k[0])
+        self.particle_types = tuple(set(particle_types))
+        self.particle_types_raw = self.particle_types
 
 class StreamDictFieldHandler(dict):
     _additional_fields = ()
@@ -1668,6 +1671,9 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _index_class = StreamUnstructuredIndex
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
+
+    def _find_particle_types(self):
+        pass
 
 def load_unstructured_mesh(connectivity, coordinates, node_data=None,
                            elem_data=None, length_unit=None, bbox=None,
