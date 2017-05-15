@@ -290,6 +290,24 @@ class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
     def finalize_options(self):
+        try:
+            import cython
+            import numpy
+        except ImportError:
+            raise ImportError(
+                'Building yt from source requires cython and numpy to be '
+                'installed. Please install these packages using the '
+                'appropriate package manager for your python environment.')
+        if LooseVersion(cython.__version__) < LooseVersion('0.24'):
+            raise RuntimeError(
+                'Building yt from source requires Cython 0.24 or newer. Please '
+                'update Cython using the appropriate package manager for your '
+                'python environment.')
+        if LooseVersion(numpy.__version__) < LooseVersion('1.9'):
+            raise RuntimeError(
+                'Building yt from source requires NumPy 1.9 or newer. Please '
+                'update NumPy using the appropriate package manager for your '
+                'python environment.')            
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
                 self.distribution.ext_modules)
@@ -302,7 +320,6 @@ class build_ext(_build_ext):
             __builtins__["__NUMPY_SETUP__"] = False
         else:
             __builtins__.__NUMPY_SETUP__ = False
-        import numpy
         self.include_dirs.append(numpy.get_include())
 
 class sdist(_sdist):
@@ -346,10 +363,6 @@ setup(
     },
     packages=find_packages(),
     include_package_data = True,
-    setup_requires=[
-        'numpy',
-        'cython>=0.24',
-    ],
     install_requires=[
         'matplotlib',
         'setuptools>=19.6',
