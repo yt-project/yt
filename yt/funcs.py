@@ -34,7 +34,6 @@ import base64
 import numpy
 import matplotlib
 import getpass
-from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
@@ -286,17 +285,6 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
-def get_ipython_api_version():
-    import IPython
-    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
-        api_version = '0.10'
-    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
-        api_version = '0.11'
-    else:
-        api_version = '1.0'
-
-    return api_version
-
 def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
@@ -306,31 +294,22 @@ def insert_ipython(num_up=1):
     defaults to 1 so that this function itself is stripped off.
     """
     import IPython
-    api_version = get_ipython_api_version()
+    from IPython.terminal.embed import InteractiveShellEmbed
+    try:
+        from traitlets.config.loader import Config
+    except ImportError:
+        from IPython.config.loader import Config
 
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
     dd = dict(fname = frame[3], filename = frame[1],
               lineno = frame[2])
-    if api_version == '0.10':
-        ipshell = IPython.Shell.IPShellEmbed()
-        ipshell(header = __header % dd,
-                local_ns = loc, global_ns = glo)
-    else:
-        try:
-            from traitlets.config.loader import Config
-        except ImportError:
-            from IPython.config.loader import Config
-        cfg = Config()
-        cfg.InteractiveShellEmbed.local_ns = loc
-        cfg.InteractiveShellEmbed.global_ns = glo
-        IPython.embed(config=cfg, banner2 = __header % dd)
-        if api_version == '0.11':
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-        else:
-            from IPython.terminal.embed import InteractiveShellEmbed
-        ipshell = InteractiveShellEmbed(config=cfg)
+    cfg = Config()
+    cfg.InteractiveShellEmbed.local_ns = loc
+    cfg.InteractiveShellEmbed.global_ns = glo
+    IPython.embed(config=cfg, banner2 = __header % dd)
+    ipshell = InteractiveShellEmbed(config=cfg)
 
     del ipshell
 
