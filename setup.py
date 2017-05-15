@@ -295,19 +295,21 @@ class build_ext(_build_ext):
             import numpy
         except ImportError:
             raise ImportError(
-                'Building yt from source requires cython and numpy to be '
-                'installed. Please install these packages using the '
-                'appropriate package manager for your python environment.')
+"""Could not import cython or numpy. Building yt from source requires
+cython and numpy to be installed. Please install these packages using
+the appropriate package manager for your python environment.""")
         if LooseVersion(cython.__version__) < LooseVersion('0.24'):
             raise RuntimeError(
-                'Building yt from source requires Cython 0.24 or newer. Please '
-                'update Cython using the appropriate package manager for your '
-                'python environment.')
+"""Building yt from source requires Cython 0.24 or newer but
+Cython %s is installed. Please update Cython using the appropriate
+package manager for your python environment.""" %
+                cython.__version__)
         if LooseVersion(numpy.__version__) < LooseVersion('1.9'):
             raise RuntimeError(
-                'Building yt from source requires NumPy 1.9 or newer. Please '
-                'update NumPy using the appropriate package manager for your '
-                'python environment.')            
+"""Building yt from source requires NumPy 1.9 or newer but
+NumPy %s is installed. Please update NumPy using the appropriate
+package manager for your python environment.""" %
+                numpy.__version__)
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
                 self.distribution.ext_modules)
