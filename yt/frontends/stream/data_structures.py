@@ -294,10 +294,6 @@ class StreamDataset(Dataset):
 
     def __init__(self, stream_handler, storage_filename=None,
                  geometry="cartesian", unit_system="cgs"):
-        #if parameter_override is None: parameter_override = {}
-        #self._parameter_override = parameter_override
-        #if conversion_override is None: conversion_override = {}
-        #self._conversion_override = conversion_override
         self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
