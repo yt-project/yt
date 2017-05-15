@@ -142,20 +142,3 @@ def read_embree_location():
         shutil.rmtree(tmpdir)
 
     return rd
-
-
-def get_mercurial_changeset_id(target_dir):
-    '''
-    Returns changeset and branch using hglib
-    '''
-    try:
-        import hglib
-    except ImportError:
-        return None
-    try:
-        with hglib.open(target_dir) as repo:
-            changeset = repo.identify(
-                id=True, branch=True).strip().decode('utf8')
-    except hglib.error.ServerError:
-        return None
-    return changeset
