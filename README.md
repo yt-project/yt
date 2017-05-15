@@ -59,7 +59,7 @@ reasons](https://packaging.python.org/installing/#creating-virtual-environments)
 to do so!) you can follow this prescription:
 
 ```
-# Assuming you have cd'd into yt (or yt-git)
+# Assuming you have cd'd into yt-git
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
 # Assuming your version of Python 3 is 3.4 or higher,
