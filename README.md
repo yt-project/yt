@@ -16,7 +16,7 @@ discrete or sampled data such as particles. Focused on driving
 physically-meaningful inquiry, yt has been applied in domains such as
 astrophysics, seismology, nuclear engineering, molecular dynamics, and
 oceanography. Composed of a friendly community of users and developers, we want
-to make it easy to use and develop — we'd love it if you got involved!
+to make it easy to use and develop - we'd love it if you got involved!
 
 We've written a [method
 paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
