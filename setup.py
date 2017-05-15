@@ -364,12 +364,11 @@ setup(
     packages=find_packages(),
     include_package_data = True,
     install_requires=[
-        'matplotlib',
+        'matplotlib>=1.5.3',
         'setuptools>=19.6',
-        'sympy',
-        'numpy',
-        'IPython',
-        'cython',
+        'sympy>=1.0',
+        'numpy>=1.9',
+        'IPython>=1.0',
     ],
     extras_require = {
         'hub':  ["girder_client"]
