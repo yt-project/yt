@@ -37,6 +37,12 @@ VERSION = "3.4.dev0"
 if os.path.exists('MANIFEST'):
     os.remove('MANIFEST')
 
+try:
+    import pypandoc
+    long_description = pypandoc.convert_file('README.md', 'rst')
+except (ImportError, IOError):
+    with open('README.md') as file:
+        long_description = file.read()
 
 if check_for_openmp() is True:
     omp_args = ['-fopenmp']
@@ -328,7 +334,22 @@ class sdist(_sdist):
     # subclass setuptools source distribution builder to ensure cython
     # generated C files are included in source distribution.
     # See http://stackoverflow.com/a/18418524/1382869
+    # subclass setuptools source distribution builder to ensure cython
+    # generated C files are included in source distribution and readme
+    # is converted from markdown to restructured text.  See
+    # http://stackoverflow.com/a/18418524/1382869
     def run(self):
+        # Make sure the compiled Cython files in the distribution are
+        # up-to-date
+
+        try:
+            import pypandoc
+        except ImportError:
+            raise RuntimeError(
+                'Trying to create a source distribution without pypandoc. '
+                'The readme will not render correctly on pypi without '
+                'pypandoc so we are exiting.'
+            )
         # Make sure the compiled Cython files in the distribution are up-to-date
         from Cython.Build import cythonize
         cythonize(cython_extensions)
@@ -338,6 +359,7 @@ setup(
     name="yt",
     version=VERSION,
     description="An analysis and visualization toolkit for volumetric data",
+    long_description = long_description,
     classifiers=["Development Status :: 5 - Production/Stable",
                  "Environment :: Console",
                  "Intended Audience :: Science/Research",
