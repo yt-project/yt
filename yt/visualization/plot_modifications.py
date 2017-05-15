@@ -151,11 +151,11 @@ class PlotCallback(object):
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return (np.mod((ccoord[0]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
+            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            return (np.mod((ccoord[0][:]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1][:]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
+            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
@@ -1437,7 +1437,25 @@ class HaloCatalogCallback(PlotCallback):
         px = halo_data[field_x][:].in_units(units)
         py = halo_data[field_y][:].in_units(units)
 
-        px, py = self.convert_to_plot(plot,[px,py])
+        xplotcenter = (plot.xlim[0] + plot.xlim[1])/2
+        yplotcenter = (plot.ylim[0] + plot.ylim[1])/2
+
+        xdomaincenter = plot.ds.domain_center[xax]
+        ydomaincenter = plot.ds.domain_center[yax]
+
+        xoffset = xplotcenter - xdomaincenter
+        yoffset = yplotcenter - ydomaincenter
+
+        xdw = plot.ds.domain_width[xax].to(units)
+        ydw = plot.ds.domain_width[yax].to(units)
+
+        modpx = np.mod(px - xoffset, xdw) + xoffset
+        modpy = np.mod(py - yoffset, ydw) + yoffset
+
+        px[modpx != px] = modpx[modpx != px]
+        py[modpy != py] = modpy[modpy != py]
+
+        px, py = self.convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
         radius = halo_data[self.radius_field][:].in_units(units)
