@@ -304,9 +304,9 @@ the appropriate package manager for your python environment.""")
 Cython %s is installed. Please update Cython using the appropriate
 package manager for your python environment.""" %
                 cython.__version__)
-        if LooseVersion(numpy.__version__) < LooseVersion('1.9'):
+        if LooseVersion(numpy.__version__) < LooseVersion('1.10.4'):
             raise RuntimeError(
-"""Building yt from source requires NumPy 1.9 or newer but
+"""Building yt from source requires NumPy 1.10.4 or newer but
 NumPy %s is installed. Please update NumPy using the appropriate
 package manager for your python environment.""" %
                 numpy.__version__)
@@ -369,7 +369,7 @@ setup(
         'matplotlib>=1.5.3',
         'setuptools>=19.6',
         'sympy>=1.0',
-        'numpy>=1.9',
+        'numpy>=1.10.4',
         'IPython>=1.0',
     ],
     extras_require = {

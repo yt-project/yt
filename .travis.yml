@@ -24,7 +24,7 @@ env:
 matrix:
   include:
     - python: 2.7
-      env: NUMPY=numpy==1.9.0 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= IPYTHON=ipython==1.0
+      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= IPYTHON=ipython==1.0
     - python: 2.7
     - python: 3.4
     - python: 3.5
