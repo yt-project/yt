@@ -10,8 +10,21 @@ addons:
     packages:
       - libhdf5-serial-dev
 
+env:
+  global:
+    NUMPY=numpy
+    CYTHON=cython
+    MATPLOTLIB=matplotlib
+    SYMPY=sympy
+    H5PY=h5py
+    SCIPY=scipy
+    IPYTHON=ipython
+    FASTCACHE=fastcache
+
 matrix:
   include:
+    - python: 2.7
+      env: NUMPY=numpy==1.10.4 CYTHON=cython==0.24 MATPLOTLIB=matplotlib==1.5.3 SYMPY=sympy==1.0 H5PY= SCIPY= FASTCACHE= IPYTHON=ipython==1.0
     - python: 2.7
     - python: 3.4
     - python: 3.5
@@ -52,7 +65,7 @@ install:
     pip install --upgrade wheel
     pip install --upgrade setuptools
     # Install dependencies
-    pip install mock numpy scipy cython matplotlib sympy fastcache nose flake8 h5py ipython nose-timer
+    pip install mock $NUMPY $SCIPY $H5PY $CYTHON $MATPLOTLIB $SYMPY $FASTCACHE $IPYTHON nose flake8 nose-timer
     # install yt
     pip install -e .
 

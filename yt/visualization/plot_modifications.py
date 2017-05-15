@@ -21,7 +21,6 @@ import matplotlib
 import numpy as np
 import re
 
-from distutils.version import LooseVersion
 from functools import wraps
 
 from yt.funcs import \
@@ -460,6 +459,8 @@ class ContourCallback(PlotCallback):
         self.data_source = data_source
 
     def __call__(self, plot):
+        from matplotlib.tri import Triangulation, LinearTriInterpolator
+
         # These need to be in code_length
         x0, x1 = (v.in_units("code_length") for v in plot.xlim)
         y0, y1 = (v.in_units("code_length") for v in plot.ylim)
@@ -517,14 +518,8 @@ class ContourCallback(PlotCallback):
 
             # Both the input and output from the triangulator are in plot
             # coordinates
-            if LooseVersion(matplotlib.__version__) < LooseVersion("1.4.0"):
-                from matplotlib.delaunay.triangulate import Triangulation as \
-                    triang
-                zi = triang(x,y).nn_interpolator(z)(xi,yi)
-            else:
-                from matplotlib.tri import Triangulation, LinearTriInterpolator
-                triangulation = Triangulation(x, y)
-                zi = LinearTriInterpolator(triangulation, z)(xi,yi)
+            triangulation = Triangulation(x, y)
+            zi = LinearTriInterpolator(triangulation, z)(xi,yi)
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
 

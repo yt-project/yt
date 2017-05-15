@@ -41,7 +41,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
-    get_ipython_api_version, \
     matplotlib_style_context
 
 def get_canvas(name):
@@ -313,12 +312,8 @@ class ProfilePlot(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
-            api_version = get_ipython_api_version()
-            if api_version in ('0.10', '0.11'):
-                self._send_zmq()
-            else:
-                from IPython.display import display
-                display(self)
+            from IPython.display import display
+            display(self)
         else:
             raise YTNotInsideNotebook
 

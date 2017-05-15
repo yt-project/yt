@@ -6,17 +6,19 @@ from setuptools import setup, find_packages
 from setuptools.extension import Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
-from setuptools.command.build_py import build_py as _build_py
 from setupext import \
-    check_for_openmp, check_for_pyembree, read_embree_location, \
-    get_mercurial_changeset_id, in_conda_env
+    check_for_openmp, \
+    check_for_pyembree, \
+    read_embree_location, \
+    in_conda_env
 from distutils.version import LooseVersion
 import pkg_resources
 
 
-if sys.version_info < (2, 7):
-    print("yt currently requires Python version 2.7")
-    print("certain features may fail unexpectedly and silently with older versions.")
+if sys.version_info < (2, 7) or (3, 0) < sys.version_info < (3, 3):
+    print("yt currently supports Python 2.7 or versions newer than Python 3.4")
+    print("certain features may fail unexpectedly and silently with older "
+          "versions.")
     sys.exit(1)
 
 try:
@@ -290,31 +292,30 @@ if os.environ.get("GPERFTOOLS", "no").upper() != "NO":
                   library_dirs=[ldir],
                   include_dirs=[idir]))
 
-class build_py(_build_py):
-    def run(self):
-        # honor the --dry-run flag
-        if not self.dry_run:
-            target_dir = os.path.join(self.build_lib, 'yt')
-            src_dir = os.getcwd()
-            changeset = get_mercurial_changeset_id(src_dir)
-            self.mkpath(target_dir)
-            with open(os.path.join(target_dir, '__hg_version__.py'), 'w') as fobj:
-                fobj.write("hg_version = '%s'\n" % changeset)
-        _build_py.run(self)
-
-    def get_outputs(self):
-        # http://bitbucket.org/yt_analysis/yt/issues/1296
-        outputs = _build_py.get_outputs(self)
-        outputs.append(
-            os.path.join(self.build_lib, 'yt', '__hg_version__.py')
-        )
-        return outputs
-
-
 class build_ext(_build_ext):
     # subclass setuptools extension builder to avoid importing cython and numpy
     # at top level in setup.py. See http://stackoverflow.com/a/21621689/1382869
     def finalize_options(self):
+        try:
+            import cython
+            import numpy
+        except ImportError:
+            raise ImportError(
+"""Could not import cython or numpy. Building yt from source requires
+cython and numpy to be installed. Please install these packages using
+the appropriate package manager for your python environment.""")
+        if LooseVersion(cython.__version__) < LooseVersion('0.24'):
+            raise RuntimeError(
+"""Building yt from source requires Cython 0.24 or newer but
+Cython %s is installed. Please update Cython using the appropriate
+package manager for your python environment.""" %
+                cython.__version__)
+        if LooseVersion(numpy.__version__) < LooseVersion('1.10.4'):
+            raise RuntimeError(
+"""Building yt from source requires NumPy 1.10.4 or newer but
+NumPy %s is installed. Please update NumPy using the appropriate
+package manager for your python environment.""" %
+                numpy.__version__)
         from Cython.Build import cythonize
         self.distribution.ext_modules[:] = cythonize(
                 self.distribution.ext_modules)
@@ -327,7 +328,6 @@ class build_ext(_build_ext):
             __builtins__["__NUMPY_SETUP__"] = False
         else:
             __builtins__.__NUMPY_SETUP__ = False
-        import numpy
         self.include_dirs.append(numpy.get_include())
 
 class sdist(_sdist):
@@ -387,26 +387,21 @@ setup(
     },
     packages=find_packages(),
     include_package_data = True,
-    setup_requires=[
-        'numpy',
-        'cython>=0.24',
-    ],
     install_requires=[
-        'matplotlib',
+        'matplotlib>=1.5.3',
         'setuptools>=19.6',
-        'sympy',
-        'numpy',
-        'IPython',
-        'cython',
+        'sympy>=1.0',
+        'numpy>=1.10.4',
+        'IPython>=1.0',
     ],
     extras_require = {
         'hub':  ["girder_client"]
     },
-    cmdclass={'sdist': sdist, 'build_ext': build_ext, 'build_py': build_py},
+    cmdclass={'sdist': sdist, 'build_ext': build_ext},
     author="The yt project",
     author_email="yt-dev@lists.spacepope.org",
     url="http://yt-project.org/",
-    license="BSD",
+    license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
