@@ -100,8 +100,8 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
             X_H = data.get_field_parameter("X_H")
         else:
             X_H = 0.76
-        nenh = data["density"]*data["density"]
-        nenh /= mh*mh
+        nenh = data["density"]/mh
+        nenh *= nenh
         nenh *= 0.5*(1.+X_H)*X_H*data["cell_volume"]
         return nenh
     
@@ -124,7 +124,9 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
-        return data["density"]*data["density"]*data["kT"]**-0.25/mh/mh
+        ret = data["density"]/mh
+        ret *= ret*data["kT"]**-0.25
+        return ret
 
     registry.add_field((ftype,"mazzotta_weighting"),
                        sampling_type="local",
