@@ -377,7 +377,7 @@ setup(
     author="The yt project",
     author_email="yt-dev@lists.spacepope.org",
     url="http://yt-project.org/",
-    license="BSD",
+    license="BSD 3-Clause",
     zip_safe=False,
     scripts=["scripts/iyt"],
     ext_modules=cython_extensions + extensions,
