@@ -38,8 +38,6 @@ before_install:
       brew install ccache hdf5
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
-    # HACK, FIXME BEFORE MERGING
-    pip install https://bitbucket.org/langmm/cykdtree/get/tip.zip
     mkdir -p $HOME/.config/yt
     echo "[yt]" > $HOME/.config/yt/ytrc
     echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
@@ -55,6 +53,8 @@ install:
     pip install --upgrade setuptools
     # Install dependencies
     pip install mock numpy scipy cython matplotlib sympy fastcache nose flake8 h5py ipython nose-timer
+    # HACK, FIXME BEFORE MERGING
+    pip install https://bitbucket.org/langmm/cykdtree/get/tip.zip
     # install yt
     pip install -e .
 
