@@ -1009,10 +1009,10 @@ type of particles instead of all the particles through the parameter
    ds = yt.load("snapshot_061.hdf5", index_ptype="PartType0")
 
 By default, ``index_ptype`` is set to ``"all"``, which means all the particles.
-Currently this feature only works for the Gadget HDF5 and OWLS datasets. To
-bring the feature to other frontends, it's recommended to refer to this
-`PR <https://bitbucket.org/yt_analysis/yt/pull-requests/1985/add-particle-type-aware-octree/diff>`_
-for implementation details.
+For Gadget binary outputs, ``index_ptype`` should be set using the particle type
+names yt uses internally (e.g. ``'Gas'``, ``'Halo'``, ``'Disk'``, etc). For
+Gadget HDF5 outputs the particle type names come from the HDF5 output and so
+should be referred to using names like ``'PartType0'``.
 
 .. _gadget-field-spec:
 
