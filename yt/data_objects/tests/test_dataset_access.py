@@ -66,6 +66,16 @@ def test_accessing_all_data():
     assert_equal(dd["density"]*2.0, ds.r["density"])
     assert_equal(dd["gas", "density"]*2.0, ds.r["gas", "density"])
 
+def test_slice_from_r():
+    ds = fake_amr_ds(fields = ["density"])
+    sl1 = ds.r[0.5, :, :]
+    sl2 = ds.slice("x", 0.5)
+    assert_equal(sl1["density"], sl2["density"])
+
+    frb1 = sl1.to_frb(width = 1.0, height = 1.0, resolution = (1024, 512))
+    frb2 = ds.r[0.5, ::1024j, ::512j]
+    assert_equal(frb1["density"], frb2["density"])
+
 def test_particle_counts():
     ds = fake_random_ds(16, particles=100)
     assert ds.particle_type_counts == {'io': 100}
