@@ -71,31 +71,31 @@ def test_mesh_slices():
     # see #1394
     return
     
-    # # Perform I/O in safe place instead of yt main dir
-    # tmpdir = tempfile.mkdtemp()
-    # curdir = os.getcwd()
-    # os.chdir(tmpdir)
+    # Perform I/O in safe place instead of yt main dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
 
-    # np.random.seed(0x4d3d3d3)
+    np.random.seed(0x4d3d3d3)
 
-    # # tetrahedral ds
-    # ds = fake_tetrahedral_ds()
+    # tetrahedral ds
+    ds = fake_tetrahedral_ds()
 
-    # for field in ds.field_list:
-    #     for idir in [0, 1, 2]:
-    #         sl = yt.SlicePlot(ds, idir, field)
-    #         sl.annotate_mesh_lines()
-    #         sl.save()
+    for field in ds.field_list:
+        for idir in [0, 1, 2]:
+            sl = yt.SlicePlot(ds, idir, field)
+            sl.annotate_mesh_lines()
+            sl.save()
 
-    # # hexahedral ds
-    # ds = fake_hexahedral_ds()
+    # hexahedral ds
+    ds = fake_hexahedral_ds()
 
-    # for field in ds.field_list:
-    #     for idir in [0, 1, 2]:
-    #         sl = yt.SlicePlot(ds, idir, field)
-    #         sl.annotate_mesh_lines()
-    #         sl.save()
+    for field in ds.field_list:
+        for idir in [0, 1, 2]:
+            sl = yt.SlicePlot(ds, idir, field)
+            sl.annotate_mesh_lines()
+            sl.save()
 
-    # os.chdir(curdir)
-    # # clean up
-    # shutil.rmtree(tmpdir)
+    os.chdir(curdir)
+    # clean up
+    shutil.rmtree(tmpdir)
