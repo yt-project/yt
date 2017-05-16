@@ -340,6 +340,7 @@ plot file. When you load this dataset, yt will have additional on-disk fields
 defined, with the "raw" field type:
 
 .. code-block:: python
+
     import yt
     ds = yt.load("Laser/plt00015/")
     print(ds.field_list)
