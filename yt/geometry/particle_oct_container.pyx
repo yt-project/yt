@@ -952,21 +952,21 @@ cdef class ParticleBitmap:
     def iseq_bitmask(self, solf):
         return self.bitmasks._iseq(solf.get_bitmasks())
 
-    def save_bitmasks(self,fname):
+    def save_bitmasks(self, fname):
         cdef bytes serial_BAC
         cdef int ifile
         f = open(fname,'wb')
         # Header
-        f.write(struct.pack('Q',_bitmask_version))
-        f.write(struct.pack('Q',self.nfiles))
+        f.write(struct.pack('Q', _bitmask_version))
+        f.write(struct.pack('Q', self.nfiles))
         # Bitmap for each file
         for ifile in range(self.nfiles):
             serial_BAC = self.bitmasks._dumps(ifile)
-            f.write(struct.pack('Q',len(serial_BAC)))
+            f.write(struct.pack('Q', len(serial_BAC)))
             f.write(serial_BAC)
         # Collisions
         serial_BAC = self.collisions._dumps()
-        f.write(struct.pack('Q',len(serial_BAC)))
+        f.write(struct.pack('Q', len(serial_BAC)))
         f.write(serial_BAC)
         f.close()
 
@@ -976,7 +976,7 @@ cdef class ParticleBitmap:
     def reset_bitmasks(self):
         self.bitmasks._reset()
 
-    def load_bitmasks(self,fname):
+    def load_bitmasks(self, fname):
         cdef bint read_flag = 1
         cdef bint irflag
         cdef np.uint64_t ver
@@ -993,21 +993,24 @@ cdef class ParticleBitmap:
             nfiles = ver
             ver = 0 # Original bitmaps had number of files first
         if ver != _bitmask_version:
-            raise IOError("The file format of the index has changed since "+
-                          "this file was created. It will be replaced with an "+
+            raise IOError("The file format of the index has changed since "
+                          "this file was created. It will be replaced with an "
                           "updated version.")
         # Read number of bitmaps
         if nfiles == 0:
-            nfiles, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            nfiles, = struct.unpack('Q', f.read(struct.calcsize('Q')))
             if nfiles != self.nfiles:
-                raise IOError("Number of bitmasks ({}) conflicts with number of files ({})".format(nfiles,self.nfiles))
+                raise IOError(
+                    "Number of bitmasks ({}) conflicts with number of files "
+                    "({})".format(nfiles, self.nfiles))
         # Read bitmap for each file
         pb = get_pbar("Loading particle index", nfiles)
         for ifile in range(nfiles):
             pb.update(ifile)
-            size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
+            size_serial, = struct.unpack('Q', f.read(struct.calcsize('Q')))
             irflag = self.bitmasks._loads(ifile, f.read(size_serial))
-            if irflag == 0: read_flag = 0
+            if irflag == 0:
+                read_flag = 0
         pb.finish()
         # Collisions
         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
