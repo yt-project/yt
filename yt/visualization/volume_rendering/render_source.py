@@ -735,7 +735,7 @@ class MeshSource(OpaqueSource):
 
         Parameters
         ----------
-        color: array of ints, shape (4), optional
+        color: array_like of shape (4,), optional
             The RGBA value to use to draw the mesh lines.
             Default is black.
         alpha : float, optional
@@ -801,16 +801,16 @@ class PointSource(OpaqueSource):
 
     Parameters
     ----------
-    positions: array, shape (N, 3)
+    positions: array_like of shape (N, 3)
         The positions of points to be added to the scene. If specified with no
         units, the positions will be assumed to be in code units.
-    colors : array, shape (N, 4), optional
+    colors : array_like of shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.
     color_stride : int, optional
         The stride with which to access the colors when putting them on the
         scene.
-    radii : array, shape (N), optional
+    radii : array_like of shape (N), optional
         The radii of the points in the final image, in pixels (int)
 
     Examples
@@ -922,12 +922,12 @@ class LineSource(OpaqueSource):
 
     Parameters
     ----------
-    positions: array, shape (N, 2, 3)
+    positions: array_like of shape (N, 2, 3)
         The positions of the starting and stopping points for each line.
         For example,positions[0][0] and positions[0][1] would give the (x, y, z)
         coordinates of the beginning and end points of the first line,
         respectively. If specified with no units, assumed to be in code units.
-    colors : array, shape (N, 4), optional
+    colors : array_like of shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.  The four channels correspond to r, g, b, and
         alpha values. Note that they correspond to the line segment succeeding
@@ -1049,11 +1049,11 @@ class BoxSource(LineSource):
 
     Parameters
     ----------
-    left_edge: array-like, shape (3,), float
+    left_edge: array-like of shape (3,), float
         The left edge coordinates of the box.
-    right_edge : array-like, shape (3,), float
+    right_edge : array-like of shape (3,), float
         The right edge coordinates of the box.
-    color : array-like, shape (4,), float, optional
+    color : array-like of shape (4,), float, optional
         The colors (including alpha) to use for the lines.
 
     Examples
@@ -1212,7 +1212,7 @@ class CoordinateVectorSource(OpaqueSource):
 
     Parameters
     ----------
-    colors: array-like, shape (3,4), optional
+    colors: array-like of shape (3,4), optional
         The x, y, z RGBA values to use to draw the vectors.
     alpha : float, optional
         The opacity of the vectors.
