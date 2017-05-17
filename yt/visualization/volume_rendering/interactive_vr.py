@@ -86,11 +86,11 @@ class IDVCamera(object):
     Parameters
     ----------
 
-    position : iterable, or 3 element array in code_length
+    position : !iterable, or 3 element array in code_length
         The initial position of the camera.
-    focus : iterable, or 3 element array in code_length
+    focus : !iterable, or 3 element array in code_length
         A point in space that the camera is looking at.
-    up : iterable, or 3 element array in code_length
+    up : !iterable, or 3 element array in code_length
         The 'up' direction for the camera.
     fov : float, optional
         An angle defining field of view in degrees.
