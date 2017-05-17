@@ -37,35 +37,45 @@ from yt.utilities.logger import ytLogger as mylog
 from .definitions import \
     gadget_header_specs, \
     gadget_field_specs, \
-    gadget_ptype_specs
+    gadget_ptype_specs, \
+    SNAP_FORMAT_2_OFFSET
 
 from .fields import \
     GadgetFieldInfo
+
 
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], string_types):
         unit = unit[1], unit[0]
     return unit
-    
+
+
 def _get_gadget_format(filename):
-    # check and return gadget binary format
-    f = open(filename, 'rb')
-    (rhead,) = struct.unpack('<I',f.read(4))
-    f.close()
-    if (rhead == 134217728) | (rhead == 8):
-        return 2
-    elif (rhead == 65536) | (rhead == 256):
-        return 1
+    # check and return gadget binary format with file endianness
+    ff = open(filename, 'rb')
+    (rhead,) = struct.unpack('<I', ff.read(4))
+    ff.close()
+    if (rhead == 134217728):
+        return 2, '>'
+    elif (rhead == 8):
+        return 2, '<'
+    elif (rhead == 65536):
+        return 1, '>'
+    elif (rhead == 256):
+        return 1, '<'
     else:
         raise RuntimeError("Incorrect Gadget format %s!" % str(rhead))
 
+
 class GadgetBinaryFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id, range=None):
+        gformat = _get_gadget_format(filename)
         with open(filename, "rb") as f:
-            if _get_gadget_format(filename) == 2:
-                f.seek(f.tell()+16)
-            self.header = read_record(f, ds._header_spec)
-            f.seek(ds.header_offset, os.SEEK_CUR)
+            if gformat[0] == 2:
+                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
+            self.header = read_record(f, ds._header_spec, endian=gformat[1])
+            if gformat[0] == 2:
+                f.seek(f.tell() + SNAP_FORMAT_2_OFFSET) 
             self._position_offset = f.tell()
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
@@ -86,7 +96,6 @@ class GadgetBinaryIndex(ParticleIndex):
         # Morton bitmaps.
         self._detect_output_fields()
         super(GadgetBinaryIndex, self)._initialize_index()
-
 
 class GadgetDataset(SPHDataset):
     _index_class = GadgetBinaryIndex
@@ -115,7 +124,8 @@ class GadgetDataset(SPHDataset):
                  use_dark_factor = False,
                  w_0 = -1.0,
                  w_a = 0.0):
-        if self._instantiated: return
+        if self._instantiated:
+            return
         self._header_spec = self._setup_binary_spec(
             header_spec, gadget_header_specs)
         self._field_spec = self._setup_binary_spec(
@@ -123,6 +133,10 @@ class GadgetDataset(SPHDataset):
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
         self.storage_filename = None
+        if long_ids:
+            self._id_dtype = 'u8'
+        else:
+            self._id_dtype = 'u4'
         self.long_ids = long_ids
         self.header_offset = header_offset
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
@@ -134,12 +148,12 @@ class GadgetDataset(SPHDataset):
             bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
-            self.domain_left_edge = bbox[:,0]
-            self.domain_right_edge = bbox[:,1]
+            self.domain_left_edge = bbox[:, 0]
+            self.domain_right_edge = bbox[:, 1]
         else:
             self.domain_left_edge = self.domain_right_edge = None
         if units_override is not None:
-            raise RuntimeError("units_override is not supported for GadgetDataset. "+
+            raise RuntimeError("units_override is not supported for GadgetDataset. " +
                                "Use unit_base instead.")
 
         # Set dark energy parameters before cosmology object is created
@@ -176,11 +190,11 @@ class GadgetDataset(SPHDataset):
     def _get_hvals(self):
         # The entries in this header are capitalized and named to match Table 4
         # in the GADGET-2 user guide.
-
+        gformat = _get_gadget_format(self.parameter_filename)
         f = open(self.parameter_filename, 'rb')
-        if _get_gadget_format(self.parameter_filename) == 2:
-            f.seek(f.tell()+16)
-        hvals = read_record(f, self._header_spec)
+        if gformat[0] == 2:
+            f.seek(f.tell() + SNAP_FORMAT_2_OFFSET)
+        hvals = read_record(f, self._header_spec, endian=gformat[1])
         for i in hvals:
             if len(hvals[i]) == 1:
                 hvals[i] = hvals[i][0]
@@ -218,7 +232,8 @@ class GadgetDataset(SPHDataset):
         # It may be possible to deduce whether ComovingIntegration is on
         # somehow, but opinions on this vary.
         if self.omega_lambda == 0.0:
-            only_on_root(mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology.")
+            only_on_root(
+                mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology.")
             self.hubble_constant = 1.0  # So that scaling comes out correct
             self.cosmological_simulation = 0
             self.current_redshift = 0.0
@@ -248,14 +263,17 @@ class GadgetDataset(SPHDataset):
         self.file_count = hvals["NumFiles"]
 
     def _set_code_unit_attributes(self):
-        # If no units passed in by user, set a sane default (Gadget-2 users guide).
+        # If no units passed in by user, set a sane default (Gadget-2 users
+        # guide).
         if self._unit_base is None:
             if self.cosmological_simulation == 1:
-                only_on_root(mylog.info, "Assuming length units are in kpc/h (comoving)")
-                self._unit_base = dict(length = (1.0, "kpccm/h"))
+                only_on_root(
+                    mylog.info, "Assuming length units are in kpc/h (comoving)")
+                self._unit_base = dict(length=(1.0, "kpccm/h"))
             else:
-                only_on_root(mylog.info, "Assuming length units are in kpc (physical)")
-                self._unit_base = dict(length = (1.0, "kpc"))
+                only_on_root(
+                    mylog.info, "Assuming length units are in kpc (physical)")
+                self._unit_base = dict(length=(1.0, "kpc"))
 
         # If units passed in by user, decide what to do about
         # co-moving and factors of h
@@ -332,10 +350,10 @@ class GadgetDataset(SPHDataset):
         is a Gadget binary file, and endianswap is the endianness character '>' or '<'.
         '''
         try:
-            f = open(filename,'rb')
+            f = open(filename, 'rb')
         except IOError:
             try:
-                f = open(filename+".0")
+                f = open(filename + ".0")
             except IOError:
                 return False, 1
 
@@ -345,7 +363,7 @@ class GadgetDataset(SPHDataset):
         # The int32 following the header (first 4+256 bytes) must equal this
         # number.
         try:
-            (rhead,) = struct.unpack('<I',f.read(4))
+            (rhead,) = struct.unpack('<I', f.read(4))
         except struct.error:
             f.close()
             return False, 1
@@ -357,25 +375,25 @@ class GadgetDataset(SPHDataset):
         # Enabled Format2 here
         elif rhead == 8:
             f.close()
-            return True, 'float32'
+            return True, 'f8'
         elif rhead == 134217728:
             f.close()
-            return True, 'float32'
+            return True, 'f4'
         else:
             f.close()
             return False, 1
         # Read in particle number from header
-        np0 = sum(struct.unpack(endianswap+'IIIIII',f.read(6*4)))
+        np0 = sum(struct.unpack(endianswap + 'IIIIII', f.read(6 * 4)))
         # Read in size of position block. It should be 4 bytes per float,
         # with 3 coordinates (x,y,z) per particle. (12 bytes per particle)
-        f.seek(4+256+4,0)
-        np1 = struct.unpack(endianswap+'I',f.read(4))[0]/(4*3)
+        f.seek(4 + 256 + 4, 0)
+        np1 = struct.unpack(endianswap + 'I', f.read(4))[0] / (4 * 3)
         f.close()
         # Compare
         if np0 == np1:
-            return True, 'float32'
+            return True, 'f4'
         elif np1 == 2*np0:
-            return True, 'float64'
+            return True, 'f8'
         else:
             return False, 1
 
@@ -383,6 +401,7 @@ class GadgetDataset(SPHDataset):
     def _is_valid(self, *args, **kwargs):
         # First 4 bytes used to check load
         return GadgetDataset._validate_header(args[0])[0]
+
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
@@ -404,7 +423,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         filename = os.path.abspath(filename)
         if units_override is not None:
             raise RuntimeError(
-                "units_override is not supported for GadgetHDF5Dataset. "+
+                "units_override is not supported for GadgetHDF5Dataset. "
                 "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
             filename, dataset_type, unit_base=unit_base,
@@ -429,8 +448,6 @@ class GadgetHDF5Dataset(GadgetDataset):
         handle.close()
         return uvals
 
-
-
     def _set_owls_eagle(self):
 
         self.dimensionality = 3
@@ -451,6 +468,16 @@ class GadgetHDF5Dataset(GadgetDataset):
                 self.domain_left_edge = np.zeros(3, "float64")
                 self.domain_right_edge = \
                     np.ones(3, "float64") * self.parameters["BoxSize"]
+||||||| merged common ancestors
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
+=======
+        if self.domain_left_edge is None:
+            self.domain_left_edge = np.zeros(3, "float64")
+            self.domain_right_edge = np.ones(
+                3, "float64") * self.parameters["BoxSize"]
+>>>>>>> master
 
         self.domain_dimensions = np.ones(3, "int32")
 
@@ -473,9 +500,11 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
-        self.length_unit = self.quan(self._unit_base["UnitLength_in_cm"], 'cmcm/h')
+        self.length_unit = self.quan(
+            self._unit_base["UnitLength_in_cm"], 'cmcm/h')
         self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], 'g/h')
-        self.velocity_unit = self.quan(self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
+        self.velocity_unit = self.quan(
+            self._unit_base["UnitVelocity_in_cm_per_s"], 'cm/s')
         self.time_unit = self.quan(self._unit_base["UnitTime_in_s"], 's/h')
 
     @classmethod
@@ -486,7 +515,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         try:
             fh = h5py.File(args[0], mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
-              not any(vg in fh["/"] for vg in veto_groups)
+                not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
         except:
             valid = False

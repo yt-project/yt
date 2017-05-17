@@ -24,7 +24,6 @@ from .basic_octree import *
 from .image_utilities import *
 from .points_in_volume import *
 from .quad_tree import *
-from .ray_integrators import *
 from .marching_cubes import *
 from .write_array import *
 from .mesh_utilities import *

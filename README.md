@@ -6,7 +6,7 @@
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
                 
-[![yt logo](doc/source/_static/yt_logo.png "yt logo")](http://yt-project.org/)
+<a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
 yt is an open-source, permissively-licensed python package for analyzing and
 visualizing volumetric data.
@@ -16,7 +16,7 @@ discrete or sampled data such as particles. Focused on driving
 physically-meaningful inquiry, yt has been applied in domains such as
 astrophysics, seismology, nuclear engineering, molecular dynamics, and
 oceanography. Composed of a friendly community of users and developers, we want
-to make it easy to use and develop — we'd love it if you got involved!
+to make it easy to use and develop - we'd love it if you got involved!
 
 We've written a [method
 paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
@@ -29,10 +29,16 @@ If you're using conda with [conda-forge](http://conda-forge.github.io/), you
 can install the most recent stable version by running:
 
 ```
-conda install yt
+conda install -c conda-forge yt
 ```
 
-Or, if you want the latest nightly build, you can manually install from our
+or by doing:
+
+```
+pip install yt
+```
+
+If you want the latest nightly build, you can manually install from our
 repository:
 
 ```
@@ -43,9 +49,29 @@ To get set up with a development version, you can clone this repository and
 install like this:
 
 ```
-git clone https://github.com/yt-project/yt
-cd yt
+git clone https://github.com/yt-project/yt yt-git
+cd yt-git
 python setup.py develop
+```
+
+To set up yt in a virtualenv (and there are [many good
+reasons](https://packaging.python.org/installing/#creating-virtual-environments)
+to do so!) you can follow this prescription:
+
+```
+# Assuming you have cd'd into yt-git
+# It is conventional to create virtualenvs at ~/.virtualenv/
+$ mkdir -p ~/.virtualenv
+# Assuming your version of Python 3 is 3.4 or higher,
+# create a virtualenv named yt
+$ python3 -m venv ~/.virtualenv/yt
+# Activate it
+$ source ~/.virtualenv/yt/bin/activate
+# Make sure you run the latest version of pip
+$ pip install --upgrade pip
+$ pip install -e .
+# Output installed packages
+$ pip freeze
 ```
 
 ## Getting Started
@@ -82,4 +108,5 @@ We have some community and documentation resources available.
  * The [development mailing
    list](http://lists.spacepope.org/listinfo.cgi/yt-dev-spacepope.org/) is
    better suited for more development issues
- * You can also join us on Slack at yt-project.slack.com
+ * You can also join us on Slack at yt-project.slack.com ([request an
+   invite](http://yt-project.org/slack.html))

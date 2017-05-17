@@ -32,7 +32,7 @@ from yt.config import \
     ytcfg
 from yt.funcs import \
     get_image_suffix, \
-    get_ipython_api_version, iterable, \
+    iterable, \
     ensure_dir, \
     ensure_list
 from yt.utilities.exceptions import \
@@ -655,12 +655,8 @@ class ImagePlotContainer(object):
                 v.show()
         else:
             if "__IPYTHON__" in dir(builtins):
-                api_version = get_ipython_api_version()
-                if api_version in ('0.10', '0.11'):
-                    self._send_zmq()
-                else:
-                    from IPython.display import display
-                    display(self)
+                from IPython.display import display
+                display(self)
 
     @validate_plot
     def display(self, name=None, mpl_kwargs=None):

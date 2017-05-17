@@ -30,7 +30,8 @@ from .data_structures import \
     _get_gadget_format
 
 from .definitions import \
-    gadget_hdf5_ptypes
+    gadget_hdf5_ptypes, \
+    SNAP_FORMAT_2_OFFSET
 
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):
@@ -39,8 +40,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     _known_ptypes = gadget_hdf5_ptypes
     _var_mass = None
     _element_names = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen',
-                       'Neon', 'Magnesium', 'Silicon', 'Iron' )
-
+                      'Neon', 'Magnesium', 'Silicon', 'Iron')
 
     @property
     def var_mass(self):
@@ -69,9 +69,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                x = f["/%s/Coordinates" % ptype][si:ei,0].astype("float64")
-                y = f["/%s/Coordinates" % ptype][si:ei,1].astype("float64")
-                z = f["/%s/Coordinates" % ptype][si:ei,2].astype("float64")
+                x = f["/%s/Coordinates" % ptype][si:ei, 0].astype("float64")
+                y = f["/%s/Coordinates" % ptype][si:ei, 1].astype("float64")
+                z = f["/%s/Coordinates" % ptype][si:ei, 2].astype("float64")
                 if ptype == self.ds._sph_ptype:
                     hsml = f[
                         "/%s/SmoothingLength" % ptype][si:ei].astype("float64")
@@ -141,22 +141,22 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 for field in field_list:
 
                     if field in ("Mass", "Masses") and \
-                        ptype not in self.var_mass:
+                            ptype not in self.var_mass:
                         data = np.empty(mask.sum(), dtype="float64")
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
 
                     elif field in self._element_names:
                         rfield = 'ElementAbundance/' + field
-                        data = g[rfield][si:ei][mask,...]
+                        data = g[rfield][si:ei][mask, ...]
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
-                        data = g["Metallicity"][si:ei,col][mask]
+                        data = g["Metallicity"][si:ei, col][mask]
                     elif field.startswith("Chemistry_"):
                         col = int(field.rsplit("_", 1)[-1])
-                        data = g["ChemistryAbundances"][si:ei,col][mask]
+                        data = g["ChemistryAbundances"][si:ei, col][mask]
                     else:
-                        data = g[field][si:ei][mask,...]
+                        data = g[field][si:ei][mask, ...]
 
                     yield (ptype, field), data
             f.close()
@@ -177,16 +177,18 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         morton = np.empty(pcount, dtype='uint64')
         ind = 0
         for key in keys:
-            if not key.startswith("PartType"): continue
-            if "Coordinates" not in f[key]: continue
+            if not key.startswith("PartType"):
+                continue
+            if "Coordinates" not in f[key]:
+                continue
             ds = f[key]["Coordinates"]
-            dt = ds.dtype.newbyteorder("N") # Native
+            dt = ds.dtype.newbyteorder("N")  # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
             regions.add_data_file(pos, data_file.file_id,
                                   data_file.ds.filter_bbox)
-            morton[ind:ind+pos.shape[0]] = compute_morton(
-                pos[:,0], pos[:,1], pos[:,2],
+            morton[ind:ind + pos.shape[0]] = compute_morton(
+                pos[:, 0], pos[:, 1], pos[:, 2],
                 data_file.ds.domain_left_edge,
                 data_file.ds.domain_right_edge,
                 data_file.ds.filter_bbox)
@@ -203,7 +205,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
         return npart
-
 
     def _identify_fields(self, data_file):
         f = h5py.File(data_file.filename, "r")
@@ -258,7 +259,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
         return fields, {}
 
+
 ZeroMass = object()
+
 
 class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
@@ -284,13 +287,17 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
     #   TSTP    (only if enabled in makefile)
 
     _var_mass = None
+    _format = None
 
     def __init__(self, ds, *args, **kwargs):
         self._vector_fields = dict(self._vector_fields)
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
         self.data_files = set([])
-        self._format =  _get_gadget_format(ds.parameter_filename)#default gadget format 1
+        gformat = _get_gadget_format(ds.parameter_filename)
+        # gadget format 1 original, 2 with block name
+        self._format = gformat[0]
+        self._endian = gformat[1]
         super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
 
     @property
@@ -316,7 +323,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype in ptf:
-                # This is where we could implement sub-chunking
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(
                     f, tp[ptype], "Coordinates")
@@ -358,23 +364,24 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                         continue
                     f.seek(poff[ptype, field], os.SEEK_SET)
                     data = self._read_field_from_file(f, tp[ptype], field)
-                    data = data[mask,...]
+                    data = data[mask, ...]
                     yield (ptype, field), data
             f.close()
 
     def _read_field_from_file(self, f, count, name):
-        if count == 0: return
+        if count == 0:
+            return
         if name == "ParticleIDs":
-            dt = {True:'uint64', False:'uint32'}[self.ds.long_ids]
+            dt = self._endian + self.ds._id_dtype
         else:
-            dt = self._float_type
+            dt = self._endian + self._float_type
         if name in self._vector_fields:
             count *= self._vector_fields[name]
-        arr = np.fromfile(f, dtype=dt, count = count)
+        arr = np.fromfile(f, dtype=dt, count=count)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
             arr = arr.reshape((count//factor, factor), order="C")
-        return np.asarray(arr, dtype="float64")
+        return np.astype(self._float_type)
 
     def _yield_coordinates(self, data_file):
         self._float_type = data_file.ds._validate_header(data_file.filename)[1]
@@ -409,6 +416,23 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 f, tp[ptype], field)
         return pp
 
+    def _initialize_index(self, data_file, regions):
+        DLE = data_file.ds.domain_left_edge
+        DRE = data_file.ds.domain_right_edge
+        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
+        if self.index_ptype == "all":
+            count = sum(data_file.total_particles.values())
+            return self._get_morton_from_position(
+                data_file, count, 0, regions, DLE, DRE)
+        else:
+            idpos = self._ptypes.index(self.index_ptype)
+            count = data_file.total_particles.get(self.index_ptype)
+            account = [0] + [data_file.total_particles.get(ptype)
+                             for ptype in self._ptypes]
+            account = np.cumsum(account)
+            return self._get_morton_from_position(
+                data_file, account, account[idpos], regions, DLE, DRE)
+
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         pcount = np.array(data_file.header["Npart"])
@@ -418,13 +442,19 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints
+    _field_size = 4
     def _calculate_field_offsets(self, field_list, pcount,
-                                 offset, file_size = None):
+                                 offset, file_size=None):
         # field_list is (ftype, fname) but the blocks are ordered
         # (fname, ftype) in the file.
-        pos = offset
+        if self._format == 2:
+            # Need to subtract offset due to extra header block
+            pos = offset - SNAP_FORMAT_2_OFFSET
+        else:
+            pos = offset
         fs = self._field_size
         offsets = {}
+
         for field in self._fields:
             if field == "ParticleIDs" and self.ds.long_ids:
                 fs = 8
@@ -432,15 +462,16 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 fs = 4
             if not isinstance(field, string_types):
                 field = field[0]
-            if not any( (ptype, field) in field_list
-                        for ptype in self._ptypes):
+            if not any((ptype, field) in field_list
+                       for ptype in self._ptypes):
                 continue
             if self._format == 2:
-                pos += 20 #skip block header
+                pos += 20  # skip block header
             elif self._format == 1:
                 pos += 4
             else:
-                raise RuntimeError("incorrect Gadget format %s!" % str(self._format))
+                raise RuntimeError(
+                    "incorrect Gadget format %s!" % str(self._format))
             any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
@@ -454,7 +485,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 else:
                     pos += pcount[ptype] * fs
             pos += 4
-            if not any_ptypes: pos -= 8
+            if not any_ptypes:
+                pos -= 8
         if file_size is not None:
             if (file_size != pos) & (self._format == 1): #ignore the rest of format 2 
                 diff = file_size - pos
@@ -463,6 +495,11 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     if psize == 0: continue
                     if float(diff) / psize == int(float(diff)/psize):
                         possible.append(ptype)
+||||||| merged common ancestors
+            if (file_size != pos) & (self._format == 1): #ignore the rest of format 2 
+=======
+            if (file_size != pos) & (self._format == 1):  # ignore the rest of format 2
+>>>>>>> master
                 mylog.warning("Your Gadget-2 file may have extra " +
                               "columns or different precision! " +
                               "(%s diff => %s?)", diff, possible)
@@ -474,13 +511,15 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         tp = domain.total_particles
         for i, ptype in enumerate(self._ptypes):
             count = tp[ptype]
-            if count == 0: continue
+            if count == 0:
+                continue
             m = domain.header["Massarr"][i]
             for field in self._fields:
                 if isinstance(field, tuple):
                     field, req = field
                     if req is ZeroMass:
-                        if m > 0.0 : continue
+                        if m > 0.0:
+                            continue
                     elif isinstance(req, tuple) and ptype in req:
                         pass
                     elif req != ptype:
