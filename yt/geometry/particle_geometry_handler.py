@@ -16,7 +16,6 @@ Particle-only geometry handler
 
 import collections
 import numpy as np
-import os
 import weakref
 
 from yt.funcs import \
@@ -36,8 +35,6 @@ class ParticleIndex(Index):
     def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
-        self._index_filename = self.dataset.parameter_filename
-        self.directory = os.path.dirname(self._index_filename)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
 
@@ -109,8 +106,8 @@ class ParticleIndex(Index):
                 'overhead from inferring bounding_box.' % (min_ppos, max_ppos))
             self.ds.domain_left_edge = self.ds.arr(1.05*min_ppos, 'code_length')
             self.ds.domain_right_edge = self.ds.arr(1.05*max_ppos, 'code_length')
-
-        # use a trivial morton index for datasets containing a single data file
+            
+        # use a trivial morton index for datasets containing a single chunk
         if len(self.data_files) == 1:
             order1 = 1
             order2 = 1
@@ -130,15 +127,12 @@ class ParticleIndex(Index):
             index_order1=order1,
             index_order2=order2)
 
-        # Load indices from file if provided
+        # Load Morton index from file if provided
         if getattr(ds, 'index_filename', None) is None:
-            fname = self._index_filename + ".index{}_{}.ewah".format(
+            fname = ds.parameter_filename + ".index{}_{}.ewah".format(
                 self.regions.index_order1, self.regions.index_order2)
         else:
-            fname = self.index_filename
-
-        if hasattr(self.io, '_generate_smoothing_length'):
-            self.io._generate_smoothing_length(self.data_files)
+            fname = ds.index_filename
 
         try:
             rflag = self.regions.load_bitmasks(fname)
@@ -152,7 +146,7 @@ class ParticleIndex(Index):
             if not dont_cache:
                 self.regions.save_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
-
+            
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in enumerate(self.data_files):

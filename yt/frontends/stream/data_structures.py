@@ -37,6 +37,8 @@ from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
     ParticleFile
+from yt.frontends.sph.data_structures import \
+    SPHParticleIndex
 from yt.geometry.geometry_handler import \
     YTDataChunk
 from yt.geometry.grid_geometry_handler import \
@@ -45,8 +47,6 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.geometry.oct_geometry_handler import \
     OctreeIndex
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.geometry.oct_container import \
     OctreeContainer
 from yt.geometry.unstructured_mesh_handler import \
@@ -1007,7 +1007,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
     return ds
 
-class StreamParticleIndex(ParticleIndex):
+class StreamParticleIndex(SPHParticleIndex):
 
 
     def __init__(self, ds, dataset_type = None):

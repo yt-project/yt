@@ -22,10 +22,9 @@ import glob
 import os
 
 from yt.frontends.sph.data_structures import \
-    SPHDataset
+    SPHDataset, \
+    SPHParticleIndex
 from yt.funcs import deprecate
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.utilities.cosmology import \
@@ -55,12 +54,11 @@ class TipsyFile(ParticleFile):
         self.field_offsets = self.io._calculate_particle_offsets(self)
 
 class TipsyDataset(SPHDataset):
-    _index_class = ParticleIndex
+    _index_class = SPHParticleIndex
     _file_class = TipsyFile
     _field_info_class = TipsyFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
-    _num_neighbors = 32
     _sph_ptype = "Gas"
     _header_spec = (('time',    'd'),
                     ('nbodies', 'i'),
@@ -77,6 +75,7 @@ class TipsyDataset(SPHDataset):
                  cosmology_parameters=None,
                  index_order=None,
                  index_filename=None,
+                 kdtree_filename=None,
                  kernel_name=None,
                  bounding_box=None,
                  units_override=None,
@@ -118,7 +117,7 @@ class TipsyDataset(SPHDataset):
         super(TipsyDataset, self).__init__(
             filename, dataset_type=dataset_type, unit_system=unit_system,
             index_order=index_order, index_filename=index_filename,
-            kernel_name=kernel_name)
+            kdtree_filename=kdtree_filename, kernel_name=kernel_name)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)

@@ -15,7 +15,6 @@ Subsets of octrees
 #-----------------------------------------------------------------------------
 
 import numpy as np
-import contextlib
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer
@@ -24,7 +23,7 @@ from yt.data_objects.field_data import \
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 
-from yt.funcs import mylog, ensure_list
+from yt.funcs import mylog
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.geometry.particle_oct_container import \
     ParticleOctreeContainer

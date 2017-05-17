@@ -21,8 +21,6 @@ import os
 from yt.extern.six import string_types
 from yt.frontends.sph.io import \
     IOHandlerSPH
-from yt.utilities.lib.geometry_utils import \
-    compute_morton
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -80,15 +78,19 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 yield ptype, (x, y, z), hsml
             f.close()
 
-    def _yield_coordinates(self, data_file):
+    def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename)
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
         for key in f.keys():
-            if not key.startswith("PartType"): continue
-            if "Coordinates" not in f[key]: continue
+            if not key.startswith("PartType"):
+                continue
+            if "Coordinates" not in f[key]:
+                continue
+            if needed_ptype and key != needed_ptype:
+                continue
             ds = f[key]["Coordinates"][si:ei,...]
             dt = ds.dtype.newbyteorder("N") # Native
             pos = np.empty(ds.shape, dtype=dt)

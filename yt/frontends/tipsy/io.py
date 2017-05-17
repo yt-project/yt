@@ -132,8 +132,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def hsml_filename(self):
         return '%s-%s' % (self.ds.parameter_filename, 'hsml')
 
-    def _generate_smoothing_length(self, data_files):
-        from cykdtree import PyKDTree
+    def _generate_smoothing_length(self, data_files, kdtree):
         if os.path.exists(self.hsml_filename):
             return
         positions = []
@@ -144,16 +143,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if positions == []:
             return
         positions = np.concatenate(positions)
-        kdtree = PyKDTree(
-            positions,
-            left_edge=self.ds.domain_left_edge,
-            right_edge=self.ds.domain_right_edge,
-            periodic=np.array(self.ds.periodicity),
-            leafsize=int(self.ds._num_neighbors)
-        )
         hsml = generate_smoothing_length(
             positions, kdtree, self.ds._num_neighbors)
-        del kdtree
         dtype = self._pdtypes['Gas']['Coordinates'][0]
         hsml.astype(dtype).tofile(self.hsml_filename)
 
@@ -366,7 +357,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             afield = f.rsplit('.')[-1]
             filename = data_file.filename + '.' + afield
             if not os.path.exists(filename): continue
-            if afield in ['log', 'parameter']:
+            if afield in ['log', 'parameter', 'kdtree']:
                 # Amiga halo finder makes files like this we need to ignore
                 continue
             self._aux_fields.append(afield)

@@ -15,10 +15,7 @@ from __future__ import absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 
 class TipsyFieldInfo(SPHFieldInfo):
     known_particle_fields = SPHFieldInfo.known_particle_fields + \

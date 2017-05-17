@@ -15,20 +15,28 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
+import os
+
 from yt.data_objects.static_output import \
     ParticleDataset
+from yt.funcs import mylog
+from yt.geometry.particle_geometry_handler import \
+    ParticleIndex
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
+    _num_neighbors = 32
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
                  index_order=None, index_filename=None,
-                 kernel_name=None, **kwargs):
+                 kdtree_filename=None, kernel_name=None):
         if kernel_name is None:
             self.kernel_name = self.default_kernel_name
         else:
             self.kernel_name = kernel_name
+        self.kdtree_filename = kdtree_filename
         super(SPHDataset, self).__init__(
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
@@ -71,3 +79,47 @@ class SPHDataset(ParticleDataset):
             smooth_field=smooth_field, method=method, nneighbors=nneighbors,
             kernel_name=kernel_name
         )
+
+class SPHParticleIndex(ParticleIndex):
+    def _initialize_index(self):
+        ds = self.dataset
+        super(SPHParticleIndex, self)._initialize_index()
+        if getattr(ds, 'kdtree_filename', None) is None:
+            if os.path.exists(ds.parameter_filename):
+                fname = ds.parameter_filename + ".kdtree"
+            else:
+                # we don't want to write to disk for in-memory data
+                fname = None
+        else:
+            fname = ds.kdtree_filename
+
+        self._generate_kdtree(fname)
+
+        if hasattr(self.io, '_generate_smoothing_length'):
+            self.io._generate_smoothing_length(self.data_files, self._kdtree)
+
+    def _generate_kdtree(self, fname):
+        from cykdtree import PyKDTree
+        if os.path.exists(fname):
+            mylog.info('Laoading KDTree from %s' % os.path.basename(fname))
+            self._kdtree = PyKDTree.from_file(fname)
+            return
+        positions = []
+        for data_file in self.data_files:
+            for _, ppos in self.io._yield_coordinates(
+                    data_file, needed_ptype=self.ds._sph_ptype):
+                positions.append(ppos)
+        if positions == []:
+            self._kdtree = None
+            return
+        positions = np.concatenate(positions)
+        mylog.info('Allocating KDTree for %s particles' % positions.shape[0])
+        self._kdtree = PyKDTree(
+            positions.astype('float64'),
+            left_edge=self.ds.domain_left_edge,
+            right_edge=self.ds.domain_right_edge,
+            periodic=np.array(self.ds.periodicity),
+            leafsize=int(self.ds._num_neighbors)
+        )
+        if fname is not None:
+            self._kdtree.save(fname)

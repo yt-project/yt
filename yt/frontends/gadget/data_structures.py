@@ -26,9 +26,8 @@ import os
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
-    SPHDataset
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+    SPHDataset, \
+    SPHParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.fortran_utils import read_record
@@ -87,7 +86,7 @@ class GadgetBinaryFile(ParticleFile):
             field_list, self.total_particles,
             self._position_offset, self._file_size)
 
-class GadgetBinaryIndex(ParticleIndex):
+class GadgetBinaryIndex(SPHParticleIndex):
 
     def _initialize_index(self):
         # Normally this function is called during field detection. We call it
@@ -112,6 +111,7 @@ class GadgetDataset(SPHDataset):
                  unit_base=None,
                  index_order=None,
                  index_filename=None,
+                 kdtree_filename=None,
                  kernel_name=None,
                  bounding_box = None,
                  header_spec = "default",
@@ -166,6 +166,7 @@ class GadgetDataset(SPHDataset):
             unit_system=unit_system,
             index_order=index_order,
             index_filename=index_filename,
+            kdtree_filename=kdtree_filename,
             kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
@@ -405,7 +406,7 @@ class GadgetDataset(SPHDataset):
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
-    _index_class = ParticleIndex
+    _index_class = SPHParticleIndex
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
     _sph_ptype = 'PartType0'
