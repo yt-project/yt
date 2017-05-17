@@ -468,16 +468,6 @@ class GadgetHDF5Dataset(GadgetDataset):
                 self.domain_left_edge = np.zeros(3, "float64")
                 self.domain_right_edge = \
                     np.ones(3, "float64") * self.parameters["BoxSize"]
-||||||| merged common ancestors
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
-=======
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(
-                3, "float64") * self.parameters["BoxSize"]
->>>>>>> master
 
         self.domain_dimensions = np.ones(3, "int32")
 

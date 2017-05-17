@@ -495,11 +495,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     if psize == 0: continue
                     if float(diff) / psize == int(float(diff)/psize):
                         possible.append(ptype)
-||||||| merged common ancestors
-            if (file_size != pos) & (self._format == 1): #ignore the rest of format 2 
-=======
-            if (file_size != pos) & (self._format == 1):  # ignore the rest of format 2
->>>>>>> master
                 mylog.warning("Your Gadget-2 file may have extra " +
                               "columns or different precision! " +
                               "(%s diff => %s?)", diff, possible)
