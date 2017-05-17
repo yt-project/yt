@@ -1307,7 +1307,7 @@ class YTQuantity(YTArray):
         The registry to create units from. If input_units is already associated
         with a unit registry and this is specified, this will be used instead of
         the registry associated with the unit object.
-    dtype : string or NumPy dtype object
+    dtype : data-type
         The dtype of the array data.
 
     Examples
