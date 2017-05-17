@@ -702,7 +702,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        scale_func: function(value, minval, maxval), optional
+        scale_func: function(!value, !minval, !maxval), optional
             A user-defined function that can be used to scale the alpha channel
             as a function of the TransferFunction field values. Function maps
             value to somewhere between minval and maxval.
