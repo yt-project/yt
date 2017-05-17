@@ -654,10 +654,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        col_bounds: array_like [min, max], optional
-            Limits the values over which the colormap spans to these
-            values.  Useful for sampling an entire colormap over a
-            range smaller than the transfer function bounds.
+        col_bounds: array_like, optional
+            Limits ([min, max]) the values over which the colormap spans to
+            these values.  Useful for sampling an entire colormap over a range
+            smaller than the transfer function bounds.
 
         See Also
         --------
@@ -769,10 +769,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        col_bounds: array_like [min, max], optional
-            Limits the values over which the colormap spans to these
-            values.  Useful for sampling an entire colormap over a
-            range smaller than the transfer function bounds.
+        col_bounds: array_like, optional
+            Limits ([min, max]) the values over which the colormap spans to
+            these values.  Useful for sampling an entire colormap over a range
+            smaller than the transfer function bounds.
 
         See Also
         --------
