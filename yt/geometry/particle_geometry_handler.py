@@ -52,8 +52,6 @@ class ParticleIndex(Index):
 
     def _setup_geometry(self):
         self.regions = None
-        mylog.debug("Initializing Particle Geometry Handler.")
-        self._initialize_particle_handler()
 
     def get_smallest_dx(self):
         """
@@ -208,6 +206,7 @@ class ParticleIndex(Index):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
+        self._setup_filenames()
         dsl = []
         units = {}
         for dom in self.data_files:
