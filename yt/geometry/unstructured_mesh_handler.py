@@ -24,7 +24,6 @@ from yt.utilities.lib.mesh_utilities import smallest_fwidth
 
 class UnstructuredIndex(Index):
     """The Index subclass for unstructured and hexahedral mesh datasets. """
-    _global_mesh = False
     _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 
     def __init__(self, ds, dataset_type):

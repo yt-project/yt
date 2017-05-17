@@ -33,8 +33,6 @@ CHUNKSIZE = 64**3
 
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
-    _global_mesh = False
-
     def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
@@ -42,13 +40,6 @@ class ParticleIndex(Index):
         self.directory = os.path.dirname(self._index_filename)
         self.float_type = np.float64
         super(ParticleIndex, self).__init__(ds, dataset_type)
-
-    @property
-    def index_ptype(self):
-        if hasattr(self.dataset, "index_ptype"):
-            return self.dataset.index_ptype
-        else:
-            return "all"
 
     def _setup_geometry(self):
         self.regions = None

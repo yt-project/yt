@@ -161,41 +161,6 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     yield (ptype, field), data
             f.close()
 
-    def _initialize_index(self, data_file, regions):
-        si, ei = data_file.start, data_file.end
-        index_ptype = self.index_ptype
-        f = h5py.File(data_file.filename, "r")
-        pcount = f["/Header"].attrs["NumPart_ThisFile"][:]
-        np.clip(pcount - si, 0, ei - si, out=pcount)
-        if index_ptype == "all":
-            keys = f.keys()
-            pcount = pcount.sum()
-        else:
-            pt = int(index_ptype[-1])
-            pcount = pcount[pt]
-            keys = [index_ptype]
-        morton = np.empty(pcount, dtype='uint64')
-        ind = 0
-        for key in keys:
-            if not key.startswith("PartType"):
-                continue
-            if "Coordinates" not in f[key]:
-                continue
-            ds = f[key]["Coordinates"]
-            dt = ds.dtype.newbyteorder("N")  # Native
-            pos = np.empty(ds.shape, dtype=dt)
-            pos[:] = ds
-            regions.add_data_file(pos, data_file.file_id,
-                                  data_file.ds.filter_bbox)
-            morton[ind:ind + pos.shape[0]] = compute_morton(
-                pos[:, 0], pos[:, 1], pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-                data_file.ds.filter_bbox)
-            ind += pos.shape[0]
-        f.close()
-        return morton
-
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         f = h5py.File(data_file.filename, "r")
@@ -415,23 +380,6 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             pp = self._read_field_from_file(
                 f, tp[ptype], field)
         return pp
-
-    def _initialize_index(self, data_file, regions):
-        DLE = data_file.ds.domain_left_edge
-        DRE = data_file.ds.domain_right_edge
-        self._float_type = data_file.ds._validate_header(data_file.filename)[1]
-        if self.index_ptype == "all":
-            count = sum(data_file.total_particles.values())
-            return self._get_morton_from_position(
-                data_file, count, 0, regions, DLE, DRE)
-        else:
-            idpos = self._ptypes.index(self.index_ptype)
-            count = data_file.total_particles.get(self.index_ptype)
-            account = [0] + [data_file.total_particles.get(ptype)
-                             for ptype in self._ptypes]
-            account = np.cumsum(account)
-            return self._get_morton_from_position(
-                data_file, account, account[idpos], regions, DLE, DRE)
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
