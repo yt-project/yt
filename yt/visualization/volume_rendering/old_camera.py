@@ -258,9 +258,12 @@ class Camera(ParallelAnalysisInterface):
             Default : 0.3
         cmap : string, optional
             Colormap to be used mapping grid levels to colors.
-        min_level, max_level : int, optional
-            Optional parameters to specify the min and max level grid boxes 
-            to overplot on the image.  
+        min_level : int, optional
+            Optional parameter to specify the min level grid boxes
+            to overplot on the image.
+        max_level : int, optional
+            Optional parameters to specify the max level grid boxes
+            to overplot on the image.
         
         Returns
         -------
