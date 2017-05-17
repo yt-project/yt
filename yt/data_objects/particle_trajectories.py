@@ -29,7 +29,7 @@ class ParticleTrajectories(object):
 
     Parameters
     ----------
-    outputs : `yt.data_objects.time_series.DatasetSeries`
+    outputs : ~yt.data_objects.time_series.DatasetSeries
         DatasetSeries object from which to draw the particles.
     indices : array_like
         An integer array of particle indices whose trajectories we

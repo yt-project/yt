@@ -640,7 +640,7 @@ class Scene(object):
         Parameters
         ----------
 
-        ds : :class:`yt.data_objects.api.Dataset`
+        ds : :class:`yt.data_objects.static_output.Dataset`
             This is the dataset object corresponding to the
             simulation being rendered. Used to get the domain bounds.
 

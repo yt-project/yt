@@ -100,7 +100,7 @@ class Camera(ParallelAnalysisInterface):
         the volume rendering mechanism.
     sub_samples : int, optional
         The number of samples to take inside every cell per ray.
-    ds : `~yt.data_objects.api.Dataset`
+    ds : ~yt.data_objects.static_output.Dataset
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the dataset to volume render.
     use_kd: bool, optional
@@ -1190,7 +1190,7 @@ class PerspectiveCamera(Camera):
         the volume rendering mechanism.
     sub_samples : int, optional
         The number of samples to take inside every cell per ray.
-    ds : `~yt.data_objects.api.Dataset`
+    ds : ~yt.data_objects.static_output.Dataset
         For now, this is a require parameter!  But in the future it will become
         optional.  This is the dataset to volume render.
     use_kd: bool, optional
@@ -2155,7 +2155,7 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
 
     Parameters
     ----------
-    ds : `~yt.data_objects.api.Dataset`
+    ds : ~yt.data_objects.static_output.Dataset
         This is the dataset to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
