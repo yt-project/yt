@@ -199,6 +199,21 @@ This accepts arguments the same way:::
 
 .. _available-objects:
 
+Making Image Buffers
+^^^^^^^^^^^^^^^^^^^^
+
+Using the slicing syntax above for choosing a slice, if you also provide an
+imaginary step value you can obtain a
+:class:`~yt.visualization.api.FixedResolutionBuffer` of the chosen resolution.
+
+For instance, to obtain a 1024 by 1024 buffer covering the entire
+domain but centered at 0.5 in code units, you can do:::
+
+   frb = ds.r[0.5, ::1024j, ::1024j]
+
+This `frb` object then can be queried like a normal fixed resolution buffer,
+and it will return arrays of shape (1024, 1024).
+
 Available Objects
 -----------------
 
@@ -650,7 +665,7 @@ Here are some examples:
    cutout = sp1 - sp3
    sp4 = sp1 ^ sp2
    sp5 = sp1 & sp2
-   
+
 
 Note that the ``+`` operation and the ``|`` operation are identical.  For when
 multiple objects are to be combined in an intersection or a union, there are
