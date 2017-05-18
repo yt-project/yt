@@ -676,7 +676,8 @@ class Communicator(object):
         self._distributed = comm is not None and self.comm.size > 1
 
     def __del__(self):
-        self.comm.Free()
+        if self.comm is not None:
+            self.comm.Free()
     """
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.

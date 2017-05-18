@@ -67,6 +67,10 @@ def test_multi_region():
         yield compare(ds, field, "answers_multi_region_%s_%s" % (field[0], field[1]))
 
 def test_mesh_slices():
+    # This test is temporarily disabled because it is seg faulty,
+    # see #1394
+    return
+    
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()

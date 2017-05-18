@@ -171,7 +171,7 @@ class FieldInfo:
         u = field[1][0]
         if len(u) > 0:
             self.units = ":math:`\mathrm{%s}`" % fix_units(u)
-        a = ["``%s``" % f for f in field[1][1]]
+        a = ["``%s``" % f for f in field[1][1] if f]
         self.aliases = " ".join(a)
         self.dname = ""
         if field[1][2] is not None:
