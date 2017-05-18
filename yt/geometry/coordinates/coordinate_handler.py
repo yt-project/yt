@@ -221,6 +221,9 @@ class CoordinateHandler(object):
                 v, center = self.ds.find_max(("gas", "density"))
                 center = self.ds.arr(center, 'code_length')
             elif center.lower() == "c" or center.lower() == "center":
+                # domain_left_edge and domain_right_edge might not be
+                # initialized until we create the index, so create it
+                self.ds.index
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
                 raise RuntimeError('center keyword \"%s\" not recognized' % center)
