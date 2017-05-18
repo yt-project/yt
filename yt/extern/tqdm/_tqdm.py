@@ -217,7 +217,7 @@ class tqdm(object):
         """
         Parameters
         ----------
-        iterable  : !iterable, optional
+        iterable  : :obj:`!iterable`, optional
             Iterable to decorate with a progressbar.
             Leave blank [default: None] to manually manage the updates.
         desc  : str, optional
