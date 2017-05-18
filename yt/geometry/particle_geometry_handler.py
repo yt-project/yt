@@ -104,8 +104,9 @@ class ParticleIndex(Index):
                 mylog.info,
                 'Load this dataset with bounding_box=[%s, %s] to avoid I/O '
                 'overhead from inferring bounding_box.' % (min_ppos, max_ppos))
-            self.ds.domain_left_edge = self.ds.arr(1.05*min_ppos, 'code_length')
-            self.ds.domain_right_edge = self.ds.arr(1.05*max_ppos, 'code_length')
+            ds.domain_left_edge = ds.arr(1.05*min_ppos, 'code_length')
+            ds.domain_right_edge = ds.arr(1.05*max_ppos, 'code_length')
+            ds.domain_width = ds.domain_right_edge - ds.domain_left_edge
             
         # use a trivial morton index for datasets containing a single chunk
         if len(self.data_files) == 1:

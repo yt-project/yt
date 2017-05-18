@@ -190,6 +190,8 @@ class CoordinateHandler(object):
 
     def sanitize_width(self, axis, width, depth):
         if width is None:
+            # initialize the index if it is not already initialized
+            self.ds.index
             # Default to code units
             if not iterable(axis):
                 xax = self.x_axis[axis]
