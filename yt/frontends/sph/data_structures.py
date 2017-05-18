@@ -101,7 +101,7 @@ class SPHParticleIndex(ParticleIndex):
     def _generate_kdtree(self, fname):
         from cykdtree import PyKDTree
         if os.path.exists(fname):
-            mylog.info('Laoading KDTree from %s' % os.path.basename(fname))
+            mylog.info('Loading KDTree from %s' % os.path.basename(fname))
             self._kdtree = PyKDTree.from_file(fname)
             return
         positions = []
