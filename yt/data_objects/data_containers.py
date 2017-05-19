@@ -1166,9 +1166,12 @@ class YTDataContainer(object):
                 # For grids this will be a grid object, and for octrees it will
                 # be an OctreeSubset.  Note that we delegate to the sub-object.
                 o = self._current_chunk.objs[0]
+                cache_fp = o.field_parameters.copy()
+                o.field_parameters.update(self.field_parameters)
                 for b, m in o.select_blocks(self.selector):
                     if m is None: continue
                     yield b, m
+                o.field_parameters = cache_fp
 
 class GenerationInProgress(Exception):
     def __init__(self, fields):
