@@ -649,3 +649,15 @@ class YTBooleanObjectsWrongDataset(YTException):
 
     def __str__(self):
         return "Boolean data objects must share a common dataset object."
+
+class YTIllDefinedAMR(YTException):
+    def __init__(self, level, axis):
+        self.level = level
+        self.axis = axis
+
+    def __str__(self):
+        msg = (
+            "Grids on the level {} are not properly aligned with cell edges "
+            "on the parent level ({} axis)"
+        ).format(self.level, self.axis)
+        return msg

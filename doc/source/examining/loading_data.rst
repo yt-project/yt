@@ -446,6 +446,7 @@ Exodus II Data
 --------------
 
 .. note::
+
    To load Exodus II data, you need to have the `netcdf4 <http://unidata.github.io/
    netcdf4-python/>`_ python interface installed.
 
@@ -1207,22 +1208,27 @@ resolution.
    import yt
 
    grid_data = [
-       dict(left_edge = [0.0, 0.0, 0.0],
-            right_edge = [1.0, 1.0, 1.],
-            level = 0,
-            dimensions = [32, 32, 32],
-            number_of_particles = 0)
-       dict(left_edge = [0.25, 0.25, 0.25],
-            right_edge = [0.75, 0.75, 0.75],
-            level = 1,
-            dimensions = [32, 32, 32],
-            number_of_particles = 0)
+       dict(left_edge=[0.0, 0.0, 0.0],
+            right_edge=[1.0, 1.0, 1.0],
+            level=0,
+            dimensions=[32, 32, 32],
+            number_of_particles=0)
+       dict(left_edge=[0.25, 0.25, 0.25],
+            right_edge=[0.75, 0.75, 0.75],
+            level=1,
+            dimensions=[32, 32, 32],
+            number_of_particles=0)
    ]
 
    for g in grid_data:
-       g["density"] = np.random.random(g["dimensions"]) * 2**g["level"]
+       g["density"] = np.random.random(g["dimensions"]) * 2 ** g["level"]
 
    ds = yt.load_amr_grids(grid_data, [32, 32, 32], 1.0)
+
+.. note::
+
+   yt only supports a block structure where the grid edges on the ``n``-th
+   refinement level are aligned with the cell edges on the ``n-1``-th level.
 
 Particle fields are supported by adding 1-dimensional arrays and
 setting the ``number_of_particles`` key to each ``grid``'s dict:
