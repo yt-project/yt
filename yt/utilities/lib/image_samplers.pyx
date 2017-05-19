@@ -119,9 +119,12 @@ cdef class ImageSampler:
         self.image.x_vec = <np.float64_t *> x_vec.data
         self.ay_vec = y_vec
         self.image.y_vec = <np.float64_t *> y_vec.data
-        self.image.zbuffer = self.azbuffer = zbuffer
-        self.image.image_used = self.aimage_used = image_used
-        self.image.mesh_lines = self.amesh_lines = mesh_lines
+        self.image.zbuffer = zbuffer
+        self.azbuffer = np.asarray(zbuffer)
+        self.image.image_used = image_used
+        self.aimage_used = np.asarray(image_used)
+        self.image.mesh_lines = mesh_lines
+        self.amesh_lines = np.asarray(mesh_lines)
         self.image.nv[0] = image.shape[0]
         self.image.nv[1] = image.shape[1]
         for i in range(4): self.image.bounds[i] = bounds[i]
