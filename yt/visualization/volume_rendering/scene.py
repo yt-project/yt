@@ -501,7 +501,9 @@ class Scene(object):
             im = source.render(camera, zbuffer=opaque)
             opaque.rgba = im
 
-        return im
+        # rotate image 180 degrees so orientation agrees with e.g.
+        # a PlotWindow plot
+        return np.rot90(im, k=2)
 
     def add_camera(self, data_source=None, lens_type='plane-parallel',
                    auto=False):
