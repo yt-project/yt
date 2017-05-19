@@ -1117,7 +1117,6 @@ class YTSurface(YTSelectionContainer3D):
                          ("index", "x"),
                          ("index", "y"),
                          ("index", "z"))
-    vertices = None
     def __init__(self, data_source, surface_field, field_value, ds=None):
         self.data_source = data_source
         self.surface_field = data_source._determine_fields(surface_field)[0]
@@ -1161,7 +1160,7 @@ class YTSurface(YTSelectionContainer3D):
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         # verts is an ndarray here and will always be in code units, so we
         # expose it in the public API as a YTArray
-        self.vertices = self.ds.arr(verts, 'code_length')
+        self._vertices = self.ds.arr(verts, 'code_length')
         if fields is not None:
             samples = uconcatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
@@ -1278,11 +1277,17 @@ class YTSurface(YTSelectionContainer3D):
         ret.convert_to_units(self.ds.unit_system[ret_units.dimensions])
         return ret
 
+    _vertices = None
+    @property
+    def vertices(self):
+        if self._vertices is None:
+            self.get_data()
+        return self._vertices
+
     @property
     def triangles(self):
-        if self.vertices is None:
-            self.get_data()
         vv = np.empty((self.vertices.shape[1]//3, 3, 3), dtype="float64")
+        vv = self.ds.arr(vv, self.vertices.units)
         for i in range(3):
             for j in range(3):
                 vv[:,i,j] = self.vertices[j,i::3]
