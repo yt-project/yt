@@ -1092,7 +1092,7 @@ class YTSurface(YTSelectionContainer3D):
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
         which will be isocontoured.
-    field_value : float
+    field_value : float, YTQuantity, or unit tuple
         The value at which the isocontour should be calculated.
 
     Examples
@@ -1120,11 +1120,19 @@ class YTSurface(YTSelectionContainer3D):
     vertices = None
     def __init__(self, data_source, surface_field, field_value, ds=None):
         self.data_source = data_source
-        self.surface_field = surface_field
-        self.field_value = field_value
+        self.surface_field = data_source._determine_fields(surface_field)[0]
+        finfo = data_source.ds.field_info[self.surface_field]
+        try:
+            self.field_value = field_value.to(finfo.units)
+        except AttributeError:
+            if isinstance(field_value, tuple):
+                self.field_value = data_source.ds.quan(*field_value)
+                self.field_value = self.field_value.to(finfo.units)
+            else:
+                self.field_value = data_source.ds.quan(field_value, finfo.units)
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurface, self).__init__(center = center, ds=ds)
+        super(YTSurface, self).__init__(center=center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)
