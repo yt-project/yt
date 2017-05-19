@@ -159,7 +159,7 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         The maximum energy in keV for the energy band.
     redshift : float, optional
         The cosmological redshift of the source of the field. Default: 0.0.
-    metallicity : field or float, optional
+    metallicity : str or tuple of str or float, optional
         Either the name of a metallicity field or a single floating-point
         number specifying a spatially constant metallicity. Must be in
         solar units. If set to None, no metals will be assumed. Default: 

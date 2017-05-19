@@ -1,10 +1,10 @@
-.. _star_analysis:
-
 .. note::
 
    This module has been deprecated as it is unmaintained.  The code has been
    moved to the `yt attic <https://github.com/yt-project/yt_attic>`__.
    If you'd like to take it over, please do!
+
+.. _star_analysis:
 
 Star Particle Analysis
 ======================

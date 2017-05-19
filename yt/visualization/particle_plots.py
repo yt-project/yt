@@ -363,7 +363,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args, **
     Parameters
     ----------
 
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
     x_field : string

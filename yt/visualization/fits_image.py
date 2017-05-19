@@ -529,7 +529,7 @@ class FITSSlice(FITSImageData):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`~yt.data_objects.static_output.Dataset`
         The dataset object.
     axis : character or integer
         The axis of the slice. One of "x","y","z", or 0,1,2.
@@ -584,7 +584,7 @@ class FITSProjection(FITSImageData):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`~yt.data_objects.static_output.Dataset`
         The dataset object.
     axis : character or integer
         The axis along which to project. One of "x","y","z", or 0,1,2.
@@ -641,7 +641,7 @@ class FITSOffAxisSlice(FITSImageData):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`~yt.data_objects.static_output.Dataset`
         The dataset object.
     normal : a sequence of floats
         The vector normal to the projection plane.
@@ -700,7 +700,7 @@ class FITSOffAxisProjection(FITSImageData):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`~yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : a sequence of floats

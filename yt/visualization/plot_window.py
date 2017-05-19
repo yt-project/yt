@@ -1536,7 +1536,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
     normal : a sequence of floats
@@ -1672,7 +1672,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : a sequence of floats
@@ -1855,7 +1855,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     Parameters
     ----------
 
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : int or one of 'x', 'y', 'z', or sequence of floats
