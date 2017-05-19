@@ -1294,6 +1294,22 @@ class YTSurface(YTSelectionContainer3D):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
 
+    _surface_area = None
+    @property
+    def surface_area(self):
+        if self._surface_area is not None:
+            return self._surface_area
+        tris = self.triangles
+        x = tris[:, 1, :] - tris[:, 0, :]
+        y = tris[:, 2, :] - tris[:, 0, :]
+        areas = 0.5*np.sqrt(
+            (x[:, 1]*y[:, 2] - x[:, 2]*y[:, 1])**2 +
+            (x[:, 2]*y[:, 0] - x[:, 0]*y[:, 2])**2 +
+            (x[:, 0]*y[:, 1] - x[:, 1]*y[:, 0])**2
+        )
+        self._surface_area = areas.sum()
+        return self._surface_area
+
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
                    color_field = None, emit_field = None, color_map = None,
                    color_log = True, emit_log = True, plot_index = None,
