@@ -1144,7 +1144,8 @@ class YTSurface(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
-        mylog.info("Extracting (sampling: %s)" % (fields,))
+        if fields is not None:
+            mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
         for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
