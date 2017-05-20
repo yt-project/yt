@@ -325,7 +325,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
         else:
             restart_num = 0
-        self.handler.setup_rockstar(self.server_address, self.port,
+        self.handler.setup_rockstar(
+                    self.server_address.encode('ascii'),
+                    self.port.encode('ascii'),
                     num_outputs, self.total_particles, 
                     self.particle_type,
                     particle_mass = self.particle_mass,
@@ -334,7 +336,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     num_writers = self.num_writers,
                     writing_port = -1,
                     block_ratio = block_ratio,
-                    outbase = self.outbase,
+                    outbase = self.outbase.encode('ascii'),
                     force_res = self.force_res,
                     callbacks = callbacks,
                     restart_num = restart_num,
