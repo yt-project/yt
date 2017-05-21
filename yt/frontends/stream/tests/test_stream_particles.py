@@ -15,7 +15,7 @@ def test_stream_particles():
     x = np.random.uniform(size=num_particles)
     y = np.random.uniform(size=num_particles)
     z = np.random.uniform(size=num_particles)
-    m = np.ones((num_particles))
+    m = np.ones(num_particles)
 
     # Field operators and cell flagging methods
 
@@ -33,11 +33,11 @@ def test_stream_particles():
 
     for grid in amr0.index.grids:
 
-        data = dict(left_edge = grid.LeftEdge,
-                    right_edge = grid.RightEdge,
-                    level = grid.Level,
-                    dimensions = grid.ActiveDimensions,
-                    number_of_particles = grid.NumberOfParticles)
+        data = dict(left_edge=grid.LeftEdge,
+                    right_edge=grid.RightEdge,
+                    level=grid.Level,
+                    dimensions=grid.ActiveDimensions,
+                    number_of_particles=grid.NumberOfParticles)
 
         for field in amr0.field_list:
             data[field] = grid[field]
@@ -93,14 +93,13 @@ def test_stream_particles():
 
     for grid in amr1.index.grids:
 
-        data = dict(left_edge = grid.LeftEdge,
-                    right_edge = grid.RightEdge,
-                    level = grid.Level,
-                    dimensions = grid.ActiveDimensions,
-                    number_of_particles = grid.NumberOfParticles)
+        data = dict(left_edge=grid.LeftEdge,
+                    right_edge=grid.RightEdge,
+                    level=grid.Level,
+                    dimensions=grid.ActiveDimensions,
+                    number_of_particles=grid.NumberOfParticles)
 
         for field in amr1.field_list:
-
             data[field] = grid[field]
 
         grid_data.append(data)

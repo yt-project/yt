@@ -404,7 +404,7 @@ def set_particle_types(data):
             particle_types[key] = False
     return particle_types
 
-def assign_particle_data(ds, pdata):
+def assign_particle_data(ds, ptype, pdata):
 
     """
     Assign particle data to the grids using MatchPointsToGrids. This
@@ -419,10 +419,10 @@ def assign_particle_data(ds, pdata):
 
     if len(ds.stream_handler.fields) > 1:
 
-        if ("io", "particle_position_x") in pdata:
-            x, y, z = (pdata["io", "particle_position_%s" % ax] for ax in 'xyz')
-        elif ("io", "particle_position") in pdata:
-            x, y, z = pdata["io", "particle_position"].T
+        if (ptype, "particle_position_x") in pdata:
+            x, y, z = (pdata[ptype, "particle_position_%s" % ax] for ax in 'xyz')
+        elif (ptype, "particle_position") in pdata:
+            x, y, z = pdata[ptype, "particle_position"].T
         else:
             raise KeyError(
                 "Cannot decompose particle data without position fields!")
@@ -717,23 +717,24 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
 
-    check_fields = [("io", "particle_position_x"), ("io", "particle_position")]
-
     # Now figure out where the particles go
     if number_of_particles > 0:
-        if all(f not in pdata for f in check_fields):
-            pdata_ftype = {}
-            for f in [k for k in sorted(pdata)]:
-                if not hasattr(pdata[f], "shape"):
-                    continue
-                if f == 'number_of_particles':
-                    continue
-                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                pdata_ftype["io",f] = pdata.pop(f)
-            pdata_ftype.update(pdata)
-            pdata = pdata_ftype
-        # This will update the stream handler too
-        assign_particle_data(sds, pdata)
+        for ptype in sds.particle_types_raw:
+            check_fields = [(ptype, "particle_position_x"), 
+                            (ptype, "particle_position")]
+            if all(f not in pdata for f in check_fields):
+                pdata_ftype = {}
+                for f in [k for k in sorted(pdata)]:
+                    if not hasattr(pdata[f], "shape"):
+                        continue
+                    if f == 'number_of_particles':
+                        continue
+                    mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
+                    pdata_ftype[ptype, f] = pdata.pop(f)
+                pdata_ftype.update(pdata)
+                pdata = pdata_ftype
+            # This will update the stream handler too
+            assign_particle_data(sds, ptype, pdata)
 
     return sds
 
@@ -949,7 +950,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             fi = base_ds._get_field_info(*field)
             if fi.particle_type:
                 pdata[field] = uconcatenate([grid[field]
-                                               for grid in base_ds.index.grids])
+                                             for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
 
     last_gc = base_ds.index.num_grids
@@ -996,15 +997,16 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
         ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
 
         if number_of_particles > 0:
-            if ("io", "particle_position_x") not in pdata:
-                pdata_ftype = {}
-                for f in [k for k in sorted(pdata)]:
-                    if not hasattr(pdata[f], "shape"): continue
-                    mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                    pdata_ftype["io",f] = pdata.pop(f)
-                pdata_ftype.update(pdata)
-                pdata = pdata_ftype
-            assign_particle_data(ds, pdata)
+            for ptype in base_ds.particle_types_raw:
+                if (ptype, "particle_position_x") not in pdata:
+                    pdata_ftype = {}
+                    for f in [k for k in sorted(pdata)]:
+                        if not hasattr(pdata[f], "shape"): continue
+                        mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
+                        pdata_ftype[ptype, f] = pdata.pop(f)
+                    pdata_ftype.update(pdata)
+                    pdata = pdata_ftype
+                assign_particle_data(ds, ptype, pdata)
             # We need to reassign the field list here.
         cur_gc = ds.index.num_grids
 
