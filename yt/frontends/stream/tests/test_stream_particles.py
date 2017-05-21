@@ -87,7 +87,7 @@ def test_stream_particles():
 
     amr1 = refine_amr(ug1, rc, fo, 3)
     for field in sorted(ug1.field_list):
-        assert_equal((field in amr1.field_list), True)
+        assert field in amr1.field_list
 
     grid_data = []
 
