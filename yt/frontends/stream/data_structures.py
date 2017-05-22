@@ -255,15 +255,14 @@ class StreamHierarchy(GridIndex):
     def _reset_particle_count(self):
         self.grid_particle_count[:] = self.stream_handler.particle_count
         for i, grid in enumerate(self.grids):
-            grid.NumberOfParticles = self.grid_particle_count[i]
+            grid.NumberOfParticles = self.grid_particle_count[i, 0]
 
     def update_data(self, data):
-
         """
         Update the stream data with a new data dict. If fields already exist,
         they will be replaced, but if they do not, they will be added. Fields
         already in the stream but not part of the data dict will be left
-        alone. 
+        alone.
         """
         particle_types = set_particle_types(data[0])
 
