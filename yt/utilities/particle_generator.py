@@ -13,7 +13,8 @@ class ParticleGenerator(object):
         streams. Normally this would not be called directly, since it doesn't
         really do anything except allocate memory. Takes a *ds* to serve as the
         basis for determining grids, the number of particles *num_particles*,
-        and a list of fields, *field_list*.
+        a list of fields, *field_list*, and the particle type *ptype*, which
+        has a default value of "io". 
         """
         self.ds = ds
         self.num_particles = num_particles
@@ -213,6 +214,8 @@ class FromListParticleGenerator(ParticleGenerator):
             The number of particles in the dict.
         data : dict of NumPy arrays
             The particle fields themselves.
+        ptype : string, optional
+            The particle type for these particle fields. Default: "io"
 
         Examples
         --------
@@ -271,6 +274,8 @@ class LatticeParticleGenerator(ParticleGenerator):
              The 'right-most' ending positions of the lattice.
         field_list : list of strings
              A list of particle fields
+        ptype : string, optional
+            The particle type for these particle fields. Default: "io"
 
         Examples
         --------
@@ -336,6 +341,8 @@ class WithDensityParticleGenerator(ParticleGenerator):
         density_field : string, optional
             A density field which will serve as the distribution function for the
             particle positions. Theoretically, this could be any 'per-volume' field. 
+        ptype : string, optional
+            The particle type for these particle fields. Default: "io"
 
         Examples
         --------
