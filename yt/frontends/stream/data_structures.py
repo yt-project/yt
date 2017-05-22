@@ -252,6 +252,11 @@ class StreamHierarchy(GridIndex):
         else:
             self.io = io_registry[self.dataset_type](self.ds)
 
+    def _reset_particle_count(self):
+        self.grid_particle_count[:] = self.stream_handler.particle_count
+        for i, grid in enumerate(self.grids):
+            grid.NumberOfParticles = self.grid_particle_count[i]
+
     def update_data(self, data):
 
         """
@@ -270,7 +275,7 @@ class StreamHierarchy(GridIndex):
 
         for i, grid in enumerate(self.grids):
             if "number_of_particles" in data[i]:
-                grid.NumberOfParticles = data[i].pop("number_of_particles")
+                self.stream_handler.particle_count[i] = data[i].pop("number_of_particles")
             field_units, gdata = unitify_data(data[i])
             self.stream_handler.field_units.update(field_units)
             for field in gdata:
@@ -278,6 +283,7 @@ class StreamHierarchy(GridIndex):
                     grid.field_data.pop(field, None)
                 self.stream_handler.fields[grid.id][field] = gdata[field]
 
+        self._reset_particle_count()
         # We only want to create a superset of fields here.
         self._detect_output_fields()
         self.ds.create_field_info()
@@ -404,12 +410,27 @@ def set_particle_types(data):
             particle_types[key] = False
     return particle_types
 
-def assign_particle_data(ds, ptype, pdata):
+def assign_particle_data(ds, pdata):
 
     """
     Assign particle data to the grids using MatchPointsToGrids. This
     will overwrite any existing particle data, so be careful!
     """
+
+    for ptype in ds.particle_types_raw:
+        check_fields = [(ptype, "particle_position_x"),
+                        (ptype, "particle_position")]
+        if all(f not in pdata for f in check_fields):
+            pdata_ftype = {}
+            for f in [k for k in sorted(pdata)]:
+                if not hasattr(pdata[f], "shape"):
+                    continue
+                if f == 'number_of_particles':
+                    continue
+                mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
+                pdata_ftype[ptype, f] = pdata.pop(f)
+            pdata_ftype.update(pdata)
+            pdata = pdata_ftype
 
     # Note: what we need to do here is a bit tricky.  Because occasionally this
     # gets called before we property handle the field detection, we cannot use
@@ -418,14 +439,7 @@ def assign_particle_data(ds, ptype, pdata):
     # stream handler.
 
     if len(ds.stream_handler.fields) > 1:
-
-        if (ptype, "particle_position_x") in pdata:
-            x, y, z = (pdata[ptype, "particle_position_%s" % ax] for ax in 'xyz')
-        elif (ptype, "particle_position") in pdata:
-            x, y, z = pdata[ptype, "particle_position"].T
-        else:
-            raise KeyError(
-                "Cannot decompose particle data without position fields!")
+        pdata.pop("number_of_particles", None)
         num_grids = len(ds.stream_handler.fields)
         parent_ids = ds.stream_handler.parent_ids
         num_children = np.zeros(num_grids, dtype='int64')
@@ -442,34 +456,43 @@ def assign_particle_data(ds, ptype, pdata):
                              ds.stream_handler.parent_ids,
                              levels, num_children)
 
-        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
-        particle_grid_inds = pts.find_points_in_tree()
-        idxs = np.argsort(particle_grid_inds)
-        particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
-                                          minlength=num_grids)
-        particle_indices = np.zeros(num_grids + 1, dtype='int64')
-        if num_grids > 1:
-            np.add.accumulate(particle_grid_count.squeeze(),
-                              out=particle_indices[1:])
-        else:
-            particle_indices[1] = particle_grid_count.squeeze()
-
-        pdata.pop("number_of_particles", None)
         grid_pdata = []
-        for i, pcount in enumerate(particle_grid_count):
-            grid = {}
-            grid["number_of_particles"] = pcount
-            start = particle_indices[i]
-            end = particle_indices[i+1]
-            for key in pdata.keys():
-                grid[key] = pdata[key][idxs][start:end]
+        for i in range(num_grids):
+            grid = {"number_of_particles": 0}
             grid_pdata.append(grid)
+
+        for ptype in ds.particle_types_raw:
+            if (ptype, "particle_position_x") in pdata:
+                x, y, z = (pdata[ptype, "particle_position_%s" % ax] for ax in 'xyz')
+            elif (ptype, "particle_position") in pdata:
+                x, y, z = pdata[ptype, "particle_position"].T
+            else:
+                raise KeyError(
+                    "Cannot decompose particle data without position fields!")
+            pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+            particle_grid_inds = pts.find_points_in_tree()
+            idxs = np.argsort(particle_grid_inds)
+            particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
+                                              minlength=num_grids)
+            particle_indices = np.zeros(num_grids + 1, dtype='int64')
+            if num_grids > 1:
+                np.add.accumulate(particle_grid_count.squeeze(),
+                                  out=particle_indices[1:])
+            else:
+                particle_indices[1] = particle_grid_count.squeeze()
+            for i, pcount in enumerate(particle_grid_count):
+                grid_pdata[i]["number_of_particles"] += pcount
+                start = particle_indices[i]
+                end = particle_indices[i+1]
+                for key in pdata.keys():
+                    grid_pdata[i][key] = pdata[key][idxs][start:end]
 
     else:
         grid_pdata = [pdata]
 
     for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
         ds.stream_handler.fields[gi].update(pd)
+        ds.stream_handler.particle_types.update(set_particle_types(pd))
         npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)
         ds.stream_handler.particle_count[gi] = npart
 
@@ -719,22 +742,8 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     # Now figure out where the particles go
     if number_of_particles > 0:
-        for ptype in sds.particle_types_raw:
-            check_fields = [(ptype, "particle_position_x"), 
-                            (ptype, "particle_position")]
-            if all(f not in pdata for f in check_fields):
-                pdata_ftype = {}
-                for f in [k for k in sorted(pdata)]:
-                    if not hasattr(pdata[f], "shape"):
-                        continue
-                    if f == 'number_of_particles':
-                        continue
-                    mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
-                    pdata_ftype[ptype, f] = pdata.pop(f)
-                pdata_ftype.update(pdata)
-                pdata = pdata_ftype
-            # This will update the stream handler too
-            assign_particle_data(sds, ptype, pdata)
+        # This will update the stream handler too
+        assign_particle_data(sds, pdata)
 
     return sds
 
@@ -974,7 +983,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = ds._get_field_info(*field)
-                if not fi.particle_type :
+                if not fi.particle_type:
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < ds.index.max_level: continue
@@ -996,24 +1005,25 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
         ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
 
-        if number_of_particles > 0:
-            for ptype in base_ds.particle_types_raw:
-                if (ptype, "particle_position_x") not in pdata:
-                    pdata_ftype = {}
-                    for f in [k for k in sorted(pdata)]:
-                        if not hasattr(pdata[f], "shape"): continue
-                        mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
-                        pdata_ftype[ptype, f] = pdata.pop(f)
-                    pdata_ftype.update(pdata)
-                    pdata = pdata_ftype
-                assign_particle_data(ds, ptype, pdata)
-            # We need to reassign the field list here.
         cur_gc = ds.index.num_grids
+
+    ds.particle_types_raw = base_ds.particle_types_raw
+    ds.particle_types = ds.particle_types_raw
+
+    # Now figure out where the particles go
+    if number_of_particles > 0:
+        # This will update the stream handler too
+        assign_particle_data(ds, pdata)
+        # Because we've already used the index, we
+        # have to re-create the field info because
+        # we added particle data after the fact
+        ds.index._reset_particle_count()
+        ds.index._detect_output_fields()
+        ds.create_field_info()
 
     return ds
 
 class StreamParticleIndex(ParticleIndex):
-
 
     def __init__(self, ds, dataset_type = None):
         self.stream_handler = ds.stream_handler
