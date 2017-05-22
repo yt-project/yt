@@ -284,6 +284,9 @@ class StreamHierarchy(GridIndex):
 
         self._reset_particle_count()
         # We only want to create a superset of fields here.
+        for field in self.ds.field_list:
+            if field[0] == "all":
+                self.ds.field_list.remove(field)
         self._detect_output_fields()
         self.ds.create_field_info()
         mylog.debug("Creating Particle Union 'all'")
