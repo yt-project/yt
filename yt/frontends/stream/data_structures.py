@@ -948,7 +948,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
-            if fi.particle_type:
+            if fi.particle_type and field[0] in base_ds.particle_types_raw:
                 pdata[field] = uconcatenate([grid[field]
                                              for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
