@@ -484,7 +484,8 @@ def assign_particle_data(ds, pdata):
                 start = particle_indices[i]
                 end = particle_indices[i+1]
                 for key in pdata.keys():
-                    grid_pdata[i][key] = pdata[key][idxs][start:end]
+                    if key[0] == ptype:
+                        grid_pdata[i][key] = pdata[key][idxs][start:end]
 
     else:
         grid_pdata = [pdata]
@@ -651,6 +652,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     # First we fix our field names
     field_units, data = unitify_data(data)
 
+    """
     for field_name in data:
         fshape = data[field_name].shape
         dshape = tuple(domain_dimensions)
@@ -660,13 +662,14 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                    "domain_dimensions %s or number of particles %s")
             msg = msg % (fshape, field_name, dshape, pshape)
             raise RuntimeError(msg)
+    """
 
     sfh = StreamDictFieldHandler()
 
     if number_of_particles > 0:
         particle_types = set_particle_types(data)
-        pdata = {} # Used much further below.
-        pdata["number_of_particles"] = number_of_particles
+        # Used much further below.
+        pdata = {"number_of_particles": number_of_particles}
         for key in list(data.keys()):
             if len(data[key].shape) == 1 or key[0] == 'io':
                 if not isinstance(key, tuple):
