@@ -67,6 +67,12 @@ def test_stream_particles():
     assert_equal(number_of_particles1, num_particles)
     assert_equal(number_of_particles1, number_of_particles2)
 
+    for grid in ug2.index.grids:
+        tot_parts = grid["io","particle_position_x"].size
+        tot_all_parts = grid["all","particle_position_x"].size
+        assert tot_parts == grid.NumberOfParticles
+        assert tot_all_parts == grid.NumberOfParticles
+
     # Check to make sure the fields have been defined correctly
 
     for ptype in ("all", "io"):
@@ -114,6 +120,18 @@ def test_stream_particles():
     assert_equal(np.sum(number_of_particles1), num_particles)
     assert_equal(number_of_particles1, number_of_particles2)
 
+    for grid in amr1.index.grids:
+        tot_parts = grid["io","particle_position_x"].size
+        tot_all_parts = grid["all","particle_position_x"].size
+        assert tot_parts == grid.NumberOfParticles
+        assert tot_all_parts == grid.NumberOfParticles
+
+    for grid in amr2.index.grids:
+        tot_parts = grid["io","particle_position_x"].size
+        tot_all_parts = grid["all","particle_position_x"].size
+        assert tot_parts == grid.NumberOfParticles
+        assert tot_all_parts == grid.NumberOfParticles
+
     assert amr1._get_field_info("all", "particle_position_x").particle_type
     assert amr1._get_field_info("all", "particle_position_y").particle_type
     assert amr1._get_field_info("all", "particle_position_z").particle_type
@@ -125,3 +143,118 @@ def test_stream_particles():
     assert amr2._get_field_info("all", "particle_position_z").particle_type
     assert amr2._get_field_info("all", "particle_mass").particle_type
     assert not amr2._get_field_info("gas", "density").particle_type
+
+    # Now perform similar checks, but with multiple particle types
+
+    num_dm_particles = 30000
+    xd = np.random.uniform(size=num_dm_particles)
+    yd = np.random.uniform(size=num_dm_particles)
+    zd = np.random.uniform(size=num_dm_particles)
+    md = np.ones(num_dm_particles)
+
+    num_star_particles = 20000
+    xs = np.random.uniform(size=num_star_particles)
+    ys = np.random.uniform(size=num_star_particles)
+    zs = np.random.uniform(size=num_star_particles)
+    ms = 2.0*np.ones(num_star_particles)
+
+    dens = np.random.random(domain_dims)
+
+    fields3 = {"density": dens,
+               ("dm", "particle_position_x"): xd,
+               ("dm", "particle_position_y"): yd,
+               ("dm", "particle_position_z"): zd,
+               ("dm", "particle_mass"): md,
+               ("star", "particle_position_x"): xs,
+               ("star", "particle_position_y"): ys,
+               ("star", "particle_position_z"): zs,
+               ("star", "particle_mass"): ms,
+               "number_of_particles": num_dm_particles+num_star_particles}
+
+    fields4 = fields3.copy()
+
+    ug3 = load_uniform_grid(fields3, domain_dims, 1.0)
+    ug4 = load_uniform_grid(fields4, domain_dims, 1.0, nprocs=8)
+
+    # Check to make sure the number of particles is the same
+
+    number_of_particles3 = np.sum([grid.NumberOfParticles for grid in ug3.index.grids])
+    number_of_particles4 = np.sum([grid.NumberOfParticles for grid in ug4.index.grids])
+
+    assert_equal(number_of_particles3, num_dm_particles+num_star_particles)
+    assert_equal(number_of_particles3, number_of_particles4)
+
+    for grid in ug4.index.grids:
+        tot_parts = grid["dm","particle_position_x"].size
+        tot_parts += grid["star","particle_position_x"].size
+        tot_all_parts = grid["all","particle_position_x"].size
+        assert tot_parts == grid.NumberOfParticles
+        assert tot_all_parts == grid.NumberOfParticles
+
+    # Check to make sure the fields have been defined correctly
+
+    for ptype in ("dm", "star"):
+        assert ug3._get_field_info(ptype, "particle_position_x").particle_type
+        assert ug3._get_field_info(ptype, "particle_position_y").particle_type
+        assert ug3._get_field_info(ptype, "particle_position_z").particle_type
+        assert ug3._get_field_info(ptype, "particle_mass").particle_type
+        assert ug4._get_field_info(ptype, "particle_position_x").particle_type
+        assert ug4._get_field_info(ptype, "particle_position_y").particle_type
+        assert ug4._get_field_info(ptype, "particle_position_z").particle_type
+        assert ug4._get_field_info(ptype, "particle_mass").particle_type
+
+    # Now refine this
+
+    amr3 = refine_amr(ug3, rc, fo, 3)
+    for field in sorted(ug3.field_list):
+        assert field in amr3.field_list
+
+    grid_data = []
+
+    for grid in amr3.index.grids:
+
+        data = dict(left_edge=grid.LeftEdge,
+                    right_edge=grid.RightEdge,
+                    level=grid.Level,
+                    dimensions=grid.ActiveDimensions,
+                    number_of_particles=grid.NumberOfParticles)
+
+        for field in amr3.field_list:
+            data[field] = grid[field]
+
+        grid_data.append(data)
+
+    amr4 = load_amr_grids(grid_data, domain_dims)
+
+    # Check everything again
+
+    number_of_particles3 = [grid.NumberOfParticles for grid in amr3.index.grids]
+    number_of_particles4 = [grid.NumberOfParticles for grid in amr4.index.grids]
+
+    assert_equal(np.sum(number_of_particles3), num_star_particles+num_dm_particles)
+    assert_equal(number_of_particles3, number_of_particles4)
+
+    for ptype in ("dm", "star"):
+        assert amr3._get_field_info(ptype, "particle_position_x").particle_type
+        assert amr3._get_field_info(ptype, "particle_position_y").particle_type
+        assert amr3._get_field_info(ptype, "particle_position_z").particle_type
+        assert amr3._get_field_info(ptype, "particle_mass").particle_type
+        assert amr4._get_field_info(ptype, "particle_position_x").particle_type
+        assert amr4._get_field_info(ptype, "particle_position_y").particle_type
+        assert amr4._get_field_info(ptype, "particle_position_z").particle_type
+        assert amr4._get_field_info(ptype, "particle_mass").particle_type
+
+    for grid in amr3.index.grids:
+        tot_parts = grid["dm","particle_position_x"].size
+        tot_parts += grid["star","particle_position_x"].size
+        tot_all_parts = grid["all","particle_position_x"].size
+        assert tot_parts == grid.NumberOfParticles
+        assert tot_all_parts == grid.NumberOfParticles
+
+    for grid in amr4.index.grids:
+        tot_parts = grid["dm", "particle_position_x"].size
+        tot_parts += grid["star", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
+        assert tot_parts == grid.NumberOfParticles
+        assert tot_all_parts == grid.NumberOfParticles
+
