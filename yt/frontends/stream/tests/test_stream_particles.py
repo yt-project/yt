@@ -2,7 +2,10 @@ import numpy as np
 
 from yt.testing import \
     assert_equal
-from yt.frontends.stream.api import load_uniform_grid, refine_amr, load_amr_grids
+from yt.frontends.stream.api import load_uniform_grid, \
+    refine_amr, \
+    load_amr_grids, \
+    load_particles
 import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
 
@@ -258,3 +261,49 @@ def test_stream_particles():
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
+def test_load_particles_types():
+
+    num_particles = 100000
+
+    data1 = {"particle_position_x": np.random.random(size=num_particles),
+             "particle_position_y": np.random.random(size=num_particles),
+             "particle_position_z": np.random.random(size=num_particles),
+             "particle_mass": np.ones(num_particles)}
+
+    ds1 = load_particles(data1)
+    ds1.index
+
+    assert set(ds1.particle_types) == {"all", "io"}
+
+    dd = ds1.all_data()
+
+    for ax in "xyz":
+        assert dd["io", "particle_position_%s" % ax].size == num_particles
+        assert dd["all", "particle_position_%s" % ax].size == num_particles
+
+    num_dm_particles = 10000
+    num_star_particles = 50000
+    num_tot_particles = num_dm_particles + num_star_particles
+
+    data2 = {("dm", "particle_position_x"): np.random.random(size=num_dm_particles),
+             ("dm", "particle_position_y"): np.random.random(size=num_dm_particles),
+             ("dm", "particle_position_z"): np.random.random(size=num_dm_particles),
+             ("dm", "particle_mass"): np.ones(num_dm_particles),
+             ("star", "particle_position_x"): np.random.random(size=num_star_particles),
+             ("star", "particle_position_y"): np.random.random(size=num_star_particles),
+             ("star", "particle_position_z"): np.random.random(size=num_star_particles),
+             ("star", "particle_mass"): 2.0*np.ones(num_star_particles)}
+
+    ds2 = load_particles(data2)
+    ds2.index
+
+    assert set(ds2.particle_types) == {"all", "star", "dm"}
+
+    dd = ds2.all_data()
+
+    for ax in "xyz":
+        npart = 0
+        for ptype in ds2.particle_types_raw:
+            npart += dd[ptype, "particle_position_%s" % ax].size
+        assert npart == num_tot_particles
+        assert dd["all", "particle_position_%s" % ax].size == num_tot_particles
