@@ -17,7 +17,7 @@ class ParticleGenerator(object):
         """
         self.ds = ds
         self.num_particles = num_particles
-        self.field_list = [(ptype, fd) if isinstance(fd,string_types) else fd
+        self.field_list = [(ptype, fd) if isinstance(fd, string_types) else fd
                            for fd in field_list]
         self.field_list.append((ptype, "particle_index"))
         self.field_units = dict(
@@ -168,11 +168,12 @@ class ParticleGenerator(object):
 
     def apply_to_stream(self, clobber=False):
         """
-        Apply the particles to a stream dataset. If particles already exist,
-        and clobber=False, do not overwrite them, but add the new ones to them. 
+        Apply the particles to a grid-based stream dataset. If particles 
+        already exist, and clobber=False, do not overwrite them, but add 
+        the new ones to them.
         """
         grid_data = []
-        for i,g in enumerate(self.ds.index.grids):
+        for i, g in enumerate(self.ds.index.grids):
             data = {}
             if clobber:
                 data["number_of_particles"] = self.NumberOfParticles[i]
@@ -182,22 +183,15 @@ class ParticleGenerator(object):
             grid_particles = self.get_for_grid(g)
             for field in self.field_list:
                 if data["number_of_particles"] > 0:
-                    # We have particles in this grid
-                    if g.NumberOfParticles > 0 and not clobber:
-                        # Particles already exist
-                        if field in self.ds.field_list:
-                            # This field already exists
-                            prev_particles = g[field]
-                        else:
-                            # This one doesn't, set the previous particles' field
-                            # values to zero
-                            prev_particles = np.zeros(g.NumberOfParticles)
-                            prev_particles = self.ds.arr(prev_particles,
-                                                         self.field_units[field])
-                        data[field] = uconcatenate((prev_particles,
-                                                    grid_particles[field]))
+                    if g.NumberOfParticles > 0 and not clobber and \
+                        field in self.ds.field_list:
+                        # We have particles in this grid, we're not
+                        # overwriting them, and the field is in the field
+                        # list already
+                        data[field] = uconcatenate([g[field],
+                                                    grid_particles[field]])
                     else:
-                        # Particles do not already exist or we're clobbering
+                        # Otherwise, simply add the field in
                         data[field] = grid_particles[field]
                 else:
                     # We don't have particles in this grid
