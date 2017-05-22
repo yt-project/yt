@@ -277,7 +277,7 @@ class ARTDataset(Dataset):
             # domain dimensions is the number of root *cells*
             self.domain_dimensions = np.ones(3, dtype='int64')*est
             self.root_grid_mask_offset = f.tell()
-            self.root_nocts = self.domain_dimensions.prod()/8
+            self.root_nocts = self.domain_dimensions.prod() // 8
             self.root_ncells = self.root_nocts*8
             mylog.debug("Estimating %i cells on a root grid side," +
                         "%i root octs", est, self.root_nocts)
