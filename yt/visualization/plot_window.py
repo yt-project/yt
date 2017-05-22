@@ -72,15 +72,11 @@ MPL_VERSION = LooseVersion(matplotlib.__version__)
 
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
-# Also accounting for the fact that in 1.2.0, pyparsing got renamed.
 try:
-    if MPL_VERSION < LooseVersion("1.2.0"):
-        from matplotlib.pyparsing import ParseFatalException
+    if sys.version_info[0] == 3:
+        from matplotlib.pyparsing_py3 import ParseFatalException
     else:
-        if sys.version_info[0] == 3:
-            from matplotlib.pyparsing_py3 import ParseFatalException
-        else:
-            from matplotlib.pyparsing_py2 import ParseFatalException
+        from matplotlib.pyparsing_py2 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
 
@@ -1540,7 +1536,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
          This is the dataset object corresponding to the
          simulation output to be plotted.
     normal : a sequence of floats
@@ -1676,7 +1672,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
 
     Parameters
     ----------
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : a sequence of floats
@@ -1859,7 +1855,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     Parameters
     ----------
 
-    ds : :class:`yt.data_objects.api.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
     normal : int or one of 'x', 'y', 'z', or sequence of floats

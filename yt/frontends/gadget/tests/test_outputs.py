@@ -25,6 +25,7 @@ from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
+BE_Gadget = "BigEndianGadgetBinary/BigEndianGadgetBinary"
 
 # This maps from field names to weight field names to use for projections
 iso_fields = OrderedDict(
@@ -41,12 +42,16 @@ iso_fields = OrderedDict(
 )
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
+
 @requires_file(isothermal_h5)
 @requires_file(isothermal_bin)
+@requires_file(BE_Gadget)
 def test_GadgetDataset():
     assert isinstance(data_dir_load(isothermal_h5, kwargs=iso_kwargs),
                       GadgetHDF5Dataset)
     assert isinstance(data_dir_load(isothermal_bin, kwargs=iso_kwargs),
+                      GadgetDataset)
+    assert isinstance(data_dir_load(BE_Gadget, kwargs=''),
                       GadgetDataset)
 
 

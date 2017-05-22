@@ -640,7 +640,7 @@ class Scene(object):
         Parameters
         ----------
 
-        ds : :class:`yt.data_objects.api.Dataset`
+        ds : :class:`yt.data_objects.static_output.Dataset`
             This is the dataset object corresponding to the
             simulation being rendered. Used to get the domain bounds.
 
@@ -711,7 +711,7 @@ class Scene(object):
 
         Parameters
         ----------
-        colors: array of ints, shape (4), optional
+        colors: array_like of shape (4,), optional
             The RGBA value to use to draw the mesh lines.
             Default is black.
         alpha : float, optional
@@ -732,7 +732,7 @@ class Scene(object):
 
         Parameters
         ----------
-        colors: array-like, shape (3,4), optional
+        colors: array-like of shape (3,4), optional
             The x, y, z RGBA values to use to draw the axes.
         alpha : float, optional
             The opacity of the vectors.

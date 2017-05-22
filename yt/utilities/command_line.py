@@ -736,33 +736,21 @@ class YTLoadCmd(YTCommand):
         import yt
 
         import IPython
-        from distutils import version
-        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
-            api_version = '0.10'
-        else:
-            api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
         local_ns['ds'] = args.ds
         local_ns['pf'] = args.ds
         local_ns['yt'] = yt
 
-        if api_version == '0.10':
-            shell = IPython.Shell.IPShellEmbed()
-            shell(local_ns = local_ns,
-                  header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your dataset as 'ds'.  Enjoy!"
-                  )
-        else:
-            try:
-                from traitlets.config.loader import Config
-            except ImportError:
-                from IPython.config.loader import Config
-            import sys
-            cfg = Config()
-            # prepend sys.path with current working directory
-            sys.path.insert(0,'')
-            IPython.embed(config=cfg,user_ns=local_ns)
+        try:
+            from traitlets.config.loader import Config
+        except ImportError:
+            from IPython.config.loader import Config
+        import sys
+        cfg = Config()
+        # prepend sys.path with current working directory
+        sys.path.insert(0,'')
+        IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",

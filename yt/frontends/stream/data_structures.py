@@ -61,6 +61,8 @@ from yt.geometry.grid_container import \
     MatchPointsToGrids
 from yt.utilities.decompose import \
     decompose_array, get_psize
+from yt.utilities.exceptions import \
+    YTIllDefinedAMR
 from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate
@@ -857,6 +859,17 @@ def load_amr_grids(grid_data, domain_dimensions,
         for ci in ids:
             parent_ids[ci] = gi
 
+    # Check if the grid structure is properly aligned (bug #1295)
+    for lvl in range(grid_levels.min() + 1, grid_levels.max() + 1):
+        idx = grid_levels.flatten() == lvl
+        dims = domain_dimensions * refine_by ** (lvl - 1)
+        for iax, ax in enumerate('xyz'):
+            cell_edges = np.linspace(domain_left_edge[iax],
+                                     domain_right_edge[iax],
+                                     dims[iax], endpoint=False)
+            if set(grid_left_edges[idx, iax]) - set(cell_edges):
+                raise YTIllDefinedAMR(lvl, ax)
+
     if length_unit is None:
         length_unit = 'code_length'
     if mass_unit is None:
@@ -908,7 +921,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
     Parameters
     ----------
-    base_ds : `~yt.data_objects.static_output.Dataset`
+    base_ds : ~yt.data_objects.static_output.Dataset
         This is any static output.  It can also be a stream static output, for
         instance as returned by load_uniform_data.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`

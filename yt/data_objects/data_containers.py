@@ -132,7 +132,7 @@ class YTDataContainer(object):
     def __init__(self, ds, field_parameters):
         """
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.data_objects.api.Dataset` with the class,
+        It associates a :class:`~yt.data_objects.static_output.Dataset` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
@@ -495,16 +495,16 @@ class YTDataContainer(object):
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export a data object to a reloadable yt dataset.
 
-        This function will take a data object and output a dataset 
-        containing either the fields presently existing or fields 
+        This function will take a data object and output a dataset
+        containing either the fields presently existing or fields
         given in the ``fields`` list.  The resulting dataset can be
         reloaded as a yt dataset.
 
         Parameters
         ----------
         filename : str, optional
-            The name of the file to be written.  If None, the name 
-            will be a combination of the original dataset and the type 
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset and the type
             of data container.
         fields : list of string or tuple field names, optional
             If this is supplied, it is the list of fields to be saved to
@@ -1628,6 +1628,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         elif iterable(height):
             h, u = height
             height = self.ds.quan(h, input_units = u)
+        elif not isinstance(height, YTArray):
+            height = self.ds.quan(height, 'code_length')
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -1857,7 +1859,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-        
+
         vc_fields = [field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)

@@ -1399,7 +1399,7 @@ class Dataset(object):
         ----------
         symbol : string
             The symbol for the new unit.
-        value : (value, unit) tuple or YTQuantity
+        value : tuple or ~yt.units.yt_array.YTQuantity
             The definition of the new unit in terms of some other units. For example,
             one would define a new "mph" unit with (1.0, "mile/hr") 
         tex_repr : string, optional
@@ -1407,7 +1407,7 @@ class Dataset(object):
             be generated automatically based on the symbol string.
         offset : float, optional
             The default offset for the unit. If not set, an offset of 0 is assumed.
-        prefixable : boolean, optional
+        prefixable : bool, optional
             Whether or not the new unit can use SI prefixes. Default: False
 
         Examples

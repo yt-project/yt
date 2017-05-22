@@ -1072,7 +1072,7 @@ then
     # Install setuptools
     do_setup_py $SETUPTOOLS
 
-    if type -p git &>/dev/null
+    if type -P git &>/dev/null
     then
         GIT_EXE="git"
     else
@@ -1087,7 +1087,7 @@ then
             YT_DIR="$ORIG_PWD"
         elif [ -e $ORIG_PWD/../yt/mods.py ]
         then
-            YT_DIR=`dirname $ORIG_PWD`
+            YT_DIR=$(dirname $ORIG_PWD)
         elif [ ! -e yt-git ]
         then
             echo "Cloning yt"
@@ -1420,8 +1420,19 @@ else # INST_CONDA -eq 1
     fi
     
     log_cmd ${DEST_DIR}/bin/conda update --yes conda
-    
-    GIT_EXE=${DEST_DIR}/bin/git
+
+    if [ $INST_GIT -eq 1 ]
+    then
+        GIT_EXE=${DEST_DIR}/bin/git
+    else
+        if type -P git &>/dev/null
+        then
+            GIT_EXE="git"
+        else
+            echo "Cannot find git. Please install git or set INST_GIT=1."
+            do_exit
+        fi
+    fi
 
     log_cmd echo "DEPENDENCIES" ${YT_DEPS[@]}
     for YT_DEP in "${YT_DEPS[@]}"; do
@@ -1494,9 +1505,27 @@ else # INST_CONDA -eq 1
         log_cmd ${DEST_DIR}/bin/conda install -c conda-forge --yes yt
     else
         echo "Building yt from source"
-        YT_DIR="${DEST_DIR}/src/yt-git"
-        log_cmd ${GIT_EXE} clone https://github.com/yt-project/yt ${YT_DIR}
-        log_cmd ${GIT_EXE} -C ${YT_DIR} checkout ${BRANCH}
+        if [ -z "$YT_DIR" ]
+        then
+            if [ -e $ORIG_PWD/yt/mods.py ]
+            then
+                YT_DIR="$ORIG_PWD"
+            elif [ -e $ORIG_PWD/../yt/mods.py ]
+            then
+                YT_DIR=$(dirname $ORIG_PWD)
+            else
+                YT_DIR="${DEST_DIR}/src/yt-git"
+                log_cmd ${GIT_EXE} clone https://github.com/yt-project/yt ${YT_DIR}
+                log_cmd ${GIT_EXE} -C ${YT_DIR} checkout ${BRANCH}
+            fi
+            echo Setting YT_DIR=${YT_DIR}
+        else
+            if [ ! -e $YT_DIR/.git ]
+            then
+                echo "$YT_DIR is not a clone of the yt git repository, exiting"
+                do_exit
+            fi
+        fi
         if [ $INST_EMBREE -eq 1 ]
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg

@@ -441,7 +441,7 @@ def zpoints(np.ndarray[np.float64_t, ndim=3] image,
     for j in idx:
         r = radii[j]
         r2 = int((r+0.3)*(r+0.3))  #0.3 to get nicer shape
-        ks = np.arange(-r,r+1,dtype=int)
+        ks = np.arange(-r, r+1, dtype=np.int64)
         z0 = zs[j]
         for kx in ks:
             x0 = xs[j]+kx
