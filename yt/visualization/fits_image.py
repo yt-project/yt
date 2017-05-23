@@ -334,7 +334,7 @@ class FITSImageData(object):
     def get_data(self, field):
         """
         Return the data array of the image corresponding to *field*
-        with units attached.
+        with units attached. Deprecated.
         """
         return self[field].data
 
