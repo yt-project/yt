@@ -108,8 +108,8 @@ def test_fits_image():
                               0.5, 128, "density").swapaxes(0, 1)
     fid4 = FITSImageData(buf, fields="density", width=100.0)
     fits_oap = FITSOffAxisProjection(ds, [0.1, 0.2, -0.9], "density",
-                                     width=(0.5,"unitary"), image_res=128,
-                                     depth_res=128, depth=(0.5,"unitary"))
+                                     width=(0.5, "unitary"), image_res=128,
+                                     depth=(0.5, "unitary"))
 
     assert_equal(fid4.get_data("density"), fits_oap.get_data("density"))
 
@@ -123,9 +123,9 @@ def test_fits_image():
     assert fid4.wcsa.wcs.ctype[0] == "RA---TAN"
     assert fid4.wcsa.wcs.ctype[1] == "DEC--TAN"
 
-    cvg = ds.covering_grid(ds.index.max_level, [0.25,0.25,0.25],
-                           [32, 32, 32], fields=["density","temperature"])
-    fid5 = FITSImageData(cvg, fields=["density","temperature"])
+    cvg = ds.covering_grid(ds.index.max_level, [0.25, 0.25, 0.25],
+                           [32, 32, 32], fields=["density", "temperature"])
+    fid5 = FITSImageData(cvg, fields=["density", "temperature"])
     assert fid5.dimensionality == 3
 
     fid5.update_header("density", "time", 0.1)
