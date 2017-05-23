@@ -792,9 +792,6 @@ class FITSOffAxisProjection(FITSImageData):
          The name of the weighting field.  Set to None for no weight.
     image_res : an int or 2-tuple of ints
         Specify the resolution of the resulting image. 
-    depth_res : integer
-        Deprecated, this is still in the function signature for API
-        compatibility
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the plot.  This
         option sets the orientation of the slicing plane.  If not
@@ -818,9 +815,8 @@ class FITSOffAxisProjection(FITSImageData):
         to project.
     """
     def __init__(self, ds, normal, fields, center='c', width=(1.0, 'unitary'),
-                 weight_field=None, image_res=512, depth_res=256, 
-                 data_source=None, north_vector=None, depth=(1.0,"unitary"), 
-                 no_ghost=False, method='integrate'):
+                 weight_field=None, image_res=512, data_source=None,
+                 north_vector=None, depth=(1.0, "unitary"), method='integrate'):
         fields = ensure_list(fields)
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
@@ -835,10 +831,8 @@ class FITSOffAxisProjection(FITSImageData):
             source = data_source
         for field in fields:
             buf[field] = off_axis_projection(source, center, normal, wd,
-                                             res, field, no_ghost=no_ghost, 
-                                             north_vector=north_vector, 
-                                             method=method, 
-                                             weight=weight_field).swapaxes(0,1)
+                                             res, field, north_vector=north_vector,
+                                             method=method, weight=weight_field).swapaxes(0,1)
         center = ds.arr([0.0] * 2, 'code_length')
         w, not_an_frb = construct_image(ds, normal, buf, center, width=width, image_res=image_res)
         super(FITSOffAxisProjection, self).__init__(buf, fields=fields, wcs=w)
