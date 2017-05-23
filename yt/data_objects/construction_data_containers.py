@@ -1302,12 +1302,11 @@ class YTSurface(YTSelectionContainer3D):
         tris = self.triangles
         x = tris[:, 1, :] - tris[:, 0, :]
         y = tris[:, 2, :] - tris[:, 0, :]
-        areas = 0.5*np.sqrt(
-            (x[:, 1]*y[:, 2] - x[:, 2]*y[:, 1])**2 +
-            (x[:, 2]*y[:, 0] - x[:, 0]*y[:, 2])**2 +
-            (x[:, 0]*y[:, 1] - x[:, 1]*y[:, 0])**2
-        )
-        self._surface_area = areas.sum()
+        areas = (x[:, 1]*y[:, 2] - x[:, 2]*y[:, 1])**2
+        np.add(areas, (x[:, 2]*y[:, 0] - x[:, 0]*y[:, 2])**2, out=areas)
+        np.add(areas, (x[:, 0]*y[:, 1] - x[:, 1]*y[:, 0])**2, out=areas)
+        np.sqrt(areas, out=areas)
+        self._surface_area = 0.5*areas.sum()
         return self._surface_area
 
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
