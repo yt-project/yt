@@ -508,28 +508,20 @@ def construct_image(ds, axis, data_source, center, width=None, image_res=None):
         else:
             nx, ny = image_res, image_res
     dx = width[0]/nx
+    dy = width[1]/ny
     crpix = [0.5*(nx+1), 0.5*(ny+1)]
-    if hasattr(ds, "wcs") and not iterable(axis):
-        # This is a FITS dataset, so we use it to construct the WCS
-        cunit = [str(ds.wcs.wcs.cunit[idx]) for idx in axis_wcs[axis]]
-        ctype = [ds.wcs.wcs.ctype[idx] for idx in axis_wcs[axis]]
-        cdelt = [ds.wcs.wcs.cdelt[idx] for idx in axis_wcs[axis]]
-        ctr_pix = center.in_units("code_length")[:ds.dimensionality].v
-        crval = ds.wcs.wcs_pix2world(ctr_pix.reshape(1, ds.dimensionality))[0]
-        crval = [crval[idx] for idx in axis_wcs[axis]]
+    if unit == "unitary":
+        unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
+    elif unit == "code_length":
+        unit = ds.get_smallest_appropriate_unit(ds.quan(1.0, "code_length"))
+    unit = sanitize_fits_unit(unit)
+    cunit = [unit]*2
+    ctype = ["LINEAR"]*2
+    cdelt = [dx.in_units(unit), dy.in_units(unit)]
+    if iterable(axis):
+        crval = center.in_units(unit)
     else:
-        if unit == "unitary":
-            unit = ds.get_smallest_appropriate_unit(ds.domain_width.max())
-        elif unit == "code_length":
-            unit = ds.get_smallest_appropriate_unit(ds.quan(1.0,"code_length"))
-        unit = sanitize_fits_unit(unit)
-        cunit = [unit]*2
-        ctype = ["LINEAR"]*2
-        cdelt = [dx.in_units(unit)]*2
-        if iterable(axis):
-            crval = center.in_units(unit)
-        else:
-            crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
+        crval = [center[idx].in_units(unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, 'to_frb'):
         if iterable(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
