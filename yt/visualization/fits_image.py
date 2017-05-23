@@ -21,6 +21,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 import re
+import sys
 
 class UnitfulHDU(object):
     def __init__(self, hdu):
@@ -265,14 +266,40 @@ class FITSImageData(object):
     def __repr__(self):
         return str([self[k] for k in self.keys()])
 
-    def info(self):
+    def info(self, output=None):
+        """
+        Summarize the info of the HDUs in this `FITSImageData`
+        instance.
+
+        Note that this function prints its results to the console---it
+        does not return a value.
+
+        Parameters
+        ----------
+        output : file, boolean, optional
+            A file-like object to write the output to.  If `False`, does not
+            output to a file and instead returns a list of tuples representing
+            the FITSImageData info.  Writes to ``sys.stdout`` by default.
+        """
         hinfo = self.hdulist.info(output=False)
         format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
-        results = []
+        if self.hdulist._file is None:
+            name = '(No file associated with this FITSImageData)'
+        else:
+            name = self.hdulist._file.name
+        results = ['Filename: {}'.format(name),
+                   'No.    Name         Type      Cards   Dimensions   Format     Units']
         for line in hinfo:
             units = self.field_units[self.hdulist[line[0]].header['btype']]
-            results.append(format.format(*line[:-1], units)) 
-        print('\n'.join(results)+'\n')
+            results.append(format.format(*line[:-1], units))
+        if output is None:
+            output = sys.stdout
+        if output:
+            output.write('\n'.join(results))
+            output.write('\n')
+            output.flush()
+        else:
+            return results[2:]
 
     @parallel_root_only
     def writeto(self, fileobj, fields=None, clobber=False, **kwargs):
