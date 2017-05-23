@@ -47,14 +47,14 @@ def test_fits_image():
     fits_prj = FITSProjection(ds, "z", ["density","temperature"], image_res=128,
                               width=(0.5,"unitary"))
 
-    assert_equal(fid1.get_data("density"), fits_prj.get_data("density"))
-    assert_equal(fid1.get_data("temperature"), fits_prj.get_data("temperature"))
+    assert_equal(fid1["density"].data, fits_prj["density"].data)
+    assert_equal(fid1["temperature"].data, fits_prj["temperature"].data)
 
     fid1.writeto("fid1.fits", clobber=True)
     new_fid1 = FITSImageData.from_file("fid1.fits")
 
-    assert_equal(fid1.get_data("density"), new_fid1.get_data("density"))
-    assert_equal(fid1.get_data("temperature"), new_fid1.get_data("temperature"))
+    assert_equal(fid1["density"].data, new_fid1["density"].data)
+    assert_equal(fid1["temperature"].data, new_fid1["temperature"].data)
 
     ds2 = load("fid1.fits")
     ds2.index
@@ -74,8 +74,8 @@ def test_fits_image():
     fits_slc = FITSSlice(ds, "z", ["density","temperature"], image_res=128,
                          width=(0.5,"unitary"))
 
-    assert_equal(fid2.get_data("density"), fits_slc.get_data("density"))
-    assert_equal(fid2.get_data("temperature"), fits_slc.get_data("temperature"))
+    assert_equal(fid2["density"].data, fits_slc["density"].data)
+    assert_equal(fid2["temperature"].data, fits_slc["temperature"].data)
 
     dens_img = fid2.pop("density")
     temp_img = fid2.pop("temperature")
@@ -92,8 +92,8 @@ def test_fits_image():
                                 image_res=128, center=[0.5, 0.42, 0.6],
                                 width=(0.5,"unitary"))
 
-    assert_equal(fid3.get_data("density"), fits_cut.get_data("density"))
-    assert_equal(fid3.get_data("temperature"), fits_cut.get_data("temperature"))
+    assert_equal(fid3["density"].data, fits_cut["density"].data)
+    assert_equal(fid3["temperature"].data, fits_cut["temperature"].data)
 
     fid3.create_sky_wcs([30.,45.], (1.0,"arcsec/kpc"))
     fid3.writeto("fid3.fits", clobber=True)
@@ -111,7 +111,7 @@ def test_fits_image():
                                      width=(0.5, "unitary"), image_res=128,
                                      depth=(0.5, "unitary"))
 
-    assert_equal(fid4.get_data("density"), fits_oap.get_data("density"))
+    assert_equal(fid4["density"].data, fits_oap["density"].data)
 
     fid4.create_sky_wcs([30., 45.], (1.0, "arcsec/kpc"), replace_old_wcs=False)
     assert fid4.wcs.wcs.cunit[0] == "cm"
