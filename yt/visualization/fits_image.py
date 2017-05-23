@@ -292,7 +292,11 @@ class FITSImageData(object):
                    'No.    Name         Type      Cards   Dimensions   Format     Units']
         for line in hinfo:
             units = self.field_units[self.hdulist[line[0]].header['btype']]
-            results.append(format.format(*line[:-1], units))
+            summary = tuple(line[:-1] + [units])
+            if output:
+                results.append(format.format(*summary))
+            else:
+                results.append(summary)
         if output is None:
             output = sys.stdout
         if output:
