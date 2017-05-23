@@ -36,7 +36,8 @@ class UnitfulHDU(object):
         return YTArray(self.hdu.data, self.units)
 
     def __repr__(self):
-        return "FITSImage: %s (%d x %d, %s)" % (self.name, *self.shape, self.units)
+        im_shape = " x ".join([str(s) for s in self.shape])
+        return "FITSImage: %s (%s, %s)" % (self.name, im_shape, self.units)
 
 class FITSImageData(object):
 
