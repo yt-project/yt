@@ -982,8 +982,8 @@ class PWViewerMPL(PlotWindow):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0') \
-                                                or self._field_transform[f] == symlog_transform:
+            if (self._cbar_minorticks[f] is True and MPL_VERSION < LooseVersion('2.0.0')
+                                                 or self._field_transform[f] == symlog_transform):
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 else:
