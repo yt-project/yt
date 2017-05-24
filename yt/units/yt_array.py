@@ -1291,7 +1291,7 @@ class YTArray(np.ndarray):
                 out = None
             if len(inputs) == 1:
                 _, inp, u = get_inp_u_unary(ufunc, inputs)
-                out_arr = func(np.asarray(inp), **kwargs, out=out)
+                out_arr = func(np.asarray(inp), out=out, **kwargs)
                 if ufunc in (multiply, divide) and method == 'reduce':
                     power_sign = POWER_SIGN_MAPPING[ufunc]
                     if 'axis' in kwargs and kwargs['axis'] is not None:
@@ -1310,7 +1310,7 @@ class YTArray(np.ndarray):
                         inps, units, ufunc, ret_class)
                 unit = unit_operator(*units)
                 out_arr = func(np.asarray(inps[0]), np.asarray(inps[1]),
-                               **kwargs, out=out)
+                               out=out, **kwargs)
                 if unit_operator in (multiply_units, divide_units):
                     out, out_arr, unit = handle_multiply_divide_units(
                         unit, units, out, out_arr)
