@@ -2370,7 +2370,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
         if self.const_alpha:
             plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
-                              alpha=self.alpha, origin='lower')
+                              alpha=self.alpha, origin='lower', aspect="auto")
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
                             to_rgba(lic_data_clip)
@@ -2378,7 +2378,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
             plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap,
-                              origin='lower')
+                              origin='lower', aspect="auto")
 
         return plot
 
