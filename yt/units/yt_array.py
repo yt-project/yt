@@ -22,7 +22,7 @@ from numpy import \
     add, subtract, multiply, divide, logaddexp, logaddexp2, true_divide, \
     floor_divide, negative, power, remainder, mod, absolute, rint, \
     sign, conj, exp, exp2, log, log2, log10, expm1, log1p, sqrt, square, \
-    reciprocal, ones_like, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
+    reciprocal, sin, cos, tan, arcsin, arccos, arctan, arctan2, \
     hypot, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad, rad2deg, \
     bitwise_and, bitwise_or, bitwise_xor, invert, left_shift, right_shift, \
     greater, greater_equal, less, less_equal, not_equal, equal, logical_and, \
@@ -58,6 +58,7 @@ from yt.utilities.logger import ytLogger as mylog
 from .pint_conversions import convert_pint_units
 
 NULL_UNIT = Unit()
+POWER_SIGN_MAPPING = {multiply: 1, divide: -1}
 
 # redefine this here to avoid a circular import from yt.funcs
 def iterable(obj):
@@ -122,6 +123,68 @@ def invert_units(unit):
 def bitop_units(unit1, unit2):
     raise TypeError(
         "Bit-twiddling operators are not defined for YTArray instances")
+
+def get_inp_u_unary(ufunc, inputs, out_arr=None):
+    inp = inputs[0]
+    u = getattr(inp, 'units', None)
+    if u is None:
+        u = NULL_UNIT
+    if u.dimensions is angle and ufunc in trigonometric_operators:
+        inp = inp.in_units('radian').v
+        if out_arr is not None:
+            out_arr = ufunc(inp).view(np.ndarray)
+    return out_arr, inp, u
+
+def get_inp_u_binary(ufunc, inputs):
+    inp1 = coerce_iterable_units(inputs[0])
+    inp2 = coerce_iterable_units(inputs[1])
+    unit1 = getattr(inp1, 'units', None)
+    unit2 = getattr(inp2, 'units', None)
+    ret_class = get_binary_op_return_class(type(inp1), type(inp2))
+    if unit1 is None:
+        unit1 = Unit(registry=getattr(unit2, 'registry', None))
+    if unit2 is None and ufunc is not power:
+        unit2 = Unit(registry=getattr(unit1, 'registry', None))
+    elif ufunc is power:
+        unit2 = inp2
+        if isinstance(unit2, np.ndarray):
+            if isinstance(unit2, YTArray):
+                if unit2.units.is_dimensionless:
+                    pass
+                else:
+                    raise YTUnitOperationError(ufunc, unit1, unit2)
+            unit2 = 1.0
+    return (inp1, inp2), (unit1, unit2), ret_class
+
+def handle_preserve_units(inps, units, ufunc, ret_class, raise_error=False):
+    # Allow comparisons, addition, and subtraction with
+    # dimensionless quantities or arrays filled with zeros.
+    if units[0] != units[1]:
+        u1d = units[0].is_dimensionless
+        u2d = units[1].is_dimensionless
+        any_nonzero = [np.any(inps[0]), np.any(inps[1])]
+        if any_nonzero[0] == np.bool_(False):
+            units = (units[1], units[1])
+        elif any_nonzero[1] == np.bool_(False):
+            units = (units[0], units[0])
+        elif not any([u1d, u2d]):
+            if not units[0].same_dimensions_as(units[1]):
+                raise YTUnitOperationError(ufunc, *units)
+            else:
+                if raise_error:
+                    raise YTUfuncUnitError(ufunc, *units)
+                inps = (inps[0], ret_class(inps[1]).to(
+                    ret_class(inps[0]).units))
+    return inps, units
+
+def handle_multiply_divide_units(unit, units, out, out_arr):
+    if unit.is_dimensionless and unit.base_value != 1.0:
+        if not units[0].is_dimensionless:
+            if units[0].dimensions == units[1].dimensions:
+                out_arr = np.multiply(out_arr.view(np.ndarray),
+                                      unit.base_value, out=out)
+                unit = Unit(registry=unit.registry)
+    return out, out_arr, unit
 
 def coerce_iterable_units(input_object):
     if isinstance(input_object, np.ndarray):
@@ -208,11 +271,11 @@ def _unit_repr_check_same(my_units, other_units):
     return other_units
 
 unary_operators = (
-    negative, absolute, rint, ones_like, sign, conj, exp, exp2, log, log2,
+    negative, absolute, rint, sign, conj, exp, exp2, log, log2,
     log10, expm1, log1p, sqrt, square, reciprocal, sin, cos, tan, arcsin,
     arccos, arctan, sinh, cosh, tanh, arcsinh, arccosh, arctanh, deg2rad,
     rad2deg, invert, logical_not, isreal, iscomplex, isfinite, isinf, isnan,
-    signbit, floor, ceil, trunc, modf, frexp, fabs, spacing, positive, isnat
+    signbit, floor, ceil, trunc, modf, frexp, fabs, spacing, positive, isnat,
 )
 
 binary_operators = (
@@ -267,8 +330,8 @@ class YTArray(np.ndarray):
 
     >>> import numpy as np
     >>> a = YTArray(np.arange(8), 'g/cm**3')
-    >>> np.ones_like(a)
-    YTArray([1, 1, 1, 1, 1, 1, 1, 1]) g/cm**3
+    >>> np.abs(a)
+    YTArray([8, 8, 8, 8, 8, 8, 8, 8]) g/cm**3
 
     and strip them when it would be annoying to deal with them.
 
@@ -321,7 +384,6 @@ class YTArray(np.ndarray):
         sqrt: sqrt_unit,
         square: square_unit,
         reciprocal: reciprocal_unit,
-        ones_like: passthrough_unit,
         sin: return_without_unit,
         cos: return_without_unit,
         tan: return_without_unit,
@@ -404,7 +466,7 @@ class YTArray(np.ndarray):
             ret = input_array.view(cls)
             if input_units is None:
                 if registry is None:
-                    pass
+                    ret.units = input_array.units
                 else:
                     units = Unit(str(input_array.units), registry=registry)
                     ret.units = units
@@ -444,14 +506,6 @@ class YTArray(np.ndarray):
         obj.units = units
 
         return obj
-
-    def __array_finalize__(self, obj):
-        """
-
-        """
-        if obj is None and hasattr(self, 'units'):
-            return
-        self.units = getattr(obj, 'units', NULL_UNIT)
 
     def __repr__(self):
         """
@@ -785,7 +839,7 @@ class YTArray(np.ndarray):
         info: dictionary
             A dictionary of supplementary info to write to append as attributes
             to the dataset.
-            
+
         group_name: string
             An optional group to write the arrays to. If not specified, the arrays
             are datasets at the top level by default.
@@ -835,7 +889,8 @@ class YTArray(np.ndarray):
 
     @classmethod
     def from_hdf5(cls, filename, dataset_name=None, group_name=None):
-        r"""Attempts read in and convert a dataset in an hdf5 file into a YTArray.
+        r"""Attempts read in and convert a dataset in an hdf5 file into a 
+        YTArray.
 
         Parameters
         ----------
@@ -847,8 +902,8 @@ class YTArray(np.ndarray):
             attribute, attempt to infer units as well.
 
         group_name: string
-            An optional group to read the arrays from. If not specified, the arrays
-            are datasets at the top level by default.
+            An optional group to read the arrays from. If not specified, the 
+            arrays are datasets at the top level by default.
 
         """
         import h5py
@@ -893,464 +948,409 @@ class YTArray(np.ndarray):
 
     @property
     def unit_quantity(self):
-        """Get a YTQuantity with the same unit as this array and a value of 1.0"""
+        """Get a YTQuantity with the same unit as this array and a value of 
+        1.0"""
         return YTQuantity(1.0, self.units)
 
     uq = unit_quantity
 
     @property
     def unit_array(self):
-        """Get a YTArray filled with ones with the same unit and shape as this array"""
+        """Get a YTArray filled with ones with the same unit and shape as this 
+        array"""
         return np.ones_like(self)
 
     ua = unit_array
-
-    #
-    # Start operation methods
-    #
-
-    def __add__(self, right_object):
-        """
-        Add this ytarray to the object on the right of the `+` operator. Must
-        check for the correct (same dimension) units.
-
-        """
-        ro = sanitize_units_add(self, right_object, "addition")
-        return super(YTArray, self).__add__(ro)
-
-    def __radd__(self, left_object):
-        """ See __add__. """
-        lo = sanitize_units_add(self, left_object, "addition")
-        return super(YTArray, self).__radd__(lo)
-
-    def __iadd__(self, other):
-        """ See __add__. """
-        oth = sanitize_units_add(self, other, "addition")
-        np.add(self, oth, out=self)
-        return self
-
-    def __sub__(self, right_object):
-        """
-        Subtract the object on the right of the `-` from this ytarray. Must
-        check for the correct (same dimension) units.
-
-        """
-        ro = sanitize_units_add(self, right_object, "subtraction")
-        return super(YTArray, self).__sub__(ro)
-
-    def __rsub__(self, left_object):
-        """ See __sub__. """
-        lo = sanitize_units_add(self, left_object, "subtraction")
-        return super(YTArray, self).__rsub__(lo)
-
-    def __isub__(self, other):
-        """ See __sub__. """
-        oth = sanitize_units_add(self, other, "subtraction")
-        np.subtract(self, oth, out=self)
-        return self
-
-    def __neg__(self):
-        """ Negate the data. """
-        return super(YTArray, self).__neg__()
-
-    def __pos__(self):
-        """ Posify the data. """
-        return type(self)(super(YTArray, self).__pos__(), self.units)
-
-    def __mul__(self, right_object):
-        """
-        Multiply this YTArray by the object on the right of the `*` operator.
-        The unit objects handle being multiplied.
-
-        """
-        ro = sanitize_units_mul(self, right_object)
-        return super(YTArray, self).__mul__(ro)
-
-    def __rmul__(self, left_object):
-        """ See __mul__. """
-        lo = sanitize_units_mul(self, left_object)
-        return super(YTArray, self).__rmul__(lo)
-
-    def __imul__(self, other):
-        """ See __mul__. """
-        oth = sanitize_units_mul(self, other)
-        np.multiply(self, oth, out=self)
-        return self
-
-    def __div__(self, right_object):
-        """
-        Divide this YTArray by the object on the right of the `/` operator.
-
-        """
-        ro = sanitize_units_mul(self, right_object)
-        return super(YTArray, self).__div__(ro)
-
-    def __rdiv__(self, left_object):
-        """ See __div__. """
-        lo = sanitize_units_mul(self, left_object)
-        return super(YTArray, self).__rdiv__(lo)
-
-    def __idiv__(self, other):
-        """ See __div__. """
-        oth = sanitize_units_mul(self, other)
-        np.divide(self, oth, out=self)
-        return self
-
-    def __truediv__(self, right_object):
-        ro = sanitize_units_mul(self, right_object)
-        return super(YTArray, self).__truediv__(ro)
-
-    def __rtruediv__(self, left_object):
-        """ See __div__. """
-        lo = sanitize_units_mul(self, left_object)
-        return super(YTArray, self).__rtruediv__(lo)
-
-    def __itruediv__(self, other):
-        """ See __div__. """
-        oth = sanitize_units_mul(self, other)
-        np.true_divide(self, oth, out=self)
-        return self
-
-    def __floordiv__(self, right_object):
-        ro = sanitize_units_mul(self, right_object)
-        return super(YTArray, self).__floordiv__(ro)
-
-    def __rfloordiv__(self, left_object):
-        """ See __div__. """
-        lo = sanitize_units_mul(self, left_object)
-        return super(YTArray, self).__rfloordiv__(lo)
-
-    def __ifloordiv__(self, other):
-        """ See __div__. """
-        oth = sanitize_units_mul(self, other)
-        np.floor_divide(self, oth, out=self)
-        return self
-
-    def __or__(self, right_object):
-        return super(YTArray, self).__or__(right_object)
-
-    def __ror__(self, left_object):
-        return super(YTArray, self).__ror__(left_object)
-
-    def __ior__(self, other):
-        np.bitwise_or(self, other, out=self)
-        return self
-
-    def __xor__(self, right_object):
-        return super(YTArray, self).__xor__(right_object)
-
-    def __rxor__(self, left_object):
-        return super(YTArray, self).__rxor__(left_object)
-
-    def __ixor__(self, other):
-        np.bitwise_xor(self, other, out=self)
-        return self
-
-    def __and__(self, right_object):
-        return super(YTArray, self).__and__(right_object)
-
-    def __rand__(self, left_object):
-        return super(YTArray, self).__rand__(left_object)
-
-    def __iand__(self, other):
-        np.bitwise_and(self, other, out=self)
-        return self
-
-    def __pow__(self, power):
-        """
-        Raise this YTArray to some power.
-
-        Parameters
-        ----------
-        power : float or dimensionless YTArray.
-            The pow value.
-
-        """
-        if isinstance(power, YTArray):
-            if not power.units.is_dimensionless:
-                raise YTUnitOperationError('power', power.unit)
-
-        # Work around a sympy issue (I think?)
-        #
-        # If I don't do this, super(YTArray, self).__pow__ returns a YTArray
-        # with a unit attribute set to the sympy expression 1/1 rather than a
-        # dimensionless Unit object.
-        if self.units.is_dimensionless and power == -1:
-            ret = super(YTArray, self).__pow__(power)
-            return type(self)(ret, input_units='')
-
-        return super(YTArray, self).__pow__(power)
-
-    def __abs__(self):
-        """ Return a YTArray with the abs of the data. """
-        return super(YTArray, self).__abs__()
-
-    def sqrt(self):
-        """
-        Return sqrt of this YTArray. We take the sqrt for the array and use
-        take the 1/2 power of the units.
-
-        """
-        return type(self)(super(YTArray, self).sqrt(),
-                          input_units=self.units**0.5)
-
-    #
-    # Start comparison operators.
-    #
-
-    def __lt__(self, other):
-        """ Test if this is less than the object on the right. """
-        # converts if possible
-        oth = validate_comparison_units(self, other, 'less_than')
-        return super(YTArray, self).__lt__(oth)
-
-    def __le__(self, other):
-        """ Test if this is less than or equal to the object on the right. """
-        oth = validate_comparison_units(self, other, 'less_than or equal')
-        return super(YTArray, self).__le__(oth)
-
-    def __eq__(self, other):
-        """ Test if this is equal to the object on the right. """
-        # Check that other is a YTArray.
-        if other is None:
-            # self is a YTArray, so it can't be None.
-            return False
-        oth = validate_comparison_units(self, other, 'equal')
-        return super(YTArray, self).__eq__(oth)
-
-    def __ne__(self, other):
-        """ Test if this is not equal to the object on the right. """
-        # Check that the other is a YTArray.
-        if other is None:
-            return True
-        oth = validate_comparison_units(self, other, 'not equal')
-        return super(YTArray, self).__ne__(oth)
-
-    def __ge__(self, other):
-        """ Test if this is greater than or equal to other. """
-        # Check that the other is a YTArray.
-        oth = validate_comparison_units(self, other, 'greater than or equal')
-        return super(YTArray, self).__ge__(oth)
-
-    def __gt__(self, other):
-        """ Test if this is greater than the object on the right. """
-        # Check that the other is a YTArray.
-        oth = validate_comparison_units(self, other, 'greater than')
-        return super(YTArray, self).__gt__(oth)
-
-    #
-    # End comparison operators
-    #
-
-    #
-    # Begin reduction operators
-    #
-
-    @return_arr
-    def prod(self, axis=None, dtype=None, out=None):
-        if axis is not None:
-            units = self.units**self.shape[axis]
-        else:
-            units = self.units**self.size
-        return super(YTArray, self).prod(axis, dtype, out), units
-
-    @return_arr
-    def mean(self, axis=None, dtype=None, out=None):
-        return super(YTArray, self).mean(axis, dtype, out), self.units
-
-    @return_arr
-    def sum(self, axis=None, dtype=None, out=None):
-        return super(YTArray, self).sum(axis, dtype, out), self.units
-
-    @return_arr
-    def dot(self, b, out=None):
-        return super(YTArray, self).dot(b), self.units*b.units
-
-    @return_arr
-    def std(self, axis=None, dtype=None, out=None, ddof=0):
-        return super(YTArray, self).std(axis, dtype, out, ddof), self.units
 
     def __getitem__(self, item):
         ret = super(YTArray, self).__getitem__(item)
         if ret.shape == ():
             return YTQuantity(ret, self.units, bypass_validation=True)
         else:
+            if hasattr(self, 'units'):
+                ret.units = self.units
             return ret
 
-    def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
-        if 'out' in kwargs:
-            out = kwargs['out'][0].view(np.ndarray)
-        else:
-            out = None
-        if method == '__call__':
-            func = ufunc
-        else:
+    #
+    # Start operation methods
+    #
+
+    if LooseVersion(np.__version__) < LooseVersion('1.13.0'):
+
+        def __add__(self, right_object):
+            """
+            Add this ytarray to the object on the right of the `+` operator. 
+            Must check for the correct (same dimension) units.
+
+            """
+            ro = sanitize_units_add(self, right_object, "addition")
+            return super(YTArray, self).__add__(ro)
+
+        def __radd__(self, left_object):
+            """ See __add__. """
+            lo = sanitize_units_add(self, left_object, "addition")
+            return super(YTArray, self).__radd__(lo)
+
+        def __iadd__(self, other):
+            """ See __add__. """
+            oth = sanitize_units_add(self, other, "addition")
+            np.add(self, oth, out=self)
+            return self
+
+        def __sub__(self, right_object):
+            """
+            Subtract the object on the right of the `-` from this ytarray. Must
+            check for the correct (same dimension) units.
+
+            """
+            ro = sanitize_units_add(self, right_object, "subtraction")
+            return super(YTArray, self).__sub__(ro)
+
+        def __rsub__(self, left_object):
+            """ See __sub__. """
+            lo = sanitize_units_add(self, left_object, "subtraction")
+            return super(YTArray, self).__rsub__(lo)
+
+        def __isub__(self, other):
+            """ See __sub__. """
+            oth = sanitize_units_add(self, other, "subtraction")
+            np.subtract(self, oth, out=self)
+            return self
+
+        def __neg__(self):
+            """ Negate the data. """
+            return super(YTArray, self).__neg__()
+
+        def __mul__(self, right_object):
+            """
+            Multiply this YTArray by the object on the right of the `*` 
+            operator. The unit objects handle being multiplied.
+
+            """
+            ro = sanitize_units_mul(self, right_object)
+            return super(YTArray, self).__mul__(ro)
+
+        def __rmul__(self, left_object):
+            """ See __mul__. """
+            lo = sanitize_units_mul(self, left_object)
+            return super(YTArray, self).__rmul__(lo)
+
+        def __imul__(self, other):
+            """ See __mul__. """
+            oth = sanitize_units_mul(self, other)
+            np.multiply(self, oth, out=self)
+            return self
+
+        def __div__(self, right_object):
+            """
+            Divide this YTArray by the object on the right of the `/` operator.
+
+            """
+            ro = sanitize_units_mul(self, right_object)
+            return super(YTArray, self).__div__(ro)
+
+        def __rdiv__(self, left_object):
+            """ See __div__. """
+            lo = sanitize_units_mul(self, left_object)
+            return super(YTArray, self).__rdiv__(lo)
+
+        def __idiv__(self, other):
+            """ See __div__. """
+            oth = sanitize_units_mul(self, other)
+            np.divide(self, oth, out=self)
+            return self
+
+        def __truediv__(self, right_object):
+            ro = sanitize_units_mul(self, right_object)
+            return super(YTArray, self).__truediv__(ro)
+
+        def __rtruediv__(self, left_object):
+            """ See __div__. """
+            lo = sanitize_units_mul(self, left_object)
+            return super(YTArray, self).__rtruediv__(lo)
+
+        def __itruediv__(self, other):
+            """ See __div__. """
+            oth = sanitize_units_mul(self, other)
+            np.true_divide(self, oth, out=self)
+            return self
+
+        def __floordiv__(self, right_object):
+            ro = sanitize_units_mul(self, right_object)
+            return super(YTArray, self).__floordiv__(ro)
+
+        def __rfloordiv__(self, left_object):
+            """ See __div__. """
+            lo = sanitize_units_mul(self, left_object)
+            return super(YTArray, self).__rfloordiv__(lo)
+
+        def __ifloordiv__(self, other):
+            """ See __div__. """
+            oth = sanitize_units_mul(self, other)
+            np.floor_divide(self, oth, out=self)
+            return self
+
+        def __or__(self, right_object):
+            return super(YTArray, self).__or__(right_object)
+
+        def __ror__(self, left_object):
+            return super(YTArray, self).__ror__(left_object)
+
+        def __ior__(self, other):
+            np.bitwise_or(self, other, out=self)
+            return self
+
+        def __xor__(self, right_object):
+            return super(YTArray, self).__xor__(right_object)
+
+        def __rxor__(self, left_object):
+            return super(YTArray, self).__rxor__(left_object)
+
+        def __ixor__(self, other):
+            np.bitwise_xor(self, other, out=self)
+            return self
+
+        def __and__(self, right_object):
+            return super(YTArray, self).__and__(right_object)
+
+        def __rand__(self, left_object):
+            return super(YTArray, self).__rand__(left_object)
+
+        def __iand__(self, other):
+            np.bitwise_and(self, other, out=self)
+            return self
+
+        def __pow__(self, power):
+            """
+            Raise this YTArray to some power.
+
+            Parameters
+            ----------
+            power : float or dimensionless YTArray.
+                The pow value.
+
+            """
+            if isinstance(power, YTArray):
+                if not power.units.is_dimensionless:
+                    raise YTUnitOperationError('power', power.unit)
+
+            # Work around a sympy issue (I think?)
+            #
+            # If I don't do this, super(YTArray, self).__pow__ returns a YTArray
+            # with a unit attribute set to the sympy expression 1/1 rather than
+            # a dimensionless Unit object.
+            if self.units.is_dimensionless and power == -1:
+                ret = super(YTArray, self).__pow__(power)
+                return type(self)(ret, input_units='')
+
+            return super(YTArray, self).__pow__(power)
+
+        def __abs__(self):
+            """ Return a YTArray with the abs of the data. """
+            return super(YTArray, self).__abs__()
+
+        def sqrt(self):
+            """
+            Return sqrt of this YTArray. We take the sqrt for the array and use
+            take the 1/2 power of the units.
+
+            """
+            return type(self)(super(YTArray, self).sqrt(),
+                              input_units=self.units**0.5)
+
+        #
+        # Start comparison operators.
+        #
+
+        def __lt__(self, other):
+            """ Test if this is less than the object on the right. """
+            # converts if possible
+            oth = validate_comparison_units(self, other, 'less_than')
+            return super(YTArray, self).__lt__(oth)
+
+        def __le__(self, other):
+            """Test if this is less than or equal to the object on the right. 
+            """
+            oth = validate_comparison_units(self, other, 'less_than or equal')
+            return super(YTArray, self).__le__(oth)
+
+        def __eq__(self, other):
+            """ Test if this is equal to the object on the right. """
+            # Check that other is a YTArray.
+            if other is None:
+                # self is a YTArray, so it can't be None.
+                return False
+            oth = validate_comparison_units(self, other, 'equal')
+            return super(YTArray, self).__eq__(oth)
+
+        def __ne__(self, other):
+            """ Test if this is not equal to the object on the right. """
+            # Check that the other is a YTArray.
+            if other is None:
+                return True
+            oth = validate_comparison_units(self, other, 'not equal')
+            return super(YTArray, self).__ne__(oth)
+
+        def __ge__(self, other):
+            """ Test if this is greater than or equal to other. """
+            # Check that the other is a YTArray.
+            oth = validate_comparison_units(
+                self, other, 'greater than or equal')
+            return super(YTArray, self).__ge__(oth)
+
+        def __gt__(self, other):
+            """ Test if this is greater than the object on the right. """
+            # Check that the other is a YTArray.
+            oth = validate_comparison_units(self, other, 'greater than')
+            return super(YTArray, self).__gt__(oth)
+
+        #
+        # End comparison operators
+        #
+
+        #
+        # Begin reduction operators
+        #
+
+        @return_arr
+        def prod(self, axis=None, dtype=None, out=None):
+            if axis is not None:
+                units = self.units**self.shape[axis]
+            else:
+                units = self.units**self.size
+            return super(YTArray, self).prod(axis, dtype, out), units
+
+        @return_arr
+        def mean(self, axis=None, dtype=None, out=None):
+            return super(YTArray, self).mean(axis, dtype, out), self.units
+
+        @return_arr
+        def sum(self, axis=None, dtype=None, out=None):
+            return super(YTArray, self).sum(axis, dtype, out), self.units
+
+        @return_arr
+        def dot(self, b, out=None):
+            return super(YTArray, self).dot(b), self.units*b.units
+
+        @return_arr
+        def std(self, axis=None, dtype=None, out=None, ddof=0):
+            return super(YTArray, self).std(axis, dtype, out, ddof), self.units
+
+        def __array_wrap__(self, out_arr, context=None):
+            ret = super(YTArray, self).__array_wrap__(out_arr, context)
+            if isinstance(ret, YTQuantity) and ret.shape != ():
+                ret = ret.view(YTArray)
+            if context is None:
+                if ret.shape == ():
+                    return ret[()]
+                else:
+                    return ret
+            ufunc = context[0]
+            inputs = context[1]
+            if ufunc in unary_operators:
+                out_arr, inp, u = get_inp_u_unary(ufunc, inputs, out_arr)
+                unit = self._ufunc_registry[context[0]](u)
+                ret_class = type(self)
+            elif ufunc in binary_operators:
+                unit_operator = self._ufunc_registry[context[0]]
+                inps, units, ret_class = get_inp_u_binary(ufunc, inputs)
+                if unit_operator in (preserve_units, comparison_unit,
+                                     arctan2_unit):
+                    inps, units = handle_preserve_units(
+                        inps, units, ufunc, ret_class, raise_error=True)
+                unit = unit_operator(*units)
+                if unit_operator in (multiply_units, divide_units):
+                    out_arr, out_arr, unit = handle_multiply_divide_units(
+                        unit, units, out_arr, out_arr)
+            else:
+                raise RuntimeError(
+                    "Support for the %s ufunc has not been added "
+                    "to YTArray." % str(context[0]))
+            if unit is None:
+                out_arr = np.array(out_arr, copy=False)
+                return out_arr
+            out_arr.units = unit
+            if out_arr.size == 1:
+                return YTQuantity(np.array(out_arr), unit)
+            else:
+                if ret_class is YTQuantity:
+                    # This happens if you do ndarray * YTQuantity. Explicitly
+                    # casting to YTArray avoids creating a YTQuantity with
+                    # size > 1
+                    return YTArray(np.array(out_arr), unit)
+                return ret_class(np.array(out_arr, copy=False), unit)
+
+    else:  # numpy version equal to or newer than 1.13
+
+        def __array_ufunc__(self, ufunc, method, *inputs, **kwargs):
             func = getattr(ufunc, method)
-        if len(inputs) == 1:
-            u = getattr(inputs[0], 'units', None)
-            if u is None:
-                u = NULL_UNIT
-            if u.dimensions is angle and ufunc in trigonometric_operators:
-                inp = inputs[0].in_units('radian')
+            if 'out' in kwargs:
+                out_orig = kwargs.pop('out')
+                out = np.asarray(out_orig[0])
             else:
-                inp = inputs[0]
+                out = None
+            if len(inputs) == 1:
+                _, inp, u = get_inp_u_unary(ufunc, inputs)
+                out_arr = func(np.asarray(inp), **kwargs, out=out)
+                if ufunc in (multiply, divide) and method == 'reduce':
+                    power_sign = POWER_SIGN_MAPPING[ufunc]
+                    if 'axis' in kwargs and kwargs['axis'] is not None:
+                        unit = u**(power_sign*inp.shape[kwargs['axis']])
+                    else:
+                        unit = u**(power_sign*inp.size)
+                else:
+                    unit = self._ufunc_registry[ufunc](u)
+                ret_class = type(self)
+            elif len(inputs) == 2:
+                unit_operator = self._ufunc_registry[ufunc]
+                inps, units, ret_class = get_inp_u_binary(ufunc, inputs)
+                if unit_operator in (preserve_units, comparison_unit,
+                                     arctan2_unit):
+                    inps, units = handle_preserve_units(
+                        inps, units, ufunc, ret_class)
+                unit = unit_operator(*units)
+                out_arr = func(np.asarray(inps[0]), np.asarray(inps[1]),
+                               **kwargs, out=out)
+                if unit_operator in (multiply_units, divide_units):
+                    out, out_arr, unit = handle_multiply_divide_units(
+                        unit, units, out, out_arr)
+            else:
+                raise RuntimeError(
+                    "Support for the %s ufunc with %i inputs has not been"
+                    "added to YTArray." % (str(ufunc), len(inputs)))
+            if unit is None:
+                out_arr = np.array(out_arr, copy=False)
+            elif ufunc in (modf, divmod_):
+                out_arr = tuple((ret_class(o, unit) for o in out_arr))
+            elif out_arr.size == 1:
+                out_arr = YTQuantity(np.asarray(out_arr), unit)
+            else:
+                if ret_class is YTQuantity:
+                    # This happens if you do ndarray * YTQuantity. Explicitly
+                    # casting to YTArray avoids creating a YTQuantity with
+                    # size > 1
+                    out_arr = YTArray(np.asarray(out_arr), unit)
+                else:
+                    out_arr = ret_class(np.asarray(out_arr), unit)
             if out is not None:
-                func(np.asarray(inp), out=out)
-                out_arr = out
-            else:
-                out_arr = func(np.asarray(inp))
-            unit = self._ufunc_registry[ufunc](u)
-            ret_class = type(self)
-        elif len(inputs) == 2:
-            if out is not None:
-                func(np.asarray(inputs[0]), np.asarray(inputs[1]), out=out)
-                out_arr = out
-            else:
-                out_arr = func(np.asarray(inputs[0]), np.asarray(inputs[1]))
-            oper1 = coerce_iterable_units(inputs[0])
-            oper2 = coerce_iterable_units(inputs[1])
-            cls1 = type(oper1)
-            cls2 = type(oper2)
-            unit1 = getattr(oper1, 'units', None)
-            unit2 = getattr(oper2, 'units', None)
-            ret_class = get_binary_op_return_class(cls1, cls2)
-            if unit1 is None:
-                unit1 = Unit(registry=getattr(unit2, 'registry', None))
-            if unit2 is None and ufunc is not power:
-                unit2 = Unit(registry=getattr(unit1, 'registry', None))
-            elif ufunc is power:
-                unit2 = oper2
-                if isinstance(unit2, np.ndarray):
-                    if isinstance(unit2, YTArray):
-                        if unit2.units.is_dimensionless:
-                            pass
-                        else:
-                            raise YTUnitOperationError(ufunc, unit1, unit2)
-                    unit2 = 1.0
-            unit_operator = self._ufunc_registry[ufunc]
-            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
-                # Allow comparisons, addition, and subtraction with
-                # dimensionless quantities or arrays filled with zeros.
-                u1d = unit1.is_dimensionless
-                u2d = unit2.is_dimensionless
-                if unit1 != unit2:
-                    any_nonzero = [np.any(oper1), np.any(oper2)]
-                    if any_nonzero[0] == np.bool_(False):
-                        unit1 = unit2
-                    elif any_nonzero[1] == np.bool_(False):
-                        unit2 = unit1
-                    elif not any([u1d, u2d]):
-                        if not unit1.same_dimensions_as(unit2):
-                            raise YTUnitOperationError(ufunc, unit1, unit2)
-                        else:
-                            raise YTUfuncUnitError(ufunc, unit1, unit2)
-            unit = unit_operator(unit1, unit2)
-            if unit_operator in (multiply_units, divide_units):
-                if unit.is_dimensionless and unit.base_value != 1.0:
-                    if not unit1.is_dimensionless:
-                        if unit1.dimensions == unit2.dimensions:
-                            out_arr = np.multiply(out_arr.view(np.ndarray),
-                                                  unit.base_value, out=out)
-                            unit = Unit(registry=unit.registry)
-        else:
-            raise RuntimeError("Support for the %s ufunc has not been added "
-                               "to YTArray." % str(ufunc))
-        if unit is None:
-            out_arr = np.array(out_arr, copy=False)
-        elif ufunc in (modf, divmod_):
-            out_arr = tuple((ret_class(o, unit) for o in out_arr))
-        elif out_arr.size == 1:
-            out_arr = YTQuantity(np.asarray(out_arr), unit)
-        else:
-            if ret_class is YTQuantity:
-                # This happens if you do ndarray * YTQuantity. Explicitly
-                # casting to YTArray avoids creating a YTQuantity with size > 1
-                out_arr = YTArray(np.asarray(out_arr), unit)
-            else:
-                out_arr = ret_class(np.asarray(out_arr), unit)
-        if 'out' in kwargs and hasattr(kwargs['out'][0], 'units'):
-            kwargs['out'][0].units = unit
-        return out_arr
-        
-    def __array_wrap__(self, out_arr, context=None):
-        ret = super(YTArray, self).__array_wrap__(out_arr, context)
-        if isinstance(ret, YTQuantity) and ret.shape != ():
-            ret = ret.view(YTArray)
-        if context is None:
-            if ret.shape == ():
-                return ret[()]
-            else:
-                return ret
-        elif context[0] in unary_operators:
-            u = getattr(context[1][0], 'units', None)
-            if u is None:
-                u = NULL_UNIT
-            if u.dimensions is angle and context[0] in trigonometric_operators:
-                out_arr = context[0](
-                    context[1][0].in_units('radian').view(np.ndarray))
-            unit = self._ufunc_registry[context[0]](u)
-            ret_class = type(self)
-        elif context[0] in binary_operators:
-            oper1 = coerce_iterable_units(context[1][0])
-            oper2 = coerce_iterable_units(context[1][1])
-            cls1 = type(oper1)
-            cls2 = type(oper2)
-            unit1 = getattr(oper1, 'units', None)
-            unit2 = getattr(oper2, 'units', None)
-            ret_class = get_binary_op_return_class(cls1, cls2)
-            if unit1 is None:
-                unit1 = Unit(registry=getattr(unit2, 'registry', None))
-            if unit2 is None and context[0] is not power:
-                unit2 = Unit(registry=getattr(unit1, 'registry', None))
-            elif context[0] is power:
-                unit2 = oper2
-                if isinstance(unit2, np.ndarray):
-                    if isinstance(unit2, YTArray):
-                        if unit2.units.is_dimensionless:
-                            pass
-                        else:
-                            raise YTUnitOperationError(context[0], unit1, unit2)
-                    unit2 = 1.0
-            unit_operator = self._ufunc_registry[context[0]]
-            if unit_operator in (preserve_units, comparison_unit, arctan2_unit):
-                # Allow comparisons, addition, and subtraction with
-                # dimensionless quantities or arrays filled with zeros.
-                u1d = unit1.is_dimensionless
-                u2d = unit2.is_dimensionless
-                if unit1 != unit2:
-                    any_nonzero = [np.any(oper1), np.any(oper2)]
-                    if any_nonzero[0] is np.bool_(False):
-                        unit1 = unit2
-                    elif any_nonzero[1] is np.bool_(False):
-                        unit2 = unit1
-                    elif not any([u1d, u2d]):
-                        if not unit1.same_dimensions_as(unit2):
-                            raise YTUnitOperationError(context[0], unit1, unit2)
-                        else:
-                            raise YTUfuncUnitError(context[0], unit1, unit2)
-            unit = unit_operator(unit1, unit2)
-            if unit_operator in (multiply_units, divide_units):
-                if unit.is_dimensionless and unit.base_value != 1.0:
-                    if not unit1.is_dimensionless:
-                        if unit1.dimensions == unit2.dimensions:
-                            np.multiply(out_arr.view(np.ndarray),
-                                        unit.base_value, out=out_arr)
-                            unit = Unit(registry=unit.registry)
-        else:
-            raise RuntimeError("Support for the %s ufunc has not been added "
-                               "to YTArray." % str(context[0]))
-        if unit is None:
-            out_arr = np.array(out_arr, copy=False)
+                out_orig[0].flat[:] = out.flat[:]
+                if isinstance(out_orig[0], YTArray):
+                    out_orig[0].units = unit
             return out_arr
-        out_arr.units = unit
-        if out_arr.size == 1:
-            return YTQuantity(np.array(out_arr), unit)
-        else:
-            if ret_class is YTQuantity:
-                # This happens if you do ndarray * YTQuantity. Explicitly
-                # casting to YTArray avoids creating a YTQuantity with size > 1
-                return YTArray(np.array(out_arr), unit)
-            return ret_class(np.array(out_arr, copy=False), unit)
+
+        def copy(self, order='C'):
+            return type(self)(np.copy(np.asarray(self)), self.units)
+    
+    def __array_finalize__(self, obj):
+        if obj is None and hasattr(self, 'units'):
+            return
+        self.units = getattr(obj, 'units', NULL_UNIT)
+
+    def __pos__(self):
+        """ Posify the data. """
+        # this needs to be defined for all numpy versions, see
+        # numpy issue #9081
+        return type(self)(super(YTArray, self).__pos__(), self.units)
 
 
     def __reduce__(self):
@@ -1430,8 +1430,8 @@ class YTQuantity(YTArray):
 
     >>> import numpy as np
     >>> a = YTQuantity(12, 'g/cm**3')
-    >>> np.ones_like(a)
-    1 g/cm**3
+    >>> np.abs(a)
+    12 g/cm**3
 
     and strip them when it would be annoying to deal with them.
 
@@ -1611,9 +1611,9 @@ def array_like_field(data, x, field):
 def get_binary_op_return_class(cls1, cls2):
     if cls1 is cls2:
         return cls1
-    if cls1 is np.ndarray or issubclass(cls1, (numeric_type, np.number, list, tuple)):
+    if cls1 in (np.ndarray, np.matrix, np.ma.masked_array) or issubclass(cls1, (numeric_type, np.number, list, tuple)):
         return cls2
-    if cls2 is np.ndarray or issubclass(cls2, (numeric_type, np.number, list, tuple)):
+    if cls2 in (np.ndarray, np.matrix, np.ma.masked_array) or issubclass(cls2, (numeric_type, np.number, list, tuple)):
         return cls1
     if issubclass(cls1, YTQuantity):
         return cls2

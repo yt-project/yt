@@ -23,6 +23,7 @@ import os
 import shutil
 import tempfile
 
+from distutils.version import LooseVersion
 from nose.tools import assert_true
 from numpy.testing import \
     assert_array_equal, \
@@ -88,9 +89,17 @@ def test_addition():
     operate_and_compare(a1, a2, operator.add, answer1)
     operate_and_compare(a2, a1, operator.add, answer2)
     operate_and_compare(a1, a3, operator.add, answer1)
-    operate_and_compare(a3, a1, operator.add, answer1)
-    assert_raises(YTUfuncUnitError, np.add, a1, a2)
-    assert_raises(YTUfuncUnitError, np.add, a1, a3)
+    if LooseVersion(np.__version__) < LooseVersion('1.13.0'):
+        operate_and_compare(a3, a1, operator.add, answer1)
+        assert_raises(YTUfuncUnitError, np.add, a1, a2)
+        assert_raises(YTUfuncUnitError, np.add, a1, a3)
+    else:
+        operate_and_compare(a3, a1, operator.add, answer2)
+        operate_and_compare(a1, a2, np.add, answer1)
+        operate_and_compare(a2, a1, np.add, answer2)
+        operate_and_compare(a1, a3, np.add, answer1)
+        operate_and_compare(a3, a1, np.add, answer2)
+        
 
     # Test dimensionless quantities
     a1 = YTArray([1, 2, 3])
@@ -163,8 +172,14 @@ def test_subtraction():
     operate_and_compare(a2, a1, operator.sub, answer2)
     operate_and_compare(a1, a3, operator.sub, answer1)
     operate_and_compare(a3, a1, operator.sub, answer3)
-    assert_raises(YTUfuncUnitError, np.subtract, a1, a2)
-    assert_raises(YTUfuncUnitError, np.subtract, a1, a3)
+    if LooseVersion(np.__version__) < LooseVersion('1.13.0'):
+        assert_raises(YTUfuncUnitError, np.subtract, a1, a2)
+        assert_raises(YTUfuncUnitError, np.subtract, a1, a3)
+    else:
+        operate_and_compare(a1, a2, np.subtract, answer1)
+        operate_and_compare(a2, a1, np.subtract, answer2)
+        operate_and_compare(a1, a3, np.subtract, answer1)
+        operate_and_compare(a3, a1, np.subtract, answer3)
 
     # Test dimensionless quantities
     a1 = YTArray([1, 2, 3])
@@ -327,10 +342,16 @@ def test_division():
     operate_and_compare(a2, a1, op, answer2)
     operate_and_compare(a1, a3, op, answer1)
     operate_and_compare(a3, a1, op, answer2)
-    operate_and_compare(a1, a2, np.divide, answer3)
-    operate_and_compare(a2, a1, np.divide, answer4)
-    operate_and_compare(a1, a3, np.divide, answer3)
-    operate_and_compare(a3, a1, np.divide, answer4)
+    if LooseVersion(np.__version__) < LooseVersion('1.13.0'):
+        operate_and_compare(a1, a2, np.divide, answer3)
+        operate_and_compare(a2, a1, np.divide, answer4)
+        operate_and_compare(a1, a3, np.divide, answer3)
+        operate_and_compare(a3, a1, np.divide, answer4)
+    else:
+        operate_and_compare(a1, a2, np.divide, answer1)
+        operate_and_compare(a2, a1, np.divide, answer2)
+        operate_and_compare(a1, a3, np.divide, answer1)
+        operate_and_compare(a3, a1, np.divide, answer2)
 
     # different dimensions
     a1 = YTArray([1., 2., 3.], 'cm')
@@ -437,8 +458,11 @@ def test_comparisons():
     for op, answer in zip(ops, answers):
         operate_and_compare(a1, dimless, op, answer)
 
-    for op in ops:
-        assert_raises(YTUfuncUnitError, op, a1, a3)
+    for op, answer in zip(ops, answers):
+        if LooseVersion(np.__version__) < LooseVersion('1.13.0'):
+            assert_raises(YTUfuncUnitError, op, a1, a3)
+        else:
+            operate_and_compare(a1, a3, op, answer)
 
     for op, answer in zip(ops, answers):
         operate_and_compare(a1, a3.in_units('cm'), op, answer)
@@ -597,10 +621,15 @@ def test_selecting():
     a_selection = a[0]
 
     assert_array_equal(a_slice, YTArray([0, 1, 2], 'cm'))
+    assert_equal(a_slice.units, a.units)
     assert_array_equal(a_fancy_index, YTArray([1, 1, 3, 5], 'cm'))
+    assert_equal(a_fancy_index.units, a.units)
     assert_array_equal(a_array_fancy_index, YTArray([[1, 1, ], [3, 5]], 'cm'))
+    assert_equal(a_array_fancy_index.units, a.units)
     assert_array_equal(a_boolean_index, YTArray([6, 7, 8, 9], 'cm'))
+    assert_equal(a_boolean_index.units, a.units)
     assert_isinstance(a_selection, YTQuantity)
+    assert_equal(a_selection.units, a.units)
 
     # .base points to the original array for a numpy view.  If it is not a
     # view, .base is None.
@@ -725,6 +754,7 @@ def unary_ufunc_comparison(ufunc, a):
     elif ufunc in yield_np_ufuncs(
             ['absolute', 'fabs', 'conjugate', 'floor', 'ceil', 'trunc',
              'negative', 'spacing', 'positive']):
+
         ret = ufunc(a, out=out)
 
         assert_array_equal(ret, out)
@@ -779,8 +809,9 @@ def binary_ufunc_comparison(ufunc, a, b):
             'not_equal', 'logical_and', 'logical_or', 'logical_xor', 'maximum',
             'minimum', 'fmax', 'fmin', 'nextafter', 'heaviside']):
         if a.units != b.units and a.units.dimensions == b.units.dimensions:
-            assert_raises(YTUfuncUnitError, ufunc, a, b)
-            return
+            if LooseVersion(np.__version__) < LooseVersion('1.13.0'):
+                assert_raises(YTUfuncUnitError, ufunc, a, b)
+                return
         elif a.units != b.units:
             assert_raises(YTUnitOperationError, ufunc, a, b)
             return
@@ -810,7 +841,7 @@ def binary_ufunc_comparison(ufunc, a, b):
         (a.units.dimensions == b.units.dimensions)):
         assert_array_almost_equal(
             np.array(ret), ufunc(np.array(a.in_cgs()), np.array(b.in_cgs())))
-    else:
+    elif LooseVersion(np.__version__) < LooseVersion('1.13.0'):
         assert_array_almost_equal(np.array(ret), ufunc(np.array(a), np.array(b)))
 
 
@@ -846,6 +877,32 @@ def test_ufuncs():
         for pair in itertools.product([a, b, c, d, e], repeat=2):
             binary_ufunc_comparison(ufunc, pair[0], pair[1])
 
+def test_reductions():
+    arr = YTArray([[1, 2, 3], [4, 5, 6]], 'cm')
+    answers = {
+        'prod': (YTQuantity(720, 'cm**6'),
+                 YTArray([4, 10, 18], 'cm**2'),
+                 YTArray([6, 120], 'cm**3')),
+        'sum': (YTQuantity(21, 'cm'),
+                YTArray([ 5., 7., 9.], 'cm'),
+                YTArray([6, 15], 'cm'),),
+        'mean': (YTQuantity(3.5, 'cm'),
+                 YTArray([ 2.5, 3.5, 4.5], 'cm'),
+                 YTArray([2, 5], 'cm')),
+        'std': (YTQuantity(1.707825127659933, 'cm'),
+                YTArray([ 1.5, 1.5, 1.5], 'cm'),
+                YTArray([0.81649658, 0.81649658], 'cm')),
+    }
+    for op, (result1, result2, result3) in answers.items():
+        ev_result = getattr(arr, op)()
+        assert_almost_equal(ev_result, result1)
+        assert_almost_equal(ev_result.units, result1.units)
+        assert_isinstance(ev_result, YTQuantity)
+        for axis, result in [(0, result2), (1, result3), (-1, result3)]:
+            ev_result = getattr(arr, op)(axis=axis)
+            assert_almost_equal(ev_result, result)
+            assert_almost_equal(ev_result.units, result.units)
+            assert_isinstance(ev_result, YTArray)
 
 def test_convenience():
 
@@ -1251,3 +1308,13 @@ def test_initialization_different_registries():
     assert_almost_equal(float(l2.in_cgs()), 0.9)
     assert_almost_equal(float(ds1.quan(0.3, 'unitary').in_cgs()), 0.3)
     assert_almost_equal(float(ds2.quan(0.3, 'unitary').in_cgs()), 0.9)
+
+def test_ones_and_zeros_like():
+    data = YTArray([1, 2, 3], 'cm')
+    zd = np.zeros_like(data)
+    od = np.ones_like(data)
+
+    assert_equal(zd, YTArray([0, 0, 0], 'cm'))
+    assert_equal(zd.units, data.units)
+    assert_equal(od, YTArray([1, 1, 1], 'cm'))
+    assert_equal(od.units, data.units)
