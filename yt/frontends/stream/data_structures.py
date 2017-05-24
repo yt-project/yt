@@ -267,7 +267,7 @@ class StreamHierarchy(GridIndex):
         particle_types = set_particle_types(data[0])
 
         for key in data[0].keys():
-            if key is "number_of_particles":
+            if key == "number_of_particles":
                 continue
             self.stream_handler.particle_types[key] = particle_types[key]
         self.ds._find_particle_types()
@@ -367,11 +367,11 @@ class StreamDataset(Dataset):
         return True
 
     def _find_particle_types(self):
-        particle_types = []
+        particle_types = set([])
         for k, v in self.stream_handler.particle_types.items():
             if v:
-                particle_types.append(k[0])
-        self.particle_types = tuple(set(particle_types))
+                particle_types.add(k[0])
+        self.particle_types = tuple(particle_types)
         self.particle_types_raw = self.particle_types
 
 class StreamDictFieldHandler(dict):
