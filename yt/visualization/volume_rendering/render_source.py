@@ -444,16 +444,17 @@ class VolumeSource(RenderSource):
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")
+        self.current_image = self.finalize_image(
+            camera, self.sampler.aimage)
 
-        self.current_image = self.finalize_image(camera,
-                                                 self.sampler.aimage,
-                                                 call_from_VR=True)
         if zbuffer is None:
-            self.zbuffer = ZBuffer(self.current_image,
-                                   np.full(self.current_image.shape[:2], np.inf))
+            self.zbuffer = ZBuffer(
+                self.current_image,
+                np.full(self.current_image.shape[:2], np.inf))
+
         return self.current_image
 
-    def finalize_image(self, camera, image, call_from_VR=False):
+    def finalize_image(self, camera, image):
         """Parallel reduce the image.
 
         Parameters
@@ -462,17 +463,12 @@ class VolumeSource(RenderSource):
             The camera used to produce the volume rendering image.
         image: :class:`yt.data_objects.image_array.ImageArray` instance
             A reference to an image to fill
-        call_from_vr: boolean, optional
-            Whether or not this is being called from a higher level in the VR
-            interface. Used to set the correct orientation.
         """
         if self._volume is not None:
             image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if call_from_VR is True:
-            image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1
         return image
@@ -712,6 +708,7 @@ class MeshSource(OpaqueSource):
 
         return self.current_image
 
+
     def finalize_image(self, camera):
         sam = self.sampler
 
@@ -720,11 +717,6 @@ class MeshSource(OpaqueSource):
         Ny = camera.resolution[1]
         self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
 
-        # rotate
-        self.data = np.rot90(self.data, k=2)
-        sam.aimage_used = np.rot90(sam.aimage_used, k=2)
-        sam.amesh_lines = np.rot90(sam.amesh_lines, k=2)
-        sam.azbuffer = np.rot90(sam.azbuffer, k=2)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
