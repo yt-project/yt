@@ -30,7 +30,7 @@ def test_particle_generator():
                   ("io", "particle_position_z"),
                   ("io", "particle_index"),
                   ("io", "particle_gas_density")]
-    num_particles = 1000000
+    num_particles = 10000
     field_dict = {("gas", "density"): ("io", "particle_gas_density")}
     sphere = ds.sphere(ds.domain_center, 0.45)
 
@@ -114,7 +114,7 @@ def test_particle_generator():
 
     # Test adding in particles with a different particle type
 
-    num_star_particles = 100000
+    num_star_particles = 20000
     pdata2 = {("star", "particle_position_x"): np.random.uniform(size=num_star_particles),
               ("star", "particle_position_y"): np.random.uniform(size=num_star_particles),
               ("star", "particle_position_z"): np.random.uniform(size=num_star_particles)}
