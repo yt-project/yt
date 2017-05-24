@@ -879,6 +879,13 @@ def test_ufuncs():
 
 def test_reductions():
     arr = YTArray([[1, 2, 3], [4, 5, 6]], 'cm')
+
+    ev_result = arr.dot(YTArray([1, 2, 3], 'cm'))
+    res = YTArray([ 14.,  32.], 'cm**2')
+    assert_equal(ev_result, res)
+    assert_equal(ev_result.units, res.units)
+    assert_isinstance(ev_result, YTArray)
+
     answers = {
         'prod': (YTQuantity(720, 'cm**6'),
                  YTArray([4, 10, 18], 'cm**2'),

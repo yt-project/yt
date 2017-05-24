@@ -1149,15 +1149,6 @@ class YTArray(np.ndarray):
             """ Return a YTArray with the abs of the data. """
             return super(YTArray, self).__abs__()
 
-        def sqrt(self):
-            """
-            Return sqrt of this YTArray. We take the sqrt for the array and use
-            take the 1/2 power of the units.
-
-            """
-            return type(self)(super(YTArray, self).sqrt(),
-                              input_units=self.units**0.5)
-
         #
         # Start comparison operators.
         #
@@ -1227,10 +1218,6 @@ class YTArray(np.ndarray):
         @return_arr
         def sum(self, axis=None, dtype=None, out=None):
             return super(YTArray, self).sum(axis, dtype, out), self.units
-
-        @return_arr
-        def dot(self, b, out=None):
-            return super(YTArray, self).dot(b), self.units*b.units
 
         @return_arr
         def std(self, axis=None, dtype=None, out=None, ddof=0):
@@ -1352,6 +1339,9 @@ class YTArray(np.ndarray):
         # numpy issue #9081
         return type(self)(super(YTArray, self).__pos__(), self.units)
 
+    @return_arr
+    def dot(self, b, out=None):
+        return super(YTArray, self).dot(b), self.units*b.units
 
     def __reduce__(self):
         """Pickle reduction method
