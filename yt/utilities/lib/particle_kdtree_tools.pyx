@@ -30,7 +30,9 @@ from libc.math cimport sqrt
 
 from yt.funcs import get_pbar
 
-@cython.boundscheck(False)
+cdef int CHUNKSIZE = 16384
+
+@cython.boundscheck(True)
 @cython.wraparound(False)
 def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
                               PyKDTree kdtree,
@@ -62,58 +64,55 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef int n_particles = input_positions.shape[0]
     cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
     cdef np.float64_t tpos
-    cdef np.float64_t* nearby_position
-    cdef np.float64_t* pos
-    cdef np.float64_t* positions = &input_positions[0, 0]
+    cdef np.float64_t[:] pos
+    cdef np.float64_t[:] nearby_position
     cdef uint64_t neighbor_id
     cdef int i, j, k
     pbar = get_pbar("Generate smoothing length", n_particles)
-    with nogil:
-        for i in range(n_particles):
-            if i % 1000 == 0:
-                with gil:
-                    pbar.update(i)
-                    PyErr_CheckSignals()
-            # This section is optimized. Here we're using pointer arithmetic
-            # to get a reference to the place in input_positions where the
-            # position of the particle under consideration is stored
-            pos = positions + 3*i
+    for i in range(n_particles):
+        if i % CHUNKSIZE == 0:
+            pbar.update(i-1)
+            PyErr_CheckSignals()
+        # This section is optimized. Here we're using pointer arithmetic
+        # to get a reference to the place in input_positions where the
+        # position of the particle under consideration is stored
+        pos = input_positions[i]
 
-            # Search the tree for the node containing the position under
-            # consideration. Fine neighbor nodes and determine the total
-            # number of particles in all the nodes under consideration
-            leafnode = c_tree.search(&pos[0])
-            n_nearby = leafnode.children
-            for neighbor_id in leafnode.all_neighbors:
-                n_nearby = n_nearby + c_tree.leaves[neighbor_id].children
+        # Search the tree for the node containing the position under
+        # consideration. Fine neighbor nodes and determine the total
+        # number of particles in all the nodes under consideration
+        leafnode = c_tree.search(&pos[0])
+        n_nearby = leafnode.children
+        for neighbor_id in leafnode.all_neighbors:
+            n_nearby = n_nearby + c_tree.leaves[neighbor_id].children
 
-            # Find indices into the particle position array for the list of
-            # potential nearest neighbors
-            nearby_indices = vector[uint64_t](n_nearby)
-            for j in range(leafnode.children):
-                nearby_indices[j] = c_tree.all_idx[leafnode.left_idx+j]
-            for neighbor_id in leafnode.all_neighbors:
-                neighbor = c_tree.leaves[neighbor_id]
-                for k in range(neighbor.children):
-                    nearby_indices[j+k] = c_tree.all_idx[neighbor.left_idx+k]
-                j += neighbor.children
+        # Find indices into the particle position array for the list of
+        # potential nearest neighbors
+        nearby_indices = vector[uint64_t](n_nearby)
+        for j in range(leafnode.children):
+            nearby_indices[j] = c_tree.all_idx[leafnode.left_idx+j]
+        for neighbor_id in leafnode.all_neighbors:
+            neighbor = c_tree.leaves[neighbor_id]
+            for k in range(neighbor.children):
+                nearby_indices[j+k] = c_tree.all_idx[neighbor.left_idx+k]
+            j += neighbor.children
 
-            # Calculate the squared distances to all of the particles in
-            # the neighbor list
-            squared_distances = vector[np.float64_t](n_nearby)
-            for j in range(n_nearby):
-                nearby_position = positions + 3*nearby_indices[j]
-                for k in range(3):
-                    tpos = nearby_position[k] - pos[k]
-                    squared_distances[j] += tpos*tpos
+        # Calculate the squared distances to all of the particles in
+        # the neighbor list
+        squared_distances = vector[np.float64_t](n_nearby)
+        for j in range(n_nearby):
+            nearby_position = input_positions[nearby_indices[j]]
+            for k in range(3):
+                tpos = nearby_position[k] - pos[k]
+                squared_distances[j] += tpos*tpos
 
-            # Sort the squared distances and find the nth entry, this is the
-            # nth nearest neighbor for particle i. Take the square root of
-            # the squared distance to the nth neighbor to find the smoothing
-            # length.
-            sort[vector[np.float64_t].iterator](
-                squared_distances.begin(), squared_distances.end())
-            smoothing_length[i] = sqrt(squared_distances[n_neighbors])
+        # Sort the squared distances and find the nth entry, this is the
+        # nth nearest neighbor for particle i. Take the square root of
+        # the squared distance to the nth neighbor to find the smoothing
+        # length.
+        sort[vector[np.float64_t].iterator](
+            squared_distances.begin(), squared_distances.end())
+        smoothing_length[i] = sqrt(squared_distances[n_neighbors])
     pbar.update(n_particles-1)
     pbar.finish()
     return np.array(smoothing_length)
