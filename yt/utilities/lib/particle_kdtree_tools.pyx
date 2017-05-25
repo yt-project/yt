@@ -76,20 +76,18 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
         # consideration. Fine neighbor nodes and determine the total
         # number of particles in all the nodes under consideration
         leafnode = c_tree.search(&input_positions[i, 0])
-        n_nearby = leafnode.children
-        for neighbor_id in leafnode.all_neighbors:
-            n_nearby = n_nearby + c_tree.leaves[neighbor_id].children
 
         # Find indices into the particle position array for the list of
         # potential nearest neighbors
-        nearby_indices = vector[uint64_t](n_nearby)
+        nearby_indices = vector[uint64_t]()
+        n_nearby = leafnode.children
         for j in range(leafnode.children):
-            nearby_indices[j] = c_tree.all_idx[leafnode.left_idx+j]
+            nearby_indices.push_back(c_tree.all_idx[leafnode.left_idx+j])
         for neighbor_id in leafnode.all_neighbors:
+            n_nearby += c_tree.leaves[neighbor_id].children
             neighbor = c_tree.leaves[neighbor_id]
             for k in range(neighbor.children):
-                nearby_indices[j+k] = c_tree.all_idx[neighbor.left_idx+k]
-            j += neighbor.children
+                nearby_indices.push_back(c_tree.all_idx[neighbor.left_idx+k])
 
         # Calculate the squared distances to all of the particles in
         # the neighbor list
