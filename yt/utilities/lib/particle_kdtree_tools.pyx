@@ -19,7 +19,7 @@ cimport numpy as np
 cimport cython
 
 from cpython.exc cimport PyErr_CheckSignals
-from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t
+from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
 from cython.operator cimport dereference as deref
 
 cdef extern from "<algorithm>" namespace "std" nogil:
@@ -57,10 +57,11 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     """
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
-    cdef Node* neighbor
+    cdef Node* node
     cdef uint64_t n_nearby
     cdef vector[np.float64_t] squared_distances
     cdef vector[uint64_t] nearby_indices
+    cdef vector[uint32_t] nearby_ids
     cdef int n_particles = input_positions.shape[0]
     cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
     cdef np.float64_t tpos
@@ -80,14 +81,14 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
         # Find indices into the particle position array for the list of
         # potential nearest neighbors
         nearby_indices = vector[uint64_t]()
-        n_nearby = leafnode.children
-        for j in range(leafnode.children):
-            nearby_indices.push_back(c_tree.all_idx[leafnode.left_idx+j])
-        for neighbor_id in leafnode.all_neighbors:
-            n_nearby += c_tree.leaves[neighbor_id].children
-            neighbor = c_tree.leaves[neighbor_id]
-            for k in range(neighbor.children):
-                nearby_indices.push_back(c_tree.all_idx[neighbor.left_idx+k])
+        nearby_ids = leafnode.all_neighbors
+        nearby_ids.push_back(leafnode.leafid)
+        n_nearby = 0
+        for node_id in nearby_ids:
+            n_nearby += c_tree.leaves[node_id].children
+            node = c_tree.leaves[node_id]
+            for k in range(node.children):
+                nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
 
         # Calculate the squared distances to all of the particles in
         # the neighbor list
