@@ -65,7 +65,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
     cdef np.float64_t tpos, furthest_distance, sq_dist
     cdef uint64_t neighbor_id
-    cdef int i, j, k, n_kept, skip
+    cdef int i, j, k, l, n_kept, skip
     pbar = get_pbar("Generate smoothing length", n_particles)
     for i in range(n_particles):
         if i % CHUNKSIZE == 0:
@@ -79,35 +79,35 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 
         # Find indices into the particle position array for the list of
         # potential nearest neighbors
-        nearby_indices = vector[uint64_t]()
         nearby_ids = leafnode.all_neighbors
         nearby_ids.push_back(leafnode.leafid)
-        for j in range(nearby_ids.size() - 1, -1, -1):
-            node = c_tree.leaves[nearby_ids[j]]
-            for k in range(node.children):
-                nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
 
-        # Calculate the squared distances to all of the particles in
-        # the neighbor list
         squared_distances = vector[np.float64_t]()
         furthest_distance = 0
         n_kept = 0
-        for j in range(nearby_indices.size()):
-            skip = 0
-            sq_dist = 0
-            for k in range(3):
-                tpos = (input_positions[nearby_indices[j], k] -
-                        input_positions[i, k])
-                sq_dist += tpos*tpos
-                if (n_kept > n_neighbors and sq_dist > furthest_distance):
-                    skip = 1
-                    break
-            if skip:
-                continue
-            squared_distances.push_back(sq_dist)
-            n_kept += 1
-            if squared_distances[j] > furthest_distance:
-                furthest_distance = squared_distances[j]
+        for j in range(nearby_ids.size() - 1, -1, -1):
+            node = c_tree.leaves[nearby_ids[j]]
+
+            nearby_indices = vector[uint64_t]()
+            for k in range(node.children):
+                nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
+
+            for l in range(nearby_indices.size()):
+                skip = 0
+                sq_dist = 0
+                for k in range(3):
+                    tpos = (input_positions[nearby_indices[l], k] -
+                            input_positions[i, k])
+                    sq_dist += tpos*tpos
+                    if (n_kept > n_neighbors and sq_dist > furthest_distance):
+                        skip = 1
+                        break
+                if skip:
+                    continue
+                squared_distances.push_back(sq_dist)
+                n_kept += 1
+                if squared_distances[j] > furthest_distance:
+                    furthest_distance = squared_distances[j]
 
         # Sort the squared distances and find the nth entry, this is the
         # nth nearest neighbor for particle i. Take the square root of
