@@ -30,7 +30,7 @@ from libc.math cimport sqrt
 
 from yt.funcs import get_pbar
 
-cdef int CHUNKSIZE = 16384
+cdef int CHUNKSIZE = 4096
 
 @cython.boundscheck(True)
 @cython.wraparound(False)
@@ -58,7 +58,6 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
     cdef Node* node
-    cdef uint64_t n_nearby
     cdef vector[np.float64_t] squared_distances
     cdef vector[uint64_t] nearby_indices
     cdef vector[uint32_t] nearby_ids
@@ -83,17 +82,16 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
         nearby_indices = vector[uint64_t]()
         nearby_ids = leafnode.all_neighbors
         nearby_ids.push_back(leafnode.leafid)
-        n_nearby = 0
         for node_id in nearby_ids:
-            n_nearby += c_tree.leaves[node_id].children
             node = c_tree.leaves[node_id]
             for k in range(node.children):
                 nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
 
         # Calculate the squared distances to all of the particles in
         # the neighbor list
-        squared_distances = vector[np.float64_t](n_nearby)
-        for j in range(n_nearby):
+        squared_distances = vector[np.float64_t]()
+        for j in range(nearby_indices.size()):
+            squared_distances.push_back(0)
             for k in range(3):
                 tpos = (input_positions[nearby_indices[j], k] -
                         input_positions[i, k])
