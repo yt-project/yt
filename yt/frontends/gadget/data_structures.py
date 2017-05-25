@@ -353,11 +353,10 @@ class GadgetDataset(SPHDataset):
             endianswap = '<'
         elif rhead == 65536:
             endianswap = '>'
-        # Enabled Format2 here
-        elif rhead == 8:
-            f.close()
-            return True, 'f8'
-        elif rhead == 134217728:
+        elif rhead in (8, 134217728):
+            # This is only true for snapshot format 2
+            # we do not currently support double precision
+            # snap format 2 data
             f.close()
             return True, 'f4'
         else:
