@@ -162,8 +162,8 @@ class TotalQuantity(DerivedQuantity):
 
     Parameters
     ----------
-    fields : field or list of fields
-        The field to be summed.
+    fields
+        The field or list of fields to be summed.
 
     Examples
     --------
@@ -492,8 +492,9 @@ class Extrema(DerivedQuantity):
 
     Parameters
     ----------
-    fields : field or list of fields
-        The field over which the extrema are to be calculated.
+    fields
+        The field or list of fields over which the extrema are to be
+        calculated.
     non_zero : bool
         If True, only positive values are considered in the calculation.
         Default: False

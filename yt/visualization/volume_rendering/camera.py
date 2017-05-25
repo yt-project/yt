@@ -163,7 +163,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        position : number, YTQuantity, iterable, or 3 element YTArray
+        position : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
@@ -192,7 +192,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, iterable, or 3 element YTArray
+        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
@@ -220,7 +220,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, iterable, or 3 element YTArray
+        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
@@ -357,7 +357,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, iterable, or 3 element YTArray
+        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             The width of the volume rendering in the horizontal, vertical, and
             depth directions. If a scalar, assumes that the width is the same in
             all three directions. If an iterable, must contain only scalars or
@@ -376,7 +376,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        width : number, YTQuantity, iterable, or 3 element YTArray
+        width : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the position is the same in all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.
@@ -400,7 +400,7 @@ class Camera(Orientation):
         Parameters
         ----------
 
-        focus : number, YTQuantity, iterable, or 3 element YTArray
+        focus : number, YTQuantity, :obj:`!iterable`, or 3 element YTArray
             If a scalar, assumes that the focus is the same is all three
             coordinates. If an iterable, must contain only scalars or
             (length, unit) tuples.

@@ -459,8 +459,8 @@ class GadgetFOFHaloDataset(ParticleDataset):
 class GagdetFOFHaloContainer(YTSelectionContainer):
     """
     Create a data container to get member particles and individual
-    values from halos and subhalos.  Halo mass, position, and
-    velocity are set as attributes.  Halo IDs are accessible
+    values from halos and subhalos. Halo mass, position, and
+    velocity are set as attributes. Halo IDs are accessible
     through the field, "member_ids".  Other fields that are one
     value per halo are accessible as normal.  The field list for
     halo objects can be seen in `ds.halos_field_list`.
@@ -470,13 +470,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     ptype : string
         The type of halo, either "Group" for the main halo or
         "Subhalo" for subhalos.
-    particle_identifier : int or tuple of (int, int)
+    particle_identifier : int or tuple of ints
         The halo or subhalo id.  If requesting a subhalo, the id
         can also be given as a tuple of the main halo id and
         subgroup id, such as (1, 4) for subgroup 4 of halo 1.
 
-    Halo Container Attributes
-    -------------------------
+    Attributes
+    ----------
     particle_identifier : int
         The id of the halo or subhalo.
     group_identifier : int
@@ -493,14 +493,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     velocity : array of floats
         Halo velocity.
 
-    Relevant Fields
-    ---------------
-    particle_number :
-        number of particles
-    subhalo_number :
-        number of subhalos
-    group_identifier :
-        id of parent group for subhalos
+    Note
+    ----
+    Relevant Fields:
+
+     * particle_number - number of particles
+     * subhalo_number - number of subhalos
+     * group_identifier - id of parent group for subhalos
 
     Examples
     --------
