@@ -32,7 +32,7 @@ from yt.funcs import get_pbar
 
 cdef int CHUNKSIZE = 4096
 
-@cython.boundscheck(True)
+@cython.boundscheck(False)
 @cython.wraparound(False)
 def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
                               PyKDTree kdtree,
@@ -63,7 +63,9 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef vector[uint32_t] nearby_ids
     cdef int n_particles = input_positions.shape[0]
     cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
-    cdef np.float64_t tpos, furthest_distance, sq_dist
+    cdef np.float64_t tpos, furthest_distance, sq_dist, ndist, ma, v
+    cdef np.float64_t* pos
+    cdef np.float64_t* positions = &input_positions[0, 0]
     cdef uint64_t neighbor_id
     cdef int i, j, k, l, n_kept, skip
     pbar = get_pbar("Generate smoothing length", n_particles)
@@ -75,7 +77,8 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
         # Search the tree for the node containing the position under
         # consideration. Fine neighbor nodes and determine the total
         # number of particles in all the nodes under consideration
-        leafnode = c_tree.search(&input_positions[i, 0])
+        pos = positions + 3*i
+        leafnode = c_tree.search(&pos[0])
 
         # Find indices into the particle position array for the list of
         # potential nearest neighbors
@@ -88,6 +91,20 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
         for j in range(nearby_ids.size() - 1, -1, -1):
             node = c_tree.leaves[nearby_ids[j]]
 
+            # cull nodes in which all points are too far away
+            if n_kept > n_neighbors:
+                ndist = 0
+                for k in range(3):
+                    v = pos[k]
+                    if v < node.left_edge[k]:
+                        ndist += ((node.left_edge[k] - v) *
+                                  (node.left_edge[k] - v))
+                    if v > node.right_edge[k]:
+                        ndist += ((node.right_edge[k] - v) *
+                                  (node.right_edge[k] - v))
+                if ndist > furthest_distance:
+                    continue
+
             nearby_indices = vector[uint64_t]()
             for k in range(node.children):
                 nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
@@ -96,9 +113,9 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
                 skip = 0
                 sq_dist = 0
                 for k in range(3):
-                    tpos = (input_positions[nearby_indices[l], k] -
-                            input_positions[i, k])
+                    tpos = (positions + 3*nearby_indices[l])[k] - pos[k]
                     sq_dist += tpos*tpos
+                    # cull particles that are already too far away
                     if (n_kept > n_neighbors and sq_dist > furthest_distance):
                         skip = 1
                         break
@@ -113,9 +130,12 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
         # nth nearest neighbor for particle i. Take the square root of
         # the squared distance to the nth neighbor to find the smoothing
         # length.
+
         sort[vector[np.float64_t].iterator](
             squared_distances.begin(), squared_distances.end())
+
         smoothing_length[i] = sqrt(squared_distances[n_neighbors])
+
     pbar.update(n_particles-1)
     pbar.finish()
     return np.array(smoothing_length)
