@@ -152,11 +152,11 @@ class StreamHandler(object):
     def get_fields(self):
         return self.fields.all_fields
 
-    def get_particle_type(self, field) :
+    def get_particle_type(self, field):
 
-        if field in self.particle_types :
+        if field in self.particle_types:
             return self.particle_types[field]
-        else :
+        else:
             return False
 
 class StreamHierarchy(GridIndex):
@@ -254,35 +254,41 @@ class StreamHierarchy(GridIndex):
         else:
             self.io = io_registry[self.dataset_type](self.ds)
 
-    def update_data(self, data, units = None):
+    def _reset_particle_count(self):
+        self.grid_particle_count[:] = self.stream_handler.particle_count
+        for i, grid in enumerate(self.grids):
+            grid.NumberOfParticles = self.grid_particle_count[i, 0]
 
+    def update_data(self, data):
         """
         Update the stream data with a new data dict. If fields already exist,
         they will be replaced, but if they do not, they will be added. Fields
         already in the stream but not part of the data dict will be left
-        alone. 
+        alone.
         """
-        [update_field_names(d) for d in data]
-        if units is not None:
-            self.stream_handler.field_units.update(units)
         particle_types = set_particle_types(data[0])
-        ftype = "io"
 
-        for key in data[0].keys() :
-            if key is "number_of_particles": continue
+        for key in data[0].keys():
+            if key == "number_of_particles":
+                continue
             self.stream_handler.particle_types[key] = particle_types[key]
+        self.ds._find_particle_types()
 
-        for i, grid in enumerate(self.grids) :
-            if "number_of_particles" in data[i] :
-                grid.NumberOfParticles = data[i].pop("number_of_particles")
-            for fname in data[i]:
-                if fname in grid.field_data:
-                    grid.field_data.pop(fname, None)
-                elif (ftype, fname) in grid.field_data:
-                    grid.field_data.pop( ("io", fname) )
-                self.stream_handler.fields[grid.id][fname] = data[i][fname]
-            
+        for i, grid in enumerate(self.grids):
+            if "number_of_particles" in data[i]:
+                self.stream_handler.particle_count[i] = data[i].pop("number_of_particles")
+            field_units, gdata = unitify_data(data[i])
+            self.stream_handler.field_units.update(field_units)
+            for field in gdata:
+                if field in grid.field_data:
+                    grid.field_data.pop(field, None)
+                self.stream_handler.fields[grid.id][field] = gdata[field]
+
+        self._reset_particle_count()
         # We only want to create a superset of fields here.
+        for field in self.ds.field_list:
+            if field[0] == "all":
+                self.ds.field_list.remove(field)
         self._detect_output_fields()
         self.ds.create_field_info()
         mylog.debug("Creating Particle Union 'all'")
@@ -298,14 +304,11 @@ class StreamDataset(Dataset):
 
     def __init__(self, stream_handler, storage_filename=None,
                  geometry="cartesian", unit_system="cgs"):
-        #if parameter_override is None: parameter_override = {}
-        #self._parameter_override = parameter_override
-        #if conversion_override is None: conversion_override = {}
-        #self._conversion_override = conversion_override
         self.fluid_types += ("stream",)
         self.geometry = geometry
         self.stream_handler = stream_handler
-        name = "InMemoryParameterFile_%s" % (uuid.uuid4().hex)
+        self._find_particle_types()
+        name = "InMemoryParameterFile_%s" % uuid.uuid4().hex
         from yt.data_objects.static_output import _cached_datasets
         _cached_datasets[name] = self
         Dataset.__init__(self, name, self._dataset_type,
@@ -365,6 +368,14 @@ class StreamDataset(Dataset):
     def _skip_cache(self):
         return True
 
+    def _find_particle_types(self):
+        particle_types = set([])
+        for k, v in self.stream_handler.particle_types.items():
+            if v:
+                particle_types.add(k[0])
+        self.particle_types = tuple(particle_types)
+        self.particle_types_raw = self.particle_types
+
 class StreamDictFieldHandler(dict):
     _additional_fields = ()
 
@@ -410,6 +421,21 @@ def assign_particle_data(ds, pdata):
     will overwrite any existing particle data, so be careful!
     """
 
+    for ptype in ds.particle_types_raw:
+        check_fields = [(ptype, "particle_position_x"),
+                        (ptype, "particle_position")]
+        if all(f not in pdata for f in check_fields):
+            pdata_ftype = {}
+            for f in [k for k in sorted(pdata)]:
+                if not hasattr(pdata[f], "shape"):
+                    continue
+                if f == 'number_of_particles':
+                    continue
+                mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
+                pdata_ftype[ptype, f] = pdata.pop(f)
+            pdata_ftype.update(pdata)
+            pdata = pdata_ftype
+
     # Note: what we need to do here is a bit tricky.  Because occasionally this
     # gets called before we property handle the field detection, we cannot use
     # any information about the index.  Fortunately for us, we can generate
@@ -417,14 +443,7 @@ def assign_particle_data(ds, pdata):
     # stream handler.
 
     if len(ds.stream_handler.fields) > 1:
-
-        if ("io", "particle_position_x") in pdata:
-            x, y, z = (pdata["io", "particle_position_%s" % ax] for ax in 'xyz')
-        elif ("io", "particle_position") in pdata:
-            x, y, z = pdata["io", "particle_position"].T
-        else:
-            raise KeyError(
-                "Cannot decompose particle data without position fields!")
+        pdata.pop("number_of_particles", None)
         num_grids = len(ds.stream_handler.fields)
         parent_ids = ds.stream_handler.parent_ids
         num_children = np.zeros(num_grids, dtype='int64')
@@ -441,34 +460,44 @@ def assign_particle_data(ds, pdata):
                              ds.stream_handler.parent_ids,
                              levels, num_children)
 
-        pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
-        particle_grid_inds = pts.find_points_in_tree()
-        idxs = np.argsort(particle_grid_inds)
-        particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
-                                          minlength=num_grids)
-        particle_indices = np.zeros(num_grids + 1, dtype='int64')
-        if num_grids > 1 :
-            np.add.accumulate(particle_grid_count.squeeze(),
-                              out=particle_indices[1:])
-        else :
-            particle_indices[1] = particle_grid_count.squeeze()
-
-        pdata.pop("number_of_particles", None)
         grid_pdata = []
-        for i, pcount in enumerate(particle_grid_count):
-            grid = {}
-            grid["number_of_particles"] = pcount
-            start = particle_indices[i]
-            end = particle_indices[i+1]
-            for key in pdata.keys() :
-                grid[key] = pdata[key][idxs][start:end]
+        for i in range(num_grids):
+            grid = {"number_of_particles": 0}
             grid_pdata.append(grid)
 
-    else :
+        for ptype in ds.particle_types_raw:
+            if (ptype, "particle_position_x") in pdata:
+                x, y, z = (pdata[ptype, "particle_position_%s" % ax] for ax in 'xyz')
+            elif (ptype, "particle_position") in pdata:
+                x, y, z = pdata[ptype, "particle_position"].T
+            else:
+                raise KeyError(
+                    "Cannot decompose particle data without position fields!")
+            pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
+            particle_grid_inds = pts.find_points_in_tree()
+            idxs = np.argsort(particle_grid_inds)
+            particle_grid_count = np.bincount(particle_grid_inds.astype("intp"),
+                                              minlength=num_grids)
+            particle_indices = np.zeros(num_grids + 1, dtype='int64')
+            if num_grids > 1:
+                np.add.accumulate(particle_grid_count.squeeze(),
+                                  out=particle_indices[1:])
+            else:
+                particle_indices[1] = particle_grid_count.squeeze()
+            for i, pcount in enumerate(particle_grid_count):
+                grid_pdata[i]["number_of_particles"] += pcount
+                start = particle_indices[i]
+                end = particle_indices[i+1]
+                for key in pdata.keys():
+                    if key[0] == ptype:
+                        grid_pdata[i][key] = pdata[key][idxs][start:end]
+
+    else:
         grid_pdata = [pdata]
 
     for pd, gi in zip(grid_pdata, sorted(ds.stream_handler.fields)):
         ds.stream_handler.fields[gi].update(pd)
+        ds.stream_handler.particle_types.update(set_particle_types(pd))
         npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)
         ds.stream_handler.particle_count[gi] = npart
 
@@ -532,7 +561,7 @@ def unitify_data(data):
         # overridden here.
         if any(f[0] == new_field[1] for f in known_fields) and \
            field_units[new_field] == "":
-            field_units.pop(new_field)
+               field_units.pop(new_field)
     data = new_data
     return field_units, data
 
@@ -628,22 +657,21 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     # First we fix our field names
     field_units, data = unitify_data(data)
 
+    dshape = tuple(domain_dimensions)
     for field_name in data:
         fshape = data[field_name].shape
-        dshape = tuple(domain_dimensions)
-        pshape = (number_of_particles, )
-        if fshape != dshape and fshape != pshape:
+        if len(fshape) == 3 and fshape != dshape:
             msg = ("Input data shape %s for field %s does not match provided "
-                   "domain_dimensions %s or number of particles %s")
-            msg = msg % (fshape, field_name, dshape, pshape)
+                   "domain_dimensions %s!")
+            msg = msg % (fshape, field_name, dshape)
             raise RuntimeError(msg)
 
     sfh = StreamDictFieldHandler()
 
     if number_of_particles > 0:
         particle_types = set_particle_types(data)
-        pdata = {} # Used much further below.
-        pdata["number_of_particles"] = number_of_particles
+        # Used much further below.
+        pdata = {"number_of_particles": number_of_particles}
         for key in list(data.keys()):
             if len(data[key].shape) == 1 or key[0] == 'io':
                 if not isinstance(key, tuple):
@@ -716,21 +744,8 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
 
     sds = StreamDataset(handler, geometry=geometry, unit_system=unit_system)
 
-    check_fields = [("io", "particle_position_x"), ("io", "particle_position")]
-
     # Now figure out where the particles go
     if number_of_particles > 0:
-        if all(f not in pdata for f in check_fields):
-            pdata_ftype = {}
-            for f in [k for k in sorted(pdata)]:
-                if not hasattr(pdata[f], "shape"):
-                    continue
-                if f == 'number_of_particles':
-                    continue
-                mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                pdata_ftype["io",f] = pdata.pop(f)
-            pdata_ftype.update(pdata)
-            pdata = pdata_ftype
         # This will update the stream handler too
         assign_particle_data(sds, pdata)
 
@@ -957,9 +972,9 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
             if not isinstance(field, tuple):
                 field = ("unknown", field)
             fi = base_ds._get_field_info(*field)
-            if fi.particle_type :
+            if fi.particle_type and field[0] in base_ds.particle_types_raw:
                 pdata[field] = uconcatenate([grid[field]
-                                               for grid in base_ds.index.grids])
+                                             for grid in base_ds.index.grids])
         pdata["number_of_particles"] = number_of_particles
 
     last_gc = base_ds.index.num_grids
@@ -975,15 +990,15 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
         if callback is not None: callback(ds)
         grid_data = []
         for g in ds.index.grids:
-            gd = dict( left_edge = g.LeftEdge,
-                       right_edge = g.RightEdge,
-                       level = g.Level,
-                       dimensions = g.ActiveDimensions )
+            gd = dict(left_edge=g.LeftEdge,
+                       right_edge=g.RightEdge,
+                       level=g.Level,
+                       dimensions=g.ActiveDimensions)
             for field in ds.field_list:
                 if not isinstance(field, tuple):
                     field = ("unknown", field)
                 fi = ds._get_field_info(*field)
-                if not fi.particle_type :
+                if not fi.particle_type:
                     gd[field] = g[field]
             grid_data.append(gd)
             if g.Level < ds.index.max_level: continue
@@ -993,35 +1008,37 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
                 LE = sg.left_index * g.dds + ds.domain_left_edge
                 dims = sg.dimensions * ds.refine_by
                 grid = ds.smoothed_covering_grid(g.Level + 1, LE, dims)
-                gd = dict(left_edge = LE, right_edge = grid.right_edge,
-                          level = g.Level + 1, dimensions = dims)
+                gd = dict(left_edge=LE, right_edge=grid.right_edge,
+                          level=g.Level + 1, dimensions=dims)
                 for field in ds.field_list:
                     if not isinstance(field, tuple):
                         field = ("unknown", field)
                     fi = ds._get_field_info(*field)
-                    if not fi.particle_type :
+                    if not fi.particle_type:
                         gd[field] = grid[field]
                 grid_data.append(gd)
 
         ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
 
-        if number_of_particles > 0:
-            if ("io", "particle_position_x") not in pdata:
-                pdata_ftype = {}
-                for f in [k for k in sorted(pdata)]:
-                    if not hasattr(pdata[f], "shape"): continue
-                    mylog.debug("Reassigning '%s' to ('io','%s')", f, f)
-                    pdata_ftype["io",f] = pdata.pop(f)
-                pdata_ftype.update(pdata)
-                pdata = pdata_ftype
-            assign_particle_data(ds, pdata)
-            # We need to reassign the field list here.
         cur_gc = ds.index.num_grids
+
+    ds.particle_types_raw = base_ds.particle_types_raw
+    ds.particle_types = ds.particle_types_raw
+
+    # Now figure out where the particles go
+    if number_of_particles > 0:
+        # This will update the stream handler too
+        assign_particle_data(ds, pdata)
+        # Because we've already used the index, we
+        # have to re-create the field info because
+        # we added particle data after the fact
+        ds.index._reset_particle_count()
+        ds.index._detect_output_fields()
+        ds.create_field_info()
 
     return ds
 
 class StreamParticleIndex(ParticleIndex):
-
 
     def __init__(self, ds, dataset_type = None):
         self.stream_handler = ds.stream_handler
@@ -1129,7 +1146,6 @@ def load_particles(data, length_unit = None, bbox=None,
     data = pdata # Drop reference count
     update_field_names(data)
     particle_types = set_particle_types(data)
-
     sfh.update({'stream_file':data})
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
@@ -1679,6 +1695,9 @@ class StreamUnstructuredMeshDataset(StreamDataset):
     _index_class = StreamUnstructuredIndex
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_unstructured"
+
+    def _find_particle_types(self):
+        pass
 
 def load_unstructured_mesh(connectivity, coordinates, node_data=None,
                            elem_data=None, length_unit=None, bbox=None,
