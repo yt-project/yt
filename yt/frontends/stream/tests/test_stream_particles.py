@@ -39,8 +39,7 @@ def test_stream_particles():
         data = dict(left_edge=grid.LeftEdge,
                     right_edge=grid.RightEdge,
                     level=grid.Level,
-                    dimensions=grid.ActiveDimensions,
-                    number_of_particles=grid.NumberOfParticles)
+                    dimensions=grid.ActiveDimensions)
 
         for field in amr0.field_list:
             data[field] = grid[field]
@@ -54,8 +53,7 @@ def test_stream_particles():
                "particle_position_x": x,
                "particle_position_y": y,
                "particle_position_z": z,
-               "particle_mass": m,
-               "number_of_particles": num_particles}
+               "particle_mass": m}
 
     fields2 = fields1.copy()
 
@@ -105,8 +103,7 @@ def test_stream_particles():
         data = dict(left_edge=grid.LeftEdge,
                     right_edge=grid.RightEdge,
                     level=grid.Level,
-                    dimensions=grid.ActiveDimensions,
-                    number_of_particles=grid.NumberOfParticles)
+                    dimensions=grid.ActiveDimensions)
 
         for field in amr1.field_list:
             if field[0] != "all":
@@ -172,8 +169,7 @@ def test_stream_particles():
                ("star", "particle_position_x"): xs,
                ("star", "particle_position_y"): ys,
                ("star", "particle_position_z"): zs,
-               ("star", "particle_mass"): ms,
-               "number_of_particles": num_dm_particles+num_star_particles}
+               ("star", "particle_mass"): ms}
 
     fields4 = fields3.copy()
 
@@ -220,8 +216,7 @@ def test_stream_particles():
         data = dict(left_edge=grid.LeftEdge,
                     right_edge=grid.RightEdge,
                     level=grid.Level,
-                    dimensions=grid.ActiveDimensions,
-                    number_of_particles=grid.NumberOfParticles)
+                    dimensions=grid.ActiveDimensions)
 
         for field in amr3.field_list:
             if field[0] != "all":
