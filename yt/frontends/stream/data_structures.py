@@ -387,22 +387,6 @@ class StreamDictFieldHandler(dict):
         fields = list(set(fields))
         return fields
 
-def update_field_names(data):
-    orig_names = list(data.keys())
-    for k in orig_names:
-        if isinstance(k, tuple):
-            continue
-        s = getattr(data[k], "shape", ())
-        if len(s) == 1:
-            field = ("io", k)
-        elif len(s) == 3:
-            field = ("stream", k)
-        elif len(s) == 0:
-            continue
-        else:
-            raise NotImplementedError
-        data[field] = data.pop(k)
-
 def set_particle_types(data):
     particle_types = {}
     for key in data.keys():
@@ -683,7 +667,6 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
                 pdata[field] = data.pop(key)
     else:
         particle_types = {}
-    update_field_names(data)
 
     if nprocs > 1:
         temp = {}
@@ -858,7 +841,6 @@ def load_amr_grids(grid_data, domain_dimensions,
         if "number_of_particles" in g:
             number_of_particles[i,:] = g.pop("number_of_particles")
         field_units, data = unitify_data(g)
-        update_field_names(data)
         sfh[i] = data
 
     # We now reconstruct our parent ids, so that our particle assignment can
@@ -1144,7 +1126,6 @@ def load_particles(data, length_unit = None, bbox=None,
         pdata[field] = data[key]
         sfh._additional_fields += (field,)
     data = pdata # Drop reference count
-    update_field_names(data)
     particle_types = set_particle_types(data)
     sfh.update({'stream_file':data})
     grid_left_edges = domain_left_edge
@@ -1603,7 +1584,6 @@ def load_octree(octree_mask, data,
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
-    update_field_names(data)
 
     field_units, data = unitify_data(data)
     sfh = StreamDictFieldHandler()
