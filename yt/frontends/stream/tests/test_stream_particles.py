@@ -109,7 +109,8 @@ def test_stream_particles():
                     number_of_particles=grid.NumberOfParticles)
 
         for field in amr1.field_list:
-            data[field] = grid[field]
+            if field[0] != "all":
+                data[field] = grid[field]
 
         grid_data.append(data)
 
@@ -124,14 +125,14 @@ def test_stream_particles():
     assert_equal(number_of_particles1, number_of_particles2)
 
     for grid in amr1.index.grids:
-        tot_parts = grid["io","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["io", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
     for grid in amr2.index.grids:
-        tot_parts = grid["io","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["io", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
@@ -188,9 +189,9 @@ def test_stream_particles():
     assert_equal(number_of_particles3, number_of_particles4)
 
     for grid in ug4.index.grids:
-        tot_parts = grid["dm","particle_position_x"].size
-        tot_parts += grid["star","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["dm", "particle_position_x"].size
+        tot_parts += grid["star", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
@@ -223,7 +224,8 @@ def test_stream_particles():
                     number_of_particles=grid.NumberOfParticles)
 
         for field in amr3.field_list:
-            data[field] = grid[field]
+            if field[0] != "all":
+                data[field] = grid[field]
 
         grid_data.append(data)
 
@@ -248,9 +250,9 @@ def test_stream_particles():
         assert amr4._get_field_info(ptype, "particle_mass").particle_type
 
     for grid in amr3.index.grids:
-        tot_parts = grid["dm","particle_position_x"].size
-        tot_parts += grid["star","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["dm", "particle_position_x"].size
+        tot_parts += grid["star", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
