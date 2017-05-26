@@ -67,7 +67,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef np.float64_t* pos
     cdef np.float64_t* positions = &input_positions[0, 0]
     cdef uint64_t neighbor_id
-    cdef int i, j, k, l, n_kept, skip
+    cdef int i, j, k, l, skip
     pbar = get_pbar("Generate smoothing length", n_particles)
     with nogil:
         for i in range(n_particles):
@@ -89,12 +89,11 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 
             squared_distances = vector[np.float64_t]()
             furthest_distance = 0
-            n_kept = 0
             for j in range(nearby_ids.size() - 1, -1, -1):
                 node = c_tree.leaves[nearby_ids[j]]
 
                 # cull nodes in which all points are too far away
-                if n_kept > n_neighbors:
+                if squared_distances.size() > n_neighbors:
                     ndist = 0
                     for k in range(3):
                         v = pos[k]
@@ -118,13 +117,13 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
                         tpos = (positions + 3*nearby_indices[l])[k] - pos[k]
                         sq_dist += tpos*tpos
                         # cull particles that are already too far away
-                        if (n_kept > n_neighbors and sq_dist > furthest_distance):
-                            skip = 1
-                            break
+                        if squared_distances.size() > n_neighbors:
+                            if sq_dist > furthest_distance:
+                                skip = 1
+                                break
                     if skip:
                         continue
                     squared_distances.push_back(sq_dist)
-                    n_kept += 1
                     if squared_distances[j] > furthest_distance:
                         furthest_distance = squared_distances[j]
 
