@@ -269,10 +269,7 @@ class StreamHierarchy(GridIndex):
         """
         particle_types = set_particle_types(data[0])
 
-        for key in data[0].keys():
-            if key == "number_of_particles":
-                continue
-            self.stream_handler.particle_types[key] = particle_types[key]
+        self.stream_handler.particle_types.update(particle_types)
         self.ds._find_particle_types()
 
         for i, grid in enumerate(self.grids):
