@@ -1253,13 +1253,11 @@ resolution.
        dict(left_edge=[0.0, 0.0, 0.0],
             right_edge=[1.0, 1.0, 1.0],
             level=0,
-            dimensions=[32, 32, 32],
-            number_of_particles=0)
+            dimensions=[32, 32, 32])
        dict(left_edge=[0.25, 0.25, 0.25],
             right_edge=[0.75, 0.75, 0.75],
             level=1,
-            dimensions=[32, 32, 32],
-            number_of_particles=0)
+            dimensions=[32, 32, 32])
    ]
 
    for g in grid_data:
@@ -1272,14 +1270,13 @@ resolution.
    yt only supports a block structure where the grid edges on the ``n``-th
    refinement level are aligned with the cell edges on the ``n-1``-th level.
 
-Particle fields are supported by adding 1-dimensional arrays and
-setting the ``number_of_particles`` key to each ``grid``'s dict:
+Particle fields are supported by adding 1-dimensional arrays to each 
+``grid``'s dict:
 
 .. code-block:: python
 
    for g in grid_data:
-       g["number_of_particles"] = 100000
-       g["particle_position_x"] = np.random.random((g["number_of_particles"]))
+       g["particle_position_x"] = np.random.random(size=100000)
 
 .. rubric:: Caveats
 
@@ -1318,26 +1315,22 @@ density field in cubic domain of 3 Mpc edge size (3 * 3.08e24 cm) and
 simultaneously divide the domain into 12 chunks, so that you can take advantage
 of the underlying parallelism.
 
-Particle fields are detected as one-dimensional fields. The number of
-particles is set by the ``number_of_particles`` key in
-``data``. Particle fields are then added as one-dimensional arrays in
-a similar manner as the three-dimensional grid fields:
+Particle fields are added as one-dimensional arrays in a similar manner as the 
+three-dimensional grid fields:
 
 .. code-block:: python
 
    import yt
 
    data = dict(Density = dens,
-               number_of_particles = 1000000,
                particle_position_x = posx_arr,
-	       particle_position_y = posy_arr,
-	       particle_position_z = posz_arr)
+	           particle_position_y = posy_arr,
+	           particle_position_z = posz_arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
-where in this example the particle position fields have been assigned.
-``number_of_particles`` must be the same size as the particle arrays. If no
-particle arrays are supplied then ``number_of_particles`` is assumed to be
+where in this example the particle position fields have been assigned. If no
+particle fields are supplied, then the number of particles is assumed to be
 zero.
 
 .. rubric:: Caveats
