@@ -63,7 +63,9 @@ from yt.geometry.grid_container import \
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.utilities.exceptions import \
-    YTIllDefinedAMR
+    YTIllDefinedAMR, \
+    YTInconsistentGridFieldShape, \
+    YTInconsistentParticleFieldShape
 from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate
@@ -556,15 +558,14 @@ def process_data(data, grid_dims=None):
         elif n_shape == 3:
             g_shapes.append(f_shape)
     if len(g_shapes) > 0 and not np.all(np.array(g_shapes) == g_shapes[0]):
-        raise RuntimeError("Not all grid-based fields have the same shape!")
-    if len(g_shapes) > 0 and grid_dims is not None: 
+        raise YTInconsistentGridFieldShape(False)
+    if len(g_shapes) > 0 and grid_dims is not None:
         if not np.all(np.array(g_shapes) == grid_dims):
-            raise RuntimeError("Not all grid-based fields match the grid dimensions!")
+            raise YTInconsistentGridFieldShape(True)
     if len(p_shapes) > 0:
         for ptype, p_shape in p_shapes.items():
             if not np.all(np.array(p_shape) == p_shape[0]):
-                raise RuntimeError("Not all fields with field type '%s' " % ptype +
-                                   "have the same shape!")
+                raise YTInconsistentParticleFieldShape(ptype)
     # Now that we know the particle fields are consistent, determine the number
     # of particles.
     if len(p_shapes) > 0:

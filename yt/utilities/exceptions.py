@@ -661,3 +661,24 @@ class YTIllDefinedAMR(YTException):
             "on the parent level ({} axis)"
         ).format(self.level, self.axis)
         return msg
+
+class YTInconsistentGridFieldShape(YTException):
+    def __init__(self, grid_dims_check):
+        self.grid_dims_check = grid_dims_check
+
+    def __str__(self):
+        if self.grid_dims_check:
+            msg = "Not all grid-based fields match the grid dimensions!"
+        else:
+            msg = "Not all grid-based fields have the same shape!"
+        return msg
+
+class YTInconsistentParticleFieldShape(YTException):
+    def __init__(self, ptype):
+        self.ptype = ptype
+
+    def __str__(self):
+        msg = (
+            "Not all fields with field type {} have the same shape!"
+        ).format(self.ptype)
+        return msg
