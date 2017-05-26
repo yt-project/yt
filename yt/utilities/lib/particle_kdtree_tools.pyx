@@ -69,72 +69,74 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     cdef uint64_t neighbor_id
     cdef int i, j, k, l, n_kept, skip
     pbar = get_pbar("Generate smoothing length", n_particles)
-    for i in range(n_particles):
-        if i % CHUNKSIZE == 0:
-            pbar.update(i-1)
-            PyErr_CheckSignals()
+    with nogil:
+        for i in range(n_particles):
+            if i % CHUNKSIZE == 0:
+                with gil:
+                    pbar.update(i-1)
+                    PyErr_CheckSignals()
 
-        # Search the tree for the node containing the position under
-        # consideration. Fine neighbor nodes and determine the total
-        # number of particles in all the nodes under consideration
-        pos = positions + 3*i
-        leafnode = c_tree.search(&pos[0])
+            # Search the tree for the node containing the position under
+            # consideration. Fine neighbor nodes and determine the total
+            # number of particles in all the nodes under consideration
+            pos = positions + 3*i
+            leafnode = c_tree.search(&pos[0])
 
-        # Find indices into the particle position array for the list of
-        # potential nearest neighbors
-        nearby_ids = leafnode.all_neighbors
-        nearby_ids.push_back(leafnode.leafid)
+            # Find indices into the particle position array for the list of
+            # potential nearest neighbors
+            nearby_ids = leafnode.all_neighbors
+            nearby_ids.push_back(leafnode.leafid)
 
-        squared_distances = vector[np.float64_t]()
-        furthest_distance = 0
-        n_kept = 0
-        for j in range(nearby_ids.size() - 1, -1, -1):
-            node = c_tree.leaves[nearby_ids[j]]
+            squared_distances = vector[np.float64_t]()
+            furthest_distance = 0
+            n_kept = 0
+            for j in range(nearby_ids.size() - 1, -1, -1):
+                node = c_tree.leaves[nearby_ids[j]]
 
-            # cull nodes in which all points are too far away
-            if n_kept > n_neighbors:
-                ndist = 0
-                for k in range(3):
-                    v = pos[k]
-                    if v < node.left_edge[k]:
-                        ndist += ((node.left_edge[k] - v) *
-                                  (node.left_edge[k] - v))
-                    if v > node.right_edge[k]:
-                        ndist += ((node.right_edge[k] - v) *
-                                  (node.right_edge[k] - v))
-                if ndist > furthest_distance:
-                    continue
+                # cull nodes in which all points are too far away
+                if n_kept > n_neighbors:
+                    ndist = 0
+                    for k in range(3):
+                        v = pos[k]
+                        if v < node.left_edge[k]:
+                            ndist += ((node.left_edge[k] - v) *
+                                      (node.left_edge[k] - v))
+                        if v > node.right_edge[k]:
+                            ndist += ((node.right_edge[k] - v) *
+                                      (node.right_edge[k] - v))
+                    if ndist > furthest_distance:
+                        continue
 
-            nearby_indices = vector[uint64_t]()
-            for k in range(node.children):
-                nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
+                nearby_indices = vector[uint64_t]()
+                for k in range(node.children):
+                    nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
 
-            for l in range(nearby_indices.size()):
-                skip = 0
-                sq_dist = 0
-                for k in range(3):
-                    tpos = (positions + 3*nearby_indices[l])[k] - pos[k]
-                    sq_dist += tpos*tpos
-                    # cull particles that are already too far away
-                    if (n_kept > n_neighbors and sq_dist > furthest_distance):
-                        skip = 1
-                        break
-                if skip:
-                    continue
-                squared_distances.push_back(sq_dist)
-                n_kept += 1
-                if squared_distances[j] > furthest_distance:
-                    furthest_distance = squared_distances[j]
+                for l in range(nearby_indices.size()):
+                    skip = 0
+                    sq_dist = 0
+                    for k in range(3):
+                        tpos = (positions + 3*nearby_indices[l])[k] - pos[k]
+                        sq_dist += tpos*tpos
+                        # cull particles that are already too far away
+                        if (n_kept > n_neighbors and sq_dist > furthest_distance):
+                            skip = 1
+                            break
+                    if skip:
+                        continue
+                    squared_distances.push_back(sq_dist)
+                    n_kept += 1
+                    if squared_distances[j] > furthest_distance:
+                        furthest_distance = squared_distances[j]
 
-        # Sort the squared distances and find the nth entry, this is the
-        # nth nearest neighbor for particle i. Take the square root of
-        # the squared distance to the nth neighbor to find the smoothing
-        # length.
+            # Sort the squared distances and find the nth entry, this is the
+            # nth nearest neighbor for particle i. Take the square root of
+            # the squared distance to the nth neighbor to find the smoothing
+            # length.
 
-        sort[vector[np.float64_t].iterator](
-            squared_distances.begin(), squared_distances.end())
+            sort[vector[np.float64_t].iterator](
+                squared_distances.begin(), squared_distances.end())
 
-        smoothing_length[i] = sqrt(squared_distances[n_neighbors])
+            smoothing_length[i] = sqrt(squared_distances[n_neighbors])
 
     pbar.update(n_particles-1)
     pbar.finish()
