@@ -560,8 +560,9 @@ def process_data(data, grid_dims=None):
             g_shapes.append(f_shape)
     if len(g_shapes) > 0 and not np.all(np.array(g_shapes) == g_shapes[0]):
         raise RuntimeError("Not all grid-based fields have the same shape!")
-    if grid_dims is not None and not np.all(np.array(g_shapes) == grid_dims):
-        raise RuntimeError("Not all grid-based fields match the grid dimensions!")
+    if len(g_shapes) > 0 and grid_dims is not None: 
+        if not np.all(np.array(g_shapes) == grid_dims):
+            raise RuntimeError("Not all grid-based fields match the grid dimensions!")
     if len(p_shapes) > 0:
         for ptype, p_shape in p_shapes.items():
             if not np.all(np.array(p_shape) == p_shape[0]):
