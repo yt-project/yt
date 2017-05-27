@@ -1022,21 +1022,15 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
         ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
 
+        ds.particle_types_raw = base_ds.particle_types_raw
+        ds.particle_types = ds.particle_types_raw
+
+        # Now figure out where the particles go
+        if number_of_particles > 0:
+            # This will update the stream handler too
+            assign_particle_data(ds, pdata)
+
         cur_gc = ds.index.num_grids
-
-    ds.particle_types_raw = base_ds.particle_types_raw
-    ds.particle_types = ds.particle_types_raw
-
-    # Now figure out where the particles go
-    if number_of_particles > 0:
-        # This will update the stream handler too
-        assign_particle_data(ds, pdata)
-        # Because we've already used the index, we
-        # have to re-create the field info because
-        # we added particle data after the fact
-        ds.index._reset_particle_count()
-        ds.index._detect_output_fields()
-        ds.create_field_info()
 
     return ds
 
