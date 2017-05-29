@@ -139,7 +139,13 @@ def _get_girder_client():
         print("Please install them using your python package manager, e.g.:")
         print("   pip install girder_client --user")
         exit()
-
+    if not ytcfg.get("yt", "hub_api_key"):
+        print("Before you can access the yt Hub you need an API key")
+        print("In order to obtain one, either register by typing:")
+        print("  yt hub register")
+        print("or follow the instruction on:")
+        print("  http://yt-project.org/docs/dev/sharing_data.html#obtaining-an-api-key")
+        sys.exit()
     hub_url = urlparse(ytcfg.get("yt", "hub_url"))
     gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
