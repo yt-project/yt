@@ -17,7 +17,6 @@ Definitions for image samplers
 import numpy as np
 cimport numpy as np
 cimport cython
-cimport kdtree_utils
 from .volume_container cimport VolumeContainer
 from .partitioned_grid cimport PartitionedGrid
 
@@ -85,7 +84,6 @@ cdef class VolumeRenderSampler(ImageSampler):
     cdef VolumeRenderAccumulator *vra
     cdef public object tf_obj
     cdef public object my_field_tables
-    cdef kdtree_utils.kdtree **trees
     cdef object tree_containers
 
 cdef class LightSourceRenderSampler(ImageSampler):
