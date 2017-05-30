@@ -22,6 +22,8 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.field_data import \
     YTFieldData
+from yt.funcs import \
+    iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.exceptions import \
@@ -171,12 +173,31 @@ class AMRGridPatch(YTSelectionContainer):
         h = self.index # cache it
         my_ind = self.id - self._id_offset
         self.ActiveDimensions = h.grid_dimensions[my_ind]
-        self.LeftEdge = h.grid_left_edge[my_ind]
-        self.RightEdge = h.grid_right_edge[my_ind]
+        self.LeftEdge, self.RightEdge = self._clamp_edges(
+            h.grid_left_edge[my_ind], h.grid_right_edge[my_ind])
         h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
         self.NumberOfParticles = h.grid_particle_count[my_ind, 0]
+
+    def _clamp_edges(self, left_edge, right_edge):
+        if self.Parent is None or self.Parent == []:
+            return left_edge, right_edge
+        start_index = np.zeros((2, 3))
+        if iterable(self.Parent):
+            p = self.Parent[0]
+        else:
+            p = self.Parent
+        pdx = p.dds
+        start_index[0, :] = (left_edge - p.LeftEdge) / pdx
+        start_index[1, :] = (right_edge - p.LeftEdge) / pdx
+        integer_index = np.rint(start_index)
+        need_adjustment = (start_index != integer_index).any(axis=1)
+        if need_adjustment[0]:
+            left_edge = (integer_index[0, :] * pdx + p.LeftEdge)
+        elif need_adjustment[1]:
+            right_edge = (integer_index[1, :] * pdx + p.LeftEdge)
+        return left_edge, right_edge
 
     def get_position(self, index):
         """ Returns center position of an *index*. """
