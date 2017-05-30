@@ -53,9 +53,6 @@ class GridIndex(Index):
         mylog.debug("Constructing grid objects.")
         self._populate_grid_objects()
 
-        mylog.debug("Adjusting grids")
-        self._clamp_grid_edges()
-
         mylog.debug("Re-examining index")
         self._initialize_level_stats()
 
@@ -107,35 +104,6 @@ class GridIndex(Index):
                                     self.float_type), 'code_length')
         self.grid_levels = np.zeros((self.num_grids,1), 'int32')
         self.grid_particle_count = np.zeros((self.num_grids,1), 'int32')
-
-    def _clamp_grid_edges(self):
-        for g in self.grids:
-            start_index = np.zeros((2, 3))
-            if g.Parent is None:
-                left = g.LeftEdge - self.ds.domain_left_edge
-                start_index[0, :] = left/g.dds
-                right = g.RightEdge - self.ds.domain_left_edge
-                start_index[1, :] = right/g.dds
-            else:
-                pdx = g.Parent.dds
-                start_index[0, :] = (g.LeftEdge - g.Parent.LeftEdge) / pdx
-                start_index[1, :] = (g.RightEdge - g.Parent.LeftEdge) / pdx
-            integer_index = np.rint(start_index)
-            need_adjustment = (start_index != integer_index).any(axis=1)
-            if np.any(need_adjustment):
-                wh = np.where(need_adjustment)[0]
-                for d in wh:
-                    if g.Parent is None:
-                        new_edge = (integer_index[d, :] * g.dds +
-                                    self.ds.domain_left_edge)
-                    else:
-                        new_edge = (integer_index[d, :] * pdx +
-                                    g.Parent.LeftEdge)
-                    if d == 0:
-                        g.LeftEdge = new_edge
-                    elif d == 1:
-                        g.RightEdge = new_edge
-
 
     def clear_all_data(self):
         """
