@@ -380,13 +380,10 @@ class EnzoHierarchy(GridIndex):
         mylog.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
-        reconstruct = ytcfg.getboolean("yt","reconstruct_index")
         for g,f in izip(self.grids, self.filenames):
             g._prepare_grid()
             g._setup_dx()
             g.set_filename(f[0])
-            if reconstruct:
-                if g.Parent is not None: g._guess_properties_from_parent()
         del self.filenames # No longer needed.
         self.max_level = self.grid_levels.max()
 
