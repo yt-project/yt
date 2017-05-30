@@ -17,6 +17,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, abs
+from libc.math cimport rint
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 
 @cython.boundscheck(False)
@@ -97,4 +98,22 @@ def smallest_fwidth(np.ndarray[np.float64_t, ndim=2] coords,
         for j in range(3):
             fwidth = fmin(fwidth, RE[j] - LE[j])
     return fwidth
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+cpdef np.float64_t[:] clamp_edges(np.float64_t[:] edge, np.float64_t[:] pleft,
+                                  np.float64_t[:] pdx):
+    cdef np.float64_t start_index
+    cdef np.float64_t integer_index
+    cdef np.intp_t shape = edge.shape[0]
+    cdef np.float64_t[:] ret = np.empty(shape)
+    for i in range(shape):
+        start_index = (edge[i] - pleft[i]) / pdx[i]
+        integer_index = rint(start_index)
+        if start_index != integer_index:
+            ret[i] = integer_index * pdx[i] + pleft[i]
+        else:
+            ret[i] = edge[i]
+    return ret
 
