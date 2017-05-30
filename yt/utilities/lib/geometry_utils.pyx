@@ -501,12 +501,12 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
                              np.ndarray[np.float64_t, ndim=3] triangles):
     cdef np.float64_t p0[3]
     cdef np.float64_t p1[3]
-    cdef np.float64_t p3[3]
+    cdef np.float64_t p2[3]
     cdef np.float64_t E0[3]
     cdef np.float64_t E1[3]
     cdef np.float64_t tri_norm[3]
     cdef np.float64_t plane_norm[3]
-    cdef np.float64_t dp
+    cdef np.float64_t dp, offset
     cdef int i, j, k, count, ntri, nlines
     nlines = 0
     ntri = triangles.shape[0]
@@ -517,28 +517,34 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
     for i in range(ntri):
         count = 0
 
-        # skip if triangle is close to being parallel to plane
+        # Here p0 holds the triangle's zeroth node coordinates,
+        # p1 holds the first node's coordinates, and
+        # p2 holds the second node's coordinates
         for j in range(3):
             p0[j] = triangles[i, 0, j]
             p1[j] = triangles[i, 1, j]
-            p3[j] = triangles[i, 2, j]
+            p2[j] = triangles[i, 2, j]
             plane_norm[j] = 0.0
         plane_norm[ax] = 1.0
         subtract(p1, p0, E0)
-        subtract(p3, p0, E1)
+        subtract(p2, p0, E1)
         cross(E0, E1, tri_norm)
         dp = dot(tri_norm, plane_norm)
         dp /= L2_norm(tri_norm)
+        # Skip if triangle is close to being parallel to plane.
         if (fabs(dp) > 0.995):
             continue
-        
+
         # Now for each line segment (01, 12, 20) we check to see how many cross
-        # the coordinate.
+        # the coordinate of the slice.
+        # Here, the components of p2 are either +1 or -1 depending on whether the
+        # node's coordinate corresponding to the slice axis is greater than the
+        # coordinate of the slice. p2[0] -> node 0; p2[1] -> node 1; p2[2] -> node2
         for j in range(3):
-            p3[j] = copysign(1.0, triangles[i, j, ax] - coord)
-        if p3[0] * p3[1] < 0: count += 1
-        if p3[1] * p3[2] < 0: count += 1
-        if p3[2] * p3[0] < 0: count += 1
+            p2[j] = copysign(1.0, triangles[i, j, ax] - coord + 0)
+        if p2[0] * p2[1] < 0: count += 1
+        if p2[1] * p2[2] < 0: count += 1
+        if p2[2] * p2[0] < 0: count += 1
         if count == 2:
             nlines += 1
         elif count == 3:
@@ -548,17 +554,22 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
         points = <PointSet *> malloc(sizeof(PointSet))
         points.count = 0
         points.next = NULL
-        if p3[0] * p3[1] < 0:
+
+        # Here p0 and p1 again hold node coordinates
+        if p2[0] * p2[1] < 0:
+            # intersection of 01 triangle segment with plane
             for j in range(3):
                 p0[j] = triangles[i, 0, j]
                 p1[j] = triangles[i, 1, j]
             get_intersection(p0, p1, ax, coord, points)
-        if p3[1] * p3[2] < 0:
+        if p2[1] * p2[2] < 0:
+            # intersection of 12 triangle segment with plane
             for j in range(3):
                 p0[j] = triangles[i, 1, j]
                 p1[j] = triangles[i, 2, j]
             get_intersection(p0, p1, ax, coord, points)
-        if p3[2] * p3[0] < 0:
+        if p2[2] * p2[0] < 0:
+            # intersection of 20 triangle segment with plane
             for j in range(3):
                 p0[j] = triangles[i, 2, j]
                 p1[j] = triangles[i, 0, j]
@@ -568,6 +579,7 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
         if first == NULL:
             first = points
         last = points
+
     points = first
     cdef np.ndarray[np.float64_t, ndim=3] line_segments
     line_segments = np.empty((nlines, 2, 3), dtype="float64")
