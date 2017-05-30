@@ -191,6 +191,7 @@ class StreamHierarchy(GridIndex):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
+            grid._setup_dx()
             grid.proc_num = self.grid_procs[i]
             temp_grids[i] = grid
         self.grids = temp_grids
