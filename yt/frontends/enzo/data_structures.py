@@ -30,7 +30,6 @@ from yt.funcs import \
     ensure_tuple, \
     get_pbar, \
     setdefaultattr
-from yt.config import ytcfg
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
