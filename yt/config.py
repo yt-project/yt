@@ -45,6 +45,7 @@ ytcfg_defaults = dict(
     pluginfilename = 'my_plugins.py',
     parallel_traceback = 'False',
     pasteboard_repo = '',
+    reconstruct_index = 'True',
     test_storage_dir = '/does/not/exist',
     test_data_dir = '/does/not/exist',
     requires_ds_strict = 'False',

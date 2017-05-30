@@ -18,6 +18,7 @@ import weakref
 import numpy as np
 from six import string_types
 
+from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.field_data import \
@@ -180,15 +181,20 @@ class AMRGridPatch(YTSelectionContainer):
         self.ActiveDimensions = h.grid_dimensions[my_ind]
         self.LeftEdge = h.grid_left_edge[my_ind]
         self.RightEdge = h.grid_right_edge[my_ind]
-        if iterable(self.Parent):
-            p = self.Parent[0]
-        else:
-            p = self.Parent
-        if p is not None:
-            self.LeftEdge[:] = clamp_edges(
-                self.LeftEdge.d, p.LeftEdge.d, p.dds.d)
-            self.RightEdge[:] = clamp_edges(
-                self.RightEdge.d, p.LeftEdge.d, p.dds.d)
+        # This can be expensive so we allow people to disable this behavior
+        # via a config option
+        if bool(ytcfg.get('yt', 'reconstruct_index')):
+            if iterable(self.Parent):
+                p = self.Parent[0]
+            else:
+                p = self.Parent
+            if p is not None:
+                # clamp grid edges to an integer multiple of the parent cell
+                # width
+                self.LeftEdge.view(np.ndarray)[:] = clamp_edges(
+                    self.LeftEdge, p.LeftEdge, p.dds)
+                self.RightEdge.view(np.ndarray)[:] = clamp_edges(
+                    self.RightEdge, p.LeftEdge, p.dds)
         h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
