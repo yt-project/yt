@@ -25,6 +25,7 @@ from yt.data_objects.field_data import \
 from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
@@ -137,19 +138,22 @@ class AMRGridPatch(YTSelectionContainer):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
+        ds = self.ds
+        index = self.index
         if self.Parent is not None:
             if not hasattr(self.Parent, 'dds'):
                 self.Parent._setup_dx()
-            self.dds = self.Parent.dds.ndarray_view() / self.ds.refine_by
+            self.dds = self.Parent.dds.d / self.ds.refine_by
         else:
-            LE, RE = self.index.grid_left_edge[id,:], \
-                     self.index.grid_right_edge[id,:]
+            LE, RE = (index.grid_left_edge[id, :].d,
+                      index.grid_right_edge[id, :].d)
             self.dds = (RE - LE) / self.ActiveDimensions
-        if self.ds.dimensionality < 2:
-            self.dds[1] = self.ds.domain_right_edge[1] - self.ds.domain_left_edge[1]
         if self.ds.dimensionality < 3:
-            self.dds[2] = self.ds.domain_right_edge[2] - self.ds.domain_left_edge[2]
-        self.dds = self.ds.arr(self.dds, "code_length")
+            self.dds[2] = ds.domain_right_edge[2] - ds.domain_left_edge[2]
+        elif self.ds.dimensionality < 2:
+            self.dds[1] = ds.domain_right_edge[1] - ds.domain_left_edge[1]
+        self.dds = self.dds.view(YTArray)
+        self.dds.units = self.index.grid_left_edge.units
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
