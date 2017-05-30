@@ -184,11 +184,11 @@ class AMRGridPatch(YTSelectionContainer):
         # This can be expensive so we allow people to disable this behavior
         # via a config option
         if bool(ytcfg.get('yt', 'reconstruct_index')):
-            if iterable(self.Parent):
+            if iterable(self.Parent) and len(self.Parent) > 0:
                 p = self.Parent[0]
             else:
                 p = self.Parent
-            if p is not None:
+            if p is not None and p != []:
                 # clamp grid edges to an integer multiple of the parent cell
                 # width
                 self.LeftEdge.view(np.ndarray)[:] = clamp_edges(
