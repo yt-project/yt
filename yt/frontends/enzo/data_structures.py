@@ -66,28 +66,6 @@ class EnzoGrid(AMRGridPatch):
         self._parent_id = -1
         self.Level = -1
 
-    def _guess_properties_from_parent(self):
-        """
-        We know that our grid boundary occurs on the cell boundary of our
-        parent.  This can be a very expensive process, but it is necessary
-        in some indexs, where yt is unable to generate a completely
-        space-filling tiling of grids, possibly due to the finite accuracy in a
-        standard Enzo index file.
-        """
-        rf = self.ds.refine_by
-        my_ind = self.id - self._id_offset
-        self.dds = self.Parent.dds/rf
-        ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
-        self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
-        self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
-        self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.index.grid_left_edge[my_ind,:] = self.LeftEdge
-        self.index.grid_right_edge[my_ind,:] = self.RightEdge
-        self._child_mask = None
-        self._child_index_mask = None
-        self._child_indices = None
-        self._setup_dx()
-
     def set_filename(self, filename):
         """
         Intelligently set the filename.

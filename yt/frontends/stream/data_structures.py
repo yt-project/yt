@@ -97,21 +97,6 @@ class StreamGrid(AMRGridPatch):
         self._parent_id = -1
         self.Level = -1
 
-    def _guess_properties_from_parent(self):
-        rf = self.ds.refine_by
-        my_ind = self.id - self._id_offset
-        self.dds = self.Parent.dds/rf
-        ParentLeftIndex = np.rint((self.LeftEdge-self.Parent.LeftEdge)/self.Parent.dds)
-        self.start_index = rf*(ParentLeftIndex + self.Parent.get_global_startindex()).astype('int64')
-        self.LeftEdge = self.Parent.LeftEdge + self.Parent.dds * ParentLeftIndex
-        self.RightEdge = self.LeftEdge + self.ActiveDimensions*self.dds
-        self.index.grid_left_edge[my_ind,:] = self.LeftEdge
-        self.index.grid_right_edge[my_ind,:] = self.RightEdge
-        self._child_mask = None
-        self._child_index_mask = None
-        self._child_indices = None
-        self._setup_dx()
-
     def set_filename(self, filename):
         pass
 
