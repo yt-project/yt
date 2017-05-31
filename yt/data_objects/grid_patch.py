@@ -69,6 +69,7 @@ class AMRGridPatch(YTSelectionContainer):
         self._last_selector_id = None
         self._current_particle_type = 'all'
         self._current_fluid_type = self.ds.default_fluid_type
+        self._reconstruct_index = bool(ytcfg.get('yt', 'reconstruct_index'))
 
     def get_global_startindex(self):
         """
@@ -183,7 +184,7 @@ class AMRGridPatch(YTSelectionContainer):
         self.RightEdge = h.grid_right_edge[my_ind]
         # This can be expensive so we allow people to disable this behavior
         # via a config option
-        if bool(ytcfg.get('yt', 'reconstruct_index')):
+        if self._reconstruct_index:
             if iterable(self.Parent) and len(self.Parent) > 0:
                 p = self.Parent[0]
             else:
