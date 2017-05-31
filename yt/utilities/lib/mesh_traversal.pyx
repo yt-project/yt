@@ -77,7 +77,7 @@ cdef class EmbreeMeshSampler(ImageSampler):
             vj = j % ny
             vi = (j - vj) / ny
             vj = vj
-            self.vector_function(im, vi, vj, width, v_dir, v_pos)
+            self.vector_function(self, vi, vj, width, v_dir, v_pos)
             for i in range(3):
                 ray.org[i] = v_pos[i]
                 ray.dir[i] = v_dir[i]
