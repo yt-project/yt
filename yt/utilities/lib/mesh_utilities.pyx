@@ -105,16 +105,14 @@ def smallest_fwidth(np.ndarray[np.float64_t, ndim=2] coords,
 @cython.cdivision(True)
 def clamp_edges(np.float64_t[:] edge, np.float64_t[:] pleft,
                 np.float64_t[:] pdx):
-    """Clamp edge to pleft + pdx*n where n is the closest integer"""
+    """Clamp edge to pleft + pdx*n where n is the closest integer
+
+    Note that edge is modified in-place.
+    """
     cdef np.float64_t start_index
     cdef np.float64_t integer_index
     cdef np.intp_t shape = edge.shape[0]
-    cdef np.float64_t[:] ret = np.empty(shape)
     for i in range(shape):
         start_index = (edge[i] - pleft[i]) / pdx[i]
         integer_index = rint(start_index)
-        if start_index != integer_index:
-            ret[i] = integer_index * pdx[i] + pleft[i]
-        else:
-            ret[i] = edge[i]
-    return ret
+        edge[i] = integer_index * pdx[i] + pleft[i]

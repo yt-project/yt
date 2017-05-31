@@ -193,10 +193,8 @@ class AMRGridPatch(YTSelectionContainer):
             if p is not None and p != []:
                 # clamp grid edges to an integer multiple of the parent cell
                 # width
-                self.LeftEdge.view(np.ndarray)[:] = clamp_edges(
-                    self.LeftEdge, p.LeftEdge, p.dds)
-                self.RightEdge.view(np.ndarray)[:] = clamp_edges(
-                    self.RightEdge, p.LeftEdge, p.dds)
+                clamp_edges(self.LeftEdge, p.LeftEdge, p.dds)
+                clamp_edges(self.RightEdge, p.LeftEdge, p.dds)
         h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
