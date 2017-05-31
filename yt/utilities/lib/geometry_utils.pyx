@@ -478,7 +478,7 @@ cdef struct PointSet
 cdef struct PointSet:
     int count
     # First index is point index, second is xyz
-    np.float64_t points[3][3]
+    np.float64_t points[2][3]
     PointSet *next
 
 cdef inline void get_intersection(np.float64_t p0[3], np.float64_t p1[3],
@@ -506,7 +506,7 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
     cdef np.float64_t E1[3]
     cdef np.float64_t tri_norm[3]
     cdef np.float64_t plane_norm[3]
-    cdef np.float64_t dp, offset
+    cdef np.float64_t dp
     cdef int i, j, k, count, ntri, nlines
     nlines = 0
     ntri = triangles.shape[0]
@@ -548,7 +548,8 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
         if count == 2:
             nlines += 1
         elif count == 3:
-            nlines += 2
+            raise RuntimeError("I'm impressed you got a plane to intersect all three "
+                               "legs of a triangle")
         else:
             continue
         points = <PointSet *> malloc(sizeof(PointSet))
@@ -589,11 +590,6 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
             line_segments[k, 0, j] = points.points[0][j]
             line_segments[k, 1, j] = points.points[1][j]
         k += 1
-        if points.count == 3:
-            for j in range(3):
-                line_segments[k, 0, j] = points.points[1][j]
-                line_segments[k, 1, j] = points.points[2][j]
-            k += 1
         last = points
         points = points.next
         free(last)
