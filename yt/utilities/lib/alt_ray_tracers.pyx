@@ -155,7 +155,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         thetaleft = np.empty(I)
         thetaleft.fill(p1[2])
         thetaright = np.empty(I)
-        thetaleft.fill(p2[2])
+        thetaright.fill(p2[2])
     else:
         rleft = rleft[inds]
         rright = rright[inds]
