@@ -16,12 +16,12 @@ Functions for computing the extent of lenses and whatnot
 import numpy as np
 cimport numpy as np
 cimport cython
-from .image_samplers cimport ImageContainer
+from .image_samplers cimport ImageSampler
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int calculate_extent_plane_parallel(ImageContainer *image,
+cdef int calculate_extent_plane_parallel(ImageSampler image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
     # We do this for all eight corners
     cdef np.float64_t temp
@@ -59,7 +59,7 @@ cdef int calculate_extent_plane_parallel(ImageContainer *image,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int calculate_extent_perspective(ImageContainer *image,
+cdef int calculate_extent_perspective(ImageSampler image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
 
     cdef np.float64_t cam_pos[3]
@@ -168,7 +168,7 @@ cdef int calculate_extent_perspective(ImageContainer *image,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int calculate_extent_null(ImageContainer *image,
+cdef int calculate_extent_null(ImageSampler image,
             VolumeContainer *vc, np.int64_t rv[4]) nogil except -1:
     rv[0] = 0
     rv[1] = image.nv[0]
@@ -178,7 +178,7 @@ cdef int calculate_extent_null(ImageContainer *image,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void generate_vector_info_plane_parallel(ImageContainer *im,
+cdef void generate_vector_info_plane_parallel(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
@@ -195,7 +195,7 @@ cdef void generate_vector_info_plane_parallel(ImageContainer *im,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef void generate_vector_info_null(ImageContainer *im,
+cdef void generate_vector_info_null(ImageSampler im,
             np.int64_t vi, np.int64_t vj,
             np.float64_t width[2],
             # Now outbound
