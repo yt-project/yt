@@ -299,7 +299,7 @@ def triangulate_mesh(np.float64_t[:, ::1] coords,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def triangulate_indices(np.intp_t[:, ::1] indices):
+def triangulate_indices(np.int_t[:, ::1] indices):
     '''
 
     This is like triangulate_mesh, except it only considers the
@@ -309,9 +309,9 @@ def triangulate_indices(np.intp_t[:, ::1] indices):
     '''
 
     cdef MeshInfoHolder m = MeshInfoHolder(indices)
-    cdef np.intp_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.intp)
+    cdef np.int_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.int_)
 
-    cdef np.intp_t i, j, k
+    cdef np.int_t i, j, k
     for i in range(m.num_elem):
         for j in range(m.TPE):
             for k in range(3):
