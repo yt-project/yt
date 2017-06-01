@@ -22,6 +22,7 @@ import numpy as np
 from yt.extern.six import add_metaclass
 from yt.utilities.lru_cache import \
     local_lru_cache, _make_key
+from yt.geometry.selection_routines import GridSelector
 
 _axis_ids = {0:2,1:1,2:0}
 
@@ -128,8 +129,9 @@ class BaseIOHandler(object):
         rv = {field: np.empty(size, dtype="=f8") for field in fields} 
         ind = {field: 0 for field in fields}
         for field, obj, data in self.io_iter(chunks, fields):
-            if data is None: continue
-            if selector.__class__.__name__ == "GridSelector":
+            if data is None:
+                continue
+            if selector.__class__ is GridSelector and field not in nodal_fields:
                 ind[field] += data.size
                 rv[field] = data.copy()
                 continue

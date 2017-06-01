@@ -22,6 +22,7 @@ import numpy as np
 from yt.frontends.open_pmd.misc import \
     is_const_component, \
     get_component
+from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 
 
@@ -178,7 +179,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
         rv = {}
         ind = {}
 
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
 

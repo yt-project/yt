@@ -18,7 +18,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.extern.six import b, iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
-
+from yt.geometry.selection_routines import GridSelector
 import numpy as np
 
 
@@ -212,7 +212,7 @@ class IOHandlerInMemory(BaseIOHandler):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
@@ -294,7 +294,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
