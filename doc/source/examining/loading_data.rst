@@ -358,7 +358,8 @@ and cell centered in the others, i.e. it is defined on the z faces of each cell.
 but nodal in the other two, i.e. it lives on the four cell edges that are normal
 to the z direction.
 
-..code-block:: python
+.. code-block:: python
+
     ad = ds.all_data()
     print(ds.field_info[('raw', 'Ex')].nodal_flag)
     print(ad['raw', 'Ex'].shape)
@@ -458,7 +459,8 @@ cell centered in the others, i.e. it is defined on the z faces of each cell.
 direction, but nodal in the other two, i.e. it lives on the four cell edges that
 are normal to the z direction.
 
-..code-block:: python
+.. code-block:: python
+
     ad = ds.all_data()
     print(ds.field_info[('enzo', 'Ex')].nodal_flag)
     print(ad['raw', 'Ex'].shape)
