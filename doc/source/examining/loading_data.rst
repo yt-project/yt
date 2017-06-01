@@ -440,6 +440,43 @@ mentioned.
   of length 1.0 in "code length" which may produce strange results for volume
   quantities.
 
+
+Enzo MHDCT data
+^^^^^^^^^^^^^^^
+
+The electric and magnetic fields for Enzo MHDCT simulations are not
+face-centered. In yt, we call fields like this "nodal".  We define a field to be
+"nodal" in a given direction if the field data is defined at the "low" and
+"high" sides of the cell in that direction, rather than at the cell center.
+Instead of returning one field value per cell selected, nodal fields return a
+number of values, depending on their centering. This centering is marked by a
+`nodal_flag` that describes whether the fields is nodal in each dimension.
+``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while
+``nodal_flag = [0, 0, 1]`` means that the field is nodal in the z direction and
+cell centered in the others, i.e. it is defined on the z faces of each cell.
+``nodal_flag = [1, 1, 0]`` would mean that the field is centered in the z
+direction, but nodal in the other two, i.e. it lives on the four cell edges that
+are normal to the z direction.
+
+..code-block:: python
+    ad = ds.all_data()
+    print(ds.field_info[('enzo', 'Ex')].nodal_flag)
+    print(ad['raw', 'Ex'].shape)
+    print(ds.field_info[('enzo', 'BxF')].nodal_flag)
+    print(ad['raw', 'Bx'].shape)
+    print(ds.field_info[('enzo', 'Bx')].nodal_flag)
+    print(ad['boxlib', 'Bx'].shape)
+
+Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
+per cell are returned, corresponding to the four edges in each cell on which the
+variable is defined. ``('enzo', 'BxF')`` is nodal in one direction, so two
+values are returned per cell. The standard, non-nodal field ``('enzo', 'Bx')``
+is also available.
+
+Currently, slices and data selection are implemented for nodal
+fields. Projections, volume rendering, and many of the analysis modules will not
+work.
+
 .. _loading-exodusii-data:
 
 Exodus II Data
