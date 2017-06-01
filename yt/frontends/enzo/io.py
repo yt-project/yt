@@ -131,9 +131,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     filename = obj.filename
                 for field in fields:
                     nodal_flag = self.ds.field_info[field].nodal_flag
-                    dims = obj.ActiveDimensions[::-1].copy()
-                    if np.any(nodal_flag):
-                        dims += nodal_flag[::-1]
+                    dims = obj.ActiveDimensions[::-1] + nodal_flag[::-1]
                     data = np.empty(dims, dtype=h5_dtype)
                     yield field, obj, self._read_obj_field(
                         obj, field, (fid, data))

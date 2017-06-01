@@ -141,7 +141,7 @@ class BaseIOHandler(object):
         for field, obj, data in self.io_iter(chunks, fields):
             if data is None:
                 continue
-            if selector.__class__ is GridSelector and field not in nodal_fields:
+            if isinstance(selector, GridSelector) and field not in nodal_fields:
                 ind[field] += data.size
                 rv[field] = data.copy()
             else:

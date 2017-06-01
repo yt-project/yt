@@ -360,6 +360,7 @@ to the z direction.
 
 .. code-block:: python
 
+    ds.index
     ad = ds.all_data()
     print(ds.field_info[('raw', 'Ex')].nodal_flag)
     print(ad['raw', 'Ex'].shape)
@@ -461,6 +462,7 @@ are normal to the z direction.
 
 .. code-block:: python
 
+    ds.index
     ad = ds.all_data()
     print(ds.field_info[('enzo', 'Ex')].nodal_flag)
     print(ad['raw', 'Ex'].shape)
