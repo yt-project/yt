@@ -129,13 +129,18 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         fid.close()
                     fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
                     filename = obj.filename
-                data = np.empty(obj.ActiveDimensions[::-1], dtype=h5_dtype)
                 for field in fields:
-                    yield field, obj, self._read_obj_field(obj, field, (fid, data))
+                    nodal_flag = self.ds.field_info[field].nodal_flag
+                    dims = obj.ActiveDimensions[::-1].copy()
+                    if np.any(nodal_flag):
+                        dims += nodal_flag[::-1]
+                    data = np.empty(dims, dtype=h5_dtype)
+                    yield field, obj, self._read_obj_field(
+                        obj, field, (fid, data))
         if fid is not None:
             fid.close()
         
-    def _read_obj_field(self, obj, field, fid_data = None):
+    def _read_obj_field(self, obj, field, fid_data):
         if fid_data is None: fid_data = (None, None)
         fid, data = fid_data
         if fid is None:

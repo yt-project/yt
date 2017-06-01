@@ -126,7 +126,17 @@ class BaseIOHandler(object):
         # rewrite a whole bunch of IO handlers all at once, and to allow a
         # better abstraction for grid-based frontends, we're now defining it in
         # the base class.
-        rv = {field: np.empty(size, dtype="=f8") for field in fields} 
+        rv = {}
+        nodal_fields = []
+        for field in fields:
+            finfo = self.ds.field_info[field]
+            nodal_flag = finfo.nodal_flag
+            if np.any(nodal_flag):
+                num_nodes = 2**sum(nodal_flag)
+                rv[field] = np.empty((size, num_nodes), dtype="=f8")
+                nodal_fields.append(field)
+            else:
+                rv[field] = np.empty(size, dtype="=f8")
         ind = {field: 0 for field in fields}
         for field, obj, data in self.io_iter(chunks, fields):
             if data is None:
@@ -134,8 +144,8 @@ class BaseIOHandler(object):
             if selector.__class__ is GridSelector and field not in nodal_fields:
                 ind[field] += data.size
                 rv[field] = data.copy()
-                continue
-            ind[field] += obj.select(selector, data, rv[field], ind[field])
+            else:
+                ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
     def _read_data_slice(self, grid, field, axis, coord):
