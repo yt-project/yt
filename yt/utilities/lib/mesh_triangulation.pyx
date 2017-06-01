@@ -182,7 +182,7 @@ cdef class MeshInfoHolder:
     cdef np.int64_t TPE  # num tris per element
     cdef int[MAX_NUM_TRI][3] tri_array
 
-    def __cinit__(self, np.int64_t[:, ::1] indices):
+    def __cinit__(self, np.int_t[:, ::1] indices):
         '''
 
         This class is used to store metadata about the type of mesh being used.
