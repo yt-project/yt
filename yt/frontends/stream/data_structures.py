@@ -28,7 +28,8 @@ from numbers import Number as numeric_type
 
 from yt.funcs import \
     iterable, \
-    ensure_list
+    ensure_list, \
+    issue_deprecation_warning
 from yt.utilities.io_handler import io_registry
 from yt.data_objects.field_data import \
     YTFieldData
@@ -662,7 +663,13 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
     # If someone included this throw it away--old API
-    data.pop("number_of_particles", 0)
+    if "number_of_particles" in data:
+        issue_deprecation_warning("It is no longer necessary to include "
+                                  "the number of particles in the data "
+                                  "dict. The number of particles is "
+                                  "determined from the sizes of the "
+                                  "particle fields.")
+        data.pop("number_of_particles")
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
     field_units, data, number_of_particles = process_data(
@@ -857,7 +864,13 @@ def load_amr_grids(grid_data, domain_dimensions,
         grid_dimensions[i,:] = g.pop("dimensions")
         grid_levels[i,:] = g.pop("level")
         # If someone included this throw it away--old API
-        g.pop("number_of_particles", None)
+        if "number_of_particles" in g:
+            issue_deprecation_warning("It is no longer necessary to include "
+                                      "the number of particles in the data "
+                                      "dict. The number of particles is "
+                                      "determined from the sizes of the "
+                                      "particle fields.")
+            g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
             g, grid_dims=tuple(grid_dimensions[i,:]))
         number_of_particles[i, :] = n_particles
