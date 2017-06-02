@@ -93,3 +93,5 @@ gadget_hdf5_ptypes  = (
     "PartType4",
     "PartType5"
 )
+
+SNAP_FORMAT_2_OFFSET = 16

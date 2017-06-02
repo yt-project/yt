@@ -37,17 +37,17 @@ class Streamlines(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    ds : `~yt.data_objects.Dataset`
+    ds : ~yt.data_objects.static_output.Dataset
         This is the dataset to streamline
     pos : array_like
         An array of initial starting positions of the streamlines.
-    xfield: field, optional
+    xfield : str or tuple of str, optional
         The x component of the vector field to be streamlined.
         Default:'velocity_x'
-    yfield: field, optional
+    yfield : str or tuple of str, optional
         The y component of the vector field to be streamlined.
         Default:'velocity_y'
-    zfield: field, optional
+    zfield : str or tuple of str, optional
         The z component of the vector field to be streamlined.
         Default:'velocity_z'
     volume : `yt.extensions.volume_rendering.AMRKDTree`, optional

@@ -40,10 +40,10 @@ Extension Template
 
 A template for starting an extension module (or converting an existing set of
 code to an extension module) can be found at
-https://bitbucket.org/yt_analysis/yt_extension_template .
+https://github.com/yt-project/yt_extension_template .
 
 To get started, download a zipfile of the template (
-https://bitbucket.org/yt_analysis/yt_extension_template/get/tip.zip ) and
+https://github.com/yt-project/yt_extension_template/archive/master.zip ) and
 follow the directions in ``README.md`` to modify the metadata.
 
 Distributing Extensions

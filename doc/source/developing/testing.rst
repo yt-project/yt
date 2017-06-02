@@ -50,19 +50,19 @@ that can import the yt module:
 
 If you are developing new functionality, it is sometimes more convenient to use
 the Nose command line interface, ``nosetests``. You can run the unit tests
-using ``nose`` by navigating to the base directory of the yt mercurial
+using ``nose`` by navigating to the base directory of the yt git
 repository and invoking ``nosetests``:
 
 .. code-block:: bash
 
-   $ cd $YT_HG
+   $ cd $YT_GIT
    $ nosetests
 
-where ``$YT_HG`` is the path to the root of the yt mercurial repository.
+where ``$YT_GIT`` is the path to the root of the yt git repository.
 
 If you want to specify a specific unit test to run (and not run the entire
 suite), you can do so by specifying the path of the test relative to the
-``$YT_HG/yt`` directory -- note that you strip off one yt more than you
+``$YT_GIT/yt`` directory -- note that you strip off one yt more than you
 normally would!  For example, if you want to run the plot_window tests, you'd
 run:
 
@@ -306,7 +306,7 @@ project's contiguous integration server.
 
 .. code-block:: bash
 
-   $ cd $YT_HG
+   $ cd $YT_GIT
    $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy yt.frontends.tipsy
 
 This command will create a set of local answers from the tipsy frontend tests

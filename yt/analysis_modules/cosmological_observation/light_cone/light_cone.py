@@ -298,7 +298,7 @@ class LightCone(CosmologySplice):
                              "or a tuple of type (float, str).")
         
         # Calculate number of pixels on a side.
-        pixels = (field_of_view / image_resolution).in_units("")
+        pixels = int((field_of_view / image_resolution).in_units(""))
 
         # Clear projection stack.
         projection_stack = []

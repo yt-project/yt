@@ -26,6 +26,7 @@ from yt.testing import \
     fake_random_ds, assert_allclose_units, \
     assert_almost_equal
 from yt.units.unit_registry import UnitRegistry
+from yt.units import electrostatic_unit, elementary_charge
 
 # dimensions
 from yt.units.dimensions import \
@@ -507,3 +508,18 @@ def test_registry_json():
     unserialized_reg = UnitRegistry.from_json(json_reg)
 
     assert_equal(reg.lut, unserialized_reg.lut)
+
+def test_creation_from_ytarray():
+    u1 = Unit(electrostatic_unit)
+    assert_equal(str(u1), 'esu')
+    assert_equal(u1, Unit('esu'))
+    assert_equal(u1, electrostatic_unit.units)
+
+    u2 = Unit(elementary_charge)
+    assert_equal(str(u2), '4.8032056e-10*esu')
+    assert_equal(u2, Unit('4.8032056e-10*esu'))
+    assert_equal(u1, elementary_charge.units)
+
+    assert_equal((u1/u2).base_value, electrostatic_unit/elementary_charge)
+
+    assert_raises(UnitParseError, Unit, [1, 2, 3]*elementary_charge)

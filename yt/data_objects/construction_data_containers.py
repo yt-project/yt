@@ -260,6 +260,11 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         field = field or []
         field = self._determine_fields(ensure_list(field))
 
+        for f in field:
+            nodal_flag = self.ds._get_field_info(f).nodal_flag
+            if any(nodal_flag):
+                raise RuntimeError("Nodal fields are currently not supported for projections.")
+
         if not self.deserialize(field):
             self.get_data(field)
             self.serialize()
@@ -736,12 +741,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions, kernel_name)
+        # We allocate number of zones, not number of octs. Everything inside
+        # this is fortran ordered because of the ordering in the octree deposit
+        # routines, so we reverse it here to match the convention there
+        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.copy(order="C")
+        # Fortran-ordered, so transpose.
+        return vals.transpose()
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -1084,7 +1092,7 @@ class YTSurface(YTSelectionContainer3D):
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
         which will be isocontoured.
-    field_value : float
+    field_value : float, YTQuantity, or unit tuple
         The value at which the isocontour should be calculated.
 
     Examples
@@ -1109,14 +1117,21 @@ class YTSurface(YTSelectionContainer3D):
                          ("index", "x"),
                          ("index", "y"),
                          ("index", "z"))
-    vertices = None
     def __init__(self, data_source, surface_field, field_value, ds=None):
         self.data_source = data_source
-        self.surface_field = surface_field
-        self.field_value = field_value
+        self.surface_field = data_source._determine_fields(surface_field)[0]
+        finfo = data_source.ds.field_info[self.surface_field]
+        try:
+            self.field_value = field_value.to(finfo.units)
+        except AttributeError:
+            if isinstance(field_value, tuple):
+                self.field_value = data_source.ds.quan(*field_value)
+                self.field_value = self.field_value.to(finfo.units)
+            else:
+                self.field_value = data_source.ds.quan(field_value, finfo.units)
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurface, self).__init__(center = center, ds=ds)
+        super(YTSurface, self).__init__(center=center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)
@@ -1129,7 +1144,8 @@ class YTSurface(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
-        mylog.info("Extracting (sampling: %s)" % (fields,))
+        if fields is not None:
+            mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
         for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
@@ -1145,7 +1161,7 @@ class YTSurface(YTSelectionContainer3D):
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
         # verts is an ndarray here and will always be in code units, so we
         # expose it in the public API as a YTArray
-        self.vertices = self.ds.arr(verts, 'code_length')
+        self._vertices = self.ds.arr(verts, 'code_length')
         if fields is not None:
             samples = uconcatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
@@ -1262,15 +1278,36 @@ class YTSurface(YTSelectionContainer3D):
         ret.convert_to_units(self.ds.unit_system[ret_units.dimensions])
         return ret
 
+    _vertices = None
+    @property
+    def vertices(self):
+        if self._vertices is None:
+            self.get_data()
+        return self._vertices
+
     @property
     def triangles(self):
-        if self.vertices is None:
-            self.get_data()
         vv = np.empty((self.vertices.shape[1]//3, 3, 3), dtype="float64")
+        vv = self.ds.arr(vv, self.vertices.units)
         for i in range(3):
             for j in range(3):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
+
+    _surface_area = None
+    @property
+    def surface_area(self):
+        if self._surface_area is not None:
+            return self._surface_area
+        tris = self.triangles
+        x = tris[:, 1, :] - tris[:, 0, :]
+        y = tris[:, 2, :] - tris[:, 0, :]
+        areas = (x[:, 1]*y[:, 2] - x[:, 2]*y[:, 1])**2
+        np.add(areas, (x[:, 2]*y[:, 0] - x[:, 0]*y[:, 2])**2, out=areas)
+        np.add(areas, (x[:, 0]*y[:, 1] - x[:, 1]*y[:, 0])**2, out=areas)
+        np.sqrt(areas, out=areas)
+        self._surface_area = 0.5*areas.sum()
+        return self._surface_area
 
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
                    color_field = None, emit_field = None, color_map = None,

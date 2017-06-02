@@ -48,8 +48,8 @@ class RotationTest(TestCase):
             shutil.rmtree(self.tmpdir)
 
     def test_rotation(self):
-        ds = fake_random_ds(64)
-        ds2 = fake_random_ds(64)
+        ds = fake_random_ds(32)
+        ds2 = fake_random_ds(32)
         dd = ds.sphere(ds.domain_center, ds.domain_width[0] / 2)
         dd2 = ds2.sphere(ds2.domain_center, ds2.domain_width[0] / 2)
 

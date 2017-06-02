@@ -444,16 +444,17 @@ class VolumeSource(RenderSource):
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")
+        self.current_image = self.finalize_image(
+            camera, self.sampler.aimage)
 
-        self.current_image = self.finalize_image(camera,
-                                                 self.sampler.aimage,
-                                                 call_from_VR=True)
         if zbuffer is None:
-            self.zbuffer = ZBuffer(self.current_image,
-                                   np.full(self.current_image.shape[:2], np.inf))
+            self.zbuffer = ZBuffer(
+                self.current_image,
+                np.full(self.current_image.shape[:2], np.inf))
+
         return self.current_image
 
-    def finalize_image(self, camera, image, call_from_VR=False):
+    def finalize_image(self, camera, image):
         """Parallel reduce the image.
 
         Parameters
@@ -462,17 +463,12 @@ class VolumeSource(RenderSource):
             The camera used to produce the volume rendering image.
         image: :class:`yt.data_objects.image_array.ImageArray` instance
             A reference to an image to fill
-        call_from_vr: boolean, optional
-            Whether or not this is being called from a higher level in the VR
-            interface. Used to set the correct orientation.
         """
         if self._volume is not None:
             image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if call_from_VR is True:
-            image = np.rot90(image, k=2)
         if self.transfer_function.grey_opacity is False:
             image[:, :, 3] = 1
         return image
@@ -531,6 +527,9 @@ class MeshSource(OpaqueSource):
         # Error checking
         assert(self.field is not None)
         assert(self.data_source is not None)
+        if self.field[0] == 'all':
+            raise NotImplementedError("Mesh unions are not implemented "
+                                       "for 3D rendering")
 
         if self.engine == 'embree':
             self.volume = mesh_traversal.YTEmbreeScene()
@@ -709,6 +708,7 @@ class MeshSource(OpaqueSource):
 
         return self.current_image
 
+
     def finalize_image(self, camera):
         sam = self.sampler
 
@@ -717,11 +717,6 @@ class MeshSource(OpaqueSource):
         Ny = camera.resolution[1]
         self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
 
-        # rotate
-        self.data = np.rot90(self.data, k=2)
-        sam.aimage_used = np.rot90(sam.aimage_used, k=2)
-        sam.amesh_lines = np.rot90(sam.amesh_lines, k=2)
-        sam.azbuffer = np.rot90(sam.azbuffer, k=2)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
@@ -732,7 +727,7 @@ class MeshSource(OpaqueSource):
 
         Parameters
         ----------
-        color: array of ints, shape (4), optional
+        color: array_like of shape (4,), optional
             The RGBA value to use to draw the mesh lines.
             Default is black.
         alpha : float, optional
@@ -798,16 +793,16 @@ class PointSource(OpaqueSource):
 
     Parameters
     ----------
-    positions: array, shape (N, 3)
+    positions: array_like of shape (N, 3)
         The positions of points to be added to the scene. If specified with no
         units, the positions will be assumed to be in code units.
-    colors : array, shape (N, 4), optional
+    colors : array_like of shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.
     color_stride : int, optional
         The stride with which to access the colors when putting them on the
         scene.
-    radii : array, shape (N), optional
+    radii : array_like of shape (N), optional
         The radii of the points in the final image, in pixels (int)
 
     Examples
@@ -919,12 +914,12 @@ class LineSource(OpaqueSource):
 
     Parameters
     ----------
-    positions: array, shape (N, 2, 3)
+    positions: array_like of shape (N, 2, 3)
         The positions of the starting and stopping points for each line.
         For example,positions[0][0] and positions[0][1] would give the (x, y, z)
         coordinates of the beginning and end points of the first line,
         respectively. If specified with no units, assumed to be in code units.
-    colors : array, shape (N, 4), optional
+    colors : array_like of shape (N, 4), optional
         The colors of the points, including an alpha channel, in floating
         point running from 0..1.  The four channels correspond to r, g, b, and
         alpha values. Note that they correspond to the line segment succeeding
@@ -1046,11 +1041,11 @@ class BoxSource(LineSource):
 
     Parameters
     ----------
-    left_edge: array-like, shape (3,), float
+    left_edge: array-like of shape (3,), float
         The left edge coordinates of the box.
-    right_edge : array-like, shape (3,), float
+    right_edge : array-like of shape (3,), float
         The right edge coordinates of the box.
-    color : array-like, shape (4,), float, optional
+    color : array-like of shape (4,), float, optional
         The colors (including alpha) to use for the lines.
 
     Examples
@@ -1209,7 +1204,7 @@ class CoordinateVectorSource(OpaqueSource):
 
     Parameters
     ----------
-    colors: array-like, shape (3,4), optional
+    colors: array-like of shape (3,4), optional
         The x, y, z RGBA values to use to draw the vectors.
     alpha : float, optional
         The opacity of the vectors.

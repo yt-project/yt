@@ -49,7 +49,8 @@ html:
 ifneq ($(READTHEDOCS),True)
 	SPHINX_APIDOC_OPTIONS=members,undoc-members,inherited-members,show-inheritance sphinx-apidoc \
         -o source/reference/api/ \
-        -e ../yt ../yt/extern/* $(shell find ../yt -name "*tests*" -type d) ../yt/utilities/voropp*
+        -e ../yt ../yt/extern* $(shell find ../yt -name "*tests*" -type d) ../yt/utilities/voropp* \
+           ../yt/analysis_modules/halo_finding/{fof,hop}
 endif
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
 	@echo

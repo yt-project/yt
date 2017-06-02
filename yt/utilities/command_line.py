@@ -33,11 +33,11 @@ from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
     ensure_dir, \
     ensure_list, \
-    get_hg_version, \
+    get_hg_or_git_version, \
     get_yt_version, \
     mylog, \
     ensure_dir_exists, \
-    update_hg, \
+    update_hg_or_git, \
     enable_plugins, \
     download_file
 from yt.extern.six import add_metaclass, string_types
@@ -83,7 +83,7 @@ def _add_arg(sc, arg):
 
 def _print_failed_source_update(reinstall=False):
     print()
-    print("The yt package is not installed from a mercurial repository,")
+    print("The yt package is not installed from a git repository,")
     print("so you must update this installation manually.")
     if 'Continuum Analytics' in sys.version or 'Anaconda' in sys.version:
         # see http://stackoverflow.com/a/21318941/1382869 for why we need
@@ -100,6 +100,13 @@ def _print_failed_source_update(reinstall=False):
             print("To update all of your packages, you can do:")
             print()
             print("    $ conda update --all")
+    else:
+        print("If you manage your python dependencies with pip, you may")
+        print("want to do:")
+        print()
+        print("    $ pip install -U yt")
+        print()
+        print("to update your yt installation.")
 
 def _print_installation_information(path):
     import yt
@@ -117,9 +124,9 @@ def _print_installation_information(path):
     print()
     print("---")
     print("Version = %s" % yt.__version__)
-    vstring = get_hg_version(path)
+    vstring = get_hg_or_git_version(path)
     if vstring is not None:
-        print("Changeset = %s" % vstring.strip().decode("utf-8"))
+        print("Changeset = %s" % vstring.strip())
     print("---")
     return vstring
     
@@ -131,8 +138,14 @@ def _get_girder_client():
         print("this command requires girder_client to be installed")
         print("Please install them using your python package manager, e.g.:")
         print("   pip install girder_client --user")
-        exit()
-
+        sys.exit()
+    if not ytcfg.get("yt", "hub_api_key"):
+        print("Before you can access the yt Hub you need an API key")
+        print("In order to obtain one, either register by typing:")
+        print("  yt hub register")
+        print("or follow the instruction on:")
+        print("  http://yt-project.org/docs/dev/sharing_data.html#obtaining-an-api-key")
+        sys.exit()
     hub_url = urlparse(ytcfg.get("yt", "hub_url"))
     gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
@@ -223,7 +236,9 @@ class GetParameterFiles(argparse.Action):
 _common_options = dict(
     all     = dict(longname="--all", dest="reinstall",
                    default=False, action="store_true",
-                   help="Reinstall the full yt stack in the current location."),
+                   help=("Reinstall the full yt stack in the current location."
+                         "  This option has been deprecated and may not work "
+                         "correctly."),),
     ds      = dict(short="ds", action=GetParameterFiles,
                    nargs="+", help="datasets to run on"),
     ods     = dict(action=GetParameterFiles, dest="ds",
@@ -416,7 +431,6 @@ _common_options = dict(
 
 def _get_yt_stack_date():
     if "YT_DEST" not in os.environ:
-        print("Could not determine when yt stack was last updated.")
         return
     date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
     if not os.path.exists(date_file):
@@ -608,12 +622,12 @@ class YTHubRegisterCmd(YTCommand):
             print("yt {} requires requests to be installed".format(self.name))
             print("Please install them using your python package manager, e.g.:")
             print("   pip install requests --user")
-            exit()
+            sys.exit()
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
             print("new user registration.")
-            exit()
+            sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")
         print("Here's the URL, for reference: http://hub.yt/ ")
         print()
@@ -703,8 +717,7 @@ class YTInstInfoCmd(YTCommand):
         if vstring is not None:
             print("This installation CAN be automatically updated.")
             if opts.update_source:
-                update_hg(path)
-                print("Updated successfully.")
+                update_hg_or_git(path)
                 _get_yt_stack_date()
         elif opts.update_source:
             _print_failed_source_update()
@@ -729,33 +742,21 @@ class YTLoadCmd(YTCommand):
         import yt
 
         import IPython
-        from distutils import version
-        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
-            api_version = '0.10'
-        else:
-            api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
         local_ns['ds'] = args.ds
         local_ns['pf'] = args.ds
         local_ns['yt'] = yt
 
-        if api_version == '0.10':
-            shell = IPython.Shell.IPShellEmbed()
-            shell(local_ns = local_ns,
-                  header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your dataset as 'ds'.  Enjoy!"
-                  )
-        else:
-            try:
-                from traitlets.config.loader import Config
-            except ImportError:
-                from IPython.config.loader import Config
-            import sys
-            cfg = Config()
-            # prepend sys.path with current working directory
-            sys.path.insert(0,'')
-            IPython.embed(config=cfg,user_ns=local_ns)
+        try:
+            from traitlets.config.loader import Config
+        except ImportError:
+            from IPython.config.loader import Config
+        import sys
+        cfg = Config()
+        # prepend sys.path with current working directory
+        sys.path.insert(0,'')
+        IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -1125,8 +1126,7 @@ class YTUpdateCmd(YTCommand):
         if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
-            update_hg(path, skip_rebuild=opts.reinstall)
-            print("Updated successfully.")
+            update_hg_or_git(path)
             _get_yt_stack_date()
             if opts.reinstall:
                 _update_yt_stack(path)

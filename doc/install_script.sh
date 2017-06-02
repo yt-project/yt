@@ -30,7 +30,7 @@ INST_YT_SOURCE=0   # Should yt itself be installed from source?
 # INST_CONDA=0
 # INST_YT_SOURCE=1
 
-BRANCH="yt" # This is the branch to which we will forcibly update.
+BRANCH="master" # This is the branch we will install from for source installs
 
 # What follows are some other options that you may or may not need to change.
 
@@ -44,11 +44,12 @@ YT_DIR=""
 
 # These options can be set to customize the installation.
 
-INST_PY3=0          # Install Python 3 along with Python 2. If this is turned
+INST_PY3=1          # Install Python 3 instead of Python 2. If this is turned
                     # on, all Python packages (including yt) will be installed
-                    # in Python 3 (except Mercurial, which requires Python 2).
-INST_HG=1           # Install Mercurial or not?  If hg is not already
-                    # installed, yt cannot be installed from source.
+                    # in Python 3.
+INST_GIT=1          # Install git or not?  If git is not already installed, yt
+                    # cannot be installed from source. Ignored if INST_CONDA=0
+INST_HG=0           # Install Mercurial or not? Ignored if INST_CONDA=0.
 INST_EMBREE=0       # Install dependencies needed for Embree-accelerated 
                     # ray tracing
 
@@ -148,6 +149,10 @@ else
         echo "Please set INST_YT_SOURCE to 1 and re-run."
         exit 1
     fi
+    if [ $INST_GIT -eq 1 ]
+    then
+        INST_GIT=0
+    fi
     DEST_SUFFIX="yt-`uname -m`"
 fi
 
@@ -200,7 +205,7 @@ function write_config
 {
     CONFIG_FILE=${DEST_DIR}/.yt_config
 
-    echo INST_HG=${INST_HG} > ${CONFIG_FILE}
+    echo INST_GIT=${INST_GIT} > ${CONFIG_FILE}
     echo INST_ZLIB=${INST_ZLIB} >> ${CONFIG_FILE}
     echo INST_BZLIB=${INST_BZLIB} >> ${CONFIG_FILE}
     echo INST_PNG=${INST_PNG} >> ${CONFIG_FILE}
@@ -397,9 +402,10 @@ function host_specific
         echo "  * gcc-{,c++,gfortran}"
         echo "  * make"
         echo "  * patch"
+        echo "  * git"
         echo
         echo "You can accomplish this by executing:"
-        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip"
+        echo "$ sudo yum install gcc gcc-c++ gcc-gfortran make patch zip git"
         echo "$ sudo yum install ncurses-devel uuid-devel openssl-devel readline-devel"
     fi
     if [ -f /etc/SuSE-release ] && [ `grep --count SUSE /etc/SuSE-release` -gt 0 ]
@@ -413,11 +419,12 @@ function host_specific
         echo "  * libuuid-devel"
         echo "  * zip"
         echo "  * gcc-c++"
+        echo "  * git"
         echo
         echo "You can accomplish this by executing:"
         echo
         echo "$ sudo zypper install -t pattern devel_C_C++"
-        echo "$ sudo zypper install gcc-c++ libopenssl-devel libuuid-devel zip"
+        echo "$ sudo zypper install git-core gcc-c++ libopenssl-devel libuuid-devel zip"
         echo
         echo "I am also setting special configure arguments to Python to"
         echo "specify control lib/lib64 issues."
@@ -437,10 +444,11 @@ function host_specific
         echo "  * uuid-dev"
         echo "  * libfreetype6-dev"
         echo "  * tk-dev"
+        echo "  * git"
         echo
         echo "You can accomplish this by executing:"
         echo
-        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev"
+        echo "$ sudo apt-get install libssl-dev build-essential libncurses5 libncurses5-dev zip uuid-dev libfreetype6-dev tk-dev git"
         echo
         echo
         echo " Additionally, if you want to put yt's lib dir in your LD_LIBRARY_PATH"
@@ -566,9 +574,9 @@ printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
 get_willwont ${INST_PY3}
 echo "be installing Python 3"
 
-printf "%-18s = %s so I " "INST_HG" "${INST_HG}"
-get_willwont ${INST_HG}
-echo "be installing Mercurial"
+printf "%-18s = %s so I " "INST_GIT" "${INST_GIT}"
+get_willwont ${INST_GIT}
+echo "be installing git"
 
 printf "%-18s = %s so I " "INST_EMBREE" "${INST_EMBREE}"
 get_willwont ${INST_EMBREE}
@@ -640,10 +648,12 @@ echo "I think that about wraps it up.  If you want to continue, hit enter.  "
 echo "If you'd rather stop, maybe think things over, even grab a sandwich, "
 echo "hit Ctrl-C."
 echo
+
 if [ $INST_YT_SOURCE -ne 0 ]
 then
    host_specific
 fi
+
 if [ $INST_CONDA -eq 0 ]
 then
     if [ ${USED_CONFIG} ]
@@ -679,7 +689,7 @@ function do_exit
 
 if [ $INST_PY3 -eq 1 ]
 then
-     PYTHON_EXEC='python3.5'
+     PYTHON_EXEC='python3'
 else 
      PYTHON_EXEC='python2.7'
 fi
@@ -698,12 +708,7 @@ function do_setup_py
     [ ! -e $LIB/extracted ] && tar xfz $LIB.tar.gz
     touch $LIB/extracted
     BUILD_ARGS=""
-    if [[ $LIB =~ .*mercurial.* ]]
-    then
-        PYEXE="python2.7"
-    else
-        PYEXE=${PYTHON_EXEC}
-    fi
+    PYEXE=${PYTHON_EXEC}
     case $LIB in
         *h5py*)
             pushd $LIB &> /dev/null
@@ -836,10 +841,9 @@ then
     LAPACK='lapack-3.4.2'
     PNG='libpng-1.6.3'
     MATPLOTLIB='matplotlib-1.5.1'
-    MERCURIAL='mercurial-3.7.3'
     NOSE='nose-1.3.7'
     NUMPY='numpy-1.11.0'
-    PYTHON_HGLIB='python-hglib-2.0'
+    GITPYTHON='GitPython-2.1.3'
     ROCKSTAR='rockstar-0.99.6'
     SCIPY='scipy-0.17.0'
     SQLITE='sqlite-autoconf-3071700'
@@ -867,10 +871,9 @@ then
     echo '8770214491e31f0a7a3efaade90eee7b0eb20a8a6ab635c5f854d78263f59a1849133c14ef5123d01023f0110cbb9fc6f818da053c01277914ae81473430a952  lapack-3.4.2.tar.gz' > lapack-3.4.2.tar.gz.sha512
     echo '887582e5a22e4cde338aa8fec7a89f6dd31f2f02b8842735f00f970f64582333fa03401cea6d01704083403c7e8b7ebc26655468ce930165673b33efa4bcd586  libpng-1.6.3.tar.gz' > libpng-1.6.3.tar.gz.sha512
     echo 'a0e78b5027a3a49cf8e77dc0d26f5f380dcd80f7b309b6121199acd5e1d94f48482864a9eee3bd397f7ac6f07fe1d3c21bf517217df3c72e8e3d105b7c2ae58e  matplotlib-1.5.1.tar.gz' > matplotlib-1.5.1.tar.gz.sha512
-    echo '7f9f97229e40c7092c16ccf227b19a08a9839d8ce19a9d057341fff75876bff32241ee9aa10eab293f779ea3e8a1d97577597187bd96251fb499cbb1075a82cf  mercurial-3.7.3.tar.gz' > mercurial-3.7.3.tar.gz.sha512
     echo 'e65c914f621f8da06b9ab11a0ff2763d6e29b82ce2aaed56da0e3773dc899d9deb1f20015789d44c65a5dad7214520f5b659b3f8d7695fb207ad3f78e5cf1b62  nose-1.3.7.tar.gz' > nose-1.3.7.tar.gz.sha512
     echo '92c1889397ad013e25da3a0657fc01e787d528fc19c29cc2acd286c3f07d41b984252583457b1b9259fc303afbe9694565cdcf5752eb4ecb950cc7a99ec1ad8b  numpy-1.11.0.tar.gz' > numpy-1.11.0.tar.gz.sha512
-    echo '647cc82424783efc3d74540e34976af66acc35fc36d66afba169508946cc62027910c7e41dc9d11ec88c15d6b1e113ce22c2781711ea324de58db3b24d5079c4  python-hglib-2.0.tar.gz' > python-hglib-2.0.tar.gz.sha512
+    echo '918ff1765a85a818619165c2bcbb0d417f35c979c2f42f1bb7e41636696c0cb4d6837725f3655fbdfebea966476d1255ee18adabe9ed5536455b63336a1f399d  GitPython-2.1.3.tar.gz' > GitPython-2.1.3.tar.gz.sha512
     echo 'de6409d75a3ff3cf1e5391d3b09126f0bc7e1a40a15f9bee244195638fe2f8481fca032896d8534623e6122ff59aaf669664e27ff89cf1b094a5ce7312f220b7  scipy-0.17.0.tar.gz' > scipy-0.17.0.tar.gz.sha512
     echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
     echo '977db6e9bc6a5918cceb255981a57e85e7060c0922aefd2968b004d25d704e25a5cb5bbe09eb387e8695581e23e2825d9c40310068fe25ece7e9c23037a21f39  sympy-1.0.tar.gz' > sympy-1.0.tar.gz.sha512
@@ -887,16 +890,19 @@ then
     [ $INST_SCIPY -eq 1 ] && get_ytproject $SCIPY.tar.gz
     [ $INST_SCIPY -eq 1 ] && get_ytproject blas.tar.gz
     [ $INST_SCIPY -eq 1 ] && get_ytproject $LAPACK.tar.gz
-    [ $INST_HG -eq 1 ] && get_ytproject $MERCURIAL.tar.gz
-    [ $INST_PY3 -eq 1 ] && get_ytproject $PYTHON3.tgz
+    if [ $INST_PY3 -eq 1 ]
+    then
+        get_ytproject $PYTHON3.tgz
+    else
+        get_ytproject $PYTHON2.tgz
+    fi
     [ $INST_H5PY -eq 1 ] && get_ytproject $H5PY.tar.gz
     [ $INST_NOSE -eq 1 ] && get_ytproject $NOSE.tar.gz
     [ $INST_ASTROPY -eq 1 ] && get_ytproject $ASTROPY.tar.gz
-    get_ytproject $PYTHON2.tgz
     get_ytproject $NUMPY.tar.gz
     get_ytproject $MATPLOTLIB.tar.gz
     get_ytproject $CYTHON.tar.gz
-    get_ytproject $PYTHON_HGLIB.tar.gz
+    get_ytproject $GITPYTHON.tar.gz
     get_ytproject $SYMPY.tar.gz
     get_ytproject $SETUPTOOLS.tar.gz
 
@@ -936,7 +942,7 @@ then
             cd $ZLIB
             ( ./configure --shared --prefix=${DEST_DIR}/ 2>&1 ) 1>> ${LOG_FILE} || do_exit
             ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-            ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+            ( make clean 2>&1 ) 1>> ${LOG_FILE} || do_exit
             touch done
             cd ..
         fi
@@ -1016,37 +1022,11 @@ then
         fi
     fi
 
-    if [ ! -e $PYTHON2/done ]
-    then
-        echo "Installing Python 2. This may take a while, but don't worry. yt loves you."
-        [ ! -e $PYTHON2 ] && tar xfz $PYTHON2.tgz
-        cd $PYTHON2
-        ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        
-        ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
-        ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
-        ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
-        touch done
-        cd ..
-    fi
-
-    ( ${DEST_DIR}/bin/python -c "import _ssl" 2>&1 ) 1>> ${LOG_FILE}
-    RESULT=$?
-    if  [ $RESULT -ne 0 ]
-    then
-        echo "Unable to import the python SSL bindings."
-        echo "This means that OpenSSL is not installed or your system's OpenSSL"
-        echo "installation is out of date."
-        echo "Please install OpenSSL or set INST_CONDA=1"
-        do_exit
-    fi
-
     if [ $INST_PY3 -eq 1 ]
     then
         if [ ! -e $PYTHON3/done ]
         then
-            echo "Installing Python 3. Because two Pythons are better than one."
+            echo "Installing Python 3"
             [ ! -e $PYTHON3 ] && tar xfz $PYTHON3.tgz
             cd $PYTHON3
             ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
@@ -1060,6 +1040,31 @@ then
             touch done
             cd ..
         fi
+    else
+        if [ ! -e $PYTHON2/done ]
+        then
+            echo "Installing Python 2. This may take a while, but don't worry. yt loves you."
+            [ ! -e $PYTHON2 ] && tar xfz $PYTHON2.tgz
+            cd $PYTHON2
+            ( ./configure --prefix=${DEST_DIR}/ ${PYCONF_ARGS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            ( make ${MAKE_PROCS} 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            ( make install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+            ( ln -sf ${DEST_DIR}/bin/python2.7 ${DEST_DIR}/bin/pyyt 2>&1 ) 1>> ${LOG_FILE}
+            ( make clean 2>&1) 1>> ${LOG_FILE} || do_exit
+            touch done
+            cd ..
+        fi
+    fi
+
+    ( ${DEST_DIR}/bin/python -c "import _ssl" 2>&1 ) 1>> ${LOG_FILE}
+    RESULT=$?
+    if  [ $RESULT -ne 0 ]
+    then
+        echo "Unable to import the python SSL bindings."
+        echo "This means that OpenSSL is not installed or your system's OpenSSL"
+        echo "installation is out of date."
+        echo "Please install OpenSSL or set INST_CONDA=1"
+        do_exit
     fi
 
     export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/
@@ -1067,19 +1072,12 @@ then
     # Install setuptools
     do_setup_py $SETUPTOOLS
 
-    if [ $INST_HG -eq 1 ]
+    if type -P git &>/dev/null
     then
-        do_setup_py $MERCURIAL
-        export HG_EXEC=${DEST_DIR}/bin/hg
+        GIT_EXE="git"
     else
-        # We assume that hg can be found in the path.
-        if type -P hg &>/dev/null
-        then
-            export HG_EXEC=hg
-        else
-            echo "Cannot find mercurial.  Please set INST_HG=1."
-            do_exit
-        fi
+        echo "Cannot find git. Please install git."
+        do_exit
     fi
 
     if [ -z "$YT_DIR" ]
@@ -1089,21 +1087,15 @@ then
             YT_DIR="$ORIG_PWD"
         elif [ -e $ORIG_PWD/../yt/mods.py ]
         then
-            YT_DIR=`dirname $ORIG_PWD`
-        elif [ ! -e yt-hg ]
+            YT_DIR=$(dirname $ORIG_PWD)
+        elif [ ! -e yt-git ]
         then
             echo "Cloning yt"
-            YT_DIR="$PWD/yt-hg/"
-            ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt-supplemental/ 2>&1 ) 1>> ${LOG_FILE}
-            # Recently the hg server has had some issues with timeouts.  In lieu of
-            # a new webserver, we are now moving to a three-stage process.
-            # First we clone the repo, but only up to r0.
-            ( ${HG_EXEC} --debug clone https://bitbucket.org/yt_analysis/yt/ ./yt-hg 2>&1 ) 1>> ${LOG_FILE}
-            # Now we update to the branch we're interested in.
-            ( ${HG_EXEC} -R ${YT_DIR} up -C ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
-        elif [ -e yt-hg ]
+            YT_DIR="$PWD/yt-git/"
+            ( ${GIT_EXE} clone https://github.com/yt-project/yt/ ${YT_DIR} 2>&1 ) 1>> ${LOG_FILE}
+        elif [ -e yt-git ]
         then
-            YT_DIR="$PWD/yt-hg/"
+            YT_DIR="$PWD/yt-git/"
         fi
         echo Setting YT_DIR=${YT_DIR}
     fi
@@ -1206,7 +1198,7 @@ then
     then
         do_setup_py $ASTROPY
     fi
-    do_setup_py $PYTHON_HGLIB
+    do_setup_py $GITPYTHON
     do_setup_py $SYMPY
     [ $INST_PYX -eq 1 ] && do_setup_py $PYX
 
@@ -1220,11 +1212,9 @@ then
             echo "Building Rockstar"
             if [ ! -e rockstar ]
             then
-                ( hg clone http://bitbucket.org/MatthewTurk/rockstar 2>&1 ) 1>> ${LOG_FILE}
+                ( ${GIT_EXE} clone https://github.com/yt-project/rockstar 2>&1 ) 1>> ${LOG_FILE}
             fi
             cd rockstar
-            ( hg pull 2>&1 ) 1>> ${LOG_FILE}
-            ( hg up -C tip 2>&1 ) 1>> ${LOG_FILE}
             ( make lib 2>&1 ) 1>> ${LOG_FILE} || do_exit
             cp librockstar.so ${DEST_DIR}/lib
             ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
@@ -1234,10 +1224,9 @@ then
         fi
     fi
     
-    echo "Doing yt update, wiping local changes and updating to branch ${BRANCH}"
     MY_PWD=`pwd`
     cd $YT_DIR
-    ( ${HG_EXEC} pull 2>1 && ${HG_EXEC} up -C 2>1 ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
+    ( ${GIT_EXE} pull 2>1 && ${GIT_EXE} checkout ${BRANCH} 2>&1 ) 1>> ${LOG_FILE}
 
     echo "Installing yt"
     [ $INST_PNG -eq 1 ] && echo $PNG_DIR > png.cfg
@@ -1300,14 +1289,6 @@ then
         echo
         echo "The source for yt is located at:"
         echo "    $YT_DIR"
-        if [ $INST_HG -eq 1 ]
-        then
-            echo
-            echo "Mercurial has also been installed:"
-            echo
-            echo "$DEST_DIR/bin/hg"
-            echo
-        fi
         echo
         echo "For support, see the website and join the mailing list:"
         echo
@@ -1353,6 +1334,10 @@ else # INST_CONDA -eq 1
             echo "Going with x86_64 architecture."
             MINICONDA_OS="Linux-x86_64"
         fi
+    else
+        echo "The yt install script is not supported on the ${MYOS}"
+        echo "operating system."
+        exit 1
     fi
 
     if [ $INST_PY3 -eq 1 ]
@@ -1399,6 +1384,11 @@ else # INST_CONDA -eq 1
     YT_DEPS+=('jupyter')
     YT_DEPS+=('ipython')
     YT_DEPS+=('sphinx')
+    if [ ${INST_GIT} -eq 1 ]
+    then
+        YT_DEPS+=('git')
+        YT_DEPS+=('gitpython')
+    fi
     if [ $INST_H5PY -ne 0 ]
     then
         YT_DEPS+=('h5py')
@@ -1418,7 +1408,7 @@ else # INST_CONDA -eq 1
         YT_DEPS+=('astropy')
     fi
     YT_DEPS+=('conda-build')
-    if [ $INST_PY3 -eq 0 ]
+    if [ $INST_PY3 -eq 0 ] && [ $INST_HG -eq 1 ]
     then
        YT_DEPS+=('mercurial')
     fi
@@ -1430,23 +1420,34 @@ else # INST_CONDA -eq 1
     fi
     
     log_cmd ${DEST_DIR}/bin/conda update --yes conda
-    
+
+    if [ $INST_GIT -eq 1 ]
+    then
+        GIT_EXE=${DEST_DIR}/bin/git
+    else
+        if type -P git &>/dev/null
+        then
+            GIT_EXE="git"
+        else
+            echo "Cannot find git. Please install git or set INST_GIT=1."
+            do_exit
+        fi
+    fi
+
     log_cmd echo "DEPENDENCIES" ${YT_DEPS[@]}
     for YT_DEP in "${YT_DEPS[@]}"; do
         echo "Installing $YT_DEP"
-        log_cmd ${DEST_DIR}/bin/conda install --yes ${YT_DEP}
+        log_cmd ${DEST_DIR}/bin/conda install -c conda-forge --yes ${YT_DEP}
     done
 
-    if [ $INST_PY3 -eq 1 ]
+    if [ $INST_PY3 -eq 1 ] && [ $INST_HG -eq 1 ]
     then
         echo "Installing mercurial"
         log_cmd ${DEST_DIR}/bin/conda create -y -n py27 python=2.7 mercurial
         log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
     fi
 
-    log_cmd ${DEST_DIR}/bin/pip install python-hglib
-
-    log_cmd ${DEST_DIR}/bin/hg clone https://bitbucket.org/yt_analysis/yt_conda ${DEST_DIR}/src/yt_conda
+    log_cmd ${GIT_EXE} clone https://github.com/yt-project/yt_conda ${DEST_DIR}/src/yt_conda
     
     if [ $INST_EMBREE -eq 1 ]
     then
@@ -1480,7 +1481,7 @@ else # INST_CONDA -eq 1
     if [ $INST_ROCKSTAR -eq 1 ]
     then
         echo "Building Rockstar"
-        ( ${DEST_DIR}/bin/hg clone http://bitbucket.org/MatthewTurk/rockstar ${DEST_DIR}/src/rockstar/ 2>&1 ) 1>> ${LOG_FILE}
+        ( ${GIT_EXE} clone https://github.com/yt-project/rockstar ${DEST_DIR}/src/rockstar/ 2>&1 ) 1>> ${LOG_FILE}
         ROCKSTAR_PACKAGE=$(${DEST_DIR}/bin/conda build ${DEST_DIR}/src/yt_conda/rockstar --output)
         log_cmd ${DEST_DIR}/bin/conda build ${DEST_DIR}/src/yt_conda/rockstar
         log_cmd ${DEST_DIR}/bin/conda install $ROCKSTAR_PACKAGE
@@ -1504,9 +1505,27 @@ else # INST_CONDA -eq 1
         log_cmd ${DEST_DIR}/bin/conda install -c conda-forge --yes yt
     else
         echo "Building yt from source"
-        YT_DIR="${DEST_DIR}/src/yt-hg"
-        log_cmd ${DEST_DIR}/bin/hg clone https://bitbucket.org/yt_analysis/yt ${YT_DIR}
-        log_cmd ${DEST_DIR}/bin/hg -R ${YT_DIR} up -C ${BRANCH}
+        if [ -z "$YT_DIR" ]
+        then
+            if [ -e $ORIG_PWD/yt/mods.py ]
+            then
+                YT_DIR="$ORIG_PWD"
+            elif [ -e $ORIG_PWD/../yt/mods.py ]
+            then
+                YT_DIR=$(dirname $ORIG_PWD)
+            else
+                YT_DIR="${DEST_DIR}/src/yt-git"
+                log_cmd ${GIT_EXE} clone https://github.com/yt-project/yt ${YT_DIR}
+                log_cmd ${GIT_EXE} -C ${YT_DIR} checkout ${BRANCH}
+            fi
+            echo Setting YT_DIR=${YT_DIR}
+        else
+            if [ ! -e $YT_DIR/.git ]
+            then
+                echo "$YT_DIR is not a clone of the yt git repository, exiting"
+                do_exit
+            fi
+        fi
         if [ $INST_EMBREE -eq 1 ]
         then
             echo $DEST_DIR > ${YT_DIR}/embree.cfg

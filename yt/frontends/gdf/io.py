@@ -17,6 +17,7 @@ import numpy as np
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.funcs import \
     mylog
+from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import \
     BaseIOHandler
 
@@ -40,7 +41,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
         rv = {}
         chunks = list(chunks)
 
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]

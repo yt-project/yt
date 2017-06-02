@@ -29,6 +29,8 @@ from yt.utilities.exceptions import \
     YTParticleDepositionNotImplemented
 from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
+from yt.utilities.nodal_data_utils import \
+    get_nodal_slices
 
 class AMRGridPatch(YTSelectionContainer):
     _spatial = True
@@ -90,7 +92,9 @@ class AMRGridPatch(YTSelectionContainer):
             return tr
         finfo = self.ds._get_field_info(*fields[0])
         if not finfo.particle_type:
-            return tr.reshape(self.ActiveDimensions)
+            num_nodes = 2**sum(finfo.nodal_flag)
+            new_shape = list(self.ActiveDimensions) + [num_nodes]
+            return np.squeeze(tr.reshape(new_shape))
         return tr
 
     def convert(self, datatype):
@@ -270,7 +274,7 @@ class AMRGridPatch(YTSelectionContainer):
         for field in fields:
             finfo = self.ds._get_field_info(field)
             new_fields[field] = self.ds.arr(
-                np.zeros(self.ActiveDimensions + 1), finfo.units)
+                np.zeros(self.ActiveDimensions + 1), finfo.output_units)
         if no_ghost:
             for field in fields:
                 # Ensure we have the native endianness in this array.  Avoid making
@@ -347,14 +351,16 @@ class AMRGridPatch(YTSelectionContainer):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs
-        # Everything inside this is fortran ordered, so we reverse it here.
-        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
+        # We allocate number of zones, not number of octs. Everything inside
+        # this is Fortran ordered because of the ordering in the octree deposit
+        # routines, so we reverse it here to match the convention there
+        op = cls(tuple(self.ActiveDimensions[::-1]), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None: return
-        return vals.transpose() # Fortran-ordered, so transpose.
+        # Fortran-ordered, so transpose.
+        return vals.transpose()
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)
@@ -378,7 +384,13 @@ class AMRGridPatch(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask]
+        nodal_flag = source.shape - self.ActiveDimensions
+        if sum(nodal_flag) == 0:
+            dest[offset:offset+count] = source[mask]
+        else:
+            slices = get_nodal_slices(source.shape, nodal_flag)
+            for i , sl in enumerate(slices):
+                dest[offset:offset+count, i] = source[sl][mask]
         return count
 
     def count(self, selector):

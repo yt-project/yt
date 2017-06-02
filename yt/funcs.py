@@ -34,7 +34,6 @@ import base64
 import numpy
 import matplotlib
 import getpass
-from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
@@ -286,17 +285,6 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
-def get_ipython_api_version():
-    import IPython
-    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
-        api_version = '0.10'
-    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
-        api_version = '0.11'
-    else:
-        api_version = '1.0'
-
-    return api_version
-
 def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
@@ -306,31 +294,22 @@ def insert_ipython(num_up=1):
     defaults to 1 so that this function itself is stripped off.
     """
     import IPython
-    api_version = get_ipython_api_version()
+    from IPython.terminal.embed import InteractiveShellEmbed
+    try:
+        from traitlets.config.loader import Config
+    except ImportError:
+        from IPython.config.loader import Config
 
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
     dd = dict(fname = frame[3], filename = frame[1],
               lineno = frame[2])
-    if api_version == '0.10':
-        ipshell = IPython.Shell.IPShellEmbed()
-        ipshell(header = __header % dd,
-                local_ns = loc, global_ns = glo)
-    else:
-        try:
-            from traitlets.config.loader import Config
-        except ImportError:
-            from IPython.config.loader import Config
-        cfg = Config()
-        cfg.InteractiveShellEmbed.local_ns = loc
-        cfg.InteractiveShellEmbed.global_ns = glo
-        IPython.embed(config=cfg, banner2 = __header % dd)
-        if api_version == '0.11':
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-        else:
-            from IPython.terminal.embed import InteractiveShellEmbed
-        ipshell = InteractiveShellEmbed(config=cfg)
+    cfg = Config()
+    cfg.InteractiveShellEmbed.local_ns = loc
+    cfg.InteractiveShellEmbed.global_ns = glo
+    IPython.embed(config=cfg, banner2 = __header % dd)
+    ipshell = InteractiveShellEmbed(config=cfg)
 
     del ipshell
 
@@ -512,7 +491,65 @@ class NoCUDAException(Exception):
 class YTEmptyClass(object):
     pass
 
-def update_hg(path, skip_rebuild = False):
+def update_hg_or_git(path):
+    if os.path.exists(os.sep.join([path, '.hg'])):
+        update_hg(path)
+    elif os.path.exists(os.sep.join([path, '.git'])):
+        update_git(path)
+
+def update_git(path):
+    try:
+        import git
+    except ImportError:
+        print("Updating and precise version information requires ")
+        print("gitpython to be installed.")
+        print("Try: pip install gitpython")
+        return -1
+    with open(os.path.join(path, "yt_updater.log"), "a") as f:
+        with git.Repo(path) as repo:
+            if repo.is_dirty(untracked_files=True):
+                print("Changes have been made to the yt source code so I won't ")
+                print("update the code. You will have to do this yourself.")
+                print("Here's a set of sample commands:")
+                print("")
+                print("    $ cd %s" % (path))
+                print("    $ git stash")
+                print("    $ git checkout master")
+                print("    $ git pull")
+                print("    $ git stash pop")
+                print("    $ %s setup.py develop" % (sys.executable))
+                print("")
+                return 1
+            if repo.active_branch.name != 'master':
+                print("yt repository is not tracking the master branch so I won't ")
+                print("update the code. You will have to do this yourself.")
+                print("Here's a set of sample commands:")
+                print("")
+                print("    $ cd %s" % (path))
+                print("    $ git checkout master")
+                print("    $ git pull")
+                print("    $ %s setup.py develop" % (sys.executable))
+                print("")
+                return 1
+            print("Updating the repository")
+            f.write("Updating the repository\n\n")
+            old_version = repo.git.rev_parse('HEAD', short=12)
+            try:
+                remote = repo.remotes.yt_upstream
+            except AttributeError:
+                remote = repo.create_remote(
+                    'yt_upstream', url='https://github.com/yt-project/yt')
+                remote.fetch()
+            master = repo.heads.master
+            master.set_tracking_branch(remote.refs.master)
+            master.checkout()
+            remote.pull()
+            new_version = repo.git.rev_parse('HEAD', short=12)
+            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+            rebuild_modules(path, f)
+    print('Updated successfully')
+
+def update_hg(path):
     try:
         import hglib
     except ImportError:
@@ -521,33 +558,65 @@ def update_hg(path, skip_rebuild = False):
         return -1
     f = open(os.path.join(path, "yt_updater.log"), "a")
     with hglib.open(path) as repo:
-        repo.pull()
+        repo.pull(b'https://bitbucket.org/yt_analysis/yt')
         ident = repo.identify().decode("utf-8")
         if "+" in ident:
-            print("Can't rebuild modules by myself.")
-            print("You will have to do this yourself.  Here's a sample commands:")
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
             print("")
             print("    $ cd %s" % (path))
-            print("    $ hg up")
+            print("    $ hg up -C yt  # This will delete any unsaved changes")
             print("    $ %s setup.py develop" % (sys.executable))
+            print("")
             return 1
         print("Updating the repository")
         f.write("Updating the repository\n\n")
-        repo.update(check=True)
+        books = repo.bookmarks()[0]
+        books = [b[0].decode('utf8') for b in books]
+        if 'master' in books:
+            repo.update('master', check=True)
+        else:
+            repo.update('yt', check=True)
         f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
-        if skip_rebuild: return
-        f.write("Rebuilding modules\n\n")
-        p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
-                             cwd=path, stdout = subprocess.PIPE,
-                             stderr = subprocess.STDOUT)
-        stdout, stderr = p.communicate()
-        f.write(stdout.decode('utf-8'))
-        f.write("\n\n")
-        if p.returncode:
-            print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
-            sys.exit(1)
-        f.write("Successful!\n")
-        print("Updated successfully.")
+        rebuild_modules(path, f)
+    print("Updated successfully.")
+
+def rebuild_modules(path, f):
+    f.write("Rebuilding modules\n\n")
+    p = subprocess.Popen([sys.executable, "setup.py", "build_ext", "-i"],
+                         cwd=path, stdout = subprocess.PIPE,
+                         stderr = subprocess.STDOUT)
+    stdout, stderr = p.communicate()
+    f.write(stdout.decode('utf-8'))
+    f.write("\n\n")
+    if p.returncode:
+        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+        sys.exit(1)
+    f.write("Successful!\n")
+
+
+def get_hg_or_git_version(path):
+    if os.path.exists(os.sep.join([path, '.hg'])):
+        return get_hg_version(path)
+    elif os.path.exists(os.sep.join([path, '.git'])):
+        return get_git_version(path)
+    return None
+
+def get_git_version(path):
+    try:
+        import git
+    except ImportError:
+        print("Updating and precise version information requires ")
+        print("gitpython to be installed.")
+        print("Try: pip install gitpython")
+        return None
+    try:
+        with git.Repo(path) as repo:
+            return repo.git.rev_parse('HEAD', short=12)
+    except git.InvalidGitRepositoryError:
+        # path is not a git repository
+        return None
 
 def get_hg_version(path):
     try:
@@ -559,7 +628,7 @@ def get_hg_version(path):
         return None
     try:
         with hglib.open(path) as repo:
-            return repo.identify()
+            return repo.identify().decode('utf-8')
     except hglib.error.ServerError:
         # path is not an hg repository
         return None

@@ -37,6 +37,7 @@ yt/utilities/lib/contour_finding.c
 yt/utilities/lib/depth_first_octree.c
 yt/utilities/lib/distance_queue.c
 yt/utilities/lib/element_mappings.c
+yt/utilities/lib/fnv_hash.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
 yt/utilities/lib/geometry_utils.c

@@ -654,10 +654,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        col_bounds: array_like [min, max], optional
-            Limits the values over which the colormap spans to these
-            values.  Useful for sampling an entire colormap over a
-            range smaller than the transfer function bounds.
+        col_bounds: array_like, optional
+            Limits ([min, max]) the values over which the colormap spans to
+            these values.  Useful for sampling an entire colormap over a range
+            smaller than the transfer function bounds.
 
         See Also
         --------
@@ -702,7 +702,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        scale_func: function(value, minval, maxval), optional
+        scale_func: function(:obj:`!value`, :obj:`!minval`, :obj:`!maxval`), optional
             A user-defined function that can be used to scale the alpha channel
             as a function of the TransferFunction field values. Function maps
             value to somewhere between minval and maxval.
@@ -769,10 +769,10 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
             http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
-        col_bounds: array_like [min, max], optional
-            Limits the values over which the colormap spans to these
-            values.  Useful for sampling an entire colormap over a
-            range smaller than the transfer function bounds.
+        col_bounds: array_like, optional
+            Limits ([min, max]) the values over which the colormap spans to
+            these values.  Useful for sampling an entire colormap over a range
+            smaller than the transfer function bounds.
 
         See Also
         --------

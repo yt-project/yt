@@ -1333,6 +1333,55 @@ def _guess_pcast(vals):
     return vals
 
 
+def _read_raw_field_names(raw_file):
+    header_files = glob.glob(raw_file + "*_H")
+    return [hf.split("/")[-1][:-2] for hf in header_files]
+
+
+def _string_to_numpy_array(s):
+    return np.array([int(v) for v in s[1:-1].split(",")], dtype=np.int64)
+
+
+def _line_to_numpy_arrays(line):
+    lo_corner = _string_to_numpy_array(line[0][1:])
+    hi_corner = _string_to_numpy_array(line[1][:])
+    node_type = _string_to_numpy_array(line[2][:-1]) 
+    return lo_corner, hi_corner, node_type
+
+
+def _get_active_dimensions(box):
+    return box[1] - box[2] - box[0] + 1
+
+
+def _read_header(raw_file, field):
+    header_file = raw_file + field + "_H"
+    with open(header_file, "r") as f:
+        
+        # skip the first five lines
+        for _ in range(5):
+            f.readline()
+
+        # read boxes
+        boxes = []
+        for line in f:
+            clean_line = line.strip().split()
+            if clean_line == [')']:
+                break
+            lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
+            boxes.append((lo_corner, hi_corner, node_type))
+
+        # read the file and offset position for the corresponding box
+        file_names = []
+        offsets = []
+        for line in f:
+            if line.startswith("FabOnDisk:"):
+                clean_line = line.strip().split()
+                file_names.append(clean_line[1])
+                offsets.append(int(clean_line[2]))
+
+    return boxes, file_names, offsets
+
+
 class WarpXHierarchy(BoxlibHierarchy):
 
     def __init__(self, ds, dataset_type="boxlib_native"):
@@ -1364,6 +1413,22 @@ class WarpXHierarchy(BoxlibHierarchy):
                 line = f.readline()
                 species_id += 1
     
+    def _detect_output_fields(self):
+        super(WarpXHierarchy, self)._detect_output_fields()
+
+        # now detect the optional, non-cell-centered fields
+        self.raw_file = self.ds.output_dir + "/raw_fields/Level_0/"
+        self.ds.fluid_types += ("raw",)
+        self.raw_fields = _read_raw_field_names(self.raw_file)
+        self.field_list += [('raw', f) for f in self.raw_fields]
+        self.raw_field_map = {}
+        self.ds.nodal_flags = {}
+        for field_name in self.raw_fields:
+            boxes, file_names, offsets = _read_header(self.raw_file, field_name)
+            self.raw_field_map[field_name] = (boxes, file_names, offsets) 
+            self.ds.nodal_flags[field_name] = np.array(boxes[0][2])
+
+
 def _skip_line(line):
     if len(line) == 0:
         return True

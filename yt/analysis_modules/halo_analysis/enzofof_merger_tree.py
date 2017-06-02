@@ -713,8 +713,8 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
         The filename to which you saved the hdf5 data from save_halo_evolution
     halo_id : int
         The halo in 'filename' that you want to follow
-    x_quantity, y_quantity : str, optional
-        The quantity that you want to plot as the x_coord (or y_coords).
+    x_quantity : str, optional
+        The quantity that you want to plot as the x_coord.
         Valid options are:
 
            * cycle
@@ -732,8 +732,12 @@ def plot_halo_evolution(filename, halo_id, x_quantity='cycle', y_quantity='mass'
            * COM_vy
            * COM_vz
 
-    x_log, y_log : bool, optional
-        Do you want the x(y)-axis to be in log or linear?
+    y_quantity : str, optional
+        The quantity that you want to plot as the y_coord.
+    x_log : bool, optional
+        Do you want the x-axis to be in log or linear?
+    y_log : bool, optional
+        Do you want the y-axis to be in log or linear?
     FOF_directory : str, optional
         Directory where FOF files (and hdf file) are located
 

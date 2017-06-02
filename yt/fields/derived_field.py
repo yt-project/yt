@@ -90,12 +90,21 @@ class DerivedField(object):
     dimensions : str or object from yt.units.dimensions
        The dimensions of the field, only needed if units="auto" and only used
        for error checking.
+    nodal_flag : array-like with three components
+       This describes how the field is centered within a cell. If nodal_flag
+       is [0, 0, 0], then the field is cell-centered. If any of the components
+       of nodal_flag are 1, then the field is nodal in that direction, meaning
+       it is defined at the lo and hi sides of the cell rather than at the center.
+       For example, a field with nodal_flag = [1, 0, 0] would be defined at the
+       middle of the 2 x-faces of each cell. nodal_flag = [0, 1, 1] would mean the
+       that the field defined at the centers of the 4 edges that are normal to the
+       x axis, while nodal_flag = [1, 1, 1] would be defined at the 8 cell corners.
     """
     def __init__(self, name, sampling_type, function, units=None,
                  take_log=True, validators=None,
                  particle_type=None, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
-                 dimensions=None, ds=None):
+                 dimensions=None, ds=None, nodal_flag=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -109,6 +118,11 @@ class DerivedField(object):
         self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
+
+        if nodal_flag is None:
+            self.nodal_flag = [0, 0, 0]
+        else:
+            self.nodal_flag = nodal_flag
 
         self._function = function
 

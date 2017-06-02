@@ -12,7 +12,7 @@ matplotlib.use('Agg')
 from multiprocessing import Pool
 from yt.config import ytcfg
 
-FPATTERNS = ['*.png', '*.txt', '*.h5', '*.dat']
+FPATTERNS = ['*.png', '*.txt', '*.h5', '*.dat', '*.mp4']
 DPATTERNS = ['LC*', 'LR', 'DD0046']
 BADF = ['cloudy_emissivity.h5', 'apec_emissivity.h5',
         'xray_emissivity.h5', 'AMRGridData_Slice_x_density.png']

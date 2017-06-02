@@ -49,7 +49,7 @@ class YTPoint(YTSelectionContainer0D):
         periodic its position will be corrected to lie inside
         the range [DLE,DRE) to ensure one and only one cell may
         match that point
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
         A dictionary of field parameters than can be accessed by derived
@@ -95,7 +95,7 @@ class YTOrthoRay(YTSelectionContainer1D):
         that this is in the plane coordinates: so if you are casting along
         x, this will be (y, z).  If you are casting along y, this will be
         (z, x).  If you are casting along z, this will be (x, y).
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -162,7 +162,7 @@ class YTRay(YTSelectionContainer1D):
         The place where the ray starts.
     end_point : array-like set of 3 floats
         The place where the ray ends.
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -248,7 +248,7 @@ class YTSlice(YTSelectionContainer2D):
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  optional.
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -268,7 +268,7 @@ class YTSlice(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
-    _container_fields = ("px", "py", "pdx", "pdy")
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
         YTSelectionContainer2D.__init__(self, axis, ds,
@@ -285,10 +285,14 @@ class YTSlice(YTSelectionContainer2D):
             return self._current_chunk.fcoords[:,xax]
         elif field == "py":
             return self._current_chunk.fcoords[:,yax]
+        elif field == "pz":
+            return self._current_chunk.fcoords[:,self.axis]
         elif field == "pdx":
             return self._current_chunk.fwidth[:,xax] * 0.5
         elif field == "pdy":
             return self._current_chunk.fwidth[:,yax] * 0.5
+        elif field == "pdz":
+            return self._current_chunk.fwidth[:,self.axis] * 0.5            
         else:
             raise KeyError(field)
 
@@ -351,7 +355,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
     north_vector: array_like, optional
         An optional vector to describe the north-facing direction in the resulting
         plane.
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -552,7 +556,7 @@ class YTDisk(YTSelectionContainer3D):
         bottom planes
     fields : array of fields, optional
         any fields to be pre-loaded in the cylinder object
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
