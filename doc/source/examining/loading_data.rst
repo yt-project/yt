@@ -446,19 +446,20 @@ mentioned.
 Enzo MHDCT data
 ^^^^^^^^^^^^^^^
 
-The electric and magnetic fields for Enzo MHDCT simulations are not
-face-centered. In yt, we call fields like this "nodal".  We define a field to be
-"nodal" in a given direction if the field data is defined at the "low" and
-"high" sides of the cell in that direction, rather than at the cell center.
-Instead of returning one field value per cell selected, nodal fields return a
-number of values, depending on their centering. This centering is marked by a
-`nodal_flag` that describes whether the fields is nodal in each dimension.
-``nodal_flag = [0, 0, 0]`` means that the field is cell-centered, while
-``nodal_flag = [0, 0, 1]`` means that the field is nodal in the z direction and
-cell centered in the others, i.e. it is defined on the z faces of each cell.
-``nodal_flag = [1, 1, 0]`` would mean that the field is centered in the z
-direction, but nodal in the other two, i.e. it lives on the four cell edges that
-are normal to the z direction.
+The electric and magnetic fields for Enzo MHDCT simulations are defined on cell
+faces, unlike other Enzo fields which are defined at cell centers. In yt, we
+call face-centered fields like this "nodal".  We define a field to be nodal in
+a given direction if the field data is defined at the "low" and "high" sides of
+the cell in that direction, rather than at the cell center.  Instead of
+returning one field value per cell selected, nodal fields return a number of
+values, depending on their centering. This centering is marked by a `nodal_flag`
+that describes whether the fields is nodal in each dimension.  ``nodal_flag =
+[0, 0, 0]`` means that the field is cell-centered, while ``nodal_flag = [0, 0,
+1]`` means that the field is nodal in the z direction and cell centered in the
+others, i.e. it is defined on the z faces of each cell.  ``nodal_flag = [1, 1,
+0]`` would mean that the field is centered in the z direction, but nodal in the
+other two, i.e. it lives on the four cell edges that are normal to the z
+direction.
 
 .. code-block:: python
 
