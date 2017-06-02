@@ -18,7 +18,7 @@ from yt.utilities.io_handler import \
 from yt.utilities.logger import ytLogger as mylog
 from yt.extern.six import b, iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
-
+from yt.geometry.selection_routines import GridSelector
 import numpy as np
 
 
@@ -129,13 +129,16 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         fid.close()
                     fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
                     filename = obj.filename
-                data = np.empty(obj.ActiveDimensions[::-1], dtype=h5_dtype)
                 for field in fields:
-                    yield field, obj, self._read_obj_field(obj, field, (fid, data))
+                    nodal_flag = self.ds.field_info[field].nodal_flag
+                    dims = obj.ActiveDimensions[::-1] + nodal_flag[::-1]
+                    data = np.empty(dims, dtype=h5_dtype)
+                    yield field, obj, self._read_obj_field(
+                        obj, field, (fid, data))
         if fid is not None:
             fid.close()
         
-    def _read_obj_field(self, obj, field, fid_data = None):
+    def _read_obj_field(self, obj, field, fid_data):
         if fid_data is None: fid_data = (None, None)
         fid, data = fid_data
         if fid is None:
@@ -212,7 +215,7 @@ class IOHandlerInMemory(BaseIOHandler):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
@@ -294,7 +297,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]

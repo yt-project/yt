@@ -20,6 +20,8 @@ from yt.extern.six import \
     u
 from yt.funcs import \
     mylog
+from yt.geometry.selection_routines import \
+    GridSelector
 from yt.utilities.exceptions import \
     YTDomainOverflow
 from yt.utilities.io_handler import \
@@ -36,7 +38,7 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
 
     def _read_fluid_selection(self, g, selector, fields):
         rv = {}
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if g.id in self._cached_fields:
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
@@ -68,7 +70,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
