@@ -141,12 +141,9 @@ class EnzoFieldInfo(FieldInfoContainer):
 
         # setup nodal flag information
         for field in NODAL_FLAGS:
-            try:
+            if ('enzo', field) in self:
                 finfo = self['enzo', field]
                 finfo.nodal_flag = np.array(NODAL_FLAGS[field])
-            except KeyError:
-                pass
-
 
     def add_species_field(self, species):
         # This is currently specific to Enzo.  Hopefully in the future we will
