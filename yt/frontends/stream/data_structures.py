@@ -568,12 +568,13 @@ def process_data(data, grid_dims=None):
                 raise YTInconsistentGridFieldShapeGridDims(g_shapes, grid_dims)
     if len(p_shapes) > 0:
         for ptype, p_shape in p_shapes.items():
-            if not np.all(np.array(p_shape) == p_shape[0]):
+            p_s = np.array([s[1] for s in p_shape])
+            if not np.all(p_s == p_s[0]):
                 raise YTInconsistentParticleFieldShape(ptype, p_shape)
     # Now that we know the particle fields are consistent, determine the number
     # of particles.
     if len(p_shapes) > 0:
-        number_of_particles = np.sum([s[0] for s in p_shapes.values()])
+        number_of_particles = np.sum([s[0][1] for s in p_shapes.values()])
     else:
         number_of_particles = 0
     return field_units, data, number_of_particles
