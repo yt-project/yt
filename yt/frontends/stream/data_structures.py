@@ -665,8 +665,8 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     data.pop("number_of_particles", 0)
     # First we fix our field names, apply units to data
     # and check for consistency of field shapes
-    field_units, data, number_of_particles = process_data(data,
-                                                          grid_dims=tuple(domain_dimensions))
+    field_units, data, number_of_particles = process_data(
+        data, grid_dims=tuple(domain_dimensions))
 
     sfh = StreamDictFieldHandler()
 
@@ -858,8 +858,8 @@ def load_amr_grids(grid_data, domain_dimensions,
         grid_levels[i,:] = g.pop("level")
         # If someone included this throw it away--old API
         g.pop("number_of_particles", None)
-        field_units, data, n_particles = process_data(g,
-                                                      grid_dims=tuple(grid_dimensions[i,:]))
+        field_units, data, n_particles = process_data(
+            g, grid_dims=tuple(grid_dimensions[i,:]))
         number_of_particles[i, :] = n_particles
         sfh[i] = data
 
