@@ -663,22 +663,39 @@ class YTIllDefinedAMR(YTException):
         return msg
 
 class YTInconsistentGridFieldShape(YTException):
-    def __init__(self, grid_dims_check):
-        self.grid_dims_check = grid_dims_check
+    def __init__(self, shapes):
+        self.shapes = shapes
 
     def __str__(self):
-        if self.grid_dims_check:
-            msg = "Not all grid-based fields match the grid dimensions!"
-        else:
-            msg = "Not all grid-based fields have the same shape!"
+        msg = "Not all grid-based fields have the same shape!\n"
+        for name, shape in self.shapes:
+            msg += "    Field {} has shape {}.\n".format(name, shape)
         return msg
 
 class YTInconsistentParticleFieldShape(YTException):
-    def __init__(self, ptype):
+    def __init__(self, ptype, shapes):
         self.ptype = ptype
+        self.shapes = shapes
 
     def __str__(self):
         msg = (
-            "Not all fields with field type {} have the same shape!"
+            "Not all fields with field type '{}' have the same shape!\n"
         ).format(self.ptype)
+        for name, shape in self.shapes:
+            field = (self.ptype, name)
+            msg += "    Field {} has shape {}.\n".format(field, shape)
+        return msg
+
+class YTInconsistentGridFieldShapeGridDims(YTException):
+    def __init__(self, shapes, grid_dims):
+        self.shapes = shapes
+        self.grid_dims = grid_dims
+
+    def __str__(self):
+        msg = "Not all grid-based fields match the grid dimensions! "
+        msg += "Grid dims are {}, ".format(self.grid_dims)
+        msg += "and the following fields have shapes that do not match them:\n"
+        for name, shape in self.shapes:
+            if shape != self.grid_dims:
+                msg += "    Field {} has shape {}.\n".format(name, shape)
         return msg

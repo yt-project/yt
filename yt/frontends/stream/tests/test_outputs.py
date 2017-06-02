@@ -25,9 +25,11 @@ from yt.testing import \
     assert_equal, \
     assert_raises
 from yt.convenience import load
-from yt.utilities.exceptions import YTOutputNotIdentified, \
+from yt.utilities.exceptions import \
+    YTOutputNotIdentified, \
     YTInconsistentGridFieldShape, \
-    YTInconsistentParticleFieldShape
+    YTInconsistentParticleFieldShape, \
+    YTInconsistentGridFieldShapeGridDims
 
 class TestEmptyLoad(unittest.TestCase):
 
@@ -80,7 +82,7 @@ def test_inconsistent_field_shape():
         data = {"density": d, "temperature": t}
         load_uniform_grid(data, (32,64,32))
 
-    assert_raises(YTInconsistentGridFieldShape,
+    assert_raises(YTInconsistentGridFieldShapeGridDims,
                   load_field_grid_mismatch)
 
     def load_particle_fields_mismatch():

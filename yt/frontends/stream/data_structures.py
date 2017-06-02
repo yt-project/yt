@@ -66,7 +66,8 @@ from yt.utilities.decompose import \
 from yt.utilities.exceptions import \
     YTIllDefinedAMR, \
     YTInconsistentGridFieldShape, \
-    YTInconsistentParticleFieldShape
+    YTInconsistentParticleFieldShape, \
+    YTInconsistentGridFieldShapeGridDims
 from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate
@@ -555,18 +556,20 @@ def process_data(data, grid_dims=None):
         f_shape = data[field].shape
         n_shape = len(f_shape)
         if n_shape in (1, 2):
-            p_shapes[field[0]].append(f_shape[0])
+            p_shapes[field[0]].append((field[1], f_shape[0]))
         elif n_shape == 3:
-            g_shapes.append(f_shape)
-    if len(g_shapes) > 0 and not np.all(np.array(g_shapes) == g_shapes[0]):
-        raise YTInconsistentGridFieldShape(False)
-    if len(g_shapes) > 0 and grid_dims is not None:
-        if not np.all(np.array(g_shapes) == grid_dims):
-            raise YTInconsistentGridFieldShape(True)
+            g_shapes.append((field, f_shape))
+    if len(g_shapes) > 0:
+        g_s = np.array([s[1] for s in g_shapes])
+        if not np.all(g_s == g_s[0]):
+            raise YTInconsistentGridFieldShape(g_shapes)
+        if grid_dims is not None:
+            if not np.all(g_s == grid_dims):
+                raise YTInconsistentGridFieldShapeGridDims(g_shapes, grid_dims)
     if len(p_shapes) > 0:
         for ptype, p_shape in p_shapes.items():
             if not np.all(np.array(p_shape) == p_shape[0]):
-                raise YTInconsistentParticleFieldShape(ptype)
+                raise YTInconsistentParticleFieldShape(ptype, p_shape)
     # Now that we know the particle fields are consistent, determine the number
     # of particles.
     if len(p_shapes) > 0:
