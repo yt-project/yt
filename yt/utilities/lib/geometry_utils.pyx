@@ -541,6 +541,8 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
         # node's coordinate corresponding to the slice axis is greater than the
         # coordinate of the slice. p2[0] -> node 0; p2[1] -> node 1; p2[2] -> node2
         for j in range(3):
+            # Add 0 so that any -0s become +0s. Necessary for consistent determination
+            # of plane intersection
             p2[j] = copysign(1.0, triangles[i, j, ax] - coord + 0)
         if p2[0] * p2[1] < 0: count += 1
         if p2[1] * p2[2] < 0: count += 1
@@ -548,8 +550,9 @@ def triangle_plane_intersect(int ax, np.float64_t coord,
         if count == 2:
             nlines += 1
         elif count == 3:
-            raise RuntimeError("I'm impressed you got a plane to intersect all three "
-                               "legs of a triangle")
+            raise RuntimeError("It should be geometrically impossible for a plane to"
+                               "to intersect all three legs of a triangle. Please contact"
+                               "yt developers with your mesh")
         else:
             continue
         points = <PointSet *> malloc(sizeof(PointSet))

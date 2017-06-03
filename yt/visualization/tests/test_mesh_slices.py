@@ -99,14 +99,13 @@ def test_mesh_slices():
     shutil.rmtree(tmpdir)
 
 def test_perfect_element_intersection():
-    '''
-    This test tests mesh line annotation where a z=0 slice
-    perfectly intersects the top of a hexahedral element with node
-    z-coordinates containing both -0 and +0. Before
-    https://github.com/yt-project/yt/pull/1437 this test falsely
-    yielded three annotation lines, whereas the correct result is four
-    corresponding to the four edges of the top hex face.
-    '''
+    # This test tests mesh line annotation where a z=0 slice
+    # perfectly intersects the top of a hexahedral element with node
+    # z-coordinates containing both -0 and +0. Before
+    # https://github.com/yt-project/yt/pull/1437 this test falsely
+    # yielded three annotation lines, whereas the correct result is four
+    # corresponding to the four edges of the top hex face.
+
     ds = small_fake_hexahedral_ds()
     indices = ds.index.meshes[0].connectivity_indices
     coords = ds.index.meshes[0].connectivity_coords
