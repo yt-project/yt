@@ -303,7 +303,7 @@ def fake_tetrahedral_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
     from yt.frontends.stream.sample_data.tetrahedral_mesh import \
         _connectivity, _coordinates
-    
+
     prng = RandomState(0x4d3d3d3)
 
     # the distance from the origin
@@ -342,6 +342,30 @@ def fake_hexahedral_ds():
                                 node_data=node_data,
                                 elem_data=elem_data)
     return ds
+
+def small_fake_hexahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+
+    _coordinates = np.array([[-1., -1., -1.],
+                              [ 0., -1., -1.],
+                              [ -0.,  0., -1.],
+                              [-1.,  -0., -1.],
+                              [-1., -1.,  0.],
+                              [ -0., -1.,  0.],
+                              [ -0.,  0.,  -0.],
+                              [-1.,  0.,  -0.]])
+    _connectivity = np.array([[1, 2, 3, 4, 5, 6, 7, 8]])
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity-1]
+
+    ds = load_unstructured_mesh(_connectivity-1,
+                                _coordinates,
+                                node_data=node_data)
+    return ds
+
 
 
 def fake_vr_orientation_test_ds(N = 96, scale=1):
