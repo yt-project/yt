@@ -39,8 +39,7 @@ def test_stream_particles():
         data = dict(left_edge=grid.LeftEdge,
                     right_edge=grid.RightEdge,
                     level=grid.Level,
-                    dimensions=grid.ActiveDimensions,
-                    number_of_particles=grid.NumberOfParticles)
+                    dimensions=grid.ActiveDimensions)
 
         for field in amr0.field_list:
             data[field] = grid[field]
@@ -54,8 +53,7 @@ def test_stream_particles():
                "particle_position_x": x,
                "particle_position_y": y,
                "particle_position_z": z,
-               "particle_mass": m,
-               "number_of_particles": num_particles}
+               "particle_mass": m}
 
     fields2 = fields1.copy()
 
@@ -105,11 +103,11 @@ def test_stream_particles():
         data = dict(left_edge=grid.LeftEdge,
                     right_edge=grid.RightEdge,
                     level=grid.Level,
-                    dimensions=grid.ActiveDimensions,
-                    number_of_particles=grid.NumberOfParticles)
+                    dimensions=grid.ActiveDimensions)
 
         for field in amr1.field_list:
-            data[field] = grid[field]
+            if field[0] != "all":
+                data[field] = grid[field]
 
         grid_data.append(data)
 
@@ -124,14 +122,14 @@ def test_stream_particles():
     assert_equal(number_of_particles1, number_of_particles2)
 
     for grid in amr1.index.grids:
-        tot_parts = grid["io","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["io", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
     for grid in amr2.index.grids:
-        tot_parts = grid["io","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["io", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
@@ -171,8 +169,7 @@ def test_stream_particles():
                ("star", "particle_position_x"): xs,
                ("star", "particle_position_y"): ys,
                ("star", "particle_position_z"): zs,
-               ("star", "particle_mass"): ms,
-               "number_of_particles": num_dm_particles+num_star_particles}
+               ("star", "particle_mass"): ms}
 
     fields4 = fields3.copy()
 
@@ -188,9 +185,9 @@ def test_stream_particles():
     assert_equal(number_of_particles3, number_of_particles4)
 
     for grid in ug4.index.grids:
-        tot_parts = grid["dm","particle_position_x"].size
-        tot_parts += grid["star","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["dm", "particle_position_x"].size
+        tot_parts += grid["star", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
@@ -219,11 +216,11 @@ def test_stream_particles():
         data = dict(left_edge=grid.LeftEdge,
                     right_edge=grid.RightEdge,
                     level=grid.Level,
-                    dimensions=grid.ActiveDimensions,
-                    number_of_particles=grid.NumberOfParticles)
+                    dimensions=grid.ActiveDimensions)
 
         for field in amr3.field_list:
-            data[field] = grid[field]
+            if field[0] != "all":
+                data[field] = grid[field]
 
         grid_data.append(data)
 
@@ -248,9 +245,9 @@ def test_stream_particles():
         assert amr4._get_field_info(ptype, "particle_mass").particle_type
 
     for grid in amr3.index.grids:
-        tot_parts = grid["dm","particle_position_x"].size
-        tot_parts += grid["star","particle_position_x"].size
-        tot_all_parts = grid["all","particle_position_x"].size
+        tot_parts = grid["dm", "particle_position_x"].size
+        tot_parts += grid["star", "particle_position_x"].size
+        tot_all_parts = grid["all", "particle_position_x"].size
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 

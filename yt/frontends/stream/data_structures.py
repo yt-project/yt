@@ -22,12 +22,14 @@ from itertools import \
     chain, \
     product, \
     repeat
+from collections import defaultdict
 
 from numbers import Number as numeric_type
 
 from yt.funcs import \
     iterable, \
-    ensure_list
+    ensure_list, \
+    issue_deprecation_warning
 from yt.utilities.io_handler import io_registry
 from yt.data_objects.field_data import \
     YTFieldData
@@ -62,7 +64,10 @@ from yt.geometry.grid_container import \
 from yt.utilities.decompose import \
     decompose_array, get_psize
 from yt.utilities.exceptions import \
-    YTIllDefinedAMR
+    YTIllDefinedAMR, \
+    YTInconsistentGridFieldShape, \
+    YTInconsistentParticleFieldShape, \
+    YTInconsistentGridFieldShapeGridDims
 from yt.units.yt_array import \
     YTQuantity, \
     uconcatenate
@@ -268,16 +273,12 @@ class StreamHierarchy(GridIndex):
         """
         particle_types = set_particle_types(data[0])
 
-        for key in data[0].keys():
-            if key == "number_of_particles":
-                continue
-            self.stream_handler.particle_types[key] = particle_types[key]
+        self.stream_handler.particle_types.update(particle_types)
         self.ds._find_particle_types()
 
         for i, grid in enumerate(self.grids):
-            if "number_of_particles" in data[i]:
-                self.stream_handler.particle_count[i] = data[i].pop("number_of_particles")
-            field_units, gdata = unitify_data(data[i])
+            field_units, gdata, number_of_particles = process_data(data[i])
+            self.stream_handler.particle_count[i] = number_of_particles
             self.stream_handler.field_units.update(field_units)
             for field in gdata:
                 if field in grid.field_data:
@@ -485,7 +486,7 @@ def assign_particle_data(ds, pdata):
         npart = ds.stream_handler.fields[gi].pop("number_of_particles", 0)
         ds.stream_handler.particle_count[gi] = npart
 
-def unitify_data(data):
+def process_data(data, grid_dims=None):
     new_data, field_units = {}, {}
     for field, val in data.items():
         # val is a data array
@@ -529,11 +530,12 @@ def unitify_data(data):
     # At this point, we have arrays for all our fields
     new_data = {}
     for field in data:
+        n_shape = len(data[field].shape)
         if isinstance(field, tuple):
             new_field = field
-        elif len(data[field].shape) in (1, 2):
+        elif n_shape in (1, 2):
             new_field = ("io", field)
-        elif len(data[field].shape) == 3:
+        elif n_shape == 3:
             new_field = ("stream", field)
         else:
             raise RuntimeError
@@ -547,7 +549,35 @@ def unitify_data(data):
            field_units[new_field] == "":
                field_units.pop(new_field)
     data = new_data
-    return field_units, data
+    # Sanity checking that all fields have the same dimensions.
+    g_shapes = []
+    p_shapes = defaultdict(list)
+    for field in data:
+        f_shape = data[field].shape
+        n_shape = len(f_shape)
+        if n_shape in (1, 2):
+            p_shapes[field[0]].append((field[1], f_shape[0]))
+        elif n_shape == 3:
+            g_shapes.append((field, f_shape))
+    if len(g_shapes) > 0:
+        g_s = np.array([s[1] for s in g_shapes])
+        if not np.all(g_s == g_s[0]):
+            raise YTInconsistentGridFieldShape(g_shapes)
+        if grid_dims is not None:
+            if not np.all(g_s == grid_dims):
+                raise YTInconsistentGridFieldShapeGridDims(g_shapes, grid_dims)
+    if len(p_shapes) > 0:
+        for ptype, p_shape in p_shapes.items():
+            p_s = np.array([s[1] for s in p_shape])
+            if not np.all(p_s == p_s[0]):
+                raise YTInconsistentParticleFieldShape(ptype, p_shape)
+    # Now that we know the particle fields are consistent, determine the number
+    # of particles.
+    if len(p_shapes) > 0:
+        number_of_particles = np.sum([s[0][1] for s in p_shapes.values()])
+    else:
+        number_of_particles = 0
+    return field_units, data, number_of_particles
 
 
 def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
@@ -567,8 +597,7 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
       disappointing or non-existent in most cases.
     * Particles may be difficult to integrate.
 
-    Particle fields are detected as one-dimensional fields. The number of
-    particles is set by the "number_of_particles" key in data.
+    Particle fields are detected as one-dimensional fields.
 
     Parameters
     ----------
@@ -637,18 +666,18 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     domain_left_edge = np.array(bbox[:, 0], 'float64')
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
-    number_of_particles = data.pop("number_of_particles", 0)
-    # First we fix our field names
-    field_units, data = unitify_data(data)
-
-    dshape = tuple(domain_dimensions)
-    for field_name in data:
-        fshape = data[field_name].shape
-        if len(fshape) == 3 and fshape != dshape:
-            msg = ("Input data shape %s for field %s does not match provided "
-                   "domain_dimensions %s!")
-            msg = msg % (fshape, field_name, dshape)
-            raise RuntimeError(msg)
+    # If someone included this throw it away--old API
+    if "number_of_particles" in data:
+        issue_deprecation_warning("It is no longer necessary to include "
+                                  "the number of particles in the data "
+                                  "dict. The number of particles is "
+                                  "determined from the sizes of the "
+                                  "particle fields.")
+        data.pop("number_of_particles")
+    # First we fix our field names, apply units to data
+    # and check for consistency of field shapes
+    field_units, data, number_of_particles = process_data(
+        data, grid_dims=tuple(domain_dimensions))
 
     sfh = StreamDictFieldHandler()
 
@@ -838,9 +867,17 @@ def load_amr_grids(grid_data, domain_dimensions,
         grid_right_edges[i,:] = g.pop("right_edge")
         grid_dimensions[i,:] = g.pop("dimensions")
         grid_levels[i,:] = g.pop("level")
+        # If someone included this throw it away--old API
         if "number_of_particles" in g:
-            number_of_particles[i,:] = g.pop("number_of_particles")
-        field_units, data = unitify_data(g)
+            issue_deprecation_warning("It is no longer necessary to include "
+                                      "the number of particles in the data "
+                                      "dict. The number of particles is "
+                                      "determined from the sizes of the "
+                                      "particle fields.")
+            g.pop("number_of_particles")
+        field_units, data, n_particles = process_data(
+            g, grid_dims=tuple(grid_dimensions[i,:]))
+        number_of_particles[i, :] = n_particles
         sfh[i] = data
 
     # We now reconstruct our parent ids, so that our particle assignment can
@@ -1002,21 +1039,15 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level,
 
         ds = load_amr_grids(grid_data, ds.domain_dimensions, bbox=bbox)
 
+        ds.particle_types_raw = base_ds.particle_types_raw
+        ds.particle_types = ds.particle_types_raw
+
+        # Now figure out where the particles go
+        if number_of_particles > 0:
+            # This will update the stream handler too
+            assign_particle_data(ds, pdata)
+
         cur_gc = ds.index.num_grids
-
-    ds.particle_types_raw = base_ds.particle_types_raw
-    ds.particle_types = ds.particle_types_raw
-
-    # Now figure out where the particles go
-    if number_of_particles > 0:
-        # This will update the stream handler too
-        assign_particle_data(ds, pdata)
-        # Because we've already used the index, we
-        # have to re-create the field info because
-        # we added particle data after the fact
-        ds.index._reset_particle_count()
-        ds.index._detect_output_fields()
-        ds.create_field_info()
 
     return ds
 
@@ -1113,7 +1144,7 @@ def load_particles(data, length_unit = None, bbox=None,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
-    field_units, data = unitify_data(data)
+    field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
     pdata = {}
@@ -1338,7 +1369,7 @@ def load_hexahedral_mesh(data, connectivity, coordinates,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
-    field_units, data = unitify_data(data)
+    field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
     particle_types = set_particle_types(data)
@@ -1585,7 +1616,7 @@ def load_octree(octree_mask, data,
     domain_right_edge = np.array(bbox[:, 1], 'float64')
     grid_levels = np.zeros(nprocs, dtype='int32').reshape((nprocs,1))
 
-    field_units, data = unitify_data(data)
+    field_units, data, _ = process_data(data)
     sfh = StreamDictFieldHandler()
 
     particle_types = set_particle_types(data)
@@ -1832,7 +1863,7 @@ def load_unstructured_mesh(connectivity, coordinates, node_data=None,
     sfh.update({'connectivity': connectivity,
                 'coordinates': coordinates})
     for i, d in enumerate(data):
-        _f_unit, _data = unitify_data(d)
+        _f_unit, _data, _ = process_data(d)
         field_units.update(_f_unit)
         sfh[i] = _data
         particle_types.update(set_particle_types(d))
