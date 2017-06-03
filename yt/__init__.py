@@ -103,7 +103,7 @@ from yt.visualization.api import \
     FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
     write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, \
-    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, \
+    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
     ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \

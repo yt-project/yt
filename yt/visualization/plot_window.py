@@ -24,7 +24,7 @@ from distutils.version import LooseVersion
 from numbers import Number
 
 from .base_plot_types import \
-    ImagePlotMPL
+    ImagePlotMPL, PlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
@@ -67,6 +67,7 @@ from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType
+from yt.geometry.coordinates.cartesian_coordinates import CartesianCoordinateHandler
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -1118,7 +1119,8 @@ class PWViewerMPL(PlotWindow):
         ----------
 
         field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to show the colorbar.
+            The name of the field(s) that we want to show
+ the colorbar.
         """
         if field is None:
             field = self.fields
@@ -2014,3 +2016,44 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             del kwargs['north_vector']
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
+
+class LinePlot(PlotMPL):
+    r"""
+    A factory function for
+    :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
+    and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
+    essentially allows for a single entry point to both types of slice plots,
+    the distinction being determined by the specified normal vector to the
+    slice.
+
+    The returned plot object can be updated using one of the many helper
+    functions defined in PlotWindow.
+
+    Parameters
+    ----------
+
+    ds : :class:`yt.data_objects.static_output.Dataset`
+        This is the dataset object corresponding to the
+        simulation output to be plotted.
+    fields : string
+        The name of the field(s) to be plotted.
+    point1: tuple
+        Contains the coordinates of the first point for constructing the line
+    point2: tuple
+        Contains the coordinates of the second point for constructing the line
+    resolution: int
+        How many points to sample between point1 and point2 for constructing 
+        the line plot
+    """
+
+    def __init__(self, ds, fields, point1, point2, resolution):
+        self.ds = ds
+        self.handler = CartesianCoordinateHandler(self.ds)
+        # super(LinePlot, self).__init__(fsize, axrect, None, None)
+        super(LinePlot, self).__init__(None, None, None, None)
+        for field in fields:
+            x, y = self.handler.line_plot(field, np.asarray(point1, dtype='float64'),
+                                          np.asarray(point2, dtype='float64'), resolution)
+            self.ax.plot(x, y)
+        
+    

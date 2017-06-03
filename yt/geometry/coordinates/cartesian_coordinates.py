@@ -24,7 +24,7 @@ from .coordinate_handler import \
 from yt.funcs import mylog
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian, pixelize_cartesian_nodal,
+    pixelize_cartesian, pixelize_cartesian_nodal, \
     element_mesh_line_plot
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
@@ -66,6 +66,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
+        import pdb; pdb.set_trace()
         index = data_source.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
