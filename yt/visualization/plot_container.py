@@ -230,10 +230,10 @@ class ImagePlotContainer(object):
         for field in self.data_source._determine_fields(fields):
             if log:
                 if linthresh is not None:
-                    if not linthresh > 0.: 
+                    if not linthresh > 0.:
                         raise ValueError('\"linthresh\" must be positive')
                     self._field_transform[field] = symlog_transform
-                    self._field_transform[field].func = linthresh 
+                    self._field_transform[field].func = linthresh
                 else:
                     self._field_transform[field] = log_transform
             else:
@@ -306,7 +306,7 @@ class ImagePlotContainer(object):
             if field == 'all', applies to all plots.
         color : string or RGBA tuple (optional)
             if set, set the background color to this color
-            if unset, background color is set to the bottom value of 
+            if unset, background color is set to the bottom value of
             the color map
 
         """
@@ -402,7 +402,7 @@ class ImagePlotContainer(object):
     def set_cbar_minorticks(self, field, state):
         """turn colorbar minor ticks on or off in the current plot
 
-        Displaying minor ticks reduces performance; turn them off 
+        Displaying minor ticks reduces performance; turn them off
         using set_cbar_minorticks('all', 'off') if drawing speed is a problem.
 
         Parameters
@@ -471,7 +471,7 @@ class ImagePlotContainer(object):
         ----------
 
         font_dict : dict
-            A dict of keyword parameters to be passed to 
+            A dict of keyword parameters to be passed to
             :class:`matplotlib.font_manager.FontProperties`.
 
             Possible keys include:

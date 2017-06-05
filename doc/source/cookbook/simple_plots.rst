@@ -237,3 +237,11 @@ Annotating Plots with a Timestamp and Physical Scale
 When creating movies of multiple outputs from the same simulation (see :ref:`time-series-analysis`), it can be helpful to include a timestamp and the physical scale of each individual output.  This is simply achieved using the :ref:`annotate_timestamp() <annotate-timestamp>` and :ref:`annotate_scale() <annotate-scale>` callbacks on your plots.  For more information about similar plot modifications using other callbacks, see the section on :ref:`Plot Modifications <callbacks>`.
 
 .. yt_cookbook:: annotate_timestamp_and_scale.py
+
+Simple 1D Unstructured Mesh Line Plotting
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This script shows how to make a `LinePlot` through an `UnstructuredMesh`
+data-set. See :ref:`how-to-1d-unstructured-mesh` for more information.
+
+.. yt_cookbook:: simple_unstructured_1d.py

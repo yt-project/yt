@@ -67,7 +67,7 @@ from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType
-from yt.geometry.coordinates.cartesian_coordinates import CartesianCoordinateHandler
+from yt.extern.six.moves import builtins
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -1119,8 +1119,7 @@ class PWViewerMPL(PlotWindow):
         ----------
 
         field : string, field tuple, or list of strings or field tuples (optional)
-            The name of the field(s) that we want to show
- the colorbar.
+            The name of the field(s) that we want to show the colorbar.
         """
         if field is None:
             field = self.fields
@@ -2040,9 +2039,10 @@ class LinePlot(PlotMPL):
 
     def __init__(self, ds, fields, point1, point2, resolution,
                  figure_size=5., aspect=None, fontsize=18.):
-        handler = CartesianCoordinateHandler(ds)
-        if not isinstance(fields, list):
-            fields = [fields]
+        """
+        Sets up figure and axes
+        """
+        self.handler = ds.coordinates
         if aspect is None:
             aspect = 1.
         fontscale = fontsize / 18.
@@ -2082,9 +2082,30 @@ class LinePlot(PlotMPL):
             y_frac_widths[1],
         )
 
-        # super(LinePlot, self).__init__(fsize, axrect, None, None)
         super(LinePlot, self).__init__(size, axrect, None, None)
+        self.add_plot(fields, point1, point2, resolution)
+
+    def add_plot(self, fields, point1, point2, resolution):
+        r"""
+        Used to add plots to the figure
+        """
+        if not isinstance(fields, list):
+            fields = [fields]
         for field in fields:
-            x, y = handler.line_plot(field, np.asarray(point1, dtype='float64'),
+            x, y = self.handler.line_plot(field, np.asarray(point1, dtype='float64'),
                                           np.asarray(point2, dtype='float64'), resolution)
             self.axes.plot(x, y)
+
+    def show(self):
+        r"""This will send any existing plots to the IPython notebook.
+
+        If yt is being run from within an IPython session, and it is able to
+        determine this, this function will send any existing plots to the
+        notebook for display.
+
+        If yt can't determine if it's inside an IPython session, it will raise
+        YTNotInsideNotebook.
+        """
+        if "__IPYTHON__" in dir(builtins):
+            from IPython.display import display
+            display(self)

@@ -30,7 +30,7 @@ example in a jupyter notebook environment, but the same command should work
 in other environments as well:
 
 .. code-block:: python
- 
+
    %matplotlib notebook
    import yt
    yt.toggle_interactivity()
@@ -943,6 +943,7 @@ method and then given to the ProfilePlot object.
    # Save the image.
    plot.save()
 
+
 Customizing axis limits
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -1053,6 +1054,45 @@ change the property of a single line, give also the index of the profile.
 
     # change only the first line
     plot.set_line_property("linestyle", "--", 0)
+
+.. _how-to-1d-unstructured-mesh:
+
+1D Sampling on Unstructured Meshes
+----------------------------------
+
+YT has the ability to sample unstructured mesh data-sets along arbitrary lines
+and plot the result. You must supply five arguments to the `LinePlot`
+class. They are enumerated below:
+
+1. Data-set
+2. A list of fields or a single field you wish to plot
+3. The starting point of the sampling line. This should be a tuple of three
+   floats corresponding to the coordinates of the starting point
+4. The ending point of the sampling line. This should also be a tuple of three
+   floats
+5. The resolution of the sampling line. This is the number of sampling points
+   along the line, e.g. if 1000 is specified, then data will be sampled at
+   1000 points evenly spaced between the starting and ending points.
+
+The below code snippet illustrates how this is done:
+
+.. python-script::
+
+   ds = yt.load(home + "/yt_data/SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
+   ln.save("first_test.png")
+
+You can also add plots to existing `LinePlot` instances with `add_plot` as shown
+below:
+
+.. python-script::
+
+   ln.add_plot(('all', 'p'), (0, 0, 0), (1, 1, 0), 1000)
+   ln.save("added_plot.png")
+
+Note that the beginning and end-points of multiple plots can be different. If
+working in an IPython Notebook, `LinePlot` also has the `show()` method.
+
 
 .. _how-to-make-2d-profiles:
 
