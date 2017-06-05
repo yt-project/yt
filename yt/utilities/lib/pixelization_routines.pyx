@@ -254,7 +254,7 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     cdef int lc, lr, rc, rr
     cdef np.float64_t lypx, rypx, lxpx, rxpx, overlap1, overlap2
     # These are the temp vars we get from the arrays
-    cdef np.float64_t oxsp, oysp, ozsp 
+    cdef np.float64_t oxsp, oysp, ozsp
     cdef np.float64_t xsp, ysp, zsp
     cdef np.float64_t dxsp, dysp, dzsp
     # Some periodicity helpers
@@ -303,7 +303,7 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     # (lr) and then iterate up to "right column" (rc) and "uppeR row" (rr),
     # depositing into them the data value.  Overlap computes the relative
     # overlap of a data value with a pixel.
-    # 
+    #
     # NOTE ON ROWS AND COLUMNS:
     #
     #   The way that images are plotting in matplotlib is somewhat different
@@ -871,6 +871,8 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
                            np.ndarray[np.float64_t, ndim=2] field,
                            int index_offset = 0):
 
+    # This routine chooses the correct element sampler to interpolate field
+    # values at evenly spaced points along a sampling line
     cdef np.float64_t *vertices
     cdef np.float64_t *field_vals
     cdef int nvertices = conn.shape[1]
@@ -955,8 +957,8 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
             if not sampler.check_inside(mapped_coord) and ci != conn.shape[0] - 1:
                 continue
             elif not sampler.check_inside(mapped_coord):
-                raise RuntimeError("It's impossible that the line point doesn't "
-                                   "fall within any of the elements.")
+                raise ValueError("Check to see that both starting and ending line points "
+                                 "are within the domain of the mesh.")
             plot_values[i] = sampler.sample_at_unit_point(mapped_coord, field_vals)
             break
 

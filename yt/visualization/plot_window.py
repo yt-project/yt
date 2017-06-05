@@ -661,7 +661,6 @@ class PWViewerMPL(PlotWindow):
     _data_valid = False
 
     def __init__(self, *args, **kwargs):
-        import pdb; pdb.set_trace()
         if self._frb_generator is None:
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
@@ -2020,15 +2019,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
 class LinePlot(PlotMPL):
     r"""
-    A factory function for
-    :class:`yt.visualization.plot_window.AxisAlignedSlicePlot`
-    and :class:`yt.visualization.plot_window.OffAxisSlicePlot` objects.  This
-    essentially allows for a single entry point to both types of slice plots,
-    the distinction being determined by the specified normal vector to the
-    slice.
-
-    The returned plot object can be updated using one of the many helper
-    functions defined in PlotWindow.
+    A class for constructing line plots
 
     Parameters
     ----------
@@ -2037,7 +2028,7 @@ class LinePlot(PlotMPL):
         This is the dataset object corresponding to the
         simulation output to be plotted.
     fields : string
-        The name of the field(s) to be plotted.
+        The name(s) of the field(s) to be plotted.
     point1: tuple
         Contains the coordinates of the first point for constructing the line
     point2: tuple

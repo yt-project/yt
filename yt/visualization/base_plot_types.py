@@ -83,7 +83,6 @@ class PlotMPL(object):
 
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
-        import pdb; pdb.set_trace()
         import matplotlib.figure
         self._plot_valid = True
         if figure is None:

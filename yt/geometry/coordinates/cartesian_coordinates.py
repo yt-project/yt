@@ -66,7 +66,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        # import pdb; pdb.set_trace()
+        """
+        Method for pixelizing grid data sets in preparation for
+        two-dimensional image plots. Relies on several sampling
+        routines written in cython
+        """
         index = data_source.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
@@ -121,8 +125,14 @@ class CartesianCoordinateHandler(CoordinateHandler):
             return self._oblique_pixelize(data_source, field, bounds, size,
                                           antialias)
 
+
     def line_plot(self, field, start_point, end_point, resolution):
-        import pdb; pdb.set_trace()
+        """
+        Method for sampling grid data sets along a line in preparation for
+        one-dimensional line plots. For UnstructuredMesh, relies on a
+        sampling routine written in cython
+        """
+
         index = self.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
@@ -157,6 +167,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                                              index_offset=offset)
 
             return arc_length, plot_values
+
+        else:
+            raise NotImplementedError("Currently line plotting routines have only "
+                                      "been implemented for unstructured meshes.")
 
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
