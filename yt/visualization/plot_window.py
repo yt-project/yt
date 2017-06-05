@@ -661,6 +661,7 @@ class PWViewerMPL(PlotWindow):
     _data_valid = False
 
     def __init__(self, *args, **kwargs):
+        import pdb; pdb.set_trace()
         if self._frb_generator is None:
             self._frb_generator = kwargs.pop("frb_generator")
         if self._plot_type is None:
@@ -1037,7 +1038,7 @@ class PWViewerMPL(PlotWindow):
     @invalidate_plot
     def annotate_clear(self, index=None):
         """
-        Clear callbacks from the plot.  If index is not set, clear all 
+        Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
         created, 1 is the 2nd one created, -1 is the last one created, etc.)
         """
@@ -1052,7 +1053,7 @@ class PWViewerMPL(PlotWindow):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f,
                                       self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
@@ -1070,8 +1071,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_colorbar(self, field=None):
         """
-        Hides the colorbar for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Hides the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.
 
         Parameters
@@ -1111,8 +1112,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_colorbar(self, field=None):
         """
-        Shows the colorbar for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Shows the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.  See hide_colorbar().
 
         Parameters
@@ -1131,8 +1132,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_axes(self, field=None):
         """
-        Hides the axes for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Hides the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.
 
         Parameters
@@ -1170,8 +1171,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_axes(self, field=None):
         """
-        Shows the axes for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Shows the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.  See hide_axes().
 
         Parameters
@@ -1285,7 +1286,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
 
     Examples
@@ -1440,7 +1441,7 @@ class ProjectionPlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are: 
+         The method of projection.  Valid methods are:
 
          "integrate" with no weight_field specified : integrate the requested
          field along the line of sight.
@@ -1466,7 +1467,7 @@ class ProjectionPlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
 
     Examples
@@ -1492,7 +1493,7 @@ class ProjectionPlot(PWViewerMPL):
         self.ts = ts
         ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        # proj_style is deprecated, but if someone specifies then it trumps 
+        # proj_style is deprecated, but if someone specifies then it trumps
         # method.
         if proj_style is not None:
             method = proj_style
@@ -1521,7 +1522,7 @@ class ProjectionPlot(PWViewerMPL):
                            field_parameters=field_parameters, method=method,
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             right_handed=right_handed, fontsize=fontsize, window_size=window_size, 
+                             right_handed=right_handed, fontsize=fontsize, window_size=window_size,
                              aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1595,7 +1596,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults ds.all_data(), a 
+         Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
     """
 
@@ -1750,7 +1751,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     """
     _plot_type = 'OffAxisProjection'
@@ -2042,18 +2043,57 @@ class LinePlot(PlotMPL):
     point2: tuple
         Contains the coordinates of the second point for constructing the line
     resolution: int
-        How many points to sample between point1 and point2 for constructing 
+        How many points to sample between point1 and point2 for constructing
         the line plot
     """
 
-    def __init__(self, ds, fields, point1, point2, resolution):
-        self.ds = ds
-        self.handler = CartesianCoordinateHandler(self.ds)
+    def __init__(self, ds, fields, point1, point2, resolution,
+                 figure_size=5., aspect=None, fontsize=18.):
+        handler = CartesianCoordinateHandler(ds)
+        if not isinstance(fields, list):
+            fields = [fields]
+        if aspect is None:
+            aspect = 1.
+        fontscale = fontsize / 18.
+        ax_text_size = [1.2*fontscale, 0.9*fontscale]
+        top_buff_size = 0.3*fontscale
+
+        if iterable(figure_size):
+            x_fig_size = figure_size[0]
+            y_fig_size = figure_size[1]
+        else:
+            x_fig_size = figure_size
+            y_fig_size = figure_size/aspect
+
+        x_axis_size = ax_text_size[0]
+        y_axis_size = ax_text_size[1]
+
+        top_buff_size = top_buff_size
+
+        xbins = np.array([x_axis_size, x_fig_size, x_axis_size])
+        ybins = np.array([y_axis_size, y_fig_size, top_buff_size])
+
+        size = [xbins.sum(), ybins.sum()]
+
+        x_frac_widths = xbins/size[0]
+        y_frac_widths = ybins/size[1]
+
+        # axrect is the rectangle defining the area of the
+        # axis object of the plot.  Its range goes from 0 to 1 in
+        # x and y directions.  The first two values are the x,y
+        # start values of the axis object (lower left corner), and the
+        # second two values are the size of the axis object.  To get
+        # the upper right corner, add the first x,y to the second x,y.
+        axrect = (
+            x_frac_widths[0],
+            y_frac_widths[0],
+            x_frac_widths[1],
+            y_frac_widths[1],
+        )
+
         # super(LinePlot, self).__init__(fsize, axrect, None, None)
-        super(LinePlot, self).__init__(None, None, None, None)
+        super(LinePlot, self).__init__(size, axrect, None, None)
         for field in fields:
-            x, y = self.handler.line_plot(field, np.asarray(point1, dtype='float64'),
+            x, y = handler.line_plot(field, np.asarray(point1, dtype='float64'),
                                           np.asarray(point2, dtype='float64'), resolution)
-            self.ax.plot(x, y)
-        
-    
+            self.axes.plot(x, y)

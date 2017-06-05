@@ -66,7 +66,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
-        import pdb; pdb.set_trace()
+        # import pdb; pdb.set_trace()
         index = data_source.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
@@ -122,6 +122,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                           antialias)
 
     def line_plot(self, field, start_point, end_point, resolution):
+        import pdb; pdb.set_trace()
         index = self.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
@@ -168,13 +169,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             period = period.in_units("code_length").d
 
         buff = np.zeros((size[1], size[0]), dtype="f8")
-        
+
         finfo = self.ds._get_field_info(field)
         nodal_flag = finfo.nodal_flag
         if np.any(nodal_flag):
             nodal_data = get_nodal_data(data_source, field)
             coord = data_source.coord.d
-            pixelize_cartesian_nodal(buff, 
+            pixelize_cartesian_nodal(buff,
                                      data_source['px'], data_source['py'], data_source['pz'],
                                      data_source['pdx'], data_source['pdy'], data_source['pdz'],
                                      nodal_data, coord, bounds, int(antialias),
@@ -186,7 +187,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                bounds, int(antialias),
                                period, int(periodic))
         return buff
-            
+
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         indices = np.argsort(data_source['pdx'])[::-1].astype(np.int_)
         buff = np.zeros((size[1], size[0]), dtype="f8")
