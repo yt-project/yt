@@ -66,7 +66,8 @@ from yt.utilities.exceptions import \
     YTUnitConversionError, \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
-    YTInvalidFieldType
+    YTInvalidFieldType, \
+    YTNotInsideNotebook
 from yt.extern.six.moves import builtins
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
@@ -2109,3 +2110,5 @@ class LinePlot(PlotMPL):
         if "__IPYTHON__" in dir(builtins):
             from IPython.display import display
             display(self)
+        else:
+            raise YTNotInsideNotebook

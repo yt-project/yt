@@ -657,6 +657,8 @@ class ImagePlotContainer(object):
             if "__IPYTHON__" in dir(builtins):
                 from IPython.display import display
                 display(self)
+            else:
+                raise YTNotInsideNotebook
 
     @validate_plot
     def display(self, name=None, mpl_kwargs=None):
