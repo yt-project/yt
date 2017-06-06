@@ -2039,7 +2039,7 @@ class LinePlot(PlotMPL):
     """
 
     def __init__(self, ds, fields, point1, point2, resolution,
-                 figure_size=5., aspect=None, fontsize=18.):
+                 figure_size=5., aspect=None, fontsize=18., labels={}):
         """
         Sets up figure and axes
         """
@@ -2084,18 +2084,35 @@ class LinePlot(PlotMPL):
         )
 
         super(LinePlot, self).__init__(size, axrect, None, None)
-        self.add_plot(fields, point1, point2, resolution)
+        self.add_plot(fields, point1, point2, resolution, labels=labels)
+        self._xlabel = ("Arc Length [Arb. Units]", 14.)
+        self._ylabel = ("Field Value [Arb. Units]", 14.)
 
-    def add_plot(self, fields, point1, point2, resolution):
+    def add_plot(self, fields, point1, point2, resolution, labels={}):
         r"""
         Used to add plots to the figure
         """
         if not isinstance(fields, list):
             fields = [fields]
         for field in fields:
+            if field not in labels:
+                labels[field] = field[1]
             x, y = self.handler.line_plot(field, np.asarray(point1, dtype='float64'),
                                           np.asarray(point2, dtype='float64'), resolution)
-            self.axes.plot(x, y)
+            self.axes.plot(x, y, label=labels[field])
+
+    def add_legend(self):
+        self.axes.legend()
+
+    def set_xlabel(self, label, fontsize=14):
+        self._xlabel = (label, fontsize)
+
+    def set_ylabel(self, label, fontsize=14):
+        self._ylabel = (label, fontsize)
+
+    def _setup_plot(self):
+        self.axes.set_xlabel(self._xlabel[0], fontsize=self._xlabel[1])
+        self.axes.set_ylabel(self._ylabel[0], fontsize=self._ylabel[1])
 
     def show(self):
         r"""This will send any existing plots to the IPython notebook.
@@ -2107,8 +2124,13 @@ class LinePlot(PlotMPL):
         If yt can't determine if it's inside an IPython session, it will raise
         YTNotInsideNotebook.
         """
+        self._setup_plot()
         if "__IPYTHON__" in dir(builtins):
             from IPython.display import display
             display(self)
         else:
             raise YTNotInsideNotebook
+
+    def save(self, name):
+        self._setup_plot()
+        super(LinePlot, self).save(name)

@@ -1061,7 +1061,7 @@ change the property of a single line, give also the index of the profile.
 ----------------------------------
 
 YT has the ability to sample unstructured mesh data-sets along arbitrary lines
-and plot the result. You must supply five arguments to the `LinePlot`
+and plot the result. You must supply five arguments to the ``LinePlot``
 class. They are enumerated below:
 
 1. Data-set
@@ -1082,7 +1082,7 @@ The below code snippet illustrates how this is done:
    ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
    ln.save("first_test.png")
 
-You can also add plots to existing `LinePlot` instances with `add_plot` as shown
+You can also add plots to existing ``LinePlot`` instances with ``add_plot`` as shown
 below:
 
 .. python-script::
@@ -1091,7 +1091,30 @@ below:
    ln.save("added_plot.png")
 
 Note that the beginning and end-points of multiple plots can be different. If
-working in an IPython Notebook, `LinePlot` also has the `show()` method.
+working in an IPython Notebook, ``LinePlot`` also has the ``show()`` method.
+
+You can also create legends and add x and y axes labels to these 1D sampling
+plots. The legend process takes two steps:
+
+1. When instantiating the ``LinePlot`` or invoking ``add_plot`` pass a dictionary of
+   labels with keys corresponding to the field names
+2. Call the ``LinePlot`` ``add_legend`` method
+
+X- and Y- axis labels are set simply with ``set_xlabel`` and ``set_ylabel``
+methods. The below code snippet combines all the features we've discussed:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000,
+                    labels={('all', 'u') : r"u$_s$", ('all', 'v') : r"v$_s$"})
+   ln.add_plot([('all', 'v'), ('all', 'u')], (0, 0, 0), (1, 1, 0), 1000,
+               labels={('all', 'u') : r"u$_l$", ('all', 'v') : r"v$_l$"})
+   ln.add_legend()
+   ln.set_xlabel("Arc Length (cm)")
+   ln.set_ylabel(r"Velocity (m s$^{-1}$)")
+   ln.save("line_plot.eps")
 
 
 .. _how-to-make-2d-profiles:

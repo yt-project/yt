@@ -241,7 +241,7 @@ When creating movies of multiple outputs from the same simulation (see :ref:`tim
 Simple 1D Unstructured Mesh Line Plotting
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This script shows how to make a `LinePlot` through an `UnstructuredMesh`
+This script shows how to make a ``LinePlot`` through an ``UnstructuredMesh``
 data-set. See :ref:`how-to-1d-unstructured-mesh` for more information.
 
 .. yt_cookbook:: simple_unstructured_1d.py
