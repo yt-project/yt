@@ -162,7 +162,7 @@ class RAMSESDomainFile(object):
                 ("particle_velocity_y", "d"),
                 ("particle_velocity_z", "d"),
                 ("particle_mass", "d"),
-                ("particle_identifier", "I"),
+                ("particle_identifier", "i"),
                 ("particle_refinement_level", "I")]
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
