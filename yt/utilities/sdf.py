@@ -998,7 +998,7 @@ class SDFIndex(object):
         if pos_fields is None:
             pos_fields = 'x','y','z'
         xf, yf, zf = pos_fields
-        mylog.debug("Using position fields: %s" % pos_fields)
+        mylog.debug("Using position fields: %s" % (pos_fields,))
 
         # I'm sorry.
         pos = mpcuq * np.array([data[xf].in_units('Mpccm/h'), data[yf].in_units('Mpccm/h'), data[zf].in_units('Mpccm/h')]).T
