@@ -1292,15 +1292,15 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         if fields is None:
             fields = plots.fields
         if len(fields) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
+            raise RuntimeError("Number of plots (%d) is less "
+                               "than nrow(%d) x ncol(%d)." %
                                (len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
+            raise RuntimeError("Number of plots (%d) is less "
+                               "than nrow(%d) x ncol(%d)." %
                                (len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
