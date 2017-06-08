@@ -415,7 +415,7 @@ def _reconstruct_clump(parent, field, mi, ma, valid, children,
         try:
             parent = parent[1]
         except KeyError:
-            parent = parent
+            pass
     if children is None: children = []
     obj.parent, obj.field, obj.min_val, obj.max_val, \
       obj.valid, obj.children, obj.clump_info, obj.function = \

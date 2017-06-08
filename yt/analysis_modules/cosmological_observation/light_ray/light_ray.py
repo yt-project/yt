@@ -428,16 +428,12 @@ class LightRay(CosmologySplice):
         right_edge.convert_to_units('unitary')
 
         if start_position is not None:
-            if hasattr(start_position, 'units'):
-                start_position = start_position
-            else:
+            if not hasattr(start_position, 'units'):
                 start_position = self.ds.arr(start_position, assumed_units)
             start_position.convert_to_units('unitary')
 
         if end_position is not None:
-            if hasattr(end_position, 'units'):
-                end_position = end_position
-            else:
+            if not hasattr(end_position, 'units'):
                 end_position = self.ds.arr(end_position, assumed_units)
             end_position.convert_to_units('unitary')
 
