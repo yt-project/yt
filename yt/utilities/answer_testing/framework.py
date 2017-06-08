@@ -174,7 +174,7 @@ class AnswerTestStorage(object):
         self.reference_name = reference_name
         self.answer_name = answer_name
         self.cache = {}
-    def dump(self, result_storage, result):
+    def dump(self, result_storage):
         raise NotImplementedError
     def get(self, ds_name, default=None):
         raise NotImplementedError
