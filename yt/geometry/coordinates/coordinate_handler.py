@@ -77,7 +77,7 @@ class CoordinateHandler(object):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
 
-    def setup_fields(self):
+    def setup_fields(self, registry):
         # This should return field definitions for x, y, z, r, theta, phi
         raise NotImplementedError
 
