@@ -329,9 +329,9 @@ class YTArray(np.ndarray):
     NumPy ufuncs will pass through units where appropriate.
 
     >>> import numpy as np
-    >>> a = YTArray(np.arange(8), 'g/cm**3')
+    >>> a = YTArray(np.arange(8) - 4, 'g/cm**3')
     >>> np.abs(a)
-    YTArray([8, 8, 8, 8, 8, 8, 8, 8]) g/cm**3
+    YTArray([4, 3, 2, 1, 0, 1, 2, 3]) g/cm**3
 
     and strip them when it would be annoying to deal with them.
 
