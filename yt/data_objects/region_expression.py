@@ -56,7 +56,12 @@ class RegionExpression(object):
         # OK, now we need to look at our slices.  How many are a specific
         # coordinate?
 
-        if not all(isinstance(v, slice) for v in item):
+        nslices = sum([isinstance(v, slice) for v in item])
+        if nslices == 0:
+            return self._create_point(item)
+        elif nslices == 1:
+            return self._create_ray(item)
+        elif nslices == 2:
             return self._create_slice(item)
         else:
             if all(s.start is s.stop is s.step is None for s in item):
@@ -133,3 +138,24 @@ class RegionExpression(object):
         if all(d is not None for d in dims):
             return self.ds.arbitrary_grid(left_edge, right_edge, dims)
         return self.ds.region(center, left_edge, right_edge)
+
+    def _create_point(self, point_tuple):
+        coord = [self._spec_to_value(p) for p in point_tuple]
+        return self.ds.point(coord)
+
+    def _create_ray(self, ray_tuple):
+        axis = None
+        new_slice = []
+        coord = []
+        for ax, v in enumerate(ray_tuple):
+            if not isinstance(v, slice):
+                coord.append(self._spec_to_value(v))
+                new_slice.append(slice(None, None, None))
+            else:
+                if axis is not None: raise RuntimeError
+                axis = ax
+                new_slice.append(v)
+        if axis == 1: coord = [coord[1], coord[0]]
+        source = self._create_region(new_slice)
+        ray = self.ds.ortho_ray(axis, coord, data_source=source)
+        return ray
