@@ -158,4 +158,6 @@ class RegionExpression(object):
         if axis == 1: coord = [coord[1], coord[0]]
         source = self._create_region(new_slice)
         ray = self.ds.ortho_ray(axis, coord, data_source=source)
+        if getattr(new_slice[axis].step, "imag", 0.0) != 0.0:
+            raise NotImplementedError
         return ray
