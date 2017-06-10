@@ -23,4 +23,4 @@ from .fields import \
 add_enzop_field = EnzoPFieldInfo.add_field
 
 from .io import \
-     EPIOHandler
+     EnzoPIOHandler

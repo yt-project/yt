@@ -62,7 +62,7 @@ class EnzoPGrid(AMRGridPatch):
         self.Level = -1
 
     def __repr__(self):
-        return "EnzoPBlock_%s" % self.block_name
+        return "EnzoPGrid_%04d" % self.id
 
     @property
     def Parent(self):

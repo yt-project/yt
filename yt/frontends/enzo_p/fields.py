@@ -24,18 +24,6 @@ energy_units = "code_velocity**2"
 known_species_names = {
 }
 
-NODAL_FLAGS = {
-    'BxF': [1, 0, 0],
-    'ByF': [0, 1, 0],
-    'BzF': [0, 0, 1],
-    'Ex': [0, 1, 1],
-    'Ey': [1, 0, 1],
-    'Ez': [1, 1, 0],
-    'AvgElec0': [0, 1, 1],
-    'AvgElec1': [1, 0, 1],
-    'AvgElec2': [1, 1, 0],
-}
-
 class EnzoPFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("velocity_x", (vel_units, ["velocity_x"], None)),

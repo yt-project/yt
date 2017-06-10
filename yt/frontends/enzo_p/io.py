@@ -26,14 +26,14 @@ _convert_mass = ("particle_mass","mass")
 
 _particle_position_names = {}
 
-class EPIOHandler(BaseIOHandler):
+class EnzoPIOHandler(BaseIOHandler):
 
     _dataset_type = "enzo_p"
     _base = slice(None)
     _field_dtype = "float64"
 
     def __init__(self, *args, **kwargs):
-        super(EPIOHandler, self).__init__(*args, **kwargs)
+        super(EnzoPIOHandler, self).__init__(*args, **kwargs)
         self._base = self.ds.dimensionality * \
           (slice(self.ds.ghost_zones,
                  -self.ds.ghost_zones),)
