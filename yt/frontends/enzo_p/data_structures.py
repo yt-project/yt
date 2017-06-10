@@ -47,6 +47,8 @@ class EnzoPGrid(AMRGridPatch):
     Class representing a single EnzoP Grid instance.
     """
 
+    _id_offset = 0
+
     def __init__(self, id, index, block_name, filename = None):
         """
         Returns an instance of EnzoPGrid with *id*, associated with
