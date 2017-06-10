@@ -19,24 +19,23 @@ import numpy as np
 import os
 import stat
 
-from yt.funcs import \
-    ensure_tuple, \
-    get_pbar, \
-    setdefaultattr
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.data_objects.static_output import \
     Dataset
 from yt.fields.field_info_container import \
     NullFunc
+from yt.funcs import \
+    ensure_tuple, \
+    get_pbar, \
+    setdefaultattr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.utilities.logger import \
     ytLogger as mylog
 
-from .fields import \
+from yt.frontends.enzo_p.fields import \
     EnzoPFieldInfo
-
 from yt.frontends.enzo_p.misc import \
     get_block_info, \
     get_root_blocks, \
@@ -126,9 +125,6 @@ class EnzoPHierarchy(GridIndex):
         child_id_queue = np.empty((self.num_grids - nroot_blocks, 2),
                                   dtype=np.int64)
 
-        slope = self.ds.domain_width / \
-          self.ds.arr(np.ones(3), "code_length")
-
         for ib in range(nblocks):
             fblock = min(fblock_size, file_size - offset)
             buff = lstr + f.read(fblock)
@@ -174,6 +170,8 @@ class EnzoPHierarchy(GridIndex):
         f.close()
         pbar.finish()
 
+        slope = self.ds.domain_width / \
+          self.ds.arr(np.ones(3), "code_length")
         self.grid_left_edge   = self.grid_left_edge  * slope + \
           self.ds.domain_left_edge
         self.grid_right_edge  = self.grid_right_edge * slope + \
