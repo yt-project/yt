@@ -68,3 +68,10 @@ def get_child_index(anc_id, desc_id):
         cid += dind[len(aind)]
     cid = int(cid, 2)
     return cid
+
+def is_parent(anc_block, desc_block):
+    for aind, dind in zip( anc_block.split("_"),
+                          desc_block.split("_")):
+        if not dind.startswith(aind):
+            return False
+    return True

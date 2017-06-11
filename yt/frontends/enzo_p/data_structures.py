@@ -40,7 +40,8 @@ from yt.frontends.enzo_p.misc import \
     get_block_info, \
     get_child_index, \
     get_root_blocks, \
-    get_root_block_id
+    get_root_block_id, \
+    is_parent
 
 class EnzoPGrid(AMRGridPatch):
     """
@@ -154,6 +155,7 @@ class EnzoPHierarchy(GridIndex):
         nroot_blocks = rbdim.prod()
         child_id = nroot_blocks
 
+        last_pid = None
         for ib in range(nblocks):
             fblock = min(fblock_size, file_size - offset)
             buff = lstr + f.read(fblock)
@@ -172,7 +174,13 @@ class EnzoPHierarchy(GridIndex):
                     parent_id = -1
                 else:
                     grid_id = child_id
-                    parent_id = self.grids[rbid].get_parent_id(block_name)
+                    # Try the last parent_id first
+                    if last_pid is not None and \
+                      is_parent(self.grids[last_pid].block_name, block_name):
+                        parent_id = last_pid
+                    else:
+                        parent_id = self.grids[rbid].get_parent_id(block_name)
+                    last_pid = parent_id
                     child_id += 1
 
                 my_grid = self.grid(
