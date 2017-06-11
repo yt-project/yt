@@ -47,6 +47,7 @@ class EnzoPGrid(AMRGridPatch):
     """
 
     _id_offset = 0
+    _refine_by = 2
 
     def __init__(self, id, index, block_name, filename = None):
         """
@@ -56,21 +57,59 @@ class EnzoPGrid(AMRGridPatch):
         # All of the field parameters will be passed to us as needed.
         AMRGridPatch.__init__(self, id, filename=filename, index=index)
         self.block_name = block_name
-        self._children_ids = []
+        self._children_ids = None
         self._parent_id = -1
         self.Level = -1
 
     def __repr__(self):
         return "EnzoPGrid_%04d" % self.id
 
+    def get_parent_id(self, desc_block_name):
+        if self.block_name == desc_block_name:
+            raise RuntimeError("Child and parent are the same!")
+        dim = self.index.ds.dimensionality
+        d_block = desc_block_name[1:].replace(":", "")
+        parent = self
+
+        while True:
+            a_block = parent.block_name[1:].replace(":", "")
+            gengap = (len(d_block) - len(a_block)) / dim
+            if gengap <= 1:
+                return parent.id
+            cid = ""
+            for aind, dind in zip(a_block.split("_"),
+                                  d_block.split("_")):
+                assert dind[:len(aind)] == aind
+                cid += dind[len(aind)]
+            cid = int(cid, 2)
+            parent = self.index.grids[parent._children_ids[cid]]
+
+    def add_child(self, child):
+        if self._children_ids is None:
+            self._children_ids = \
+            -1*np.ones(self._refine_by**
+                       self.index.ds.dimensionality,
+                       dtype=np.int64)
+
+        a_block =  self.block_name[1:].replace(":", "")
+        d_block = child.block_name[1:].replace(":", "")
+        cid = ""
+        for aind, dind in zip(a_block.split("_"),
+                              d_block.split("_")):
+            cid += dind[len(aind)]
+        cid = int(cid, 2)
+        self._children_ids[cid] = child.id
+
     @property
     def Parent(self):
         if self._parent_id == -1: return None
-        return self.index.grids[self._parent_id - self._id_offset]
+        return self.index.grids[self._parent_id]
 
     @property
     def Children(self):
-        return [self.index.grids[cid - self._id_offset]
+        if self._children_ids is None:
+            return []
+        return [self.index.grids[cid]
                 for cid in self._children_ids]
 
 class EnzoPHierarchy(GridIndex):
@@ -122,8 +161,6 @@ class EnzoPHierarchy(GridIndex):
         rbdim = self.ds.root_block_dimensions
         nroot_blocks = rbdim.prod()
         child_id = nroot_blocks
-        child_id_queue = np.empty((self.num_grids - nroot_blocks, 2),
-                                  dtype=np.int64)
 
         for ib in range(nblocks):
             fblock = min(fblock_size, file_size - offset)
@@ -143,11 +180,7 @@ class EnzoPHierarchy(GridIndex):
                     parent_id = -1
                 else:
                     grid_id = child_id
-                    parent_id = rbid
-                    # Queue up the child ids and set them later
-                    # when all the grids have been created.
-                    child_id_queue[child_id - nroot_blocks] = \
-                      rbid, child_id
+                    parent_id = self.grids[rbid].get_parent_id(block_name)
                     child_id += 1
 
                 my_grid = self.grid(
@@ -161,6 +194,9 @@ class EnzoPHierarchy(GridIndex):
                 self.grid_left_edge[grid_id]  = left
                 self.grid_right_edge[grid_id] = right
                 self.grid_dimensions[grid_id] = self.ds.active_grid_dimensions
+
+                if level > 0:
+                    self.grids[parent_id].add_child(my_grid)
 
                 bnl = nnl + 1
                 pbar.update(1)
@@ -176,9 +212,6 @@ class EnzoPHierarchy(GridIndex):
           self.ds.domain_left_edge
         self.grid_right_edge  = self.grid_right_edge * slope + \
           self.ds.domain_left_edge
-
-        for rbid, child_id in child_id_queue:
-            self.grids[rbid]._children_ids.append(child_id)
 
     def _populate_grid_objects(self):
         for g in self.grids:
