@@ -60,3 +60,11 @@ def get_root_block_id(block, min_dim=3):
             s = len(myb)
         rbid[i] = int(myb[:s], 2)
     return rbid
+
+def get_child_index(anc_id, desc_id):
+    cid = ""
+    for aind, dind in zip( anc_id.split("_"),
+                          desc_id.split("_")):
+        cid += dind[len(aind)]
+    cid = int(cid, 2)
+    return cid

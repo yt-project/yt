@@ -38,6 +38,7 @@ from yt.frontends.enzo_p.fields import \
     EnzoPFieldInfo
 from yt.frontends.enzo_p.misc import \
     get_block_info, \
+    get_child_index, \
     get_root_blocks, \
     get_root_block_id
 
@@ -76,12 +77,7 @@ class EnzoPGrid(AMRGridPatch):
             gengap = (len(d_block) - len(a_block)) / dim
             if gengap <= 1:
                 return parent.id
-            cid = ""
-            for aind, dind in zip(a_block.split("_"),
-                                  d_block.split("_")):
-                assert dind[:len(aind)] == aind
-                cid += dind[len(aind)]
-            cid = int(cid, 2)
+            cid = get_child_index(a_block, d_block)
             parent = self.index.grids[parent._children_ids[cid]]
 
     def add_child(self, child):
@@ -93,11 +89,7 @@ class EnzoPGrid(AMRGridPatch):
 
         a_block =  self.block_name[1:].replace(":", "")
         d_block = child.block_name[1:].replace(":", "")
-        cid = ""
-        for aind, dind in zip(a_block.split("_"),
-                              d_block.split("_")):
-            cid += dind[len(aind)]
-        cid = int(cid, 2)
+        cid = get_child_index(a_block, d_block)
         self._children_ids[cid] = child.id
 
     @property
