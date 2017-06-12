@@ -61,6 +61,7 @@ class Clump(TreeContainer):
                  clump_info=None, validators=None,
                  base=None, contour_key=None,
                  contour_id=None):
+        super(Clump, self).__init__()
         self.data = data
         self.field = field
         self.parent = parent
