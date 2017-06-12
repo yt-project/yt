@@ -619,7 +619,6 @@ class DarkMatterARTDataset(ARTDataset):
         ptr = self.particle_types_raw
         pu = ParticleUnion("darkmatter", list(ptr))
         self.add_particle_union(pu)
-        pass
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

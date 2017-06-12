@@ -412,7 +412,6 @@ class FLASHDataset(Dataset):
             self.gamma = self.parameters["gamma"]
         except:
             mylog.info("Cannot find Gamma")
-            pass
 
         # Get the simulation time
         self.current_time = self.parameters["time"]
