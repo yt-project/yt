@@ -56,7 +56,7 @@ class FileHandler(object):
             self.handle.close()
 
 
-class HDF5FileHandler(object):
+class HDF5FileHandler(FileHandler):
     def __init__(self, filename):
         self.handle = h5py.File(filename, 'r')
 
