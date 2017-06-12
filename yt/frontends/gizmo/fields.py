@@ -65,7 +65,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
     )
 
     def __init__(self, *args, **kwargs):
-        super(SPHFieldInfo, self).__init__(*args, **kwargs)
+        super(GizmoFieldInfo, self).__init__(*args, **kwargs)
         if ("PartType0", "Metallicity_00") in self.field_list:
             self.nuclei_names = metal_elements
             self.species_names = ["H", "H_p1"] + metal_elements

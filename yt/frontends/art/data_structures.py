@@ -616,7 +616,7 @@ class DarkMatterARTDataset(ARTDataset):
         mylog.info("Max level is %02i", self.max_level)
 
     def create_field_info(self):
-        super(ARTDataset, self).create_field_info()
+        super(DarkMatterARTDataset, self).create_field_info()
         ptr = self.particle_types_raw
         pu = ParticleUnion("darkmatter", list(ptr))
         self.add_particle_union(pu)
