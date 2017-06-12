@@ -717,7 +717,6 @@ class ProfilePlot(object):
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
-            field_name = r'$\rm{'+field+r'}$'
             field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\ ')
@@ -976,7 +975,6 @@ class PhasePlot(ImagePlotContainer):
         field_name = field_info.display_name
         if isinstance(field, tuple): field = field[1]
         if field_name is None:
-            field_name = r'$\rm{'+field+r'}$'
             field_name = r'$\rm{'+field.replace('_','\ ').title()+r'}$'
         elif field_name.find('$') == -1:
             field_name = field_name.replace(' ','\ ')

@@ -129,7 +129,6 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             size = sum((g.count(selector) for chunk in chunks
                         for g in chunk.objs))
         for field in fields:
-            ftype, fname = field
             fsize = size
             rv[field] = np.empty(fsize, dtype="float64")
         ng = sum(len(c.objs) for c in chunks)

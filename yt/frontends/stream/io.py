@@ -100,7 +100,6 @@ class IOHandlerStream(BaseIOHandler):
 
 class StreamParticleIOHandler(BaseIOHandler):
 
-    _vector_fields = ("particle_position", "particle_velocity")
     _dataset_type = "stream_particles"
     _vector_fields = ("particle_velocity", "particle_position")
 
@@ -214,7 +213,6 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
         chunk = chunks[0]
         rv = {}
         for field in fields:
-            ftype, fname = field
             rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
         mylog.debug("Reading %s cells of %s fields in %s blocks",

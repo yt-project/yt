@@ -38,7 +38,6 @@ def stdchannel_redirected(stdchannel, dest_filename):
 
     Code adapted from https://stackoverflow.com/a/17752455/1382869
     """
-
     try:
         oldstdchannel = os.dup(stdchannel.fileno())
         dest_file = open(dest_filename, 'w')
@@ -54,7 +53,7 @@ def stdchannel_redirected(stdchannel, dest_filename):
 def check_for_openmp():
     """Returns True if local setup supports OpenMP, False otherwise
 
-    Code adapted from astropy_helpers, originally written by Tom 
+    Code adapted from astropy_helpers, originally written by Tom
     Robitaille and Curtis McCully.
     """
 
@@ -181,7 +180,7 @@ def read_embree_location():
             '}'
         )
         file.flush()
-        p = Popen(compiler + ['-I%s/include/' % rd, filename], 
+        p = Popen(compiler + ['-I%s/include/' % rd, filename],
                   stdin=PIPE, stdout=PIPE, stderr=PIPE)
         output, err = p.communicate()
         exit_code = p.returncode

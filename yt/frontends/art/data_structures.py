@@ -399,7 +399,6 @@ class ARTDataset(Dataset):
                 return True
             except:
                 return False
-        return False
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
@@ -680,7 +679,6 @@ class DarkMatterARTDataset(ARTDataset):
                 return True
             except:
                 return False
-        return False
 
 
 class ARTDomainSubset(OctreeSubset):
@@ -870,7 +868,3 @@ class ARTDomainFile(object):
 
     def included(self, selector):
         return True
-        if getattr(selector, "domain_id", None) is not None:
-            return selector.domain_id == self.domain_id
-        domain_ids = self.ds.index.oct_handler.domain_identify(selector)
-        return self.domain_id in domain_ids

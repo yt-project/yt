@@ -98,7 +98,6 @@ class StandardRunner(ParallelAnalysisInterface):
             handler.start_writer()
     
     def setup_pool(self):
-        pool = ProcessorPool()
         pool, workgroup = ProcessorPool.from_sizes(
            [ (1, "server"),
              (self.num_readers, "readers"),

@@ -149,7 +149,6 @@ class BoxLibParticleHeader(object):
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split('_')[-1]
-            particle_real_type = self.version_string.split('_')[-1]
             if particle_real_type == 'double':
                 self.real_type = np.float64
             elif particle_real_type == 'single':
@@ -247,7 +246,6 @@ class AMReXParticleHeader(object):
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
-            particle_real_type = self.version_string.split('_')[-1]
             particle_real_type = self.version_string.split('_')[-1]
             if particle_real_type == 'double':
                 self.real_type = np.float64

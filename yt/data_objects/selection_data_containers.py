@@ -330,7 +330,6 @@ class YTSlice(YTSelectionContainer2D):
             left_edge = self._data_source.left_edge
             right_edge = self._data_source.right_edge
             center = (left_edge + right_edge)/2.0
-            width = right_edge - left_edge
             xax = self.ds.coordinates.x_axis[self.axis]
             yax = self.ds.coordinates.y_axis[self.axis]
             lx, rx = left_edge[xax], right_edge[xax]

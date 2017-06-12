@@ -164,11 +164,6 @@ class PerspectiveLens(Lens):
         camera.width[1] = camera.width[0] \
             * (camera.resolution[1] / camera.resolution[0])
 
-        if render_source.zbuffer is not None:
-            image = render_source.zbuffer.rgba
-        else:
-            image = self.new_image(camera)
-
         east_vec = camera.unit_vectors[0]
         north_vec = camera.unit_vectors[1]
         normal_vec = camera.unit_vectors[2]
@@ -180,9 +175,6 @@ class PerspectiveLens(Lens):
         sample_x = sample_x.transpose()
         sample_y = camera.width[1] * np.array(north_vec.reshape(3, 1) * py)
         sample_y = sample_y.transpose()
-
-        vectors = np.zeros((camera.resolution[0], camera.resolution[1], 3),
-                           dtype='float64', order='C')
 
         sample_x = np.repeat(sample_x.reshape(camera.resolution[0], 1, 3),
                              camera.resolution[1], axis=1)
@@ -199,8 +191,8 @@ class PerspectiveLens(Lens):
                       + 0.5 * unorm(camera._domain_width))
 
         # Rescale the ray to be long enough to cover the entire domain
-        vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
-            (max_length / camera.width[2])
+        vectors = ((sample_x + sample_y + normal_vecs * camera.width[2]) * 
+                   (max_length / camera.width[2]))
 
         positions = np.tile(
             camera.position, camera.resolution[0] * camera.resolution[1])
@@ -317,11 +309,6 @@ class StereoPerspectiveLens(Lens):
         if self.disparity is None:
             self.disparity = 3. * camera.width[0] / camera.resolution[0]
 
-        if render_source.zbuffer is not None:
-            image = render_source.zbuffer.rgba
-        else:
-            image = self.new_image(camera)
-
         vectors_left, positions_left = self._get_positions_vectors(
             camera, -self.disparity)
         vectors_right, positions_right = self._get_positions_vectors(
@@ -373,9 +360,6 @@ class StereoPerspectiveLens(Lens):
         sample_y = camera.width[1] * np.array(north_vec.reshape(3, 1) * py)
         sample_y = sample_y.transpose()
 
-        vectors = np.zeros((single_resolution_x, camera.resolution[1], 3),
-                           dtype='float64', order='C')
-
         sample_x = np.repeat(sample_x.reshape(single_resolution_x, 1, 3),
                              camera.resolution[1], axis=1)
         sample_y = np.repeat(sample_y.reshape(1, camera.resolution[1], 3),
@@ -394,9 +378,10 @@ class StereoPerspectiveLens(Lens):
         max_length = (unorm(camera.position - camera._domain_center)
                       + 0.5 * unorm(camera._domain_width)
                       + np.abs(self.disparity))
+
         # Rescale the ray to be long enough to cover the entire domain
-        vectors = (sample_x + sample_y + normal_vecs * camera.width[2]) * \
-            (max_length / camera.width[2])
+        vectors = ((sample_x + sample_y + normal_vecs * camera.width[2]) * 
+                   (max_length / camera.width[2]))
 
         positions = np.tile(
             camera.position, single_resolution_x * camera.resolution[1])
