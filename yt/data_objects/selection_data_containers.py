@@ -137,7 +137,9 @@ class YTOrthoRay(YTSelectionContainer1D):
         # Even though we may not be using x,y,z we use them here.
         self.px_dx = 'd%s'%('xyz'[self.px_ax])
         self.py_dx = 'd%s'%('xyz'[self.py_ax])
-        self.px, self.py = coords
+        # Convert coordinates to code length. 
+        self.px = self.ds.quan(coords[0], "code_length")
+        self.py = self.ds.quan(coords[1], "code_length")
         self.sort_by = 'xyz'[self.axis]
 
     @property
