@@ -15,6 +15,7 @@ Event loop for Interactive Data Visualization
 # This is a part of the experimental Interactive Data Visualization
 
 import os
+import sys
 
 import cyglfw3 as glfw
 import numpy as np
@@ -130,7 +131,7 @@ class RenderingContext(object):
         self.window = glfw.CreateWindow(width, height, title)
         if not self.window:
             glfw.Terminate()
-            exit()
+            sys.exit()
 
         glfw.MakeContextCurrent(self.window)
         GL.glClearColor(0.0, 0.0, 0.0, 0.0)

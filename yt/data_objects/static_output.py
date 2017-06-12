@@ -760,8 +760,6 @@ class Dataset(object):
                 setattr(self, name,
                     _unsupported_object(self, name))
                 continue
-            cname = cls.__name__
-            if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cls)
         if not np.all(self.refine_by == 2) and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):

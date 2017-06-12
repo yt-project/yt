@@ -62,7 +62,6 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             raise NotImplementedError
 
         for field in fields:
-            ftype, fname = field
             fsize = size
             # check the dtype instead
             rv[field] = np.empty(fsize, dtype="float64")
@@ -90,7 +89,6 @@ class IOHandlerGDFHDF5(BaseIOHandler):
                     data_view = data = np.empty(grid.ActiveDimensions,
                                                 dtype="float64")
                 for field in fields:
-                    ftype, fname = field
                     if version < '3':
                         dg = h5py.h5d.open(fid, _field_dname(grid.id, fname))
                     else:

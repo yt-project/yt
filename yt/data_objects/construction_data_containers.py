@@ -475,7 +475,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
             left_edge = self.data_source.left_edge
             right_edge = self.data_source.right_edge
             center = (left_edge + right_edge)/2.0
-            width = right_edge - left_edge
             xax = self.ds.coordinates.x_axis[self.axis]
             yax = self.ds.coordinates.y_axis[self.axis]
             lx, rx = left_edge[xax], right_edge[xax]

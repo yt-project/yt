@@ -318,7 +318,6 @@ class Camera(Orientation):
 
         position = data_source.ds.domain_right_edge
 
-        width = 1.5 * data_source.ds.domain_width.max()
         (xmi, xma), (ymi, yma), (zmi, zma) = \
             data_source.quantities['Extrema'](['x', 'y', 'z'])
         width = np.sqrt((xma - xmi) ** 2 + (yma - ymi) ** 2 +
