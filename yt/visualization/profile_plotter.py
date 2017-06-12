@@ -596,7 +596,7 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
-        if field is 'all':
+        if field == 'all':
             fields = list(self.axes.keys())
         else:
             fields = ensure_list(field)
