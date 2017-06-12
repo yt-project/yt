@@ -373,7 +373,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
 
     def sanitize_center(self, center, axis):
         center, display_center = super(
-            GeographicCoordinateHandler, self).sanitize_center(center, axis)
+            InternalGeographicCoordinateHandler, self).sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == self.radial_axis:
             display_center = center
@@ -394,7 +394,7 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super(GeographicCoordinateHandler, self).sanitize_width(
+            width = super(InternalGeographicCoordinateHandler, self).sanitize_width(
               axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
