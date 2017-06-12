@@ -1110,10 +1110,10 @@ class YTSurface(YTSelectionContainer3D):
     output the vertices to "triangles.obj" after rescaling them.
 
     >>> from yt.units import kpc
-    >>> sp = ds.sphere("max", (10, "kpc")
+    >>> sp = ds.sphere("max", (10, "kpc"))
     >>> surf = ds.surface(sp, "density", 5e-27)
-    >>> print surf["temperature"]
-    >>> print surf.vertices
+    >>> print(surf["temperature"])
+    >>> print(surf.vertices)
     >>> bounds = [(sp.center[i] - 5.0*kpc,
     ...            sp.center[i] + 5.0*kpc) for i in range(3)]
     >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
