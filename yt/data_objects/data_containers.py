@@ -348,9 +348,9 @@ class YTDataContainer(object):
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial = True)
             deps = self._determine_fields(deps)
-            for io_chunk in self.chunks([], "io", cache = False):
-                for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
-                                                    preload_fields = deps)):
+            for _ in self.chunks([], "io", cache = False):
+                for i, chunk in enumerate(self.chunks([], "spatial", ngz = 0,
+                                                      preload_fields = deps)):
                     o = self._current_chunk.objs[0]
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
@@ -384,7 +384,7 @@ class YTDataContainer(object):
             size = self._count_particles(ftype)
             rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
-            for io_chunk in self.chunks([], "io", cache = False):
+            for _ in self.chunks([], "io", cache = False):
                 for i, chunk in enumerate(self.chunks(field, "spatial")):
                     x, y, z = (self[ftype, 'particle_position_%s' % ax]
                                for ax in 'xyz')
@@ -406,8 +406,8 @@ class YTDataContainer(object):
             if f1 == ftype:
                 return val.size
         size = 0
-        for io_chunk in self.chunks([], "io", cache = False):
-            for i,chunk in enumerate(self.chunks([], "spatial")):
+        for _ in self.chunks([], "io", cache = False):
+            for i, chunk in enumerate(self.chunks([], "spatial")):
                 x, y, z = (self[ftype, 'particle_position_%s' % ax]
                             for ax in 'xyz')
                 if x.size == 0: continue
@@ -1161,8 +1161,8 @@ class YTDataContainer(object):
 
     @property
     def blocks(self):
-        for io_chunk in self.chunks([], "io"):
-            for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
+        for _ in self.chunks([], "io"):
+            for i, chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
                 # For grids this will be a grid object, and for octrees it will
                 # be an OctreeSubset.  Note that we delegate to the sub-object.
                 o = self._current_chunk.objs[0]
