@@ -314,12 +314,11 @@ class YTDataLightRayDataset(YTDataContainerDataset):
         """
         key = "light_ray_solution"
         self.light_ray_solution = []
-        lrs_fields = [par for par in self.parameters \
+        lrs_fields = [par for par in self.parameters
                       if key in par and not par.endswith("_units")]
         if len(lrs_fields) == 0:
             return
-        self.light_ray_solution = \
-          [{} for val in self.parameters[lrs_fields[0]]]
+        self.light_ray_solution = [{} for _ in self.parameters[lrs_fields[0]]]
         for sp3 in ["unique_identifier", "filename"]:
             ksp3 = "%s_%s" % (key, sp3)
             if ksp3 not in lrs_fields:
