@@ -242,7 +242,6 @@ class EnzoHierarchy(GridIndex):
                     return line.split()[2:]
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)
-        f = open(self.index_filename, "rt")
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
@@ -267,30 +266,34 @@ class EnzoHierarchy(GridIndex):
         for grid_id in range(self.num_grids):
             pbar.update(grid_id)
             # We will unroll this list
-            si.append(_next_token_line("GridStartIndex", f))
-            ei.append(_next_token_line("GridEndIndex", f))
-            LE.append(_next_token_line("GridLeftEdge", f))
-            RE.append(_next_token_line("GridRightEdge", f))
-            nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
-            fn.append([None])
-            if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
-            npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
-            # Below we find out what active particles exist in this grid,
-            # and add their counts individually.
-            if active_particles:
-                ptypes = _next_token_line("PresentParticleTypes", f)
-                counts = [int(c) for c in _next_token_line("ParticleTypeCounts", f)]
-                for ptype in self.parameters.get("AppendActiveParticleType", []):
-                    if ptype in ptypes:
-                        nap[ptype].append(counts[ptypes.index(ptype)])
-                    else:
-                        nap[ptype].append(0)
-            if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line("ParticleFileName", f)
-            for line in f:
-                if len(line) < 2: break
-                if line.startswith("Pointer:"):
-                    vv = patt.findall(line)[0]
-                    self.__pointer_handler(vv)
+            with open(self.index_filename, "rt") as f:
+                si.append(_next_token_line("GridStartIndex", f))
+                ei.append(_next_token_line("GridEndIndex", f))
+                LE.append(_next_token_line("GridLeftEdge", f))
+                RE.append(_next_token_line("GridRightEdge", f))
+                nb = int(_next_token_line("NumberOfBaryonFields", f)[0])
+                fn.append([None])
+                if nb > 0: fn[-1] = _next_token_line("BaryonFileName", f)
+                npart.append(int(_next_token_line("NumberOfParticles", f)[0]))
+                # Below we find out what active particles exist in this grid,
+                # and add their counts individually.
+                if active_particles:
+                    ptypes = _next_token_line("PresentParticleTypes", f)
+                    counts = [int(c) for c in _next_token_line(
+                        "ParticleTypeCounts", f)]
+                    for ptype in self.parameters.get(
+                            "AppendActiveParticleType", []):
+                        if ptype in ptypes:
+                            nap[ptype].append(counts[ptypes.index(ptype)])
+                        else:
+                            nap[ptype].append(0)
+                if nb == 0 and npart[-1] > 0: fn[-1] = _next_token_line(
+                        "ParticleFileName", f)
+                for line in f:
+                    if len(line) < 2: break
+                    if line.startswith("Pointer:"):
+                        vv = patt.findall(line)[0]
+                        self.__pointer_handler(vv)
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, npart, nap)
         temp_grids = np.empty(self.num_grids, dtype='object')

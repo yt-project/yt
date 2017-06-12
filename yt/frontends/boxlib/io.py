@@ -104,22 +104,22 @@ class IOHandlerBoxlib(BaseIOHandler):
         for filename in grids_by_file:
             grids = grids_by_file[filename]
             grids.sort(key = lambda a: a._offset)
-            f = open(filename, "rb")
-            for grid in grids:
-                data[grid.id] = {}
-                local_offset = grid._get_offset(f) - f.tell()
-                count = grid.ActiveDimensions.prod()
-                size = count * bpr
-                for field in self.ds.index.field_order:
-                    if field in fields:
-                        # We read it ...
-                        f.seek(local_offset, os.SEEK_CUR)
-                        v = np.fromfile(f, dtype=dtype, count=count)
-                        v = v.reshape(grid.ActiveDimensions, order='F')
-                        data[grid.id][field] = v
-                        local_offset = 0
-                    else:
-                        local_offset += size
+            with open(filename, "rb") as f:
+                for grid in grids:
+                    data[grid.id] = {}
+                    local_offset = grid._get_offset(f) - f.tell()
+                    count = grid.ActiveDimensions.prod()
+                    size = count * bpr
+                    for field in self.ds.index.field_order:
+                        if field in fields:
+                            # We read it ...
+                            f.seek(local_offset, os.SEEK_CUR)
+                            v = np.fromfile(f, dtype=dtype, count=count)
+                            v = v.reshape(grid.ActiveDimensions, order='F')
+                            data[grid.id][field] = v
+                            local_offset = 0
+                        else:
+                            local_offset += size
         return data
 
     def _read_particle_coords(self, chunks, ptf):

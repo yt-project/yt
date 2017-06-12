@@ -773,10 +773,10 @@ class ARTDomainFile(object):
         if self._level_oct_offsets is not None:
             return self._level_oct_offsets
         # We now have to open the file and calculate it
-        f = open(self.ds._file_amr, "rb")
-        nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
-            self._count_art_octs(f,  self.ds.child_grid_offset,
-                self.ds.min_level, self.ds.max_level)
+        with open(self.ds._file_amr, "rb") as f:
+            nhydrovars, inoll, _level_oct_offsets, _level_child_offsets = \
+                self._count_art_octs(f,  self.ds.child_grid_offset,
+                                     self.ds.min_level, self.ds.max_level)
         # remember that the root grid is by itself; manually add it back in
         inoll[0] = self.ds.domain_dimensions.prod() // 8
         _level_child_offsets[0] = self.ds.root_grid_offset
@@ -832,18 +832,18 @@ class ARTDomainFile(object):
            oct_handler.add
         """
         self.level_offsets
-        f = open(self.ds._file_amr, "rb")
-        for level in range(1, self.ds.max_level + 1):
-            unitary_center, fl, iocts, nocts, root_level = \
-                _read_art_level_info( f,
-                    self._level_oct_offsets, level,
-                    coarse_grid=self.ds.domain_dimensions[0],
-                    root_level=self.ds.root_level)
-            nocts_check = oct_handler.add(self.domain_id, level,
+        with open(self.ds._file_amr, "rb") as f:
+            for level in range(1, self.ds.max_level + 1):
+                unitary_center, fl, iocts, nocts, root_level = \
+                    _read_art_level_info(
+                        f, self._level_oct_offsets, level,
+                        coarse_grid=self.ds.domain_dimensions[0],
+                        root_level=self.ds.root_level)
+                nocts_check = oct_handler.add(self.domain_id, level,
                                           unitary_center)
-            assert(nocts_check == nocts)
-            mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
-                        nocts, level, oct_handler.nocts)
+                assert(nocts_check == nocts)
+                mylog.debug("Added %07i octs on level %02i, cumulative is %07i",
+                            nocts, level, oct_handler.nocts)
 
     def _read_amr_root(self, oct_handler):
         self.level_offsets
