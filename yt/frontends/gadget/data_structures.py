@@ -518,5 +518,4 @@ class GadgetHDF5Dataset(GadgetDataset):
             fh.close()
         except:
             valid = False
-            pass
         return valid

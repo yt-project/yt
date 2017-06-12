@@ -40,5 +40,4 @@ class GizmoDataset(GadgetHDF5Dataset):
             fh.close()
         except:
             valid = False
-            pass
         return valid

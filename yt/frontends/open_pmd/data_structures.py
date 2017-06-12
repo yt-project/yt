@@ -178,7 +178,6 @@ class OpenPMDHierarchy(GridIndex):
                             # Record is a dataset, does not have axes (e.g. weighting)
                             particle_fields.append(pname.replace("_", "-")
                                                    + "_" + recname.replace("_", "-"))
-                            pass
                     else:
                         pass
             if len(list(particles.keys())) > 1:
@@ -446,8 +445,12 @@ class OpenPMDDataset(Dataset):
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
             if path is "":
+<<<<<<< HEAD
                 mylog.warning("For file based iterations, please use absolute file paths!")
                 pass
+=======
+                mylog.warning("open_pmd - For file based iterations, please use absolute file paths!")
+>>>>>>> [lgtm] delete unnecessary pass statements
             for filename in listdir(path):
                 if match(regex, filename):
                     iterations.append(filename)
@@ -631,4 +634,3 @@ class OpenPMDGroupBasedDataset(Dataset):
                 return False
         except (IOError, OSError, ImportError):
             return False
-
