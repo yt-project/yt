@@ -378,7 +378,7 @@ class YTGrid(AMRGridPatch):
         self.RightEdge = self.index.ds.domain_right_edge
 
     def __getitem__(self, key):
-        tr = super(AMRGridPatch, self).__getitem__(key)
+        tr = super(YTGrid, self).__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -526,7 +526,7 @@ class YTNonspatialGrid(AMRGridPatch):
         return "YTNonspatialGrid"
 
     def __getitem__(self, key):
-        tr = super(AMRGridPatch, self).__getitem__(key)
+        tr = super(YTNonspatialGrid, self).__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -668,7 +668,7 @@ class YTNonspatialDataset(YTGridDataset):
     fluid_types = ("data", "gas")
 
     def _parse_parameter_file(self):
-        super(YTGridDataset, self)._parse_parameter_file()
+        super(YTNonspatialDataset, self)._parse_parameter_file()
         self.num_particles.pop(self.default_fluid_type, None)
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
@@ -730,7 +730,7 @@ class YTProfileDataset(YTNonspatialDataset):
         return None
 
     def _parse_parameter_file(self):
-        super(YTGridDataset, self)._parse_parameter_file()
+        super(YTProfileDataset, self)._parse_parameter_file()
 
         if isinstance(self.parameters["weight_field"], string_types) and \
           self.parameters["weight_field"] == "None":
