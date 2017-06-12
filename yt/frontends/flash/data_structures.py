@@ -318,7 +318,7 @@ class FLASHDataset(Dataset):
             for hn in hns:
                 if hn not in self._handle:
                     continue
-                if hn is 'simulation parameters':
+                if hn == 'simulation parameters':
                     zipover = ((name, self._handle[hn][name][0])
                                for name in self._handle[hn].dtype.names)
                 else:
