@@ -14,6 +14,7 @@ An object that can live on the dataset to facilitate data access.
 import weakref
 
 from yt.extern.six import string_types
+from yt.funcs import iterable
 from yt.utilities.exceptions import YTDimensionalityError
 
 class RegionExpression(object):
@@ -38,12 +39,19 @@ class RegionExpression(object):
         if isinstance(item, tuple) and isinstance(item[1], string_types):
             return self.all_data[item]
         if isinstance(item, slice):
-            # This is for the case where we give a slice as an index; one
-            # possible use case of this would be where we supply something
-            # like ds.r[::256j] .  This would be expanded, implicitly into
-            # ds.r[::256j, ::256j, ::256j].  Other cases would be if we do
-            # ds.r[0.1:0.9] where it will be expanded along three dimensions.
-            item = (item, item, item)
+            if iterable(item.start) and len(item.start) == 3 and \
+                iterable(item.stop) and len(item.stop) == 3:
+                # This is for a ray that is not orthogonal to an axis.
+                # it's straightforward to do this, so we create a ray
+                # and drop out here.
+                return self._create_ray(item)
+            else:
+                # This is for the case where we give a slice as an index; one
+                # possible use case of this would be where we supply something
+                # like ds.r[::256j] .  This would be expanded, implicitly into
+                # ds.r[::256j, ::256j, ::256j].  Other cases would be if we do
+                # ds.r[0.1:0.9] where it will be expanded along three dimensions.
+                item = (item, item, item)
         if len(item) != self.ds.dimensionality:
             # Not the right specification, and we don't want to do anything
             # implicitly.  Note that this happens *after* the implicit expansion
@@ -60,7 +68,7 @@ class RegionExpression(object):
         if nslices == 0:
             return self._create_point(item)
         elif nslices == 1:
-            return self._create_ray(item)
+            return self._create_ortho_ray(item)
         elif nslices == 2:
             return self._create_slice(item)
         else:
@@ -144,7 +152,12 @@ class RegionExpression(object):
         coord = [self._spec_to_value(p) for p in point_tuple]
         return self.ds.point(coord)
 
-    def _create_ray(self, ray_tuple):
+    def _create_ray(self, ray_slice):
+        start_point = [self._spec_to_value(v) for v in ray_slice.start]
+        end_point = [self._spec_to_value(v) for v in ray_slice.stop]
+        return self.ds.ray(start_point, end_point)
+
+    def _create_ortho_ray(self, ray_tuple):
         axis = None
         new_slice = []
         coord = []

@@ -93,6 +93,24 @@ def test_point_from_r():
     pt2 = ds.point([0.5,0.3,0.1])
     assert_equal(pt1["density"], pt2["density"])
 
+def test_ray_from_r():
+    ds = fake_amr_ds(fields = ["density"])
+    ray1 = ds.r[(0.1,0.2,0.3):(0.4,0.5,0.6)]
+    ray2 = ds.ray((0.1,0.2,0.3), (0.4,0.5,0.6))
+    assert_equal(ray1["density"], ray2["density"])
+
+    ray3 = ds.r[0.5*ds.domain_left_edge:0.5*ds.domain_right_edge]
+    ray4 = ds.ray(0.5*ds.domain_left_edge, 0.5*ds.domain_right_edge)
+    assert_equal(ray3["density"], ray4["density"])
+
+    start = [(0.1,"cm"), 0.2, (0.3,"cm")]
+    end = [(0.5,"cm"), (0.4,"cm"), 0.6]
+    ray5 = ds.r[start:end]
+    start_arr = [ds.quan(0.1,"cm"), 0.2, ds.quan(0.3,"cm")]
+    end_arr = [ds.quan(0.5,"cm"), ds.quan(0.4,"cm"), 0.6]
+    ray6 = ds.ray(start_arr, end_arr)
+    assert_equal(ray5["density"], ray6["density"])
+
 def test_ortho_ray_from_r():
     ds = fake_amr_ds(fields = ["density"])
     ray1 = ds.r[:,0.3,0.2]
