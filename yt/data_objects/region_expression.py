@@ -71,9 +71,10 @@ class RegionExpression(object):
     def _spec_to_value(self, input_tuple):
         if not isinstance(input_tuple, tuple):
             # We now assume that it's in code_length
-            return self.ds.quan(input_tuple, 'code_length')
-        v, u = input_tuple
-        value = self.ds.quan(v, u)
+            value = self.ds.quan(input_tuple, 'code_length')
+        else:
+            v, u = input_tuple
+            value = self.ds.quan(v, u).in_units("code_length")
         return value
 
     def _create_slice(self, slice_tuple):
