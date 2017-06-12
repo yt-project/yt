@@ -357,7 +357,7 @@ class FITSImageData(object):
         return cls(data, wcs=w)
 
     def create_sky_wcs(self, sky_center, sky_scale,
-                       ctype=["RA---TAN","DEC--TAN"],
+                       ctype=("RA---TAN","DEC--TAN"),
                        crota=None, cd=None, pc=None,
                        wcsname="celestial",
                        replace_old_wcs=True):
@@ -389,6 +389,7 @@ class FITSImageData(object):
         old_wcs = self.wcs
         naxis = old_wcs.naxis
         crval = [sky_center[0], sky_center[1]]
+        ctype = list(ctype)
         if isinstance(sky_scale, YTQuantity):
             scaleq = sky_scale
         else:
