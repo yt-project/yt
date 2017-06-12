@@ -89,34 +89,35 @@ class RAMSESDomainFile(object):
     def hydro_offset(self):
         if self._hydro_offset is not None: return self._hydro_offset
         # We now have to open the file and calculate it
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 6)
-        # It goes: level, CPU, 8-variable
-        min_level = self.ds.min_level
-        n_levels = self.amr_header['nlevelmax'] - min_level
-        hydro_offset = np.zeros(n_levels, dtype='int64')
-        hydro_offset -= 1
-        level_count = np.zeros(n_levels, dtype='int64')
-        skipped = []
-        for level in range(self.amr_header['nlevelmax']):
-            for cpu in range(self.amr_header['nboundary'] +
-                             self.amr_header['ncpu']):
-                header = ( ('file_ilevel', 1, 'I'),
-                           ('file_ncache', 1, 'I') )
-                try:
-                    hvals = fpu.read_attrs(f, header, "=")
-                except AssertionError:
-                    print("You are running with the wrong number of fields.")
-                    print("If you specified these in the load command, check the array length.")
-                    print("In this file there are %s hydro fields." % skipped)
-                    #print"The last set of field sizes was: %s" % skipped
-                    raise
-                if hvals['file_ncache'] == 0: continue
-                assert(hvals['file_ilevel'] == level+1)
-                if cpu + 1 == self.domain_id and level >= min_level:
-                    hydro_offset[level - min_level] = f.tell()
-                    level_count[level - min_level] = hvals['file_ncache']
-                skipped = fpu.skip(f, 8 * self.nvar)
+        with open(self.hydro_fn, "rb") as f:
+            fpu.skip(f, 6)
+            # It goes: level, CPU, 8-variable
+            min_level = self.ds.min_level
+            n_levels = self.amr_header['nlevelmax'] - min_level
+            hydro_offset = np.zeros(n_levels, dtype='int64')
+            hydro_offset -= 1
+            level_count = np.zeros(n_levels, dtype='int64')
+            skipped = []
+            for level in range(self.amr_header['nlevelmax']):
+                for cpu in range(self.amr_header['nboundary'] +
+                                 self.amr_header['ncpu']):
+                    header = ( ('file_ilevel', 1, 'I'),
+                               ('file_ncache', 1, 'I') )
+                    try:
+                        hvals = fpu.read_attrs(f, header, "=")
+                    except AssertionError:
+                        raise RuntimeError(
+                            "You are running with the wrong number of fields.\n"
+                            "If you specified these in the load command, "
+                            "check the array length.\n"
+                            "In this file there are %s hydro fields." % (
+                                skipped,))
+                    if hvals['file_ncache'] == 0: continue
+                    assert(hvals['file_ilevel'] == level+1)
+                    if cpu + 1 == self.domain_id and level >= min_level:
+                        hydro_offset[level - min_level] = f.tell()
+                        level_count[level - min_level] = hvals['file_ncache']
+                    skipped = fpu.skip(f, 8 * self.nvar)
         self._hydro_offset = hydro_offset
         self._level_count = level_count
         return self._hydro_offset
@@ -127,79 +128,79 @@ class RAMSESDomainFile(object):
             return
         if self.nvar > 0: return self.nvar
         # Read the number of hydro  variables
-        f = open(self.hydro_fn, "rb")
-        fpu.skip(f, 1)
-        self.nvar = fpu.read_vector(f, "i")[0]
+        with open(self.hydro_fn, "rb") as f:
+            fpu.skip(f, 1)
+            self.nvar = fpu.read_vector(f, "i")[0]
 
     def _read_particle_header(self):
         if not os.path.exists(self.part_fn):
             self.local_particle_count = 0
             self.particle_field_offsets = {}
             return
-        f = open(self.part_fn, "rb")
-        f.seek(0, os.SEEK_END)
-        flen = f.tell()
-        f.seek(0)
-        hvals = {}
-        attrs = ( ('ncpu', 1, 'I'),
-                  ('ndim', 1, 'I'),
-                  ('npart', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        fpu.read_vector(f, 'I')
-
-        attrs = ( ('nstar_tot', 1, 'I'),
-                  ('mstar_tot', 1, 'd'),
-                  ('mstar_lost', 1, 'd'),
-                  ('nsink', 1, 'I') )
-        hvals.update(fpu.read_attrs(f, attrs))
-        self.particle_header = hvals
-        self.local_particle_count = hvals['npart']
-        particle_fields = [
-                ("particle_position_x", "d"),
-                ("particle_position_y", "d"),
-                ("particle_position_z", "d"),
-                ("particle_velocity_x", "d"),
-                ("particle_velocity_y", "d"),
-                ("particle_velocity_z", "d"),
-                ("particle_mass", "d"),
-                ("particle_identifier", "i"),
-                ("particle_refinement_level", "I")]
-        if hvals["nstar_tot"] > 0:
-            particle_fields += [("particle_age", "d"),
-                                ("particle_metallicity", "d")]
-
-        field_offsets = {}
-        _pfields = {}
-        for field, vtype in particle_fields:
-            if f.tell() >= flen: break
-            field_offsets["io", field] = f.tell()
-            _pfields["io", field] = vtype
-            fpu.skip(f, 1)
+        with open(self.part_fn, "rb") as f:
+            f.seek(0, os.SEEK_END)
+            flen = f.tell()
+            f.seek(0)
+            hvals = {}
+            attrs = ( ('ncpu', 1, 'I'),
+                      ('ndim', 1, 'I'),
+                      ('npart', 1, 'I') )
+            hvals.update(fpu.read_attrs(f, attrs))
+            fpu.read_vector(f, 'I')
+    
+            attrs = ( ('nstar_tot', 1, 'I'),
+                      ('mstar_tot', 1, 'd'),
+                      ('mstar_lost', 1, 'd'),
+                      ('nsink', 1, 'I') )
+            hvals.update(fpu.read_attrs(f, attrs))
+            self.particle_header = hvals
+            self.local_particle_count = hvals['npart']
+            particle_fields = [
+                    ("particle_position_x", "d"),
+                    ("particle_position_y", "d"),
+                    ("particle_position_z", "d"),
+                    ("particle_velocity_x", "d"),
+                    ("particle_velocity_y", "d"),
+                    ("particle_velocity_z", "d"),
+                    ("particle_mass", "d"),
+                    ("particle_identifier", "i"),
+                    ("particle_refinement_level", "I")]
+            if hvals["nstar_tot"] > 0:
+                particle_fields += [("particle_age", "d"),
+                                    ("particle_metallicity", "d")]
+    
+            field_offsets = {}
+            _pfields = {}
+            for field, vtype in particle_fields:
+                if f.tell() >= flen: break
+                field_offsets["io", field] = f.tell()
+                _pfields["io", field] = vtype
+                fpu.skip(f, 1)
         self.particle_field_offsets = field_offsets
         self.particle_field_types = _pfields
         self.particle_types = self.particle_types_raw = ("io",)
 
     def _read_amr_header(self):
         hvals = {}
-        f = open(self.amr_fn, "rb")
-        for header in ramses_header(hvals):
-            hvals.update(fpu.read_attrs(f, header))
-        # That's the header, now we skip a few.
-        hvals['numbl'] = np.array(hvals['numbl']).reshape(
-            (hvals['nlevelmax'], hvals['ncpu']))
-        fpu.skip(f)
-        if hvals['nboundary'] > 0:
-            fpu.skip(f, 2)
-            self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
-        else:
-            self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
-        free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
-        ordering = fpu.read_vector(f, 'c')  # NOQA
-        fpu.skip(f, 4)
-        # Now we're at the tree itself
-        # Now we iterate over each level and each CPU.
-        self.amr_header = hvals
-        self.amr_offset = f.tell()
+        with open(self.amr_fn, "rb") as f:
+            for header in ramses_header(hvals):
+                hvals.update(fpu.read_attrs(f, header))
+            # That's the header, now we skip a few.
+            hvals['numbl'] = np.array(hvals['numbl']).reshape(
+                (hvals['nlevelmax'], hvals['ncpu']))
+            fpu.skip(f)
+            if hvals['nboundary'] > 0:
+                fpu.skip(f, 2)
+                self.ngridbound = fpu.read_vector(f, 'i').astype("int64")
+            else:
+                self.ngridbound = np.zeros(hvals['nlevelmax'], dtype='int64')
+            free_mem = fpu.read_attrs(f, (('free_mem', 5, 'i'), ) )  # NOQA
+            ordering = fpu.read_vector(f, 'c')  # NOQA
+            fpu.skip(f, 4)
+            # Now we're at the tree itself
+            # Now we iterate over each level and each CPU.
+            self.amr_header = hvals
+            self.amr_offset = f.tell()
         self.local_oct_count = hvals['numbl'][self.ds.min_level:, self.domain_id - 1].sum()
         self.total_oct_count = hvals['numbl'][self.ds.min_level:,:].sum(axis=0)
 
@@ -214,11 +215,11 @@ class RAMSESDomainFile(object):
                 self.ds.domain_left_edge, self.ds.domain_right_edge)
         root_nodes = self.amr_header['numbl'][self.ds.min_level,:].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        fb = open(self.amr_fn, "rb")
-        fb.seek(self.amr_offset)
-        f = BytesIO()
-        f.write(fb.read())
-        f.seek(0)
+        with open(self.amr_fn, "rb") as fb:
+            fb.seek(self.amr_offset)
+            f = BytesIO()
+            f.write(fb.read())
+            f.seek(0)
         mylog.debug("Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id, self.total_oct_count.sum(), self.ngridbound.sum())
         def _ng(c, l):
@@ -392,7 +393,6 @@ class RAMSESIndex(OctreeIndex):
             self.fluid_field_list = []
             return
         # Read the number of hydro  variables
-        f = open(hydro_fn, "rb")
         hydro_header = ( ('ncpu', 1, 'i'),
                          ('nvar', 1, 'i'),
                          ('ndim', 1, 'i'),
@@ -400,7 +400,8 @@ class RAMSESIndex(OctreeIndex):
                          ('nboundary', 1, 'i'),
                          ('gamma', 1, 'd')
                          )
-        hvals = fpu.read_attrs(f, hydro_header)
+        with open(hydro_fn, "rb") as f:
+            hvals = fpu.read_attrs(f, hydro_header)
         self.ds.gamma = hvals['gamma']
         nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is

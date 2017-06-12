@@ -345,7 +345,8 @@ class SDFRead(dict):
         ascfile = open(self.header, 'r')
         while True:
             l = ascfile.readline()
-            if self._eof in l: break
+            if self._eof in l:
+                break
 
             self.parse_line(l, ascfile)
 

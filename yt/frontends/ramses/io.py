@@ -41,16 +41,17 @@ class IOHandlerRAMSES(BaseIOHandler):
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.hydro_fn, "rb")
-                # This contains the boundary information, so we skim through
-                # and pick off the right vectors
-                content = IO(f.read())
-                rv = subset.fill(content, fields, selector)
-                for ft, f in fields:
-                    d = rv.pop(f)
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
-                        f, d.size, d.min(), d.max(), d.size)
-                    tr[(ft, f)].append(d)
+                with open(subset.domain.hydro_fn, "rb") as fh:
+                    # This contains the boundary information, so we skim through
+                    # and pick off the right vectors
+                    content = IO(fh.read())
+                    rv = subset.fill(content, fields, selector)
+                    for ft, f in fields:
+                        d = rv.pop(f)
+                        mylog.debug(
+                            "Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                            f, d.size, d.min(), d.max(), d.size)
+                        tr[(ft, f)].append(d)
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))
@@ -92,27 +93,29 @@ class IOHandlerRAMSES(BaseIOHandler):
                         yield (ptype, field), data
 
     def _read_particle_subset(self, subset, fields):
-        f = open(subset.domain.part_fn, "rb")
         foffsets = subset.domain.particle_field_offsets
         tr = {}
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
-        for field in sorted(fields, key = lambda a: foffsets[a]):
-            f.seek(foffsets[field])
-            dt = subset.domain.particle_field_types[field]
-            tr[field] = fpu.read_vector(f, dt)
-            if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-            cosmo = subset.domain.ds.cosmological_simulation
-            if cosmo == 1 and field[1] == "particle_age":
-                tf = subset.domain.ds.t_frw
-                dtau = subset.domain.ds.dtau
-                tauf = subset.domain.ds.tau_frw
-                tsim = subset.domain.ds.time_simu
-                h100 = subset.domain.ds.hubble_constant
-                nOver2 = subset.domain.ds.n_frw/2
-                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                ages = tr[field]
-                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))            
+        with open(subset.domain.part_fn, "rb") as fh:
+            for field in sorted(fields, key = lambda a: foffsets[a]):
+                fh.seek(foffsets[field])
+                dt = subset.domain.particle_field_types[field]
+                tr[field] = fpu.read_vector(fh, dt)
+                if field[1].startswith("particle_position"):
+                    np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
+                cosmo = subset.domain.ds.cosmological_simulation
+                if cosmo == 1 and field[1] == "particle_age":
+                    tf = subset.domain.ds.t_frw
+                    dtau = subset.domain.ds.dtau
+                    tauf = subset.domain.ds.tau_frw
+                    tsim = subset.domain.ds.time_simu
+                    h100 = subset.domain.ds.hubble_constant
+                    nOver2 = subset.domain.ds.n_frw/2
+                    t_scale = (1./(h100 * 100 * cm_per_km / cm_per_mpc) /
+                               subset.domain.ds['unit_t'])
+                    ages = tr[field]
+                    tr[field] = get_ramses_ages(tf, tauf, dtau, tsim, t_scale,
+                                                ages, nOver2, len(ages))            
         return tr
