@@ -23,7 +23,8 @@ from yt.funcs import \
     ensure_list, \
     iterable, \
     validate_width_tuple, \
-    fix_length
+    fix_length, \
+    fix_axis
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
@@ -88,8 +89,8 @@ class YTOrthoRay(YTSelectionContainer1D):
 
     Parameters
     ----------
-    axis : int
-        The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+    axis : int or char
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coords : tuple of floats
         The (plane_x, plane_y) coordinates at which to cast the ray.  Note
         that this is in the plane coordinates: so if you are casting along
@@ -129,7 +130,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
         super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
-        self.axis = axis
+        self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
         self.px_ax = xax
