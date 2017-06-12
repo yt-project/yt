@@ -15,6 +15,7 @@ import weakref
 
 from yt.extern.six import string_types
 from yt.funcs import iterable
+from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 
 class RegionExpression(object):
@@ -76,14 +77,14 @@ class RegionExpression(object):
                 return self.all_data
             return self._create_region(item)
 
-    def _spec_to_value(self, input_tuple):
-        if not isinstance(input_tuple, tuple):
-            # We now assume that it's in code_length
-            value = self.ds.quan(input_tuple, 'code_length')
+    def _spec_to_value(self, input):
+        if isinstance(input, tuple):
+            v = self.ds.quan(input[0], input[1]).to("code_length")
+        elif isinstance(input, YTQuantity):
+            v = self.ds.quan(input.value, input.units).to('code_length')
         else:
-            v, u = input_tuple
-            value = self.ds.quan(v, u).in_units("code_length")
-        return value
+            v = self.ds.quan(input, "code_length")
+        return v
 
     def _create_slice(self, slice_tuple):
         # This is somewhat more complex because we want to allow for slicing
