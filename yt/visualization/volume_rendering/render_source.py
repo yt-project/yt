@@ -838,6 +838,7 @@ class PointSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1, radii=None):
+        super(PointSource, self).__init__()
         assert(positions.ndim == 2 and positions.shape[1] == 3)
         if colors is not None:
             assert(colors.ndim == 2 and colors.shape[1] == 4)
