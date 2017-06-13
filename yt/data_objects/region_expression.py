@@ -14,7 +14,7 @@ An object that can live on the dataset to facilitate data access.
 import weakref
 
 from yt.extern.six import string_types
-from yt.funcs import iterable, obj_length
+from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 
