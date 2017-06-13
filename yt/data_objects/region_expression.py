@@ -80,7 +80,7 @@ class RegionExpression(object):
         if isinstance(input, tuple):
             v = self.ds.quan(input[0], input[1]).to("code_length")
         elif isinstance(input, YTQuantity):
-            v = self.ds.quan(input.value, input.units).to('code_length')
+            v = self.ds.quan(input).to('code_length')
         else:
             v = self.ds.quan(input, "code_length")
         return v

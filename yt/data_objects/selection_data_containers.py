@@ -28,7 +28,8 @@ from yt.funcs import \
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
-    YTArray
+    YTArray, \
+    YTQuantity
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
@@ -138,9 +139,15 @@ class YTOrthoRay(YTSelectionContainer1D):
         # Even though we may not be using x,y,z we use them here.
         self.px_dx = 'd%s'%('xyz'[self.px_ax])
         self.py_dx = 'd%s'%('xyz'[self.py_ax])
-        # Convert coordinates to code length. 
-        self.px = self.ds.quan(coords[0], "code_length")
-        self.py = self.ds.quan(coords[1], "code_length")
+        # Convert coordinates to code length.
+        if isinstance(coords[0], YTQuantity):
+            self.px = self.ds.quan(coords[0]).to("code_length")
+        else:
+            self.px = self.ds.quan(coords[0], "code_length")
+        if isinstance(coords[1], YTQuantity):
+            self.py = self.ds.quan(coords[1]).to("code_length")
+        else:
+            self.py = self.ds.quan(coords[1], "code_length")
         self.sort_by = 'xyz'[self.axis]
 
     @property
