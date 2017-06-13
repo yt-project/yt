@@ -14,7 +14,7 @@ An object that can live on the dataset to facilitate data access.
 import weakref
 
 from yt.extern.six import string_types
-from yt.funcs import iterable
+from yt.funcs import iterable, obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 
@@ -40,8 +40,7 @@ class RegionExpression(object):
         if isinstance(item, tuple) and isinstance(item[1], string_types):
             return self.all_data[item]
         if isinstance(item, slice):
-            if iterable(item.start) and len(item.start) == 3 and \
-                iterable(item.stop) and len(item.stop) == 3:
+            if obj_length(item.start) == 3 and obj_length(item.stop) == 3:
                 # This is for a ray that is not orthogonal to an axis.
                 # it's straightforward to do this, so we create a ray
                 # and drop out here.
