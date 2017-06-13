@@ -224,8 +224,8 @@ an axis or off-axis. To create a ray along an axis:::
 To create a ray off-axis, use a single slice between the start and end points
 of the ray:::
 
-    start = [0.1, 0.2, 0.3]
-    end = [0.4, 0.5, 0.6]
+    start = [0.1, 0.2, 0.3] # interpreted in code_length
+    end = [0.4, 0.5, 0.6] # interpreted in code_length
     ray = ds.r[start:end]
 
 As for the other slicing options, combinations of unitful quantities with even
