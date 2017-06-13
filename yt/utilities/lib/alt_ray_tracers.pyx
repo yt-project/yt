@@ -155,7 +155,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         thetaleft = np.empty(I)
         thetaleft.fill(p1[2])
         thetaright = np.empty(I)
-        thetaleft.fill(p2[2])
+        thetaright.fill(p2[2])
     else:
         rleft = rleft[inds]
         rright = rright[inds]
@@ -200,11 +200,13 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     # find intersections and compute return values
     tsect, dsect = _cart_intersect(p1cart, p2cart, _cyl2cart(b1), _cyl2cart(b2))
     tmask = np.logical_and(0.0<=tsect, tsect<=1.0)
-    tsect, tinds = np.unique(tsect[tmask], return_index=True)
+    ret = np.unique(tsect[tmask], return_index=True)
+    tsect, tinds = ret[0], ret[1].astype('int64')
     inds = inds[tmask][tinds]
     xyz = dsect[tmask][tinds]
     s = np.sqrt(((xyz - p1cart) * (xyz - p1cart)).sum(axis=1))
-    s, sinds = np.unique(s, return_index=True)
+    ret = np.unique(s, return_index=True)
+    s, sinds = ret[0], ret[1].astype('int64')
     inds = inds[sinds]
     xyz = xyz[sinds]
     t = s/np.sqrt((dpcart*dpcart).sum())

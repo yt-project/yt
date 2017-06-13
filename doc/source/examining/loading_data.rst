@@ -358,7 +358,9 @@ and cell centered in the others, i.e. it is defined on the z faces of each cell.
 but nodal in the other two, i.e. it lives on the four cell edges that are normal
 to the z direction.
 
-..code-block:: python
+.. code-block:: python
+
+    ds.index
     ad = ds.all_data()
     print(ds.field_info[('raw', 'Ex')].nodal_flag)
     print(ad['raw', 'Ex'].shape)
@@ -439,6 +441,46 @@ mentioned.
 * 2D and 1D data are supported, but the extraneous dimensions are set to be
   of length 1.0 in "code length" which may produce strange results for volume
   quantities.
+
+
+Enzo MHDCT data
+^^^^^^^^^^^^^^^
+
+The electric and magnetic fields for Enzo MHDCT simulations are defined on cell
+faces, unlike other Enzo fields which are defined at cell centers. In yt, we
+call face-centered fields like this "nodal".  We define a field to be nodal in
+a given direction if the field data is defined at the "low" and "high" sides of
+the cell in that direction, rather than at the cell center.  Instead of
+returning one field value per cell selected, nodal fields return a number of
+values, depending on their centering. This centering is marked by a `nodal_flag`
+that describes whether the fields is nodal in each dimension.  ``nodal_flag =
+[0, 0, 0]`` means that the field is cell-centered, while ``nodal_flag = [0, 0,
+1]`` means that the field is nodal in the z direction and cell centered in the
+others, i.e. it is defined on the z faces of each cell.  ``nodal_flag = [1, 1,
+0]`` would mean that the field is centered in the z direction, but nodal in the
+other two, i.e. it lives on the four cell edges that are normal to the z
+direction.
+
+.. code-block:: python
+
+    ds.index
+    ad = ds.all_data()
+    print(ds.field_info[('enzo', 'Ex')].nodal_flag)
+    print(ad['raw', 'Ex'].shape)
+    print(ds.field_info[('enzo', 'BxF')].nodal_flag)
+    print(ad['raw', 'Bx'].shape)
+    print(ds.field_info[('enzo', 'Bx')].nodal_flag)
+    print(ad['boxlib', 'Bx'].shape)
+
+Here, the field ``('enzo', 'Ex')`` is nodal in two directions, so four values
+per cell are returned, corresponding to the four edges in each cell on which the
+variable is defined. ``('enzo', 'BxF')`` is nodal in one direction, so two
+values are returned per cell. The standard, non-nodal field ``('enzo', 'Bx')``
+is also available.
+
+Currently, slices and data selection are implemented for nodal
+fields. Projections, volume rendering, and many of the analysis modules will not
+work.
 
 .. _loading-exodusii-data:
 
@@ -1196,13 +1238,11 @@ resolution.
        dict(left_edge=[0.0, 0.0, 0.0],
             right_edge=[1.0, 1.0, 1.0],
             level=0,
-            dimensions=[32, 32, 32],
-            number_of_particles=0)
+            dimensions=[32, 32, 32])
        dict(left_edge=[0.25, 0.25, 0.25],
             right_edge=[0.75, 0.75, 0.75],
             level=1,
-            dimensions=[32, 32, 32],
-            number_of_particles=0)
+            dimensions=[32, 32, 32])
    ]
 
    for g in grid_data:
@@ -1215,14 +1255,13 @@ resolution.
    yt only supports a block structure where the grid edges on the ``n``-th
    refinement level are aligned with the cell edges on the ``n-1``-th level.
 
-Particle fields are supported by adding 1-dimensional arrays and
-setting the ``number_of_particles`` key to each ``grid``'s dict:
+Particle fields are supported by adding 1-dimensional arrays to each 
+``grid``'s dict:
 
 .. code-block:: python
 
    for g in grid_data:
-       g["number_of_particles"] = 100000
-       g["particle_position_x"] = np.random.random((g["number_of_particles"]))
+       g["particle_position_x"] = np.random.random(size=100000)
 
 .. rubric:: Caveats
 
@@ -1261,26 +1300,22 @@ density field in cubic domain of 3 Mpc edge size (3 * 3.08e24 cm) and
 simultaneously divide the domain into 12 chunks, so that you can take advantage
 of the underlying parallelism.
 
-Particle fields are detected as one-dimensional fields. The number of
-particles is set by the ``number_of_particles`` key in
-``data``. Particle fields are then added as one-dimensional arrays in
-a similar manner as the three-dimensional grid fields:
+Particle fields are added as one-dimensional arrays in a similar manner as the 
+three-dimensional grid fields:
 
 .. code-block:: python
 
    import yt
 
    data = dict(Density = dens,
-               number_of_particles = 1000000,
                particle_position_x = posx_arr,
-	       particle_position_y = posy_arr,
-	       particle_position_z = posz_arr)
+	           particle_position_y = posy_arr,
+	           particle_position_z = posz_arr)
    bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [1.5, 1.5]])
    ds = yt.load_uniform_grid(data, arr.shape, 3.08e24, bbox=bbox, nprocs=12)
 
-where in this example the particle position fields have been assigned.
-``number_of_particles`` must be the same size as the particle arrays. If no
-particle arrays are supplied then ``number_of_particles`` is assumed to be
+where in this example the particle position fields have been assigned. If no
+particle fields are supplied, then the number of particles is assumed to be
 zero.
 
 .. rubric:: Caveats

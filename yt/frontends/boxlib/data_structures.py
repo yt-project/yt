@@ -1046,8 +1046,8 @@ class CastroDataset(BoxlibDataset):
     _field_info_class = CastroFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename='inputs',
-                 fparam_filename='probin',
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -1130,8 +1130,8 @@ class MaestroDataset(BoxlibDataset):
     _field_info_class = MaestroFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename='inputs',
-                 fparam_filename='probin',
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,
@@ -1224,8 +1224,8 @@ class NyxDataset(BoxlibDataset):
     _field_info_class = NyxFieldInfo
 
     def __init__(self, output_dir,
-                 cparam_filename='inputs',
-                 fparam_filename='probin',
+                 cparam_filename=None,
+                 fparam_filename=None,
                  dataset_type='boxlib_native',
                  storage_filename=None,
                  units_override=None,

@@ -21,6 +21,7 @@ from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.funcs import mylog
 from yt.frontends.chombo.io import parse_orion_sinks
+from yt.geometry.selection_routines import GridSelector
 
 def _remove_raw(all_fields, raw_fields):
     centered_fields = set(all_fields)
@@ -232,7 +233,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
         rv = {}
         chunks = list(chunks)
 
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
 
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError

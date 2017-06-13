@@ -74,6 +74,8 @@ class StreamFieldInfo(FieldInfoContainer):
         from yt.fields.magnetic_field import \
             setup_magnetic_field_aliases
         for field in self.ds.stream_handler.field_units:
+            if field[0] in self.ds.particle_types:
+                continue
             units = self.ds.stream_handler.field_units[field]
             if units != '':
                 self.add_output_field(field,

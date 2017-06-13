@@ -13,6 +13,7 @@ Fields specific to Enzo
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import numpy as np
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
@@ -20,6 +21,7 @@ from yt.utilities.physical_constants import \
     mp
 
 b_units = "code_magnetic"
+e_units = "code_magnetic/c"
 ra_units = "code_length / code_time**2"
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"
@@ -49,6 +51,18 @@ known_species_names = {
     'OIX'     : 'O_p8',
 }
 
+NODAL_FLAGS = {
+    'BxF': [1, 0, 0],
+    'ByF': [0, 1, 0],
+    'BzF': [0, 0, 1],
+    'Ex': [0, 1, 1],
+    'Ey': [1, 0, 1],
+    'Ez': [1, 1, 0],
+    'AvgElec0': [0, 1, 1],
+    'AvgElec1': [1, 0, 1],
+    'AvgElec2': [1, 1, 0],
+}
+
 class EnzoFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("Cooling_Time", ("s", ["cooling_time"], None)),
@@ -63,6 +77,15 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("Bx", (b_units, [], None)),
         ("By", (b_units, [], None)),
         ("Bz", (b_units, [], None)),
+        ("BxF", (b_units, [], None)),
+        ("ByF", (b_units, [], None)),
+        ("BzF", (b_units, [], None)),
+        ("Ex", (e_units, [], None)),
+        ("Ey", (e_units, [], None)),
+        ("Ez", (e_units, [], None)),
+        ("AvgElec0", (e_units, [], None)),
+        ("AvgElec1", (e_units, [], None)),
+        ("AvgElec2", (e_units, [], None)),
         ("RadAccel1", (ra_units, ["radiation_acceleration_x"], None)),
         ("RadAccel2", (ra_units, ["radiation_acceleration_y"], None)),
         ("RadAccel3", (ra_units, ["radiation_acceleration_z"], None)),
@@ -115,6 +138,12 @@ class EnzoFieldInfo(FieldInfoContainer):
             div_fac = 2.0
         slice_info = (sl_left, sl_right, div_fac)
         super(EnzoFieldInfo, self).__init__(ds, field_list, slice_info)
+
+        # setup nodal flag information
+        for field in NODAL_FLAGS:
+            if ('enzo', field) in self:
+                finfo = self['enzo', field]
+                finfo.nodal_flag = np.array(NODAL_FLAGS[field])
 
     def add_species_field(self, species):
         # This is currently specific to Enzo.  Hopefully in the future we will

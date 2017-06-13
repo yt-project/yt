@@ -1686,7 +1686,7 @@ class MeshLinesCallback(PlotCallback):
             elif num_dims == 2 and num_verts == 4:
                 coords, indices = self.promote_2d_to_3d(coords, indices, plot)
 
-            tri_indices = triangulate_indices(indices)
+            tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
         
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
