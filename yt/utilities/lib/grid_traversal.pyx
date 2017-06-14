@@ -28,11 +28,6 @@ from fixed_interpolator cimport *
 
 from cython.parallel import prange, parallel, threadid
 
-from .image_samplers cimport \
-    ImageSampler, \
-    ImageContainer, \
-    VolumeRenderAccumulator
-
 DEF Nch = 4
 
 @cython.boundscheck(False)

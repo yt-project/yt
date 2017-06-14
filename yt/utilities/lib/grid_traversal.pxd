@@ -17,7 +17,7 @@ Definitions for the traversal code
 import numpy as np
 cimport numpy as np
 cimport cython
-from .image_samplers cimport ImageContainer, ImageSampler
+from .image_samplers cimport ImageSampler
 from .volume_container cimport VolumeContainer, vc_index, vc_pos_index
 
 ctypedef void sampler_function(
