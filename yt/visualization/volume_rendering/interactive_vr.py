@@ -484,7 +484,7 @@ class BlockCollection(SceneComponent):
     def _set_uniforms(self, shader_program):
         shader_program._set_uniform("projection",
                 self.camera.get_projection_matrix())
-        shader_program._set_uniform("lookat",
+        shader_program._set_uniform("modelview",
                 self.camera.get_view_matrix())
         shader_program._set_uniform("viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
