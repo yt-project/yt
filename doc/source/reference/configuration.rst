@@ -91,6 +91,12 @@ used internally.
 * ``test_data_dir`` (default: ``'/does/not/exist'``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
   current directory.
+* ``reconstruct_index`` (default: True): If True, grid edges for patch AMR
+  datasets will be adjusted such that they fall as close as possible to an
+  integer multiple of the local cell width. If you are working with a dataset
+  with a large number of grids, setting this to False can speed up loading
+  your dataset possibly at the cost of grid-aligned artifacts showing up in
+  slice visualizations.
 * ``notebook_password`` (default: empty): If set, this will be fed to the
   IPython notebook created by ``yt notebook``.  Note that this should be an
   sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
