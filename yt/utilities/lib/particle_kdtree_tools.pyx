@@ -20,20 +20,18 @@ cimport cython
 
 from cpython.exc cimport PyErr_CheckSignals
 from cykdtree.kdtree cimport PyKDTree, KDTree, Node, uint64_t, uint32_t
-from cython.operator cimport dereference as deref
 
-cdef extern from "<algorithm>" namespace "std" nogil:
-    void sort[Iter](Iter first, Iter last)
-
-from libcpp.vector cimport vector
 from libc.math cimport sqrt
+from libcpp.vector cimport vector
 
 from yt.funcs import get_pbar
+from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
 
 cdef int CHUNKSIZE = 4096
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+@cython.cdivision(True)
 def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
                               PyKDTree kdtree,
                               int n_neighbors):
@@ -42,7 +40,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     Parameters
     ----------
 
-    input_positions: arrays of floats with shape (nparticles, 3)
+    input_positions: arrays of floats with shape (n_particles, 3)
         The positions of particles. Current assumed to be 3D postions.
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
@@ -51,92 +49,112 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     Returns
     -------
 
-    smoothing_lengths: arrays of flots with shape (nparticles, )
+    smoothing_lengths: arrays of flots with shape (n_particles, )
         The calculated smoothing lengths
 
     """
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
     cdef Node* node
-    cdef vector[np.float64_t] squared_distances
-    cdef vector[uint64_t] nearby_indices
-    cdef vector[uint32_t] nearby_ids
+    cdef uint64_t idx
+    cdef uint32_t skipid
     cdef int n_particles = input_positions.shape[0]
     cdef np.float64_t[:] smoothing_length = np.empty(n_particles)
-    cdef np.float64_t tpos, furthest_distance, sq_dist, ndist, ma, v
+    cdef np.float64_t tpos, ma, sq_dist
     cdef np.float64_t* pos
-    cdef np.float64_t* positions = &input_positions[0, 0]
     cdef uint64_t neighbor_id
     cdef int i, j, k, l, skip
+    cdef BoundedPriorityQueue queue = BoundedPriorityQueue(n_neighbors)
+
     pbar = get_pbar("Generate smoothing length", n_particles)
     with nogil:
         for i in range(n_particles):
+            # reset queue to "empty" state, doing it this way avoids
+            # needing to reallocate memory
+            queue.size = 0
             if i % CHUNKSIZE == 0:
                 with gil:
                     pbar.update(i-1)
                     PyErr_CheckSignals()
 
-            # Search the tree for the node containing the position under
-            # consideration. Fine neighbor nodes and determine the total
-            # number of particles in all the nodes under consideration
-            pos = positions + 3*i
+            pos = &(input_positions[i, 0])
             leafnode = c_tree.search(&pos[0])
+            skipid = leafnode.leafid
 
-            # Find indices into the particle position array for the list of
-            # potential nearest neighbors
-            nearby_ids = leafnode.all_neighbors
-            nearby_ids.push_back(leafnode.leafid)
+            # Fill queue with particles in the node containing the particle
+            # we're searching for
+            process_node_points(leafnode, pos, input_positions, c_tree.all_idx,
+                                queue, i)
 
-            squared_distances = vector[np.float64_t]()
-            furthest_distance = 0
-            for j in range(nearby_ids.size() - 1, -1, -1):
-                node = c_tree.leaves[nearby_ids[j]]
+            find_knn(c_tree.root, queue, input_positions, pos, c_tree.all_idx,
+                     leafnode.leafid, i)
 
-                # cull nodes in which all points are too far away
-                if squared_distances.size() > n_neighbors:
-                    ndist = 0
-                    for k in range(3):
-                        v = pos[k]
-                        if v < node.left_edge[k]:
-                            ndist += ((node.left_edge[k] - v) *
-                                      (node.left_edge[k] - v))
-                        if v > node.right_edge[k]:
-                            ndist += ((node.right_edge[k] - v) *
-                                      (node.right_edge[k] - v))
-                    if ndist > furthest_distance:
-                        continue
-
-                nearby_indices = vector[uint64_t]()
-                for k in range(node.children):
-                    nearby_indices.push_back(c_tree.all_idx[node.left_idx + k])
-
-                for l in range(nearby_indices.size()):
-                    skip = 0
-                    sq_dist = 0
-                    for k in range(3):
-                        tpos = (positions + 3*nearby_indices[l])[k] - pos[k]
-                        sq_dist += tpos*tpos
-                        # cull particles that are already too far away
-                        if squared_distances.size() > n_neighbors:
-                            if sq_dist > furthest_distance:
-                                skip = 1
-                                break
-                    if skip:
-                        continue
-                    squared_distances.push_back(sq_dist)
-                    if squared_distances[j] > furthest_distance:
-                        furthest_distance = squared_distances[j]
-
-            # Sort the squared distances and find the nth entry, this is the
-            # nth nearest neighbor for particle i. Take the square root of
-            # the squared distance to the nth neighbor to find the smoothing
-            # length.
-
-            sort[vector[np.float64_t].iterator](
-                squared_distances.begin(), squared_distances.end())
-
-            smoothing_length[i] = sqrt(squared_distances[n_neighbors])
+            smoothing_length[i] = sqrt(queue.heap_ptr[0])
 
     pbar.update(n_particles-1)
     pbar.finish()
-    return np.array(smoothing_length)
+    return np.asarray(smoothing_length)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef int find_knn(Node* node,
+                  BoundedPriorityQueue queue,
+                  np.float64_t[:, :] positions,
+                  np.float64_t* pos,
+                  uint64_t* all_idx,
+                  uint32_t skipleaf,
+                  uint64_t skipidx) nogil except -1:
+    if not node.is_leaf:
+        if not cull_node(node.less, pos, queue, skipleaf):
+            find_knn(node.less, queue, positions, pos, all_idx, skipleaf, skipidx)
+        if not cull_node(node.greater, pos, queue, skipleaf):
+            find_knn(node.greater, queue, positions, pos, all_idx, skipleaf, skipidx)
+    else:
+        if not cull_node(node, pos, queue, skipleaf):
+            process_node_points(node, pos, positions, all_idx, queue, skipidx)
+    return 0
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int cull_node(Node* node,
+                          np.float64_t* pos,
+                          BoundedPriorityQueue queue,
+                          uint32_t skipleaf) nogil except -1:
+    cdef np.float64_t v
+    cdef np.float64_t ndist = 0
+    cdef uint32_t leafid
+    if node.leafid == skipleaf:
+        return True
+    for k in range(3):
+        v = pos[k]
+        if v < node.left_edge[k]:
+            ndist += ((node.left_edge[k] - v) *
+                      (node.left_edge[k] - v))
+        if v > node.right_edge[k]:
+            ndist += ((node.right_edge[k] - v) *
+                      (node.right_edge[k] - v))
+    return ndist > queue.heap_ptr[0]
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef inline int process_node_points(Node* node,
+                                    np.float64_t* pos,
+                                    np.float64_t[:, :] positions,
+                                    uint64_t* all_idx,
+                                    BoundedPriorityQueue queue,
+                                    uint64_t skip_idx) nogil except -1:
+    cdef uint64_t i, idx
+    cdef np.float64_t tpos, sq_dist
+    cdef int j
+    cdef np.float64_t* p_ptr
+    for i in range(node.left_idx, node.left_idx+node.children):
+        idx = all_idx[i]
+        p_ptr = &(positions[idx, 0])
+        if idx != skip_idx:
+            sq_dist = 0
+            for j in range(3):
+                tpos = p_ptr[j] - pos[j]
+                sq_dist += tpos*tpos
+            queue.add(sq_dist)
+    return 0
+

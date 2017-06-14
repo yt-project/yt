@@ -100,10 +100,10 @@ class SPHParticleIndex(ParticleIndex):
 
     def _generate_kdtree(self, fname):
         from cykdtree import PyKDTree
-        if os.path.exists(fname):
-            mylog.info('Loading KDTree from %s' % os.path.basename(fname))
-            self._kdtree = PyKDTree.from_file(fname)
-            return
+        #if os.path.exists(fname):
+        #    mylog.info('Loading KDTree from %s' % os.path.basename(fname))
+        #    self._kdtree = PyKDTree.from_file(fname)
+        #    return
         positions = []
         for data_file in self.data_files:
             for _, ppos in self.io._yield_coordinates(
@@ -119,7 +119,7 @@ class SPHParticleIndex(ParticleIndex):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             periodic=np.array(self.ds.periodicity),
-            leafsize=int(self.ds._num_neighbors)
+            leafsize=4*int(self.ds._num_neighbors),
         )
         if fname is not None:
             self._kdtree.save(fname)

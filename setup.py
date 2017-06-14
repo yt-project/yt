@@ -141,6 +141,8 @@ cython_extensions = [
     Extension("yt.utilities.lib.particle_kdtree_tools",
               ["yt/utilities/lib/particle_kdtree_tools.pyx"],
               language="c++"),
+    Extension("yt.utilities.lib.bounded_priority_queue",
+              ["yt/utilities/lib/bounded_priority_queue.pyx"]),
     Extension("yt.utilities.lib.pixelization_routines",
               ["yt/utilities/lib/pixelization_routines.pyx",
                "yt/utilities/lib/pixelization_constants.c"],
