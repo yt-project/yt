@@ -25,8 +25,6 @@ from yt.fields.species_fields import \
     setup_species_fields
 from yt.frontends.gadget.fields import \
     GadgetFieldInfo
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
 
 metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "S", "Ca", "Fe"]
