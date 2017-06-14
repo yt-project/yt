@@ -51,7 +51,6 @@ cdef struct VolumeRenderAccumulator:
     np.float64_t star_coeff
     np.float64_t star_er
     np.float64_t star_sigma_num
-    kdtree_utils.kdtree *star_list
     np.float64_t *light_dir
     np.float64_t *light_rgba
     int grey_opacity
@@ -295,7 +294,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
-                  star_list = None, **kwargs):
+                  **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width, **kwargs)
         cdef int i

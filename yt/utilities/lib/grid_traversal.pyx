@@ -26,8 +26,6 @@ from field_interpolation_tables cimport \
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
 
-from cython.parallel import prange, parallel, threadid
-
 DEF Nch = 4
 
 @cython.boundscheck(False)
