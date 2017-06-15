@@ -482,6 +482,36 @@ Currently, slices and data selection are implemented for nodal
 fields. Projections, volume rendering, and many of the analysis modules will not
 work.
 
+.. _loading-enzop-data:
+
+Enzo-P Data
+-----------
+
+Enzo-P outputs have three types of files.
+
+.. code-block:: none
+
+   hello-0200/
+   hello-0200/hello-0200.block_list
+   hello-0200/hello-0200.file_list
+   hello-0200/hello-0200.hello-c0020-p0000.h5
+
+To load Enzo-P data into yt, provide the block list file:
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("hello-0200/hello-0200.block_list")
+
+Mesh fields are fully supported for 1, 2, and 3D datasets.
+
+.. rubric:: Caveats
+
+   * The Enzo-P output format is still evolving somewhat as the code is being
+     actively developed. This frontend will be updated as development continues.
+   * Units are currently assumed to be in CGS.
+   * Particles are not yet supported.
+
 .. _loading-exodusii-data:
 
 Exodus II Data
