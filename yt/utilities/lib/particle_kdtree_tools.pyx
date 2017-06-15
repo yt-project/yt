@@ -55,7 +55,6 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     """
     cdef KDTree* c_tree = kdtree._tree
     cdef Node* leafnode
-    cdef Node* node
     cdef uint64_t idx
     cdef uint32_t skipid
     cdef int n_particles = input_positions.shape[0]
@@ -72,6 +71,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             # reset queue to "empty" state, doing it this way avoids
             # needing to reallocate memory
             queue.size = 0
+
             if i % CHUNKSIZE == 0:
                 with gil:
                     pbar.update(i-1)
@@ -86,6 +86,7 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
             process_node_points(leafnode, pos, input_positions, c_tree.all_idx,
                                 queue, i)
 
+            # Traverse the rest of the kdtree to finish the neighbor list
             find_knn(c_tree.root, queue, input_positions, pos, c_tree.all_idx,
                      leafnode.leafid, i)
 
@@ -106,9 +107,11 @@ cdef int find_knn(Node* node,
                   uint64_t skipidx) nogil except -1:
     if not node.is_leaf:
         if not cull_node(node.less, pos, queue, skipleaf):
-            find_knn(node.less, queue, positions, pos, all_idx, skipleaf, skipidx)
+            find_knn(node.less, queue, positions, pos, all_idx, skipleaf,
+                     skipidx)
         if not cull_node(node.greater, pos, queue, skipleaf):
-            find_knn(node.greater, queue, positions, pos, all_idx, skipleaf, skipidx)
+            find_knn(node.greater, queue, positions, pos, all_idx, skipleaf,
+                     skipidx)
     else:
         if not cull_node(node, pos, queue, skipleaf):
             process_node_points(node, pos, positions, all_idx, queue, skipidx)
@@ -121,18 +124,19 @@ cdef inline int cull_node(Node* node,
                           BoundedPriorityQueue queue,
                           uint32_t skipleaf) nogil except -1:
     cdef np.float64_t v
-    cdef np.float64_t ndist = 0
+    cdef np.float64_t tpos, ndist = 0
     cdef uint32_t leafid
     if node.leafid == skipleaf:
         return True
     for k in range(3):
         v = pos[k]
         if v < node.left_edge[k]:
-            ndist += ((node.left_edge[k] - v) *
-                      (node.left_edge[k] - v))
-        if v > node.right_edge[k]:
-            ndist += ((node.right_edge[k] - v) *
-                      (node.right_edge[k] - v))
+            tpos = node.left_edge[k] - v
+        elif v > node.right_edge[k]:
+            tpos = v - node.right_edge[k]
+        else:
+            tpos = 0
+        ndist += tpos*tpos
     return ndist > queue.heap_ptr[0]
 
 @cython.boundscheck(False)
@@ -147,7 +151,7 @@ cdef inline int process_node_points(Node* node,
     cdef np.float64_t tpos, sq_dist
     cdef int j
     cdef np.float64_t* p_ptr
-    for i in range(node.left_idx, node.left_idx+node.children):
+    for i in range(node.left_idx, node.left_idx + node.children):
         idx = all_idx[i]
         p_ptr = &(positions[idx, 0])
         if idx != skip_idx:
