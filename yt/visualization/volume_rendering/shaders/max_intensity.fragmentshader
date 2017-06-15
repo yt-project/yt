@@ -72,7 +72,7 @@ void main()
     vec3 p0 = v_camera_pos.xyz + dir * t0;
     vec3 p1 = v_camera_pos.xyz + dir * t1;
 
-    vec3 dxidir = dx * idir;
+    vec3 dxidir = dx * abs(idir);
 
     temp_t = min(dxidir.xx, dxidir.yz);
 
