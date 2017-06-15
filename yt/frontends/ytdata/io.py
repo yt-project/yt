@@ -166,7 +166,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    units = parse_h5_attrf([ptype][pn % "x"], "units")
+                    units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
                       (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
                        for ax in "xyz")
