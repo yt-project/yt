@@ -24,3 +24,5 @@ add_enzop_field = EnzoPFieldInfo.add_field
 
 from .io import \
      EnzoPIOHandler
+
+from . import tests
