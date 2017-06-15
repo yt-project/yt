@@ -18,10 +18,8 @@ from yt.utilities.on_demand_imports import \
 import numpy as np
 
 from yt.testing import \
-    assert_almost_equal, \
     assert_equal, \
     requires_file, \
-    units_override_check, \
     assert_array_equal
 from yt.utilities.answer_testing.framework import \
     create_obj, \
@@ -74,5 +72,5 @@ def test_hierarchy():
         for child in grid.Children:
             assert (child.LeftEdge >= grid.LeftEdge).all()
             assert (child.RightEdge <= grid.RightEdge).all()
-            assert child.Parent.id == grid.id
+            assert_equal(child.Parent.id, grid.id)
     fh.close()
