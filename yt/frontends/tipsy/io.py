@@ -142,9 +142,10 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 positions.append(ppos)
         if positions == []:
             return
-        positions = np.concatenate(positions)
+        positions = np.concatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(
             positions, kdtree, self.ds._num_neighbors)
+        hsml = hsml[np.argsort(kdtree.idx)]
         dtype = self._pdtypes['Gas']['Coordinates'][0]
         hsml.astype(dtype).tofile(self.hsml_filename)
 

@@ -41,7 +41,8 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
     ----------
 
     input_positions: arrays of floats with shape (n_particles, 3)
-        The positions of particles. Current assumed to be 3D postions.
+        The positions of particles in kdtree sorted order. Currently assumed 
+        to be 3D postions.
     kdtree: A PyKDTree instance
         A kdtree to do nearest neighbors searches with
     n_neighbors: The neighbor number to calculate the distance to
@@ -83,12 +84,11 @@ def generate_smoothing_length(np.float64_t[:, ::1] input_positions,
 
             # Fill queue with particles in the node containing the particle
             # we're searching for
-            process_node_points(leafnode, pos, input_positions, c_tree.all_idx,
-                                queue, i)
+            process_node_points(leafnode, pos, input_positions, queue, i)
 
             # Traverse the rest of the kdtree to finish the neighbor list
-            find_knn(c_tree.root, queue, input_positions, pos, c_tree.all_idx,
-                     leafnode.leafid, i)
+            find_knn(
+                c_tree.root, queue, input_positions, pos, leafnode.leafid, i)
 
             smoothing_length[i] = sqrt(queue.heap_ptr[0])
 
@@ -102,19 +102,16 @@ cdef int find_knn(Node* node,
                   BoundedPriorityQueue queue,
                   np.float64_t[:, :] positions,
                   np.float64_t* pos,
-                  uint64_t* all_idx,
                   uint32_t skipleaf,
                   uint64_t skipidx) nogil except -1:
     if not node.is_leaf:
         if not cull_node(node.less, pos, queue, skipleaf):
-            find_knn(node.less, queue, positions, pos, all_idx, skipleaf,
-                     skipidx)
+            find_knn(node.less, queue, positions, pos, skipleaf, skipidx)
         if not cull_node(node.greater, pos, queue, skipleaf):
-            find_knn(node.greater, queue, positions, pos, all_idx, skipleaf,
-                     skipidx)
+            find_knn(node.greater, queue, positions, pos, skipleaf, skipidx)
     else:
         if not cull_node(node, pos, queue, skipleaf):
-            process_node_points(node, pos, positions, all_idx, queue, skipidx)
+            process_node_points(node, pos, positions, queue, skipidx)
     return 0
 
 @cython.boundscheck(False)
@@ -144,7 +141,6 @@ cdef inline int cull_node(Node* node,
 cdef inline int process_node_points(Node* node,
                                     np.float64_t* pos,
                                     np.float64_t[:, :] positions,
-                                    uint64_t* all_idx,
                                     BoundedPriorityQueue queue,
                                     uint64_t skip_idx) nogil except -1:
     cdef uint64_t i, idx
@@ -152,9 +148,8 @@ cdef inline int process_node_points(Node* node,
     cdef int j
     cdef np.float64_t* p_ptr
     for i in range(node.left_idx, node.left_idx + node.children):
-        idx = all_idx[i]
-        p_ptr = &(positions[idx, 0])
-        if idx != skip_idx:
+        p_ptr = &(positions[i, 0])
+        if i != skip_idx:
             sq_dist = 0
             for j in range(3):
                 tpos = p_ptr[j] - pos[j]

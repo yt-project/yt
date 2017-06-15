@@ -119,7 +119,7 @@ class SPHParticleIndex(ParticleIndex):
             left_edge=self.ds.domain_left_edge,
             right_edge=self.ds.domain_right_edge,
             periodic=np.array(self.ds.periodicity),
-            leafsize=4*int(self.ds._num_neighbors),
+            leafsize=2*int(self.ds._num_neighbors),
         )
         if fname is not None:
             self._kdtree.save(fname)
