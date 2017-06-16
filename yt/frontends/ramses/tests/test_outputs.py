@@ -113,4 +113,4 @@ def test_ramses_rt():
 
     for field in special_fields:
         assert(field in ds.derived_field_list)
-        ret = ad[field]
+        ad[field]
