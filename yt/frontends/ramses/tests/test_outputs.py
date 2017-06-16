@@ -86,3 +86,23 @@ def test_extra_fields():
     dd = ds.all_data()
     families = dd[('all', 'family')]
     assert all(families == 100)
+
+ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
+@requires_file(ramses_rt)
+def test_ramses_rt():
+    ds = yt.load(ramses_rt)
+    ad = ds.all_data()
+
+    expected_fields = ["Density", "x-velocity", "y-velocity", "z-velocity",
+                       "Pres_IR", "Pressure", "Metallicity", "HII", "HeII",
+                       "HeIII"]
+
+    for field in expected_fields:
+        assert(('ramses', field) in ds.field_list)
+
+        # test that field access works
+        ad['ramses', field]
+
+    # test that special derived fields for RT datasets works
+    assert(('gas', 'temp_IR') in ds.derived_field_list)
+    ad['gas', 'temp_IR']
