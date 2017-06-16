@@ -1366,7 +1366,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')[0]
+        >>> mi, ma = sp.quantities.extrema('temperature')
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> for i, r in enumerate(rhos):
