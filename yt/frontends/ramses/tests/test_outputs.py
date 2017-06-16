@@ -103,6 +103,14 @@ def test_ramses_rt():
         # test that field access works
         ad['ramses', field]
 
-    # test that special derived fields for RT datasets works
-    assert(('gas', 'temp_IR') in ds.derived_field_list)
-    ad['gas', 'temp_IR']
+    # test that special derived fields for RT datasets work
+    special_fields = [('gas', 'temp_IR')]
+    species = ['H_p1', 'He_p1', 'He_p2']
+    for specie in species:
+        special_fields.extend(
+            [('gas', specie+'_fraction'), ('gas', specie+'_density'),
+             ('gas', specie+'_mass')])
+
+    for field in special_fields:
+        assert(field in ds.derived_field_list)
+        ret = ad[field]

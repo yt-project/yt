@@ -71,9 +71,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("Pres_IR", (pressure_units, ["pres_IR"], None)),
         ("Pressure", (pressure_units, ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
-        ("HII",  ("", ["HII"], None)),
-        ("HeII", ("", ["HeII"], None)),
-        ("HeIII",("", ["HeIII"], None)),
+        ("HII",  ("", ["H_p1_fraction"], None)),
+        ("HeII", ("", ["He_p1_fraction"], None)),
+        ("HeIII",("", ["He_p2_fraction"], None)),
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),
@@ -102,13 +102,28 @@ class RAMSESFieldInfo(FieldInfoContainer):
         rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
             self.setup_rt_fields()
-           
+
     def setup_rt_fields(self):
         def _temp_IR(field, data):
             rv = data["gas", "pres_IR"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
             return rv
-        self.add_field(("gas", "temp_IR"), sampling_type="cell",  function=_temp_IR, units=self.ds.unit_system["temperature"])
+        self.add_field(("gas", "temp_IR"), sampling_type="cell",
+                       function=_temp_IR,
+                       units=self.ds.unit_system["temperature"])
+        for species in ['H_p1', 'He_p1', 'He_p2']:
+            def _species_density(field, data):
+                return data['gas', species+'_fraction']*data['gas', 'density']
+            self.add_field(('gas', species+'_density'), sampling_type='cell',
+                           function=_species_density,
+                           units=self.ds.unit_system['density'])
+            def _species_mass(field, data):
+                return (data['gas', species+'_density']*
+                        data['index', 'cell_volume'])
+            self.add_field(('gas', species+'_mass'), sampling_type='cell',
+                           function=_species_mass,
+                           units=self.ds.unit_system['mass'])
+
 
     def create_cooling_fields(self):
         num = os.path.basename(self.ds.parameter_filename).split("."
