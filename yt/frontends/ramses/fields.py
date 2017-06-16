@@ -67,8 +67,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
+        ("Pres_IR", (pressure_units, ["pres_IR"], None)),
         ("Pressure", (pressure_units, ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
+        ("HII",  ("", ["HII"], None)),
+        ("HeII", ("", ["HeII"], None)),
+        ("HeIII",("", ["HeIII"], None)),
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),
@@ -92,6 +96,18 @@ class RAMSESFieldInfo(FieldInfoContainer):
         self.add_field(("gas", "temperature"), sampling_type="cell",  function=_temperature,
                         units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
+        # See if we need to load the rt fields
+        foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
+        rt_flag = not os.system('ls ' + foldername + '/info_rt_*.txt 1>/dev/null 2>/dev/null')
+        if rt_flag: # rt run
+            self.setup_rt_fields()
+           
+    def setup_rt_fields(self):
+        def _temp_IR(field, data):
+            rv = data["gas", "pres_IR"]/data["gas", "density"]
+            rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
+            return rv
+        self.add_field(("gas", "temp_IR"), sampling_type="cell",  function=_temp_IR, units=self.ds.unit_system["temperature"])
 
     def create_cooling_fields(self):
         num = os.path.basename(self.ds.parameter_filename).split("."
