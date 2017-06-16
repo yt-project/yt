@@ -13,6 +13,7 @@ RAMSES-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import glob
 import os
 import numpy as np
 
@@ -98,7 +99,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         self.create_cooling_fields()
         # See if we need to load the rt fields
         foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
-        rt_flag = not os.system('ls ' + foldername + '/info_rt_*.txt 1>/dev/null 2>/dev/null')
+        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
             self.setup_rt_fields()
            

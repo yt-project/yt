@@ -15,6 +15,7 @@ from __future__ import print_function, absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import glob
 import os
 import numpy as np
 import stat
@@ -406,7 +407,7 @@ class RAMSESIndex(OctreeIndex):
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
         # but first check for radiative transfer!    
         foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
-        rt_flag = not os.system('ls ' + foldername + '/info_rt_*.txt 1>/dev/null 2>/dev/null')
+        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
             if nvar < 10:
                 print('Detected RAMSES-RT file WITHOUT IR trapping.')
