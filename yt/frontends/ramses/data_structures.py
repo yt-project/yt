@@ -408,38 +408,38 @@ class RAMSESIndex(OctreeIndex):
         foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
         rt_flag = not os.system('ls ' + foldername + '/info_rt_*.txt 1>/dev/null 2>/dev/null')
         if rt_flag: # rt run
-           if nvar < 10:
-              print('Detected RAMSES-RT file WITHOUT IR trapping.')
-              fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
-           else:
-              print('Detected RAMSES-RT file WITH IR trapping.')
-              fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]     
+            if nvar < 10:
+                print('Detected RAMSES-RT file WITHOUT IR trapping.')
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
+            else:
+                print('Detected RAMSES-RT file WITH IR trapping.')
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]     
         else:            
-           if nvar < 5:
-               mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
-               raise ValueError
-           # Basic hydro runs
-           if nvar == 5:
-               fields = ["Density", 
-                         "x-velocity", "y-velocity", "z-velocity", 
-                         "Pressure"]
-           if nvar > 5 and nvar < 11:
-               fields = ["Density", 
-                         "x-velocity", "y-velocity", "z-velocity", 
-                         "Pressure", "Metallicity"]
-           # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
-           if nvar == 11:
-               fields = ["Density", 
-                         "x-velocity", "y-velocity", "z-velocity", 
-                         "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
-                         "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
-                         "Pressure"]
-           if nvar > 11:
-               fields = ["Density", 
-                         "x-velocity", "y-velocity", "z-velocity", 
-                         "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
-                         "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
-                         "Pressure","Metallicity"]
+            if nvar < 5:
+                mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
+                raise ValueError
+            # Basic hydro runs
+            if nvar == 5:
+                fields = ["Density",
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "Pressure"]
+            if nvar > 5 and nvar < 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "Pressure", "Metallicity"]
+            # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+            if nvar == 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                          "Pressure"]
+            if nvar > 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                          "Pressure","Metallicity"]
         # Allow some wiggle room for users to add too many variables
         while len(fields) < nvar:
             fields.append("var"+str(len(fields)))

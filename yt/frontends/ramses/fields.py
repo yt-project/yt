@@ -100,7 +100,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
         rt_flag = not os.system('ls ' + foldername + '/info_rt_*.txt 1>/dev/null 2>/dev/null')
         if rt_flag: # rt run
-           self.setup_rt_fields()
+            self.setup_rt_fields()
            
     def setup_rt_fields(self):
         def _temp_IR(field, data):
