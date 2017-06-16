@@ -1921,6 +1921,9 @@ particle fields by supplying the ``extra_particle_fields``:
    ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
    # ('all', 'family') and ('all', 'info') now in ds.field_list
 
+yt supports outputs made by the mainline ``RAMSES`` code as well as the
+``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
+based on the presence of a ``into_rt_*.txt`` file in the output directory.
 
 .. _loading-sph-data:
 
