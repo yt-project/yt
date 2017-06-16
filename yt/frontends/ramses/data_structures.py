@@ -410,10 +410,10 @@ class RAMSESIndex(OctreeIndex):
         rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
         if rt_flag: # rt run
             if nvar < 10:
-                print('Detected RAMSES-RT file WITHOUT IR trapping.')
+                mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
                 fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
             else:
-                print('Detected RAMSES-RT file WITH IR trapping.')
+                mylog.info('Detected RAMSES-RT file WITH IR trapping.')
                 fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]     
         else:            
             if nvar < 5:
