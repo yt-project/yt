@@ -171,14 +171,24 @@ class Shader(object):
         if ";" in source:
             # This is probably safe, right?  Enh, probably.
             return source
-        if os.path.isfile(source):
-            sh_directory = ''
-        else:
-            sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
-        fn = os.path.join(sh_directory, source)
-        if not os.path.isfile(fn):
-            raise YTInvalidShaderType(source)
-        return open(fn, 'r').read()
+        # What this does is concatenate multiple (if available) source files.
+        # This gets around GLSL's composition issues, which means we can have
+        # functions that get called at each step in a ray tracing process, for
+        # instance, that can still share ray tracing code between multiple
+        # files.
+        if not isinstance(source, tuple):
+            source = (source, )
+        full_source = []
+        for fn in source:
+            if os.path.isfile(fn):
+                sh_directory = ''
+            else:
+                sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
+            fn = os.path.join(sh_directory, fn)
+            if not os.path.isfile(fn):
+                raise YTInvalidShaderType(fn)
+            full_source.append(open(fn, 'r').read())
+        return "\n\n".join(full_source)
 
     def compile(self, source = None, parameters = None):
         if source is None:
@@ -231,7 +241,7 @@ class ApplyColormapFragmentShader(FragmentShader):
 class MaxIntensityFragmentShader(FragmentShader):
     '''A first pass fragment shader that computes Maximum Intensity Projection
     of the data. See :ref:`projection-types` for more information.'''
-    _source = "max_intensity.fragmentshader"
+    _source = ("ray_tracing.fragmentshader", "max_intensity.fragmentshader")
     _shader_name = "max_intensity.f"
 
 class NoOpFragmentShader(FragmentShader):
@@ -251,7 +261,7 @@ class ProjectionFragmentShader(FragmentShader):
     '''A first pass fragment shader that performs unweighted integration of the
     data along the line of sight. See :ref:`projection-types` for more
     information.'''
-    _source = "projection.fragmentshader"
+    _source = ("ray_tracing.fragmentshader", "projection.fragmentshader")
     _shader_name = "projection.f"
 
 class TransferFunctionFragmentShader(FragmentShader):
