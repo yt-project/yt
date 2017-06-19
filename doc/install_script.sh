@@ -827,7 +827,7 @@ then
 
     PYTHON2='Python-2.7.11'
     PYTHON3='Python-3.5.1'
-    CYTHON='Cython-0.23.5'
+    CYTHON='Cython-0.25.2'
     if [ $INST_PY3 -eq 0 ]
     then
         PYX='PyX-0.12.1'
@@ -853,7 +853,7 @@ then
     ASTROPY='astropy-1.1.2'
     
     # Now we dump all our SHA512 files out.
-    echo '9052d74bbd0c93757fd916939cc3c39eb1aba6c9692b48887ae577256bec64b39b1fd25b6c751e6c8fe723de4c0ddf9a1a207de39f75b0839500dfcdde69f925  Cython-0.23.5.tar.gz' > Cython-0.23.5.tar.gz.sha512
+    echo '1974b9374aeedb030307dc95aa6560ce9d5e1652783cd4552e96ef11663c73dd263e3521b68e7712abbb31628011e2e66320c5ee2577968684e2679eb80726e1  Cython-0.25.2.tar.gz' > Cython-0.25.2.tar.gz.sha512
     if [ $INST_PY3 -eq 0 ]
     then
         echo '4941f5aa21aff3743546495fb073c10d2657ff42b2aff401903498638093d0e31e344cce778980f28a7170c6d29eab72ac074277b9d4088376e8692dc71e55c1  PyX-0.12.1.tar.gz' > PyX-0.12.1.tar.gz.sha512
