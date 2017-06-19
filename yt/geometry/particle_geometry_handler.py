@@ -139,8 +139,8 @@ class ParticleIndex(Index):
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             if rflag == 0:
-                raise IOError
-        except IOError:
+                raise OSError
+        except OSError:
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()

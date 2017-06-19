@@ -985,7 +985,7 @@ cdef class ParticleBitmap:
         cdef bint overwrite = 0
         # Verify that file is correct version
         if not os.path.isfile(fname):
-            raise IOError("The provided index file does not exist")
+            raise OSError
         f = open(fname,'rb')
         ver, = struct.unpack('Q',f.read(struct.calcsize('Q')))
         if ver == self.nfiles and ver != _bitmask_version:
@@ -993,14 +993,14 @@ cdef class ParticleBitmap:
             nfiles = ver
             ver = 0 # Original bitmaps had number of files first
         if ver != _bitmask_version:
-            raise IOError("The file format of the index has changed since "
+            raise OSError("The file format of the index has changed since "
                           "this file was created. It will be replaced with an "
                           "updated version.")
         # Read number of bitmaps
         if nfiles == 0:
             nfiles, = struct.unpack('Q', f.read(struct.calcsize('Q')))
             if nfiles != self.nfiles:
-                raise IOError(
+                raise OSError(
                     "Number of bitmasks ({}) conflicts with number of files "
                     "({})".format(nfiles, self.nfiles))
         # Read bitmap for each file
