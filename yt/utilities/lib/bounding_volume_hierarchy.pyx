@@ -4,8 +4,8 @@ cimport numpy as np
 from libc.math cimport fabs
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
-from grid_traversal cimport ImageSampler, \
-    ImageContainer
+from .image_samplers cimport ImageSampler
+
 
 from yt.utilities.lib.primitives cimport \
     BBox, \
@@ -449,15 +449,14 @@ cdef class BVHMeshSampler(ImageSampler):
         '''
 
         cdef int vi, vj, i, j
-        cdef ImageContainer *im = self.image
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
-        nx = im.nv[0]
-        ny = im.nv[1]
+        nx = self.nv[0]
+        ny = self.nv[1]
         size = nx * ny
         cdef Ray* ray
         with nogil, parallel():
@@ -468,7 +467,7 @@ cdef class BVHMeshSampler(ImageSampler):
                 vj = j % ny
                 vi = (j - vj) / ny
                 vj = vj
-                self.vector_function(im, vi, vj, width, v_dir, v_pos)
+                self.vector_function(self, vi, vj, width, v_dir, v_pos)
                 for i in range(3):
                     ray.origin[i] = v_pos[i]
                     ray.direction[i] = v_dir[i]
@@ -478,10 +477,10 @@ cdef class BVHMeshSampler(ImageSampler):
                 ray.data_val = 0
                 ray.elem_id = -1
                 bvh.intersect(ray)
-                im.image[vi, vj, 0] = ray.data_val
-                im.image_used[vi, vj] = ray.elem_id
-                im.mesh_lines[vi, vj] = ray.near_boundary
-                im.zbuffer[vi, vj] = ray.t_far
+                self.image[vi, vj, 0] = ray.data_val
+                self.image_used[vi, vj] = ray.elem_id
+                self.mesh_lines[vi, vj] = ray.near_boundary
+                self.zbuffer[vi, vj] = ray.t_far
             free(v_pos)
             free(v_dir)
             free(ray)

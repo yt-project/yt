@@ -17,7 +17,7 @@ answer_tests:
   local_fits_001:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_005:
+  local_flash_006:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
@@ -42,7 +42,7 @@ answer_tests:
   local_owls_001:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_014:
+  local_pw_015:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -104,7 +104,7 @@ answer_tests:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_with_continuum
 
-  local_axialpix_001:
+  local_axialpix_002:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_particle_trajectory_000:
