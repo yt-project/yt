@@ -694,6 +694,26 @@ else
      PYTHON_EXEC='python2.7'
 fi
 
+function do_setup_py_zip
+{
+    [ -e $1/done ] && return
+    LIB=$1
+    shift
+    if [ -z "$@" ]
+    then
+        echo "Installing $LIB"
+    else
+        echo "Installing $LIB (arguments: '$@')"
+    fi
+    [ ! -e $LIB/extracted ] && unzip $LIB.zip
+    touch $LIB/extracted
+    PYEXE=${PYTHON_EXEC}
+    cd $LIB
+    ( ${DEST_DIR}/bin/${PYEXE} setup.py install 2>&1 ) 1>> ${LOG_FILE} || do_exit
+    touch done
+    cd ..
+}
+
 function do_setup_py
 {
     [ -e $1/done ] && return
@@ -849,7 +869,7 @@ then
     SQLITE='sqlite-autoconf-3071700'
     SYMPY='sympy-1.0'
     ZLIB='zlib-1.2.8'
-    SETUPTOOLS='setuptools-20.6.7'
+    SETUPTOOLS='setuptools-36.0.1'
     ASTROPY='astropy-1.1.2'
     
     # Now we dump all our SHA512 files out.
@@ -878,7 +898,7 @@ then
     echo '96f3e51b46741450bc6b63779c10ebb4a7066860fe544385d64d1eda52592e376a589ef282ace2e1df73df61c10eab1a0d793abbdaf770e60289494d4bf3bcb4  sqlite-autoconf-3071700.tar.gz' > sqlite-autoconf-3071700.tar.gz.sha512
     echo '977db6e9bc6a5918cceb255981a57e85e7060c0922aefd2968b004d25d704e25a5cb5bbe09eb387e8695581e23e2825d9c40310068fe25ece7e9c23037a21f39  sympy-1.0.tar.gz' > sympy-1.0.tar.gz.sha512
     echo 'ece209d4c7ec0cb58ede791444dc754e0d10811cbbdebe3df61c0fd9f9f9867c1c3ccd5f1827f847c005e24eef34fb5bf87b5d3f894d75da04f1797538290e4a  zlib-1.2.8.tar.gz' > zlib-1.2.8.tar.gz.sha512
-    echo '91a212b5007f9fdfacb4341e06dc0355c5c29897eb8ea407dd4864091f845ba1417bb0d33b5ed6897869d0233e2d0ec6548898d3dbe9eda23f751829bd51a104  setuptools-20.6.7.tar.gz' > setuptools-20.6.7.tar.gz.sha512
+    echo 'cbcd2591d0d8a7591c5d9a1d4173814afa0b984af29f2e34d26a37c357474b043f371978ac224cea12f50834d91babd9f14b137488c4edcd62594e91aff903d8 setuptools-36.0.1.zip' > setuptools-36.0.1.zip.sha512
     # Individual processes
     [ -z "$HDF5_DIR" ] && get_ytproject $HDF5.tar.gz
     [ $INST_ZLIB -eq 1 ] && get_ytproject $ZLIB.tar.gz
@@ -1070,7 +1090,7 @@ then
     export PYTHONPATH=${DEST_DIR}/lib/${PYTHON_EXEC}/site-packages/
 
     # Install setuptools
-    do_setup_py $SETUPTOOLS
+    do_setup_py_zip $SETUPTOOLS
 
     if type -P git &>/dev/null
     then
