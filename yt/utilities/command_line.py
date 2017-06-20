@@ -237,8 +237,8 @@ _common_options = dict(
     all     = dict(longname="--all", dest="reinstall",
                    default=False, action="store_true",
                    help=("Reinstall the full yt stack in the current location."
-                         "  This option has been deprecated and may not work "
-                         "correctly."),),
+                         "This option has been deprecated and will not have any"
+                         "effect."),),
     ds      = dict(short="ds", action=GetParameterFiles,
                    nargs="+", help="datasets to run on"),
     ods     = dict(action=GetParameterFiles, dest="ds",
@@ -428,53 +428,6 @@ _common_options = dict(
                             help="Make projections with halo profiler.")
 
     )
-
-def _get_yt_stack_date():
-    if "YT_DEST" not in os.environ:
-        return
-    date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
-    if not os.path.exists(date_file):
-        print("Could not determine when yt stack was last updated.")
-        return
-    print("".join(open(date_file, 'r').readlines()))
-    print("To update all dependencies, run \"yt update --all\".")
-
-def _update_yt_stack(path):
-    "Rerun the install script to updated all dependencies."
-
-    if "YT_DEST" not in os.environ:
-        print()
-        print("This yt installation does not appear to be managed by the")
-        print("source-based install script, but 'update --all' was specified.")
-        print("You will need to update your dependencies manually.")
-        return
-
-    install_script = os.path.join(path, "doc/install_script.sh")
-    if not os.path.exists(install_script):
-        print()
-        print("Install script not found!")
-        print("The install script should be here: %s," % install_script)
-        print("but it was not.")
-        return
-
-    print()
-    print("We will now attempt to update the yt stack located at:")
-    print("    %s." % os.environ["YT_DEST"])
-    print()
-    print("[hit enter to continue or Ctrl-C to stop]")
-    try:
-        input()
-    except:
-        sys.exit(0)
-    os.environ["REINST_YT"] = "1"
-    ret = subprocess.call(["bash", install_script])
-    print()
-    if ret:
-        print("The install script seems to have failed.")
-        print("Check the output above.")
-    else:
-        print("The yt stack has been updated successfully.")
-        print("Now get back to work!")
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
@@ -718,7 +671,6 @@ class YTInstInfoCmd(YTCommand):
             print("This installation CAN be automatically updated.")
             if opts.update_source:
                 update_hg_or_git(path)
-                _get_yt_stack_date()
         elif opts.update_source:
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
@@ -1127,9 +1079,6 @@ class YTUpdateCmd(YTCommand):
             print()
             print("This installation CAN be automatically updated.")
             update_hg_or_git(path)
-            _get_yt_stack_date()
-            if opts.reinstall:
-                _update_yt_stack(path)
         else:
             _print_failed_source_update(opts.reinstall)
 
