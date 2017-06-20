@@ -64,7 +64,7 @@ class RegionExpression(object):
         # OK, now we need to look at our slices.  How many are a specific
         # coordinate?
 
-        nslices = sum([isinstance(v, slice) for v in item])
+        nslices = sum(isinstance(v, slice) for v in item)
         if nslices == 0:
             return self._create_point(item)
         elif nslices == 1:
