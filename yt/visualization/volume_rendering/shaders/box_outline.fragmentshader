@@ -12,6 +12,7 @@ out vec4 output_color;
 uniform sampler3D ds_tex;
 //layout (binding = 1) uniform sampler2D depth_tex;
 uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
+uniform float box_width;
 
 void main()
 {
@@ -34,9 +35,9 @@ void main()
     // We need to be close to more than one edge.
 
     int count = 0;
-    count += int(dist.x < 0.2 * dx.x);
-    count += int(dist.y < 0.2 * dx.y);
-    count += int(dist.z < 0.2 * dx.z);
+    count += int(dist.x < box_width * dx.x);
+    count += int(dist.y < box_width * dx.y);
+    count += int(dist.z < box_width * dx.z);
 
     if (count < 2) {
         discard;

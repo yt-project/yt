@@ -361,6 +361,8 @@ class BlockCollection(SceneComponent):
         GL.glEnable(GL.GL_DEPTH_TEST)
         GL.glDepthFunc(GL.GL_LESS)
 
+        self.box_width = 0.1
+
         self._init_blending()
 
     def _init_blending(self):
@@ -490,6 +492,7 @@ class BlockCollection(SceneComponent):
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
                 self.camera.position)
+        shader_program._set_uniform("box_width", self.box_width)
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
