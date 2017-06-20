@@ -24,6 +24,7 @@ from yt.utilities.exceptions import \
     YTUnknownUniformKind, \
     YTUnknownUniformSize
 from yt.units.yt_array import YTQuantity
+import ctypes
 
 known_shaders = {}
 
@@ -69,6 +70,33 @@ class ShaderProgram(object):
             raise RuntimeError(GL.glGetProgramInfoLog(self.program))
         vertex_shader.delete_shader()
         fragment_shader.delete_shader()
+        self.introspect()
+
+    def introspect(self):
+        if self.program is None:
+            raise RuntimeError
+        # First get all of the uniforms
+        self.uniforms = {}
+        self.attributes = {}
+
+        n_uniforms = GL.glGetProgramInterfaceiv(self.program, 
+                GL.GL_UNIFORM, GL.GL_ACTIVE_RESOURCES)
+
+        for i in range(n_uniforms):
+            name, size, gl_type = GL.glGetActiveUniform(self.program, i)
+            self.uniforms[name.decode("utf-8")] = (size, gl_type)
+
+        n_attrib = GL.glGetProgramInterfaceiv(self.program, 
+                GL.GL_PROGRAM_INPUT, GL.GL_ACTIVE_RESOURCES)
+        length = ctypes.pointer(ctypes.c_int())
+        size = ctypes.pointer(ctypes.c_int())
+        gl_type = ctypes.pointer(ctypes.c_int())
+        name = ctypes.create_string_buffer(256)
+        for i in range(n_attrib):
+            GL.glGetActiveAttrib(self.program, i, 256, length, size, gl_type,
+                                 name)
+            self.attributes[name[:length[0]].decode("utf-8")] = (size[0],
+                    gl_type[0])
 
     def delete_program(self):
         if self.program is not None:
@@ -120,6 +148,8 @@ class ShaderProgram(object):
         if name not in self._uniform_funcs:
             self._uniform_funcs[name] = self._guess_uniform_func(value)
         loc = GL.glGetUniformLocation(self.program, name)
+        if loc < 0:
+            return -1
         return self._uniform_funcs[name](loc, value)
 
     @contextlib.contextmanager
@@ -130,12 +160,16 @@ class ShaderProgram(object):
 
     def bind_vert_attrib(self, name, bind_loc, size):
         loc = GL.glGetAttribLocation(self.program, name)
+        if loc < 0:
+            return -1
         GL.glEnableVertexAttribArray(loc)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, bind_loc)
         GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
 
     def disable_vert_attrib(self, name):
         loc = GL.glGetAttribLocation(self.program, name)
+        if loc < 0:
+            return -1
         GL.glDisableVertexAttribArray(loc)
 
 class RegisteredShader(type):
