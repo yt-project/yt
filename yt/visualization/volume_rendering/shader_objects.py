@@ -25,6 +25,9 @@ from yt.utilities.exceptions import \
     YTUnknownUniformSize
 from yt.units.yt_array import YTQuantity
 import ctypes
+from .opengl_support import \
+    num_to_const, \
+    coerce_uniform_type
 
 known_shaders = {}
 
@@ -84,6 +87,7 @@ class ShaderProgram(object):
 
         for i in range(n_uniforms):
             name, size, gl_type = GL.glGetActiveUniform(self.program, i)
+            gl_type = num_to_const[gl_type]
             self.uniforms[name.decode("utf-8")] = (size, gl_type)
 
         n_attrib = GL.glGetProgramInterfaceiv(self.program, 
@@ -95,8 +99,9 @@ class ShaderProgram(object):
         for i in range(n_attrib):
             GL.glGetActiveAttrib(self.program, i, 256, length, size, gl_type,
                                  name)
+            gl_const = num_to_const[gl_type[0]]
             self.attributes[name[:length[0]].decode("utf-8")] = (size[0],
-                    gl_type[0])
+                    gl_const)
 
     def delete_program(self):
         if self.program is not None:
