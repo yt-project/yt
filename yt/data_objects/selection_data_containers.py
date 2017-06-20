@@ -25,13 +25,15 @@ from yt.funcs import \
     ensure_list, \
     iterable, \
     validate_width_tuple, \
-    fix_length
+    fix_length, \
+    fix_axis
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
     udot, \
     unorm, \
-    YTArray
+    YTArray, \
+    YTQuantity
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
@@ -94,8 +96,8 @@ class YTOrthoRay(YTSelectionContainer1D):
 
     Parameters
     ----------
-    axis : int
-        The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+    axis : int or char
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coords : tuple of floats
         The (plane_x, plane_y) coordinates at which to cast the ray.  Note
         that this is in the plane coordinates: so if you are casting along
@@ -135,7 +137,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
         super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
-        self.axis = axis
+        self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
         self.px_ax = xax
@@ -143,7 +145,15 @@ class YTOrthoRay(YTSelectionContainer1D):
         # Even though we may not be using x,y,z we use them here.
         self.px_dx = 'd%s'%('xyz'[self.px_ax])
         self.py_dx = 'd%s'%('xyz'[self.py_ax])
-        self.px, self.py = coords
+        # Convert coordinates to code length.
+        if isinstance(coords[0], YTQuantity):
+            self.px = self.ds.quan(coords[0]).to("code_length")
+        else:
+            self.px = self.ds.quan(coords[0], "code_length")
+        if isinstance(coords[1], YTQuantity):
+            self.py = self.ds.quan(coords[1]).to("code_length")
+        else:
+            self.py = self.ds.quan(coords[1], "code_length")
         self.sort_by = 'xyz'[self.axis]
 
     @property

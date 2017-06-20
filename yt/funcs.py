@@ -1157,3 +1157,11 @@ def parse_h5_attr(f, attr):
 def issue_deprecation_warning(msg):
     from numpy import VisibleDeprecationWarning
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+
+def obj_length(v):
+    if iterable(v):
+        return len(v)
+    else:
+        # If something isn't iterable, we return 0 
+        # to signify zero length (aka a scalar).
+        return 0
