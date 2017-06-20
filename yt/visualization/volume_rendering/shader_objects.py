@@ -270,6 +270,12 @@ class TransferFunctionFragmentShader(FragmentShader):
     _source = "transfer_function.fragmentshader"
     _shader_name = "transfer_function.f"
 
+class TransferFunctionFragmentShader(FragmentShader):
+    '''A first pass fragment shader that performs ray casting using transfer
+    function. See :ref:`volume-rendering-method` for more details.'''
+    _source = "box_outline.fragmentshader"
+    _shader_name = "drawlines.f"
+
 class DefaultVertexShader(VertexShader):
     '''A first pass vertex shader that tranlates the location of vertices from
     the world coordinates to the viewing plane coordinates'''

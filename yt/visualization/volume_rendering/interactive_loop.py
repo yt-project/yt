@@ -157,6 +157,7 @@ class RenderingContext(object):
         callbacks.add_key_callback("shader_max", "1")
         callbacks.add_key_callback("shader_proj", "2")
         callbacks.add_key_callback("shader_test", "3")
+        callbacks.add_key_callback("shader_lines", "4")
         callbacks.add_key_callback("print_limits", "g")
         callbacks.add_key_callback("print_help", "h")
         callbacks.add_key_callback("debug_buffer", "d")

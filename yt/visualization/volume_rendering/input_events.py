@@ -217,7 +217,7 @@ def shader_test(event_coll, event):
 
 @register_event("shader_lines")
 def shader_lines(event_coll, event):
-    print("Changing shader to projection")
+    print("Changing shader to lines")
     scene = event_coll.scene
     for coll in scene.collections:
         coll.set_shader("default.v")
