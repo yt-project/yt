@@ -1382,6 +1382,41 @@ def _read_header(raw_file, field):
     return boxes, file_names, offsets
 
 
+class WarpXHeader(object):
+    def __init__(self, header_fn):
+        self.data = {}
+        with open(header_fn, "r") as f:
+            self.data["Checkpoint_version"] = int(f.readline().strip().split()[-1])
+            
+            self.data["num_levels"] = int(f.readline().strip().split()[-1])
+            self.data["istep"]      = [int(num) for num in f.readline().strip().split()]
+            self.data["nsubsteps"]  = [int(num) for num in f.readline().strip().split()]
+            
+            self.data["t_new"] = [float(num) for num in f.readline().strip().split()]
+            self.data["t_old"] = [float(num) for num in f.readline().strip().split()]
+            self.data["dt"]    = [float(num) for num in f.readline().strip().split()]
+            
+            self.data["moving_window_x"] = float(f.readline().strip().split()[-1])
+            self.data["is_synchronized"] = bool(f.readline().strip().split()[-1])
+            
+            self.data["prob_lo"] = [float(num) for num in f.readline().strip().split()]
+            self.data["prob_hi"] = [float(num) for num in f.readline().strip().split()]
+            
+            for _ in range(self.data["num_levels"]):
+                num_boxes = int(f.readline().strip().split()[0][1:])
+                for __ in range(num_boxes):
+                    f.readline()
+                f.readline()
+                
+            i = 0
+            line = f.readline()
+            while line:
+                line = line.strip().split()
+                self.data["species_%d" % i] = [float(val) for val in line]
+                i = i + 1
+                line = f.readline()
+
+
 class WarpXHierarchy(BoxlibHierarchy):
 
     def __init__(self, ds, dataset_type="boxlib_native"):
@@ -1392,27 +1427,15 @@ class WarpXHierarchy(BoxlibHierarchy):
             self._read_particles(ptype, is_checkpoint)
         
         # Additional WarpX particle information (used to set up species)
-        with open(self.ds.output_dir + "/WarpXHeader", 'r') as f:
-
-            # skip to the end, where species info is written out
-            line = f.readline()
-            while line and line != ')\n':
-                line = f.readline()
-            line = f.readline()
-
-            # Read in the species information
-            species_id = 0
-            while line:
-                line = line.strip().split()
-                charge = YTQuantity(float(line[0]), "C")
-                mass = YTQuantity(float(line[1]), "kg")
-                charge_name = 'particle%.1d_charge' % species_id
-                mass_name = 'particle%.1d_mass' % species_id
-                self.parameters[charge_name] = charge
-                self.parameters[mass_name] = mass
-                line = f.readline()
-                species_id += 1
-    
+        self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
+        
+        for i, (key, val) in enumerate(self.warpx_header.data.items()):
+            if key.startswith("species_"):
+                charge_name = 'particle%.1d_charge' % i
+                mass_name = 'particle%.1d_mass' % i
+                self.parameters[charge_name] = val[0]
+                self.parameters[mass_name] = val[1]
+                
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()
 
