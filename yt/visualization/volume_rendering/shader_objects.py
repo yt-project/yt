@@ -82,6 +82,7 @@ class ShaderProgram(object):
         self.uniforms = {}
         self.attributes = {}
 
+        if not bool(GL.glGetProgramInterfaceiv): return
         n_uniforms = GL.glGetProgramInterfaceiv(self.program, 
                 GL.GL_UNIFORM, GL.GL_ACTIVE_RESOURCES)
 
