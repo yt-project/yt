@@ -22,6 +22,7 @@ bool within_bb(vec3 pos)
 
 void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
                     float t, vec3 dir);
+vec4 cleanup_phase(in vec4 curr_color);
 
 // This main() function will call a function called sample_texture at every
 // step along the ray.  It must be of the form
@@ -76,11 +77,12 @@ void main()
     //  http://prideout.net/blog/?p=64
 
     t0 = max(t0, 0.0);
+    t1 = max(t1, 0.0);
 
     vec3 p0 = v_camera_pos.xyz + dir * t0;
     vec3 p1 = v_camera_pos.xyz + dir * t1;
 
-    vec3 dxidir = dx * abs(idir);
+    vec3 dxidir = dx * abs(idir) / 10.0;
 
     temp_t = min(dxidir.xx, dxidir.yz);
 
@@ -93,7 +95,7 @@ void main()
 
     temp_t = max(nzones.xx, nzones.yz);
 
-    tdelta = max((t1 - t0)/(2.0*max(temp_t.x, temp_t.y)), tdelta);
+    tdelta = max((t1 - t0)/(5.0*max(temp_t.x, temp_t.y)), tdelta);
 
     vec3 tex_curr_pos = vec3(0.0);
 
@@ -110,5 +112,5 @@ void main()
         ray_position += tdelta * dir;
     }
 
-    output_color = vec4(curr_color);
+    output_color = cleanup_phase(curr_color);
 }

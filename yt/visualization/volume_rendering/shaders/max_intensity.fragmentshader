@@ -6,3 +6,8 @@ void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
         curr_color = vec4(tex_sample.rgb, 1.0);
     }
 }
+
+vec4 cleanup_phase(in vec4 curr_color) 
+{
+  return vec4(curr_color.rgb, 1.0);
+}
