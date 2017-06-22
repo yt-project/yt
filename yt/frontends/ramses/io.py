@@ -19,10 +19,7 @@ import numpy as np
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 import yt.utilities.fortran_utils as fpu
-from yt.utilities.lib.cosmology_time import \
-    get_ramses_ages
 from yt.extern.six import PY3
 
 if PY3:
@@ -92,27 +89,16 @@ class IOHandlerRAMSES(BaseIOHandler):
                         yield (ptype, field), data
 
     def _read_particle_subset(self, subset, fields):
-        f = open(subset.domain.part_fn, "rb")
         foffsets = subset.domain.particle_field_offsets
         tr = {}
         # We do *all* conversion into boxlen here.
         # This means that no other conversions need to be applied to convert
         # positions into the same domain as the octs themselves.
-        for field in sorted(fields, key = lambda a: foffsets[a]):
-            f.seek(foffsets[field])
-            dt = subset.domain.particle_field_types[field]
-            tr[field] = fpu.read_vector(f, dt)
-            if field[1].startswith("particle_position"):
-                np.divide(tr[field], subset.domain.ds["boxlen"], tr[field])
-            cosmo = subset.domain.ds.cosmological_simulation
-            if cosmo == 1 and field[1] == "particle_age":
-                tf = subset.domain.ds.t_frw
-                dtau = subset.domain.ds.dtau
-                tauf = subset.domain.ds.tau_frw
-                tsim = subset.domain.ds.time_simu
-                h100 = subset.domain.ds.hubble_constant
-                nOver2 = subset.domain.ds.n_frw/2
-                t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc)/subset.domain.ds['unit_t']
-                ages = tr[field]
-                tr[field] = get_ramses_ages(tf,tauf,dtau,tsim,t_scale,ages,nOver2,len(ages))            
+        with open(subset.domain.part_fn, "rb") as f:
+            for field in sorted(fields, key = lambda a: foffsets[a]):
+                f.seek(foffsets[field])
+                dt = subset.domain.particle_field_types[field]
+                tr[field] = fpu.read_vector(f, dt)
+                if field[1].startswith("particle_position"):
+                    np.divide(tr[field], self.ds["boxlen"], tr[field])
         return tr
