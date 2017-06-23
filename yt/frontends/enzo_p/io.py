@@ -13,6 +13,8 @@ Enzo-P-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from yt.utilities.exceptions import \
+    YTException
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.extern.six import b, iteritems
@@ -42,7 +44,9 @@ class EnzoPIOHandler(BaseIOHandler):
         try:
             group = f[grid.block_name]
         except KeyError:
-            group = f
+            raise YTException(
+                message="Grid %s is missing from data file %s." %
+                (grid.block_name, grid.filename), ds=self.ds)
         fields = []
         dtypes = set([])
         for name, v in iteritems(group):

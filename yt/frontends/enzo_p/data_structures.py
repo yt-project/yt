@@ -233,30 +233,10 @@ class EnzoPHierarchy(GridIndex):
         self.field_list = []
         # Do this only on the root processor to save disk work.
         if self.comm.rank in (0, None):
-            mylog.info("Gathering a field list (this may take a moment.)")
-            field_list = set()
-            random_sample = self._generate_random_grids()
-            for grid in random_sample:
-                if not hasattr(grid, 'filename'): continue
-                try:
-                    gf = self.io._read_field_names(grid)
-                except self.io._read_exception:
-                    raise IOError("Grid %s is a bit funky?", grid.id)
-                mylog.debug("Grid %s has: %s", grid.id, gf)
-                field_list = field_list.union(gf)
-            if "AppendActiveParticleType" in self.dataset.parameters:
-                ap_fields = self._detect_active_particle_fields()
-                field_list = list(set(field_list).union(ap_fields))
-                if not any(f[0] == 'io' for f in field_list):
-                    if 'io' in self.dataset.particle_types_raw:
-                        ptypes_raw = list(self.dataset.particle_types_raw)
-                        ptypes_raw.remove('io')
-                        self.dataset.particle_types_raw = tuple(ptypes_raw)
-
-                    if 'io' in self.dataset.particle_types:
-                        ptypes = list(self.dataset.particle_types)
-                        ptypes.remove('io')
-                        self.dataset.particle_types = tuple(ptypes)
+            # Just check the first grid.
+            grid = self.grids[0]
+            field_list = self.io._read_field_names(grid)
+            mylog.debug("Grid %s has: %s", grid.id, field_list)
             ptypes = self.dataset.particle_types
             ptypes_raw = self.dataset.particle_types_raw
         else:
@@ -266,24 +246,6 @@ class EnzoPHierarchy(GridIndex):
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
         self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes_raw))
-
-    def _generate_random_grids(self):
-        if self.num_grids > 40:
-            starter = np.random.randint(0, 20)
-            random_sample = np.mgrid[starter:len(self.grids)-1:20j].astype("int32")
-            # We also add in a bit to make sure that some of the grids have
-            # particles
-            gwp = self.grid_particle_count > 0
-            if np.any(gwp) and not np.any(gwp[(random_sample,)]):
-                # We just add one grid.  This is not terribly efficient.
-                first_grid = np.where(gwp)[0][0]
-                random_sample.resize((21,))
-                random_sample[-1] = first_grid
-                mylog.debug("Added additional grid %s", first_grid)
-            mylog.debug("Checking grids: %s", random_sample.tolist())
-        else:
-            random_sample = np.mgrid[0:max(len(self.grids),1)].astype("int32")
-        return self.grids[(random_sample,)]
 
 class EnzoPDataset(Dataset):
     """
