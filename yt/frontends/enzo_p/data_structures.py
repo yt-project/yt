@@ -124,10 +124,12 @@ class EnzoPHierarchy(GridIndex):
     def _count_grids(self):
         fblock_size = 32768
         f = open(self.ds.parameter_filename, "r")
-        file_size = f.seek(0, 2)
+        f.seek(0, 2)
+        file_size = f.tell()
         nblocks = np.ceil(float(file_size) /
                           fblock_size).astype(np.int64)
-        offset = f.seek(0)
+        f.seek(0)
+        offset = f.tell()
         ngrids = 0
         for ib in range(nblocks):
             my_block = min(fblock_size, file_size - offset)
@@ -144,10 +146,12 @@ class EnzoPHierarchy(GridIndex):
         pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
         f = open(self.ds.parameter_filename, "r")
         fblock_size = 32768
-        file_size = f.seek(0, 2)
+        f.seek(0, 2)
+        file_size = f.tell()
         nblocks = np.ceil(float(file_size) /
                           fblock_size).astype(np.int64)
-        offset = f.seek(0)
+        f.seek(0)
+        offset = f.tell()
         lstr = ""
         # place child blocks after the root blocks
         rbdim = self.ds.root_block_dimensions
