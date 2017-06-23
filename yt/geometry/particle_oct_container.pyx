@@ -53,7 +53,7 @@ import os
 # index for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
 
-_bitmask_version = np.uint64(3)
+_bitmask_version = np.uint64(4)
 
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
@@ -413,6 +413,7 @@ cdef class ParticleBitmap:
     cdef np.float64_t dds_mi2[3]
     cdef np.float64_t idds[3]
     cdef np.int32_t dims[3]
+    cdef np.int64_t file_hash
     cdef public np.uint64_t nfiles
     cdef public np.int32_t index_order1
     cdef public np.int32_t index_order2
@@ -432,7 +433,7 @@ cdef class ParticleBitmap:
     cdef FileBitmasks bitmasks
     cdef public BoolArrayCollection collisions
 
-    def __init__(self, left_edge, right_edge, periodicity, nfiles, 
+    def __init__(self, left_edge, right_edge, periodicity, file_hash, nfiles, 
                  index_order1, index_order2):
         # TODO: Set limit on maximum orders?
         cdef int i
@@ -443,6 +444,7 @@ cdef class ParticleBitmap:
         self._last_oct_handler = None
         self._prev_octree_subset = None
         self._prev_oct_handler = None
+        self.file_hash = file_hash
         self.nfiles = nfiles
         for i in range(3):
             self.left_edge[i] = left_edge[i]
@@ -958,6 +960,7 @@ cdef class ParticleBitmap:
         f = open(fname,'wb')
         # Header
         f.write(struct.pack('Q', _bitmask_version))
+        f.write(struct.pack('q', self.file_hash))
         f.write(struct.pack('Q', self.nfiles))
         # Bitmap for each file
         for ifile in range(self.nfiles):
@@ -981,6 +984,7 @@ cdef class ParticleBitmap:
         cdef bint irflag
         cdef np.uint64_t ver
         cdef np.uint64_t nfiles = 0
+        cdef np.int64_t file_hash
         cdef np.uint64_t size_serial
         cdef bint overwrite = 0
         # Verify that file is correct version
@@ -996,6 +1000,10 @@ cdef class ParticleBitmap:
             raise OSError("The file format of the index has changed since "
                           "this file was created. It will be replaced with an "
                           "updated version.")
+        # Read file hash
+        file_hash, = struct.unpack('q', f.read(struct.calcsize('q')))
+        if file_hash != self.file_hash:
+            raise OSError
         # Read number of bitmaps
         if nfiles == 0:
             nfiles, = struct.unpack('Q', f.read(struct.calcsize('Q')))

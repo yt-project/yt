@@ -84,7 +84,7 @@ class SPHParticleIndex(ParticleIndex):
     def _initialize_index(self):
         ds = self.dataset
 
-        self._file_hash = self._generate_hash()
+        ds._file_hash = self._generate_hash()
 
         if getattr(ds, 'kdtree_filename', None) is None:
             if os.path.exists(ds.parameter_filename):
@@ -104,10 +104,14 @@ class SPHParticleIndex(ParticleIndex):
 
     def _generate_kdtree(self, fname):
         from cykdtree import PyKDTree
-        #if os.path.exists(fname):
-        #    mylog.info('Loading KDTree from %s' % os.path.basename(fname))
-        #    self._kdtree = PyKDTree.from_file(fname)
-        #    return
+        if os.path.exists(fname):
+            mylog.info('Loading KDTree from %s' % os.path.basename(fname))
+            kdtree = PyKDTree.from_file(fname)
+            if kdtree.data_version != self.ds._file_hash:
+                mylog.info('Detected hash mismatch, regenerating KDTree')
+            else:
+                self._kdtree = kdtree
+                return
         positions = []
         for data_file in self.data_files:
             for _, ppos in self.io._yield_coordinates(
@@ -124,6 +128,7 @@ class SPHParticleIndex(ParticleIndex):
             right_edge=self.ds.domain_right_edge,
             periodic=np.array(self.ds.periodicity),
             leafsize=2*int(self.ds._num_neighbors),
+            data_version=self.ds._file_hash
         )
         if fname is not None:
             self._kdtree.save(fname)

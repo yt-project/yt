@@ -123,12 +123,12 @@ class ParticleIndex(Index):
         else:
             dont_cache = False
 
-        if not hasattr(self, '_file_hash'):
-            self._file_hash = self._generate_hash()
+        if not hasattr(self.ds, '_file_hash'):
+            self.ds._file_hash = self._generate_hash()
 
         self.regions = ParticleBitmap(
             ds.domain_left_edge, ds.domain_right_edge,
-            ds.periodicity,
+            ds.periodicity, self.ds._file_hash,
             len(self.data_files), 
             index_order1=order1,
             index_order2=order2)

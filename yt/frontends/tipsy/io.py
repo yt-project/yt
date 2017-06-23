@@ -19,6 +19,7 @@ import glob
 import numpy as np
 from numpy.lib.recfunctions import append_fields
 import os
+import struct
 
 from yt.geometry.particle_geometry_handler import \
     CHUNKSIZE
@@ -134,7 +135,12 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     def _generate_smoothing_length(self, data_files, kdtree):
         if os.path.exists(self.hsml_filename):
-            return
+            with open(self.hsml_filename, 'rb') as f:
+                file_hash = struct.unpack('q', f.read(struct.calcsize('q')))[0]
+            if file_hash != self.ds._file_hash:
+                os.remove(self.hsml_filename)
+            else:
+                return
         positions = []
         for data_file in data_files:
             for _, ppos in self._yield_coordinates(
@@ -147,12 +153,14 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             positions, kdtree, self.ds._num_neighbors)
         hsml = hsml[np.argsort(kdtree.idx)]
         dtype = self._pdtypes['Gas']['Coordinates'][0]
-        hsml.astype(dtype).tofile(self.hsml_filename)
+        with open(self.hsml_filename, 'wb') as f:
+            f.write(struct.pack('q', self.ds._file_hash))
+            f.write(hsml.astype(dtype).tostring())
 
     def _read_smoothing_length(self, data_file, count):
         dtype = self._pdtypes['Gas']['Coordinates'][0]
         with open(self.hsml_filename, 'rb') as f:
-            f.seek(data_file.start*dtype.itemsize)
+            f.seek(struct.calcsize('q') + data_file.start*dtype.itemsize)
             hsmls = np.fromfile(f, dtype, count=count)
         return hsmls.astype('float64')
 
