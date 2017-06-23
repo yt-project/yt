@@ -83,6 +83,9 @@ class SPHDataset(ParticleDataset):
 class SPHParticleIndex(ParticleIndex):
     def _initialize_index(self):
         ds = self.dataset
+
+        self._file_hash = self._generate_hash()
+
         if getattr(ds, 'kdtree_filename', None) is None:
             if os.path.exists(ds.parameter_filename):
                 fname = ds.parameter_filename + ".kdtree"
@@ -93,8 +96,10 @@ class SPHParticleIndex(ParticleIndex):
             fname = ds.kdtree_filename
 
         self._generate_kdtree(fname)
+
         if hasattr(self.io, '_generate_smoothing_length'):
             self.io._generate_smoothing_length(self.data_files, self._kdtree)
+
         super(SPHParticleIndex, self)._initialize_index()
 
     def _generate_kdtree(self, fname):
