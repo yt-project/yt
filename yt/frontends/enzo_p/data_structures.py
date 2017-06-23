@@ -346,6 +346,6 @@ class EnzoPDataset(Dataset):
                 get_block_info(block)
                 if not os.path.exists(os.path.join(ddir, block_file)):
                     return False
-        except:
+        except Exception:
             return False
         return True
