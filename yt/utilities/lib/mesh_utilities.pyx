@@ -17,9 +17,11 @@ import numpy as np
 cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, abs
-from libc.math cimport rint
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from yt.units.yt_array import YTArray
+
+cdef extern from "platform_dep.h":
+    double rint(double x)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

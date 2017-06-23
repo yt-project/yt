@@ -8,6 +8,7 @@ environment:
 
   matrix:
       - PYTHON_VERSION: "3.6"
+      - PYTHON_VERSION: "2.7"
 
 platform:
     -x64
@@ -27,7 +28,7 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install -q --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 "
+    - "conda install -q --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock"
     - "pip install -e ."
 
 # Not a .NET project
