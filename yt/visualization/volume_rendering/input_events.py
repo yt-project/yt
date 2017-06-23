@@ -23,6 +23,7 @@ import cyglfw3 as glfw
 import numpy as np
 import matplotlib.cm as cm
 import random
+import time
 
 event_registry = {}
 
@@ -391,6 +392,40 @@ class MouseRotation(object):
             self.start[0], self.start[1], new_end[0], new_end[1])
         self.start = new_end
         return True
+
+class JoystickAction(object):
+    '''Class to turn joystick pushes into rotations and motions'''
+    def __init__(self):
+        self.calibrated = None
+        self.scaling = 1.0
+
+    def check_axes(self, event_coll, event):
+        if not glfw.JoystickPresent(glfw.JOYSTICK_1):
+            return
+        if self.calibrated is None: self.calibrate()
+        axes = glfw.GetJoystickAxes(glfw.JOYSTICK_1)
+        tilt = self.calibrated - axes
+        if not tilt.any(): return False
+        # Let's move around!
+        cam = event_coll.camera
+        # We go by the first two axes being the fwd/back and left/right,
+        # and the next two being the rotation axes.
+        # Everything goes from -1 to 1.
+        # Axes 2 and 5 on my controller are for the triggers
+        net_zax = tilt[5] - tilt[2]
+        lookat = cam.view_matrix
+        cam.position += (tilt[0] * lookat[0,:3]) \
+                      + (net_zax * lookat[1,:3]) \
+                      - (tilt[1] * lookat[2,:3])
+        return True
+    
+    def calibrate(self):
+        print("Calibrating joystick in 2 seconds.  Please return to a"
+              "resting state.")
+        time.sleep(2)
+        self.calibrated = np.array(glfw.GetJoystickAxes(glfw.JOYSTICK_1), "f8")
+        print("Calibrated:")
+        print(self.calibrated)
 
 class BlendFuncs(object):
     '''Class allowing to switch between different GL blending functions'''

@@ -19,7 +19,7 @@ import os
 import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
-from .input_events import EventCollection, MouseRotation
+from .input_events import EventCollection, MouseRotation, JoystickAction
 
 from yt import write_bitmap
 
@@ -173,6 +173,9 @@ class RenderingContext(object):
             glfw.MOUSE_BUTTON_LEFT, action="release")
         callbacks.add_framebuffer_callback("framebuffer_size_callback")
         callbacks.add_render_callback(mouse_callbacks.do_rotation)
+        joystick_callbacks = JoystickAction()
+        joystick_callbacks.calibrate()
+        #callbacks.add_render_callback(joystick_callbacks.check_axes)
         glfw.SetFramebufferSizeCallback(self.window,
             callbacks.framebuffer_call)
         glfw.SetKeyCallback(self.window, callbacks.key_call)
