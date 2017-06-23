@@ -397,7 +397,7 @@ class JoystickAction(object):
     '''Class to turn joystick pushes into rotations and motions'''
     def __init__(self):
         self.calibrated = None
-        self.scaling = 1.0
+        self.scaling = 0.1
 
     def check_axes(self, event_coll, event):
         if not glfw.JoystickPresent(glfw.JOYSTICK_1):
@@ -414,9 +414,16 @@ class JoystickAction(object):
         # Axes 2 and 5 on my controller are for the triggers
         net_zax = tilt[5] - tilt[2]
         lookat = cam.view_matrix
-        cam.position += (tilt[0] * lookat[0,:3]) \
-                      + (net_zax * lookat[1,:3]) \
-                      - (tilt[1] * lookat[2,:3])
+        delta = self.scaling * (
+                  - tilt[0] * lookat[0,:3]
+                  - net_zax * lookat[1,:3] 
+                  - tilt[1] * lookat[2,:3])
+        cam.position += delta
+        cam.focus += delta
+
+        # Now we rotate based on tilt[3] and tilt[4]
+        cam.update_orientation(0.0, 0.0, self.scaling * tilt[3],
+                               self.scaling * tilt[4])
         return True
     
     def calibrate(self):
