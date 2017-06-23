@@ -69,7 +69,7 @@ class EnzoPGrid(AMRGridPatch):
     def get_parent_id(self, desc_block_name):
         if self.block_name == desc_block_name:
             raise RuntimeError("Child and parent are the same!")
-        dim = self.index.ds.dimensionality
+        dim = self.ds.dimensionality
         d_block = desc_block_name[1:].replace(":", "")
         parent = self
 
@@ -84,8 +84,7 @@ class EnzoPGrid(AMRGridPatch):
     def add_child(self, child):
         if self._children_ids is None:
             self._children_ids = \
-            -1*np.ones(self._refine_by**
-                       self.index.ds.dimensionality,
+            -1*np.ones(self._refine_by**self.ds.dimensionality,
                        dtype=np.int64)
 
         a_block =  self.block_name[1:].replace(":", "")
