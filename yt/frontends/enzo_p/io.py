@@ -73,10 +73,6 @@ class EnzoPIOHandler(BaseIOHandler):
         f.close()
         return fields
 
-    @property
-    def _read_exception(self):
-        return (KeyError,)
-
     def _read_particle_coords(self, chunks, ptf):
         for rv in self._read_particle_fields(chunks, ptf, None):
             yield rv
