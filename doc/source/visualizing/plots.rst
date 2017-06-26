@@ -14,8 +14,8 @@ many example scripts in :ref:`cookbook`.
 
 The :class:`~yt.visualization.plot_window.PlotWindow` interface is useful for
 taking a quick look at simulation outputs.  Simple mechanisms exist for making
-plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
-which are described below.
+plots of slices, projections, 1D spatial line plots, 1D profiles, and 2D
+profiles (phase plots), all of which are described below.
 
 .. _viewing-plots:
 
@@ -1064,34 +1064,36 @@ YT has the ability to sample unstructured mesh data-sets along arbitrary lines
 and plot the result. You must supply five arguments to the ``LinePlot``
 class. They are enumerated below:
 
-1. Data-set
+1. Dataset
 2. A list of fields or a single field you wish to plot
-3. The starting point of the sampling line. This should be a tuple of three
-   floats corresponding to the coordinates of the starting point
-4. The ending point of the sampling line. This should also be a tuple of three
-   floats
+3. The starting point of the sampling line. This should be an n-element list, tuple,
+   ndarray, or YTArray with the elements corresponding to the coordinates of the
+   starting point. (n should equal the dimension of the dataset)
+4. The ending point of the sampling line. This should also be an n-element list, tuple,
+   ndarray, or YTArray with the elements corresponding to the coordinates of the
+   ending point.
 5. The resolution of the sampling line. This is the number of sampling points
    along the line, e.g. if 1000 is specified, then data will be sampled at
    1000 points evenly spaced between the starting and ending points.
 
 The below code snippet illustrates how this is done:
 
-.. python-script::
+.. code-block:: python
 
-   ds = yt.load(home + "/yt_data/SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
    ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
    ln.save("first_test.png")
 
 You can also add plots to existing ``LinePlot`` instances with ``add_plot`` as shown
 below:
 
-.. python-script::
+.. code-block:: python
 
    ln.add_plot(('all', 'p'), (0, 0, 0), (1, 1, 0), 1000)
    ln.save("added_plot.png")
 
 Note that the beginning and end-points of multiple plots can be different. If
-working in an IPython Notebook, ``LinePlot`` also has the ``show()`` method.
+working in an Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
 
 You can also create legends and add x and y axes labels to these 1D sampling
 plots. The legend process takes two steps:
@@ -1114,7 +1116,7 @@ methods. The below code snippet combines all the features we've discussed:
    ln.add_legend()
    ln.set_xlabel("Arc Length (cm)")
    ln.set_ylabel(r"Velocity (m s$^{-1}$)")
-   ln.save("line_plot.eps")
+   ln.save("line_plot.png")
 
 
 .. _how-to-make-2d-profiles:

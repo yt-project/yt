@@ -39,3 +39,23 @@ def test_line_plot():
     ds = data_dir_load(tri2, kwargs={'step':-1})
     fields = [field for field in ds.field_list if field[0] == 'all']
     yield compare(ds, fields, (0, 0, 0), (1, 1, 0), 1000, "answers_line_plot")
+
+def test_line_plot_methods():
+    # Perform I/O in safe place instead of yt main dir
+    tmpdir = tempfile.mkdtemp()
+    curdir = os.getcwd()
+    os.chdir(tmpdir)
+
+    # hexahedral ds
+    ds = fake_hexahedral_ds()
+
+    ln = yt.LinePlot(ds, ds.field_list, (0, 0, -.25), (0, 0, .25), 100)
+    ln.add_plot(ds.field_list, (0, 0, -.25), (0, 0, .25), 100)
+    ln.add_legend()
+    ln.set_xlabel("Test x label")
+    ln.set_ylabel("Test y label")
+    ln.save()
+
+    os.chdir(curdir)
+    # clean up
+    shutil.rmtree(tmpdir)

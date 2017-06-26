@@ -2050,7 +2050,7 @@ class LinePlot(PlotMPL):
     """
 
     def __init__(self, ds, fields, start_point, end_point, resolution,
-                 figure_size=5., aspect=None, fontsize=18., labels={}):
+                 figure_size=5., aspect=None, fontsize=18., labels=None):
         """
         Sets up figure and axes
         """
@@ -2104,10 +2104,29 @@ class LinePlot(PlotMPL):
         self._xlabel = ("Arc Length [Arb. Units]", 14.)
         self._ylabel = ("Field Value [Arb. Units]", 14.)
 
-    def add_plot(self, fields, start_point, end_point, resolution, labels={}):
+    def add_plot(self, fields, start_point, end_point, resolution, labels=None):
         r"""
         Used to add plots to the figure
+
+        parameters
+        ----------
+
+        fields : A single field tuple or a list of field tuples
+            The fields to plot
+        start_point : list, tuple, ndarray, or YTArray
+            The coordinates of the start point of the line plot. Length of
+            iterable should be equal to the number of dimensions of the
+            dataset
+        end_point : list, tuple, ndarray, or YTArray
+            The coordinates of the end point of the line plot. Length of
+            iterable should be equal to the number of dimensions of the
+            dataset
+        resolution : integer
+            How many points to sample between start_point and end_point for
+            constructing the line plot
         """
+        if labels is None:
+            labels = {}
         if not isinstance(fields, list):
             fields = [fields]
         for field in fields:
@@ -2118,15 +2137,38 @@ class LinePlot(PlotMPL):
             self.axes.plot(x, y, label=labels[field])
 
     def add_legend(self):
+        r"""
+        Adds a legend to the `LinePlot` instance
+        """
         self.axes.legend()
 
     def set_xlabel(self, label, fontsize=14):
+        r"""
+        Method for setting the x-label
+
+        parameters
+        ----------
+        label : string
+            The label for the x-axis
+        """
         self._xlabel = (label, fontsize)
 
     def set_ylabel(self, label, fontsize=14):
+        r"""
+        Method for setting the y-label
+
+        parameters
+        ----------
+        label : string
+            The label for the y-axis
+        """
         self._ylabel = (label, fontsize)
 
     def _setup_plot(self):
+        r"""
+        Private method called from either `show` or `save`. Sets x and
+        y labels
+        """
         self.axes.set_xlabel(self._xlabel[0], fontsize=self._xlabel[1])
         self.axes.set_ylabel(self._ylabel[0], fontsize=self._ylabel[1])
 
@@ -2148,6 +2190,17 @@ class LinePlot(PlotMPL):
             raise YTNotInsideNotebook
 
     def save(self, name=None, mpl_kwargs=None):
+        r"""
+        Method for saving line plots. No default so user should specify
+        extension
+
+        parameters
+        ----------
+        name : string
+            Name to save file to
+        mpl_kwargs: dict
+            A dictionary of keywoard arguments to pass to matplotlib
+        """
         self._setup_plot()
         if name is None:
             name = str(self.ds)
