@@ -60,7 +60,7 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
-class PlotContainer(OrderedDict):
+class PlotContainerDict(OrderedDict):
     def __missing__(self, key):
         plot = PlotMPL((10, 8), [0.1, 0.1, 0.8, 0.8], None, None)
         self[key] = plot
@@ -378,7 +378,7 @@ class ProfilePlot(object):
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
         obj.plot_spec = plot_specs
-        obj.plots = PlotContainer()
+        obj.plots = PlotContainerDict()
         obj.figures = FigureContainer(obj.plots)
         obj.axes = AxesContainer(obj.plots)
         obj._setup_plots()
@@ -1370,7 +1370,7 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        self._cb_size = 0.0375*figure_size
+        self._cb_size = 0.0375*figure_size[0]
         self._ax_text_size = [1.1*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = 1.0

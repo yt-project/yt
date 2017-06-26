@@ -51,7 +51,9 @@ from .plot_window import \
     AxisAlignedSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
-    OffAxisProjectionPlot, \
+    OffAxisProjectionPlot
+
+from .line_plot import \
     LinePlot
 
 from .profile_plotter import \

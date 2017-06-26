@@ -14,7 +14,6 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-import os
 import matplotlib
 import types
 import six
@@ -25,7 +24,7 @@ from distutils.version import LooseVersion
 from numbers import Number
 
 from .base_plot_types import \
-    ImagePlotMPL, PlotMPL
+    ImagePlotMPL
 from .fixed_resolution import \
     FixedResolutionBuffer, \
     OffAxisProjectionFixedResolutionBuffer
@@ -37,8 +36,6 @@ from .plot_container import \
     invalidate_data, invalidate_plot, apply_callback
 from .base_plot_types import CallbackWrapper
 
-from yt.data_objects.time_series import \
-    DatasetSeries
 from yt.data_objects.image_array import \
     ImageArray
 from yt.extern.six import string_types
@@ -46,31 +43,24 @@ from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, fix_unitary, ensure_dir, \
-    get_image_suffix
+    fix_axis, fix_unitary
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
     UnitParseError
-from yt.units.unit_lookup_table import \
-    prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.utilities.definitions import \
-    formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.orientation import \
     Orientation
 from yt.utilities.exceptions import \
-    YTUnitNotRecognized, \
     YTCannotParseUnitDisplayName, \
-    YTUnitConversionError, \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType, \
-    YTNotInsideNotebook
-from yt.extern.six.moves import builtins
+    YTUnitNotRecognized, \
+    YTUnitConversionError
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -183,11 +173,6 @@ class PlotWindow(ImagePlotContainer):
                  periodic=True, origin='center-window', oblique=False, right_handed=True,
                  window_size=8.0, fields=None, fontsize=18, aspect=None,
                  setup=False):
-        if not hasattr(self, "ds"):
-            self.ds = data_source.ds
-            ts = self._initialize_dataset(self.ds)
-            self.ts = ts
-        self._axes_unit_names = None
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
@@ -195,6 +180,7 @@ class PlotWindow(ImagePlotContainer):
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
+        self._axes_unit_names = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -223,12 +209,6 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = linear_transform
         self.setup_callbacks()
         self._setup_plots()
-
-    def _initialize_dataset(self, ts):
-        if not isinstance(ts, DatasetSeries):
-            if not iterable(ts): ts = [ts]
-            ts = DatasetSeries(ts)
-        return ts
 
     def __iter__(self):
         for ds in self.ts:
@@ -860,59 +840,7 @@ class PWViewerMPL(PlotWindow):
                 ax = self.plots[f].axes
                 ax.invert_xaxis()
 
-            axes_unit_labels = ['', '']
-            comoving = False
-            hinv = False
-            for i, un in enumerate((unit_x, unit_y)):
-                unn = None
-                if hasattr(self.ds.coordinates, "image_units"):
-                    # This *forces* an override
-                    unn = self.ds.coordinates.image_units[axis_index][i]
-                elif hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates,
-                                   "%s_axis" % ("xy"[i]))[axis_index]
-                    unn = self.ds.coordinates.default_unit_label.get(axax,
-                        None)
-                if unn is not None:
-                    axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
-                    continue
-                # Use sympy to factor h out of the unit.  In this context 'un'
-                # is a string, so we call the Unit constructor.
-                expr = Unit(un, registry=self.ds.unit_registry).expr
-                h_expr = Unit('h', registry=self.ds.unit_registry).expr
-                # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
-                h_power = expr.as_coeff_exponent(h_expr)[1]
-                # un is now the original unit, but with h factored out.
-                un = str(expr*h_expr**(-1*h_power))
-                un_unit = Unit(un, registry=self.ds.unit_registry)
-                cm = Unit('cm').expr
-                if str(un).endswith('cm') and cm not in un_unit.expr.atoms():
-                    comoving = True
-                    un = un[:-2]
-                # no length units besides code_length end in h so this is safe
-                if h_power == -1:
-                    hinv = True
-                elif h_power != 0:
-                    # It doesn't make sense to scale a position by anything
-                    # other than h**-1
-                    raise RuntimeError
-                if un not in ['1', 'u', 'unitary']:
-                    if un in formatted_length_unit_names:
-                        un = formatted_length_unit_names[un]
-                    else:
-                        un = Unit(un, registry=self.ds.unit_registry)
-                        un = un.latex_representation()
-                        if hinv:
-                            un = un + '\,h^{-1}'
-                        if comoving:
-                            un = un + '\,(1+z)^{-1}'
-                        pp = un[0]
-                        if pp in latex_prefixes:
-                            symbol_wo_prefix = un[1:]
-                            if symbol_wo_prefix in prefixable_units:
-                                un = un.replace(
-                                    pp, "{"+latex_prefixes[pp]+"}", 1)
-                    axes_unit_labels[i] = '\ \ ('+un+')'
+            axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
             if self.oblique:
                 labels = [r'$\rm{Image\ x'+axes_unit_labels[0]+'}$',
@@ -1308,9 +1236,6 @@ class AxisAlignedSlicePlot(PWViewerMPL):
                  origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
-        ts = self._initialize_dataset(ds)
-        self.ts = ts
-        ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
             get_window_parameters(axis, center, width, ds)
@@ -1490,9 +1415,6 @@ class ProjectionPlot(PWViewerMPL):
                  right_handed=True, fontsize=18, field_parameters=None, data_source=None,
                  method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
-        ts = self._initialize_dataset(ds)
-        self.ts = ts
-        ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         # proj_style is deprecated, but if someone specifies then it trumps
         # method.
@@ -2018,198 +1940,3 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             del kwargs['north_vector']
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
-
-def _validate_point(point, ds):
-    if not iterable(point):
-        raise RuntimeError
-    if not isinstance(point, YTArray):
-        point = ds.arr(point, 'code_length')
-    return point
-
-class LinePlot(PlotMPL):
-    r"""
-    A class for constructing line plots
-
-    Parameters
-    ----------
-
-    ds : :class:`yt.data_objects.static_output.Dataset`
-        This is the dataset object corresponding to the
-        simulation output to be plotted.
-    fields : string
-        The name(s) of the field(s) to be plotted.
-    start_point: n-element list, tuple, ndarray, or YTArray
-        Contains the coordinates of the first point for constructing the line.
-        Must contain n elements where n is the dimensionality of the dataset.
-    end_point: n-element list, tuple, ndarray, or YTArray
-        Contains the coordinates of the first point for constructing the line.
-        Must contain n elements where n is the dimensionality of the dataset.
-    resolution: int
-        How many points to sample between start_point and end_point for constructing
-        the line plot
-    """
-
-    def __init__(self, ds, fields, start_point, end_point, resolution,
-                 figure_size=5., aspect=None, fontsize=18., labels=None):
-        """
-        Sets up figure and axes
-        """
-        self.handler = ds.coordinates
-        self.ds = ds
-        if aspect is None:
-            aspect = 1.
-        fontscale = fontsize / 18.
-        ax_text_size = [1.2*fontscale, 0.9*fontscale]
-        top_buff_size = 0.3*fontscale
-
-        if iterable(figure_size):
-            x_fig_size = figure_size[0]
-            y_fig_size = figure_size[1]
-        else:
-            x_fig_size = figure_size
-            y_fig_size = figure_size/aspect
-
-        x_axis_size = ax_text_size[0]
-        y_axis_size = ax_text_size[1]
-
-        top_buff_size = top_buff_size
-
-        xbins = np.array([x_axis_size, x_fig_size, x_axis_size])
-        ybins = np.array([y_axis_size, y_fig_size, top_buff_size])
-
-        size = [xbins.sum(), ybins.sum()]
-
-        x_frac_widths = xbins/size[0]
-        y_frac_widths = ybins/size[1]
-
-        # axrect is the rectangle defining the area of the
-        # axis object of the plot.  Its range goes from 0 to 1 in
-        # x and y directions.  The first two values are the x,y
-        # start values of the axis object (lower left corner), and the
-        # second two values are the size of the axis object.  To get
-        # the upper right corner, add the first x,y to the second x,y.
-        axrect = (
-            x_frac_widths[0],
-            y_frac_widths[0],
-            x_frac_widths[1],
-            y_frac_widths[1],
-        )
-
-        start_point = _validate_point(start_point, ds)
-        end_point = _validate_point(end_point, ds)
-
-        super(LinePlot, self).__init__(size, axrect, None, None)
-
-        self.add_plot(fields, start_point, end_point, resolution, labels=labels)
-        self._xlabel = ("Arc Length [Arb. Units]", 14.)
-        self._ylabel = ("Field Value [Arb. Units]", 14.)
-
-    def add_plot(self, fields, start_point, end_point, resolution, labels=None):
-        r"""
-        Used to add plots to the figure
-
-        parameters
-        ----------
-
-        fields : A single field tuple or a list of field tuples
-            The fields to plot
-        start_point : list, tuple, ndarray, or YTArray
-            The coordinates of the start point of the line plot. Length of
-            iterable should be equal to the number of dimensions of the
-            dataset
-        end_point : list, tuple, ndarray, or YTArray
-            The coordinates of the end point of the line plot. Length of
-            iterable should be equal to the number of dimensions of the
-            dataset
-        resolution : integer
-            How many points to sample between start_point and end_point for
-            constructing the line plot
-        """
-        if labels is None:
-            labels = {}
-        if not isinstance(fields, list):
-            fields = [fields]
-        for field in fields:
-            if field not in labels:
-                labels[field] = field[1]
-            x, y = self.handler.line_plot(
-                field, start_point, end_point, resolution)
-            self.axes.plot(x, y, label=labels[field])
-
-    def add_legend(self):
-        r"""
-        Adds a legend to the `LinePlot` instance
-        """
-        self.axes.legend()
-
-    def set_xlabel(self, label, fontsize=14):
-        r"""
-        Method for setting the x-label
-
-        parameters
-        ----------
-        label : string
-            The label for the x-axis
-        """
-        self._xlabel = (label, fontsize)
-
-    def set_ylabel(self, label, fontsize=14):
-        r"""
-        Method for setting the y-label
-
-        parameters
-        ----------
-        label : string
-            The label for the y-axis
-        """
-        self._ylabel = (label, fontsize)
-
-    def _setup_plot(self):
-        r"""
-        Private method called from either `show` or `save`. Sets x and
-        y labels
-        """
-        self.axes.set_xlabel(self._xlabel[0], fontsize=self._xlabel[1])
-        self.axes.set_ylabel(self._ylabel[0], fontsize=self._ylabel[1])
-
-    def show(self):
-        r"""This will send any existing plots to the IPython notebook.
-
-        If yt is being run from within an IPython session, and it is able to
-        determine this, this function will send any existing plots to the
-        notebook for display.
-
-        If yt can't determine if it's inside an IPython session, it will raise
-        YTNotInsideNotebook.
-        """
-        self._setup_plot()
-        if "__IPYTHON__" in dir(builtins):
-            from IPython.display import display
-            display(self)
-        else:
-            raise YTNotInsideNotebook
-
-    def save(self, name=None, mpl_kwargs=None):
-        r"""
-        Method for saving line plots. No default so user should specify
-        extension
-
-        parameters
-        ----------
-        name : string
-            Name to save file to
-        mpl_kwargs: dict
-            A dictionary of keywoard arguments to pass to matplotlib
-        """
-        self._setup_plot()
-        if name is None:
-            name = str(self.ds)
-        name = os.path.expanduser(name)
-        if name[-1] == os.sep and not os.path.isdir(name):
-            ensure_dir(name)
-        if os.path.isdir(name) and name != str(self.ds):
-            name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
-        suffix = get_image_suffix(name)
-        if suffix == '':
-            name = name + '_LinePlot.png'
-        super(LinePlot, self).save(name)

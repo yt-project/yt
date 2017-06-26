@@ -39,8 +39,8 @@ def _sample_ray(ray, resolution, field):
     sample_points = uvstack(sample_points).T
     ray_coordinates = uvstack([ray[d] for d in 'xyz']).T
     ray_dds = uvstack([ray['d'+d] for d in 'xyz']).T
-    field_values = np.zeros(resolution)
     ray_field = ray[field]
+    field_values = ray.ds.arr(np.zeros(resolution), ray_field.units)
     for i, sample_point in enumerate(sample_points):
         ray_contains = ((sample_point >= (ray_coordinates - ray_dds/2)) &
                         (sample_point <= (ray_coordinates + ray_dds/2)))
