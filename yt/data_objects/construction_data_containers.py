@@ -62,6 +62,7 @@ from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
+from yt.units.yt_array import YTArray
 import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
@@ -353,8 +354,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         # TODO: Add the combine operation
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
-        ox = self.ds.domain_left_edge[xax]
-        oy = self.ds.domain_left_edge[yax]
+        ox = self.ds.domain_left_edge[xax].v
+        oy = self.ds.domain_left_edge[yax].v
         px, py, pdx, pdy, nvals, nwvals = tree.get_all(False, merge_style)
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
@@ -1781,6 +1782,11 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        elif any([not all([isinstance(be, YTArray) for be in b])
+                  for b in bounds]):
+            bounds = [tuple(be if isinstance(be, YTArray) else
+                            self.ds.quan(be, 'code_length') for be in b)
+                      for b in bounds]
         nv = self.vertices.shape[1]
         vs = [("x", "<f"), ("y", "<f"), ("z", "<f"),
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]

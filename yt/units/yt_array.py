@@ -156,9 +156,21 @@ def get_inp_u_binary(ufunc, inputs):
             unit2 = 1.0
     return (inp1, inp2), (unit1, unit2), ret_class
 
-def handle_preserve_units(inps, units, ufunc, ret_class, raise_error=False):
-    # Allow comparisons, addition, and subtraction with
-    # dimensionless quantities or arrays filled with zeros.
+def handle_preserve_units(inps, units, ufunc, ret_class):
+    if units[0] != units[1]:
+        any_nonzero = [np.any(inps[0]), np.any(inps[1])]
+        if any_nonzero[0] == np.bool_(False):
+            units = (units[1], units[1])
+        elif any_nonzero[1] == np.bool_(False):
+            units = (units[0], units[0])
+        else:
+            if not units[0].same_dimensions_as(units[1]):
+                raise YTUnitOperationError(ufunc, *units)
+            inps = (inps[0], ret_class(inps[1]).to(
+                ret_class(inps[0]).units))
+    return inps, units
+
+def handle_comparison_units(inps, units, ufunc, ret_class, raise_error=False):
     if units[0] != units[1]:
         u1d = units[0].is_dimensionless
         u2d = units[1].is_dimensionless
@@ -1243,7 +1255,7 @@ class YTArray(np.ndarray):
                 inps, units, ret_class = get_inp_u_binary(ufunc, inputs)
                 if unit_operator in (preserve_units, comparison_unit,
                                      arctan2_unit):
-                    inps, units = handle_preserve_units(
+                    inps, units = handle_comparison_units(
                         inps, units, ufunc, ret_class, raise_error=True)
                 unit = unit_operator(*units)
                 if unit_operator in (multiply_units, divide_units):
@@ -1291,10 +1303,12 @@ class YTArray(np.ndarray):
             elif len(inputs) == 2:
                 unit_operator = self._ufunc_registry[ufunc]
                 inps, units, ret_class = get_inp_u_binary(ufunc, inputs)
-                if unit_operator in (preserve_units, comparison_unit,
-                                     arctan2_unit):
-                    inps, units = handle_preserve_units(
+                if unit_operator in (comparison_unit, arctan2_unit):
+                    inps, units = handle_comparison_units(
                         inps, units, ufunc, ret_class)
+                elif unit_operator is preserve_units:
+                    inps, units = handle_preserve_units(
+                         inps, units, ufunc, ret_class)
                 unit = unit_operator(*units)
                 out_arr = func(np.asarray(inps[0]), np.asarray(inps[1]),
                                out=out, **kwargs)

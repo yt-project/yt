@@ -105,7 +105,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                                 field_data = f[ptype][fname].value.astype("float64")
                                 my_div = field_data.size / pcount
                                 if my_div > 1:
-                                    field_data = np.resize(field_data, (pcount, my_div))
+                                    field_data = np.resize(field_data, (int(pcount), int(my_div)))
                                     findex = int(field[field.rfind("_") + 1:])
                                     field_data = field_data[:, findex]
                         data = field_data[mask]
