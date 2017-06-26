@@ -67,7 +67,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = True):
         """
-        Method for pixelizing grid data sets in preparation for
+        Method for pixelizing datasets in preparation for
         two-dimensional image plots. Relies on several sampling
         routines written in cython
         """
@@ -128,7 +128,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
     def line_plot(self, field, start_point, end_point, resolution):
         """
-        Method for sampling grid data sets along a line in preparation for
+        Method for sampling datasets along a line in preparation for
         one-dimensional line plots. For UnstructuredMesh, relies on a
         sampling routine written in cython
         """
