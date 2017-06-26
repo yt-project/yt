@@ -54,12 +54,12 @@ class EnzoPIOHandler(BaseIOHandler):
                 continue
             # mesh fields are "field <name>"
             if name.startswith("field"):
-                dummy, fname = name.split(maxsplit=1)
+                dummy, fname = name.split(" ", 1)
                 fields.append(("enzop", fname))
                 dtypes.add(v.dtype)
             # particle fields are "particle <type> <name>"
             else:
-                dummy, ftype, fname = name.split(maxsplit=2)
+                dummy, ftype, fname = name.split(" ", 2)
                 fields.append((ftype, fname))
 
         if len(dtypes) == 1:
