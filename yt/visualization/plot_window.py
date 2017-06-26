@@ -14,6 +14,7 @@ from __future__ import print_function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
+import os
 import matplotlib
 import types
 import six
@@ -45,7 +46,8 @@ from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, fix_unitary
+    fix_axis, fix_unitary, ensure_dir, \
+    get_image_suffix
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -2017,6 +2019,13 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
 
+def _validate_point(point, ds):
+    if not iterable(point):
+        raise RuntimeError
+    if not isinstance(point, YTArray):
+        point = ds.arr(point, 'code_length')
+    return point
+
 class LinePlot(PlotMPL):
     r"""
     A class for constructing line plots
@@ -2029,21 +2038,24 @@ class LinePlot(PlotMPL):
         simulation output to be plotted.
     fields : string
         The name(s) of the field(s) to be plotted.
-    point1: tuple
-        Contains the coordinates of the first point for constructing the line
-    point2: tuple
-        Contains the coordinates of the second point for constructing the line
+    start_point: n-element list, tuple, ndarray, or YTArray
+        Contains the coordinates of the first point for constructing the line.
+        Must contain n elements where n is the dimensionality of the dataset.
+    end_point: n-element list, tuple, ndarray, or YTArray
+        Contains the coordinates of the first point for constructing the line.
+        Must contain n elements where n is the dimensionality of the dataset.
     resolution: int
-        How many points to sample between point1 and point2 for constructing
+        How many points to sample between start_point and end_point for constructing
         the line plot
     """
 
-    def __init__(self, ds, fields, point1, point2, resolution,
+    def __init__(self, ds, fields, start_point, end_point, resolution,
                  figure_size=5., aspect=None, fontsize=18., labels={}):
         """
         Sets up figure and axes
         """
         self.handler = ds.coordinates
+        self.ds = ds
         if aspect is None:
             aspect = 1.
         fontscale = fontsize / 18.
@@ -2083,12 +2095,16 @@ class LinePlot(PlotMPL):
             y_frac_widths[1],
         )
 
+        start_point = _validate_point(start_point, ds)
+        end_point = _validate_point(end_point, ds)
+
         super(LinePlot, self).__init__(size, axrect, None, None)
-        self.add_plot(fields, point1, point2, resolution, labels=labels)
+
+        self.add_plot(fields, start_point, end_point, resolution, labels=labels)
         self._xlabel = ("Arc Length [Arb. Units]", 14.)
         self._ylabel = ("Field Value [Arb. Units]", 14.)
 
-    def add_plot(self, fields, point1, point2, resolution, labels={}):
+    def add_plot(self, fields, start_point, end_point, resolution, labels={}):
         r"""
         Used to add plots to the figure
         """
@@ -2097,8 +2113,8 @@ class LinePlot(PlotMPL):
         for field in fields:
             if field not in labels:
                 labels[field] = field[1]
-            x, y = self.handler.line_plot(field, np.asarray(point1, dtype='float64'),
-                                          np.asarray(point2, dtype='float64'), resolution)
+            x, y = self.handler.line_plot(
+                field, start_point, end_point, resolution)
             self.axes.plot(x, y, label=labels[field])
 
     def add_legend(self):
@@ -2131,6 +2147,16 @@ class LinePlot(PlotMPL):
         else:
             raise YTNotInsideNotebook
 
-    def save(self, name):
+    def save(self, name=None, mpl_kwargs=None):
         self._setup_plot()
+        if name is None:
+            name = str(self.ds)
+        name = os.path.expanduser(name)
+        if name[-1] == os.sep and not os.path.isdir(name):
+            ensure_dir(name)
+        if os.path.isdir(name) and name != str(self.ds):
+            name = name + (os.sep if name[-1] != os.sep else '') + str(self.ds)
+        suffix = get_image_suffix(name)
+        if suffix == '':
+            name = name + '_LinePlot.png'
         super(LinePlot, self).save(name)

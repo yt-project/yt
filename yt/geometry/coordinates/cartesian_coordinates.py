@@ -22,6 +22,7 @@ from .coordinate_handler import \
     cartesian_to_cylindrical, \
     cylindrical_to_cartesian
 from yt.funcs import mylog
+from yt.units.yt_array import uvstack
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
     pixelize_cartesian, pixelize_cartesian_nodal, \
@@ -29,6 +30,26 @@ from yt.utilities.lib.pixelization_routines import \
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 
+def _sample_ray(ray, resolution, field):
+    start_point = ray.start_point
+    end_point = ray.end_point
+    sample_dr = (end_point - start_point)/(resolution-1)
+    sample_points = [np.arange(resolution)*sample_dr[i] for i in
+                     range(ray.ds.dimensionality)]
+    sample_points = uvstack(sample_points).T
+    ray_coordinates = uvstack([ray[d] for d in 'xyz']).T
+    ray_dds = uvstack([ray['d'+d] for d in 'xyz']).T
+    field_values = np.zeros(resolution)
+    ray_field = ray[field]
+    for i, sample_point in enumerate(sample_points):
+        ray_contains = ((sample_point >= (ray_coordinates - ray_dds/2)) &
+                        (sample_point <= (ray_coordinates + ray_dds/2)))
+        ray_contains = ray_contains.all(axis=-1)
+        wh = np.where(ray_contains)[0]
+        if wh.shape != (1,):
+            raise RuntimeError
+        field_values[i] = ray_field[wh]
+    return sample_points, field_values
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
@@ -165,12 +186,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                                              end_point,
                                                              resolution, field_data,
                                                              index_offset=offset)
-
-            return arc_length, plot_values
-
         else:
-            raise NotImplementedError("Currently line plotting routines have only "
-                                      "been implemented for unstructured meshes.")
+            ray = self.ds.ray(start_point, end_point)
+            arc_length, plot_values = _sample_ray(ray, resolution, field)
+        return arc_length, plot_values
+
 
 
     def _ortho_pixelize(self, data_source, field, bounds, size, antialias,
