@@ -86,6 +86,9 @@ class CoordinateHandler(object):
         # pixelizer
         raise NotImplementedError
 
+    def line_plot(self, field, start_point, end_point, resolution):
+        raise NotImplementedError
+
     def distance(self, start, end):
         p1 = self.convert_to_cartesian(start)
         p2 = self.convert_to_cartesian(end)
