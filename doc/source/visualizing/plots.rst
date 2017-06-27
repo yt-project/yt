@@ -1057,10 +1057,10 @@ change the property of a single line, give also the index of the profile.
 
 .. _how-to-1d-unstructured-mesh:
 
-1D Sampling on Unstructured Meshes
-----------------------------------
+1D Line Sampling
+----------------
 
-YT has the ability to sample unstructured mesh data-sets along arbitrary lines
+YT has the ability to sample datasets along arbitrary lines
 and plot the result. You must supply five arguments to the ``LinePlot``
 class. They are enumerated below:
 
@@ -1082,41 +1082,30 @@ The below code snippet illustrates how this is done:
 
    ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
    ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
-   ln.save("first_test.png")
+   ln.save()
 
-You can also add plots to existing ``LinePlot`` instances with ``add_plot`` as shown
-below:
+If working in a Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
 
-.. code-block:: python
+You can can add a legend to a 1D sampling plot. The legend process takes two steps:
 
-   ln.add_plot(('all', 'p'), (0, 0, 0), (1, 1, 0), 1000)
-   ln.save("added_plot.png")
-
-Note that the beginning and end-points of multiple plots can be different. If
-working in an Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
-
-You can also create legends and add x and y axes labels to these 1D sampling
-plots. The legend process takes two steps:
-
-1. When instantiating the ``LinePlot`` or invoking ``add_plot`` pass a dictionary of
+1. When instantiating the ``LinePlot``, pass a dictionary of
    labels with keys corresponding to the field names
 2. Call the ``LinePlot`` ``add_legend`` method
 
-X- and Y- axis labels are set simply with ``set_xlabel`` and ``set_ylabel``
-methods. The below code snippet combines all the features we've discussed:
+X- and Y- axis units can be set with ``set_x_unit`` and ``set_unit`` methods
+respectively. The below code snippet combines all the features we've discussed:
 
 .. python-script::
 
    import yt
-   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
-   ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000,
-                    labels={('all', 'u') : r"u$_s$", ('all', 'v') : r"v$_s$"})
-   ln.add_plot([('all', 'v'), ('all', 'u')], (0, 0, 0), (1, 1, 0), 1000,
-               labels={('all', 'u') : r"u$_l$", ('all', 'v') : r"v$_l$"})
-   ln.add_legend()
-   ln.set_xlabel("Arc Length (cm)")
-   ln.set_ylabel(r"Velocity (m s$^{-1}$)")
-   ln.save("line_plot.png")
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
+   plot.add_legend('density')
+   plot.set_x_unit('cm')
+   plot.set_unit('density', 'kg/cm**3')
+   plot.save()
 
 
 .. _how-to-make-2d-profiles:
