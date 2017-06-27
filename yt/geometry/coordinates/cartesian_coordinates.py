@@ -21,6 +21,7 @@ from .coordinate_handler import \
     _get_vert_fields, \
     cartesian_to_cylindrical, \
     cylindrical_to_cartesian
+from yt import YTArray
 from yt.funcs import mylog
 from yt.units.yt_array import uvstack
 from yt.utilities.lib.pixelization_routines import \
@@ -186,6 +187,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                                              end_point,
                                                              resolution, field_data,
                                                              index_offset=offset)
+            arc_length = YTArray(arc_length, start_point.units)
+            plot_values = YTArray(plot_values, field_data.units)
         else:
             ray = self.ds.ray(start_point, end_point)
             arc_length, plot_values = _sample_ray(ray, resolution, field)

@@ -15,6 +15,7 @@ A mechanism for plotting field values along a line through a dataset
 
 import numpy as np
 
+from collections import defaultdict
 from yt.funcs import \
     iterable
 from yt.units.unit_object import \
@@ -34,7 +35,7 @@ class LinePlotDictionary(PlotDictionary):
     def __init__(self, data_source):
         super(LinePlotDictionary, self).__init__(data_source)
         self.known_dimensions = {}
-    
+
     def _sanitize_dimensions(self, item):
         field = self.data_source._determine_fields(item)[0]
         finfo = self.data_source.ds.field_info[field]
@@ -46,7 +47,7 @@ class LinePlotDictionary(PlotDictionary):
         else:
             ret_item = self.known_dimensions[dimensions]
         return ret_item
-    
+
     def __getitem__(self, item):
         ret_item = self._sanitize_dimensions(item)
         return super(LinePlotDictionary, self).__getitem__(ret_item)
@@ -77,9 +78,9 @@ class LinePlot(PlotContainer):
     end_point: n-element list, tuple, ndarray, or YTArray
         Contains the coordinates of the first point for constructing the line.
         Must contain n elements where n is the dimensionality of the dataset.
-    figure_size: integer or two-element 
+    figure_size: integer or two-element
     resolution: int
-        How many points to sample between start_point and end_point for 
+        How many points to sample between start_point and end_point for
         constructing the line plot
     """
     _plot_type = 'line_plot'
@@ -102,7 +103,9 @@ class LinePlot(PlotContainer):
         self.plots = LinePlotDictionary(data_source)
         if labels is None:
             self.labels = {}
-                
+        else:
+            self.labels = labels
+
         super(LinePlot, self).__init__(data_source, figure_size, fontsize)
 
         for f in self.fields:
@@ -115,14 +118,16 @@ class LinePlot(PlotContainer):
                 self._field_transform[f] = linear_transform
 
         self._setup_plots()
-        
-    def add_legend(self):
+
+    def add_legend(self, field):
         """Adds a legend to the `LinePlot` instance"""
-        self.axes.legend()
+        plot = self.plots[field]
+        plot.axes.legend()
 
     def _setup_plots(self):
         if self._plot_valid is True:
             return
+        dimensions_counter = defaultdict(int)
         for field in self.fields:
             fontscale = self._font_properties._size / 14.
             top_buff_size = 0.3*fontscale
@@ -148,18 +153,16 @@ class LinePlot(PlotContainer):
             )
 
             try:
-                plot_used = True
                 plot = self.plots[field]
             except KeyError:
-                plot_used = False
                 plot = PlotMPL(self.figure_size, axrect, None, None)
                 self.plots[field] = plot
-                
+
             plot._set_font_properties(self._font_properties, None)
 
             x, y = self.ds.coordinates.line_plot(
                 field, self.start_point, self.end_point, self.resolution)
-            
+
             if self._x_unit is None:
                 unit_x = x.units
             else:
@@ -174,7 +177,7 @@ class LinePlot(PlotContainer):
             y = y.to(unit_y)
 
             plot.axes.plot(x, y, label=self.labels[field])
-            
+
             if self._field_transform[field] != linear_transform:
                 if (y < 0).any():
                     plot.axes.set_yscale('symlog')
@@ -184,9 +187,13 @@ class LinePlot(PlotContainer):
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
             finfo = self.ds.field_info[field]
-            
+
             x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
-            if plot_used:
+
+            finfo = self.ds.field_info[field]
+            dimensions = Unit(finfo.units, registry=self.ds.unit_registry).dimensions
+            dimensions_counter[dimensions] += 1
+            if dimensions_counter[dimensions] > 1:
                 y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
                            axes_unit_labels[1]+'}$')
             else:
@@ -242,4 +249,3 @@ def _validate_point(point, ds):
     if not isinstance(point, YTArray):
         point = ds.arr(point, 'code_length')
     return point
-
