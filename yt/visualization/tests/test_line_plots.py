@@ -33,6 +33,7 @@ def compare(ds, fields, point1, point2, resolution, test_prefix, decimals=12):
     return test
 
 tri2 = "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
+iso_galaxy = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 @requires_ds(tri2)
 def test_line_plot():
@@ -40,21 +41,20 @@ def test_line_plot():
     fields = [field for field in ds.field_list if field[0] == 'all']
     yield compare(ds, fields, (0, 0, 0), (1, 1, 0), 1000, "answers_line_plot")
 
+@requires_ds(iso_galaxy)
 def test_line_plot_methods():
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    # hexahedral ds
-    ds = fake_hexahedral_ds()
+    ds = data_dir_load(iso_galaxy)
 
-    ln = yt.LinePlot(ds, ds.field_list, (0, 0, -.25), (0, 0, .25), 100)
-    ln.add_plot(ds.field_list, (0, 0, -.25), (0, 0, .25), 100)
-    ln.add_legend()
-    ln.set_xlabel("Test x label")
-    ln.set_ylabel("Test y label")
-    ln.save()
+    plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
+    plot.add_legend('density')
+    plot.set_x_unit('cm')
+    plot.set_unit('density', 'kg/cm**3')
+    plot.save()
 
     os.chdir(curdir)
     # clean up

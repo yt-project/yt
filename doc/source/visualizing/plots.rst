@@ -1107,6 +1107,15 @@ respectively. The below code snippet combines all the features we've discussed:
    plot.set_unit('density', 'kg/cm**3')
    plot.save()
 
+If a list of fields is passed to ``LinePlot``, yt will create a number of
+individual figures equal to the number of different dimensional
+quantities. E.g. if ``LinePlot`` receives two fields with units of "length/time"
+and a field with units of "temperature", two different figures will be created,
+one with plots of the "length/time" fields and another with the plot of the
+"temperature" field. It is only necessary to call ``add_legend``
+for one field of a multi-field plot to produce a legend containing all the
+labels passed in the initial construction of the ``LinePlot`` instance.
+
 
 .. _how-to-make-2d-profiles:
 
