@@ -101,6 +101,7 @@ class LinePlot(PlotContainer):
 
         self.fields = data_source._determine_fields(fields)
         self.plots = LinePlotDictionary(data_source)
+        self.include_legend = defaultdict(bool)
         if labels is None:
             self.labels = {}
         else:
@@ -119,14 +120,16 @@ class LinePlot(PlotContainer):
 
         self._setup_plots()
 
+    @invalidate_plot
     def add_legend(self, field):
         """Adds a legend to the `LinePlot` instance"""
-        plot = self.plots[field]
-        plot.axes.legend()
+        self.include_legend[field] = True
 
     def _setup_plots(self):
         if self._plot_valid is True:
             return
+        for plot in self.plots.values():
+            plot.axes.cla()
         dimensions_counter = defaultdict(int)
         for field in self.fields:
             fontscale = self._font_properties._size / 14.
@@ -205,6 +208,9 @@ class LinePlot(PlotContainer):
 
             if field in self._titles:
                 plot.axes.set_title(self._titles[field])
+
+            if self.include_legend[field]:
+                plot.axes.legend()
 
     @invalidate_plot
     def set_x_unit(self, unit_name):
