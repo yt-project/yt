@@ -1363,10 +1363,10 @@ class YTArray(np.ndarray):
                     else:
                         unit = u**(power_sign*inp.size)
                 else:
-                    unit = self._ufunc_registry[ufunc](u)
+                    unit = UFUNC_REGISTRY[ufunc](u)
                 ret_class = type(self)
             elif len(inputs) == 2:
-                unit_operator = self._ufunc_registry[ufunc]
+                unit_operator = UFUNC_REGISTRY[ufunc]
                 inps, units, ret_class = get_inp_u_binary(ufunc, inputs)
                 if unit_operator in (comparison_unit, arctan2_unit):
                     inps, units = handle_comparison_units(
