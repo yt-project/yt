@@ -133,10 +133,10 @@ class LinePlot(PlotContainer):
         dimensions_counter = defaultdict(int)
         for field in self.fields:
             fontscale = self._font_properties._size / 14.
-            top_buff_size = 0.3*fontscale
+            top_buff_size = 0.35*fontscale
 
-            x_axis_size = 1.2*fontscale
-            y_axis_size = 0.9*fontscale
+            x_axis_size = 1.35*fontscale
+            y_axis_size = 0.7*fontscale
             right_buff_size = 0.2*fontscale
 
             if iterable(self.figure_size):
@@ -166,8 +166,6 @@ class LinePlot(PlotContainer):
                 plot = PlotMPL(self.figure_size, axrect, None, None)
                 self.plots[field] = plot
 
-            plot._set_font_properties(self._font_properties, None)
-
             x, y = self.ds.coordinates.line_plot(
                 field, self.start_point, self.end_point, self.resolution)
 
@@ -192,6 +190,8 @@ class LinePlot(PlotContainer):
                 else:
                     plot.axes.set_yscale('log')
 
+            plot._set_font_properties(self._font_properties, None)
+
             axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
             finfo = self.ds.field_info[field]
@@ -199,7 +199,8 @@ class LinePlot(PlotContainer):
             x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
 
             finfo = self.ds.field_info[field]
-            dimensions = Unit(finfo.units, registry=self.ds.unit_registry).dimensions
+            dimensions = Unit(finfo.units,
+                              registry=self.ds.unit_registry).dimensions
             dimensions_counter[dimensions] += 1
             if dimensions_counter[dimensions] > 1:
                 y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
