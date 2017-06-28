@@ -34,6 +34,7 @@ from yt.funcs import \
     ensure_dir, \
     ensure_list, \
     get_hg_or_git_version, \
+    get_pbar, \
     get_yt_version, \
     mylog, \
     ensure_dir_exists, \
@@ -151,6 +152,25 @@ def _get_girder_client():
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
     return gc
 
+
+class FileStreamer:
+    final_size = None
+    next_sent = 0
+    chunksize = 16*1024*1024
+
+    def __init__(self, f, final_size = None):
+        location = f.tell()
+        f.seek(0, os.SEEK_END)
+        self.final_size = f.tell() - location
+        f.seek(location)
+        self.f = f
+
+    def __iter__(self):
+        pbar = get_pbar("Uploading file", self.final_size)
+        while self.f.tell() < self.final_size:
+            yield self.f.read(self.chunksize)
+            pbar.update(self.f.tell())
+        pbar.finish()
 
 _subparsers = {None: subparsers}
 _subparsers_description = {
@@ -1157,6 +1177,32 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+
+
+class YTUploadFileCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload a file to yt's curldrop.
+
+        """
+    name = "upload"
+
+    def __call__(self, args):
+        try:
+            import requests
+        except ImportError:
+            print("yt {} requires requests to be installed".format(self.name))
+            print("Please install them using your python package manager, e.g.:")
+            print("   pip install requests --user")
+            sys.exit()
+
+        fs = iter(FileStreamer(open(args.file, 'rb')))
+        upload_url = ytcfg.get("yt", "curldrop_upload_url")
+        r = requests.put(upload_url + "/" + os.path.basename(args.file),
+                         data=fs)
+        print()
+        print(r.text)
 
 
 class YTConfigGetCmd(YTCommand):
