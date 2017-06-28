@@ -325,6 +325,8 @@ class PlotContainer(object):
                 lim = getattr(self, lim_name)
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
                 setattr(self, lim_name, lim)
+        self.plots.data_source = new_object
+        self._colorbar_label.data_source = new_object
         self._setup_plots()
 
     @validate_plot
