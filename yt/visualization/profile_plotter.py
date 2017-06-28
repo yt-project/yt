@@ -41,7 +41,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
-    matplotlib_style_context
+    matplotlib_style_context, \
+    iterable
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -1370,7 +1371,10 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        self._cb_size = 0.0375*figure_size[0]
+        if iterable(figure_size):
+            self._cb_size = 0.0375*figure_size[0]
+        else:
+            self._cb_size = 0.0375*figure_size
         self._ax_text_size = [1.1*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = 1.0
