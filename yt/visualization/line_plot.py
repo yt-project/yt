@@ -90,7 +90,7 @@ class LinePlot(PlotContainer):
         """
         Sets up figure and axes
         """
-        self.start_point = _validate_point(start_point, ds)
+        self.start_point = _validate_point(start_point, ds, start=True)
         self.end_point = _validate_point(end_point, ds)
         self.resolution = resolution
         self._x_unit = None
@@ -249,9 +249,26 @@ class LinePlot(PlotContainer):
         """
         self._titles[self.data_source._determine_fields(field)[0]] = title
 
-def _validate_point(point, ds):
+def _validate_point(point, ds, start=False):
     if not iterable(point):
-        raise RuntimeError
+        raise RuntimeError(
+            "Input point must be array-like"
+        )
     if not isinstance(point, YTArray):
         point = ds.arr(point, 'code_length')
+    if len(point.shape) != 1:
+        raise RuntimeError(
+            "Input point must be a 1D array"
+        )
+    if point.shape[0] < ds.dimensionality:
+        raise RuntimeError(
+            "Input point must have an element for each dimension"
+        )
+    # need to pad to 3D elements to avoid issues later
+    if point.shape[0] < 3:
+        if start:
+            val = 0
+        else:
+            val = 1
+        point = np.append(point.d, [val]*(3-ds.dimensionality))*point.uq
     return point

@@ -35,8 +35,7 @@ def _sample_ray(ray, resolution, field):
     start_point = ray.start_point
     end_point = ray.end_point
     sample_dr = (end_point - start_point)/(resolution-1)
-    sample_points = [np.arange(resolution)*sample_dr[i] for i in
-                     range(ray.ds.dimensionality)]
+    sample_points = [np.arange(resolution)*sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T
     ray_coordinates = uvstack([ray[d] for d in 'xyz']).T
     ray_dds = uvstack([ray['d'+d] for d in 'xyz']).T
