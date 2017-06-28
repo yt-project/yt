@@ -86,6 +86,8 @@ class PlotMPL(object):
         import matplotlib.figure
         self._plot_valid = True
         if figure is None:
+            if not iterable(fsize):
+                fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
             figure.set_size_inches(fsize)

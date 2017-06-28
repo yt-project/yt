@@ -139,9 +139,14 @@ class LinePlot(PlotContainer):
             y_axis_size = 0.9*fontscale
             right_buff_size = 0.2*fontscale
 
-            xbins = np.array([x_axis_size, self.figure_size[0],
+            if iterable(self.figure_size):
+                figure_size = self.figure_size
+            else:
+                figure_size = (self.figure_size, self.figure_size)
+            
+            xbins = np.array([x_axis_size, figure_size[0],
                               right_buff_size])
-            ybins = np.array([y_axis_size, self.figure_size[1], top_buff_size])
+            ybins = np.array([y_axis_size, figure_size[1], top_buff_size])
 
             size = [xbins.sum(), ybins.sum()]
 
