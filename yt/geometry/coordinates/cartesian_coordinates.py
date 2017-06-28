@@ -50,7 +50,9 @@ def _sample_ray(ray, resolution, field):
         if wh.shape != (1,):
             raise RuntimeError
         field_values[i] = ray_field[wh]
-    return sample_points, field_values
+    dr = np.sqrt((sample_dr**2).sum())
+    x = np.arange(resolution)/(resolution-1)*(dr*resolution)
+    return x, field_values
 
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
