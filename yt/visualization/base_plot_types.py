@@ -166,6 +166,8 @@ class PlotMPL(object):
     def _get_labels(self):
         ax = self.axes
         labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+        labels += ax.xaxis.get_minorticklabels()
+        labels += ax.yaxis.get_minorticklabels()
         labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
                    ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
         return labels
