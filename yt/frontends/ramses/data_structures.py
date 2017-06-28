@@ -543,8 +543,7 @@ class RAMSESDataset(Dataset):
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
-        extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file
-                If set to None, will try a default set of field
+        extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file.
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
