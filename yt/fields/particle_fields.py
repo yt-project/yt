@@ -190,7 +190,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
     # Now some translation functions.
 
     def particle_ones(field, data):
-        v = np.ones(data[ptype, mass_name].shape, dtype="float64")
+        v = np.ones(data[ptype, coord_name].shape[0], dtype="float64")
         return data.apply_units(v, field.units)
 
     registry.add_field((ptype, "particle_ones"),

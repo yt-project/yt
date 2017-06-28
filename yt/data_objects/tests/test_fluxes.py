@@ -101,3 +101,31 @@ class ExporterTests(TestCase):
 
         assert os.path.exists('my_galaxy_emis.obj')
         assert os.path.exists('my_galaxy_emis.mtl')
+
+@requires_file(ISOGAL)
+def test_correct_output_unit():
+    # see issue #1368
+    ds = load(ISOGAL)
+    x = y = z = .5
+    sp1 = ds.sphere((x,y,z), (300, 'kpc'))
+    Nmax = sp1.max('HI_Density')
+    sur = ds.surface(sp1,"HI_Density", .5*Nmax)
+    sur['x'][0]
+
+@requires_file(ISOGAL)
+def test_radius_surface():
+    # see #1407
+    ds = load(ISOGAL)
+    reg = ds.all_data()
+    sp = ds.sphere(ds.domain_center, (0.5, 'code_length'))
+    for obj in [reg, sp]:
+        for rad in [0.05, .1, .4]:
+            surface = ds.surface(obj, 'radius', (rad, 'code_length'))
+            assert_almost_equal(
+                surface.surface_area.v, 4*np.pi*rad**2, decimal=2)
+            verts = surface.vertices
+            for i in range(3):
+                assert_almost_equal(
+                    verts[i, :].min().v, 0.5-rad, decimal=2)
+                assert_almost_equal(
+                    verts[i, :].max().v, 0.5+rad, decimal=2)

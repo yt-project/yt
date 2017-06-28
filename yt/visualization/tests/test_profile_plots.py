@@ -16,12 +16,12 @@ import os
 import tempfile
 import shutil
 import unittest
+import yt
 from yt.data_objects.profiles import create_profile
-from yt.extern.parameterized import\
-    parameterized, param
 from yt.testing import \
     fake_random_ds, \
-    assert_array_almost_equal
+    assert_array_almost_equal, \
+    requires_file
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
@@ -69,21 +69,25 @@ def test_phase_plot_attributes():
 
 class TestProfilePlotSave(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.curdir = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
+
+    def test_profile_plot(self):
         fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
                   'velocity_z')
         units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
-        test_ds = fake_random_ds(64, fields=fields, units=units)
+        test_ds = fake_random_ds(16, fields=fields, units=units)
         regions = [test_ds.region([0.5]*3, [0.4]*3, [0.6]*3), test_ds.all_data()]
-        profiles = []
-        phases = []
         pr_fields = [('density', 'temperature'), ('density', 'velocity_x'),
                      ('temperature', 'cell_mass'), ('density', 'radius'),
                      ('velocity_magnitude', 'cell_mass')]
-        ph_fields = [('density', 'temperature', 'cell_mass'),
-                     ('density', 'velocity_x', 'cell_mass'),
-                     ('radius', 'temperature', 'velocity_magnitude')]
+        profiles = []
         for reg in regions:
             for x_field, y_field in pr_fields:
                 profiles.append(ProfilePlot(reg, x_field, y_field))
@@ -91,6 +95,26 @@ class TestProfilePlotSave(unittest.TestCase):
                                             fractional=True, accumulation=True))
                 p1d = create_profile(reg, x_field, y_field)
                 profiles.append(ProfilePlot.from_profiles(p1d))
+        p1 = create_profile(test_ds.all_data(), 'density', 'temperature')
+        p2 = create_profile(test_ds.all_data(), 'density', 'velocity_x')
+        profiles.append(ProfilePlot.from_profiles(
+            [p1, p2], labels=['temperature', 'velocity']))
+        profiles[0]._repr_html_()
+        for p in profiles:
+            for fname in TEST_FLNMS:
+                assert_fname(p.save(fname)[0])
+
+    def test_phase_plot(self):
+        fields = ('density', 'temperature', 'velocity_x', 'velocity_y',
+                  'velocity_z')
+        units = ('g/cm**3', 'K', 'cm/s', 'cm/s', 'cm/s')
+        test_ds = fake_random_ds(16, fields=fields, units=units)
+        regions = [test_ds.region([0.5]*3, [0.4]*3, [0.6]*3), test_ds.all_data()]
+        phases = []
+        ph_fields = [('density', 'temperature', 'cell_mass'),
+                     ('density', 'velocity_x', 'cell_mass'),
+                     ('radius', 'temperature', 'velocity_magnitude')]
+        for reg in regions:
             for x_field, y_field, z_field in ph_fields:
                 # set n_bins to [16, 16] since matplotlib's postscript
                 # renderer is slow when it has to write a lot of polygons
@@ -111,35 +135,28 @@ class TestProfilePlotSave(unittest.TestCase):
         assert_array_almost_equal(xlim, (0.3, 0.8))
         assert_array_almost_equal(ylim, (0.4, 0.6))
         phases.append(pp)
+        phases[0]._repr_html_()
+        for p in phases:
+            for fname in TEST_FLNMS:
+                assert_fname(p.save(fname)[0])
 
-        p1 = create_profile(test_ds.all_data(), 'density', 'temperature')
-        p2 = create_profile(test_ds.all_data(), 'density', 'velocity_x')
-        profiles.append(ProfilePlot.from_profiles(
-            [p1, p2], labels=['temperature', 'velocity']))
+ETC46 = "enzo_tiny_cosmology/DD0046/DD0046"
 
-        cls.profiles = profiles
-        cls.phases = phases
-        cls.ds = test_ds
+@requires_file(ETC46)
+def test_profile_plot_multiple_field_multiple_plot():
+    ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
+    sphere = ds.sphere("max", (1.0, "Mpc"))
+    profiles = []
+    profiles.append(yt.create_profile(
+        sphere, ["radius"],
+        fields=["density"],n_bins=32))
+    profiles.append(yt.create_profile(
+        sphere, ["radius"],
+        fields=["density"],n_bins=64))
+    profiles.append(yt.create_profile(
+        sphere, ["radius"],
+        fields=["dark_matter_density"],n_bins=64))
 
-    def setUp(self):
-        self.tmpdir = tempfile.mkdtemp()
-        self.curdir = os.getcwd()
-        os.chdir(self.tmpdir)
-
-    def tearDown(self):
-        os.chdir(self.curdir)
-        shutil.rmtree(self.tmpdir)
-
-    @parameterized.expand(param.explicit((fname, )) for fname in TEST_FLNMS)
-    def test_profile_plot(self, fname):
-        for p in self.profiles:
-            assert_fname(p.save(fname)[0])
-
-    @parameterized.expand(param.explicit((fname, )) for fname in TEST_FLNMS)
-    def test_phase_plot(self, fname):
-        for p in self.phases:
-            assert_fname(p.save(fname)[0])
-
-    def test_ipython_repr(self):
-        self.profiles[0]._repr_html_()
-        self.phases[0]._repr_html_()
+    plot = yt.ProfilePlot.from_profiles(profiles)
+    with tempfile.NamedTemporaryFile(suffix='png') as f:
+        plot.save(name=f.name)

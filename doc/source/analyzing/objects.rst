@@ -197,6 +197,55 @@ This accepts arguments the same way:::
              (900.1, 'm')]
    sl.plot()
 
+
+Making Image Buffers
+^^^^^^^^^^^^^^^^^^^^
+
+Using the slicing syntax above for choosing a slice, if you also provide an
+imaginary step value you can obtain a
+:class:`~yt.visualization.api.FixedResolutionBuffer` of the chosen resolution.
+
+For instance, to obtain a 1024 by 1024 buffer covering the entire
+domain but centered at 0.5 in code units, you can do:::
+
+   frb = ds.r[0.5, ::1024j, ::1024j]
+
+This `frb` object then can be queried like a normal fixed resolution buffer,
+and it will return arrays of shape (1024, 1024).
+
+Making Rays
+^^^^^^^^^^^
+
+The slicing syntax can also be used select 1D rays of points, whether along 
+an axis or off-axis. To create a ray along an axis:::
+
+    ortho_ray = ds.r[(500.0, "kpc"), (200, "kpc"):(300.0, "kpc"), (-2.0, "Mpc")]
+
+To create a ray off-axis, use a single slice between the start and end points
+of the ray:::
+
+    start = [0.1, 0.2, 0.3] # interpreted in code_length
+    end = [0.4, 0.5, 0.6] # interpreted in code_length
+    ray = ds.r[start:end]
+
+As for the other slicing options, combinations of unitful quantities with even
+different units can be used. Here's a somewhat convoluted (yet working) example:::
+
+    start = ((500.0, "kpc"), (0.2, "Mpc"), (100.0, "kpc"))
+    end = ((1.0, "Mpc"), (300.0, "kpc"), (0.0, "kpc"))
+    ray = ds.r[start:end]
+
+Selecting Points
+^^^^^^^^^^^^^^^^
+
+Finally, you can quickly select a single point within the domain by providing
+a single coordinate for every axis:::
+
+    pt = ds.r[(10.0, 'km'), (200, 'm'), (1.0,'km')]
+
+Querying this object for fields will give you the value of the field at that
+point.
+
 .. _available-objects:
 
 Available Objects
@@ -650,7 +699,7 @@ Here are some examples:
    cutout = sp1 - sp3
    sp4 = sp1 ^ sp2
    sp5 = sp1 & sp2
-   
+
 
 Note that the ``+`` operation and the ``|`` operation are identical.  For when
 multiple objects are to be combined in an intersection or a union, there are

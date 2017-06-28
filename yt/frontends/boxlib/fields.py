@@ -81,6 +81,14 @@ class WarpXFieldInfo(FieldInfoContainer):
         ("", "particle_ones"),
     )
 
+    def __init__(self, ds, field_list):
+        super(WarpXFieldInfo, self).__init__(ds, field_list)
+
+        # setup nodal flag information
+        for field in ds.index.raw_fields:
+            finfo = self.__getitem__(('raw', field))
+            finfo.nodal_flag = ds.nodal_flags[field]
+
     def setup_particle_fields(self, ptype):
 
         def get_mass(field, data):

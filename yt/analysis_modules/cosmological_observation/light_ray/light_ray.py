@@ -55,7 +55,7 @@ class LightRay(CosmologySplice):
 
     Parameters
     ----------
-    parameter_filename : string or :class:`yt.data_objects.static_output.Dataset`
+    parameter_filename : string or :class:`~yt.data_objects.static_output.Dataset`
         For simple rays, one may pass either a loaded dataset object or
         the filename of a dataset.
         For compound rays, one must pass the filename of the simulation

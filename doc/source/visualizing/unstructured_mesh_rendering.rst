@@ -22,9 +22,9 @@ most recent development version of yt from our channel:
 
     conda install -c http://use.yt/with_conda/ yt
 
-Alternatively, you can install yt from source using the ``install_script.sh`` 
-script. Be sure to set the INST_CONDA, INST_YT_SOURCE, INST_EMBREE, 
-and INST_NETCDF4 flags to 1 at the top of the script. The ``install_script.sh`` 
+Alternatively, you can install yt from source using the ``install_script.sh``
+script. Be sure to set the ``INST_YT_SOURCE``, ``INST_EMBREE``, and
+``INST_NETCDF4`` flags to 1 at the top of the script. The ``install_script.sh``
 script can be downloaded by doing:
 
 .. code-block:: bash

@@ -537,10 +537,10 @@ class Unit(Expr):
                 raise YTUnitsNotReducible(self, "cgs")
             return yt_base_unit
         else:
-            if unit_system == "code":
-                raise RuntimeError(r'You must refer to a dataset instance to convert to a '
-                                   r'code unit system. Try again with unit_system=ds instead, '
-                                   r'where \'ds\' is your dataset.')
+            if hasattr(unit_system, "unit_registry"):
+                unit_system = unit_system.unit_registry.unit_system_id
+            elif unit_system == "code":
+                unit_system = self.registry.unit_system_id
             unit_system = unit_system_registry[str(unit_system)]
             units_string = _get_system_unit_string(self.dimensions, unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
@@ -844,7 +844,7 @@ def define_unit(symbol, value, tex_repr=None, offset=None, prefixable=False):
     ----------
     symbol : string
         The symbol for the new unit.
-    value : (value, unit) tuple or YTQuantity
+    value : tuple or ~yt.units.yt_array.YTQuantity
         The definition of the new unit in terms of some other units. For example,
         one would define a new "mph" unit with (1.0, "mile/hr") 
     tex_repr : string, optional

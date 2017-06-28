@@ -81,7 +81,6 @@ class ZBufferTest(TestCase):
 
         im = sc.render()
         im.write_png("composite.png")
-        return im
 
     def test_nonrectangular_add(self):
         rgba1 = np.ones((64, 1, 4))

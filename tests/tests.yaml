@@ -5,7 +5,7 @@ answer_tests:
   local_athena_003:
     - yt/frontends/athena
 
-  local_athena_pp_000:
+  local_athena_pp_001:
     - yt/frontends/athena_pp
 
   local_chombo_002:
@@ -14,10 +14,13 @@ answer_tests:
   local_enzo_003:
     - yt/frontends/enzo
 
+  local_enzo_p_001:
+    - yt/frontends/enzo_p/tests/test_outputs.py
+
   local_fits_001:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_005:
+  local_flash_006:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
@@ -42,13 +45,14 @@ answer_tests:
   local_owls_001:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_013:
+  local_pw_016:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_filter
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
+    - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
@@ -63,13 +67,13 @@ answer_tests:
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
 
-  local_unstructured_005:
+  local_unstructured_006:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
     - yt/visualization/tests/test_mesh_slices.py:test_quad2
     - yt/visualization/tests/test_mesh_slices.py:test_multi_region
 
-  local_boxlib_003:
+  local_boxlib_004:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
@@ -77,6 +81,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_CastroDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_RT_particles
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
+    - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
   local_boxlib_particles_003:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
@@ -102,7 +107,7 @@ answer_tests:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_with_continuum
 
-  local_axialpix_001:
+  local_axialpix_002:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_particle_trajectory_000:

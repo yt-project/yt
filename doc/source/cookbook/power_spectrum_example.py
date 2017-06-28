@@ -40,7 +40,7 @@ def doit(ds):
 
     nindex_rho = 1./3.
 
-    Kk = np.zeros( (nx/2+1, ny/2+1, nz/2+1))
+    Kk = np.zeros( (nx//2+1, ny//2+1, nz//2+1))
 
     for vel in [("gas", "velocity_x"), ("gas", "velocity_y"),
                 ("gas", "velocity_z")]:
@@ -106,7 +106,7 @@ def fft_comp(ds, irho, iu, nindex_rho, level, low, delta ):
     # the first half of the axes -- that's what we keep.  Our
     # normalization has an '8' to account for this clipping to one
     # octant.
-    ru = np.fft.fftn(rho**nindex_rho * u)[0:nx/2+1,0:ny/2+1,0:nz/2+1]
+    ru = np.fft.fftn(rho**nindex_rho * u)[0:nx//2+1,0:ny//2+1,0:nz//2+1]
     ru = 8.0*ru/(nx*ny*nz)
 
     return np.abs(ru)**2

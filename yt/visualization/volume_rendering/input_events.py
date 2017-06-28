@@ -333,8 +333,8 @@ def print_help(event_coll, event):
         key_map[glfw.__dict__.get(key)] = key[4:]
     for cb in (f for f in sorted(event_coll.key_callbacks)
                if isinstance(f, tuple)):
-        print("%s - %s" % (key_map[cb[0]],
-                           event_coll.key_callbacks[cb][0].__doc__))
+        for e in event_coll.key_callbacks[cb]:
+            print("%s - %s" % (key_map[cb[0]], e.__doc__))
     return False
 
 @register_event("nplane_closer")

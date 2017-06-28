@@ -21,6 +21,7 @@ from numbers import Number as numeric_type
 from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
+from yt.units.dimensions import dimensionless
 from .derived_field import \
     DerivedField, \
     NullFunc, \
@@ -86,15 +87,15 @@ class FieldInfoContainer(dict):
                 self[(ftype, f)].units = self["index", f].units
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
-        skip_output_units = ("code_length",)
+        skip_output_units = ("code_length")
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
+            output_units = units
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
                 units not in skip_output_units:
                 u = Unit(units, registry = self.ds.unit_registry)
-                output_units = str(self.ds.unit_system[u.dimensions])
-            else:
-                output_units = units
+                if u.dimensions is not dimensionless:
+                    output_units = str(self.ds.unit_system[u.dimensions])
             if (ptype, f) not in self.field_list:
                 continue
             self.add_output_field((ptype, f), sampling_type="particle",
@@ -307,7 +308,10 @@ class FieldInfoContainer(dict):
             # as well.
             u = Unit(self[original_name].units,
                       registry = self.ds.unit_registry)
-            units = str(self.ds.unit_system[u.dimensions])
+            if u.dimensions is not dimensionless:
+                units = str(self.ds.unit_system[u.dimensions])
+            else:
+                units = self[original_name].units
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),

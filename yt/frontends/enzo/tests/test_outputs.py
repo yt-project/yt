@@ -28,7 +28,10 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     AnalyticHaloMassFunctionTest, \
     SimulatedHaloMassFunctionTest
+from yt.visualization.plot_window import \
+    SlicePlot
 from yt.frontends.enzo.api import EnzoDataset
+from yt.frontends.enzo.fields import NODAL_FLAGS
 
 _fields = ("temperature", "density", "velocity_magnitude",
            "velocity_divergence")
@@ -40,6 +43,8 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 toro1d = "ToroShockTube/DD0001/data0001"
 kh2d = "EnzoKelvinHelmholtz/DD0011/DD0011"
+mhdctot = "MHDCTOrszagTang/DD0004/data0004"
+dnz = "DeeplyNestedZoom/DD0025/data0025"
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
@@ -172,3 +177,34 @@ def test_active_particle_datasets():
 
     assert_equal(apcos.particle_type_counts,
                  {'CenOstriker': 899755, 'DarkMatter': 32768})
+
+@requires_file(mhdctot)
+def test_face_centered_mhdct_fields():
+    ds = data_dir_load(mhdctot)
+
+    ad = ds.all_data()
+    grid = ds.index.grids[0]
+
+    for field, flag in NODAL_FLAGS.items():
+        dims = ds.domain_dimensions
+        assert_equal(ad[field].shape, (dims.prod(), 2*sum(flag)))
+        assert_equal(grid[field].shape, tuple(dims) + (2*sum(flag),))
+
+    # Average of face-centered fields should be the same as cell-centered field
+    assert (ad['BxF'].sum(axis=-1)/2 == ad['Bx']).all()
+    assert (ad['ByF'].sum(axis=-1)/2 == ad['By']).all()
+    assert (ad['BzF'].sum(axis=-1)/2 == ad['Bz']).all()
+
+@requires_file(dnz)
+def test_deeply_nested_zoom():
+    ds = data_dir_load(dnz)
+
+    # carefully chosen to just barely miss a grid in the middle of the image
+    center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
+    
+    plot = SlicePlot(ds, 'z', 'density', width=(0.001, 'pc'),
+                     center=center)
+
+    image = plot.frb['density']
+
+    assert (image > 0).all()

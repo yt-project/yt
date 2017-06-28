@@ -4,19 +4,19 @@
 environment:
 
   global:
-      PYTHON: "C:\\Miniconda-x64"
+      PYTHON: "C:\\Miniconda3-x64"
 
   matrix:
-
+      - PYTHON_VERSION: "3.6"
       - PYTHON_VERSION: "2.7"
-
-      - PYTHON_VERSION: "3.5"
-
 
 platform:
     -x64
 
 install:
+    - "if not exist \"%userprofile%\\.config\\yt\" mkdir %userprofile%\\.config\\yt"
+    - "echo [yt] > %userprofile%\\.config\\yt\\ytrc"
+    - "echo suppressStreamLogging = True >> %userprofile%\\.config\\yt\\ytrc"
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
     # Install the build and runtime dependencies of the project.
@@ -28,11 +28,11 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install -q --yes numpy nose setuptools ipython Cython sympy h5py matplotlib"
-    - "python setup.py develop"
+    - "conda install -q --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock"
+    - "pip install -e ."
 
 # Not a .NET project
 build: false
 
 test_script:
-  - "nosetests -e test_all_fields ."
+  - "nosetests --nologcapture -sv yt"

@@ -277,7 +277,7 @@ class ARTDataset(Dataset):
             # domain dimensions is the number of root *cells*
             self.domain_dimensions = np.ones(3, dtype='int64')*est
             self.root_grid_mask_offset = f.tell()
-            self.root_nocts = self.domain_dimensions.prod()/8
+            self.root_nocts = self.domain_dimensions.prod() // 8
             self.root_ncells = self.root_nocts*8
             mylog.debug("Estimating %i cells on a root grid side," +
                         "%i root octs", est, self.root_nocts)
@@ -705,7 +705,7 @@ class ARTDomainSubset(OctreeSubset):
             tr[field] = np.zeros(cell_count, 'float64')
         data = _read_root_level(content, self.domain.level_child_offsets,
                                 self.domain.level_count)
-        ns = (self.domain.ds.domain_dimensions.prod() / 8, 8)
+        ns = (self.domain.ds.domain_dimensions.prod() // 8, 8)
         for field, fi in zip(fields, field_idxs):
             source[field] = np.empty(ns, dtype="float64", order="C")
             dt = data[fi,:].reshape(self.domain.ds.domain_dimensions,
@@ -781,7 +781,7 @@ class ARTDomainFile(object):
             self._count_art_octs(f,  self.ds.child_grid_offset,
                 self.ds.min_level, self.ds.max_level)
         # remember that the root grid is by itself; manually add it back in
-        inoll[0] = self.ds.domain_dimensions.prod()/8
+        inoll[0] = self.ds.domain_dimensions.prod() // 8
         _level_child_offsets[0] = self.ds.root_grid_offset
         self.nhydrovars = nhydrovars
         self.inoll = inoll  # number of octs

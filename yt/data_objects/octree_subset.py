@@ -445,7 +445,7 @@ class OctreeSubsetBlockSlicePosition(object):
 
     def __getitem__(self, key):
         bs = self.block_slice
-        rv = bs.octree_subset[key][:,:,:,self.ind]
+        rv = bs.octree_subset[key][:,:,:,self.ind].T
         if bs.octree_subset._block_reorder:
             rv = rv.copy(order=bs.octree_subset._block_reorder)
         return rv

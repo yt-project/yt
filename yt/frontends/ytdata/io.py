@@ -19,7 +19,10 @@ import numpy as np
 from yt.extern.six import \
     u
 from yt.funcs import \
-    mylog
+    mylog, \
+    parse_h5_attr
+from yt.geometry.selection_routines import \
+    GridSelector
 from yt.utilities.exceptions import \
     YTDomainOverflow
 from yt.utilities.io_handler import \
@@ -36,7 +39,7 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
 
     def _read_fluid_selection(self, g, selector, fields):
         rv = {}
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if g.id in self._cached_fields:
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
@@ -68,7 +71,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
         rv = {}
         # Now we have to do something unpleasant
         chunks = list(chunks)
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
@@ -141,7 +144,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    units = f[ptype][pn % "x"].attrs["units"]
+                    units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
                       (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
                        for ax in "xyz")
@@ -163,7 +166,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
-                    units = f[ptype][pn % "x"].attrs["units"]
+                    units = parse_h5_attr(f[ptype][pn % "x"], "units")
                     x, y, z = \
                       (self.ds.arr(f[ptype][pn % ax].value.astype("float64"), units)
                        for ax in "xyz")
@@ -234,7 +237,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 if ptype == "grid":
                     dx = f["grid"]["dx"].value.min()
                     dx = self.ds.quan(
-                        dx, f["grid"]["dx"].attrs["units"]).to("code_length")
+                        dx, parse_h5_attr(f["grid"]["dx"], "units")).to("code_length")
                 else:
                     dx = 2. * np.finfo(f[ptype]["particle_position_x"].dtype).eps
                     dx = self.ds.quan(dx, units).to("code_length")
@@ -272,7 +275,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for ptype in f:
                 fields.extend([(ptype, str(field)) for field in f[ptype]])
                 units.update(dict([((ptype, str(field)), 
-                                    f[ptype][field].attrs["units"])
+                                    parse_h5_attr(f[ptype][field], "units"))
                                    for field in f[ptype]]))
         return fields, units
 
@@ -334,7 +337,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 if ptype == "grid":
                     dx = f["grid"]["pdx"].value.min()
                     dx = self.ds.quan(
-                        dx, f["grid"]["pdx"].attrs["units"]).to("code_length")
+                        dx, parse_h5_attr(f["grid"]["pdx"], "units")).to("code_length")
                 else:
                     raise NotImplementedError
                 pos[:,0] = _get_position_array(ptype, f, "px")
@@ -371,4 +374,4 @@ def _get_position_array_units(ptype, f, ax):
         pos_name = ""
     else:
         pos_name = "particle_position_"
-    return f[ptype][pos_name + ax].attrs["units"]
+    return parse_h5_attr(f[ptype][pos_name + ax], "units")

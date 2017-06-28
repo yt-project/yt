@@ -21,7 +21,6 @@ import matplotlib
 import numpy as np
 import re
 
-from distutils.version import LooseVersion
 from functools import wraps
 
 from yt.funcs import \
@@ -153,11 +152,11 @@ class PlotCallback(object):
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return (np.mod((ccoord[0]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
+            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            return (np.mod((ccoord[0][:]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1][:]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
+            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
@@ -461,6 +460,8 @@ class ContourCallback(PlotCallback):
         self.data_source = data_source
 
     def __call__(self, plot):
+        from matplotlib.tri import Triangulation, LinearTriInterpolator
+
         # These need to be in code_length
         x0, x1 = (v.in_units("code_length") for v in plot.xlim)
         y0, y1 = (v.in_units("code_length") for v in plot.ylim)
@@ -518,14 +519,8 @@ class ContourCallback(PlotCallback):
 
             # Both the input and output from the triangulator are in plot
             # coordinates
-            if LooseVersion(matplotlib.__version__) < LooseVersion("1.4.0"):
-                from matplotlib.delaunay.triangulate import Triangulation as \
-                    triang
-                zi = triang(x,y).nn_interpolator(z)(xi,yi)
-            else:
-                from matplotlib.tri import Triangulation, LinearTriInterpolator
-                triangulation = Triangulation(x, y)
-                zi = LinearTriInterpolator(triangulation, z)(xi,yi)
+            triangulation = Triangulation(x, y)
+            zi = LinearTriInterpolator(triangulation, z)(xi,yi)
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
 
@@ -852,7 +847,7 @@ class CuttingQuiverCallback(PlotCallback):
         yy0, yy1 = plot._axes.get_ylim()
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        indices = np.argsort(plot.data['dx'])[::-1]
+        indices = np.argsort(plot.data['dx'])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
@@ -1443,7 +1438,25 @@ class HaloCatalogCallback(PlotCallback):
         px = halo_data[field_x][:].in_units(units)
         py = halo_data[field_y][:].in_units(units)
 
-        px, py = self.convert_to_plot(plot,[px,py])
+        xplotcenter = (plot.xlim[0] + plot.xlim[1])/2
+        yplotcenter = (plot.ylim[0] + plot.ylim[1])/2
+
+        xdomaincenter = plot.ds.domain_center[xax]
+        ydomaincenter = plot.ds.domain_center[yax]
+
+        xoffset = xplotcenter - xdomaincenter
+        yoffset = yplotcenter - ydomaincenter
+
+        xdw = plot.ds.domain_width[xax].to(units)
+        ydw = plot.ds.domain_width[yax].to(units)
+
+        modpx = np.mod(px - xoffset, xdw) + xoffset
+        modpy = np.mod(py - yoffset, ydw) + yoffset
+
+        px[modpx != px] = modpx[modpx != px]
+        py[modpy != py] = modpy[modpy != py]
+
+        px, py = self.convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
         radius = halo_data[self.radius_field][:].in_units(units)
@@ -1674,7 +1687,7 @@ class MeshLinesCallback(PlotCallback):
             elif num_dims == 2 and num_verts == 4:
                 coords, indices = self.promote_2d_to_3d(coords, indices, plot)
 
-            tri_indices = triangulate_indices(indices)
+            tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
         
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
@@ -2358,7 +2371,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
         if self.const_alpha:
             plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
-                              alpha=self.alpha, origin='lower')
+                              alpha=self.alpha, origin='lower', aspect="auto")
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
                             to_rgba(lic_data_clip)
@@ -2366,7 +2379,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
             plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap,
-                              origin='lower')
+                              origin='lower', aspect="auto")
 
         return plot
 

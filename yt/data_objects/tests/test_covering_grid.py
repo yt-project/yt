@@ -90,7 +90,7 @@ def test_smoothed_covering_grid():
 
 
 def test_arbitrary_grid():
-    for ncells in [64, 128, 256]:
+    for ncells in [32, 64]:
         for px in [0.125, 0.25, 0.55519]:
 
             particle_data = {
@@ -101,28 +101,27 @@ def test_arbitrary_grid():
 
             ds = load_particles(particle_data)
 
-            LE = np.array([0.05, 0.05, 0.05])
-            RE = np.array([0.95, 0.95, 0.95])
-            dims = np.array([ncells, ncells, ncells])
+            for dims in ([ncells]*3, [ncells, ncells/2, ncells/4]):
+                LE = np.array([0.05, 0.05, 0.05])
+                RE = np.array([0.95, 0.95, 0.95])
+                dims = np.array(dims)
 
-            dds = (RE - LE) / dims
-            volume = ds.quan(np.product(dds), 'cm**3')
+                dds = (RE - LE) / dims
+                volume = ds.quan(np.product(dds), 'cm**3')
 
-            obj = ds.arbitrary_grid(LE, RE, dims)
-            deposited_mass = obj["deposit", "all_density"].sum() * volume
+                obj = ds.arbitrary_grid(LE, RE, dims)
+                deposited_mass = obj["deposit", "all_density"].sum() * volume
 
-            assert_equal(deposited_mass, ds.quan(1.0, 'g'))
+                assert_equal(deposited_mass, ds.quan(1.0, 'g'))
 
-            LE = np.array([0.00, 0.00, 0.00])
-            RE = np.array([0.05, 0.05, 0.05])
-            dims = np.array([ncells, ncells, ncells])
+                LE = np.array([0.00, 0.00, 0.00])
+                RE = np.array([0.05, 0.05, 0.05])
 
-            obj = ds.arbitrary_grid(LE, RE, dims)
+                obj = ds.arbitrary_grid(LE, RE, dims)
 
-            deposited_mass = obj["deposit", "all_density"].sum()
+                deposited_mass = obj["deposit", "all_density"].sum()
 
-            assert_equal(deposited_mass, 0)
-
+                assert_equal(deposited_mass, 0)
 
     # Test that we get identical results to the covering grid for unigrid data.
     # Testing AMR data is much harder.

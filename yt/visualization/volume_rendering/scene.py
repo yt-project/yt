@@ -501,7 +501,9 @@ class Scene(object):
             im = source.render(camera, zbuffer=opaque)
             opaque.rgba = im
 
-        return im
+        # rotate image 180 degrees so orientation agrees with e.g.
+        # a PlotWindow plot
+        return np.rot90(im, k=2)
 
     def add_camera(self, data_source=None, lens_type='plane-parallel',
                    auto=False):
@@ -640,10 +642,12 @@ class Scene(object):
         Parameters
         ----------
 
-        ds : :class:`yt.data_objects.api.Dataset`
+        ds : :class:`yt.data_objects.static_output.Dataset`
             This is the dataset object corresponding to the
             simulation being rendered. Used to get the domain bounds.
-
+        color : array_like of shape (4,), optional
+            The RGBA value to use to draw the domain boundaries.
+            Default is black with an alpha of 1.0.
 
         Examples
         --------
@@ -711,9 +715,9 @@ class Scene(object):
 
         Parameters
         ----------
-        colors: array of ints, shape (4), optional
+        color : array_like of shape (4,), optional
             The RGBA value to use to draw the mesh lines.
-            Default is black.
+            Default is black with an alpha of 1.0.
         alpha : float, optional
             The opacity of the mesh lines. Default is 255 (solid).
 
@@ -732,8 +736,11 @@ class Scene(object):
 
         Parameters
         ----------
-        colors: array-like, shape (3,4), optional
-            The x, y, z RGBA values to use to draw the axes.
+        colors: array-like of shape (3,4), optional
+            The RGBA values to use to draw the x, y, and z vectors. The default 
+            is  [[1, 0, 0, alpha], [0, 1, 0, alpha], [0, 0, 1, alpha]] where
+            ``alpha`` is set by the parameter below. If ``colors`` is set then 
+            ``alpha`` is ignored.
         alpha : float, optional
             The opacity of the vectors.
 

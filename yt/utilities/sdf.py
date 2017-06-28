@@ -1164,7 +1164,7 @@ class SDFIndex(object):
         """Get floating point bounding box for a given midx cell
 
         Returns:
-            bbox: array-like, shape (3,2)
+            bbox: array-like of shape (3,2)
 
         """
         cell_iarr = np.array(cell_iarr, dtype="int64")
@@ -1294,7 +1294,7 @@ class SDFIndex(object):
         """
 
         Returns:
-            bbox: array-like, shape (3,2)
+            bbox: array-like of shape (3,2)
 
         """
         bbox = self.get_cell_bbox(level, cell_iarr)

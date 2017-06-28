@@ -182,7 +182,7 @@ cdef class MeshInfoHolder:
     cdef np.int64_t TPE  # num tris per element
     cdef int[MAX_NUM_TRI][3] tri_array
 
-    def __cinit__(self, np.int64_t[:, ::1] indices):
+    def __cinit__(self, np.int_t[:, ::1] indices):
         '''
 
         This class is used to store metadata about the type of mesh being used.
@@ -299,7 +299,7 @@ def triangulate_mesh(np.float64_t[:, ::1] coords,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def triangulate_indices(np.int64_t[:, ::1] indices):
+def triangulate_indices(np.int_t[:, ::1] indices):
     '''
 
     This is like triangulate_mesh, except it only considers the
@@ -309,9 +309,9 @@ def triangulate_indices(np.int64_t[:, ::1] indices):
     '''
 
     cdef MeshInfoHolder m = MeshInfoHolder(indices)
-    cdef np.int64_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.int64)
+    cdef np.int_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.int_)
 
-    cdef np.int64_t i, j, k
+    cdef np.int_t i, j, k
     for i in range(m.num_elem):
         for j in range(m.TPE):
             for k in range(3):
