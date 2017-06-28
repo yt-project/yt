@@ -1081,8 +1081,8 @@ The below code snippet illustrates how this is done:
 .. code-block:: python
 
    ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
-   ln = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
-   ln.save()
+   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
+   plot.save()
 
 If working in a Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
 

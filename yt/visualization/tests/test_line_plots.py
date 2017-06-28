@@ -15,6 +15,9 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     GenericImageTest
+import os
+import tempfile
+import shutil
 
 def setup():
     """Test specific setup."""
