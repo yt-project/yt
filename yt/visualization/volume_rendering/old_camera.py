@@ -617,10 +617,7 @@ class Camera(ParallelAnalysisInterface):
                 np.array(self.width, dtype='float64'), self.transfer_function, self.sub_samples)
         return args, {'lens_type': 'plane-parallel'}
 
-    star_trees = None
     def get_sampler(self, args, kwargs):
-        if self.star_trees is not None:
-            kwargs = {'star_list': self.star_trees}
         if self.use_light:
             if self.light_dir is None:
                 self.set_default_light_dir()

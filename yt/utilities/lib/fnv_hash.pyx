@@ -15,13 +15,18 @@ Fast hashing routines
 import numpy as np
 cimport numpy as np
 
-cdef np.int64_t c_fnv_hash(unsigned char[:] octets):
+cimport cython
+
+@cython.wraparound(False)
+@cython.boundscheck(False)
+cdef np.int64_t c_fnv_hash(unsigned char[:] octets) nogil:
     # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
     # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
     cdef np.int64_t hash_val = 2166136261
-    cdef char octet
-    for octet in octets:
-        hash_val = hash_val ^ octet
+    cdef unsigned char octet
+    cdef int i
+    for i in range(octets.shape[0]):
+        hash_val = hash_val ^ octets[i]
         hash_val = hash_val * 16777619
     return hash_val
 
