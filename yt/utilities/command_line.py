@@ -51,7 +51,7 @@ from yt.visualization.plot_window import \
 from yt.utilities.metadata import get_metadata
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified, YTFieldNotParseable
+    YTOutputNotIdentified, YTFieldNotParseable, YTCommandRequiresModule
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -136,10 +136,7 @@ def _get_girder_client():
     try:
         import girder_client
     except ImportError:
-        print("this command requires girder_client to be installed")
-        print("Please install them using your python package manager, e.g.:")
-        print("   pip install girder_client --user")
-        sys.exit()
+        raise YTCommandRequiresModule('girder_client')
     if not ytcfg.get("yt", "hub_api_key"):
         print("Before you can access the yt Hub you need an API key")
         print("In order to obtain one, either register by typing:")
@@ -592,10 +589,7 @@ class YTHubRegisterCmd(YTCommand):
         try:
             import requests
         except ImportError:
-            print("yt {} requires requests to be installed".format(self.name))
-            print("Please install them using your python package manager, e.g.:")
-            print("   pip install requests --user")
-            sys.exit()
+            raise YTCommandRequiresModule('requests')
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
@@ -1192,10 +1186,7 @@ class YTUploadFileCmd(YTCommand):
         try:
             import requests
         except ImportError:
-            print("yt {} requires requests to be installed".format(self.name))
-            print("Please install them using your python package manager, e.g.:")
-            print("   pip install requests --user")
-            sys.exit()
+            raise YTCommandRequiresModule('requests')
 
         fs = iter(FileStreamer(open(args.file, 'rb')))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
