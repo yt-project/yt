@@ -1909,8 +1909,18 @@ You would feed it the filename ``output_00007/info_00007.txt``:
    import yt
    ds = yt.load("output_00007/info_00007.txt")
 
-yt will attempt to guess the fields in the file.  You may also specify a list
-of fields by supplying the ``fields`` keyword in your call to ``load``.
+yt will attempt to guess the fields in the file.  You may also specify
+a list of hydro fields by supplying the ``fields`` keyword in your
+call to ``load``. It is also possible to provide a list of *extra*
+particle fields by supplying the ``extra_particle_fields``:
+
+.. code-block:: python
+
+   import yt
+   extra_fields = [('family', 'I'), ('info', 'I')]
+   ds = yt.load("output_00001/info_00001.txt", extra_particle_fields=extra_fields)
+   # ('all', 'family') and ('all', 'info') now in ds.field_list
+
 
 .. _loading-sph-data:
 
