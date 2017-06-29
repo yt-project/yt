@@ -34,7 +34,6 @@ from yt.funcs import \
     ensure_dir, \
     ensure_list, \
     get_hg_or_git_version, \
-    get_pbar, \
     get_yt_version, \
     mylog, \
     ensure_dir_exists, \
@@ -44,6 +43,7 @@ from yt.funcs import \
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
+from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
@@ -153,7 +153,7 @@ def _get_girder_client():
 class FileStreamer:
     final_size = None
     next_sent = 0
-    chunksize = 16*1024*1024
+    chunksize = 100*1024
 
     def __init__(self, f, final_size = None):
         location = f.tell()
@@ -163,11 +163,11 @@ class FileStreamer:
         self.f = f
 
     def __iter__(self):
-        pbar = get_pbar("Uploading file", self.final_size)
-        while self.f.tell() < self.final_size:
-            yield self.f.read(self.chunksize)
-            pbar.update(self.f.tell())
-        pbar.finish()
+        with tqdm(total=self.final_size, desc='Uploading file',
+                  unit='B', unit_scale=True) as pbar:
+            while self.f.tell() < self.final_size:
+                yield self.f.read(self.chunksize)
+                pbar.update(self.chunksize)
 
 _subparsers = {None: subparsers}
 _subparsers_description = {
