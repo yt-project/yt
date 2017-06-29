@@ -15,6 +15,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     GenericImageTest
+from yt.testing import fake_random_ds
 import os
 import tempfile
 import shutil
@@ -36,7 +37,6 @@ def compare(ds, fields, point1, point2, resolution, test_prefix, decimals=12):
     return test
 
 tri2 = "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
-iso_galaxy = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 @requires_ds(tri2)
 def test_line_plot():
@@ -44,14 +44,13 @@ def test_line_plot():
     fields = [field for field in ds.field_list if field[0] == 'all']
     yield compare(ds, fields, (0, 0, 0), (1, 1, 0), 1000, "answers_line_plot")
 
-@requires_ds(iso_galaxy)
 def test_line_plot_methods():
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    ds = data_dir_load(iso_galaxy)
+    ds = fake_random_ds(32)
 
     plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
     plot.add_legend('density')
