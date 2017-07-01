@@ -17,7 +17,7 @@ answer_tests:
   local_fits_001:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_006:
+  local_flash_007:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
@@ -104,7 +104,7 @@ answer_tests:
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo_sph
     - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_with_continuum
 
-  local_axialpix_002:
+  local_axialpix_003:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
   local_particle_trajectory_000:
