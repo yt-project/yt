@@ -2115,6 +2115,8 @@ def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
          Object to be used for data selection. Defaults to ds.all_data(), a 
          region covering the full domain
     """
+    if ds.dimensionality != 2:
+        raise RuntimeError("Plot2DData only plots 2D datasets!")
     return AxisAlignedSlicePlot(ds, "z", fields, center=center, width=width,
                                 axes_unit=axes_unit, origin=origin, 
                                 right_handed=right_handed, fontsize=fontsize,
