@@ -109,7 +109,7 @@ from yt.visualization.api import \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
     FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
-    FITSOffAxisProjection
+    FITSOffAxisProjection, Plot2DData
 
 from yt.visualization.volume_rendering.api import \
     volume_render, create_scene, ColorTransferFunction, TransferFunction, \
