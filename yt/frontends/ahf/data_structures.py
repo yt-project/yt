@@ -121,7 +121,8 @@ class AHFHalosDataset(Dataset):
         nz = 1 << self.over_refine_factor
         self.domain_dimensions = np.ones(self.dimensionality, "int32") * nz
         self.domain_left_edge = np.array([0.0, 0.0, 0.0])
-        self.domain_right_edge = np.array([simu['boxsize']] * 3)
+        # Note that boxsize is in Mpc but particle positions are in kpc.
+        self.domain_right_edge = np.array([simu['boxsize']] * 3) * 1000
         self.periodicity = (True, True, True)
 
         # Set up cosmological information.

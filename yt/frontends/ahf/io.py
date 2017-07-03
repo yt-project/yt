@@ -19,6 +19,8 @@ import numpy as np
 
 from yt.funcs import \
     mylog
+from yt.utilities.exceptions import \
+    YTDomainOverflow
 from yt.utilities.io_handler import \
     BaseIOHandler
 from yt.utilities.lib.geometry_utils import \
@@ -113,4 +115,5 @@ class IOHandlerAHFHalos(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         data_files = sorted(data_files, key=attrgetter('filename'))
-        return data_files
+        for data_file in data_files:
+            yield data_file
