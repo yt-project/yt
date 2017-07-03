@@ -26,13 +26,13 @@ class AHFHalosFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
     known_particle_fields = (
-        ('particle_identifier', ('', ['ID'], None)),
-        ('particle_mass', (m_units, ['Mvir'], 'Virial Mass')),
-        ('particle_position_x', (p_units, ['Xc'], None)),
-        ('particle_position_y', (p_units, ['Yc'], None)),
-        ('particle_position_z', (p_units, ['Zc'], None)),
-        ('particle_velocity_x', (v_units, ['VXc'], None)),
-        ('particle_velocity_y', (v_units, ['VYc'], None)),
-        ('particle_velocity_z', (v_units, ['VZc'], None)),
-        ('virial_radius', (r_units, ['Rvir'], 'Virial Radius')),
+        ('ID', ('', ['particle_identifier'], None)),
+        ('Mvir', (m_units, ['particle_mass'], 'Virial Mass')),
+        ('Xc', (p_units, ['particle_position_x'], None)),
+        ('Yc', (p_units, ['particle_position_y'], None)),
+        ('Zc', (p_units, ['particle_position_z'], None)),
+        ('VXc', (v_units, ['particle_velocity_x'], None)),
+        ('VYc', (v_units, ['particle_velocity_y'], None)),
+        ('VZc', (v_units, ['particle_velocity_z'], None)),
+        ('Rvir', (r_units, ['virial_radius'], 'Virial Radius')),
     )
