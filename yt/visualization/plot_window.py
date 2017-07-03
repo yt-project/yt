@@ -2016,9 +2016,8 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
 
 def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
-               origin='center-window', right_handed=True, fontsize=18, 
-               field_parameters=None, window_size=8.0, aspect=None, 
-               data_source=None):
+               origin='center-window', fontsize=18, field_parameters=None, 
+               window_size=8.0, aspect=None, data_source=None):
     r"""Creates a plot of a 2D dataset
 
     Given a ds object and a field name string, this will return a
@@ -2102,10 +2101,6 @@ def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
          units, and only show the axes name.
-    right_handed : boolean
-         Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with a normal vector, the direction of the
-         'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2119,7 +2114,7 @@ def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
         raise RuntimeError("Plot2DData only plots 2D datasets!")
     return AxisAlignedSlicePlot(ds, "z", fields, center=center, width=width,
                                 axes_unit=axes_unit, origin=origin, 
-                                right_handed=right_handed, fontsize=fontsize,
+                                fontsize=fontsize,
                                 field_parameters=field_parameters, 
                                 window_size=window_size, aspect=aspect,
                                 data_source=data_source)
