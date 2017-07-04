@@ -137,11 +137,11 @@ documentation directory and build the docs:
 
 .. code-block:: bash
 
-   cd $YT_HG/doc
+   cd $YT_GIT/doc
    make html
 
 This will produce an html version of the documentation locally in the
-``$YT_HG/doc/build/html`` directory.  You can now go there and open
+``$YT_GIT/doc/build/html`` directory.  You can now go there and open
 up ``index.html`` or whatever file you wish in your web browser.
 
 Building the Docs (Full)
@@ -192,7 +192,7 @@ and build it using sphinx:
 
 .. code-block:: bash
 
-   cd $YT_HG/doc
+   cd $YT_GIT/doc
    make html
 
 If all of the dependencies are installed and all of the test data is in the
