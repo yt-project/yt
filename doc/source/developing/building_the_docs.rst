@@ -47,7 +47,7 @@ templates or checking out the
 
 New cookbook recipes (see :ref:`cookbook`) are very helpful for the community
 as they provide simple annotated recipes on how to use specific functionality.
-To add one, create a concise python script which demonstrates some
+To add one, create a concise Python script which demonstrates some
 functionality and pare it down to its minimum.  Add some comment lines to
 describe what it is that you're doing along the way.  Place this ``.py`` file
 in the ``source/cookbook/`` directory, and then link to it explicitly in one
@@ -75,17 +75,17 @@ a change to the codebase, as described in the section on :ref:`sharing-changes`.
 Building the Documentation
 --------------------------
 
-The yt documentation makes heavy use of the sphinx documentation automation
-suite.  Sphinx, written in python, was originally created for the documentation
-of the python project and has many nice capabilities for managing the
-documentation of python code.
+The yt documentation makes heavy use of the Sphinx documentation automation
+suite.  Sphinx, written in Python, was originally created for the documentation
+of the Python project and has many nice capabilities for managing the
+documentation of Python code.
 
 While much of the yt documentation is static text, we make heavy use of
 cross-referencing with API documentation that is automatically generated at
-build time by sphinx.  We also use sphinx to run code snippets (e.g. the
+build time by Sphinx.  We also use Sphinx to run code snippets (e.g. the
 cookbook and the notebooks) and embed resulting images and example data.
 
-You will want to make sure you have both Sphinx and the sphinx bootstrap theme
+You will want to make sure you have both Sphinx and the Sphinx Bootstrap Theme
 installed.  This installation is easily performed by running this at the
 command line:
 
@@ -120,7 +120,7 @@ well as the Sphinx
 `Bootstrap theme <https://pypi.python.org/pypi/sphinx-bootstrap-theme/>`_,
 which can be installed via ``pip install sphinx_bootstrap_theme``.
 
-In order to tell sphinx not to do all of the dynamical building, you must
+In order to tell Sphinx not to do all of the dynamical building, you must
 set the ``$READTHEDOCS`` environment variable to be True by typing this at
 the command line:
 
@@ -132,7 +132,7 @@ the command line:
 This variable is set for automated builds on the free ReadTheDocs service but
 can be used by anyone to force a quick, minimal build.
 
-Now all you need to do is execute sphinx on the yt doc source.  Go to the
+Now all you need to do is execute Sphinx on the yt doc source.  Go to the
 documentation directory and build the docs:
 
 .. code-block:: bash
@@ -150,8 +150,8 @@ Building the Docs (Full)
 As alluded to earlier, building the full documentation is a bit more involved
 than simply building the static documentation.
 
-The full documentation makes heavy use of custom sphinx extensions to transform
-recipes, notebooks, and inline code snippets into python scripts, IPython_
+The full documentation makes heavy use of custom Sphinx extensions to transform
+recipes, notebooks, and inline code snippets into Python scripts, IPython_
 notebooks, or notebook cells that are executed when the docs are built.
 
 To do this, we use Jupyter's nbconvert module to transform notebooks into
@@ -188,7 +188,7 @@ configured and that all of the yt test data is in the testing directory.  See
 configuration.
 
 Now that you have everything set up properly, go to the documentation directory
-and build it using sphinx:
+and build it using Sphinx:
 
 .. code-block:: bash
 
@@ -207,18 +207,18 @@ To clean the docs build, use :code:`make clean`.
 Building the Docs (Hybrid)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-It's also possible to create a custom sphinx build that builds a restricted set
+It's also possible to create a custom Sphinx build that builds a restricted set
 of notebooks or scripts.  This can be accomplished by editing the Sphinx
 :code:`conf.py` file included in the :code:`source` directory at the top level
 of the docs.  The extensions included in the build are contained in the
 :code:`extensions` list.  To disable an extension, simply remove it from the
-list.  Doing so will raise a warning when sphinx encounters the directive in the
-docs and will prevent sphinx from evaluating the directive.
+list.  Doing so will raise a warning when Sphinx encounters the directive in the
+docs and will prevent Sphinx from evaluating the directive.
 
 As a concrete example, if one wanted to include the :code:`notebook`, and
 :code:`notebook-cell` directives, but not the :code:`python-script` or
 :code:`autosummary` directives, one would just need to comment out the lines
 that append these extensions to the :code:`extensions` list. The resulting docs
 build will be significantly quicker since it would avoid executing the lengthy
-API autodocumentation as well as a large number of python script snippets in
+API autodocumentation as well as a large number of Python script snippets in
 the narrative docs.
