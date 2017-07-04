@@ -30,9 +30,9 @@ ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
 
 
 @requires_ds(ahf_halos)
-def test_fields_sample():
+def test_fields_ahf_halos():
     ds = data_dir_load(ahf_halos)
-    assert_equal(str(ahf_halos), os.path.basename(ahf_halos))
+    assert_equal(str(ds), os.path.basename(ahf_halos))
     for field in _fields:
         yield FieldValuesTest(ahf_halos, field, particle_type=True)
 
