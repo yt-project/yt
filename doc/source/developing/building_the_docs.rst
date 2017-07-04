@@ -12,8 +12,8 @@ Writing documentation is one of the most important but often overlooked tasks
 for increasing yt's impact in the community.  It is the way in which the
 world will understand how to use our code, so it needs to be done concisely
 and understandably.  Typically, when a developer submits some piece of code
-with new functionality, she should also include documentation on how to use
-that functionality (as per :ref:`requirements-for-code-submission`).
+with new functionality, the developer should also include documentation on how
+to use that functionality (as per :ref:`requirements-for-code-submission`).
 Depending on the nature of the code addition, this could be a new narrative
 docs section describing how the new code works and how to use it, it could
 include a recipe in the cookbook section, or it could simply be adding a note
