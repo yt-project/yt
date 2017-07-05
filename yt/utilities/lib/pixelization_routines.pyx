@@ -867,7 +867,7 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
                            np.ndarray[np.int64_t, ndim=2] conn,
                            np.ndarray[np.float64_t, ndim=1] start_point,
                            np.ndarray[np.float64_t, ndim=1] end_point,
-                           resolution,
+                           npoints,
                            np.ndarray[np.float64_t, ndim=2] field,
                            int index_offset = 0):
 
@@ -878,7 +878,8 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
     cdef int nvertices = conn.shape[1]
     cdef int ndim = coords.shape[1]
     cdef int num_field_vals = field.shape[1]
-    cdef int num_plot_nodes = resolution + 1
+    cdef int num_plot_nodes = npoints
+    cdef int num_intervals = npoints - 1
     cdef double[4] mapped_coord
     cdef ElementSampler sampler
     cdef np.ndarray[np.float64_t, ndim=1] lin_vec
@@ -927,17 +928,17 @@ def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
 
     lin_vec = end_point - start_point
     lin_length = np.linalg.norm(lin_vec)
-    lin_inc = lin_vec / resolution
-    inc_length = lin_length / resolution
+    lin_inc = lin_vec / num_intervals
+    inc_length = lin_length / num_intervals
     for j in range(ndim):
         lin_sample_points[0, j] = start_point[j]
     arc_length[0] = 0
-    for i in range(1, resolution + 1):
+    for i in range(1, num_intervals + 1):
         for j in range(ndim):
             lin_sample_points[i, j] = lin_sample_points[i-1, j] + lin_inc[j]
             arc_length[i] = arc_length[i-1] + inc_length
 
-    for i in range(resolution + 1):
+    for i in range(num_intervals + 1):
         for j in range(3):
             if j < ndim:
                 sample_point[j] = lin_sample_points[i][j]

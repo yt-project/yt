@@ -1072,9 +1072,9 @@ class. They are enumerated below:
 4. The ending point of the sampling line. This should also be an n-element list, tuple,
    ndarray, or YTArray with the elements corresponding to the coordinates of the
    ending point.
-5. The resolution of the sampling line. This is the number of sampling points
-   along the line, e.g. if 1000 is specified, then data will be sampled at
-   1000 points evenly spaced between the starting and ending points.
+5. The number of sampling points along the line, e.g. if 1000 is specified, then
+   data will be sampled at 1000 points evenly spaced between the starting and
+   ending points.
 
 The below code snippet illustrates how this is done:
 
@@ -1114,7 +1114,17 @@ and a field with units of "temperature", two different figures will be created,
 one with plots of the "length/time" fields and another with the plot of the
 "temperature" field. It is only necessary to call ``add_legend``
 for one field of a multi-field plot to produce a legend containing all the
-labels passed in the initial construction of the ``LinePlot`` instance.
+labels passed in the initial construction of the ``LinePlot`` instance. Example:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], [0, 0, 0], [0, 1, 0],
+                      100, labels={('all', 'u') : r"v$_x$", ('all', 'v') : r"v$_y$"})
+   plot.add_legend(('all', 'u'))
+   plot.save()
 
 
 .. _how-to-make-2d-profiles:

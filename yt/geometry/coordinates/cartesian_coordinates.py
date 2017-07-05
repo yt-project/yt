@@ -21,9 +21,8 @@ from .coordinate_handler import \
     _get_vert_fields, \
     cartesian_to_cylindrical, \
     cylindrical_to_cartesian
-from yt import YTArray
 from yt.funcs import mylog
-from yt.units.yt_array import uvstack
+from yt.units.yt_array import uvstack, YTArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
     pixelize_cartesian, pixelize_cartesian_nodal, \
@@ -31,16 +30,29 @@ from yt.utilities.lib.pixelization_routines import \
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 
-def _sample_ray(ray, resolution, field):
+def _sample_ray(ray, npoints, field):
+    """
+    Private function that uses a ray object for calculating the field values
+    that will be the y-axis values in a LinePlot object.
+
+    Parameters
+    ----------
+    ray : YTOrthoRay, YTRay, or LightRay
+        Ray object from which to sample field values
+    npoints : int
+        The number of points to sample
+    field : str or field tuple
+        The name of the field to sample
+    """
     start_point = ray.start_point
     end_point = ray.end_point
-    sample_dr = (end_point - start_point)/(resolution-1)
-    sample_points = [np.arange(resolution)*sample_dr[i] for i in range(3)]
+    sample_dr = (end_point - start_point)/(npoints-1)
+    sample_points = [np.arange(npoints)*sample_dr[i] for i in range(3)]
     sample_points = uvstack(sample_points).T
     ray_coordinates = uvstack([ray[d] for d in 'xyz']).T
     ray_dds = uvstack([ray['d'+d] for d in 'xyz']).T
     ray_field = ray[field]
-    field_values = ray.ds.arr(np.zeros(resolution), ray_field.units)
+    field_values = ray.ds.arr(np.zeros(npoints), ray_field.units)
     for i, sample_point in enumerate(sample_points):
         ray_contains = ((sample_point >= (ray_coordinates - ray_dds/2)) &
                         (sample_point <= (ray_coordinates + ray_dds/2)))
@@ -50,7 +62,7 @@ def _sample_ray(ray, resolution, field):
             raise RuntimeError
         field_values[i] = ray_field[wh]
     dr = np.sqrt((sample_dr**2).sum())
-    x = np.arange(resolution)/(resolution-1)*(dr*resolution)
+    x = np.arange(npoints)/(npoints-1)*(dr*npoints)
     return x, field_values
 
 class CartesianCoordinateHandler(CoordinateHandler):
@@ -149,13 +161,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                           antialias)
 
 
-    def line_plot(self, field, start_point, end_point, resolution):
+    def line_plot(self, field, start_point, end_point, npoints):
         """
         Method for sampling datasets along a line in preparation for
         one-dimensional line plots. For UnstructuredMesh, relies on a
         sampling routine written in cython
         """
-
+        if npoints < 2:
+            raise ValueError("Must have at least two sample points in order "
+                             "to draw a line plot.")
         index = self.ds.index
         if (hasattr(index, 'meshes') and
            not isinstance(index.meshes[0], SemiStructuredMesh)):
@@ -186,13 +200,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             arc_length, plot_values = element_mesh_line_plot(coords, indices,
                                                              start_point,
                                                              end_point,
-                                                             resolution, field_data,
+                                                             npoints, field_data,
                                                              index_offset=offset)
             arc_length = YTArray(arc_length, start_point.units)
             plot_values = YTArray(plot_values, field_data.units)
         else:
             ray = self.ds.ray(start_point, end_point)
-            arc_length, plot_values = _sample_ray(ray, resolution, field)
+            arc_length, plot_values = _sample_ray(ray, npoints, field)
         return arc_length, plot_values
 
 

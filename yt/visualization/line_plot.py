@@ -6,7 +6,7 @@ A mechanism for plotting field values along a line through a dataset
 """
 
 #-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
+# Copyright (c) 2017, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
@@ -79,20 +79,34 @@ class LinePlot(PlotContainer):
         Contains the coordinates of the first point for constructing the line.
         Must contain n elements where n is the dimensionality of the dataset.
     figure_size: integer or two-element
-    resolution: int
+    npoints: int
         How many points to sample between start_point and end_point for
         constructing the line plot
+
+    Example
+    -------
+
+    >>> import yt
+    >>>
+    >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+    >>>
+    >>> plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
+    >>> plot.add_legend('density')
+    >>> plot.set_x_unit('cm')
+    >>> plot.set_unit('density', 'kg/cm**3')
+    >>> plot.save()
+
     """
     _plot_type = 'line_plot'
 
-    def __init__(self, ds, fields, start_point, end_point, resolution,
+    def __init__(self, ds, fields, start_point, end_point, npoints,
                  figure_size=5., fontsize=14., labels=None):
         """
         Sets up figure and axes
         """
         self.start_point = _validate_point(start_point, ds, start=True)
         self.end_point = _validate_point(end_point, ds)
-        self.resolution = resolution
+        self.npoints = npoints
         self._x_unit = None
         self._y_units = {}
         self._titles = {}
@@ -143,7 +157,7 @@ class LinePlot(PlotContainer):
                 figure_size = self.figure_size
             else:
                 figure_size = (self.figure_size, self.figure_size)
-            
+
             xbins = np.array([x_axis_size, figure_size[0],
                               right_buff_size])
             ybins = np.array([y_axis_size, figure_size[1], top_buff_size])
@@ -167,7 +181,7 @@ class LinePlot(PlotContainer):
                 self.plots[field] = plot
 
             x, y = self.ds.coordinates.line_plot(
-                field, self.start_point, self.end_point, self.resolution)
+                field, self.start_point, self.end_point, self.npoints)
 
             if self._x_unit is None:
                 unit_x = x.units
