@@ -86,19 +86,8 @@ class SPHParticleIndex(ParticleIndex):
 
         ds._file_hash = self._generate_hash()
 
-        if getattr(ds, 'kdtree_filename', None) is None:
-            if os.path.exists(ds.parameter_filename):
-                fname = ds.parameter_filename + ".kdtree"
-            else:
-                # we don't want to write to disk for in-memory data
-                fname = None
-        else:
-            fname = ds.kdtree_filename
-
-        self._generate_kdtree(fname)
-
         if hasattr(self.io, '_generate_smoothing_length'):
-            self.io._generate_smoothing_length(self.data_files, self._kdtree)
+            self.io._generate_smoothing_length(self.data_files, self.kdtree)
 
         super(SPHParticleIndex, self)._initialize_index()
 
@@ -132,3 +121,23 @@ class SPHParticleIndex(ParticleIndex):
         )
         if fname is not None:
             self._kdtree.save(fname)
+
+    @property
+    def kdtree(self):
+        if hasattr(self, '_kdtree'):
+            return self._kdtree
+
+        ds = self.ds
+
+        if getattr(ds, 'kdtree_filename', None) is None:
+            if os.path.exists(ds.parameter_filename):
+                fname = ds.parameter_filename + ".kdtree"
+            else:
+                # we don't want to write to disk for in-memory data
+                fname = None
+        else:
+            fname = ds.kdtree_filename
+
+        self._generate_kdtree(fname)
+
+        return self._kdtree
