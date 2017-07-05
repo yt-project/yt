@@ -1922,6 +1922,11 @@ particle fields by supplying the ``extra_particle_fields``:
    # ('all', 'family') and ('all', 'info') now in ds.field_list
 
 
+It is possible to force yt to treat the simulation as a cosmological
+simulation by providing the ``cosmological=True`` parameter (or
+``False`` to force non-cosmology). If left to ``None``, the kind of
+the simulation is inferred from the data.
+
 .. _loading-sph-data:
 
 SPH Particle Data
