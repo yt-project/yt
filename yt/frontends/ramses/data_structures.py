@@ -157,15 +157,15 @@ class RAMSESDomainFile(object):
         self.local_particle_count = hvals['npart']
 
         particle_fields = [
-            ("particle_position_x", "d"),
-            ("particle_position_y", "d"),
-            ("particle_position_z", "d"),
-            ("particle_velocity_x", "d"),
-            ("particle_velocity_y", "d"),
-            ("particle_velocity_z", "d"),
-            ("particle_mass", "d"),
-            ("particle_identifier", "i"),
-            ("particle_refinement_level", "I")]
+                ("particle_position_x", "d"),
+                ("particle_position_y", "d"),
+                ("particle_position_z", "d"),
+                ("particle_velocity_x", "d"),
+                ("particle_velocity_y", "d"),
+                ("particle_velocity_z", "d"),
+                ("particle_mass", "d"),
+                ("particle_identifier", "i"),
+                ("particle_refinement_level", "I")]
         if hvals["nstar_tot"] > 0:
             particle_fields += [("particle_age", "d"),
                                 ("particle_metallicity", "d")]
@@ -209,7 +209,7 @@ class RAMSESDomainFile(object):
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
+           For each oct, only the position, index, level and domain 
            are needed - its position in the octree is found automatically.
            The most important is finding all the information to feed
            oct_handler.add
@@ -235,7 +235,7 @@ class RAMSESDomainFile(object):
         min_level = self.ds.min_level
         # yt max level is not the same as the RAMSES one.
         # yt max level is the maximum number of additional refinement levels
-        # so for a uni grid run with no refinement, it would be 0.
+        # so for a uni grid run with no refinement, it would be 0. 
         # So we initially assume that.
         max_level = 0
         nx, ny, nz = (((i-1.0)/2.0) for i in self.amr_header['nx'])
@@ -372,7 +372,7 @@ class RAMSESIndex(OctreeIndex):
             dsl.update(set(domain.particle_field_offsets.keys()))
         self.particle_field_list = list(dsl)
         self.field_list = [("ramses", f) for f in self.fluid_field_list] \
-                          + self.particle_field_list
+                        + self.particle_field_list
 
     def _setup_auto_fields(self):
         '''
@@ -380,7 +380,7 @@ class RAMSESIndex(OctreeIndex):
         '''
         # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
         # Find nvar
-
+        
 
         # TODO: copy/pasted from DomainFile; needs refactoring!
         num = os.path.basename(self.dataset.parameter_filename).split("."
@@ -414,25 +414,25 @@ class RAMSESIndex(OctreeIndex):
             raise ValueError
         # Basic hydro runs
         if nvar == 5:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
                       "Pressure"]
         if nvar > 5 and nvar < 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
                       "Pressure", "Metallicity"]
         # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
         if nvar == 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
+                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
                       "Pressure"]
         if nvar > 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+            fields = ["Density", 
+                      "x-velocity", "y-velocity", "z-velocity", 
+                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
                       "Pressure","Metallicity"]
         while len(fields) < nvar:
             fields.append("var"+str(len(fields)))
@@ -490,9 +490,9 @@ class RAMSESIndex(OctreeIndex):
         return {'io': npart}
 
     def print_stats(self):
-
+        
         # This function prints information based on the fluid on the grids,
-        # and therefore does not work for DM only runs.
+        # and therefore does not work for DM only runs. 
         if not self.fluid_field_list:
             print("This function is not implemented for DM only runs")
             return
@@ -532,11 +532,11 @@ class RAMSESDataset(Dataset):
     _index_class = RAMSESIndex
     _field_info_class = RAMSESFieldInfo
     gamma = 1.4 # This will get replaced on hydro_fn open
-
+    
     def __init__(self, filename, dataset_type='ramses',
-                 fields = None, storage_filename = None,
+                 fields=None, storage_filename=None,
                  units_override=None, unit_system="cgs",
-                 extra_particle_fields=None):
+                 extra_particle_fields=None, cosmological=None):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, string_types):
             fields = field_aliases[fields]
@@ -544,13 +544,17 @@ class RAMSESDataset(Dataset):
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
                 If set to None, will try a default set of fields
         extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file.
+        cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force 
+                      its value.
         '''
         self.fluid_types += ("ramses",)
         self._fields_in_file = fields
         self._extra_particle_fields = extra_particle_fields
+        self.force_cosmological = cosmological
         Dataset.__init__(self, filename, dataset_type, units_override=units_override,
                          unit_system=unit_system)
         self.storage_filename = storage_filename
+
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -566,7 +570,7 @@ class RAMSESDataset(Dataset):
         time_unit = self.parameters['unit_t']
 
         # calculating derived units (except velocity and temperature, done below)
-        mass_unit = density_unit * length_unit**3
+        mass_unit = density_unit * length_unit**3     
         magnetic_unit = np.sqrt(4*np.pi * mass_unit /
                                 (time_unit**2 * length_unit))
         pressure_unit = density_unit * (length_unit / time_unit)**2
@@ -637,7 +641,13 @@ class RAMSESDataset(Dataset):
         # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
         # These conditions seem to always be true for non-cosmological datasets
-        if rheader["time"] >= 0 and rheader["H0"] == 1 and rheader["aexp"] == 1:
+        if self.force_cosmological is not None:
+            is_cosmological = self.force_cosmological
+        else:
+            is_cosmological = (rheader["time"] >= 0 and
+                               rheader["H0"] == 1 and
+                               rheader["aexp"] == 1)
+        if not is_cosmological:
             self.cosmological_simulation = 0
             self.current_redshift = 0
             self.hubble_constant = 0
@@ -665,7 +675,7 @@ class RAMSESDataset(Dataset):
 
             self.time_simu = self.t_frw[iage  ]*(age-self.tau_frw[iage-1])/(self.tau_frw[iage]-self.tau_frw[iage-1])+ \
                              self.t_frw[iage-1]*(age-self.tau_frw[iage  ])/(self.tau_frw[iage-1]-self.tau_frw[iage])
-
+ 
             self.current_time = (self.time_tot + self.time_simu)/(self.hubble_constant*1e7/3.08e24)/self.parameters['unit_t']
 
 
