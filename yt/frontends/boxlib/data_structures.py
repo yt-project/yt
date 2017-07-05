@@ -30,7 +30,6 @@ from yt.funcs import \
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
-from yt.units import YTQuantity
 
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
