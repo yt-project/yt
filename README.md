@@ -5,6 +5,7 @@
 [![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
+[![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
                 
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 

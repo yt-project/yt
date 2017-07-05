@@ -28,25 +28,16 @@ To reveal this, go to a command line and type:
     $ yt version
 
     yt module located at:
-        /Users/username/src/yt-x86_64/src/yt-hg
-    The supplemental repositories are located at:
-        /Users/username/src/yt-x86_64/src/yt-supplemental
+        /Users/username/src/yt-conda/src/yt-git
 
-    The current version and changeset for the code is:
+    The current version of yt is:
 
     ---
-    Version = 2.7-dev
-    Changeset = 6bffc737a67a
+    Version = 3.4-dev
+    Changeset = 94033fca00e5
     ---
 
     This installation CAN be automatically updated.
-    yt dependencies were last updated on
-    Wed Dec  4 15:47:40 MST 2013
-
-    To update all dependencies, run "yt update --all".
-
-If the changeset is displayed followed by a "+", it means you have made
-modifications to the code since the last changeset.
 
 For more information on this topic, see :ref:`updating-yt`.
 

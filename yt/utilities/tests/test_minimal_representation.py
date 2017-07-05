@@ -1,3 +1,4 @@
+import numpy as np
 import os.path
 import yt
 from yt.config import ytcfg
@@ -36,7 +37,7 @@ def test_store():
 
     def fail_for_different_method():
         proj2_c = ds.proj(field, "z", data_source=sp, method="mip")
-        return (proj2[field] == proj2_c[field]).all()
+        return np.equal(proj2[field], proj2_c[field]).all()
     assert_raises(YTUnitOperationError, fail_for_different_method)
 
     def fail_for_different_source():

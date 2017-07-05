@@ -224,7 +224,7 @@ class ThermalPhotonModel(PhotonModel):
                         tot_spec *= norm_factor
                         eidxs = self.prng.choice(nchan, size=cn, p=tot_spec)
                         cell_e = emid[eidxs]
-                    energies[ei:ei+cn] = cell_e
+                    energies[int(ei):int(ei + cn)] = cell_e
                     cell_counter += 1
                     pbar.update(cell_counter)
                     ei += cn

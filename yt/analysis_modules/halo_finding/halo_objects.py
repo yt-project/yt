@@ -1281,7 +1281,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 
         def haloCmp(h1, h2):
             def cmp(a, b):
-                return (a > b) - (a < b)
+                return (a > b) ^ (a < b)
             c = cmp(h1.total_mass(), h2.total_mass())
             if c != 0:
                 return -1 * c
