@@ -321,7 +321,7 @@ class FLASHDataset(Dataset):
             for hn in hns:
                 if hn not in self._handle:
                     continue
-                if hn is 'simulation parameters':
+                if hn == 'simulation parameters':
                     zipover = ((name, self._handle[hn][name][0])
                                for name in self._handle[hn].dtype.names)
                 else:
@@ -412,7 +412,6 @@ class FLASHDataset(Dataset):
             self.gamma = self.parameters["gamma"]
         except:
             mylog.info("Cannot find Gamma")
-            pass
 
         # Get the simulation time
         self.current_time = self.parameters["time"]

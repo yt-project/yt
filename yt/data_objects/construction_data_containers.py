@@ -476,7 +476,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
             left_edge = self.data_source.left_edge
             right_edge = self.data_source.right_edge
             center = (left_edge + right_edge)/2.0
-            width = right_edge - left_edge
             xax = self.ds.coordinates.x_axis[self.axis]
             yax = self.ds.coordinates.y_axis[self.axis]
             lx, rx = left_edge[xax], right_edge[xax]
@@ -1102,10 +1101,10 @@ class YTSurface(YTSelectionContainer3D):
     output the vertices to "triangles.obj" after rescaling them.
 
     >>> from yt.units import kpc
-    >>> sp = ds.sphere("max", (10, "kpc")
+    >>> sp = ds.sphere("max", (10, "kpc"))
     >>> surf = ds.surface(sp, "density", 5e-27)
-    >>> print surf["temperature"]
-    >>> print surf.vertices
+    >>> print(surf["temperature"])
+    >>> print(surf.vertices)
     >>> bounds = [(sp.center[i] - 5.0*kpc,
     ...            sp.center[i] + 5.0*kpc) for i in range(3)]
     >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
@@ -1149,7 +1148,7 @@ class YTSurface(YTSelectionContainer3D):
             mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
+        for _ in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 my_verts = self._extract_isocontours_from_grid(
                                 block, self.surface_field, self.field_value,
@@ -1247,7 +1246,7 @@ class YTSurface(YTSelectionContainer3D):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
+        for _ in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 flux += self._calculate_flux_in_grid(block, mask,
                         field_x, field_y, field_z, fluxing_field)

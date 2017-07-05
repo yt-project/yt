@@ -16,6 +16,10 @@ Painting zones in a grid
 import numpy as np
 
 class FluidOperator(object):
+    def __call__(self):
+        # must be overrided by subclasses
+        raise NotImplementedError
+    
     def apply(self, ds):
         for g in ds.index.grids: self(g)
 

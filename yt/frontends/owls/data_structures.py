@@ -69,5 +69,4 @@ class OWLSDataset(GadgetHDF5Dataset):
             fileh.close()
         except:
             valid = False
-            pass
         return valid

@@ -619,7 +619,6 @@ class DualEPS(object):
             imsize = (256,1)
         else:
             raise RuntimeError("orientation %s unknown" % orientation)
-            return
 
         # If shrink is a scalar, then convert into tuple
         if not isinstance(shrink, (tuple,list)):
@@ -1070,10 +1069,8 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         if len(images) != npanels:
             raise RuntimeError("Number of images (%d) doesn't match nrow(%d)"\
                                " x ncol(%d)." % (len(images), nrow, ncol))
-            return
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
-        return
     if yt_plots is not None and images is not None:
         mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots is not None:
@@ -1203,7 +1200,6 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         if fields[index] not in cb_location.keys():
                             raise RuntimeError("%s not found in cb_location dict" %
                                                fields[index])
-                            return
                         orientation = cb_location[fields[index]]
                     elif isinstance(cb_location, list):
                         orientation = cb_location[index]
@@ -1292,21 +1288,18 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         if fields is None:
             fields = plots.fields
         if len(fields) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
+            raise RuntimeError("Number of plots (%d) is less "
+                               "than nrow(%d) x ncol(%d)." %
                                (len(fields), nrow, ncol))
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
+            raise RuntimeError("Number of plots (%d) is less "
+                               "than nrow(%d) x ncol(%d)." %
                                (len(fields), nrow, ncol))
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
         raise RuntimeError("Unknown plot type in multiplot_yt")
-        return
     return figure
 
 #=============================================================================

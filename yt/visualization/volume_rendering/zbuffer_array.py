@@ -80,6 +80,8 @@ class ZBuffer(object):
         equal *= np.all(self.z == other.z)
         return equal
 
+    __hash__ = None
+
     def paint(self, ind, value, z):
         if z < self.z[ind]:
             self.rgba[ind] = value

@@ -283,7 +283,8 @@ been deprecated, use profile.standard_deviation instead."""
         return self.field_data.keys()
 
     def __iter__(self):
-        return sorted(self.items())
+        for item in sorted(self.items()):
+            yield item
 
     def _get_bins(self, mi, ma, n, take_log):
         if take_log:

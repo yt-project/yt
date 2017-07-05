@@ -26,6 +26,7 @@ class YTException(Exception):
 
 class YTOutputNotIdentified(YTException):
     def __init__(self, args, kwargs):
+        super(YTOutputNotIdentified, self).__init__()
         self.args = args
         self.kwargs = kwargs
 
@@ -44,6 +45,7 @@ class YTSphereTooSmall(YTException):
 
 class YTAxesNotOrthogonalError(YTException):
     def __init__(self, axes):
+        super(YTAxesNotOrthogonalError, self).__init__()
         self.axes = axes
 
     def __str__(self):
@@ -51,6 +53,7 @@ class YTAxesNotOrthogonalError(YTException):
 
 class YTNoDataInObjectError(YTException):
     def __init__(self, obj):
+        super(YTNoDataInObjectError, self).__init__()
         self.obj_type = getattr(obj, "_type_name", "")
 
     def __str__(self):
@@ -61,8 +64,8 @@ class YTNoDataInObjectError(YTException):
 
 class YTFieldNotFound(YTException):
     def __init__(self, fname, ds):
+        super(YTFieldNotFound, self).__init__(ds=ds)
         self.fname = fname
-        self.ds = ds
 
     def __str__(self):
         return "Could not find field '%s' in %s." % (self.fname, self.ds)
@@ -76,8 +79,8 @@ class YTCouldNotGenerateField(YTFieldNotFound):
 
 class YTFieldTypeNotFound(YTException):
     def __init__(self, ftype, ds=None):
+        super(YTFieldTypeNotFound, self).__init__(ds=ds)
         self.ftype = ftype
-        self.ds = ds
 
     def __str__(self):
         if self.ds is not None and \
@@ -90,7 +93,7 @@ class YTFieldTypeNotFound(YTException):
 
 class YTSimulationNotIdentified(YTException):
     def __init__(self, sim_type):
-        YTException.__init__(self)
+        super(YTSimulationNotIdentified, self).__init__()
         self.sim_type = sim_type
 
     def __str__(self):
@@ -98,6 +101,7 @@ class YTSimulationNotIdentified(YTException):
 
 class YTCannotParseFieldDisplayName(YTException):
     def __init__(self, field_name, display_name, mathtext_error):
+        super(YTCannotParseFieldDisplayName, self).__init__()
         self.field_name = field_name
         self.display_name = display_name
         self.mathtext_error = mathtext_error
@@ -110,6 +114,7 @@ class YTCannotParseFieldDisplayName(YTException):
 
 class YTCannotParseUnitDisplayName(YTException):
     def __init__(self, field_name, unit_name, mathtext_error):
+        super(YTCannotParseUnitDisplayName, self).__init__()
         self.field_name = field_name
         self.unit_name = unit_name
         self.mathtext_error = mathtext_error
@@ -122,6 +127,7 @@ class YTCannotParseUnitDisplayName(YTException):
 
 class InvalidSimulationTimeSeries(YTException):
     def __init__(self, message):
+        super(InvalidSimulationTimeSeries, self).__init__()
         self.message = message
 
     def __str__(self):
@@ -150,6 +156,7 @@ class YTNotInsideNotebook(YTException):
 
 class YTGeometryNotSupported(YTException):
     def __init__(self, geom):
+        super(YTGeometryNotSupported, self).__init__()
         self.geom = geom
 
     def __str__(self):
@@ -161,6 +168,7 @@ class YTCoordinateNotImplemented(YTException):
 
 class YTUnitNotRecognized(YTException):
     def __init__(self, unit):
+        super(YTUnitNotRecognized, self).__init__()
         self.unit = unit
 
     def __str__(self):
@@ -207,6 +215,7 @@ class YTUnitsNotReducible(YTException):
 
 class YTEquivalentDimsError(YTUnitOperationError):
     def __init__(self, old_units, new_units, base):
+        super(YTEquivalentDimsError, self).__init__()
         self.old_units = old_units
         self.new_units = new_units
         self.base = base
@@ -233,6 +242,7 @@ class YTUfuncUnitError(YTException):
 
 class YTIterableUnitCoercionError(YTException):
     def __init__(self, quantity_list):
+        super(YTIterableUnitCoercionError, self).__init__()
         self.quantity_list = quantity_list
 
     def __str__(self):
@@ -242,6 +252,7 @@ class YTIterableUnitCoercionError(YTException):
 
 class YTFieldUnitError(YTException):
     def __init__(self, field_info, returned_units):
+        super(YTFieldUnitError, self).__init__()
         self.msg = ("The field function associated with the field '%s' returned "
                     "data with units '%s' but was defined with units '%s'.")
         self.msg = self.msg % (field_info.name, returned_units, field_info.units)
@@ -251,6 +262,7 @@ class YTFieldUnitError(YTException):
 
 class YTFieldUnitParseError(YTException):
     def __init__(self, field_info):
+        super(YTFieldUnitParseError, self).__init__()
         self.msg = ("The field '%s' has unparseable units '%s'.")
         self.msg = self.msg % (field_info.name, field_info.units)
 
@@ -259,6 +271,7 @@ class YTFieldUnitParseError(YTException):
 
 class YTSpatialFieldUnitError(YTException):
     def __init__(self, field):
+        super(YTSpatialFieldUnitError, self).__init__()
         msg = ("Field '%s' is a spatial field but has unknown units but "
                "spatial fields must have explicitly defined units. Add the "
                "field with explicit 'units' to clear this error.")
@@ -274,6 +287,7 @@ class YTHubRegisterError(YTException):
 
 class YTNoFilenamesMatchPattern(YTException):
     def __init__(self, pattern):
+        super(YTNoFilenamesMatchPattern, self).__init__()
         self.pattern = pattern
 
     def __str__(self):
@@ -282,6 +296,7 @@ class YTNoFilenamesMatchPattern(YTException):
 
 class YTNoOldAnswer(YTException):
     def __init__(self, path):
+        super(YTNoOldAnswer, self).__init__()
         self.path = path
 
     def __str__(self):
@@ -290,6 +305,7 @@ class YTNoOldAnswer(YTException):
 
 class YTCloudError(YTException):
     def __init__(self, path):
+        super(YTCloudError, self).__init__()
         self.path = path
 
     def __str__(self):
@@ -308,6 +324,7 @@ class YTEllipsoidOrdering(YTException):
 
 class EnzoTestOutputFileNonExistent(YTException):
     def __init__(self, filename):
+        super(EnzoTestOutputFileNonExistent, self).__init__()
         self.filename = filename
         self.testname = os.path.basename(os.path.dirname(filename))
 
@@ -317,6 +334,7 @@ class EnzoTestOutputFileNonExistent(YTException):
 
 class YTNoAPIKey(YTException):
     def __init__(self, service, config_name):
+        super(YTNoAPIKey, self).__init__()
         self.service = service
         self.config_name = config_name
 
@@ -326,6 +344,7 @@ class YTNoAPIKey(YTException):
 
 class YTTooManyVertices(YTException):
     def __init__(self, nv, fn):
+        super(YTTooManyVertices, self).__init__()
         self.nv = nv
         self.fn = fn
 
@@ -336,6 +355,7 @@ class YTTooManyVertices(YTException):
 
 class YTInvalidWidthError(YTException):
     def __init__(self, width):
+        super(YTInvalidWidthError, self).__init__()
         self.error = "width (%s) is invalid" % str(width)
 
     def __str__(self):
@@ -343,6 +363,7 @@ class YTInvalidWidthError(YTException):
 
 class YTFieldNotParseable(YTException):
     def __init__(self, field):
+        super(YTFieldNotParseable, self).__init__()
         self.field = field
 
     def __str__(self):
@@ -350,6 +371,7 @@ class YTFieldNotParseable(YTException):
 
 class YTDataSelectorNotImplemented(YTException):
     def __init__(self, class_name):
+        super(YTDataSelectorNotImplemented, self).__init__()
         self.class_name = class_name
 
     def __str__(self):
@@ -357,6 +379,7 @@ class YTDataSelectorNotImplemented(YTException):
 
 class YTParticleDepositionNotImplemented(YTException):
     def __init__(self, class_name):
+        super(YTParticleDepositionNotImplemented, self).__init__()
         self.class_name = class_name
 
     def __str__(self):
@@ -364,6 +387,7 @@ class YTParticleDepositionNotImplemented(YTException):
 
 class YTDomainOverflow(YTException):
     def __init__(self, mi, ma, dle, dre):
+        super(YTDomainOverflow, self).__init__()
         self.mi = mi
         self.ma = ma
         self.dle = dle
@@ -375,6 +399,7 @@ class YTDomainOverflow(YTException):
 
 class YTIntDomainOverflow(YTException):
     def __init__(self, dims, dd):
+        super(YTIntDomainOverflow, self).__init__()
         self.dims = dims
         self.dd = dd
 
@@ -384,6 +409,7 @@ class YTIntDomainOverflow(YTException):
 
 class YTIllDefinedFilter(YTException):
     def __init__(self, filter, s1, s2):
+        super(YTIllDefinedFilter, self).__init__()
         self.filter = filter
         self.s1 = s1
         self.s2 = s2
@@ -394,6 +420,7 @@ class YTIllDefinedFilter(YTException):
 
 class YTIllDefinedBounds(YTException):
     def __init__(self, lb, ub):
+        super(YTIllDefinedBounds, self).__init__()
         self.lb = lb
         self.ub = ub
 
@@ -405,6 +432,7 @@ class YTIllDefinedBounds(YTException):
 
 class YTObjectNotImplemented(YTException):
     def __init__(self, ds, obj_name):
+        super(YTObjectNotImplemented, self).__init__()
         self.ds = ds
         self.obj_name = obj_name
 
@@ -415,6 +443,7 @@ class YTObjectNotImplemented(YTException):
 
 class YTRockstarMultiMassNotSupported(YTException):
     def __init__(self, mi, ma, ptype):
+        super(YTRockstarMultiMassNotSupported, self).__init__()
         self.mi = mi
         self.ma = ma
         self.ptype = ptype
@@ -433,6 +462,7 @@ class YTTooParallel(YTException):
 
 class YTElementTypeNotRecognized(YTException):
     def __init__(self, dim, num_nodes):
+        super(YTElementTypeNotRecognized, self).__init__()
         self.dim = dim
         self.num_nodes = num_nodes
 
@@ -443,6 +473,7 @@ class YTElementTypeNotRecognized(YTException):
 
 class YTDuplicateFieldInProfile(Exception):
     def __init__(self, field, new_spec, old_spec):
+        super(YTDuplicateFieldInProfile, self).__init__()
         self.field = field
         self.new_spec = new_spec
         self.old_spec = old_spec
@@ -456,6 +487,7 @@ class YTDuplicateFieldInProfile(Exception):
 
 class YTInvalidPositionArray(Exception):
     def __init__(self, shape, dimensions):
+        super(YTInvalidPositionArray, self).__init__()
         self.shape = shape
         self.dimensions = dimensions
 
@@ -466,6 +498,7 @@ class YTInvalidPositionArray(Exception):
 
 class YTIllDefinedCutRegion(Exception):
     def __init__(self, conditions):
+        super(YTIllDefinedCutRegion, self).__init__()
         self.conditions = conditions
 
     def __str__(self):
@@ -477,6 +510,7 @@ class YTIllDefinedCutRegion(Exception):
 
 class YTMixedCutRegion(Exception):
     def __init__(self, conditions, field):
+        super(YTMixedCutRegion, self).__init__()
         self.conditions = conditions
         self.field = field
 
@@ -489,6 +523,7 @@ class YTMixedCutRegion(Exception):
 
 class YTGDFAlreadyExists(Exception):
     def __init__(self, filename):
+        super(YTGDFAlreadyExists, self).__init__()
         self.filename = filename
 
     def __str__(self):
@@ -496,6 +531,7 @@ class YTGDFAlreadyExists(Exception):
 
 class YTGDFUnknownGeometry(Exception):
     def __init__(self, geometry):
+        super(YTGDFUnknownGeometry, self).__init__()
         self.geometry = geometry
 
     def __str__(self):
@@ -504,6 +540,7 @@ class YTGDFUnknownGeometry(Exception):
 
 class YTInvalidUnitEquivalence(Exception):
     def __init__(self, equiv, unit1, unit2):
+        super(YTInvalidUnitEquivalence, self).__init__()
         self.equiv = equiv
         self.unit1 = unit1
         self.unit2 = unit2
@@ -515,6 +552,7 @@ class YTInvalidUnitEquivalence(Exception):
 
 class YTPlotCallbackError(Exception):
     def __init__(self, callback, error):
+        super(YTPlotCallbackError, self).__init__()
         self.callback = 'annotate_' + callback
         self.error = error
 
@@ -524,6 +562,7 @@ class YTPlotCallbackError(Exception):
 
 class YTPixelizeError(YTException):
     def __init__(self, message):
+        super(YTPixelizeError, self).__init__()
         self.message = message
 
     def __str__(self):
@@ -531,6 +570,7 @@ class YTPixelizeError(YTException):
 
 class YTDimensionalityError(YTException):
     def __init__(self, wrong, right):
+        super(YTDimensionalityError, self).__init__()
         self.wrong = wrong
         self.right = right
 
@@ -540,6 +580,7 @@ class YTDimensionalityError(YTException):
 
 class YTInvalidShaderType(YTException):
     def __init__(self, source):
+        super(YTInvalidShaderType, self).__init__()
         self.source = source
 
     def __str__(self):
@@ -547,6 +588,7 @@ class YTInvalidShaderType(YTException):
 
 class YTInvalidFieldType(YTException):
     def __init__(self, fields):
+        super(YTInvalidFieldType, self).__init__()
         self.fields = fields
 
     def __str__(self):
@@ -561,6 +603,7 @@ class YTInvalidFieldType(YTException):
 
 class YTUnknownUniformKind(YTException):
     def __init__(self, kind):
+        super(YTUnknownUniformKind, self).__init__()
         self.kind = kind
 
     def __str__(self):
@@ -568,6 +611,7 @@ class YTUnknownUniformKind(YTException):
 
 class YTUnknownUniformSize(YTException):
     def __init__(self, size_spec):
+        super(YTUnknownUniformSize, self).__init__()
         self.size_spec = size_spec
 
     def __str__(self):
@@ -575,6 +619,7 @@ class YTUnknownUniformSize(YTException):
 
 class YTDataTypeUnsupported(YTException):
     def __init__(self, this, supported):
+        super(YTDataTypeUnsupported, self).__init__()
         self.supported = supported
         self.this = this
 
@@ -585,6 +630,7 @@ class YTDataTypeUnsupported(YTException):
 
 class YTBoundsDefinitionError(YTException):
     def __init__(self, message, bounds):
+        super(YTBoundsDefinitionError, self).__init__()
         self.bounds = bounds
         self.message = message
 
@@ -601,6 +647,7 @@ def screen_one_element_list(lis):
 
 class YTIllDefinedProfile(YTException):
     def __init__(self, bin_fields, fields, weight_field, is_pfield):
+        super(YTIllDefinedProfile, self).__init__()
         nbin = len(bin_fields)
         nfields = len(fields)
         self.bin_fields = screen_one_element_list(bin_fields)
@@ -636,6 +683,7 @@ class YTIllDefinedProfile(YTException):
 
 class YTBooleanObjectError(YTException):
     def __init__(self, bad_object):
+        super(YTBooleanObjectError, self).__init__()
         self.bad_object = bad_object
 
     def __str__(self):
@@ -644,14 +692,12 @@ class YTBooleanObjectError(YTException):
         return v
 
 class YTBooleanObjectsWrongDataset(YTException):
-    def __init__(self):
-        pass
-
     def __str__(self):
         return "Boolean data objects must share a common dataset object."
 
 class YTIllDefinedAMR(YTException):
     def __init__(self, level, axis):
+        super(YTIllDefinedAMR, self).__init__()
         self.level = level
         self.axis = axis
 
@@ -664,6 +710,7 @@ class YTIllDefinedAMR(YTException):
 
 class YTInconsistentGridFieldShape(YTException):
     def __init__(self, shapes):
+        super(YTInconsistentGridFieldShape, self).__init__()
         self.shapes = shapes
 
     def __str__(self):
@@ -674,6 +721,7 @@ class YTInconsistentGridFieldShape(YTException):
 
 class YTInconsistentParticleFieldShape(YTException):
     def __init__(self, ptype, shapes):
+        super(YTInconsistentParticleFieldShape, self).__init__()
         self.ptype = ptype
         self.shapes = shapes
 
@@ -688,6 +736,7 @@ class YTInconsistentParticleFieldShape(YTException):
 
 class YTInconsistentGridFieldShapeGridDims(YTException):
     def __init__(self, shapes, grid_dims):
+        super(YTInconsistentGridFieldShapeGridDims, self).__init__()
         self.shapes = shapes
         self.grid_dims = grid_dims
 

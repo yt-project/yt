@@ -66,17 +66,17 @@ class IOHandlerART(BaseIOHandler):
         for chunk in chunks:
             for subset in chunk.objs:
                 # Now we read the entire thing
-                f = open(subset.domain.ds._file_amr, "rb")
-                # This contains the boundary information, so we skim through
-                # and pick off the right vectors
-                rv = subset.fill(f, fields, selector)
-                for ft, f in fields:
-                    d = rv.pop(f)
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
-                                f, d.size, d.min(), d.max(),
-                                cp, cp+d.size)
-                    tr[(ft, f)].append(d)
-                cp += d.size
+                with open(subset.domain.ds._file_amr, "rb") as fh:
+                    # This contains the boundary information, so we skim through
+                    # and pick off the right vectors
+                    rv = subset.fill(fh, fields, selector)
+                    for ft, f in fields:
+                        d = rv.pop(f)
+                        mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                                    f, d.size, d.min(), d.max(),
+                                    cp, cp+d.size)
+                        tr[(ft, f)].append(d)
+                    cp += d.size
         d = {}
         for field in fields:
             d[field] = np.concatenate(tr.pop(field))

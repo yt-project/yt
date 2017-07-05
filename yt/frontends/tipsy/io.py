@@ -108,20 +108,20 @@ class IOHandlerTipsyBinary(BaseIOHandler):
         for data_file in sorted(data_files):
             poff = data_file.field_offsets
             tp = data_file.total_particles
-            f = open(data_file.filename, "rb")
-            for ptype, field_list in sorted(ptf.items(),
-                                            key=lambda a: poff[a[0]]):
-                f.seek(poff[ptype], os.SEEK_SET)
-                total = 0
-                while total < tp[ptype]:
-                    count = min(self._chunksize, tp[ptype] - total)
-                    p = np.fromfile(f, self._pdtypes[ptype], count=count)
-                    total += p.size
-                    d = [p["Coordinates"][ax].astype("float64")
-                         for ax in 'xyz']
-                    del p
-                    yield ptype, d
-
+            with open(data_file.filename, "rb") as f:
+                for ptype, field_list in sorted(
+                        ptf.items(), key=lambda a: poff[a[0]]):
+                    f.seek(poff[ptype], os.SEEK_SET)
+                    total = 0
+                    while total < tp[ptype]:
+                        count = min(self._chunksize, tp[ptype] - total)
+                        p = np.fromfile(f, self._pdtypes[ptype], count=count)
+                        total += p.size
+                        d = [p["Coordinates"][ax].astype("float64")
+                             for ax in 'xyz']
+                        del p
+                        yield ptype, d
+    
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
         data_files = set([])

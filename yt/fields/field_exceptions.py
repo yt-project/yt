@@ -26,7 +26,7 @@ class NeedsGridType(ValidationException):
 
 class NeedsOriginalGrid(NeedsGridType):
     def __init__(self):
-        self.ghost_zones = 0
+        super(NeedsOriginalGrid, self).__init__(ghost_zones=0)
 
 class NeedsDataField(ValidationException):
     def __init__(self, missing_fields):

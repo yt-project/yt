@@ -16,8 +16,6 @@ Unstructured mesh base container.
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.exceptions import \
-    YTParticleDepositionNotImplemented
 from yt.utilities.lib.mesh_utilities import \
     fill_fcoords, fill_fwidths
 
@@ -25,7 +23,6 @@ from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.field_data import \
     YTFieldData
-import yt.geometry.particle_deposit as particle_deposit
 
 class UnstructuredMesh(YTSelectionContainer):
     # This is a base class, not meant to be used directly.
@@ -120,17 +117,6 @@ class UnstructuredMesh(YTSelectionContainer):
     def deposit(self, positions, fields = None, method = None,
                 kernel_name = 'cubic'):
         raise NotImplementedError
-        # Here we perform our particle deposition.
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
-        if cls is None:
-            raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions.prod(), kernel_name)
-        op.initialize()
-        op.process_grid(self, positions, fields)
-        vals = op.finalize()
-        if vals is None: return
-        return vals.reshape(self.ActiveDimensions, order="C")
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)

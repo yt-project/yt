@@ -313,12 +313,11 @@ class YTDataLightRayDataset(YTDataContainerDataset):
         """
         key = "light_ray_solution"
         self.light_ray_solution = []
-        lrs_fields = [par for par in self.parameters \
+        lrs_fields = [par for par in self.parameters
                       if key in par and not par.endswith("_units")]
         if len(lrs_fields) == 0:
             return
-        self.light_ray_solution = \
-          [{} for val in self.parameters[lrs_fields[0]]]
+        self.light_ray_solution = [{} for _ in self.parameters[lrs_fields[0]]]
         for sp3 in ["unique_identifier", "filename"]:
             ksp3 = "%s_%s" % (key, sp3)
             if ksp3 not in lrs_fields:
@@ -379,7 +378,7 @@ class YTGrid(AMRGridPatch):
         self.RightEdge = self.index.ds.domain_right_edge
 
     def __getitem__(self, key):
-        tr = super(AMRGridPatch, self).__getitem__(key)
+        tr = super(YTGrid, self).__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -527,7 +526,7 @@ class YTNonspatialGrid(AMRGridPatch):
         return "YTNonspatialGrid"
 
     def __getitem__(self, key):
-        tr = super(AMRGridPatch, self).__getitem__(key)
+        tr = super(YTNonspatialGrid, self).__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -669,7 +668,7 @@ class YTNonspatialDataset(YTGridDataset):
     fluid_types = ("data", "gas")
 
     def _parse_parameter_file(self):
-        super(YTGridDataset, self)._parse_parameter_file()
+        super(YTNonspatialDataset, self)._parse_parameter_file()
         self.num_particles.pop(self.default_fluid_type, None)
         self.particle_types_raw = tuple(self.num_particles.keys())
         self.particle_types = self.particle_types_raw
@@ -731,7 +730,7 @@ class YTProfileDataset(YTNonspatialDataset):
         return None
 
     def _parse_parameter_file(self):
-        super(YTGridDataset, self)._parse_parameter_file()
+        super(YTProfileDataset, self)._parse_parameter_file()
 
         if isinstance(self.parameters["weight_field"], string_types) and \
           self.parameters["weight_field"] == "None":

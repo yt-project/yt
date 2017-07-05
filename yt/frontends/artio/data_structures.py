@@ -101,7 +101,6 @@ class ARTIOOctreeSubset(OctreeSubset):
         # Now we need to sum things up and then fill
         for s, f in fields:
             count = 0
-            dt = "float64" # default
             i = ptype_indices.index(s)
             # No vector fields in ARTIO
             count += species_data[i, f].size

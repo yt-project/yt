@@ -630,7 +630,7 @@ class YTHubRegisterCmd(YTCommand):
             if req.status_code == 400:
                 print("Registration failed with 'Bad request':")
                 print(req.json()["message"])
-            exit(1)
+            sys.exit(1)
         print("User registration successful")
         print("Obtaining API key...")
         req = requests.post(hub_url + "/api_key", headers=headers,

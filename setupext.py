@@ -16,7 +16,6 @@ def check_for_openmp():
     # Create a temporary directory
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
-    exit_code = 1
 
     try:
         os.chdir(tmpdir)

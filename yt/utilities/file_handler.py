@@ -33,12 +33,8 @@ def warn_h5py(fn):
         raise RuntimeError("This appears to be an HDF5 file, "
                            "but h5py is not installed.")
 
-
-class HDF5FileHandler(object):
+class FileHandler(object):
     handle = None
-
-    def __init__(self, filename):
-        self.handle = h5py.File(filename, 'r')
 
     def __getitem__(self, key):
         return self.handle[key]
@@ -48,10 +44,6 @@ class HDF5FileHandler(object):
 
     def __len__(self):
         return len(self.handle)
-
-    @property
-    def attrs(self):
-        return self.handle.attrs
 
     def keys(self):
         return list(self.handle.keys())
@@ -63,9 +55,19 @@ class HDF5FileHandler(object):
         if self.handle is not None:
             self.handle.close()
 
-class FITSFileHandler(HDF5FileHandler):
+
+class HDF5FileHandler(FileHandler):
+    def __init__(self, filename):
+        self.handle = h5py.File(filename, 'r')
+
+    @property
+    def attrs(self):
+        return self.handle.attrs
+
+class FITSFileHandler(FileHandler):
     def __init__(self, filename):
         from yt.utilities.on_demand_imports import _astropy
+        super(FITSFileHandler, self).__init__()
         if isinstance(filename, _astropy.pyfits.hdu.image._ImageBaseHDU):
             self.handle = _astropy.pyfits.HDUList(filename)
         elif isinstance(filename, _astropy.pyfits.HDUList):
@@ -82,9 +84,6 @@ class FITSFileHandler(HDF5FileHandler):
         del self._fits_files
         del self.handle
         self.handle = None
-
-    def close(self):
-        self.handle.close()
 
 
 def valid_netcdf_classic_signature(filename):

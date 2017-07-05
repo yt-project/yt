@@ -73,7 +73,6 @@ class EagleDataset(GadgetHDF5Dataset):
             fileh.close()
         except:
             valid = False
-            pass
         return valid
 
 class EagleNetworkDataset(EagleDataset):

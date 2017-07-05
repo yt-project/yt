@@ -36,7 +36,7 @@ class SymbolNotFoundError(Exception):
 class UnitParseError(Exception):
     pass
 
-class UnitRegistry:
+class UnitRegistry(object):
     """A registry for unit symbols"""
     def __init__(self, add_default_symbols=True, lut=None):
         if lut:

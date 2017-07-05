@@ -150,7 +150,6 @@ class BoxLibParticleHeader(object):
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split('_')[-1]
-            particle_real_type = self.version_string.split('_')[-1]
             if particle_real_type == 'double':
                 self.real_type = np.float64
             elif particle_real_type == 'single':
@@ -248,7 +247,6 @@ class AMReXParticleHeader(object):
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
-            particle_real_type = self.version_string.split('_')[-1]
             particle_real_type = self.version_string.split('_')[-1]
             if particle_real_type == 'double':
                 self.real_type = np.float64
@@ -407,6 +405,7 @@ class BoxlibHierarchy(GridIndex):
             # Now we get to the level header filename, which we open and parse.
             fn = os.path.join(self.dataset.output_dir,
                               next(header_file).strip())
+            header_file.close()
             level_header_file = open(fn + "_H")
             level_dir = os.path.dirname(fn)
             # We skip the first two lines, which contain BoxLib header file
@@ -449,8 +448,10 @@ class BoxlibHierarchy(GridIndex):
                 go.Level = self.grid_levels[grid_counter + gi,:] = level
                 self.grids.append(go)
             grid_counter += ngrids
+            level_header_file.close()
             # already read the filenames above...
         self.float_type = 'float64'
+
 
     def _cache_endianness(self, test_grid):
         """
@@ -525,6 +526,7 @@ class BoxlibHierarchy(GridIndex):
         for line in header_file:
             if len(line.split()) != 3: continue
             self.num_grids += int(line.split()[1])
+        header_file.close()
 
     def _initialize_grid_arrays(self):
         super(BoxlibHierarchy, self)._initialize_grid_arrays()
@@ -819,6 +821,7 @@ class BoxlibDataset(Dataset):
         for i in range(self._max_level+1): header_file.readline()
         # Get the geometry
         next_line = header_file.readline()
+        header_file.close()
         if len(next_line.split()) == 1:
             coordinate_type = int(next_line)
         else:

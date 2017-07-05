@@ -505,7 +505,6 @@ class FITSDataset(Dataset):
         except:
             mylog.warning("Cannot find time")
             self.current_time = 0.0
-            pass
 
         # For now we'll ignore these
         self.periodicity = (False,)*3

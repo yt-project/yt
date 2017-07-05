@@ -208,7 +208,6 @@ class GridIndex(Index):
         coords = self.ds.arr(ensure_numpy_array(coords), 'code_length')
         grids = self._find_points(coords[:, 0], coords[:, 1], coords[:, 2])[0]
         fields = ensure_list(fields)
-        mark = np.zeros(3, dtype=np.int)
         out = []
 
         # create point -> grid mapping
