@@ -1397,9 +1397,16 @@ class WarpXHeader(object):
             self.data["dt"]    = [float(num) for num in f.readline().strip().split()]
             
             self.data["moving_window_x"] = float(f.readline().strip().split()[-1])
-            self.data["is_synchronized"] = bool(f.readline().strip().split()[-1])
-            
-            self.data["prob_lo"] = [float(num) for num in f.readline().strip().split()]
+
+            #  not all datasets will have is_synchronized
+            line = f.readline().strip().split()
+            if (len(line) == 1):                
+                self.data["is_synchronized"] = bool(line[-1])
+                self.data["prob_lo"] = [float(num) for num in f.readline().strip().split()]
+            else:
+                self.data["is_synchronized"] = True                
+                self.data["prob_lo"] = [float(num) for num in line]
+                            
             self.data["prob_hi"] = [float(num) for num in f.readline().strip().split()]
             
             for _ in range(self.data["num_levels"]):
