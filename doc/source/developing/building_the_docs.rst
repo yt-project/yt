@@ -63,8 +63,8 @@ directly following your script.
 After you have made your modifications to the docs, you will want to make sure
 that they render the way you expect them to render.  For more information on
 this, see the section on :ref:`docs_build`.  Unless you're contributing cookbook
-recipes or notebooks which require a dynamical build, you can probably get
-away with just doing a 'quick' docs build.
+recipes or notebooks which require a dynamic build, you can probably get away
+with just doing a 'quick' docs build.
 
 When you have completed your documentation additions, commit your changes
 to your repository and make a pull request in the same way you would contribute
@@ -120,9 +120,9 @@ well as the Sphinx
 `Bootstrap theme <https://pypi.python.org/pypi/sphinx-bootstrap-theme/>`_,
 which can be installed via ``pip install sphinx_bootstrap_theme``.
 
-In order to tell Sphinx not to do all of the dynamical building, you must
-set the ``$READTHEDOCS`` environment variable to be True by typing this at
-the command line:
+In order to tell Sphinx not to do all of the dynamic building, you must set the
+``$READTHEDOCS`` environment variable to be True by typing this at the command
+line:
 
 .. code-block:: bash
 
