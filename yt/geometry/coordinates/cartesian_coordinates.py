@@ -57,7 +57,10 @@ def _sample_ray(ray, npoints, field):
         ray_contains = ((sample_point >= (ray_coordinates - ray_dds/2)) &
                         (sample_point <= (ray_coordinates + ray_dds/2)))
         ray_contains = ray_contains.all(axis=-1)
-        field_values[i] = ray_field[ray_contains]
+        # use argmax to find the first nonzero index, sometimes there
+        # are two indices if the sampling point happens to fall exactly at
+        # a cell boundary
+        field_values[i] = ray_field[np.argmax(ray_contains)]
     dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints)/(npoints-1)*(dr*npoints)
     return x, field_values
