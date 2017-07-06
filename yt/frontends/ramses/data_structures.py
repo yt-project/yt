@@ -640,13 +640,15 @@ class RAMSESDataset(Dataset):
         self.domain_right_edge = np.ones(3, dtype='float64')
         # This is likely not true, but it's not clear how to determine the boundary conditions
         self.periodicity = (True, True, True)
-        # These conditions seem to always be true for non-cosmological datasets
+
         if self.force_cosmological is not None:
             is_cosmological = self.force_cosmological
         else:
+            # These conditions seem to always be true for non-cosmological datasets
             is_cosmological = not (rheader["time"] >= 0 and
                                    rheader["H0"] == 1 and
                                    rheader["aexp"] == 1)
+
         if not is_cosmological:
             self.cosmological_simulation = 0
             self.current_redshift = 0
