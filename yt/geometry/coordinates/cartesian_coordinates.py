@@ -57,10 +57,7 @@ def _sample_ray(ray, npoints, field):
         ray_contains = ((sample_point >= (ray_coordinates - ray_dds/2)) &
                         (sample_point <= (ray_coordinates + ray_dds/2)))
         ray_contains = ray_contains.all(axis=-1)
-        wh = np.where(ray_contains)[0]
-        if wh.shape != (1,):
-            raise RuntimeError
-        field_values[i] = ray_field[wh]
+        field_values[i] = ray_field[ray_contains]
     dr = np.sqrt((sample_dr**2).sum())
     x = np.arange(npoints)/(npoints-1)*(dr*npoints)
     return x, field_values

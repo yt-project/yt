@@ -1126,6 +1126,15 @@ labels passed in the initial construction of the ``LinePlot`` instance. Example:
    plot.add_legend(('all', 'u'))
    plot.save()
 
+``LinePlot`` is a bit different from yt ray objects which are data
+containers. ``LinePlot`` is a plotting class that may use yt ray objects to
+supply field plotting information. However, perhaps the most important
+difference to highlight between rays and ``LinePlot`` is that rays return data
+elements that intersect with the ray and make no guarantee about the spacing
+between data elements. ``LinePlot`` sampling points are guaranteed to be evenly
+spaced. In the case of cell data where multiple points fall within the same
+cell, the ``LinePlot`` object will show the same field value for each sampling
+point that falls within the same cell.
 
 .. _how-to-make-2d-profiles:
 
