@@ -644,9 +644,9 @@ class RAMSESDataset(Dataset):
         if self.force_cosmological is not None:
             is_cosmological = self.force_cosmological
         else:
-            is_cosmological = (rheader["time"] >= 0 and
-                               rheader["H0"] == 1 and
-                               rheader["aexp"] == 1)
+            is_cosmological = not (rheader["time"] >= 0 and
+                                   rheader["H0"] == 1 and
+                                   rheader["aexp"] == 1)
         if not is_cosmological:
             self.cosmological_simulation = 0
             self.current_redshift = 0
