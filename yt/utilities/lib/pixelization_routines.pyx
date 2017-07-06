@@ -863,13 +863,13 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
     free(field_vals)
     return img
 
-def element_mesh_line_plot(np.ndarray[np.float64_t, ndim=2] coords,
-                           np.ndarray[np.int64_t, ndim=2] conn,
-                           np.ndarray[np.float64_t, ndim=1] start_point,
-                           np.ndarray[np.float64_t, ndim=1] end_point,
-                           npoints,
-                           np.ndarray[np.float64_t, ndim=2] field,
-                           int index_offset = 0):
+def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
+                               np.ndarray[np.int64_t, ndim=2] conn,
+                               np.ndarray[np.float64_t, ndim=1] start_point,
+                               np.ndarray[np.float64_t, ndim=1] end_point,
+                               npoints,
+                               np.ndarray[np.float64_t, ndim=2] field,
+                               int index_offset = 0):
 
     # This routine chooses the correct element sampler to interpolate field
     # values at evenly spaced points along a sampling line

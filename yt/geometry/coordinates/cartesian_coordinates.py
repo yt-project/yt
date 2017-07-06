@@ -26,7 +26,7 @@ from yt.units.yt_array import uvstack, YTArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_element_mesh, pixelize_off_axis_cartesian, \
     pixelize_cartesian, pixelize_cartesian_nodal, \
-    element_mesh_line_plot
+    pixelize_element_mesh_line
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.utilities.nodal_data_utils import get_nodal_data
 
@@ -158,7 +158,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                           antialias)
 
 
-    def line_plot(self, field, start_point, end_point, npoints):
+    def pixelize_line(self, field, start_point, end_point, npoints):
         """
         Method for sampling datasets along a line in preparation for
         one-dimensional line plots. For UnstructuredMesh, relies on a
@@ -194,11 +194,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
-            arc_length, plot_values = element_mesh_line_plot(coords, indices,
-                                                             start_point,
-                                                             end_point,
-                                                             npoints, field_data,
-                                                             index_offset=offset)
+            arc_length, plot_values = pixelize_element_mesh_line(coords, indices,
+                                                                 start_point,
+                                                                 end_point,
+                                                                 npoints, field_data,
+                                                                 index_offset=offset)
             arc_length = YTArray(arc_length, start_point.units)
             plot_values = YTArray(plot_values, field_data.units)
         else:

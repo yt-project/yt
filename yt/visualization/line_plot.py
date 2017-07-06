@@ -190,7 +190,7 @@ class LinePlot(PlotContainer):
                 plot = PlotMPL(self.figure_size, axrect, None, None)
                 self.plots[field] = plot
 
-            x, y = self.ds.coordinates.line_plot(
+            x, y = self.ds.coordinates.pixelize_line(
                 field, self.start_point, self.end_point, self.npoints)
 
             if self._x_unit is None:
