@@ -89,6 +89,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_langmuir
     - yt/frontends/boxlib/tests/test_outputs.py:test_plasma
+    - yt/frontends/boxlib/tests/test_outputs.py:test_beam
     - yt/frontends/boxlib/tests/test_outputs.py:test_warpx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
