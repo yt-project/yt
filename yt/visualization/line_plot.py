@@ -67,21 +67,31 @@ class LinePlot(PlotContainer):
     Parameters
     ----------
 
-    ds: :class:`yt.data_objects.static_output.Dataset`
+    ds : :class:`yt.data_objects.static_output.Dataset`
         This is the dataset object corresponding to the
         simulation output to be plotted.
-    fields: string
+    fields : string / tuple, or list of strings / tuples
         The name(s) of the field(s) to be plotted.
-    start_point: n-element list, tuple, ndarray, or YTArray
+    start_point : n-element list, tuple, ndarray, or YTArray
         Contains the coordinates of the first point for constructing the line.
         Must contain n elements where n is the dimensionality of the dataset.
-    end_point: n-element list, tuple, ndarray, or YTArray
+    end_point : n-element list, tuple, ndarray, or YTArray
         Contains the coordinates of the first point for constructing the line.
         Must contain n elements where n is the dimensionality of the dataset.
-    figure_size: integer or two-element
-    npoints: int
+    npoints : int
         How many points to sample between start_point and end_point for
         constructing the line plot
+    figure_size : int or two-element iterable of ints
+        Size in inches of the image.
+        Default: 5 (5x5)
+    fontsize : int
+        Font size for all text in the plot.
+        Default: 14
+    labels : dictionary
+        Keys should be the field names. Values should be latex-formattable
+        strings used in the LinePlot legend
+        Default: None
+
 
     Example
     -------
