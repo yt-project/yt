@@ -11,6 +11,7 @@ FITSImageData Class
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
+from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGrid
@@ -147,6 +148,8 @@ class FITSImageData(object):
         for fd in fields:
             if isinstance(fd, tuple):
                 self.fields.append(fd[1])
+            elif isinstance(fd, DerivedField):
+                self.fields.append(fd.name[1])
             else:
                 self.fields.append(fd)
 
