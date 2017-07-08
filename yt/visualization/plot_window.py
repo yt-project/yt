@@ -2015,9 +2015,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)
 
-def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
-               origin='center-window', fontsize=18, field_parameters=None, 
-               window_size=8.0, aspect=None, data_source=None):
+def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
+            origin='center-window', fontsize=18, field_parameters=None, 
+            window_size=8.0, aspect=None, data_source=None):
     r"""Creates a plot of a 2D dataset
 
     Given a ds object and a field name string, this will return a

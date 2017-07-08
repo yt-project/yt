@@ -52,7 +52,7 @@ from .plot_window import \
     OffAxisSlicePlot, \
     ProjectionPlot, \
     OffAxisProjectionPlot, \
-    Plot2DData
+    plot_2d
 
 from .profile_plotter import \
     ProfilePlot, \
