@@ -415,7 +415,7 @@ class PlotWindow(ImagePlotContainer):
             is typically represented by a '-' separated string or a tuple of
             strings. In the first index the y-location is given by 'lower',
             'upper', or 'center'. The second index is the x-location, given as
-            'left', 'right', or 'center'. Finally, the whether the origin is
+            'left', 'right', or 'center'. Finally, whether the origin is
             applied in 'domain' space, plot 'window' space or 'native'
             simulation coordinate system is given. For example, both
             'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -1240,7 +1240,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          is typically represented by a '-' separated string or a tuple of
          strings. In the first index the y-location is given by 'lower',
          'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, the whether the origin is
+         'left', 'right', or 'center'. Finally, whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -1268,7 +1268,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
          ===============================================    ==================================
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1385,7 +1385,7 @@ class ProjectionPlot(PWViewerMPL):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1395,7 +1395,7 @@ class ProjectionPlot(PWViewerMPL):
          is typically represented by a '-' separated string or a tuple of
          strings. In the first index the y-location is given by 'lower',
          'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, the whether the origin is
+         'left', 'right', or 'center'. Finally, whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -1574,7 +1574,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1718,7 +1718,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          The name of the weighting field.  Set to None for no weight.
     max_level: int
          The maximum level to project to.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -1904,7 +1904,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          units are assumed, for example (0.2, 0.3) requests a plot that has an
          x width of 0.2 and a y width of 0.3 in code units.  If units are
          provided the resulting plot axis labels will use the supplied units.
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
@@ -2068,7 +2068,7 @@ def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
          is typically represented by a '-' separated string or a tuple of
          strings. In the first index the y-location is given by 'lower',
          'upper', or 'center'. The second index is the x-location, given as
-         'left', 'right', or 'center'. Finally, the whether the origin is
+         'left', 'right', or 'center'. Finally, whether the origin is
          applied in 'domain' space, plot 'window' space or 'native'
          simulation coordinate system is given. For example, both
          'upper-right-domain' and ['upper', 'right', 'domain'] place the
@@ -2096,7 +2096,7 @@ def Plot2DData(ds, fields, center='c', width=None, axes_unit=None,
          ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
          ===============================================    ==================================
-    axes_unit : A string
+    axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
          If axes_unit is '1', 'u', or 'unitary', it will not display the
