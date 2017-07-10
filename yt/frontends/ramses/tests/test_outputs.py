@@ -70,3 +70,19 @@ def test_unit_non_cosmo():
 
     expected_time = 14087886140997.336 # in seconds
     assert_equal(ds.current_time.in_units('s').value, expected_time)
+
+ramsesExtraFieldsSmall = 'ramses_extra_fields_small/output_00001'
+@requires_file(ramsesExtraFieldsSmall)
+def test_extra_fields():
+    extra_fields = [('family', 'I'), ('pointer', 'I')]
+    ds = yt.load(os.path.join(ramsesExtraFieldsSmall, 'info_00001.txt'),
+                 extra_particle_fields=extra_fields)
+
+    # the dataset should contain the fields
+    for field, _ in extra_fields:
+        assert ('all', field) in ds.field_list
+
+    # Check the family (they should equal 100, for tracer particles)
+    dd = ds.all_data()
+    families = dd[('all', 'family')]
+    assert all(families == 100)
