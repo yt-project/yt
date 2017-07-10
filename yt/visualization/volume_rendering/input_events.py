@@ -18,12 +18,15 @@ from collections import defaultdict, namedtuple
 from yt.utilities.math_utils import \
     get_perspective_matrix, \
     get_orthographic_matrix
+from yt.visualization.image_writer import \
+    write_bitmap
 import OpenGL.GL as GL
 import cyglfw3 as glfw
 import numpy as np
 import matplotlib.cm as cm
 import random
 import time
+import os
 
 event_registry = {}
 
@@ -327,6 +330,18 @@ def debug_buffer(event_coll, event):
     """Print debug info about framebuffer"""
     buffer = event_coll.scene._retrieve_framebuffer()
     print(buffer.min(), buffer.max())
+
+@register_event("screenshot")
+def screenshot(event_coll, event):
+    """Save a copy of the displayed image"""
+    buffer = event_coll.scene._retrieve_framebuffer()
+    n = 0
+    base = "yt_vr_%04i.png"
+    while os.path.exists(base % n):
+        n += 1
+    fn = base % n
+    print("Writing %s" % fn)
+    write_bitmap(buffer, fn)
 
 @register_event("print_help")
 def print_help(event_coll, event):
