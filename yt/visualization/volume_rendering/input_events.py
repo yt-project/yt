@@ -89,6 +89,8 @@ class EventCollection(object):
         self._add_callback(self.mouse_callbacks, func, key, action, mods)
 
     def add_framebuffer_callback(self, func):
+        if not callable(func):
+            func = event_registry[func]
         self.framebuffer_callbacks.append(func)
 
     def _add_callback(self, d, func, key, action, mods):

@@ -171,7 +171,7 @@ class RenderingContext(object):
             glfw.MOUSE_BUTTON_LEFT)
         callbacks.add_mouse_callback(mouse_callbacks.stop_rotation,
             glfw.MOUSE_BUTTON_LEFT, action="release")
-        callbacks.add_framebuffer_callback("framebuffer_size_callback")
+        callbacks.add_framebuffer_callback("framebuffer_size")
         callbacks.add_render_callback(mouse_callbacks.do_rotation)
         joystick_callbacks = JoystickAction()
         joystick_callbacks.calibrate()
