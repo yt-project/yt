@@ -120,10 +120,13 @@ class RenderingContext(object):
     decorated : bool, optional
         Does the window have operating system widgets (minimize, maximize
         close), or is it a bare context? (Default: True)
+    position : tuple of ints, optional
+        What position should the window be moved to? (Upper left)  If not
+        specified, default to center.
     '''
     should_quit = False
     def __init__(self, width=1024, height=1024, title="vol_render",
-                 always_on_top = False, decorated = True):
+                 always_on_top = False, decorated = True, position = None):
         curdir = os.getcwd()
         glfw.Init()
         # glfw sometimes changes the current working directory, see
@@ -139,12 +142,36 @@ class RenderingContext(object):
         if not self.window:
             glfw.Terminate()
             exit()
+        if position is None:
+            self.center_window()
+        else:
+            self.set_position(*position)
 
         glfw.MakeContextCurrent(self.window)
         GL.glClearColor(0.0, 0.0, 0.0, 0.0)
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         glfw.SwapBuffers(self.window)
         glfw.PollEvents()
+
+    def set_position(self, xpos, ypos):
+        if xpos < 0 or ypos < 0:
+            raise RuntimeError
+        monitor = glfw.GetPrimaryMonitor()
+        video_mode = glfw.GetVideoMode(monitor)
+        win_width, win_height = glfw.GetWindowSize(self.window)
+        if 0 < xpos < 1:
+            # We're being fed relative coords.  We offset these for the window
+            # center.
+            xpos = max(xpos * video_mode.width - 0.5 * win_width, 0)
+        if 0 < ypos < 1:
+            # We're being fed relative coords.  We offset these for the window
+            # center.
+            ypos = max(ypos * video_mode.height - 0.5 * win_height, 0)
+        print("Setting position", xpos, ypos)
+        glfw.SetWindowPos(self.window, xpos, ypos)
+
+    def center_window(self):
+        self.set_position(0.5, 0.5)
 
     def setup_loop(self, scene, camera):
         scene.set_camera(camera)
