@@ -114,10 +114,16 @@ class RenderingContext(object):
         powers of 2.
     title : str, optional
         The title of the Interactive Data Visualization window. 
-    
+    always_on_top : bool, optional
+        Should this window be created such that it is always on top of other
+        windows? (Default: False)
+    decorated : bool, optional
+        Does the window have operating system widgets (minimize, maximize
+        close), or is it a bare context? (Default: True)
     '''
     should_quit = False
-    def __init__(self, width=1024, height=1024, title="vol_render"):
+    def __init__(self, width=1024, height=1024, title="vol_render",
+                 always_on_top = False, decorated = True):
         curdir = os.getcwd()
         glfw.Init()
         # glfw sometimes changes the current working directory, see
@@ -127,6 +133,8 @@ class RenderingContext(object):
         glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)
         glfw.WindowHint(glfw.OPENGL_PROFILE, glfw.OPENGL_CORE_PROFILE)
+        glfw.WindowHint(glfw.FLOATING, always_on_top)
+        glfw.WindowHint(glfw.DECORATED, decorated)
         self.window = glfw.CreateWindow(width, height, title)
         if not self.window:
             glfw.Terminate()
