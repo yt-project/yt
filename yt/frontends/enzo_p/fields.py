@@ -39,14 +39,14 @@ class EnzoPFieldInfo(FieldInfoContainer):
     )
 
     known_particle_fields = (
-        ("x", ("code_length", [], None)),
-        ("y", ("code_length", [], None)),
-        ("z", ("code_length", [], None)),
-        ("vx", (vel_units, [], None)),
-        ("vy", (vel_units, [], None)),
-        ("vz", (vel_units, [], None)),
-        ("ax", (acc_units, [], None)),
-        ("ay", (acc_units, [], None)),
-        ("az", (acc_units, [], None)),
-        ("mass", ("code_mass", [], None)),
+        ("x", ("code_length", ["particle_position_x"], None)),
+        ("y", ("code_length", ["particle_position_y"], None)),
+        ("z", ("code_length", ["particle_position_z"], None)),
+        ("vx", (vel_units, ["particle_velocity_x"], None)),
+        ("vy", (vel_units, ["particle_velocity_y"], None)),
+        ("vz", (vel_units, ["particle_velocity_z"], None)),
+        ("ax", (acc_units, ["particle_acceleration_x"], None)),
+        ("ay", (acc_units, ["particle_acceleration_y"], None)),
+        ("az", (acc_units, ["particle_acceleration_z"], None)),
+        ("mass", ("code_mass", ["particle_mass"], None)),
     )
