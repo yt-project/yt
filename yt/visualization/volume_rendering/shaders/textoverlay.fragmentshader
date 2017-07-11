@@ -1,0 +1,13 @@
+#version 330 core
+
+in vec2 UV;
+
+out vec4 color;
+uniform sampler2D fb_texture;
+
+void main(){
+   color = vec4(texture(fb_texture, UV).rrr, 1.0);
+   color = vec4(1.0,1.0,1.0,1.0);
+   color = vec4(UV.x, UV.y, 0.0, 1.0);
+}
+

@@ -15,10 +15,13 @@ Interactive Data Visualization classes for Scene, Camera and BlockCollection
 # This is a part of the experimental Interactive Data Visualization
 
 import OpenGL.GL as GL
+import OpenGL.GLUT.freeglut as GLUT
 from collections import OrderedDict
 import matplotlib.cm as cm
+import matplotlib.font_manager
 import numpy as np
 import ctypes
+import time
 
 from yt.config import \
     ytcfg
@@ -31,6 +34,7 @@ from yt.utilities.math_utils import \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
+from yt.extern.six import unichr
 from .shader_objects import known_shaders, ShaderProgram
 
 bbox_vertices = np.array(
@@ -327,6 +331,106 @@ class SceneComponent(object):
             raise KeyError(shader.shader_type)
         self._program_invalid = True
 
+class TextOverlay(SceneComponent):
+    elements = None
+    draw_instructions = None
+    name = "text_overlay"
+
+    max_val = 1.0
+    min_val = 0.0
+    diagonal = 1e6
+    data_logged = False
+
+    def __init__(self, font_name = "Ubuntu Mono", font_size = 32):
+        super(TextOverlay, self).__init__()
+        # This accepts a glyph object
+        font_fn = matplotlib.font_manager.findfont(font_name)
+        font = matplotlib.font_manager.get_font(font_fn)
+        self.font = font
+        self.font_size = font_size
+        # self.elements is a dict, keyed by the character/glyph that is in it,
+        # that has as its elements the VBO offset for the Quad, the Texture ID
+        # for the bitmap, the (horizontal, vertical) advancement, and the
+        # bitmap itself.  The VBOs are all created so that we can point at them
+        # and just update the uniform when we draw each one.
+        self.draw_instructions = []
+
+    def build_textures(self):
+        # This doesn't check if the textures have already been built
+        self.elements = {}
+        self.font.set_size(self.font_size, 300)
+        tex_ids = GL.glGenTextures(self.font.num_glyphs)
+        vert = []
+        chars = list(self.font.get_charmap().items())
+        chars.append((ord(" "), 0))
+        for i, (tex_id, (char_code, _)) in enumerate(zip(tex_ids, chars)):
+            glyph = self.font.load_char(char_code)
+            width = glyph.width / (100.*64)
+            height = glyph.height / (100.*64)
+            self.font.clear()
+            self.font.set_text(unichr(char_code))
+            self.font.draw_glyphs_to_bitmap()
+            triangles = np.array([ [ 0.0, height, 0.0, 0.0],
+                                   [ 0.0, 0.0, 0.0, 1.0],
+                                   [ width, 0.0, 1.0, 1.0],
+
+                                   [ 0.0, height, 0.0, 0.0],
+                                   [ width, 0.0, 1.0, 1.0],
+                                   [ width, height, 1.0, 0.0] ])
+            #triangles[:,:2]/=(64*300.0)
+            vert.append(triangles)
+            bitmap = self.font.get_image()
+            self.elements[unichr(char_code)] = (i, tex_id,
+                    bitmap, (glyph.horiAdvance, glyph.vertAdvance))
+            GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
+            GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
+            GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RED, bitmap.shape[1],
+                            bitmap.shape[0], 0, GL.GL_RED, GL.GL_UNSIGNED_INT,
+                            bitmap)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+        vert = np.concatenate(vert)
+        self._initialize_vertex_array("character_info")
+        self.add_vert_attrib("quad_vertex", vert.astype("<f4"), 4)
+
+    def draw(self):
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        if self.text is not None and self.draw_instructions is None:
+            self.set_text(self.text)
+        GL.glActiveTexture(GL.GL_TEXTURE0)
+        for x, y, vbo_offset, tex_id in self.draw_instructions:
+            GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
+            self.program._set_uniform("x_offset", float(x))
+            self.program._set_uniform("y_offset", float(y))
+            GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*24, 24)
+        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+
+    def set_camera(self, camera):
+        self.camera = camera
+
+    def set_text(self, text):
+        self.text = text
+        lines = text.split("\n")
+        if self.elements is None:
+            return
+        draw_instructions = []
+        y = 0
+        for line in lines:
+            x = 0
+            dy = 0
+            for c in line:
+                e = self.elements[c]
+                draw_instructions.append((x, y, e[0], e[1]))
+                dy = max(dy, e[3][1])
+                x += e[3][0]
+            y += dy
+        self.draw_instructions = draw_instructions
+
+    def _set_uniforms(self, shader_program):
+        pass
 
 class BlockCollection(SceneComponent):
     name = "block_collection"
@@ -724,7 +828,8 @@ class SceneGraph(ColorBarSceneComponent):
         self.height = height
 
         self.set_shader("passthrough.v")
-        self.set_shader("apply_colormap.f")
+        #self.set_shader("apply_colormap.f")
+        self.set_shader("passthrough.f")
 
         self._init_framebuffer()
 
@@ -814,6 +919,8 @@ class SceneGraph(ColorBarSceneComponent):
         """
         self.collections.append(collection)
         self.update_minmax()
+        self.min_val = 0.0
+        self.max_val = 1.0
 
     def update_minmax(self):
         self.min_val, self.max_val, self.diagonal = 1e60, -1e60, -1e60

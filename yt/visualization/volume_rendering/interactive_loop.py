@@ -210,7 +210,7 @@ class RenderingContext(object):
         callbacks.add_framebuffer_callback("framebuffer_size")
         callbacks.add_render_callback(mouse_callbacks.do_rotation)
         joystick_callbacks = JoystickAction()
-        joystick_callbacks.calibrate()
+        #joystick_callbacks.calibrate()
         callbacks.add_render_callback(joystick_callbacks.check_axes)
         glfw.SetFramebufferSizeCallback(self.window,
             callbacks.framebuffer_call)

@@ -336,3 +336,13 @@ class MeshFragmentShader(FragmentShader):
     '''A vertex shader used for unstructured mesh rendering.'''
     _source = "mesh.fragmentshader"
     _shader_name = "mesh.f"
+
+class TextOverlayVertexShader(VertexShader):
+    '''A simple text overlay shader'''
+    _source = "textoverlay.vertexshader"
+    _shader_name = "text_overlay.v"
+
+class TextOverlayFragmentShader(FragmentShader):
+    '''A simple text overlay shader'''
+    _source = "textoverlay.fragmentshader"
+    _shader_name = "text_overlay.f"

@@ -1,0 +1,14 @@
+#version 330
+in vec4 quad_vertex; // The location of the vertex in model space
+uniform float x_offset;
+uniform float y_offset;
+
+out vec2 UV;
+
+void main()
+{
+    gl_Position = vec4(quad_vertex.x * 2.0 - 1.0 + x_offset/6400.,
+                       quad_vertex.y * 2.0 - 1.0 + y_offset/6400.,
+                       quad_vertex.zw);
+    UV = quad_vertex.xy;
+}
