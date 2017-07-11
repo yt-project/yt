@@ -62,9 +62,18 @@ class EnzoPGrid(AMRGridPatch):
         self._children_ids = None
         self._parent_id = -1
         self.Level = -1
+        self.particle_count = None
 
     def __repr__(self):
         return "EnzoPGrid_%04d" % self.id
+
+    def _prepare_grid(self):
+        """ Copies all the appropriate attributes from the index. """
+        h = self.index # cache it
+        my_ind = self.id - self._id_offset
+        self.ActiveDimensions = h.grid_dimensions[my_ind]
+        self.LeftEdge = h.grid_left_edge[my_ind]
+        self.RightEdge = h.grid_right_edge[my_ind]
 
     def get_parent_id(self, desc_block_name):
         if self.block_name == desc_block_name:
@@ -235,22 +244,21 @@ class EnzoPHierarchy(GridIndex):
         if self.comm.rank in (0, None):
             # Just check the first grid.
             grid = self.grids[0]
-            field_list = self.io._read_field_names(grid)
+            field_list, ptypes = self.io._read_field_names(grid)
             mylog.debug("Grid %s has: %s", grid.id, field_list)
-            ptypes = self.dataset.particle_types
-            ptypes_raw = self.dataset.particle_types_raw
         else:
             field_list = None
             ptypes = None
             ptypes_raw = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
-        self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes_raw))
+        self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes))
 
 class EnzoPDataset(Dataset):
     """
     Enzo-P-specific output, set at a fixed time.
     """
+    refine_by = 2
     _index_class = EnzoPHierarchy
     _field_info_class = EnzoPFieldInfo
 
@@ -314,11 +322,8 @@ class EnzoPDataset(Dataset):
         self.periodicity += (False, ) * (3 - self.dimensionality)
 
         # WIP hard-coded for now
-        self.refine_by = 2
         self.cosmological_simulation = 0
         self.gamma = 5. / 3.
-        self.particle_types = ()
-        self.particle_types_raw = self.particle_types
         self.unique_identifier = \
           str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
 

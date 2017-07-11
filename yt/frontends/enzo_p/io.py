@@ -21,9 +21,6 @@ from yt.extern.six import b, iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-
-_convert_mass = ("particle_mass","mass")
-
 _particle_position_names = {}
 
 class EnzoPIOHandler(BaseIOHandler):
@@ -48,7 +45,10 @@ class EnzoPIOHandler(BaseIOHandler):
                 message="Grid %s is missing from data file %s." %
                 (grid.block_name, grid.filename), ds=self.ds)
         fields = []
-        dtypes = set([])
+        ptypes = set()
+        dtypes = set()
+        # keep one field for each particle type so we can count later
+        sample_pfields = {}
         for name, v in iteritems(group):
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
@@ -61,6 +61,11 @@ class EnzoPIOHandler(BaseIOHandler):
             else:
                 dummy, ftype, fname = name.split(" ", 2)
                 fields.append((ftype, fname))
+                ptypes.add(ftype)
+                dtypes.add(v.dtype)
+                if ftype not in sample_pfields:
+                    sample_pfields[ftype] = fname
+        self.sample_pfields = sample_pfields
 
         if len(dtypes) == 1:
             # Now, if everything we saw was the same dtype, we can go ahead and
@@ -71,7 +76,7 @@ class EnzoPIOHandler(BaseIOHandler):
             # okay for now.
             self._field_dtype = list(dtypes)[0]
         f.close()
-        return fields
+        return fields, ptypes
 
     def _read_particle_coords(self, chunks, ptf):
         for rv in self._read_particle_fields(chunks, ptf, None):
@@ -82,34 +87,39 @@ class EnzoPIOHandler(BaseIOHandler):
         for chunk in chunks: # These should be organized by grid filename
             f = None
             for g in chunk.objs:
-                if g.filename is None: continue
+                if g.filename is None:
+                    continue
                 if f is None:
                     f = h5py.File(g.filename, "r")
-                nap = sum(g.NumberOfActiveParticles.values())
-                if g.NumberOfParticles == 0 and nap == 0:
+                if g.particle_count is None:
+                    g.particle_count = \
+                      dict((ptype, f.get("%s/particle %s %s" %
+                            (g.block_name, ptype, self.sample_pfields[ptype])).size)
+                            for ptype in self.sample_pfields)
+                    g.total_particles = sum(g.particle_count.values())
+                if g.total_particles == 0:
                     continue
-                ds = f.get(g.block_name)
+                group = f.get(g.block_name)
                 for ptype, field_list in sorted(ptf.items()):
-                    if ptype != "io":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
-                        pds = ds.get("Particles/%s" % ptype)
-                    else:
-                        pds = ds
-                    pn = _particle_position_names.get(ptype,
-                            r"particle_position_%s")
-                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
-                               for ax in 'xyz')
+                    pn = "particle %s %%s" % ptype
+                    if g.particle_count[ptype] == 0:
+                        continue
+                    coords = \
+                      tuple(np.asarray(group.get(pn % ax).value, dtype="=f8")
+                            for ax in 'xyz'[:self.ds.dimensionality])
+                    for i in range(self.ds.dimensionality, 3):
+                        coords += (self.ds.domain_center[i].d *
+                                   np.ones(g.particle_count[ptype], dtype="f8"),)
                     if selector is None:
                         # This only ever happens if the call is made from
                         # _read_particle_coords.
-                        yield ptype, (x, y, z)
+                        yield ptype, coords
                         continue
-                    mask = selector.select_points(x, y, z, 0.0)
-                    if mask is None: continue
+                    mask = selector.select_points(*coords, 0.0)
+                    if mask is None:
+                        continue
                     for field in field_list:
-                        data = np.asarray(pds.get(field).value, "=f8")
-                        if field in _convert_mass:
-                            data *= g.dds.prod(dtype="f8")
+                        data = np.asarray(group.get(pn % field).value, "=f8")
                         yield (ptype, field), data[mask]
             if f: f.close()
 

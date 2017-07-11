@@ -33,7 +33,7 @@ class EnzoPFieldInfo(FieldInfoContainer):
         ("acceleration_y", (acc_units, ["acceleration_y"], None)),
         ("acceleration_z", (acc_units, ["acceleration_z"], None)),
         ("density", (rho_units, ["density"], None)),
-        ("total_density", (rho_units, ["total_density"], None)),
+        ("density_total", (rho_units, ["total_density"], None)),
         ("total_energy", (energy_units, ["total_energy"], None)),
         ("internal_energy", (energy_units, ["internal_energy"], None)),
     )
