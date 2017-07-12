@@ -70,6 +70,11 @@ def get_child_index(anc_id, desc_id):
     return cid
 
 def is_parent(anc_block, desc_block):
+    dim = anc_block.count("_")
+    if ( len(desc_block.replace(":", "")) -
+         len( anc_block.replace(":", "")) ) / dim != 1:
+        return False
+
     for aind, dind in zip( anc_block.split("_"),
                           desc_block.split("_")):
         if not dind.startswith(aind):
