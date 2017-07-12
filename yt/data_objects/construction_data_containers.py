@@ -342,6 +342,10 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
+        # if there's less than nprocs chunks, units won't be initialized
+        # on all processors, so sync with _projected_units on rank 0
+        projected_units = self.comm.mpi_bcast(self._projected_units)
+        self._projected_units = projected_units
         # Note that this will briefly double RAM usage
         if self.method == "mip":
             merge_style = -1
