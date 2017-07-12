@@ -20,9 +20,7 @@ void main()
     // To shift into clip space, we figure out how big our object needs to be
     // clip space.  We take our clip per pixel, multiply by the pixels, and
     // then set the origin to be 0.9 (clip) and offset by - y_offset * dy.
-    //vec3 v = clamp(quad_vertex, vec3(0.0), vec3(1.0)) * 2 - 1.0;
-    //gl_Position=vec4(v, 1.0);
-    gl_Position = vec4( dx * (quad_vertex.x + x_offset) - 0.9,
+    gl_Position = vec4( dx * (quad_vertex.x + x_offset) - 1.0,
                         dy * (quad_vertex.y + y_offset) - 1.0,
                         0.0, 1.0); 
     UV = vec2(quad_vertex.zw);

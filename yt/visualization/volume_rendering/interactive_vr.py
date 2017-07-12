@@ -19,6 +19,8 @@ import OpenGL.GLUT.freeglut as GLUT
 from collections import OrderedDict, namedtuple
 import matplotlib.cm as cm
 import matplotlib.font_manager
+from matplotlib.ft2font import FT2Font, LOAD_FORCE_AUTOHINT, LOAD_NO_HINTING, \
+     LOAD_DEFAULT, LOAD_NO_AUTOHINT
 import numpy as np
 import ctypes
 import time
@@ -348,7 +350,7 @@ class TextOverlay(SceneComponent):
     diagonal = 1e6
     data_logged = False
 
-    def __init__(self, font_name = "Ubuntu Sans", font_size = 32):
+    def __init__(self, font_name = "DejaVu Sans", font_size = 32):
         super(TextOverlay, self).__init__()
         # This accepts a glyph object
         font_fn = matplotlib.font_manager.findfont(font_name)
@@ -373,27 +375,33 @@ class TextOverlay(SceneComponent):
         chars.append((ord(" "), 0))
         for i, (tex_id, (char_code, _)) in enumerate(zip(tex_ids, chars)):
             self.font.clear()
-            self.font.set_text(unichr(char_code))
-            self.font.draw_glyphs_to_bitmap()
+            self.font.set_text(unichr(char_code),
+                    flags = LOAD_FORCE_AUTOHINT)
+            self.font.draw_glyphs_to_bitmap(antialiased = True)
             glyph = self.font.load_char(char_code)
             x0, y0, x1, y1 = glyph.bbox
-            triangles = np.array([[x0, y1, 0.0, 0.0 ],
-                                  [x0, y0, 0.0, 1.0 ],
-                                  [x1, y0, 1.0, 1.0 ],
-                                  [x0, y1, 0.0, 0.0 ],
-                                  [x1, y0, 1.0, 1.0 ],
-                                  [x1, y1, 1.0, 0.0 ]],
-                                  dtype="<f4")
             bitmap = self.font.get_image().astype(">f4")/255.0
+            dx = 1.0/bitmap.shape[1]
+            dy = 1.0/bitmap.shape[0]
+            triangles = np.array([[x0, y1, 0.0 + dx/2.0, 0.0 + dy/2.0],
+                                  [x0, y0, 0.0 + dx/2.0, 1.0 - dy/2.0],
+                                  [x1, y0, 1.0 - dx/2.0, 1.0 - dy/2.0],
+                                  [x0, y1, 0.0 + dx/2.0, 0.0 + dy/2.0],
+                                  [x1, y0, 1.0 - dx/2.0, 1.0 - dy/2.0],
+                                  [x1, y1, 1.0 - dx/2.0, 0.0 + dy/2.0]],
+                                  dtype="<f4")
+            # I can't find information as to why horiAdvance is a
+            # factor of 8 larger than the other factors.  I assume it
+            # is referenced somewhere, but I cannot find it.
             self.elements[unichr(char_code)] = Character(
                     tex_id, i, bitmap, glyph.horiAdvance/8.,
                     glyph.vertAdvance)
             vert.append(triangles)
             GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
             GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
             GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RED, bitmap.shape[1],
@@ -439,6 +447,7 @@ class TextOverlay(SceneComponent):
                 x += e.hori_advance
             y += dy
         self.draw_instructions = draw_instructions
+        self.redraw = True
 
     def _set_uniforms(self, shader_program):
         pass
