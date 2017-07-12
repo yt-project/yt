@@ -249,10 +249,9 @@ class EnzoPHierarchy(GridIndex):
         else:
             field_list = None
             ptypes = None
-            ptypes_raw = None
         self.field_list = list(self.comm.mpi_bcast(field_list))
         self.dataset.particle_types = list(self.comm.mpi_bcast(ptypes))
-        self.dataset.particle_types_raw = list(self.comm.mpi_bcast(ptypes))
+        self.dataset.particle_types_raw = self.dataset.particle_types
 
 class EnzoPDataset(Dataset):
     """
