@@ -36,8 +36,6 @@ from .plot_container import \
     invalidate_data, invalidate_plot, apply_callback
 from .base_plot_types import CallbackWrapper
 
-from yt.data_objects.time_series import \
-    DatasetSeries
 from yt.data_objects.image_array import \
     ImageArray
 from yt.extern.six import string_types
@@ -50,23 +48,19 @@ from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
     UnitParseError
-from yt.units.unit_lookup_table import \
-    prefixable_units, latex_prefixes
 from yt.units.yt_array import \
     YTArray, YTQuantity
-from yt.utilities.definitions import \
-    formatted_length_unit_names
 from yt.utilities.math_utils import \
     ortho_find
 from yt.utilities.orientation import \
     Orientation
 from yt.utilities.exceptions import \
-    YTUnitNotRecognized, \
     YTCannotParseUnitDisplayName, \
-    YTUnitConversionError, \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
-    YTInvalidFieldType
+    YTInvalidFieldType, \
+    YTUnitNotRecognized, \
+    YTUnitConversionError
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 
@@ -179,11 +173,6 @@ class PlotWindow(ImagePlotContainer):
                  periodic=True, origin='center-window', oblique=False, right_handed=True,
                  window_size=8.0, fields=None, fontsize=18, aspect=None,
                  setup=False):
-        if not hasattr(self, "ds"):
-            self.ds = data_source.ds
-            ts = self._initialize_dataset(self.ds)
-            self.ts = ts
-        self._axes_unit_names = None
         self.center = None
         self._periodic = periodic
         self.oblique = oblique
@@ -191,6 +180,7 @@ class PlotWindow(ImagePlotContainer):
         self._equivalencies = defaultdict(lambda: (None, {}))
         self.buff_size = buff_size
         self.antialias = antialias
+        self._axes_unit_names = None
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
@@ -219,12 +209,6 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = linear_transform
         self.setup_callbacks()
         self._setup_plots()
-
-    def _initialize_dataset(self, ts):
-        if not isinstance(ts, DatasetSeries):
-            if not iterable(ts): ts = [ts]
-            ts = DatasetSeries(ts)
-        return ts
 
     def __iter__(self):
         for ds in self.ts:
@@ -856,59 +840,7 @@ class PWViewerMPL(PlotWindow):
                 ax = self.plots[f].axes
                 ax.invert_xaxis()
 
-            axes_unit_labels = ['', '']
-            comoving = False
-            hinv = False
-            for i, un in enumerate((unit_x, unit_y)):
-                unn = None
-                if hasattr(self.ds.coordinates, "image_units"):
-                    # This *forces* an override
-                    unn = self.ds.coordinates.image_units[axis_index][i]
-                elif hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates,
-                                   "%s_axis" % ("xy"[i]))[axis_index]
-                    unn = self.ds.coordinates.default_unit_label.get(axax,
-                        None)
-                if unn is not None:
-                    axes_unit_labels[i] = r'\ \ \left('+unn+r'\right)'
-                    continue
-                # Use sympy to factor h out of the unit.  In this context 'un'
-                # is a string, so we call the Unit constructor.
-                expr = Unit(un, registry=self.ds.unit_registry).expr
-                h_expr = Unit('h', registry=self.ds.unit_registry).expr
-                # See http://docs.sympy.org/latest/modules/core.html#sympy.core.expr.Expr
-                h_power = expr.as_coeff_exponent(h_expr)[1]
-                # un is now the original unit, but with h factored out.
-                un = str(expr*h_expr**(-1*h_power))
-                un_unit = Unit(un, registry=self.ds.unit_registry)
-                cm = Unit('cm').expr
-                if str(un).endswith('cm') and cm not in un_unit.expr.atoms():
-                    comoving = True
-                    un = un[:-2]
-                # no length units besides code_length end in h so this is safe
-                if h_power == -1:
-                    hinv = True
-                elif h_power != 0:
-                    # It doesn't make sense to scale a position by anything
-                    # other than h**-1
-                    raise RuntimeError
-                if un not in ['1', 'u', 'unitary']:
-                    if un in formatted_length_unit_names:
-                        un = formatted_length_unit_names[un]
-                    else:
-                        un = Unit(un, registry=self.ds.unit_registry)
-                        un = un.latex_representation()
-                        if hinv:
-                            un = un + '\,h^{-1}'
-                        if comoving:
-                            un = un + '\,(1+z)^{-1}'
-                        pp = un[0]
-                        if pp in latex_prefixes:
-                            symbol_wo_prefix = un[1:]
-                            if symbol_wo_prefix in prefixable_units:
-                                un = un.replace(
-                                    pp, "{"+latex_prefixes[pp]+"}", 1)
-                    axes_unit_labels[i] = '\ \ ('+un+')'
+            axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
             if self.oblique:
                 labels = [r'$\rm{Image\ x'+axes_unit_labels[0]+'}$',
@@ -1036,7 +968,7 @@ class PWViewerMPL(PlotWindow):
     @invalidate_plot
     def annotate_clear(self, index=None):
         """
-        Clear callbacks from the plot.  If index is not set, clear all 
+        Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one
         created, 1 is the 2nd one created, -1 is the last one created, etc.)
         """
@@ -1051,7 +983,7 @@ class PWViewerMPL(PlotWindow):
         for f in self.fields:
             keys = self.frb.keys()
             for name, (args, kwargs) in self._callbacks:
-                cbw = CallbackWrapper(self, self.plots[f], self.frb, f, 
+                cbw = CallbackWrapper(self, self.plots[f], self.frb, f,
                                       self._font_properties, self._font_color)
                 CallbackMaker = callback_registry[name]
                 callback = CallbackMaker(*args[1:], **kwargs)
@@ -1069,8 +1001,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_colorbar(self, field=None):
         """
-        Hides the colorbar for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Hides the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.
 
         Parameters
@@ -1110,8 +1042,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_colorbar(self, field=None):
         """
-        Shows the colorbar for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Shows the colorbar for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.  See hide_colorbar().
 
         Parameters
@@ -1129,8 +1061,8 @@ class PWViewerMPL(PlotWindow):
 
     def hide_axes(self, field=None):
         """
-        Hides the axes for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Hides the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.
 
         Parameters
@@ -1168,8 +1100,8 @@ class PWViewerMPL(PlotWindow):
 
     def show_axes(self, field=None):
         """
-        Shows the axes for a plot and updates the size of the 
-        plot accordingly.  Defaults to operating on all fields for a 
+        Shows the axes for a plot and updates the size of the
+        plot accordingly.  Defaults to operating on all fields for a
         PlotWindow object.  See hide_axes().
 
         Parameters
@@ -1283,7 +1215,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
 
     Examples
@@ -1304,9 +1236,6 @@ class AxisAlignedSlicePlot(PWViewerMPL):
                  origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
                  window_size=8.0, aspect=None, data_source=None):
         # this will handle time series data and controllers
-        ts = self._initialize_dataset(ds)
-        self.ts = ts
-        ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
             get_window_parameters(axis, center, width, ds)
@@ -1438,7 +1367,7 @@ class ProjectionPlot(PWViewerMPL):
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
-         The method of projection.  Valid methods are: 
+         The method of projection.  Valid methods are:
 
          "integrate" with no weight_field specified : integrate the requested
          field along the line of sight.
@@ -1464,7 +1393,7 @@ class ProjectionPlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
 
     Examples
@@ -1486,11 +1415,8 @@ class ProjectionPlot(PWViewerMPL):
                  right_handed=True, fontsize=18, field_parameters=None, data_source=None,
                  method = "integrate", proj_style = None, window_size=8.0,
                  aspect=None):
-        ts = self._initialize_dataset(ds)
-        self.ts = ts
-        ds = self.ds = ts[0]
         axis = fix_axis(axis, ds)
-        # proj_style is deprecated, but if someone specifies then it trumps 
+        # proj_style is deprecated, but if someone specifies then it trumps
         # method.
         if proj_style is not None:
             method = proj_style
@@ -1519,7 +1445,7 @@ class ProjectionPlot(PWViewerMPL):
                            field_parameters=field_parameters, method=method,
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
-                             right_handed=right_handed, fontsize=fontsize, window_size=window_size, 
+                             right_handed=right_handed, fontsize=fontsize, window_size=window_size,
                              aspect=aspect)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
@@ -1593,7 +1519,7 @@ class OffAxisSlicePlot(PWViewerMPL):
          A dictionary of field parameters than can be accessed by derived
          fields.
     data_source : YTSelectionContainer Object
-         Object to be used for data selection.  Defaults ds.all_data(), a 
+         Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
     """
 
@@ -1748,7 +1674,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
          This should only be used for uniform resolution grid datasets, as other
          datasets may result in unphysical images.
     data_source: YTSelectionContainer object
-         Object to be used for data selection. Defaults to ds.all_data(), a 
+         Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     """
     _plot_type = 'OffAxisProjection'

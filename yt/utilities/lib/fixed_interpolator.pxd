@@ -30,4 +30,3 @@ cdef extern from "fixed_interpolator.h":
                        np.float64_t vl[3], np.float64_t dds[3],
                        np.float64_t x, np.float64_t y, np.float64_t z,
                        int vind1, int vind2) nogil
-

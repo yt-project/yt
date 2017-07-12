@@ -50,7 +50,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
 
 
 class CallbackWrapper(object):
-    def __init__(self, viewer, window_plot, frb, field, font_properties, 
+    def __init__(self, viewer, window_plot, frb, field, font_properties,
                  font_color):
         self.frb = frb
         self.data = frb.data_source
@@ -86,6 +86,8 @@ class PlotMPL(object):
         import matplotlib.figure
         self._plot_valid = True
         if figure is None:
+            if not iterable(fsize):
+                fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
             figure.set_size_inches(fsize)
@@ -164,6 +166,8 @@ class PlotMPL(object):
     def _get_labels(self):
         ax = self.axes
         labels = ax.xaxis.get_ticklabels() + ax.yaxis.get_ticklabels()
+        labels += ax.xaxis.get_minorticklabels()
+        labels += ax.yaxis.get_minorticklabels()
         labels += [ax.title, ax.xaxis.label, ax.yaxis.label,
                    ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
         return labels
@@ -279,10 +283,10 @@ class ImagePlotMPL(PlotMPL):
         x_frac_widths = xbins/size[0]
         y_frac_widths = ybins/size[1]
 
-        # axrect is the rectangle defining the area of the 
-        # axis object of the plot.  Its range goes from 0 to 1 in 
-        # x and y directions.  The first two values are the x,y 
-        # start values of the axis object (lower left corner), and the 
+        # axrect is the rectangle defining the area of the
+        # axis object of the plot.  Its range goes from 0 to 1 in
+        # x and y directions.  The first two values are the x,y
+        # start values of the axis object (lower left corner), and the
         # second two values are the size of the axis object.  To get
         # the upper right corner, add the first x,y to the second x,y.
         axrect = (
@@ -452,5 +456,3 @@ def get_multi_plot(nx, ny, colorbar = 'vertical', bw = 4, dpi=300,
             ax.clear()
             cbars.append(ax)
     return fig, tr, cbars
-
-
