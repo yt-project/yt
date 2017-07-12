@@ -503,14 +503,22 @@ To load Enzo-P data into yt, provide the block list file:
    import yt
    ds = yt.load("hello-0200/hello-0200.block_list")
 
-Mesh fields are fully supported for 1, 2, and 3D datasets.
+Mesh and particle fields are fully supported for 1, 2, and 3D datasets.  Enzo-P
+supports arbitrary particle types defined by the user.  The available particle
+types will known as soon as the dataset index is created.
+
+.. code-block:: python
+
+   ds = yt.load("collapse-3d-0000/collapse-3d-0000.block_list")
+   ds.index
+   print (ds.particle_types)
+   print (ds.r["dark", "particle_position"])
 
 .. rubric:: Caveats
 
 * The Enzo-P output format is still evolving somewhat as the code is being
   actively developed. This frontend will be updated as development continues.
 * Units are currently assumed to be in CGS.
-* Particles are not yet supported.
 
 .. _loading-exodusii-data:
 
