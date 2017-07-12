@@ -2,13 +2,29 @@
 in vec4 quad_vertex; // The location of the vertex in model space
 uniform float x_offset;
 uniform float y_offset;
+uniform vec4 viewport;
 
 out vec2 UV;
 
 void main()
 {
-    gl_Position = vec4(quad_vertex.x * 2.0 - 1.0 + x_offset/6400.,
-                       quad_vertex.y * 2.0 - 1.0 + y_offset/6400.,
-                       quad_vertex.zw);
-    UV = quad_vertex.xy;
+    // What we're passed in is all in 64/th of pixels.  Our quad_vertex 
+    // runs from 0 .. width, 0 .. height.  Our x_offset is also in 64/th 
+    // of pixels, and same for y_offset.
+    // Note also that our offset is from the top.  So what we need to compute
+    // is the dx and dy, for coordinates per pixel.
+    float dx = 2.0 / (viewport.z * 64);
+    float dy = 2.0 / (viewport.w * 64);
+    // We set as our origin (-0.9, 0.9) (for the bottom left of the
+    // character) in clip space coordinates.  So we offset from that.
+    // To shift into clip space, we figure out how big our object needs to be
+    // clip space.  We take our clip per pixel, multiply by the pixels, and
+    // then set the origin to be 0.9 (clip) and offset by - y_offset * dy.
+    //vec3 v = clamp(quad_vertex, vec3(0.0), vec3(1.0)) * 2 - 1.0;
+    //gl_Position=vec4(v, 1.0);
+    gl_Position = vec4( dx * (quad_vertex.x + x_offset) - 0.9,
+                        dy * (quad_vertex.y + y_offset) - 1.0,
+                        0.0, 1.0); 
+    UV = vec2(quad_vertex.zw);
+    
 }
