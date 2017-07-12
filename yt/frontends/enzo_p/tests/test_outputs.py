@@ -31,8 +31,12 @@ from yt.frontends.enzo_p.api import EnzoPDataset
 _fields = ("density", "total_energy",
            "velocity_x", "velocity_y")
 
-hello_world = "hello-0200/hello-0200.block_list"
+_pfields = ("particle_position_x", "particle_position_y",
+            "particle_position_z", "particle_velocity_x",
+            "particle_velocity_y", "particle_velocity_z")
 
+hello_world = "hello-0200/hello-0200.block_list"
+collapse_3d = "collapse-3d-0000/collapse-3d-0000.block_list"
 
 @requires_file(hello_world)
 def test_EnzoPDataset():
@@ -51,6 +55,20 @@ def test_hello_world():
                         hello_world, axis, field, weight_field,
                         dobj_name)
             yield FieldValuesTest(hello_world, field, dobj_name)
+        dobj = create_obj(ds, dobj_name)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
+
+@requires_ds(collapse_3d)
+def test_particle_fields():
+    ds = data_dir_load(collapse_3d)
+
+    dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
+    for dobj_name in dso:
+        for field in _pfields:
+            yield FieldValuesTest(collapse_3d, field, dobj_name,
+                                  particle_type=True)
         dobj = create_obj(ds, dobj_name)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
