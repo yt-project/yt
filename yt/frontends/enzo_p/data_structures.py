@@ -262,6 +262,8 @@ class EnzoPDataset(Dataset):
     _index_class = EnzoPHierarchy
     _field_info_class = EnzoPFieldInfo
     _suffix = ".block_list"
+    particle_types = None
+    particle_types_raw = None
 
     def __init__(self, filename, dataset_type=None,
                  file_style = None,
