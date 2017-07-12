@@ -261,6 +261,7 @@ class EnzoPDataset(Dataset):
     refine_by = 2
     _index_class = EnzoPHierarchy
     _field_info_class = EnzoPFieldInfo
+    _suffix = ".block_list"
 
     def __init__(self, filename, dataset_type=None,
                  file_style = None,
@@ -339,11 +340,14 @@ class EnzoPDataset(Dataset):
         setdefaultattr(self, 'magnetic_unit',
                        self.quan(magnetic_unit, "gauss"))
 
+    def __repr__(self):
+        return self.basename[:-len(self._suffix)]
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         fn = args[0]
         ddir = os.path.dirname(fn)
-        if not fn.endswith(".block_list"):
+        if not fn.endswith(cls._suffix):
             return False
         try:
             with open(fn, "r") as f:
