@@ -15,6 +15,9 @@ in Interactive Data Visualization
 # This is a part of the experimental Interactive Data Visualization 
 
 import OpenGL.GL as GL
+from contextlib import contextmanager
+import traitlets
+import numpy as np
 
 # Set up a mapping from numbers to names
 
@@ -82,3 +85,99 @@ def coerce_uniform_type(val, gl_type):
     val = np.asanyarray(val, dtype = dtype)
     val.shape = shape
     return val
+
+class TextureBoundary(traitlets.TraitType):
+    default_value = GL.GL_CLAMP_TO_EDGE
+    info_text = "A boundary type of mirror, clamp, or repeat"
+
+    def validate(self, obj, value):
+        if isinstance(value, str):
+            try:
+                return {'clamp': GL.GL_CLAMP_TO_EDGE,
+                        'mirror': GL.GL_MIRRORED_REPEAT,
+                        'repeat': GL.GL_REPEAT}[value.lower()]
+            except KeyError:
+                self.error(obj, value)
+        elif value in (GL.GL_CLAMP_TO_EDGE,
+                       GL.GL_MIRRORED_REPEAT,
+                       GL.GL_REPEAT):
+            return value
+        self.error(obj, value)
+
+class Texture(traitlets.HasTraits):
+    texture_name = traitlets.CInt(-1)
+    data = traitlets.Instance(np.ndarray)
+
+    @traitlets.default('texture_name')
+    def _default_texture_name(self):
+        return GL.glGenTextures(1)
+
+    @contextmanager
+    def bind(self):
+        GL.glBindTexture(self.dim_enum, self.texture_name)
+        yield
+        GL.glBindTexture(self.dim_enum, 0)
+
+class Texture1D(Texture):
+    boundary_x = TextureBoundary()
+    dims = 1
+    dim_enum = GL.GL_TEXTURE_1D
+
+    @traitlets.observe("data")
+    def _set_data(self, change):
+        with self.bind():
+            dx, = change['new'].shape
+            GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, GL.GL_R32F,
+                    *change['new'].shape)
+            GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, dx,
+                        GL.GL_RED, GL.GL_FLOAT, 
+                        change['new'])
+            GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S,
+                    self.boundary_x)
+            GL.glGenerateMipmap(GL.GL_TEXTURE_1D)
+
+
+class Texture2D(Texture):
+    boundary_x = TextureBoundary()
+    boundary_y = TextureBoundary()
+    dims = 2
+    dim_enum = GL.GL_TEXTURE_2D
+
+    @traitlets.observe("data")
+    def _set_data(self, change):
+        with self.bind():
+            dx, dy = change['new'].shape
+            GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, GL.GL_R32F,
+                    *change['new'].shape)
+            GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
+                        GL.GL_RED, GL.GL_FLOAT,
+                        change['new'].T)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
+                    self.boundary_x)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
+                    self.boundary_y)
+            GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
+
+class Texture3D(Texture):
+    boundary_x = TextureBoundary()
+    boundary_y = TextureBoundary()
+    boundary_z = TextureBoundary()
+    dims = 3
+    dim_enum = GL.GL_TEXTURE_3D
+
+    @traitlets.observe("data")
+    def _set_data(self, change):
+        with self.bind():
+            dx, dy, dz = change['new'].shape
+            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F,
+                    *change['new'].shape)
+            GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
+                        GL.GL_RED, GL.GL_FLOAT, 
+                        change['new'].T)
+            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S,
+                    self.boundary_x)
+            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T,
+                    self.boundary_y)
+            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R,
+                    self.boundary_z)
+            GL.glGenerateMipmap(GL.GL_TEXTURE_3D)

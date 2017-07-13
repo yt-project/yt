@@ -38,6 +38,7 @@ from yt.utilities.math_utils import \
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.extern.six import unichr
 from .shader_objects import known_shaders, ShaderProgram
+from .opengl_support import Texture1D, Texture2D, Texture3D
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -183,7 +184,6 @@ class IDVCamera(object):
         self.cmap_min = minval
         self.cmap_max = maxval
 
-
 class TrackballCamera(IDVCamera):
     """
 
@@ -261,7 +261,6 @@ class TrackballCamera(IDVCamera):
                                                 self.aspect_ratio,
                                                 self.near_plane,
                                                 self.far_plane)
-
 
 class SceneComponent(object):
     """A class that defines basic OpenGL object
@@ -474,6 +473,7 @@ class BlockCollection(SceneComponent):
         self.block_order = []
 
         self.gl_texture_names = []
+        self.texture_objects = []
 
         self.redraw = True
 
@@ -651,15 +651,8 @@ class BlockCollection(SceneComponent):
             dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
-            GL.glBindTexture(GL.GL_TEXTURE_3D, texture_name)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F,
-                *block.my_data[0].shape)
-            GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
-                        GL.GL_RED, GL.GL_FLOAT, n_data.T)
-            GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
+            tex = Texture3D(texture_name = texture_name, data = n_data)
+            self.texture_objects.append(tex)
 
 class ColorBarSceneComponent(SceneComponent):
     ''' 
