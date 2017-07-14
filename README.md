@@ -117,6 +117,9 @@ process). Some of these contributions may be the most valuable to the project as
 a whole, because you're coming to the project with fresh eyes, so you can see
 the errors and assumptions that seasoned contributors have glossed over.
 
+(This disclaimer was originally part of the README file for the
+[MetPy project](https://github.com/Unidata/MetPy))
+
 ## Resources
 
 We have some community and documentation resources available.
