@@ -1023,7 +1023,7 @@ Gadget data in HDF5 format can be loaded with the ``load`` command:
 
 Gadget data in raw binary format can also be loaded with the ``load`` command.
 This is supported for snapshots created with the ``SnapFormat`` parameter
-set to 1 (the standard for Gadget-2) or 2.
+set to 1 or 2.
 
 .. code-block:: python
 
@@ -1036,24 +1036,46 @@ Units and Bounding Boxes
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
 There are two additional pieces of information that may be needed.  If your
-simulation is cosmological, yt can often guess the bounding box and the units
-of the simulation.  However, for isolated simulations and for cosmological
-simulations with non-standard units, these must be supplied.  For example, if
-a length unit of 1.0 corresponds to a kiloparsec, you can supply this in the
-constructor.  yt can accept units such as ``Mpc``, ``kpc``, ``cm``, ``Mpccm/h``
-and so on.  In particular, note that ``Mpc/h`` and ``Mpccm/h`` (``cm`` for
-comoving here) are usable unit definitions.
+simulation is cosmological, yt can often guess the bounding box and the units of
+the simulation.  However, for isolated simulations and for cosmological
+simulations with non-standard units, these must be supplied by the user.  For
+example, if a length unit of 1.0 corresponds to a kiloparsec, you can supply
+this in the constructor.  yt can accept units such as ``Mpc``, ``kpc``, ``cm``,
+``Mpccm/h`` and so on.  In particular, note that ``Mpc/h`` and ``Mpccm/h``
+(``cm`` for comoving here) are usable unit definitions.
 
 yt will attempt to use units for ``mass``, ``length`` and ``time`` as supplied
 in the argument ``unit_base``.  The ``bounding_box`` argument is a list of
 two-item tuples or lists that describe the left and right extents of the
-particles.
+particles. In this example we load a dataset with a custom bounding box
+and units.
 
 .. code-block:: python
 
-   ds = GadgetDataset("snap_004",
-           unit_base = {'length': ('kpc', 1.0)},
-           bounding_box = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]])
+
+   bbox = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]]
+   unit_base = {
+       'length': (1.0, 'kpc'),
+       'velocity: (1.0, 'km/s'),
+       'mass': (1.0, 'Msun')
+   }
+
+   ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
+
+In addition, you can use ``UnitLength_in_cm``, ``UnitVelocity_in_cm_per_s``,
+and ``UnitMass_in_g`` as keys for the ``unit_base`` dictionary. These names
+come from the names used in the Gadget runtime parameter file. This example
+will initialize a dataset with the same units as the example above:
+
+.. code-block:: python
+
+  unit_base = {
+      'UnitLength_in_cm': 3.09e21,
+      'UnitVelocity_in_cm_per_s': 1e5
+      'UnitMass_in_g': 1.989e33
+   }
+
+  ds = yt.load("snap_004", unit_base=unit_base, bounding_box=bbox)
 
 .. _particle-indexing-criteria:
 
