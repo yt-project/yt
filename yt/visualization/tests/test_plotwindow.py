@@ -543,14 +543,12 @@ def test_plot_2d():
                     center=[0.4, 0.3, 0.5])
     slc2 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
                    center=[0.4, 0.3])
+    slc3 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=ds.arr([0.4, 0.3], "cm"))
     assert_array_equal(slc.frb['temperature'], slc2.frb['temperature'])
+    assert_array_equal(slc.frb['temperature'], slc3.frb['temperature'])
     # Cylindrical
     ds = data_dir_load(WD)
-    slc = SlicePlot(ds, "theta", ["density"], width=(1000.0, "km"),
-                    center=[2.0e9, 2.0e9, 3.141592655])
-    slc2 = plot_2d(ds, "density", width=(1000.0, "km"),
-                   center=[2.0e9, 2.0e9])
-    slc3 = plot_2d(ds, "density", width=(1000.0, "km"),
-                   center=ds.arr([2.0e4]*2, "km"))
+    slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
+    slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
     assert_array_equal(slc.frb['density'], slc2.frb['density'])
-    assert_array_equal(slc.frb['density'], slc3.frb['density'])
