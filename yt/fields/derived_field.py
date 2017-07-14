@@ -145,6 +145,8 @@ class DerivedField(object):
                 self.units = units
         elif isinstance(units, Unit):
             self.units = str(units)
+        elif isinstance(units, bytes):
+            self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
                                   "Please provide a string or Unit " \
