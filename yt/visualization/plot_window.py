@@ -2112,7 +2112,11 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
     """
     if ds.dimensionality != 2:
         raise RuntimeError("Plot2DData only plots 2D datasets!")
-    return AxisAlignedSlicePlot(ds, "z", fields, center=center, width=width,
+    if ds.geometry == "cartesian":
+        axis = "z"
+    elif ds.geometry == "cylindrical":
+        axis = "theta"
+    return AxisAlignedSlicePlot(ds, axis, fields, center=center, width=width,
                                 axes_unit=axes_unit, origin=origin, 
                                 fontsize=fontsize,
                                 field_parameters=field_parameters, 

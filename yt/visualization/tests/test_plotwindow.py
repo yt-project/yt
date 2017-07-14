@@ -533,10 +533,19 @@ def test_set_unit():
     slc.set_unit('temperature', 'keV', equivalency='thermal')
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
 
+WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+
+@requires_ds(WD)
 def test_plot_2d():
+    # Cartesian
     ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
     slc = SlicePlot(ds, "z", ["temperature"], width=(0.2,"unitary"),
                     center=[0.4, 0.3, 0.5])
     slc2 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
                    center=[0.4, 0.3, 0.5])
     assert_array_equal(slc.frb['temperature'], slc2.frb['temperature'])
+    # Cylindrical
+    ds = data_dir_load(WD)
+    slc = SlicePlot(ds, "theta", ["density"], width=(0.2, "unitary"))
+    slc2 = plot_2d(ds, "density", width=(0.2, "unitary"))
+    assert_array_equal(slc.frb['density'], slc2.frb['density'])
