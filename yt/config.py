@@ -63,6 +63,7 @@ ytcfg_defaults = dict(
     imagebin_api_key = 'e1977d9195fe39e',
     imagebin_upload_url = 'https://api.imgur.com/3/upload',
     imagebin_delete_url = 'https://api.imgur.com/3/image/{delete_hash}',
+    curldrop_upload_url = 'http://use.yt/upload',
     thread_field_detection = 'False',
     ignore_invalid_unit_operation_errors = 'False',
     chunk_size = '1000',
