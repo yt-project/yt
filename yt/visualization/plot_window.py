@@ -2112,7 +2112,7 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
     """
     if ds.dimensionality != 2:
         raise RuntimeError("Plot2DData only plots 2D datasets!")
-    if ds.geometry == "cartesian":
+    if ds.geometry == "cartesian" or ds.geometry == "polar":
         axis = "z"
     elif ds.geometry == "cylindrical":
         axis = "theta"
