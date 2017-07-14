@@ -19,6 +19,15 @@ from contextlib import contextmanager
 import traitlets
 import numpy as np
 
+try:
+    from contextlib import ExitStack
+except ImportError:
+    try:
+        from contextlib2 import ExitStack
+    except ImportError:
+        raise RuntimeError("IDV requires either Python 3.3+ or contextlib2")
+
+
 # Set up a mapping from numbers to names
 
 const_types = (GL.constant.IntConstant,
@@ -181,3 +190,66 @@ class Texture3D(Texture):
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R,
                     self.boundary_z)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
+
+class VertexAttribute(traitlets.HasTraits):
+    name = traitlets.CUnicode("attr")
+    id = traitlets.CInt(-1)
+    data = traitlets.Instance(np.ndarray)
+    each = traitlets.CInt(-1)
+
+    @traitlets.default('id')
+    def _id_default(self):
+        return GL.glGenBuffers(1)
+
+    @contextmanager
+    def bind(self, program = None):
+        loc = -1
+        if program is not None:
+            loc = GL.glGetAttribLocation(program, self.name)
+            if loc < 0:
+                return -1
+            GL.glEnableVertexAttribArray(loc)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
+        if loc >= 0:
+            GL.glVertexAttribPointer(loc, self.each, GL.GL_FLOAT, False, 0,
+                    None)
+        yield
+        if loc >= 0:
+            GL.glDisableVertexAttribArray(loc)
+        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
+
+    @traitlets.observe("data")
+    def _set_data(self, change):
+        arr = change['new']
+        self.each = arr.shape[-1]
+        with self.bind():
+            GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
+
+class VertexArray(traitlets.HasTraits):
+    name = traitlets.CUnicode("vertex")
+    id = traitlets.CInt(-1)
+    element_ids = traitlets.Instance(np.ndarray, allow_none = True)
+    attributes = traitlets.List(trait=traitlets.Instance(VertexAttribute))
+    each = traitlets.CInt(-1)
+
+    @traitlets.default('id')
+    def _id_default(self):
+        return GL.glGenVertexArrays(1)
+
+    @contextmanager
+    def bind(self, program = None):
+        GL.glBindVertexArray(self.id)
+        # We only bind the attributes if we have a program too
+        if program is None:
+            attrs = []
+        else:
+            attrs = self.attributes
+        with ExitStack() as stack:
+            _ = [stack.enter_context(_) for _ in attrs]
+            yield
+        GL.glBindVertexArray(0)
+
+    @traitlets.observe("element_ids")
+    def _set_elements(self, change):
+        arr = change['new']
+

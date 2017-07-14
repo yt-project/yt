@@ -24,6 +24,7 @@ from matplotlib.ft2font import FT2Font, LOAD_FORCE_AUTOHINT, LOAD_NO_HINTING, \
 import numpy as np
 import ctypes
 import time
+import traitlets
 
 from yt.config import \
     ytcfg
@@ -35,10 +36,15 @@ from yt.utilities.math_utils import \
     quaternion_mult, \
     quaternion_to_rotation_matrix, \
     rotation_matrix_to_quaternion
+from yt.data_objects.data_containers import \
+    YTDataContainer
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.extern.six import unichr
-from .shader_objects import known_shaders, ShaderProgram
-from .opengl_support import Texture1D, Texture2D, Texture3D
+from .shader_objects import \
+    known_shaders, ShaderProgram, ShaderTrait
+from .opengl_support import \
+    Texture, Texture1D, Texture2D, Texture3D, \
+    VertexArray, VertexAttribute
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -262,22 +268,35 @@ class TrackballCamera(IDVCamera):
                                                 self.near_plane,
                                                 self.far_plane)
 
-class SceneComponent(object):
-    """A class that defines basic OpenGL object
+class SceneData(traitlets.HasTraits):
+    """A class that defines a collection of GPU-managed data.
 
-    This class contains the largest common set of features that every object in
-    the OpenGL rendering uses: a set of vertices, a set of vertex attributes and
-    a shader program to operate on them.
+    This class contains the largest common set of features that can be used 
+    OpenGL rendering: a set of vertices and a set of vertex attributes.  Note
+    that this is distinct from the shader, which can be swapped out and
+    provided with these items.
 
     """
     name = None
-    _program = None
+    vertex_array = traitlets.Instance(VertexArray)
+    textures = traitlets.List(trait = traitlets.Instance(Texture))
+
+class SceneComponent(traitlets.HasTraits):
+    data = traitlets.Instance(SceneData)
+    fragment_shader = ShaderTrait(allow_none = True)
+    vertex_shader = ShaderTrait(allow_none = True)
+    _program = traitlets.Instance(ShaderProgram, allow_none = True)
     _program_invalid = True
-    fragment_shader = None
-    vertex_shader = None
-    def __init__(self):
-        self.vert_attrib = OrderedDict()
-        self.vert_arrays = OrderedDict()
+
+    @traitlets.observe("fragment_shader")
+    def change_fragment(self, change):
+        # Even if old/new are the same
+        self._program_invalid = True
+
+    @traitlets.observe("vertex_shader")
+    def change_vertex(self, change):
+        # Even if old/new are the same
+        self._program_invalid = True
 
     @property
     def program(self):
@@ -289,48 +308,14 @@ class SceneComponent(object):
             self._program_invalid = False
         return self._program
 
-    def _initialize_vertex_array(self, name):
-        if name in self.vert_arrays:
-            GL.glDeleteVertexArrays(1, [self.vert_arrays[name]])
-        self.vert_arrays[name] = GL.glGenVertexArrays(1)
+    def run_program(self, scene):
+        with self.program.enable() as p:
+            self._set_uniforms(p)
+            with self.data.vertex_array.bind(p):
+                self.draw(scene)
 
-    def run_program(self):
-        with self.program.enable():
-            if len(self.vert_arrays) != 1:
-                raise NotImplementedError
-            for vert_name in self.vert_arrays:
-                GL.glBindVertexArray(self.vert_arrays[vert_name])
-            for an in self.vert_attrib:
-                bind_loc, size = self.vert_attrib[an]
-                self.program.bind_vert_attrib(an, bind_loc, size)
-            self._set_uniforms(self.program)
-            self.draw()
-            for an in self.vert_attrib:
-                self.program.disable_vert_attrib(an)
-            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
-
-    def add_vert_attrib(self, name, arr, each):
-        self.vert_attrib[name] = (GL.glGenBuffers(1), each)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib[name][0])
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
-
-    def set_shader(self, name):
-        r""" Compiles and links a fragment shader from a set of known shaders.
-
-        Parameters
-        ----------
-        name : String
-            The name of the fragment shader to use.
-
-        """
-        shader = known_shaders[name]()
-        if shader.shader_type == "vertex":
-            self.vertex_shader = shader
-        elif shader.shader_type == "fragment":
-            self.fragment_shader = shader
-        else:
-            raise KeyError(shader.shader_type)
-        self._program_invalid = True
+    def draw(self, scene):
+        raise NotImplementedError
 
 # This is drawn in part from
 #  https://learnopengl.com/#!In-Practice/Text-Rendering
@@ -451,9 +436,13 @@ class TextOverlay(SceneComponent):
     def _set_uniforms(self, shader_program):
         pass
 
-class BlockCollection(SceneComponent):
+class BlockCollection(SceneData):
     name = "block_collection"
-    def __init__(self, scale=False):
+    data_source = traitlets.Instance(YTDataContainer)
+    texture_objects = traitlets.List(trait = traitlets.Instance(Texture3D))
+    blocks = traitlets.Dict(default_value = ())
+    scale = traitlets.Bool(False)
+    def old__init__(self, scale=False):
         '''Class responsible for converting yt data objects into a set of 3D textures
         
         Parameters
@@ -507,7 +496,11 @@ class BlockCollection(SceneComponent):
         """
         self.add_data(self.data_source, self.data_source.tiles.fields[0], log_field)
 
-    def add_data(self, data_source, field, log_field=True):
+    @traitlets.default("vertex_array")
+    def _default_vertex_array(self):
+        return VertexArray(name = "block_info", each = 36)
+
+    def add_data(self, field, log_field=True):
         r"""Adds a source of data for the block collection.
 
         Given a `data_source` and a `field` to populate from, adds the data
@@ -522,11 +515,8 @@ class BlockCollection(SceneComponent):
         log_field : boolean, optional
             If set to True log10 will be applied to data before passing it to GPU.
         """
-        self.data_source = data_source
         self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
         self.data_logged = log_field
-        self.blocks = {}
-        self.block_order = []
         # Every time we change our data source, we wipe all existing ones.
         # We now set up our vertices into our current data source.
         vert, dx, le, re = [], [], [], []
@@ -554,7 +544,6 @@ class BlockCollection(SceneComponent):
             dx.append([dds.astype('f4') for _ in range(n)])
             le.append([block.LeftEdge.astype('f4') for _ in range(n)])
             re.append([block.RightEdge.astype('f4') for _ in range(n)])
-            self.block_order.append(id(block))
 
         LE = np.array([b.LeftEdge
                        for i, b in self.blocks.values()]).min(axis=0)
@@ -567,45 +556,22 @@ class BlockCollection(SceneComponent):
         le = np.concatenate(le)
         re = np.concatenate(re)
 
-        self._initialize_vertex_array("block_info")
-        self.add_vert_attrib("model_vertex", vert, 4)
-        self.add_vert_attrib("in_dx", dx, 3)
-        self.add_vert_attrib("in_left_edge", le, 3)
-        self.add_vert_attrib("in_right_edge", re, 3)
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "model_vertex", data = vert))
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "in_dx", data = dx))
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "in_left_edge", data = le))
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "in_right_edge", data = re))
 
         # Now we set up our textures
         self._load_textures()
 
-    def set_camera(self, camera):
-        r"""Sets the camera for the block collection.
-
-        Parameters
-        ----------
-        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
-            A simple camera object.
-
-        """
-        self.block_order = []
+    def viewpoint_iter(self, camera):
         for block in self.data_source.tiles.traverse(viewpoint = camera.position):
-            self.block_order.append(id(block))
-        self.camera = camera
-        self.redraw = True
-
-    def draw(self):
-        r"""Runs a given shader program on the block collection.  It is assumed
-        that the GL Context has been set up, which is typically handled by the
-        run_program method.
-        """
-
-        # clear the color and depth buffer
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-
-        for bi in self.block_order:
-            tex_i, block = self.blocks[bi]
-            ti = self.gl_texture_names[tex_i]
-            GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
-            GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
+            tex_i, _ = self.blocks[id(block)]
+            yield tex_i, self.texture_objects[tex_i]
 
     def _set_uniforms(self, shader_program):
         shader_program._set_uniform("projection",
@@ -627,32 +593,32 @@ class BlockCollection(SceneComponent):
         return transformed_box
 
     def _load_textures(self):
-        print("Loading textures.")
-        if len(self.gl_texture_names) == 0:
-            self.gl_texture_names = GL.glGenTextures(len(self.blocks))
-            if len(self.blocks) == 1:
-                self.gl_texture_names = [self.gl_texture_names]
-            GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER,
-                    GL.GL_LINEAR)
-
-        else:
-            for texture in self.gl_texture_names:
-                GL.glDeleteTextures([texture])
-
-            self.gl_texture_names = GL.glGenTextures(len(self.blocks))
-            if len(self.blocks) == 1:
-                self.gl_texture_names = [self.gl_texture_names]
-
         for block_id in sorted(self.blocks):
             tex_i, block = self.blocks[block_id]
-            texture_name = self.gl_texture_names[tex_i]
-            dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
-            tex = Texture3D(texture_name = texture_name, data = n_data)
+            tex = Texture3D(data = n_data)
             self.texture_objects.append(tex)
+
+class BlockRendering(SceneComponent):
+    '''
+    A class that renders block data.  It may do this in one of several ways,
+    including mesh outline.  This allows us to render a single collection of
+    blocks multiple times in a single scene and to separate out the memory
+    handling from the display.
+    '''
+    data = traitlets.Instance(BlockCollection)
+
+    def draw(self, scene):
+        # How should we handle the possibility that we're inside a framebuffer?
+        # Or, do we just assume it's not a big deal?
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        GL.glActiveTexture(GL.GL_TEXTURE0)
+        each = self.data.vertex_array.each
+
+        for tex_ind, texture in self.block_data.viewpoint_iter(scene.camera):
+            with texture.bind():
+                GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
 class ColorBarSceneComponent(SceneComponent):
     ''' 
@@ -1000,7 +966,7 @@ class SceneGraph(ColorBarSceneComponent):
 
         # render collections to fb
         for collection in self.collections:
-            collection.run_program()
+            collection.run_program(self)
         # unbind FB
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 

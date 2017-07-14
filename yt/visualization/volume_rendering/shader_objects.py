@@ -27,7 +27,10 @@ from yt.units.yt_array import YTQuantity
 import ctypes
 from .opengl_support import \
     num_to_const, \
-    coerce_uniform_type
+    coerce_uniform_type, \
+    VertexArray
+
+import traitlets
 
 known_shaders = {}
 
@@ -161,22 +164,8 @@ class ShaderProgram(object):
     @contextlib.contextmanager
     def enable(self):
         GL.glUseProgram(self.program)
-        yield
+        yield self
         GL.glUseProgram(0)
-
-    def bind_vert_attrib(self, name, bind_loc, size):
-        loc = GL.glGetAttribLocation(self.program, name)
-        if loc < 0:
-            return -1
-        GL.glEnableVertexAttribArray(loc)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, bind_loc)
-        GL.glVertexAttribPointer(loc, size, GL.GL_FLOAT, False, 0, None)
-
-    def disable_vert_attrib(self, name):
-        loc = GL.glGetAttribLocation(self.program, name)
-        if loc < 0:
-            return -1
-        GL.glDisableVertexAttribArray(loc)
 
 class RegisteredShader(type):
     def __init__(cls, name, b, d):
@@ -264,6 +253,21 @@ class Shader(object):
         # This is not guaranteed to be called
         self.delete_shader()
 
+class ShaderTrait(traitlets.TraitType):
+    default_value = None
+    info_text = "A shader (vertex or fragment)"
+
+    def validate(self, obj, value):
+        if isinstance(value, str):
+            try:
+                shader = known_shaders[value]()
+                return shader
+            except KeyError:
+                self.error(obj, value)
+        elif isinstance(value, Shader):
+            return value
+        self.error(obj, value)
+
 class FragmentShader(Shader):
     '''Wrapper class for fragment shaders'''
     shader_type = "fragment"
@@ -346,3 +350,4 @@ class TextOverlayFragmentShader(FragmentShader):
     '''A simple text overlay shader'''
     _source = "textoverlay.fragmentshader"
     _shader_name = "text_overlay.f"
+
