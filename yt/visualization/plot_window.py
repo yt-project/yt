@@ -2111,7 +2111,7 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
          region covering the full domain
     """
     if ds.dimensionality != 2:
-        raise RuntimeError("Plot2DData only plots 2D datasets!")
+        raise RuntimeError("plot_2d only plots 2D datasets!")
     if ds.geometry == "cartesian" or ds.geometry == "polar":
         axis = "z"
     elif ds.geometry == "cylindrical":
