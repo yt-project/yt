@@ -45,7 +45,7 @@ from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, fix_unitary
+    fix_axis, fix_unitary, obj_length
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -2042,7 +2042,7 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
          ("max","dark_matter_density"). Units can be specified by passing in *center*
          as a tuple containing a coordinate and string unit name or by passing
          in a YTArray. If a list or unitless array is supplied, code units are
-         assumed.
+         assumed. For plot_2d, this keyword accepts a coordinate in two dimensions.
     width : tuple or a float.
          Width can have four different formats to support windows with variable
          x and y widths.  They are:
@@ -2116,6 +2116,19 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
         axis = "z"
     elif ds.geometry == "cylindrical":
         axis = "theta"
+    # Part of the convenience of plot_2d is to eliminate the use of the
+    # superfluous coordinate, so we do that also with the center argument
+    if not isinstance(center, string_types) and obj_length(center) == 2:
+        c0_string = isinstance(center[0], string_types)
+        c1_string = isinstance(center[1], string_types)
+        if not c0_string and not c1_string:
+            if obj_length(center[0]) == 2 and c1_string:
+                center = ds.arr(center[0], center[1])
+            elif not isinstance(center, YTArray):
+                center = ds.arr(center, 'code_length')
+            center.convert_to_units("code_length")
+        center = ds.arr([center[0], center[1], 
+                         ds.domain_center[2]])
     return AxisAlignedSlicePlot(ds, axis, fields, center=center, width=width,
                                 axes_unit=axes_unit, origin=origin, 
                                 fontsize=fontsize,
