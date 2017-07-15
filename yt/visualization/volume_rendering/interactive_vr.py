@@ -172,7 +172,7 @@ class IDVCamera(object):
 
     def get_projection_matrix(self):
         return self.projection_matrix
-    
+
     def update_cmap_minmax(self, minval, maxval, iflog):
         '''Update camera's colormap bounds
 

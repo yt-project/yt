@@ -113,6 +113,13 @@ class TextureBoundary(traitlets.TraitType):
             return value
         self.error(obj, value)
 
+TEX_CHANNELS = {
+        1: (GL.GL_R32F, GL.GL_RED),
+        2: (GL.GL_RG32F, GL.GL_RG),
+        3: (GL.GL_RGB32F, GL.GL_RGB),
+        4: (GL.GL_RGBA32F, GL.GL_RGBA)
+}
+
 class Texture(traitlets.HasTraits):
     texture_name = traitlets.CInt(-1)
     data = traitlets.Instance(np.ndarray)
@@ -135,32 +142,40 @@ class Texture1D(Texture):
     @traitlets.observe("data")
     def _set_data(self, change):
         with self.bind():
-            dx, = change['new'].shape
-            GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, GL.GL_R32F,
-                    *change['new'].shape)
+            data = change['new']
+            if len(data.shape) == 3:
+                channels = data.shape[-1]
+            else:
+                channels = 1
+            dx = data.shape[0]
+            type1, type2 = TEX_CHANNELS[channels]
+            GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, type1, dx)
             GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, dx,
-                        GL.GL_RED, GL.GL_FLOAT, 
-                        change['new'])
+                        type2, GL.GL_FLOAT, data)
             GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glGenerateMipmap(GL.GL_TEXTURE_1D)
-
 
 class Texture2D(Texture):
     boundary_x = TextureBoundary()
     boundary_y = TextureBoundary()
     dims = 2
+    channels = 1
     dim_enum = GL.GL_TEXTURE_2D
 
     @traitlets.observe("data")
     def _set_data(self, change):
         with self.bind():
-            dx, dy = change['new'].shape
-            GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, GL.GL_R32F,
-                    *change['new'].shape)
+            data = change['new']
+            if len(data.shape) == 3:
+                channels = data.shape[-1]
+            else:
+                channels = 1
+            dx, dy = data.shape[:2]
+            type1, type2 = TEX_CHANNELS[channels]
+            GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
             GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
-                        GL.GL_RED, GL.GL_FLOAT,
-                        change['new'].T)
+                        type2, GL.GL_FLOAT, data)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
@@ -177,12 +192,16 @@ class Texture3D(Texture):
     @traitlets.observe("data")
     def _set_data(self, change):
         with self.bind():
-            dx, dy, dz = change['new'].shape
-            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F,
-                    *change['new'].shape)
+            data = change['new']
+            if len(data.shape) == 3:
+                channels = data.shape[-1]
+            else:
+                channels = 1
+            dx, dy, dz = data.shape[:3]
+            type1, type2 = TEX_CHANNELS[channels]
+            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, type1, dx, dy, dz)
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
-                        GL.GL_RED, GL.GL_FLOAT, 
-                        change['new'].T)
+                        type2, GL.GL_FLOAT, data)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T,
@@ -253,3 +272,64 @@ class VertexArray(traitlets.HasTraits):
     def _set_elements(self, change):
         arr = change['new']
 
+class Framebuffer(traitlets.HasTraits):
+    fb_id = traitlets.CInt(-1)
+    db_id = traitlets.CInt(-1)
+    fb_tex = traitlets.Instance(Texture2D)
+    viewport = traitlets.Tuple(
+            traitlets.Int(), traitlets.Int(),
+            traitlets.Int(), traitlets.Int())
+    initialized = traitlets.Bool(False)
+
+    @property
+    def data(self):
+        _, _, width, height = self.viewport
+        with self.bind(clear = False):
+            debug_buffer = GL.glReadPixels(0, 0, width, height, GL.GL_RGB,
+                                           GL.GL_UNSIGNED_BYTE)
+            arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
+        return arr.reshape((width, height, 3))
+
+    @traitlets.default("viewport")
+    def _viewport_default(self):
+        # origin_x, origin_y, width, height
+        return GL.glGetIntegerv(GL.GL_VIEWPORT)
+
+    @traitlets.default("fb_id")
+    def _fb_id_default(self):
+        return GL.GenFrameBuffers(1)
+
+    @traitlets.default("db_id")
+    def _db_id_default(self):
+        return GL.GenRenderBuffers(1)
+
+    def _fb_tex_default(self):
+        data = np.zeros( (self.viewport[2], self.viewport[3], 4), "f4")
+        return Texture2D(data = data, boundary_x = "repeat", 
+                boundary_y = "repeat")
+
+    @contextmanager
+    def bind(self, clear = True):
+        if not self.initialized:
+            GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
+            GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.db_id)
+            GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F,
+                                     self.viewport[2], self.viewport[3])
+            GL.glFramebufferRenderbuffer(
+                GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
+                self.db_id
+            )
+
+            GL.glFramebufferTexture2D(
+                GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
+                self.fb_tex,
+                0 # mipmap level, normally 0
+            )
+            status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
+            if status != GL.GL_FRAMEBUFFER_COMPLETE:
+                raise RuntimeError
+        if clear:
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
+        yield
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
