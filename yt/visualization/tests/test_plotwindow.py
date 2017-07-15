@@ -30,7 +30,8 @@ from yt.utilities.answer_testing.framework import \
 from yt.utilities.exceptions import \
     YTInvalidFieldType
 from yt.visualization.api import \
-    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
+    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot, \
+    plot_2d
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
@@ -532,3 +533,22 @@ def test_set_unit():
     slc.set_unit('temperature', 'keV', equivalency='thermal')
     assert str(slc.frb['gas', 'temperature'].units) == 'keV'
 
+WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+
+@requires_ds(WD)
+def test_plot_2d():
+    # Cartesian
+    ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
+    slc = SlicePlot(ds, "z", ["temperature"], width=(0.2,"unitary"),
+                    center=[0.4, 0.3, 0.5])
+    slc2 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=[0.4, 0.3])
+    slc3 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=ds.arr([0.4, 0.3], "cm"))
+    assert_array_equal(slc.frb['temperature'], slc2.frb['temperature'])
+    assert_array_equal(slc.frb['temperature'], slc3.frb['temperature'])
+    # Cylindrical
+    ds = data_dir_load(WD)
+    slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
+    slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
+    assert_array_equal(slc.frb['density'], slc2.frb['density'])

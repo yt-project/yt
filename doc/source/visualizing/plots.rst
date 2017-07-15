@@ -203,6 +203,30 @@ or a :ref:`cut region <cut-regions>`.
 See :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot` for the
 full class description.
 
+.. _plot-2d:
+
+Plots of 2D Datasets
+~~~~~~~~~~~~~~~~~~~~
+
+If you have a two-dimensional cartesian, cylindrical, or polar dataset, 
+:func:`~yt.visualization.plot_window.plot_2d` is a way to make a plot
+within the dataset's plane without having to specify the axis, which
+in this case is redundant. Otherwise, ``plot_2d`` accepts the same
+arguments as ``SlicePlot``. The one other difference is that the
+``center`` keyword argument can be a two-dimensional coordinate instead
+of a three-dimensional one:
+
+.. python-script::
+
+    import yt
+    ds = yt.load("WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030")
+    p = yt.plot_2d(ds, "density", center=[1.0, 0.4])
+    p.set_log("density", False)
+    p.save()
+
+See :func:`~yt.visualization.plot_window.plot_2d` for the full description
+of the function and its keywords.
+
 .. _off-axis-slices:
 
 Off Axis Slices
