@@ -20,7 +20,7 @@ answer_tests:
   local_fits_001:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_007:
+  local_flash_008:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
@@ -45,7 +45,7 @@ answer_tests:
   local_owls_001:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_016:
+  local_pw_017:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -57,13 +57,13 @@ answer_tests:
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_008:
+  local_varia_009:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/visualization/volume_rendering/tests/test_vr_orientation.py
     - yt/fields/tests/test_xray_fields.py
 
-  local_photon_001:
+  local_photon_002:
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
 
