@@ -15,6 +15,7 @@ from __future__ import print_function, absolute_import
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import glob
 import os
 import numpy as np
 import stat
@@ -378,10 +379,6 @@ class RAMSESIndex(OctreeIndex):
         '''
         If no fluid fields are set, the code tries to set up a fluids array by hand
         '''
-        # TODO: SUPPORT RT - THIS REQUIRES IMPLEMENTING A NEW FILE READER!
-        # Find nvar
-
-
         # TODO: copy/pasted from DomainFile; needs refactoring!
         num = os.path.basename(self.dataset.parameter_filename).split("."
                 )[0].split("_")[1]
@@ -408,32 +405,43 @@ class RAMSESIndex(OctreeIndex):
         self.ds.gamma = hvals['gamma']
         nvar = hvals['nvar']
         # OK, we got NVAR, now set up the arrays depending on what NVAR is
+        # but first check for radiative transfer!    
+        foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
+        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
+        if rt_flag: # rt run
+            if nvar < 10:
+                mylog.info('Detected RAMSES-RT file WITHOUT IR trapping.')
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]
+            else:
+                mylog.info('Detected RAMSES-RT file WITH IR trapping.')
+                fields = ["Density", "x-velocity", "y-velocity", "z-velocity", "Pres_IR", "Pressure", "Metallicity", "HII", "HeII", "HeIII"]     
+        else:            
+            if nvar < 5:
+                mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
+                raise ValueError
+            # Basic hydro runs
+            if nvar == 5:
+                fields = ["Density",
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "Pressure"]
+            if nvar > 5 and nvar < 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "Pressure", "Metallicity"]
+            # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+            if nvar == 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                          "Pressure"]
+            if nvar > 11:
+                fields = ["Density", 
+                          "x-velocity", "y-velocity", "z-velocity", 
+                          "x-Bfield-left", "y-Bfield-left", "z-Bfield-left", 
+                          "x-Bfield-right", "y-Bfield-right", "z-Bfield-right", 
+                          "Pressure","Metallicity"]
         # Allow some wiggle room for users to add too many variables
-        if nvar < 5:
-            mylog.debug("nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s")
-            raise ValueError
-        # Basic hydro runs
-        if nvar == 5:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "Pressure"]
-        if nvar > 5 and nvar < 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "Pressure", "Metallicity"]
-        # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
-        if nvar == 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                      "Pressure"]
-        if nvar > 11:
-            fields = ["Density",
-                      "x-velocity", "y-velocity", "z-velocity",
-                      "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                      "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
-                      "Pressure","Metallicity"]
         while len(fields) < nvar:
             fields.append("var"+str(len(fields)))
         mylog.debug("No fields specified by user; automatically setting fields array to %s", str(fields))
