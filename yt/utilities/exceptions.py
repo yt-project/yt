@@ -699,3 +699,16 @@ class YTInconsistentGridFieldShapeGridDims(YTException):
             if shape != self.grid_dims:
                 msg += "    Field {} has shape {}.\n".format(name, shape)
         return msg
+
+class YTCommandRequiresModule(YTException):
+    def __init__(self, module):
+        self.module = module
+
+    def __str__(self):
+        msg = "This command requires \"%s\" to be installed.\n\n" % self.module
+        msg += "Please install \"%s\" with the package manager " % self.module
+        msg += "appropriate for your python environment, e.g.:\n"
+        msg += "  conda install %s\n" % self.module
+        msg += "or:\n"
+        msg += "  pip install %s\n" % self.module
+        return msg

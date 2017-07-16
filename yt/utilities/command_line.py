@@ -43,6 +43,7 @@ from yt.funcs import \
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
 from yt.extern.six.moves.urllib.parse import urlparse
+from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
@@ -50,7 +51,7 @@ from yt.visualization.plot_window import \
 from yt.utilities.metadata import get_metadata
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified, YTFieldNotParseable
+    YTOutputNotIdentified, YTFieldNotParseable, YTCommandRequiresModule
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -135,10 +136,7 @@ def _get_girder_client():
     try:
         import girder_client
     except ImportError:
-        print("this command requires girder_client to be installed")
-        print("Please install them using your python package manager, e.g.:")
-        print("   pip install girder_client --user")
-        sys.exit()
+        raise YTCommandRequiresModule('girder_client')
     if not ytcfg.get("yt", "hub_api_key"):
         print("Before you can access the yt Hub you need an API key")
         print("In order to obtain one, either register by typing:")
@@ -151,6 +149,25 @@ def _get_girder_client():
     gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
     return gc
 
+
+class FileStreamer:
+    final_size = None
+    next_sent = 0
+    chunksize = 100*1024
+
+    def __init__(self, f, final_size = None):
+        location = f.tell()
+        f.seek(0, os.SEEK_END)
+        self.final_size = f.tell() - location
+        f.seek(location)
+        self.f = f
+
+    def __iter__(self):
+        with tqdm(total=self.final_size, desc='Uploading file',
+                  unit='B', unit_scale=True) as pbar:
+            while self.f.tell() < self.final_size:
+                yield self.f.read(self.chunksize)
+                pbar.update(self.chunksize)
 
 _subparsers = {None: subparsers}
 _subparsers_description = {
@@ -572,10 +589,7 @@ class YTHubRegisterCmd(YTCommand):
         try:
             import requests
         except ImportError:
-            print("yt {} requires requests to be installed".format(self.name))
-            print("Please install them using your python package manager, e.g.:")
-            print("   pip install requests --user")
-            sys.exit()
+            raise YTCommandRequiresModule('requests')
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
@@ -1157,6 +1171,29 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+
+
+class YTUploadFileCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload a file to yt's curldrop.
+
+        """
+    name = "upload"
+
+    def __call__(self, args):
+        try:
+            import requests
+        except ImportError:
+            raise YTCommandRequiresModule('requests')
+
+        fs = iter(FileStreamer(open(args.file, 'rb')))
+        upload_url = ytcfg.get("yt", "curldrop_upload_url")
+        r = requests.put(upload_url + "/" + os.path.basename(args.file),
+                         data=fs)
+        print()
+        print(r.text)
 
 
 class YTConfigGetCmd(YTCommand):

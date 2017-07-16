@@ -735,7 +735,13 @@ def load_uniform_grid(data, domain_dimensions, length_unit=None, bbox=None,
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = 2
-    handler.dimensionality = 3
+    if np.all(domain_dimensions[1:] == 1):
+        dimensionality = 1
+    elif domain_dimensions[2] == 1:
+        dimensionality = 2
+    else:
+        dimensionality = 3
+    handler.dimensionality = dimensionality
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
@@ -925,7 +931,13 @@ def load_amr_grids(grid_data, domain_dimensions,
     handler.domain_left_edge = domain_left_edge
     handler.domain_right_edge = domain_right_edge
     handler.refine_by = refine_by
-    handler.dimensionality = 3
+    if np.all(domain_dimensions[1:] == 1):
+        dimensionality = 1
+    elif domain_dimensions[2] == 1:
+        dimensionality = 2
+    else:
+        dimensionality = 3
+    handler.dimensionality = dimensionality
     handler.domain_dimensions = domain_dimensions
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0

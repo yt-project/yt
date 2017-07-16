@@ -11,6 +11,7 @@ FITSImageData Class
 #-----------------------------------------------------------------------------
 from yt.extern.six import string_types
 import numpy as np
+from yt.fields.derived_field import DerivedField
 from yt.funcs import mylog, iterable, fix_axis, ensure_list
 from yt.visualization.fixed_resolution import FixedResolutionBuffer
 from yt.data_objects.construction_data_containers import YTCoveringGrid
@@ -147,25 +148,27 @@ class FITSImageData(object):
         for fd in fields:
             if isinstance(fd, tuple):
                 self.fields.append(fd[1])
+            elif isinstance(fd, DerivedField):
+                self.fields.append(fd.name[1])
             else:
                 self.fields.append(fd)
 
         first = True
-        for key in fields:
-            if key not in exclude_fields:
-                if hasattr(img_data[key], "units"):
-                    self.field_units[key] = str(img_data[key].units)
+        for name, field in zip(self.fields, fields):
+            if name not in exclude_fields:
+                if hasattr(img_data[field], "units"):
+                    self.field_units[name] = str(img_data[field].units)
                 else:
-                    self.field_units[key] = "dimensionless"
-                mylog.info("Making a FITS image of field %s" % key)
+                    self.field_units[name] = "dimensionless"
+                mylog.info("Making a FITS image of field %s" % name)
                 if first:
-                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[key]))
+                    hdu = _astropy.pyfits.PrimaryHDU(np.array(img_data[field]))
                     first = False
                 else:
-                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[key]))
-                hdu.name = key
-                hdu.header["btype"] = key
-                hdu.header["bunit"] = re.sub('()', '', self.field_units[key])
+                    hdu = _astropy.pyfits.ImageHDU(np.array(img_data[field]))
+                hdu.name = name
+                hdu.header["btype"] = name
+                hdu.header["bunit"] = re.sub('()', '', self.field_units[name])
                 self.hdulist.append(hdu)
 
         self.shape = self.hdulist[0].shape

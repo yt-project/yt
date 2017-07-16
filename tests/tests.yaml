@@ -20,7 +20,7 @@ answer_tests:
   local_fits_001:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_007:
+  local_flash_008:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_001:
@@ -45,7 +45,7 @@ answer_tests:
   local_owls_001:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_016:
+  local_pw_017:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_profile_plots.py:test_phase_plot_attributes
@@ -57,21 +57,22 @@ answer_tests:
   local_tipsy_002:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_008:
+  local_varia_009:
     - yt/analysis_modules/radmc3d_export
     - yt/frontends/moab/tests/test_c5.py
     - yt/visualization/volume_rendering/tests/test_vr_orientation.py
     - yt/fields/tests/test_xray_fields.py
 
-  local_photon_001:
+  local_photon_002:
     - yt/analysis_modules/photon_simulator/tests/test_spectra.py
     - yt/analysis_modules/photon_simulator/tests/test_sloshing.py
 
-  local_unstructured_006:
+  local_unstructured_008:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py
     - yt/visualization/tests/test_mesh_slices.py:test_tri2
     - yt/visualization/tests/test_mesh_slices.py:test_quad2
     - yt/visualization/tests/test_mesh_slices.py:test_multi_region
+    - yt/visualization/tests/test_line_plots.py:test_line_plot
 
   local_boxlib_004:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
@@ -83,12 +84,13 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
     - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
-  local_boxlib_particles_003:
+  local_boxlib_particles_004:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_langmuir
     - yt/frontends/boxlib/tests/test_outputs.py:test_plasma
+    - yt/frontends/boxlib/tests/test_outputs.py:test_beam
     - yt/frontends/boxlib/tests/test_outputs.py:test_warpx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset

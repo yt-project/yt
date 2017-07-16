@@ -43,6 +43,14 @@ See :ref:`how-to-make-2d-profiles` for more information.
 
 .. yt_cookbook:: simple_phase.py
 
+Simple 1D Line Plotting
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This script shows how to make a ``LinePlot`` through a dataset.
+See :ref:`how-to-1d-line-plot` for more information.
+
+.. yt_cookbook:: simple_1d_line_plot.py
+
 Simple Probability Distribution Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
