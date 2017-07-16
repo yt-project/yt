@@ -167,6 +167,17 @@ def test_plasma():
         test_plasma.__name__ = test.description
         yield test
 
+beam = "GaussianBeam/plt03008"
+@requires_ds(beam)
+def test_beam():
+    ds = data_dir_load(beam)
+    assert_equal(str(ds), "plt03008")
+    for test in small_patch_amr(ds, _warpx_fields,
+                                input_center="c",
+                                input_weight="Ex"):
+        test_beam.__name__ = test.description
+        yield test
+
 @requires_file(plasma)
 def test_warpx_particle_io():
     ds = data_dir_load(plasma)
