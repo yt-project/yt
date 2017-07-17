@@ -1947,6 +1947,11 @@ yt supports outputs made by the mainline ``RAMSES`` code as well as the
 ``RAMSES-RT`` fork. Files produces by ``RAMSES-RT`` are recognized as such
 based on the presence of a ``into_rt_*.txt`` file in the output directory.
 
+It is possible to force yt to treat the simulation as a cosmological
+simulation by providing the ``cosmological=True`` parameter (or
+``False`` to force non-cosmology). If left to ``None``, the kind of
+the simulation is inferred from the data.
+
 .. _loading-sph-data:
 
 SPH Particle Data

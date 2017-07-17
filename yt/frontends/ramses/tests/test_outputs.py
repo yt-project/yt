@@ -62,14 +62,54 @@ def test_units_override():
 
 ramsesNonCosmo = 'DICEGalaxyDisk_nonCosmological/output_00002'
 @requires_file(ramsesNonCosmo)
+def test_non_cosmo_detection():
+    path = os.path.join(ramsesNonCosmo, 'info_00002.txt')
+    ds = yt.load(path, cosmological=False)
+    assert_equal(ds.cosmological_simulation, 0)
+
+    ds = yt.load(path, cosmological=None)
+    assert_equal(ds.cosmological_simulation, 0)
+
+    ds = yt.load(path)
+    assert_equal(ds.cosmological_simulation, 0)
+
+
+@requires_file(ramsesNonCosmo)
 def test_unit_non_cosmo():
-    ds = yt.load(os.path.join(ramsesNonCosmo, 'info_00002.txt'))
+    for force_cosmo in [False, None]:
+        ds = yt.load(os.path.join(ramsesNonCosmo, 'info_00002.txt'), cosmological=force_cosmo)
 
-    expected_raw_time = 0.0299468077820411 # in ramses unit
-    assert_equal(ds.current_time.value, expected_raw_time)
+        expected_raw_time = 0.0299468077820411 # in ramses unit
+        assert_equal(ds.current_time.value, expected_raw_time)
 
-    expected_time = 14087886140997.336 # in seconds
-    assert_equal(ds.current_time.in_units('s').value, expected_time)
+        expected_time = 14087886140997.336 # in seconds
+        assert_equal(ds.current_time.in_units('s').value, expected_time)
+
+
+ramsesCosmo = 'output_00080/info_00080.txt'
+@requires_file(ramsesCosmo)
+def test_cosmo_detection():
+    ds = yt.load(ramsesCosmo, cosmological=True)
+    assert_equal(ds.cosmological_simulation, 1)
+
+    ds = yt.load(ramsesCosmo, cosmological=None)
+    assert_equal(ds.cosmological_simulation, 1)
+
+    ds = yt.load(ramsesCosmo)
+    assert_equal(ds.cosmological_simulation, 1)
+
+
+@requires_file(ramsesCosmo)
+def test_unit_cosmo():
+    for force_cosmo in [True, None]:
+        ds = yt.load(ramsesCosmo, cosmological=force_cosmo)
+
+        expected_raw_time = 1.119216564055017 # in ramses unit
+        assert_equal(ds.current_time.value, expected_raw_time)
+
+        expected_time = 3.756241729312462e+17 # in seconds
+        assert_equal(ds.current_time.in_units('s').value, expected_time)
+
 
 ramsesExtraFieldsSmall = 'ramses_extra_fields_small/output_00001'
 @requires_file(ramsesExtraFieldsSmall)
