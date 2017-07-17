@@ -121,6 +121,8 @@ TEX_CHANNELS = {
         4: (GL.GL_RGBA32F, GL.GL_RGBA)
 }
 
+TEX_TARGETS = {i: getattr(GL, "GL_TEXTURE%s" % i) for i in range(10)}
+
 class Texture(traitlets.HasTraits):
     texture_name = traitlets.CInt(-1)
     data = traitlets.Instance(np.ndarray)
@@ -130,8 +132,9 @@ class Texture(traitlets.HasTraits):
         return GL.glGenTextures(1)
 
     @contextmanager
-    def bind(self):
-        GL.glBindTexture(self.dim_enum, self.texture_name)
+    def bind(self, target = 0):
+        rv = GL.glActiveTexture(TEX_TARGETS[target])
+        rv = GL.glBindTexture(self.dim_enum, self.texture_name)
         yield
         GL.glBindTexture(self.dim_enum, 0)
 
@@ -158,21 +161,22 @@ class Texture1D(Texture):
             GL.glGenerateMipmap(GL.GL_TEXTURE_1D)
 
 class ColormapTexture(Texture1D):
-    cmap_name = traitlets.CUnicode("arbre")
+    colormap_name = traitlets.CUnicode()
 
     def __init__(self, *args, **kwargs):
         # Override...
         kwargs['boundary_x'] = 'clamp'
         super(ColormapTexture, self).__init__(*args, **kwargs)
 
-    @traitlets.validate("cmap_name")
-    def _validate_cmap(self, proposal):
-        if proposal not in cm.cmap_d:
+    @traitlets.validate("colormap_name")
+    def _validate_name(self, proposal):
+        if proposal['value'] not in cm.cmap_d:
             raise traitlets.TraitError("Colormap name needs to be known by"
                     "matplotlib")
-        return proposal
+        return proposal['value']
 
-    def _observe_cmap(self, change):
+    @traitlets.observe("colormap_name")
+    def _observe_colormap_name(self, change):
         cmap = cm.get_cmap(change['new'])
         cmap_vals = np.array(cmap(np.linspace(0, 1, 256)), dtype="f4")
         self.data = cmap_vals
@@ -248,8 +252,8 @@ class VertexAttribute(traitlets.HasTraits):
             loc = GL.glGetAttribLocation(program.program, self.name)
             if loc < 0:
                 return -1
-            GL.glEnableVertexAttribArray(loc)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
+            rv = GL.glEnableVertexAttribArray(loc)
+        rv = GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
         if loc >= 0:
             GL.glVertexAttribPointer(loc, self.each, GL.GL_FLOAT, False, 0,
                     None)
@@ -298,8 +302,8 @@ class Framebuffer(traitlets.HasTraits):
     db_id = traitlets.CInt(-1)
     fb_tex = traitlets.Instance(Texture2D)
     viewport = traitlets.Tuple(
-            traitlets.Int(), traitlets.Int(),
-            traitlets.Int(), traitlets.Int())
+            traitlets.CInt(), traitlets.CInt(),
+            traitlets.CInt(), traitlets.CInt())
     initialized = traitlets.Bool(False)
 
     @property
@@ -314,15 +318,20 @@ class Framebuffer(traitlets.HasTraits):
     @traitlets.default("viewport")
     def _viewport_default(self):
         # origin_x, origin_y, width, height
-        return GL.glGetIntegerv(GL.GL_VIEWPORT)
+        return tuple(GL.glGetIntegerv(GL.GL_VIEWPORT))
+
+    @traitlets.observe("viewport")
+    def _viewport_changed(self, change):
+        # we just need to disable the initialized value here
+        self.initalized = False
 
     @traitlets.default("fb_id")
     def _fb_id_default(self):
-        return GL.GenFrameBuffers(1)
+        return GL.glGenFramebuffers(1)
 
     @traitlets.default("db_id")
     def _db_id_default(self):
-        return GL.GenRenderBuffers(1)
+        return GL.glGenRenderbuffers(1)
 
     def _fb_tex_default(self):
         data = np.zeros( (self.viewport[2], self.viewport[3], 4), "f4")
@@ -331,6 +340,7 @@ class Framebuffer(traitlets.HasTraits):
 
     @contextmanager
     def bind(self, clear = True):
+        self.viewport = tuple(GL.glGetIntegerv(GL.GL_VIEWPORT))
         if not self.initialized:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
             GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.db_id)
@@ -343,14 +353,20 @@ class Framebuffer(traitlets.HasTraits):
 
             GL.glFramebufferTexture2D(
                 GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
-                self.fb_tex,
+                self.fb_tex.texture_name,
                 0 # mipmap level, normally 0
             )
             status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
             if status != GL.GL_FRAMEBUFFER_COMPLETE:
                 raise RuntimeError
+            self.initialized = True
         if clear:
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
         yield
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
+
+    @contextmanager
+    def input_bind(self, target = 0):
+        with self.fb_tex.bind(target):
+            yield

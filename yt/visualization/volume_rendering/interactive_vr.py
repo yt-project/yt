@@ -26,6 +26,7 @@ import ctypes
 import time
 import traitlets
 
+from yt import write_bitmap
 from yt.config import \
     ytcfg
 from yt.utilities.math_utils import \
@@ -46,7 +47,8 @@ from .shader_objects import \
     known_shaders, ShaderProgram, ShaderTrait
 from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
-    VertexArray, VertexAttribute, ColormapTexture
+    VertexArray, VertexAttribute, ColormapTexture, \
+    Framebuffer
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -285,11 +287,16 @@ class SceneData(traitlets.HasTraits):
 
 class SceneComponent(traitlets.HasTraits):
     data = traitlets.Instance(SceneData)
+    base_quad = traitlets.Instance(SceneData)
     fragment_shader = ShaderTrait(allow_none = True)
     vertex_shader = ShaderTrait(allow_none = True)
+    colormap_fragment = ShaderTrait(allow_none = True)
+    colormap_vertex = ShaderTrait(allow_none = True)
     colormap = traitlets.Instance(ColormapTexture)
     _program = traitlets.Instance(ShaderProgram, allow_none = True)
+    _program2 = traitlets.Instance(ShaderProgram, allow_none = True)
     _program_invalid = True
+    _program2_invalid = True
 
     @traitlets.observe("fragment_shader")
     def _change_fragment(self, change):
@@ -301,9 +308,32 @@ class SceneComponent(traitlets.HasTraits):
         # Even if old/new are the same
         self._program_invalid = True
 
+    @traitlets.observe("colormap_vertex")
+    def _change_colormap_vertex(self, change):
+        # Even if old/new are the same
+        self._program2_invalid = True
+
+    @traitlets.observe("colormap_shader")
+    def _change_colormap_fragment(self, change):
+        # Even if old/new are the same
+        self._program2_invalid = True
+
     @traitlets.default("colormap")
     def _default_colormap(self):
-        return ColormapTexture()
+        cm = ColormapTexture()
+        cm.colormap_name = "arbre"
+        return cm
+
+    @traitlets.default("base_quad")
+    def _default_base_quad(self):
+        bq = SceneData(name = "fullscreen_quad", 
+                       vertex_array = VertexArray(name = "tri", each = 6),
+        )
+        fq = FULLSCREEN_QUAD.reshape((6, 3), order="C")
+        bq.vertex_array.attributes.append(VertexAttribute(
+            name = "vertexPosition_modelspace", data = fq
+        ))
+        return bq
 
     @property
     def program(self):
@@ -315,12 +345,39 @@ class SceneComponent(traitlets.HasTraits):
             self._program_invalid = False
         return self._program
 
-    def run_program(self, scene):
-        with self.program.enable() as p:
-            self._set_uniforms(scene, p)
-            with self.data.vertex_array.bind(p):
-                self.draw(scene)
+    @property
+    def program2(self):
+        if self._program2_invalid:
+            if self._program2 is not None:
+                self._program2.delete_program()
+            # The vertex shader will always be the same.
+            # The fragment shader will change based on whether we are
+            # colormapping or not.
+            self._program2 = ShaderProgram(self.colormap_vertex,
+                    self.colormap_fragment)
+            self._program2_invalid = False
+        return self._program2
 
+    def run_program(self, scene):
+        with self.fb.bind():
+            with self.program.enable() as p:
+                self._set_uniforms(scene, p)
+                with self.data.vertex_array.bind(p):
+                    self.draw(scene)
+        write_bitmap(self.fb.data, "temp.png")
+        with self.colormap.bind(2):
+            with self.fb.input_bind(1):
+                with self.program2.enable() as p2:
+                    p._set_uniform("cmap", 2)
+                    p._set_uniform("fb_texture", 1)
+                    p._set_uniform("min_val", 0.0)
+                    p._set_uniform("scale", 0.0)
+                    p._set_uniform("cmap_min", 0.0)
+                    p._set_uniform("cmap_max", 1.0)
+                    p._set_uniform("cmap_log", 0.0)
+                    with self.base_quad.vertex_array.bind(p2):
+                        GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
+                
     def draw(self, scene):
         raise NotImplementedError
 
@@ -572,18 +629,18 @@ class BlockRendering(SceneComponent):
     handling from the display.
     '''
     data = traitlets.Instance(BlockCollection)
+    fb = traitlets.Instance(Framebuffer)
+
+    @traitlets.default("fb")
+    def _fb_default(self):
+        return Framebuffer()
 
     def draw(self, scene):
-        # How should we handle the possibility that we're inside a framebuffer?
-        # Or, do we just assume it's not a big deal?
         GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        GL.glActiveTexture(GL.GL_TEXTURE0)
         each = self.data.vertex_array.each
-
-        with self.data.vertex_array.bind(self.program):
-            for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
-                with texture.bind():
-                    GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+        for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
+            with texture.bind(target = 0):
+                GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera

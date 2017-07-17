@@ -23,4 +23,5 @@ void main(){
       scaled = log(scaled) / log(10.f);
    }
    color = texture(cmap, (scaled - cm) / (cp - cm));
+   //color = vec4(scaled, scaled, scaled, 1.0);
 }
