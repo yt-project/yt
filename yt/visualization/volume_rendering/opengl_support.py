@@ -18,6 +18,7 @@ import OpenGL.GL as GL
 from contextlib import contextmanager
 import traitlets
 import numpy as np
+import matplotlib.cm as cm
 
 try:
     from contextlib import ExitStack
@@ -143,7 +144,7 @@ class Texture1D(Texture):
     def _set_data(self, change):
         with self.bind():
             data = change['new']
-            if len(data.shape) == 3:
+            if len(data.shape) == 2:
                 channels = data.shape[-1]
             else:
                 channels = 1
@@ -155,6 +156,26 @@ class Texture1D(Texture):
             GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glGenerateMipmap(GL.GL_TEXTURE_1D)
+
+class ColormapTexture(Texture1D):
+    cmap_name = traitlets.CUnicode("arbre")
+
+    def __init__(self, *args, **kwargs):
+        # Override...
+        kwargs['boundary_x'] = 'clamp'
+        super(ColormapTexture, self).__init__(*args, **kwargs)
+
+    @traitlets.validate("cmap_name")
+    def _validate_cmap(self, proposal):
+        if proposal not in cm.cmap_d:
+            raise traitlets.TraitError("Colormap name needs to be known by"
+                    "matplotlib")
+        return proposal
+
+    def _observe_cmap(self, change):
+        cmap = cm.get_cmap(change['new'])
+        cmap_vals = np.array(cmap(np.linspace(0, 1, 256)), dtype="f4")
+        self.data = cmap_vals
 
 class Texture2D(Texture):
     boundary_x = TextureBoundary()
@@ -193,7 +214,7 @@ class Texture3D(Texture):
     def _set_data(self, change):
         with self.bind():
             data = change['new']
-            if len(data.shape) == 3:
+            if len(data.shape) == 4:
                 channels = data.shape[-1]
             else:
                 channels = 1
@@ -264,7 +285,7 @@ class VertexArray(traitlets.HasTraits):
         else:
             attrs = self.attributes
         with ExitStack() as stack:
-            _ = [stack.enter_context(_) for _ in attrs]
+            _ = [stack.enter_context(_.bind()) for _ in attrs]
             yield
         GL.glBindVertexArray(0)
 

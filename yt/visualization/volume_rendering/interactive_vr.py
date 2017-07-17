@@ -38,13 +38,15 @@ from yt.utilities.math_utils import \
     rotation_matrix_to_quaternion
 from yt.data_objects.data_containers import \
     YTDataContainer
+from yt.data_objects.static_output import \
+     Dataset
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.extern.six import unichr
 from .shader_objects import \
     known_shaders, ShaderProgram, ShaderTrait
 from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
-    VertexArray, VertexAttribute
+    VertexArray, VertexAttribute, ColormapTexture
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -285,18 +287,23 @@ class SceneComponent(traitlets.HasTraits):
     data = traitlets.Instance(SceneData)
     fragment_shader = ShaderTrait(allow_none = True)
     vertex_shader = ShaderTrait(allow_none = True)
+    colormap = traitlets.Instance(ColormapTexture)
     _program = traitlets.Instance(ShaderProgram, allow_none = True)
     _program_invalid = True
 
     @traitlets.observe("fragment_shader")
-    def change_fragment(self, change):
+    def _change_fragment(self, change):
         # Even if old/new are the same
         self._program_invalid = True
 
     @traitlets.observe("vertex_shader")
-    def change_vertex(self, change):
+    def _change_vertex(self, change):
         # Even if old/new are the same
         self._program_invalid = True
+
+    @traitlets.default("colormap")
+    def _default_colormap(self):
+        return ColormapTexture()
 
     @property
     def program(self):
@@ -310,12 +317,15 @@ class SceneComponent(traitlets.HasTraits):
 
     def run_program(self, scene):
         with self.program.enable() as p:
-            self._set_uniforms(p)
+            self._set_uniforms(scene, p)
             with self.data.vertex_array.bind(p):
                 self.draw(scene)
 
     def draw(self, scene):
         raise NotImplementedError
+
+class SceneAnnotation(SceneComponent):
+    pass
 
 # This is drawn in part from
 #  https://learnopengl.com/#!In-Practice/Text-Rendering
@@ -433,7 +443,7 @@ class TextOverlay(SceneComponent):
         self.draw_instructions = draw_instructions
         self.redraw = True
 
-    def _set_uniforms(self, shader_program):
+    def _set_uniforms(self, scene, shader_program):
         pass
 
 class BlockCollection(SceneData):
@@ -573,17 +583,6 @@ class BlockCollection(SceneData):
             tex_i, _ = self.blocks[id(block)]
             yield tex_i, self.texture_objects[tex_i]
 
-    def _set_uniforms(self, shader_program):
-        shader_program._set_uniform("projection",
-                self.camera.get_projection_matrix())
-        shader_program._set_uniform("modelview",
-                self.camera.get_view_matrix())
-        shader_program._set_uniform("viewport",
-                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-        shader_program._set_uniform("camera_pos",
-                self.camera.position)
-        shader_program._set_uniform("box_width", self.box_width)
-
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
         dds = (block.RightEdge - block.LeftEdge)
@@ -616,9 +615,22 @@ class BlockRendering(SceneComponent):
         GL.glActiveTexture(GL.GL_TEXTURE0)
         each = self.data.vertex_array.each
 
-        for tex_ind, texture in self.block_data.viewpoint_iter(scene.camera):
+        for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
             with texture.bind():
                 GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+
+    def _set_uniforms(self, scene, shader_program):
+        cam = scene.camera
+        shader_program._set_uniform("projection",
+                cam.get_projection_matrix())
+        shader_program._set_uniform("modelview",
+                cam.get_view_matrix())
+        shader_program._set_uniform("viewport",
+                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
+        shader_program._set_uniform("camera_pos",
+                cam.position)
+        #shader_program._set_uniform("box_width", self.box_width)
+        shader_program._set_uniform("box_width", 1.0)
 
 class ColorBarSceneComponent(SceneComponent):
     ''' 
@@ -774,8 +786,27 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
     render = run_program
 
+class SceneGraph(traitlets.HasTraits):
+    components = traitlets.List(trait = traitlets.Instance(SceneComponent),
+            default_value = [])
+    annotations = traitlets.List(trait = traitlets.Instance(SceneAnnotation),
+            default_value = [])
+    camera = traitlets.Instance(IDVCamera)
+    ds = traitlets.Instance(Dataset)
 
-class SceneGraph(ColorBarSceneComponent):
+    def render(self):
+        for component in self.components:
+            component.run_program(self)
+        for annotation in self.annotations:
+            annotation.run_program(self)
+
+    def set_camera(self, camera):
+        self.camera = camera
+
+    def update_minmax(self):
+        pass
+
+class OldSceneGraph(ColorBarSceneComponent):
     """A basic OpenGL render for IDV.
 
     The SceneGraph class is the primary driver behind creating a IDV rendering.
