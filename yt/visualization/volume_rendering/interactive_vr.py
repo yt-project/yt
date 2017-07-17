@@ -452,41 +452,6 @@ class BlockCollection(SceneData):
     texture_objects = traitlets.List(trait = traitlets.Instance(Texture3D))
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)
-    def old__init__(self, scale=False):
-        '''Class responsible for converting yt data objects into a set of 3D textures
-        
-        Parameters
-        ----------
-
-        scale : boolean, optional
-            Rescale the data passed to the texture from 0 to 1
-
-        '''
-        self.scale = scale
-        super(BlockCollection, self).__init__()
-        self.set_shader("default.v")
-        self.set_shader("max_intensity.f")
-        self.data_source = None
-
-        self.blocks = {} # A collection of PartionedGrid objects
-        self.block_order = []
-
-        self.gl_texture_names = []
-        self.texture_objects = []
-
-        self.redraw = True
-
-        self.geometry_loaded = False
-
-        self.camera = None
-        GL.glEnable(GL.GL_CULL_FACE)
-        GL.glCullFace(GL.GL_BACK)
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glDepthFunc(GL.GL_LESS)
-
-        self.box_width = 0.1
-
-        self._init_blending()
 
     def _init_blending(self):
         GL.glEnable(GL.GL_BLEND)
@@ -615,9 +580,10 @@ class BlockRendering(SceneComponent):
         GL.glActiveTexture(GL.GL_TEXTURE0)
         each = self.data.vertex_array.each
 
-        for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
-            with texture.bind():
-                GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+        with self.data.vertex_array.bind(self.program):
+            for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
+                with texture.bind():
+                    GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
@@ -629,7 +595,6 @@ class BlockRendering(SceneComponent):
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
                 cam.position)
-        #shader_program._set_uniform("box_width", self.box_width)
         shader_program._set_uniform("box_width", 1.0)
 
 class ColorBarSceneComponent(SceneComponent):

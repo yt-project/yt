@@ -219,16 +219,16 @@ class Texture3D(Texture):
             else:
                 channels = 1
             dx, dy, dz = data.shape[:3]
-            type1, type2 = TEX_CHANNELS[channels]
-            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, type1, dx, dy, dz)
-            GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
-                        type2, GL.GL_FLOAT, data)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T,
                     self.boundary_y)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R,
                     self.boundary_z)
+            type1, type2 = TEX_CHANNELS[channels]
+            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F, dx, dy, dz)
+            GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
+                        type2, GL.GL_FLOAT, data)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
 class VertexAttribute(traitlets.HasTraits):
@@ -245,7 +245,7 @@ class VertexAttribute(traitlets.HasTraits):
     def bind(self, program = None):
         loc = -1
         if program is not None:
-            loc = GL.glGetAttribLocation(program, self.name)
+            loc = GL.glGetAttribLocation(program.program, self.name)
             if loc < 0:
                 return -1
             GL.glEnableVertexAttribArray(loc)
@@ -285,7 +285,7 @@ class VertexArray(traitlets.HasTraits):
         else:
             attrs = self.attributes
         with ExitStack() as stack:
-            _ = [stack.enter_context(_.bind()) for _ in attrs]
+            _ = [stack.enter_context(_.bind(program)) for _ in attrs]
             yield
         GL.glBindVertexArray(0)
 
