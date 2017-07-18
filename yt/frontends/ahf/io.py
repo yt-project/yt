@@ -39,7 +39,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
         for data_file in self._get_data_files(chunks, ptf):
-            halos = data_file.read_data()
+            halos = data_file.read_data(usecols=['Xc', 'Yc', 'Zc'])
             x = halos['Xc'].astype('float64')
             y = halos['Yc'].astype('float64')
             z = halos['Zc'].astype('float64')
@@ -65,7 +65,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        halos = data_file.read_data()
+        halos = data_file.read_data(usecols=['Xc', 'Yc', 'Zc'])
         pcount = len(halos['ID'])
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug('Initializing index % 5i (% 7i particles)',
@@ -96,7 +96,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        halos = data_file.read_data()
+        halos = data_file.read_data(usecols=['ID'])
         return {'halos': len(halos['ID'])}
 
     def _identify_fields(self, data_file):
