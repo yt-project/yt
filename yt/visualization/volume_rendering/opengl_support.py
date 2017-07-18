@@ -223,6 +223,7 @@ class Texture3D(Texture):
             else:
                 channels = 1
             dx, dy, dz = data.shape[:3]
+            GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T,
@@ -232,7 +233,7 @@ class Texture3D(Texture):
             type1, type2 = TEX_CHANNELS[channels]
             GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F, dx, dy, dz)
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
-                        type2, GL.GL_FLOAT, data)
+                        type2, GL.GL_FLOAT, data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
 class VertexAttribute(traitlets.HasTraits):
