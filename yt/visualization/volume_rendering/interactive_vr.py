@@ -474,6 +474,9 @@ class TextAnnotation(SceneAnnotation):
     data = traitlets.Instance(TextCharacters)
     text = traitlets.CUnicode()
     draw_instructions = traitlets.List()
+    origin = traitlets.Tuple(traitlets.CFloat(), traitlets.CFloat(),
+            default_value = (-1, -1))
+    scale = traitlets.CFloat(1.0)
 
     @traitlets.observe("text")
     def _observe_text(self, change):
@@ -504,6 +507,9 @@ class TextAnnotation(SceneAnnotation):
             with tex.bind(0):
                 program._set_uniform("x_offset", float(x))
                 program._set_uniform("y_offset", float(y))
+                program._set_uniform("x_origin", self.origin[0])
+                program._set_uniform("y_origin", self.origin[1])
+                program._set_uniform("scale", self.scale)
                 GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*each, each)
 
     def init_draw(self, scene):
@@ -665,50 +671,7 @@ class BlockRendering(SceneComponent):
         GL.glEnable(GL.GL_CULL_FACE)
         GL.glCullFace(GL.GL_BACK)
 
-class ColorBarSceneComponent(SceneComponent):
-    ''' 
-
-    A class for scene components that apply colorbars using a 1D texture. 
-
-    '''
-
-    def __init__(self):
-        super(ColorBarSceneComponent, self).__init__()
-        self.camera = None
-        self.cmap_texture = None
-
-    def set_camera(self, camera):
-        pass
-
-    def update_minmax(self):
-        pass
-
-    def setup_cmap_tex(self):
-        '''Creates 1D texture that will hold colormap in framebuffer'''
-        self.cmap_texture = GL.glGenTextures(1)   # create target texture
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-        GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
-                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-
-    def update_cmap_tex(self):
-        '''Updates 1D texture with colormap that's used in framebuffer'''
-        if self.camera is None or not self.camera.cmap_new:
-            return
-
-        if self.cmap_texture is None:
-            self.setup_cmap_tex()
-
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
-                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
-        self.camera.cmap_new = False
-    
-class MeshSceneComponent(ColorBarSceneComponent):
+class MeshSceneComponent(object):
     '''
 
     A scene component for representing unstructured mesh data.
