@@ -40,9 +40,11 @@ class AHFHalosFile(ParticleFile):
             filename = candidates[0]
         else:
             raise ValueError('Too many AHF_halos files.')
-        names = self._read_column_names(filename)
-        self.data = np.genfromtxt(filename, names=names)
+        self.col_names = self._read_column_names(filename)
         super(AHFHalosFile, self).__init__(ds, io, filename, file_id)
+
+    def read_data(self):
+        return np.genfromtxt(self.filename, names=self.col_names)
 
     def _read_column_names(self, filename):
         with open(filename) as f:

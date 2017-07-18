@@ -39,7 +39,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
         for data_file in self._get_data_files(chunks, ptf):
-            halos = data_file.data
+            halos = data_file.read_data()
             x = halos['Xc'].astype('float64')
             y = halos['Yc'].astype('float64')
             z = halos['Zc'].astype('float64')
@@ -52,7 +52,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
         for data_file in self._get_data_files(chunks, ptf):
-            halos = data_file.data
+            halos = data_file.read_data()
             x = halos['Xc'].astype('float64')
             y = halos['Yc'].astype('float64')
             z = halos['Zc'].astype('float64')
@@ -65,8 +65,8 @@ class IOHandlerAHFHalos(BaseIOHandler):
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        halos = data_file.data
-        pcount = len(data_file.data['ID'])
+        halos = data_file.read_data()
+        pcount = len(halos['ID'])
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug('Initializing index % 5i (% 7i particles)',
                     data_file.file_id, pcount)
@@ -96,10 +96,11 @@ class IOHandlerAHFHalos(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return {'halos': len(data_file.data['ID'])}
+        halos = data_file.read_data()
+        return {'halos': len(halos['ID'])}
 
     def _identify_fields(self, data_file):
-        fields = [('halos', f) for f in data_file.data.dtype.names]
+        fields = [('halos', f) for f in data_file.col_names]
         return fields, {}
 
     # Helper methods
