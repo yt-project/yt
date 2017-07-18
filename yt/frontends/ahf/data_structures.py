@@ -64,10 +64,12 @@ class AHFHalosDataset(Dataset):
     _field_info_class = AHFHalosFieldInfo
 
     def __init__(self, filename, dataset_type='ahf',
-                 n_ref=16, over_refine_factor=1, units_override=None,
-                 unit_system='cgs'):
+                 n_ref=16, over_refine_factor=1,
+                 units_override=None, unit_system='cgs',
+                 hubble_constant=1.0):
         root, _ = os.path.splitext(filename)
         self.log_filename = root + '.log'
+        self.hubble_constant = hubble_constant
 
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
@@ -109,7 +111,6 @@ class AHFHalosDataset(Dataset):
         # Set up cosmological information.
         self.cosmological_simulation = 1
         self.current_redshift = param['z']
-        self.hubble_constant = param['Hubble(z)']
         self.omega_lambda = simu['lambda0']
         self.omega_matter = simu['omega0']
         cosmo = Cosmology(self.hubble_constant,
