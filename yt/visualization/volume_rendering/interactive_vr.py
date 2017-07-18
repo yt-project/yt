@@ -293,20 +293,20 @@ class SceneComponent(traitlets.HasTraits):
     colormap_fragment = ShaderTrait(allow_none = True)
     colormap_vertex = ShaderTrait(allow_none = True)
     colormap = traitlets.Instance(ColormapTexture)
-    _program = traitlets.Instance(ShaderProgram, allow_none = True)
+    _program1 = traitlets.Instance(ShaderProgram, allow_none = True)
     _program2 = traitlets.Instance(ShaderProgram, allow_none = True)
-    _program_invalid = True
+    _program1_invalid = True
     _program2_invalid = True
 
     @traitlets.observe("fragment_shader")
     def _change_fragment(self, change):
         # Even if old/new are the same
-        self._program_invalid = True
+        self._program1_invalid = True
 
     @traitlets.observe("vertex_shader")
     def _change_vertex(self, change):
         # Even if old/new are the same
-        self._program_invalid = True
+        self._program1_invalid = True
 
     @traitlets.observe("colormap_vertex")
     def _change_colormap_vertex(self, change):
@@ -336,14 +336,14 @@ class SceneComponent(traitlets.HasTraits):
         return bq
 
     @property
-    def program(self):
-        if self._program_invalid:
-            if self._program is not None:
-                self._program.delete_program()
-            self._program = ShaderProgram(self.vertex_shader,
+    def program1(self):
+        if self._program1_invalid:
+            if self._program1 is not None:
+                self._program1.delete_program()
+            self._program1 = ShaderProgram(self.vertex_shader,
                 self.fragment_shader)
-            self._program_invalid = False
-        return self._program
+            self._program1_invalid = False
+        return self._program1
 
     @property
     def program2(self):
@@ -361,7 +361,7 @@ class SceneComponent(traitlets.HasTraits):
     def run_program(self, scene):
         self.init_draw(scene)
         with self.fb.bind(True):
-            with self.program.enable() as p:
+            with self.program1.enable() as p:
                 self._set_uniforms(scene, p)
                 with self.data.vertex_array.bind(p):
                     self.draw(scene)
@@ -836,235 +836,3 @@ class SceneGraph(traitlets.HasTraits):
 
     def update_minmax(self):
         pass
-
-class OldSceneGraph(ColorBarSceneComponent):
-    """A basic OpenGL render for IDV.
-
-    The SceneGraph class is the primary driver behind creating a IDV rendering.
-    It is responsible for performing two pass volume rendering: firstly ray
-    casting through the BlockCollection into 2D Texture that is stored into a
-    framebuffer, secondly performing a fragment shader based modification of
-    the 2D texture from the first pass before showing it in the interactive
-    window.
-
-    Parameters
-    ----------
-    None
-
-    """
-
-    def __init__(self):
-        super(SceneGraph, self).__init__()
-        self.collections = []
-        self.fbo = None
-        self.fb_texture = None
-        self.shader_program = None
-        self.fb_shader_program = None
-        self.min_val, self.max_val = 1e60, -1e60
-        self.diagonal = 0.0
-        self.data_logged = True
-
-        ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
-        self.width = width
-        self.height = height
-
-        self.set_shader("passthrough.v")
-        #self.set_shader("apply_colormap.f")
-        self.set_shader("passthrough.f")
-
-        self._init_framebuffer()
-
-    def _init_framebuffer(self):
-        self._initialize_vertex_array("fb_vbo")
-        GL.glBindVertexArray(self.vert_arrays["fb_vbo"])
-
-        quad_attrib = GL.glGenBuffers(1)
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, quad_attrib)
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, FULLSCREEN_QUAD.nbytes,
-                        FULLSCREEN_QUAD, GL.GL_STATIC_DRAW)
-        GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
-
-        # unbind
-        GL.glBindBuffer(GL.GL_ARRAY_BUFFER, 0)
-        GL.glBindVertexArray(0)
-
-        self.setup_fb(self.width, self.height)
-
-    def setup_fb(self, width, height):
-        '''Sets up FrameBuffer that will be used as container
-           for 1 pass of rendering'''
-        # Clean up old FB and Texture
-        if self.fb_texture is not None and \
-            GL.glIsTexture(self.fb_texture):
-                GL.glDeleteTextures([self.fb_texture])
-        if self.fbo is not None and GL.glIsFramebuffer(self.fbo):
-            GL.glDeleteFramebuffers(1, [self.fbo])
-
-
-        # initialize FrameBuffer
-        self.fbo = GL.glGenFramebuffers(1)
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-
-        depthbuffer = GL.glGenRenderbuffers(1)
-        GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depthbuffer)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F,
-                                 width, height)
-        GL.glFramebufferRenderbuffer(
-            GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
-            depthbuffer
-        )
-        # end of FrameBuffer initialization
-
-        # generate the texture we render to, and set parameters
-        self.fb_texture = GL.glGenTextures(1)   # create target texture
-        # bind to new texture, all future texture functions will modify this
-        # particular one
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.fb_texture)
-        # set how our texture behaves on x,y boundaries
-        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_REPEAT)
-        GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_REPEAT)
-        # set how our texture is filtered
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-        GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-
-        # occupy width x height texture memory, (None at the end == empty
-        # image)
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA32F, width,
-                        height, 0, GL.GL_RGBA, GL.GL_FLOAT, None)
-
-        # --- end texture init
-
-        # Set "fb_texture" as our colour attachement #0
-        GL.glFramebufferTexture2D(
-            GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
-            self.fb_texture,
-            0 # mipmap level, normally 0
-        )
-
-        # verify that everything went well
-        status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
-        assert status == GL.GL_FRAMEBUFFER_COMPLETE, status
-
-    def add_collection(self, collection):
-        r"""Adds a block collection to the scene. Collections must not overlap.
-
-        Although it hasn't been tested, this should allow one to add multiple
-        datasets to a single scene.
-
-        Parameters
-        ----------
-        collection : BlockCollection
-            A block collection object representing a data-set. Behavior is
-            undefined if any collection overlaps with another.
-
-        """
-        self.collections.append(collection)
-        self.update_minmax()
-        self.min_val = 0.0
-        self.max_val = 1.0
-
-    def update_minmax(self):
-        self.min_val, self.max_val, self.diagonal = 1e60, -1e60, -1e60
-        self.data_logged = False
-
-        for collection in self.collections:
-            self.min_val = min(self.min_val, collection.min_val)
-            self.max_val = max(self.max_val, collection.max_val)
-            # doesn't make sense for multiple collections
-            self.diagonal = max(self.diagonal, collection.diagonal)
-            self.data_logged = self.data_logged or collection.data_logged
-
-        if self.camera is not None:
-            self.camera.update_cmap_minmax(self.min_val, self.max_val,
-                                           self.data_logged)
-
-    def set_camera(self, camera):
-        r""" Sets the camera orientation for the entire scene.
-
-        Upon calling this function a kd-tree is constructed for each collection.
-        This function simply calls the BlockCollection set_camera function on
-        each collection in the scene.
-
-        Parameters
-        ----------
-        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
-
-        """
-        self.camera = camera
-        for collection in self.collections:
-            collection.set_camera(camera)
-
-    def _retrieve_framebuffer(self):
-        ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
-        debug_buffer = GL.glReadPixels(0, 0, width, height, GL.GL_RGB,
-                                       GL.GL_UNSIGNED_BYTE)
-        arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
-        return arr.reshape((width, height, 3))
-
-    def run_program(self):
-        """ Renders one frame of the scene.
-
-        Renders the scene using the current collection and camera set by calls
-        to add_collection and set_camera respectively. Also uses the last shader
-        provided to the add_shader_from_file function.
-
-        """
-
-        # get size of current viewport
-        ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
-        if (width, height) != (self.width, self.height):
-            # size of viewport changed => fb needs to be recreated
-            self.setup_fb(width, height)
-            self.width = width
-            self.width = height
-
-        # Handle colormap
-        self.update_cmap_tex()
-
-        # bind to fb
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fbo)
-        # clear the color and depth buffer
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-
-        # render collections to fb
-        for collection in self.collections:
-            collection.run_program(self)
-        # unbind FB
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
-
-        # 2 pass of rendering
-        GL.glUseProgram(self.program.program)
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        # bind to the result of 1 pass
-        GL.glBindTexture(GL.GL_TEXTURE_2D, self.fb_texture)
-        # Set our "fb_texture" sampler to user Texture Unit 0
-        self.program._set_uniform("fb_texture", 0)
-
-        GL.glActiveTexture(GL.GL_TEXTURE1)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        self.program._set_uniform("cmap", 1)
-
-        scale = (self.max_val - self.min_val) * self.diagonal
-        self.program._set_uniform("min_val", self.min_val)
-        self.program._set_uniform("scale", scale)
-        self.program._set_uniform("cmap_min", self.camera.cmap_min)
-        self.program._set_uniform("cmap_max", self.camera.cmap_max)
-        if self.data_logged:
-            self.program._set_uniform("cmap_log", float(False))
-        else:
-            self.program._set_uniform("cmap_log", float(self.camera.cmap_log))
-        # clear the color and depth buffer
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        # Bind to Vertex array that contains simple quad filling fullscreen,
-        # that was defined in __init__()
-        GL.glBindVertexArray(self.vert_arrays["fb_vbo"])
-        GL.glEnableVertexAttribArray(0)
-        # Draw our 2 triangles
-        GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
-        # Clean up
-        GL.glDisableVertexAttribArray(0)
-        GL.glBindVertexArray(0)
-        GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-
-    render = run_program
