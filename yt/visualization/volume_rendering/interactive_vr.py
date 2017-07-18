@@ -298,6 +298,13 @@ class SceneComponent(traitlets.HasTraits):
     _program1_invalid = True
     _program2_invalid = True
 
+    # These attributes are 
+    min_val = traitlets.CFloat(0.0)
+    cmin = traitlets.CFloat(0.0)
+    cmax = traitlets.CFloat(1.0)
+    cmap_log = traitlets.Bool(False)
+    scale = traitlets.CFloat(1.0)
+
     @traitlets.observe("fragment_shader")
     def _change_fragment(self, change):
         # Even if old/new are the same
@@ -370,11 +377,11 @@ class SceneComponent(traitlets.HasTraits):
                 with self.program2.enable() as p2:
                     p2._set_uniform("fb_texture", 1)
                     p2._set_uniform("cmap", 0)
-                    p2._set_uniform("min_val", 0.0)
-                    p2._set_uniform("scale", 1.0)
-                    p2._set_uniform("cmap_min", 0.0)
-                    p2._set_uniform("cmap_max", 1.0)
-                    p2._set_uniform("cmap_log", 0.0)
+                    p2._set_uniform("min_val", self.min_val)
+                    p2._set_uniform("scale", self.scale)
+                    p2._set_uniform("cmap_min", self.cmin)
+                    p2._set_uniform("cmap_max", self.cmax)
+                    p2._set_uniform("cmap_log", float(self.cmap_log))
                     with self.base_quad.vertex_array.bind(p2):
                         GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
                 
