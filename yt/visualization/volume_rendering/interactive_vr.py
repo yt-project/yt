@@ -25,6 +25,7 @@ import numpy as np
 import ctypes
 import time
 import traitlets
+import string
 
 from yt import write_bitmap
 from yt.config import \
@@ -430,11 +431,10 @@ class TextCharacters(SceneData):
     def build_textures(self):
         # This doesn't check if the textures have already been built
         self.font.set_size(self.font_size, 200)
-        tex_ids = GL.glGenTextures(self.font.num_glyphs)
-        chars = list(self.font.get_charmap().items())
-        chars.append((ord(" "), 0))
+        chars = [ord(_) for _ in string.printable]
+        tex_ids = GL.glGenTextures(len(chars))
         vert = []
-        for i, (tex_id, (char_code, _)) in enumerate(zip(tex_ids, chars)):
+        for i, (tex_id, char_code) in enumerate(zip(tex_ids, chars)):
             self.font.clear()
             self.font.set_text(unichr(char_code),
                     flags = LOAD_FORCE_AUTOHINT)
@@ -442,8 +442,8 @@ class TextCharacters(SceneData):
             glyph = self.font.load_char(char_code)
             x0, y0, x1, y1 = glyph.bbox
             bitmap = self.font.get_image().astype(">f4")/255.0
-            dx = 1.0/bitmap.shape[1]
-            dy = 1.0/bitmap.shape[0]
+            dx = 1.0/bitmap.shape[0]
+            dy = 1.0/bitmap.shape[1]
             triangles = np.array([[x0, y1, 0.0 + dx/2.0, 0.0 + dy/2.0],
                                   [x0, y0, 0.0 + dx/2.0, 1.0 - dy/2.0],
                                   [x1, y0, 1.0 - dx/2.0, 1.0 - dy/2.0],
@@ -824,6 +824,7 @@ class SceneGraph(traitlets.HasTraits):
     ds = traitlets.Instance(Dataset)
 
     def render(self):
+        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         for component in self.components:
             component.run_program(self)
         for annotation in self.annotations:

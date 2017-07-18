@@ -153,6 +153,7 @@ class Texture1D(Texture):
                 channels = 1
             dx = data.shape[0]
             type1, type2 = TEX_CHANNELS[channels]
+            GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, type1, dx)
             GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, dx,
                         type2, GL.GL_FLOAT, data)
@@ -198,9 +199,10 @@ class Texture2D(Texture):
                 channels = 1
             dx, dy = data.shape[:2]
             type1, type2 = TEX_CHANNELS[channels]
+            GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
             GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
-                        type2, GL.GL_FLOAT, data)
+                        type2, GL.GL_FLOAT, data.T)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
@@ -223,6 +225,7 @@ class Texture3D(Texture):
             else:
                 channels = 1
             dx, dy, dz = data.shape[:3]
+            type1, type2 = TEX_CHANNELS[channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
@@ -230,7 +233,6 @@ class Texture3D(Texture):
                     self.boundary_y)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R,
                     self.boundary_z)
-            type1, type2 = TEX_CHANNELS[channels]
             GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F, dx, dy, dz)
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
                         type2, GL.GL_FLOAT, data.T)
@@ -361,9 +363,9 @@ class Framebuffer(traitlets.HasTraits):
             if status != GL.GL_FRAMEBUFFER_COMPLETE:
                 raise RuntimeError
             self.initialized = True
+        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
         if clear:
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
         yield
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 

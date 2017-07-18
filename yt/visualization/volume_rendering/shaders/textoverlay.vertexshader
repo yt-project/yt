@@ -23,6 +23,5 @@ void main()
     gl_Position = vec4( dx * (quad_vertex.x + x_offset) - 1.0,
                         dy * (quad_vertex.y + y_offset) - 1.0,
                         0.0, 1.0); 
-    UV = vec2(quad_vertex.zw);
-    
+    UV = vec2(quad_vertex.wz);
 }
