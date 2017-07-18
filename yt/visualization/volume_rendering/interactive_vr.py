@@ -381,6 +381,7 @@ class SceneComponent(traitlets.HasTraits):
         with self.colormap.bind(0):
             with self.fb.input_bind(1):
                 with self.program2.enable() as p2:
+                    self.init_fb_draw(scene)
                     p2._set_uniform("fb_texture", 1)
                     p2._set_uniform("cmap", 0)
                     p2._set_uniform("min_val", self.min_val)
@@ -395,6 +396,9 @@ class SceneComponent(traitlets.HasTraits):
         raise NotImplementedError
 
     def init_draw(self, scene):
+        return
+
+    def init_fb_draw(self, scene):
         return
 
 class SceneAnnotation(SceneComponent):
@@ -501,12 +505,14 @@ class TextAnnotation(SceneAnnotation):
                 program._set_uniform("x_offset", float(x))
                 program._set_uniform("y_offset", float(y))
                 GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*each, each)
-    
-    def _init_blending(self):
+
+    def init_draw(self, scene):
+        GL.glDisable(GL.GL_BLEND)
+
+    def init_fb_draw(self, scene):
+        GL.glDisable(GL.GL_DEPTH_TEST)
         GL.glEnable(GL.GL_BLEND)
-        GL.glBlendColor(1.0, 1.0, 1.0, 1.0)
-        GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
-        GL.glBlendEquation(GL.GL_MAX)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
 
 class BlockCollection(SceneData):
     name = "block_collection"

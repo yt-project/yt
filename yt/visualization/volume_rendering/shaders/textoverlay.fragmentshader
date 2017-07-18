@@ -8,6 +8,6 @@ uniform sampler2D fb_texture;
 void main(){
    float val = texture(fb_texture, UV).r;
    if(val == 0) discard;
-   color = vec4(val, val, val, 1.0);
+   color = vec4(val);
 }
 
