@@ -22,6 +22,8 @@ import numpy as np
 from yt.data_objects.static_output import \
     Dataset, \
     ParticleFile
+from yt.funcs import \
+    setdefaultattr
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -72,10 +74,10 @@ class AHFHalosDataset(Dataset):
         )
 
     def _set_code_unit_attributes(self):
-        self.length_unit = self.quan(1.0, 'kpccm/h')
-        self.mass_unit = self.quan(1.0, 'Msun/h')
-        self.time_unit = self.quan(1.0, '')
-        self.velocity_unit = self.quan(1.0, 'km/s')
+        setdefaultattr(self, 'length_unit', self.quan(1.0, 'kpccm/h'))
+        setdefaultattr(self, 'mass_unit', self.quan(1.0, 'Msun/h'))
+        setdefaultattr(self, 'time_unit', self.quan(1.0, 's'))
+        setdefaultattr(self, 'velocity_unit', self.quan(1.0, 'km/s'))
 
     def _parse_parameter_file(self):
         # Read all parameters.
