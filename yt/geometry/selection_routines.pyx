@@ -1573,7 +1573,8 @@ cdef class RaySelector(SelectorObject):
         cdef VolumeContainer vc
         cdef IntegrationAccumulator *ia
         ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
-        cdef np.float64_t dt[1], t[1]
+        cdef np.float64_t dt[1]
+        cdef np.float64_t t[1]
         cdef np.uint8_t cm[1]
         for i in range(3):
             vc.left_edge[i] = left_edge[i]
