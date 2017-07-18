@@ -1649,12 +1649,17 @@ must be accessed through :ref:`Data-objects`.
 .. code-block:: python
 
    import yt
-   ds = yt.load("ahf_halos/snap_N64L16_135.parameter")
+   ds = yt.load("ahf_halos/snap_N64L16_135.parameter", hubble_constant=0.7)
    ad = ds.all_data()
    # halo masses
    print(ad["halos", "particle_mass"])
    # halo radii
    print(ad["halos", "virial_radius"])
+
+.. note::
+
+  Currently the dimensionless Hubble parameter that yt needs is not provided in
+  AHF outputs. So users need to provide the `hubble_constant` (default to 1.0) while loading datasets, as shown above.
 
 .. _rockstar:
 
