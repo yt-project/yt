@@ -359,27 +359,30 @@ class SceneComponent(traitlets.HasTraits):
         return self._program2
 
     def run_program(self, scene):
-        with self.fb.bind():
+        self.init_draw(scene)
+        with self.fb.bind(True):
             with self.program.enable() as p:
                 self._set_uniforms(scene, p)
                 with self.data.vertex_array.bind(p):
                     self.draw(scene)
-        write_bitmap(self.fb.data, "temp.png")
-        with self.colormap.bind(2):
+        with self.colormap.bind(0):
             with self.fb.input_bind(1):
                 with self.program2.enable() as p2:
-                    p._set_uniform("cmap", 2)
-                    p._set_uniform("fb_texture", 1)
-                    p._set_uniform("min_val", 0.0)
-                    p._set_uniform("scale", 0.0)
-                    p._set_uniform("cmap_min", 0.0)
-                    p._set_uniform("cmap_max", 1.0)
-                    p._set_uniform("cmap_log", 0.0)
+                    p2._set_uniform("fb_texture", 1)
+                    p2._set_uniform("cmap", 0)
+                    p2._set_uniform("min_val", 0.0)
+                    p2._set_uniform("scale", 1.0)
+                    p2._set_uniform("cmap_min", 0.0)
+                    p2._set_uniform("cmap_max", 1.0)
+                    p2._set_uniform("cmap_log", 0.0)
                     with self.base_quad.vertex_array.bind(p2):
                         GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
                 
     def draw(self, scene):
         raise NotImplementedError
+
+    def init_draw(self, scene):
+        return
 
 class SceneAnnotation(SceneComponent):
     pass
@@ -653,6 +656,12 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("camera_pos",
                 cam.position)
         shader_program._set_uniform("box_width", 1.0)
+
+    def init_draw(self, scene):
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LESS)
+        GL.glEnable(GL.GL_CULL_FACE)
+        GL.glCullFace(GL.GL_BACK)
 
 class ColorBarSceneComponent(SceneComponent):
     ''' 
