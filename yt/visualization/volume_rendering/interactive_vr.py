@@ -290,6 +290,7 @@ class SceneComponent(traitlets.HasTraits):
     base_quad = traitlets.Instance(SceneData)
     fragment_shader = ShaderTrait(allow_none = True)
     vertex_shader = ShaderTrait(allow_none = True)
+    fb = traitlets.Instance(Framebuffer)
     colormap_fragment = ShaderTrait(allow_none = True)
     colormap_vertex = ShaderTrait(allow_none = True)
     colormap = traitlets.Instance(ColormapTexture)
@@ -304,6 +305,10 @@ class SceneComponent(traitlets.HasTraits):
     cmax = traitlets.CFloat(1.0)
     cmap_log = traitlets.Bool(False)
     scale = traitlets.CFloat(1.0)
+
+    @traitlets.default("fb")
+    def _fb_default(self):
+        return Framebuffer()
 
     @traitlets.observe("fragment_shader")
     def _change_fragment(self, change):
@@ -371,7 +376,7 @@ class SceneComponent(traitlets.HasTraits):
             with self.program1.enable() as p:
                 self._set_uniforms(scene, p)
                 with self.data.vertex_array.bind(p):
-                    self.draw(scene)
+                    self.draw(scene, p)
         with self.colormap.bind(0):
             with self.fb.input_bind(1):
                 with self.program2.enable() as p2:
@@ -385,7 +390,7 @@ class SceneComponent(traitlets.HasTraits):
                     with self.base_quad.vertex_array.bind(p2):
                         GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
                 
-    def draw(self, scene):
+    def draw(self, scene, program):
         raise NotImplementedError
 
     def init_draw(self, scene):
@@ -397,43 +402,38 @@ class SceneAnnotation(SceneComponent):
 # This is drawn in part from
 #  https://learnopengl.com/#!In-Practice/Text-Rendering
 Character = namedtuple('Character',
-        ['tex_id', 'vbo_offset', 'bitmap',
-         'hori_advance', 'vert_advance']
+        ['texture', 'vbo_offset', 'hori_advance', 'vert_advance']
 )
 
-class TextOverlay(SceneComponent):
-    elements = None
-    draw_instructions = None
+class FontTrait(traitlets.TraitType):
+    info_text = "A font instance from matplotlib"
+
+    def validate(self, obj, value):
+        if isinstance(value, str):
+            try:
+                font_fn = matplotlib.font_manager.findfont(value)
+                value = matplotlib.font_manager.get_font(font_fn)
+            except FileNotFoundError:
+                self.error(obj, value)
+        return value
+
+class TextCharacters(SceneData):
+    characters = traitlets.Dict(trait=traitlets.Instance(Character))
     name = "text_overlay"
+    font = FontTrait("DejaVu Sans")
+    font_size = traitlets.CInt(32)
 
-    max_val = 1.0
-    min_val = 0.0
-    diagonal = 1e6
-    data_logged = False
-
-    def __init__(self, font_name = "DejaVu Sans", font_size = 32):
-        super(TextOverlay, self).__init__()
-        # This accepts a glyph object
-        font_fn = matplotlib.font_manager.findfont(font_name)
-        font = matplotlib.font_manager.get_font(font_fn)
-        self.font = font
-        self.font_size = font_size
-        # self.elements is a dict, keyed by the character/glyph that is in it,
-        # that has as its elements the VBO offset for the Quad, the Texture ID
-        # for the bitmap, the (horizontal, vertical) advancement, and the
-        # bitmap itself.  The VBOs are all created so that we can point at them
-        # and just update the uniform when we draw each one.
-        self.draw_instructions = []
+    @traitlets.default("vertex_array")
+    def _default_vertex_array(self):
+        return VertexArray(name = "char_info", each = 6)
 
     def build_textures(self):
         # This doesn't check if the textures have already been built
-        self.elements = {}
-
         self.font.set_size(self.font_size, 200)
         tex_ids = GL.glGenTextures(self.font.num_glyphs)
-        vert = []
         chars = list(self.font.get_charmap().items())
         chars.append((ord(" "), 0))
+        vert = []
         for i, (tex_id, (char_code, _)) in enumerate(zip(tex_ids, chars)):
             self.font.clear()
             self.font.set_text(unichr(char_code),
@@ -451,67 +451,62 @@ class TextOverlay(SceneComponent):
                                   [x1, y0, 1.0 - dx/2.0, 1.0 - dy/2.0],
                                   [x1, y1, 1.0 - dx/2.0, 0.0 + dy/2.0]],
                                   dtype="<f4")
+            vert.append(triangles)
+            texture = Texture2D(texture_name = tex_id,
+                                data = bitmap,
+                                boundary_x = "clamp", 
+                                boundary_y = "clamp")
             # I can't find information as to why horiAdvance is a
             # factor of 8 larger than the other factors.  I assume it
             # is referenced somewhere, but I cannot find it.
-            self.elements[unichr(char_code)] = Character(
-                    tex_id, i, bitmap, glyph.horiAdvance/8.,
-                    glyph.vertAdvance)
-            vert.append(triangles)
-            GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
-            GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-            GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RED, bitmap.shape[1],
-                            bitmap.shape[0], 0, GL.GL_RED, GL.GL_FLOAT,
-                            bitmap)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
-        self.vert = np.concatenate(vert)
-        self._initialize_vertex_array("character_info")
-        self.add_vert_attrib("quad_vertex", self.vert.astype("<f4"), 4)
+            self.characters[unichr(char_code)] = Character(texture,
+                    i, glyph.horiAdvance/8., glyph.vertAdvance)
+        vert = np.concatenate(vert)
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "quad_vertex", data = vert.astype("<f4")))
 
-    def draw(self):
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        if self.text is not None and self.draw_instructions is None:
-            self.set_text(self.text)
-        viewport = np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
-        self.program._set_uniform("viewport", viewport)
-        GL.glActiveTexture(GL.GL_TEXTURE0)
-        for x, y, tex_id, vbo_offset in self.draw_instructions:
-            GL.glBindTexture(GL.GL_TEXTURE_2D, tex_id)
-            self.program._set_uniform("x_offset", float(x))
-            self.program._set_uniform("y_offset", float(y))
-            GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*6, 6)
-        GL.glBindTexture(GL.GL_TEXTURE_2D, 0)
+class TextAnnotation(SceneAnnotation):
 
-    def set_camera(self, camera):
-        self.camera = camera
+    data = traitlets.Instance(TextCharacters)
+    text = traitlets.CUnicode()
+    draw_instructions = traitlets.List()
 
-    def set_text(self, text):
-        self.text = text
+    @traitlets.observe("text")
+    def _observe_text(self, change):
+        text = change['new']
         lines = text.split("\n")
-        if self.elements is None:
-            return
         draw_instructions = []
         y = 0
         for line in reversed(lines):
             x = 0
             dy = 0
             for c in line:
-                e = self.elements[c]
+                e = self.data.characters[c]
                 draw_instructions.append((x, y,
-                    e.tex_id, e.vbo_offset))
+                    e.texture, e.vbo_offset))
                 dy = max(dy, e.vert_advance)
                 x += e.hori_advance
             y += dy
         self.draw_instructions = draw_instructions
-        self.redraw = True
 
     def _set_uniforms(self, scene, shader_program):
         pass
+
+    def draw(self, scene, program):
+        viewport = np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
+        program._set_uniform("viewport", viewport)
+        each = self.data.vertex_array.each
+        for x, y, tex, vbo_offset in self.draw_instructions:
+            with tex.bind(0):
+                program._set_uniform("x_offset", float(x))
+                program._set_uniform("y_offset", float(y))
+                GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*each, each)
+    
+    def _init_blending(self):
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendColor(1.0, 1.0, 1.0, 1.0)
+        GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
+        GL.glBlendEquation(GL.GL_MAX)
 
 class BlockCollection(SceneData):
     name = "block_collection"
@@ -639,14 +634,8 @@ class BlockRendering(SceneComponent):
     handling from the display.
     '''
     data = traitlets.Instance(BlockCollection)
-    fb = traitlets.Instance(Framebuffer)
 
-    @traitlets.default("fb")
-    def _fb_default(self):
-        return Framebuffer()
-
-    def draw(self, scene):
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+    def draw(self, scene, program):
         each = self.data.vertex_array.each
         for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
             with texture.bind(target = 0):
@@ -828,6 +817,8 @@ class SceneGraph(traitlets.HasTraits):
     components = traitlets.List(trait = traitlets.Instance(SceneComponent),
             default_value = [])
     annotations = traitlets.List(trait = traitlets.Instance(SceneAnnotation),
+            default_value = [])
+    data_objects = traitlets.List(trait = traitlets.Instance(SceneData),
             default_value = [])
     camera = traitlets.Instance(IDVCamera)
     ds = traitlets.Instance(Dataset)
