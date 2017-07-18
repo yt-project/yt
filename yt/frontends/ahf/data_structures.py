@@ -78,30 +78,6 @@ class AHFHalosDataset(Dataset):
         self.velocity_unit = self.quan(1.0, 'km/s')
 
     def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
-        # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= full of code-specific items of use
-        #   self.domain_left_edge       <= array of float64
-        #   self.domain_right_edge      <= array of float64
-        #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= array of int64
-        #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units
-        #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
-        #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
-
         # Read all parameters.
         simu = self._read_log_simu()
         param = self._read_parameter()
