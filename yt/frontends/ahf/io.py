@@ -52,7 +52,11 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
         for data_file in self._get_data_files(chunks, ptf):
-            halos = data_file.read_data()
+            cols = ['Xc', 'Yc', 'Zc']
+            for field_list in ptf.values():
+                cols.extend(field_list)
+            cols = list(set(cols))
+            halos = data_file.read_data(usecols=cols)
             x = halos['Xc'].astype('float64')
             y = halos['Yc'].astype('float64')
             z = halos['Zc'].astype('float64')
@@ -65,7 +69,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
-        halos = data_file.read_data(usecols=['Xc', 'Yc', 'Zc'])
+        halos = data_file.read_data(usecols=['ID', 'Xc', 'Yc', 'Zc'])
         pcount = len(halos['ID'])
         morton = np.empty(pcount, dtype='uint64')
         mylog.debug('Initializing index % 5i (% 7i particles)',
