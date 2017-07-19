@@ -86,7 +86,7 @@ class DualEPS(object):
 
     def return_field(self, plot):
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            return plot.plots.keys()[0]
+            return list(plot.plots.keys())[0]
         else:
             return None
 
@@ -382,7 +382,7 @@ class DualEPS(object):
                  _ylog = False
             _tickcolor = None 
         elif isinstance(plot, PhasePlot):
-            k = plot.plots.keys()[0]
+            k = list(plot.plots.keys())[0]
             _xrange = plot[k].axes.get_xlim()
             _yrange = plot[k].axes.get_ylim()
             _xlog = plot.profile.x_log
@@ -517,7 +517,7 @@ class DualEPS(object):
             self.canvas = pyx.canvas.canvas()
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if field is None:
-                self.field = plot.plots.keys()[0]
+                self.field = list(plot.plots.keys())[0]
                 mylog.warning("No field specified.  Choosing first field (%s)" % \
                               str(self.field))
             else:
