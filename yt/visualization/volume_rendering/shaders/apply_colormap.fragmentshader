@@ -5,6 +5,7 @@ in vec2 UV;
 out vec4 color;
 
 uniform sampler2D fb_texture;
+uniform sampler2D db_texture;
 uniform sampler1D cmap;
 uniform float min_val;
 uniform float scale;
@@ -23,4 +24,5 @@ void main(){
       scaled = log(scaled) / log(10.f);
    }
    color = texture(cmap, (scaled - cm) / (cp - cm));
+   gl_FragDepth = texture(db_texture, UV).x;
 }

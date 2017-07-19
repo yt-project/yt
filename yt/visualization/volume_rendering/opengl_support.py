@@ -136,6 +136,7 @@ class Texture(traitlets.HasTraits):
         rv = GL.glActiveTexture(TEX_TARGETS[target])
         rv = GL.glBindTexture(self.dim_enum, self.texture_name)
         yield
+        rv = GL.glActiveTexture(TEX_TARGETS[target])
         GL.glBindTexture(self.dim_enum, 0)
 
 class Texture1D(Texture):
@@ -208,6 +209,17 @@ class Texture2D(Texture):
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
                     self.boundary_y)
             GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
+
+class DepthBuffer(Texture2D):
+    
+    def create_texture(self, w, h):
+        with self.bind():
+            GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_DEPTH_COMPONENT24, 
+                    w, h, 0, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT, None)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
+                    self.boundary_x)
+            GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
+                    self.boundary_y)
 
 class Texture3D(Texture):
     boundary_x = TextureBoundary()
@@ -302,8 +314,9 @@ class VertexArray(traitlets.HasTraits):
 
 class Framebuffer(traitlets.HasTraits):
     fb_id = traitlets.CInt(-1)
-    db_id = traitlets.CInt(-1)
+    rb_id = traitlets.CInt(-1)
     fb_tex = traitlets.Instance(Texture2D)
+    db_tex = traitlets.Instance(DepthBuffer)
     viewport = traitlets.Tuple(
             traitlets.CInt(), traitlets.CInt(),
             traitlets.CInt(), traitlets.CInt())
@@ -332,31 +345,43 @@ class Framebuffer(traitlets.HasTraits):
     def _fb_id_default(self):
         return GL.glGenFramebuffers(1)
 
-    @traitlets.default("db_id")
-    def _db_id_default(self):
+    @traitlets.default("rb_id")
+    def _rb_id_default(self):
         return GL.glGenRenderbuffers(1)
 
+    @traitlets.default("fb_tex")
     def _fb_tex_default(self):
         data = np.zeros( (self.viewport[2], self.viewport[3], 4), "f4")
         return Texture2D(data = data, boundary_x = "repeat", 
                 boundary_y = "repeat")
+
+    @traitlets.default("db_tex")
+    def _db_tex_default(self):
+        db = DepthBuffer(boundary_x = "repeat", boundary_y = "repeat")
+        db.create_texture(self.viewport[2], self.viewport[3])
+        return db
 
     @contextmanager
     def bind(self, clear = True):
         self.viewport = tuple(GL.glGetIntegerv(GL.GL_VIEWPORT))
         if not self.initialized:
             GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, self.fb_id)
-            GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.db_id)
+            GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, self.rb_id)
             GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F,
                                      self.viewport[2], self.viewport[3])
             GL.glFramebufferRenderbuffer(
                 GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
-                self.db_id
+                self.rb_id
             )
 
             GL.glFramebufferTexture2D(
                 GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
                 self.fb_tex.texture_name,
+                0 # mipmap level, normally 0
+            )
+            GL.glFramebufferTexture2D(
+                GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_TEXTURE_2D,
+                self.db_tex.texture_name,
                 0 # mipmap level, normally 0
             )
             status = GL.glCheckFramebufferStatus(GL.GL_FRAMEBUFFER)
@@ -370,6 +395,11 @@ class Framebuffer(traitlets.HasTraits):
         GL.glBindFramebuffer(GL.GL_FRAMEBUFFER, 0)
 
     @contextmanager
-    def input_bind(self, target = 0):
-        with self.fb_tex.bind(target):
-            yield
+    def input_bind(self, fb_target = 0, db_target = 1):
+        with self.db_tex.bind():
+            pix = GL.glReadPixels(0, 0, self.viewport[2], self.viewport[3],
+                    GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT)
+            print(pix.shape, pix.min(), pix.max())
+        with self.fb_tex.bind(fb_target):
+            with self.db_tex.bind(db_target):
+                yield

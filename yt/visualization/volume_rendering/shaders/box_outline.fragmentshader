@@ -9,8 +9,6 @@ flat in mat4 inverse_mvm;
 flat in mat4 inverse_pmvm;
 out vec4 output_color;
 
-uniform sampler3D ds_tex;
-//layout (binding = 1) uniform sampler2D depth_tex;
 uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
 uniform float box_width;
 

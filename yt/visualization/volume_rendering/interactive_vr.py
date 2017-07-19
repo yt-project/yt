@@ -379,11 +379,12 @@ class SceneComponent(traitlets.HasTraits):
                 with self.data.vertex_array.bind(p):
                     self.draw(scene, p)
         with self.colormap.bind(0):
-            with self.fb.input_bind(1):
+            with self.fb.input_bind(1, 2):
                 with self.program2.enable() as p2:
                     self.init_fb_draw(scene)
-                    p2._set_uniform("fb_texture", 1)
                     p2._set_uniform("cmap", 0)
+                    p2._set_uniform("fb_texture", 1)
+                    p2._set_uniform("db_texture", 2)
                     p2._set_uniform("min_val", self.min_val)
                     p2._set_uniform("scale", self.scale)
                     p2._set_uniform("cmap_min", self.cmin)
@@ -399,6 +400,10 @@ class SceneComponent(traitlets.HasTraits):
         return
 
     def init_fb_draw(self, scene):
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthMask(GL.GL_TRUE)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
         return
 
 class SceneAnnotation(SceneComponent):
