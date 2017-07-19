@@ -1000,7 +1000,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.yt/config")
+            print("yt configuration file at ~/.config/yt/ytrc")
             print()
             print("notebook_password = %s" % pw)
             print()
