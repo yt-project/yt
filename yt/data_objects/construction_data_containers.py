@@ -1858,7 +1858,7 @@ class YTSurface(YTSelectionContainer3D):
         SketchFab.com.  It requires an API key, which can be found on your
         SketchFab.com dashboard.  You can either supply the API key to this
         routine directly or you can place it in the variable
-        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        "sketchfab_api_key" in your ~/.config/yt/ytrc file.  This function is
         parallel-safe.
 
         Parameters
