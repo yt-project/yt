@@ -378,10 +378,10 @@ class SceneComponent(traitlets.HasTraits):
                 self._set_uniforms(scene, p)
                 with self.data.vertex_array.bind(p):
                     self.draw(scene, p)
+        self.init_fb_draw(scene)
         with self.colormap.bind(0):
             with self.fb.input_bind(1, 2):
                 with self.program2.enable() as p2:
-                    self.init_fb_draw(scene)
                     p2._set_uniform("cmap", 0)
                     p2._set_uniform("fb_texture", 1)
                     p2._set_uniform("db_texture", 2)
@@ -400,10 +400,10 @@ class SceneComponent(traitlets.HasTraits):
         return
 
     def init_fb_draw(self, scene):
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glDepthMask(GL.GL_TRUE)
+        GL.glDisable(GL.GL_DEPTH_TEST)
         GL.glEnable(GL.GL_BLEND)
-        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+        GL.glBlendEquation(GL.GL_FUNC_ADD)
+        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_DST_ALPHA)
         return
 
 class SceneAnnotation(SceneComponent):
@@ -522,6 +522,7 @@ class TextAnnotation(SceneAnnotation):
 
     def init_fb_draw(self, scene):
         GL.glDisable(GL.GL_DEPTH_TEST)
+        GL.glDepthMask(GL.GL_TRUE)
         GL.glEnable(GL.GL_BLEND)
         GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
 
@@ -531,12 +532,6 @@ class BlockCollection(SceneData):
     texture_objects = traitlets.List(trait = traitlets.Instance(Texture3D))
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)
-
-    def _init_blending(self):
-        GL.glEnable(GL.GL_BLEND)
-        GL.glBlendColor(1.0, 1.0, 1.0, 1.0)
-        GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
-        GL.glBlendEquation(GL.GL_MAX)
 
     def set_fields_log(self, log_field):
         """Switch between a logarithmic and a linear scale for the data.
@@ -671,10 +666,12 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("box_width", 1.0)
 
     def init_draw(self, scene):
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glDepthFunc(GL.GL_LESS)
+        GL.glDisable(GL.GL_DEPTH_TEST)
         GL.glEnable(GL.GL_CULL_FACE)
         GL.glCullFace(GL.GL_BACK)
+        GL.glEnable(GL.GL_BLEND)
+        GL.glBlendEquation(GL.GL_MAX)
+        GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
 
 class MeshSceneComponent(object):
     '''

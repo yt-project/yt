@@ -24,5 +24,4 @@ void main(){
       scaled = log(scaled) / log(10.f);
    }
    color = texture(cmap, (scaled - cm) / (cp - cm));
-   gl_FragDepth = texture(db_texture, UV).x;
 }

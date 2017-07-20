@@ -326,10 +326,9 @@ class Framebuffer(traitlets.HasTraits):
     def data(self):
         _, _, width, height = self.viewport
         with self.bind(clear = False):
-            debug_buffer = GL.glReadPixels(0, 0, width, height, GL.GL_RGB,
-                                           GL.GL_UNSIGNED_BYTE)
-            arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
-        return arr.reshape((width, height, 3))
+            arr = GL.glReadPixels(0, 0, width, height, GL.GL_RGBA,
+                                           GL.GL_FLOAT)
+        return arr
 
     @traitlets.default("viewport")
     def _viewport_default(self):
@@ -396,10 +395,6 @@ class Framebuffer(traitlets.HasTraits):
 
     @contextmanager
     def input_bind(self, fb_target = 0, db_target = 1):
-        with self.db_tex.bind():
-            pix = GL.glReadPixels(0, 0, self.viewport[2], self.viewport[3],
-                    GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT)
-            print(pix.shape, pix.min(), pix.max())
         with self.fb_tex.bind(fb_target):
             with self.db_tex.bind(db_target):
                 yield
