@@ -250,6 +250,7 @@ class Texture3D(Texture):
                         type2, GL.GL_FLOAT, data.T)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
+
 class VertexAttribute(traitlets.HasTraits):
     name = traitlets.CUnicode("attr")
     id = traitlets.CInt(-1)
@@ -398,3 +399,15 @@ class Framebuffer(traitlets.HasTraits):
         with self.fb_tex.bind(fb_target):
             with self.db_tex.bind(db_target):
                 yield
+
+class Texture3DIterator(traitlets.HasTraits):
+    items = traitlets.Any()
+
+    def __iter__(self, target = 0):
+        tex_target = TEX_TARGETS[target]
+        for i, t in self.items:
+            GL.glActiveTexture(tex_target)
+            GL.glBindTexture(GL.GL_TEXTURE_3D, t.texture_name)
+            yield i
+        GL.glActiveTexture(tex_target)
+        GL.glBindTexture(GL.GL_TEXTURE_3D, 0)

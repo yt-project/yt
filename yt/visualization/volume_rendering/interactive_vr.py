@@ -49,7 +49,7 @@ from .shader_objects import \
 from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
     VertexArray, VertexAttribute, ColormapTexture, \
-    Framebuffer
+    Framebuffer, Texture3DIterator
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -529,7 +529,7 @@ class TextAnnotation(SceneAnnotation):
 class BlockCollection(SceneData):
     name = "block_collection"
     data_source = traitlets.Instance(YTDataContainer)
-    texture_objects = traitlets.List(trait = traitlets.Instance(Texture3D))
+    texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)
 
@@ -619,8 +619,8 @@ class BlockCollection(SceneData):
 
     def viewpoint_iter(self, camera):
         for block in self.data_source.tiles.traverse(viewpoint = camera.position):
-            tex_i, _ = self.blocks[id(block)]
-            yield tex_i, self.texture_objects[tex_i]
+            vbo_i, _ = self.blocks[id(block)]
+            yield vbo_i, self.texture_objects[vbo_i]
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
@@ -632,11 +632,11 @@ class BlockCollection(SceneData):
 
     def _load_textures(self):
         for block_id in sorted(self.blocks):
-            tex_i, block = self.blocks[block_id]
+            vbo_i, block = self.blocks[block_id]
             n_data = block.my_data[0].copy(order="F").astype("float32")
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
             tex = Texture3D(data = n_data)
-            self.texture_objects.append(tex)
+            self.texture_objects[vbo_i] = tex
 
 class BlockRendering(SceneComponent):
     '''
@@ -649,9 +649,9 @@ class BlockRendering(SceneComponent):
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
-            with texture.bind(target = 0):
-                GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+        textures = Texture3DIterator(items = self.data.viewpoint_iter(scene.camera))
+        for i in textures:
+            GL.glDrawArrays(GL.GL_TRIANGLES, i*each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
@@ -663,7 +663,7 @@ class BlockRendering(SceneComponent):
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
                 cam.position)
-        shader_program._set_uniform("box_width", 1.0)
+        shader_program._set_uniform("box_width", 0.2)
 
     def init_draw(self, scene):
         GL.glDisable(GL.GL_DEPTH_TEST)
