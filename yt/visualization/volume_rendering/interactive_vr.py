@@ -646,12 +646,13 @@ class BlockRendering(SceneComponent):
     handling from the display.
     '''
     data = traitlets.Instance(BlockCollection)
+    box_width = traitlets.CFloat(0.1)
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        textures = Texture3DIterator(items = self.data.viewpoint_iter(scene.camera))
-        for i in textures:
-            GL.glDrawArrays(GL.GL_TRIANGLES, i*each, each)
+        for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
+            with texture.bind(target = 0):
+                GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
@@ -663,7 +664,7 @@ class BlockRendering(SceneComponent):
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
         shader_program._set_uniform("camera_pos",
                 cam.position)
-        shader_program._set_uniform("box_width", 0.2)
+        shader_program._set_uniform("box_width", self.box_width)
 
     def init_draw(self, scene):
         GL.glDisable(GL.GL_DEPTH_TEST)
