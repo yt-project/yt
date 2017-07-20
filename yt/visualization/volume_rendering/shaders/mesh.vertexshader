@@ -1,7 +1,7 @@
 #version 330 core
 
-layout(location = 0) in vec3 vertexPosition_modelspace;
-layout(location = 1) in float vertexData;
+in vec3 vertexPosition_modelspace;
+in float vertexData;
 out float fragmentData;
 uniform mat4 model_to_clip;
 void main()

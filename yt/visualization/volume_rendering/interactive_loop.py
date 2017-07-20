@@ -202,6 +202,8 @@ class RenderingContext(object):
         callbacks.add_key_callback("cmap_min_down", "apostrophe")
         callbacks.add_key_callback("cmap_toggle_log", "l")
         callbacks.add_key_callback("screenshot", "f")
+        callbacks.add_key_callback("prev_component", "minus")
+        callbacks.add_key_callback("next_component", "equal")
         mouse_callbacks = MouseRotation()
         callbacks.add_mouse_callback(mouse_callbacks.start_rotation,
             glfw.MOUSE_BUTTON_LEFT)

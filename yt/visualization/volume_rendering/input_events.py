@@ -28,6 +28,9 @@ import random
 import time
 import os
 
+from .opengl_support import \
+    ColormapTexture
+
 event_registry = {}
 
 GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
@@ -53,6 +56,9 @@ class EventCollection(object):
         self.camera = camera
         self.scene = scene
         self.draw = True
+        self.active_component = 0
+        self.active_annotation = 0
+        self.current_colormap = 0
 
     def key_call(self, window, key, scancode, action, mods):
         draw = False
@@ -115,11 +121,35 @@ class EventCollection(object):
         # We can allow for multiple
         d[key, action, mod].append(func)
 
+    @property
+    def current_component(self):
+        return self.scene.components[self.active_component]
+
+    @property
+    def current_annotation(self):
+        return self.scene.annotations[self.active_annotation]
+
 def register_event(name):
     def _f(func):
         event_registry[name] = func
         return func
     return _f
+
+@register_event("prev_component")
+def prev_component(event_coll, event):
+    ac = event_coll.active_component 
+    nc = len(event_coll.scene.components)
+    ac = (ac - 1) % nc
+    event_coll.active_component = ac
+    print("Activated ", event_coll.scene.components[ac])
+
+@register_event("next_component")
+def next_component(event_coll, event):
+    ac = event_coll.active_component 
+    nc = len(event_coll.scene.components)
+    ac = (ac + 1) % nc
+    event_coll.active_component = ac
+    print("Activated ", event_coll.scene.components[ac])
 
 @register_event("framebuffer_size")
 def framebuffer_size_callback(event_coll, event):
@@ -246,11 +276,11 @@ def shader_lines(event_coll, event):
 def cmap_cycle(event_coll, event):
     """Change colormap"""
     cmap = ['arbre', 'algae', 'kamae', 'viridis', 'inferno', 'magma']
-    cmap = cm.get_cmap(random.choice(cmap))
-    event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)),
-        dtype=np.float32)
-    event_coll.camera.cmap_new = True
-    print("Setting colormap to {}".format(cmap.name))
+    cmi = event_coll.current_colormap % len(cmap)
+    event_coll.current_component.colormap = ColormapTexture(
+            colormap_name = cmap[cmi])
+    print("Setting colormap to {}".format(cmap[cmi]))
+    event_coll.current_colormap += 1
     return True
 
 @register_event("cmap_max_up")

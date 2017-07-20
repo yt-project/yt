@@ -674,56 +674,13 @@ class BlockRendering(SceneComponent):
         GL.glBlendEquation(GL.GL_MAX)
         GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
 
-class MeshSceneComponent(object):
-    '''
-
-    A scene component for representing unstructured mesh data.
-
-    '''
-
-    def __init__(self, data_source, field):
-        super(MeshSceneComponent, self).__init__()
-        self.set_shader("mesh.v")
-        self.set_shader("mesh.f")
-
-        self.data_source = None
-        self.redraw = True
-
-        GL.glEnable(GL.GL_DEPTH_TEST)
-        GL.glDepthFunc(GL.GL_LESS)
-        GL.glEnable(GL.GL_CULL_FACE)
-        GL.glCullFace(GL.GL_BACK)
-
-        vertices, data, indices = self.get_mesh_data(data_source, field)
-
-        self._initialize_vertex_array("mesh_info")
-        GL.glBindVertexArray(self.vert_arrays["mesh_info"])
-
-        self.add_vert_attrib("vertex_buffer", vertices, vertices.size)
-        self.add_vert_attrib("data_buffer", data, data.size)
-
-        self.vert_attrib["element_buffer"] = (GL.glGenBuffers(1), indices.size)
-        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
-        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW)
-
-        self.transform_matrix = GL.glGetUniformLocation(self.program.program,
-                                                        "model_to_clip")
-
-        self.cmin = data.min()
-        self.cmax = data.max()
-
-    def set_camera(self, camera):
-        r""" Sets the camera orientation for the entire scene.
-
-        Parameters
-        ----------
-        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
-
-        """
-        self.camera = camera
-        self.camera.cmap_min = float(self.cmin)
-        self.camera.cmap_max = float(self.cmax)
-        self.redraw = True
+class MeshData(SceneData):
+    name = "mesh"
+    data_source = traitlets.Instance(YTDataContainer)
+    texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
+    blocks = traitlets.Dict(default_value = ())
+    scale = traitlets.Bool(False)
+    size = traitlets.CInt(-1)
 
     def get_mesh_data(self, data_source, field):
         """
@@ -748,42 +705,41 @@ class MeshSceneComponent(object):
 
         return triangulate_mesh(vertices, data, indices)
 
-    def run_program(self):
-        """ Renders one frame of the scene. """
-        with self.program.enable():
+    def add_data(self, field):
+        v, d, i = self.get_mesh_data(self.data_source, field)
+        v.shape = (v.size//3, 3)
+        d.shape = (d.size, 1)
+        i.shape = (i.size, 1)
+        i = i.astype("uint32")
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "vertexPosition_modelspace", data = v))
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "vertexData", data = d))
+        self.vertex_array.indices = i
+        self.size = i.size
 
-            # Handle colormap
-            self.update_cmap_tex()
+    @traitlets.default("vertex_array")
+    def _default_vertex_array(self):
+        return VertexArray(name = "mesh_info", each = 0)
 
-            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-            projection_matrix = self.camera.projection_matrix
-            view_matrix = self.camera.view_matrix
-            model_to_clip = np.dot(projection_matrix, view_matrix)
-            GL.glUniformMatrix4fv(self.transform_matrix, 1, True, model_to_clip)
+class MeshRendering(SceneComponent):
+    data = traitlets.Instance(MeshData)
 
-            GL.glActiveTexture(GL.GL_TEXTURE1)
-            GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
+    def draw(self, scene, program):
+        GL.glDrawElements(GL.GL_TRIANGLES, self.data.size, 
+                GL.GL_UNSIGNED_INT, None)
 
-            self.program._set_uniform("cmap", 0)
-            self.program._set_uniform("cmap_min", self.camera.cmap_min)
-            self.program._set_uniform("cmap_max", self.camera.cmap_max)
+    def _set_uniforms(self, scene, shader_program):
+        projection_matrix = scene.camera.projection_matrix
+        view_matrix = scene.camera.view_matrix
+        model_to_clip = np.dot(projection_matrix, view_matrix)
+        shader_program._set_uniform("model_to_clip", model_to_clip)
 
-            GL.glEnableVertexAttribArray(0)
-            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["vertex_buffer"][0])
-            GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
-
-            GL.glEnableVertexAttribArray(1)
-            GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["data_buffer"][0])
-            GL.glVertexAttribPointer(1, 1, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
-
-            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
-            GL.glDrawElements(GL.GL_TRIANGLES, self.vert_attrib["element_buffer"][1],
-                              GL.GL_UNSIGNED_INT, ctypes.c_void_p(0))
-
-            GL.glDisableVertexAttribArray(0)
-            GL.glDisableVertexAttribArray(1)
-
-    render = run_program
+    def init_draw(self, scene):
+        GL.glEnable(GL.GL_DEPTH_TEST)
+        GL.glDepthFunc(GL.GL_LESS)
+        GL.glEnable(GL.GL_CULL_FACE)
+        GL.glCullFace(GL.GL_BACK)
 
 class SceneGraph(traitlets.HasTraits):
     components = traitlets.List(trait = traitlets.Instance(SceneComponent),

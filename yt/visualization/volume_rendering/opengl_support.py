@@ -74,6 +74,11 @@ gl_to_np = {
         'BOOL'     : 'b',
 }
 
+np_to_gl = {
+        'float32': GL.GL_FLOAT,
+        'uint32' : GL.GL_UNSIGNED_INT
+}
+
 def coerce_uniform_type(val, gl_type):
     # gl_type here must be in const_types
     if not isinstance(gl_type, const_types):
@@ -256,6 +261,7 @@ class VertexAttribute(traitlets.HasTraits):
     id = traitlets.CInt(-1)
     data = traitlets.Instance(np.ndarray)
     each = traitlets.CInt(-1)
+    opengl_type = traitlets.CInt(GL.GL_FLOAT)
 
     @traitlets.default('id')
     def _id_default(self):
@@ -271,7 +277,7 @@ class VertexAttribute(traitlets.HasTraits):
             rv = GL.glEnableVertexAttribArray(loc)
         rv = GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
         if loc >= 0:
-            GL.glVertexAttribPointer(loc, self.each, GL.GL_FLOAT, False, 0,
+            GL.glVertexAttribPointer(loc, self.each, self.opengl_type, False, 0,
                     None)
         yield
         if loc >= 0:
@@ -282,13 +288,15 @@ class VertexAttribute(traitlets.HasTraits):
     def _set_data(self, change):
         arr = change['new']
         self.each = arr.shape[-1]
+        self.opengl_type = np_to_gl[arr.dtype.name]
         with self.bind():
             GL.glBufferData(GL.GL_ARRAY_BUFFER, arr.nbytes, arr, GL.GL_STATIC_DRAW)
 
 class VertexArray(traitlets.HasTraits):
     name = traitlets.CUnicode("vertex")
     id = traitlets.CInt(-1)
-    element_ids = traitlets.Instance(np.ndarray, allow_none = True)
+    indices = traitlets.Instance(np.ndarray, allow_none = True)
+    index_id = traitlets.CInt(-1)
     attributes = traitlets.List(trait=traitlets.Instance(VertexAttribute))
     each = traitlets.CInt(-1)
 
@@ -299,6 +307,8 @@ class VertexArray(traitlets.HasTraits):
     @contextmanager
     def bind(self, program = None):
         GL.glBindVertexArray(self.id)
+        if self.index_id != -1:
+            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.index_id)
         # We only bind the attributes if we have a program too
         if program is None:
             attrs = []
@@ -307,11 +317,17 @@ class VertexArray(traitlets.HasTraits):
         with ExitStack() as stack:
             _ = [stack.enter_context(_.bind(program)) for _ in attrs]
             yield
+        if self.index_id != -1:
+            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, 0)
         GL.glBindVertexArray(0)
 
-    @traitlets.observe("element_ids")
-    def _set_elements(self, change):
+    @traitlets.observe("indices")
+    def _set_indices(self, change):
         arr = change['new']
+        self.index_id = GL.glGenBuffers(1)
+        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.index_id)
+        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, arr.nbytes, arr,
+                GL.GL_STATIC_DRAW)
 
 class Framebuffer(traitlets.HasTraits):
     fb_id = traitlets.CInt(-1)
