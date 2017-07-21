@@ -987,14 +987,6 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             bin_fields, data_source._determine_fields(fields), wf, is_pfield)
     elif len(bin_fields) == 1:
         cls = Profile1D
-    elif len(bin_fields) == 2 and all(is_pfield):
-        # log bin_fields set to False for Particle Profiles.
-        # doesn't make much sense for CIC deposition.
-        # accumulation and fractional set to False as well.
-        logs = {bin_fields[0]: False, bin_fields[1]: False}
-        accumulation = False
-        fractional = False
-        cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
     elif len(bin_fields) == 3:
