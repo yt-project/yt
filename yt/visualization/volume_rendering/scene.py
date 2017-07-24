@@ -309,11 +309,21 @@ class Scene(object):
         if suffix == '.png':
             self._last_render.write_png(fname, sigma_clip=sigma_clip)
         else:
-            from matplotlib import pyplot as plt
-            fig, ax = plt.subplots()
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_pdf import \
+                FigureCanvasPdf
+            from matplotlib.backends.backend_ps import \
+                FigureCanvasPS
             shape = self._last_render.shape
-            fig.set_size_inches(shape[0]/100., shape[1]/100.)
-            fig.subplots_adjust(left=0, bottom=0, right=1, top=1)
+            fig = Figure((shape[0]/100., shape[1]/100.))
+            if suffix == '.pdf':
+                canvas = FigureCanvasPdf(fig)
+            elif suffix in ('.eps', '.ps'):
+                canvas = FigureCanvasPS(fig)
+            else:
+                raise NotImplementedError(
+                    "Unknown file suffix '{}'".format(suffix))
+            ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
             nz = out[:, :, :3][out[:, :, :3].nonzero()]
@@ -325,8 +335,7 @@ class Scene(object):
             # not sure why we need rot90, but this makes the orentation
             # match the png writer
             ax.imshow(np.rot90(out), origin='lower')
-            plt.savefig(fname, dpi=100)
-
+            canvas.print_figure(fname, dpi=100)
 
     def save_annotated(self, fname=None, label_fmt=None,
                        text_annotate=None, dpi=100, sigma_clip=None):
