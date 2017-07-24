@@ -21,11 +21,12 @@ from yt.data_objects.profiles import create_profile
 from yt.testing import \
     fake_random_ds, \
     assert_array_almost_equal, \
-    requires_file
+    requires_file, \
+    assert_fname
 from yt.visualization.profile_plotter import \
     ProfilePlot, PhasePlot
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, TEST_FLNMS
+    TEST_FLNMS
 from yt.utilities.answer_testing.framework import \
     PhasePlotAttributeTest, \
     requires_ds, \
