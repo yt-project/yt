@@ -45,7 +45,7 @@ from yt.data_objects.static_output import \
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.extern.six import unichr
 from .shader_objects import \
-    known_shaders, ShaderProgram, ShaderTrait
+    ShaderProgram, ShaderTrait
 from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
     VertexArray, VertexAttribute, ColormapTexture, \

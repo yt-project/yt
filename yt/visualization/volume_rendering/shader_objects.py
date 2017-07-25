@@ -28,11 +28,10 @@ import ctypes
 from .opengl_support import \
     num_to_const, \
     coerce_uniform_type, \
-    VertexArray
+    VertexArray, \
+    GLValue
 
 import traitlets
-
-known_shaders = {}
 
 class ShaderProgram(object):
     '''
@@ -167,14 +166,7 @@ class ShaderProgram(object):
         yield self
         GL.glUseProgram(0)
 
-class RegisteredShader(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if getattr(cls, "_shader_name", None) is not None:
-            known_shaders[cls._shader_name] = cls
-
-@add_metaclass(RegisteredShader)
-class Shader(object):
+class Shader(traitlets.HasTraits):
     '''
     Creates a shader from source
 
@@ -258,6 +250,11 @@ class ShaderTrait(traitlets.TraitType):
     info_text = "A shader (vertex or fragment)"
 
     def validate(self, obj, value):
+        known_shaders = {}
+        known_shaders.update((_._shader_name, _) for _ in
+                VertexShader.__class__.__subclasses__(VertexShader))
+        known_shaders.update((_._shader_name, _) for _ in
+                FragmentShader.__class__.__subclasses__(FragmentShader))
         if isinstance(value, str):
             try:
                 shader = known_shaders[value]()
@@ -271,6 +268,7 @@ class ShaderTrait(traitlets.TraitType):
 class FragmentShader(Shader):
     '''Wrapper class for fragment shaders'''
     shader_type = "fragment"
+    intra_blend = GLValue("func add")
 
 class VertexShader(Shader):
     '''Wrapper class for vertex shaders'''

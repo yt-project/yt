@@ -119,6 +119,22 @@ class TextureBoundary(traitlets.TraitType):
             return value
         self.error(obj, value)
 
+class GLValue(traitlets.TraitType):
+    default_value = GL.GL_NONE
+    info_text = "An OpenGL constant."
+
+    def validate(self, obj, value):
+        # This will convert lower to upper and spaces to _ and also preprend
+        # GL_ if needed.
+        if isinstance(value, str):
+            if not value.startswith("GL"):
+                value = "GL_%s" % value
+            value = getattr(GL, value.upper().replace(" ", "_"), None)
+            print("Getting", value)
+            if value is None:
+                self.error(obj, value)
+        return value
+
 TEX_CHANNELS = {
         1: (GL.GL_R32F, GL.GL_RED),
         2: (GL.GL_RG32F, GL.GL_RG),
@@ -147,7 +163,7 @@ class Texture(traitlets.HasTraits):
 class Texture1D(Texture):
     boundary_x = TextureBoundary()
     dims = 1
-    dim_enum = GL.GL_TEXTURE_1D
+    dim_enum = GLValue("texture 1d")
 
     @traitlets.observe("data")
     def _set_data(self, change):
@@ -193,7 +209,7 @@ class Texture2D(Texture):
     boundary_y = TextureBoundary()
     dims = 2
     channels = 1
-    dim_enum = GL.GL_TEXTURE_2D
+    dim_enum = GLValue("texture 2d")
 
     @traitlets.observe("data")
     def _set_data(self, change):
@@ -231,7 +247,7 @@ class Texture3D(Texture):
     boundary_y = TextureBoundary()
     boundary_z = TextureBoundary()
     dims = 3
-    dim_enum = GL.GL_TEXTURE_3D
+    dim_enum = GLValue("texture 3d")
 
     @traitlets.observe("data")
     def _set_data(self, change):
