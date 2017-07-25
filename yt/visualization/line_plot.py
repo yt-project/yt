@@ -31,6 +31,12 @@ from yt.visualization.plot_container import \
     linear_transform, \
     invalidate_plot
 
+class LineObject(object):
+    def __init__(self, start_point, end_point, ds, label=None):
+        self.start_point = _validate_point(start_point, ds, start=True)
+        self.end_point = _validate_point(end_point, ds)
+        self.label = label
+
 class LinePlotDictionary(PlotDictionary):
     def __init__(self, data_source):
         super(LinePlotDictionary, self).__init__(data_source)
@@ -150,15 +156,9 @@ class LinePlot(PlotContainer):
             else:
                 obj._field_transform[f] = linear_transform
 
-
-    @invalidate_plot
-    def add_legend(self, field):
-        """Adds a legend to the `LinePlot` instance"""
-        self.include_legend[field] = True
-
     @classmethod
-    def from_lines(cls, ds, fields, start_points, end_points, npoints,
-                   figure_size=5., font_size=14., labels=None):
+    def from_lines(cls, ds, fields, lines, npoints,
+                   figure_size=5., font_size=14.):
         """
         A class method for constructing a line plot from multiple sampling lines
 
@@ -170,12 +170,6 @@ class LinePlot(PlotContainer):
             simulation output to be plotted.
         fields : string / tuple, or list of strings / tuples
             The name(s) of the field(s) to be plotted.
-        start_points : iterable of n-element lists, tuples, ndarrays, or YTArrays
-            Each element of the outer iterable contains the coordinates of a starting
-            point for constructing a line.
-        end_points : iterable of n-element lists, tuples, ndarrays, or YTArrays
-            Each element of the outer iterable contains the coordinates of an ending
-            point for constructing a line.
         npoints : int
             How many points to sample between start_point and end_point for
             constructing the line plot
@@ -185,12 +179,20 @@ class LinePlot(PlotContainer):
         fontsize : int
             Font size for all text in the plot.
             Default: 14
-        labels : dictionary
-            Keys should be the field names. Values should be latex-formattable
-            strings used in the LinePlot legend
-            Default: None
         """
-        return 0
+        obj = cls.__new__(cls)
+        cls._initialize_instance(obj, ds, fields, npoints, figure_size, font_size)
+
+        dimensions_counter = defaultdict(int)
+        for field in obj.fields:
+            plot = obj._get_plot_instance(field)
+            for line in lines:
+                x, y = obj.ds.coordinates.pixelize_line(
+                    field, line.start_point, line.end_point, npoints)
+                obj._plot_xy(field, plot, x, y, dimensions_counter, legend_label=line.label)
+            plot.axes.legend()
+        obj._plot_valid = True
+        return obj
 
     def _get_plot_instance(self, field):
         fontscale = self._font_properties._size / 14.
@@ -228,7 +230,7 @@ class LinePlot(PlotContainer):
             self.plots[field] = plot
         return plot
 
-    def _plot_xy(self, field, plot, x, y, dimensions_counter):
+    def _plot_xy(self, field, plot, x, y, dimensions_counter, legend_label=None):
         if self._x_unit is None:
             unit_x = x.units
         else:
@@ -242,7 +244,7 @@ class LinePlot(PlotContainer):
         x = x.to(unit_x)
         y = y.to(unit_y)
 
-        plot.axes.plot(x, y, label=self.labels[field])
+        plot.axes.plot(x, y, label=legend_label)
 
         if self._field_transform[field] != linear_transform:
             if (y < 0).any():
@@ -275,9 +277,6 @@ class LinePlot(PlotContainer):
         if field in self._titles:
             plot.axes.set_title(self._titles[field])
 
-        if self.include_legend[field]:
-            plot.axes.legend()
-
 
     def _setup_plots(self):
         if self._plot_valid is True:
@@ -291,8 +290,17 @@ class LinePlot(PlotContainer):
             x, y = self.ds.coordinates.pixelize_line(
                 field, self.start_point, self.end_point, self.npoints)
 
-            self._plot_xy(field, plot, x, y, dimensions_counter)
+            self._plot_xy(field, plot, x, y, dimensions_counter,
+                          legend_label=self.labels[field])
 
+            if self.include_legend[field]:
+                plot.axes.legend()
+
+
+    @invalidate_plot
+    def add_field_legend(self, field):
+        """Adds a legend to the `LinePlot` instance"""
+        self.include_legend[field] = True
 
     @invalidate_plot
     def set_x_unit(self, unit_name):
