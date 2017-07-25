@@ -183,14 +183,27 @@ class LinePlot(PlotContainer):
         obj = cls.__new__(cls)
         cls._initialize_instance(obj, ds, fields, npoints, figure_size, font_size)
 
-        dimensions_counter = defaultdict(int)
-        for field in obj.fields:
-            plot = obj._get_plot_instance(field)
-            for line in lines:
+        for line in lines:
+            dimensions_counter = defaultdict(int)
+            for field in obj.fields:
+                finfo = obj.ds.field_info[field]
+                dimensions = Unit(finfo.units,
+                                  registry=obj.ds.unit_registry).dimensions
+                dimensions_counter[dimensions] += 1
+
+            for field in obj.fields:
+                plot = obj._get_plot_instance(field)
                 x, y = obj.ds.coordinates.pixelize_line(
                     field, line.start_point, line.end_point, npoints)
-                obj._plot_xy(field, plot, x, y, dimensions_counter, legend_label=line.label)
-            plot.axes.legend()
+                finfo = obj.ds.field_info[field]
+                dimensions = Unit(finfo.units,
+                                  registry=obj.ds.unit_registry).dimensions
+                if dimensions_counter[dimensions] > 1:
+                    legend_label = r"$%s;$ %s" % (line.label, finfo.get_latex_display_name())
+                else:
+                    legend_label = r"$%s$" % line.label
+                obj._plot_xy(field, plot, x, y, dimensions_counter, legend_label=legend_label)
+                plot.axes.legend()
         obj._plot_valid = True
         return obj
 
@@ -263,7 +276,6 @@ class LinePlot(PlotContainer):
         finfo = self.ds.field_info[field]
         dimensions = Unit(finfo.units,
                           registry=self.ds.unit_registry).dimensions
-        dimensions_counter[dimensions] += 1
         if dimensions_counter[dimensions] > 1:
             y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
                        axes_unit_labels[1]+'}$')
@@ -284,6 +296,11 @@ class LinePlot(PlotContainer):
         for plot in self.plots.values():
             plot.axes.cla()
         dimensions_counter = defaultdict(int)
+        for field in self.fields:
+            finfo = self.ds.field_info[field]
+            dimensions = Unit(finfo.units,
+                              registry=self.ds.unit_registry).dimensions
+            dimensions_counter[dimensions] += 1
         for field in self.fields:
             plot = self._get_plot_instance(field)
 
