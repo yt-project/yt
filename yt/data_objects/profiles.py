@@ -1044,12 +1044,24 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
                 field_ex = list(extrema[bin_field])
+            if isinstance(field_ex[0], tuple):
+                field_ex = [data_source.ds.quan(*f) for f in field_ex]
+            if any([ex is None for ex in field_ex]):
+                ds_extrema = data_source.quantities.extrema(bin_field)
+                for i, exi in enumerate(field_ex):
+                    if exi is None:
+                        field_ex[i] = ds_extrema[i]
             if units is not None and bin_field in units:
-                if isinstance(field_ex[0], tuple):
-                    field_ex = [data_source.ds.quan(*f) for f in field_ex]
-                fe = data_source.ds.arr(field_ex, units[bin_field])
-                fe.convert_to_units(bf_units)
-                field_ex = [fe[0].v, fe[1].v]
+                for i, exi in enumerate(field_ex):
+                    if hasattr(exi, 'units'):
+                        field_ex[i] = exi.to(units[bin_field])
+                    else:
+                        field_ex[i] = data_source.ds.quan(exi, units[bin_field])
+                fe = data_source.ds.arr(field_ex)
+            else:
+                fe = data_source.ds.arr(field_ex)
+            fe.convert_to_units(bf_units)
+            field_ex = [fe[0].v, fe[1].v]
             if iterable(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)

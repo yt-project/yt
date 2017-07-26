@@ -124,6 +124,19 @@ def test_profiles():
         p3d.add_fields(["ones"])
         assert_equal(p3d["ones"], np.ones((nb,nb,nb)))
 
+        p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
+                             weight_field=('gas', 'cell_mass'),
+                             extrema={'density': (None, rma*e2)})
+        assert_equal(p2d.x_bins[0], rmi)
+        assert_equal(p2d.x_bins[-1], rma*e2)
+
+        p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
+                             weight_field=('gas', 'cell_mass'),
+                             extrema={'density': (rmi*e2, None)})
+        assert_equal(p2d.x_bins[0], rmi*e2)
+        assert_equal(p2d.x_bins[-1], rma)
+
+
 extrema_s = {'particle_position_x': (0, 1)}
 logs_s = {'particle_position_x': False}
 
@@ -220,3 +233,40 @@ def test_particle_profile_negative_field():
         "particle_velocity_x",
         weight_field=None)
     assert profile['particle_velocity_x'].min() < 0
+    assert profile.x_bins.min() > 0
+    assert profile.y_bins.min() > 0
+
+    profile = yt.create_profile(
+        ad,
+        ["particle_position_x", "particle_position_y"],
+        "particle_velocity_x",
+        logs = {'particle_position_x': False,
+                'particle_position_y': False,
+                'particle_position_z': False},
+        weight_field=None)
+    assert profile['particle_velocity_x'].min() < 0
+    assert profile.x_bins.min() < 0
+    assert profile.y_bins.min() < 0
+
+    # can't use CIC deposition with log-scaled bin fields
+    with assert_raises(RuntimeError):
+        yt.create_profile(
+            ad,
+            ["particle_position_x", "particle_position_y"],
+            "particle_velocity_x",
+            logs = {'particle_position_x': True,
+                    'particle_position_y': False,
+                    'particle_position_z': False},
+            weight_field=None, deposition='cic')
+
+    # can't use CIC deposition with accumulation or fractional
+    with assert_raises(RuntimeError):
+        yt.create_profile(
+            ad,
+            ["particle_position_x", "particle_position_y"],
+            "particle_velocity_x",
+            logs = {'particle_position_x': False,
+                    'particle_position_y': False,
+                    'particle_position_z': False},
+            weight_field=None, deposition='cic',
+            accumulation=True, fractional=True)
