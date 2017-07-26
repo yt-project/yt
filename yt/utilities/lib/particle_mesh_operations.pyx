@@ -83,88 +83,97 @@ def CICDeposit_3(np.ndarray[np.float64_t, ndim=1] posx,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def CICDeposit_2(np.ndarray[np.float64_t, ndim=1] posx,
-                 np.ndarray[np.float64_t, ndim=1] posy,
-                 np.ndarray[np.float64_t, ndim=1] mass,
+@cython.cdivision(True)
+def CICDeposit_2(np.float64_t[:] posx,
+                 np.float64_t[:] posy,
+                 np.float64_t[:] mass,
                  np.int64_t npositions,
-                 np.ndarray[np.float64_t, ndim=2] field,
-                 np.ndarray[np.float64_t, ndim=1] leftEdge,
-                 np.ndarray[np.int32_t, ndim=1] gridDimension,
-                 np.ndarray[np.float64_t, ndim=1] cellSize):
+                 np.float64_t[:, :] field,
+                 np.float64_t[:] x_bin_edges,
+                 np.float64_t[:] y_bin_edges):
 
     cdef int i1, j1, n
     cdef np.float64_t xpos, ypos
-    cdef np.float64_t edge0, edge1
-    cdef np.float64_t le0, le1
-    cdef np.float64_t dx, dy, dx2, dy2
+    cdef np.float64_t edgex, edgey
+    cdef np.float64_t dx, dy, ddx, ddy, ddx2, ddy2
 
-    edge0 = (<np.float64_t> gridDimension[0]) - 0.5001
-    edge1 = (<np.float64_t> gridDimension[1]) - 0.5001
+    edgex = (<np.float64_t> x_bin_edges.shape[0]) + 0.5001
+    edgey = (<np.float64_t> y_bin_edges.shape[0]) + 0.5001
 
-    le0 = leftEdge[0]
-    le1 = leftEdge[1]
+    # We are always dealing with uniformly spaced bins for CiC
+    dx = x_bin_edges[1] - x_bin_edges[0]
+    dy = y_bin_edges[1] - y_bin_edges[0]
 
     for n in range(npositions):
 
         # Compute the position of the central cell
-        xpos = (posx[n] - le0)/cellSize[0]
-        ypos = (posy[n] - le1)/cellSize[1]
+        xpos = (posx[n] - x_bin_edges[0])/dx
+        ypos = (posy[n] - y_bin_edges[0])/dy
 
-        if (xpos < 0.5001) or (xpos > edge0):
+        if (xpos < -0.5001) or (xpos > edgex):
             continue
-        if (ypos < 0.5001) or (ypos > edge1):
+        if (ypos < -0.5001) or (ypos > edgey):
             continue
 
-        i1  = <int> (xpos + 0.5)
-        j1  = <int> (ypos + 0.5)
+        i1  = <int> (xpos)
+        j1  = <int> (ypos)
 
         # Compute the weights
-        dx = (<np.float64_t> i1) + 0.5 - xpos
-        dy = (<np.float64_t> j1) + 0.5 - ypos
-        dx2 =  1.0 - dx
-        dy2 =  1.0 - dy
+        ddx = (<np.float64_t> i1) + 0.5 - xpos
+        ddy = (<np.float64_t> j1) + 0.5 - ypos
+        ddx2 =  1.0 - ddx
+        ddy2 =  1.0 - ddy
 
         # Deposit onto field
-        field[i1-1,j1-1] += mass[n] * dx  * dy
-        field[i1  ,j1-1] += mass[n] * dx2 * dy
-        field[i1-1,j1  ] += mass[n] * dx  * dy2
-        field[i1  ,j1  ] += mass[n] * dx2 * dy2
+        if i1 > 0 and j1 > 0:
+            field[i1-1,j1-1] += mass[n] * ddx  * ddy
+        if j1 > 0 and i1 < field.shape[0]:
+            field[i1  ,j1-1] += mass[n] * ddx2 * ddy
+        if i1 > 0 and j1 < field.shape[1]:
+            field[i1-1,j1  ] += mass[n] * ddx  * ddy2
+        if i1 < field.shape[0] and j1 < field.shape[1]:
+            field[i1  ,j1  ] += mass[n] * ddx2 * ddy2
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def NGPDeposit_2(np.ndarray[np.float64_t, ndim=1] posx,
-                 np.ndarray[np.float64_t, ndim=1] posy,
-                 np.ndarray[np.float64_t, ndim=1] mass,
+@cython.cdivision(True)
+def NGPDeposit_2(np.float64_t[:] posx,
+                 np.float64_t[:] posy,
+                 np.float64_t[:] mass,
                  np.int64_t npositions,
-                 np.ndarray[np.float64_t, ndim=2] field,
-                 np.ndarray[np.float64_t, ndim=1] leftEdge,
-                 np.ndarray[np.int32_t, ndim=1] gridDimension,
-                 np.ndarray[np.float64_t, ndim=1] cellSize):
+                 np.float64_t[:, :] field,
+                 np.float64_t[:] x_bin_edges,
+                 np.float64_t[:] y_bin_edges):
 
-    cdef int i1, j1, n
+    cdef int i, j, i1, j1, n
     cdef np.float64_t xpos, ypos
     cdef np.float64_t edge0, edge1
     cdef np.float64_t le0, le1
+    cdef np.float64_t[2] x_endpoints
+    cdef np.float64_t[2] y_endpoints
 
-    edge0 = (<np.float64_t> gridDimension[0]) - 0.5001
-    edge1 = (<np.float64_t> gridDimension[1]) - 0.5001
-
-    le0 = leftEdge[0]
-    le1 = leftEdge[1]
+    x_endpoints = (x_bin_edges[0], x_bin_edges[x_bin_edges.shape[0] - 1])
+    y_endpoints = (y_bin_edges[0], y_bin_edges[y_bin_edges.shape[0] - 1])
 
     for n in range(npositions):
 
-        # Compute the position of the central cell
-        xpos = (posx[n] - le0)/cellSize[0]
-        ypos = (posy[n] - le1)/cellSize[1]
+        xpos = posx[n]
+        ypos = posy[n]
 
-        if (xpos < 0.5001) or (xpos > edge0):
+        if (xpos < x_endpoints[0]) or (xpos > x_endpoints[1]):
             continue
-        if (ypos < 0.5001) or (ypos > edge1):
+        if (ypos < y_endpoints[0]) or (ypos > y_endpoints[1]):
             continue
 
-        i1  = <int> (xpos + 0.5)
-        j1  = <int> (ypos + 0.5)
+        for i in range(x_bin_edges.shape[0]):
+            if (xpos >= x_bin_edges[i]) and (xpos < x_bin_edges[i+1]):
+                i1 = i
+                break
+
+        for j in range(y_bin_edges.shape[0]):
+            if (ypos >= y_bin_edges[j]) and (ypos < y_bin_edges[j+1]):
+                j1 = j
+                break
 
         # Deposit onto field
         field[i1,j1] += mass[n]

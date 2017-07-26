@@ -22,7 +22,8 @@ from yt.funcs import \
     get_output_filename, \
     ensure_list, \
     iterable, \
-    issue_deprecation_warning
+    issue_deprecation_warning, \
+    mylog
 from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
@@ -661,32 +662,30 @@ class ParticleProfile(Profile2D):
     fractional = False
 
     def __init__(self, data_source,
-                 x_field, x_n, x_min, x_max,
-                 y_field, y_n, y_min, y_max,
+                 x_field, x_n, x_min, x_max, x_log,
+                 y_field, y_n, y_min, y_max, y_log,
                  weight_field=None, deposition="ngp"):
 
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
 
+        if deposition not in ['ngp', 'cic']:
+            raise NotImplementedError(deposition)
+        elif (x_log or y_log) and deposition != 'ngp':
+            mylog.info('cic deposition is only supported for linear axis '
+                       'scales, falling back to ngp deposition')
+            deposition = 'ngp'
+
+        self.deposition = deposition
+
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
         super(ParticleProfile, self).__init__(data_source,
                                               x_field,
-                                              x_n, x_min, x_max, False,
+                                              x_n, x_min, x_max, x_log,
                                               y_field,
-                                              y_n, y_min, y_max, False,
+                                              y_n, y_min, y_max, y_log,
                                               weight_field=weight_field)
-
-        self.LeftEdge = [self.x_bins[0], self.y_bins[0]]
-        self.dx = (self.x_bins[-1] - self.x_bins[0]) / x_n
-        self.dy = (self.y_bins[-1] - self.y_bins[0]) / y_n
-        self.CellSize = [self.dx, self.dy]
-        self.CellVolume = np.product(self.CellSize)
-        self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
-        self.known_styles = ["ngp", "cic"]
-        if deposition not in self.known_styles:
-            raise NotImplementedError(deposition)
-        self.deposition = deposition
 
     # Either stick the particle field in the nearest bin,
     # or spread it out using the 2D CIC deposition function
@@ -696,42 +695,31 @@ class ParticleProfile(Profile2D):
         fdata, wdata, (bf_x, bf_y) = rv
         # make sure everything has the same units before deposition.
         # the units will be scaled to the correct values later.
-        LE = np.array([self.LeftEdge[0].in_units(bf_x.units),
-                       self.LeftEdge[1].in_units(bf_y.units)])
-        cell_size = np.array([self.CellSize[0].in_units(bf_x.units),
-                              self.CellSize[1].in_units(bf_y.units)])
+
+        if self.deposition == "ngp":
+            func = NGPDeposit_2
+        elif self.deposition == "cic":
+            func = CICDeposit_2
+
         for fi, field in enumerate(fields):
-            Np = fdata[:, fi].size
-
-            if self.deposition == "ngp":
-                func = NGPDeposit_2
-            elif self.deposition == 'cic':
-                func = CICDeposit_2
-
             if self.weight_field is None:
                 deposit_vals = fdata[:, fi]
             else:
                 deposit_vals = wdata*fdata[:, fi]
 
-            func(bf_x, bf_y, deposit_vals, Np,
-                 storage.values[:, :, fi],
-                 LE,
-                 self.GridDimensions,
-                 cell_size)
+            func(bf_x, bf_y, deposit_vals, fdata[:, fi].size,
+                 storage.values[:, :, fi], self.x_bins, self.y_bins)
 
             locs = storage.values[:, :, fi] != 0.0
             storage.used[locs] = True
 
             if self.weight_field is not None:
-                func(bf_x, bf_y, wdata, Np,
-                     storage.weight_values,
-                     LE,
-                     self.GridDimensions,
-                     cell_size)
+                func(bf_x, bf_y, wdata, fdata[:, fi].size,
+                     storage.weight_values, self.x_bins, self.y_bins)
             else:
                 storage.weight_values[locs] = 1.0
-            storage.mvalues[locs, fi] = storage.values[locs, fi] \
-                                        / storage.weight_values[locs]
+            storage.mvalues[locs, fi] = \
+                storage.values[locs, fi] / storage.weight_values[locs]
         # We've binned it!
 
 
@@ -950,10 +938,12 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         to n.  If the profile is 2D or 3D, a list of values can be given to
         control the summation in each dimension independently.
         Default: False.
-    fractional : If True the profile values are divided by the sum of all
+    fractional : bool
+        If True the profile values are divided by the sum of all
         the profile data such that the profile represents a probability
         distribution function.
-    deposition : Controls the type of deposition used for ParticlePhasePlots.
+    deposition : strings
+        Controls the type of deposition used for ParticlePhasePlots.
         Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
         ignored the if the input fields are not of particle type.
 
@@ -983,18 +973,37 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         is_pfield.append(wf.particle_type)
         wf = wf.name
 
+    if len(bin_fields) > 1 and isinstance(accumulation, bool):
+        accumulation = [accumulation for _ in range(len(bin_fields))]
+
+    bin_fields = data_source._determine_fields(bin_fields)
+    fields = data_source._determine_fields(fields)
+    units = sanitize_field_tuple_keys(units, data_source)
+    extrema = sanitize_field_tuple_keys(extrema, data_source)
+    logs = sanitize_field_tuple_keys(logs, data_source)
+
     if any(is_pfield) and not all(is_pfield):
         raise YTIllDefinedProfile(
             bin_fields, data_source._determine_fields(fields), wf, is_pfield)
     elif len(bin_fields) == 1:
         cls = Profile1D
     elif len(bin_fields) == 2 and all(is_pfield):
-        # log bin_fields set to False for Particle Profiles.
-        # doesn't make much sense for CIC deposition.
-        # accumulation and fractional set to False as well.
-        logs = {bin_fields[0]: False, bin_fields[1]: False}
-        accumulation = False
-        fractional = False
+        if deposition == 'cic':
+            if logs is not None:
+                if ((bin_fields[0] in logs and logs[bin_fields[0]]) or
+                    (bin_fields[1] in logs and logs[bin_fields[1]])):
+                    raise RuntimeError(
+                        "CIC deposition is only implemented for linear-scaled "
+                        "axes")
+                else:
+                    logs[bin_fields[0]] = False
+                    logs[bin_fields[1]] = False
+            else:
+                logs = {bin_fields[0]: False, bin_fields[1]: False}
+            if any(accumulation) or fractional:
+                raise RuntimeError(
+                    'The accumulation and fractional keyword arguments must be '
+                    'False for CIC deposition')
         cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
@@ -1002,11 +1011,6 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         cls = Profile3D
     else:
         raise NotImplementedError
-    bin_fields = data_source._determine_fields(bin_fields)
-    fields = data_source._determine_fields(fields)
-    units = sanitize_field_tuple_keys(units, data_source)
-    extrema = sanitize_field_tuple_keys(extrema, data_source)
-    logs = sanitize_field_tuple_keys(logs, data_source)
     if weight_field is not None and cls == ParticleProfile:
         weight_field, = data_source._determine_fields([weight_field])
         if not data_source.ds._get_field_info(weight_field).particle_type:
@@ -1053,18 +1057,15 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
+    args = [data_source]
+    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+        args += [f, n, mi, ma, l]
+    kwargs = dict(weight_field=weight_field)
     if cls is ParticleProfile:
-        args = [data_source]
-        for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
-            args += [f, n, mi, ma]
-        obj = cls(*args, weight_field=weight_field, deposition=deposition)
-    else:
-        args = [data_source]
-        for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-            args += [f, n, mi, ma, l]
-        obj = cls(*args, weight_field = weight_field)
-        setattr(obj, "accumulation", accumulation)
-        setattr(obj, "fractional", fractional)
+        kwargs['deposition'] = deposition
+    obj = cls(*args, **kwargs)
+    setattr(obj, "accumulation", accumulation)
+    setattr(obj, "fractional", fractional)
     if fields is not None:
         obj.add_fields([field for field in fields])
     for field in fields:
