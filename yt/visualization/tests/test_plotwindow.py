@@ -24,7 +24,7 @@ from nose.tools import assert_true
 
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal, assert_raises
+    assert_array_almost_equal, assert_raises, assert_fname
 from yt.utilities.answer_testing.framework import \
     requires_ds, data_dir_load, PlotWindowAttributeTest
 from yt.utilities.exceptions import \
@@ -41,33 +41,6 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
-
-
-def assert_fname(fname):
-    """Function that checks file type using libmagic"""
-    if fname is None:
-        return
-
-    with open(fname, 'rb') as fimg:
-        data = fimg.read()
-    image_type = ''
-
-    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith(b'\211PNG\r\n\032\n'):
-        image_type = '.png'
-    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith(b'\377\330'):
-        image_type = '.jpeg'
-    elif data.startswith(b'%!PS-Adobe'):
-        data_str = data.decode("utf-8", "ignore")
-        if 'EPSF' in data_str[:data_str.index('\n')]:
-            image_type = '.eps'
-        else:
-            image_type = '.ps'
-    elif data.startswith(b'%PDF'):
-        image_type = '.pdf'
-
-    return image_type == os.path.splitext(fname)[1]
 
 
 TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',

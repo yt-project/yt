@@ -241,8 +241,10 @@ class Scene(object):
         Parameters
         ----------
         fname: string, optional
-            If specified, save the rendering as a bitmap to the file "fname".
+            If specified, save the rendering as to the file "fname".
             If unspecified, it creates a default based on the dataset filename.
+            The file format is inferred from the filename's suffix. Supported
+            fomats are png, pdf, eps, and ps.
             Default: None
         sigma_clip: float, optional
             Image values greater than this number times the standard deviation
@@ -302,8 +304,38 @@ class Scene(object):
         self.render()
 
         mylog.info("Saving render %s", fname)
-        self._last_render.write_png(fname, sigma_clip=sigma_clip)
-
+        # We can render pngs natively but for other formats we defer to
+        # matplotlib.
+        if suffix == '.png':
+            self._last_render.write_png(fname, sigma_clip=sigma_clip)
+        else:
+            from matplotlib.figure import Figure
+            from matplotlib.backends.backend_pdf import \
+                FigureCanvasPdf
+            from matplotlib.backends.backend_ps import \
+                FigureCanvasPS
+            shape = self._last_render.shape
+            fig = Figure((shape[0]/100., shape[1]/100.))
+            if suffix == '.pdf':
+                canvas = FigureCanvasPdf(fig)
+            elif suffix in ('.eps', '.ps'):
+                canvas = FigureCanvasPS(fig)
+            else:
+                raise NotImplementedError(
+                    "Unknown file suffix '{}'".format(suffix))
+            ax = fig.add_axes([0, 0, 1, 1])
+            ax.set_axis_off()
+            out = self._last_render
+            nz = out[:, :, :3][out[:, :, :3].nonzero()]
+            max_val = nz.mean() + sigma_clip * nz.std()
+            alpha = 255 * out[:, :, 3].astype('uint8')
+            out = np.clip(out[:, :, :3] / max_val, 0.0, 1.0) * 255
+            out = np.concatenate(
+                [out.astype('uint8'), alpha[..., None]], axis=-1)
+            # not sure why we need rot90, but this makes the orentation
+            # match the png writer
+            ax.imshow(np.rot90(out), origin='lower')
+            canvas.print_figure(fname, dpi=100)
 
     def save_annotated(self, fname=None, label_fmt=None,
                        text_annotate=None, dpi=100, sigma_clip=None):
