@@ -23,7 +23,6 @@ from yt.data_objects.profiles import create_profile
 from yt.visualization.tests.test_plotwindow import \
     WIDTH_SPECS, ATTR_ARGS
 from yt.convenience import load
-    WIDTH_SPECS, ATTR_ARGS
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \
     fake_particle_ds, \
@@ -264,7 +263,6 @@ def test_particle_phase_plot_semantics():
 
     dybins = p.y_bins[1:] - p.y_bins[:-1]
     assert_allclose(dybins, dybins[0])
-    import pdb; pdb.set_trace()
 
 class TestParticleProjectionPlotSave(unittest.TestCase):
 
