@@ -147,8 +147,9 @@ class LinePlot(PlotContainer):
         """
         self.start_point = _validate_point(start_point, ds, start=True)
         self.end_point = _validate_point(end_point, ds)
+        self.npoints = npoints
 
-        self._initialize_instance(self, ds, fields, npoints, figure_size, fontsize)
+        self._initialize_instance(self, ds, fields, figure_size, fontsize)
 
         if labels is None:
             self.labels = {}
@@ -161,9 +162,7 @@ class LinePlot(PlotContainer):
         self._setup_plots()
 
     @classmethod
-    def _initialize_instance(cls, obj, ds, fields, npoints, figure_size=5.,
-                             fontsize=14.):
-        obj.npoints = npoints
+    def _initialize_instance(cls, obj, ds, fields, figure_size=5., fontsize=14.):
         obj._x_unit = None
         obj._y_units = {}
         obj._titles = {}
@@ -182,8 +181,7 @@ class LinePlot(PlotContainer):
                 obj._field_transform[f] = linear_transform
 
     @classmethod
-    def from_lines(cls, ds, fields, lines, npoints,
-                   figure_size=5., font_size=14.):
+    def from_lines(cls, ds, fields, lines, figure_size=5., font_size=14.):
         """
         A class method for constructing a line plot from multiple sampling lines
 
@@ -195,9 +193,6 @@ class LinePlot(PlotContainer):
             simulation output to be plotted.
         fields : string / tuple, or list of strings / tuples
             The name(s) of the field(s) to be plotted.
-        npoints : int
-            How many points to sample between start_point and end_point for
-            constructing the line plot
         figure_size : int or two-element iterable of ints
             Size in inches of the image.
             Default: 5 (5x5)
@@ -206,7 +201,7 @@ class LinePlot(PlotContainer):
             Default: 14
         """
         obj = cls.__new__(cls)
-        cls._initialize_instance(obj, ds, fields, npoints, figure_size, font_size)
+        cls._initialize_instance(obj, ds, fields, figure_size, font_size)
 
         for line in lines:
             dimensions_counter = defaultdict(int)
@@ -219,7 +214,7 @@ class LinePlot(PlotContainer):
             for field in obj.fields:
                 plot = obj._get_plot_instance(field)
                 x, y = obj.ds.coordinates.pixelize_line(
-                    field, line.start_point, line.end_point, npoints)
+                    field, line.start_point, line.end_point, line.npoints)
                 finfo = obj.ds.field_info[field]
                 dimensions = Unit(finfo.units,
                                   registry=obj.ds.unit_registry).dimensions
@@ -340,7 +335,7 @@ class LinePlot(PlotContainer):
 
 
     @invalidate_plot
-    def add_field_legend(self, field):
+    def annotate_legend(self, field):
         """Adds a legend to the `LinePlot` instance"""
         self.include_legend[field] = True
 
