@@ -21,14 +21,16 @@ import numpy as np
 
 from yt.data_objects.profiles import create_profile
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, WIDTH_SPECS, ATTR_ARGS
+    WIDTH_SPECS, ATTR_ARGS
 from yt.convenience import load
+    WIDTH_SPECS, ATTR_ARGS
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \
     fake_particle_ds, \
     assert_array_almost_equal, \
     requires_file, \
-    assert_allclose
+    assert_allclose, \
+    assert_fname
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \

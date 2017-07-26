@@ -23,9 +23,9 @@ from yt.config import \
 from yt.testing import \
     fake_amr_ds, \
     fake_tetrahedral_ds, \
-    fake_hexahedral_ds
+    fake_hexahedral_ds, \
+    assert_fname
 import yt.units as u
-from .test_plotwindow import assert_fname
 from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported
