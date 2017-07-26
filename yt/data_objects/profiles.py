@@ -1059,7 +1059,10 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                         field_ex[i] = data_source.ds.quan(exi, units[bin_field])
                 fe = data_source.ds.arr(field_ex)
             else:
-                fe = data_source.ds.arr(field_ex)
+                if hasattr(field_ex, 'units'):
+                    fe = field_ex.to(bf_units)
+                else:
+                    fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
             if iterable(field_ex[0]):
