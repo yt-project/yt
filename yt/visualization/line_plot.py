@@ -17,7 +17,8 @@ import numpy as np
 
 from collections import defaultdict
 from yt.funcs import \
-    iterable
+    iterable, \
+    mylog
 from yt.units.unit_object import \
     Unit
 from yt.units.yt_array import \
@@ -31,11 +32,35 @@ from yt.visualization.plot_container import \
     linear_transform, \
     invalidate_plot
 
-class LineObject(object):
-    def __init__(self, start_point, end_point, ds, label=None):
+class LineBuffer(object):
+    def __init__(self, ds, start_point, end_point, npoints, label=None):
+        self.ds = ds
         self.start_point = _validate_point(start_point, ds, start=True)
         self.end_point = _validate_point(end_point, ds)
+        self.npoints = npoints
         self.label = label
+        self.data = {}
+
+    def keys(self):
+        return self.data.keys()
+
+    def __setitem__(self, item, val):
+        self.data[item] = val
+
+    def __getitem__(self, item):
+        if item in self.data: return self.data[item]
+        mylog.info("Making a line buffer with %d points of %s" % \
+            (self.npoints, item))
+        self.points, self.data[item] = self.ds.coordinates.pixelize_line(item,
+                                                               self.start_point,
+                                                               self.end_point,
+                                                               self.npoints)
+
+        return self.data[item]
+
+    def __delitem__(self, item):
+        del self.data[item]
+
 
 class LinePlotDictionary(PlotDictionary):
     def __init__(self, data_source):

@@ -56,7 +56,7 @@ from .plot_window import \
 
 from .line_plot import \
     LinePlot, \
-    LineObject
+    LineBuffer
 
 from .profile_plotter import \
     ProfilePlot, \
