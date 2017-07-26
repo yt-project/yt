@@ -147,7 +147,7 @@ class LinePlot(PlotContainer):
     fontsize : int
         Font size for all text in the plot.
         Default: 14
-    labels : dictionary
+    field_labels : dictionary
         Keys should be the field names. Values should be latex-formattable
         strings used in the LinePlot legend
         Default: None
@@ -170,28 +170,19 @@ class LinePlot(PlotContainer):
     _plot_type = 'line_plot'
 
     def __init__(self, ds, fields, start_point, end_point, npoints,
-                 figure_size=5., fontsize=14., labels=None):
+                 figure_size=5., fontsize=14., field_labels=None):
         """
         Sets up figure and axes
         """
-        self.start_point = _validate_point(start_point, ds, start=True)
-        self.end_point = _validate_point(end_point, ds)
-        self.npoints = npoints
-
-        self._initialize_instance(self, ds, fields, figure_size, fontsize)
-
-        if labels is None:
-            self.labels = {}
-        else:
-            self.labels = labels
-        for f in self.fields:
-            if f not in self.labels:
-                self.labels[f] = f[1]
-
+        line = LineBuffer(ds, start_point, end_point, npoints, label=None)
+        self.lines = [line]
+        self._initialize_instance(self, ds, fields, figure_size,
+                                  fontsize, field_labels)
         self._setup_plots()
 
     @classmethod
-    def _initialize_instance(cls, obj, ds, fields, figure_size=5., fontsize=14.):
+    def _initialize_instance(cls, obj, ds, fields, figure_size=5., fontsize=14.,
+                             field_labels=None):
         obj._x_unit = None
         obj._y_units = {}
         obj._titles = {}
@@ -209,8 +200,16 @@ class LinePlot(PlotContainer):
             else:
                 obj._field_transform[f] = linear_transform
 
+        if field_labels is None:
+            obj.field_labels = {}
+        else:
+            obj.field_labels = field_labels
+        for f in obj.fields:
+            if f not in obj.field_labels:
+                obj.field_labels[f] = f[1]
+
     @classmethod
-    def from_lines(cls, ds, fields, lines, figure_size=5., font_size=14.):
+    def from_lines(cls, ds, fields, lines, figure_size=5., font_size=14., field_labels=None):
         """
         A class method for constructing a line plot from multiple sampling lines
 
@@ -230,6 +229,10 @@ class LinePlot(PlotContainer):
         fontsize : int
             Font size for all text in the plot.
             Default: 14
+        field_labels : dictionary
+            Keys should be the field names. Values should be latex-formattable
+            strings used in the LinePlot legend
+            Default: None
 
         Example
         --------
@@ -243,30 +246,9 @@ class LinePlot(PlotContainer):
 
         """
         obj = cls.__new__(cls)
-        cls._initialize_instance(obj, ds, fields, figure_size, font_size)
-
-        for line in lines:
-            dimensions_counter = defaultdict(int)
-            for field in obj.fields:
-                finfo = obj.ds.field_info[field]
-                dimensions = Unit(finfo.units,
-                                  registry=obj.ds.unit_registry).dimensions
-                dimensions_counter[dimensions] += 1
-
-            for field in obj.fields:
-                plot = obj._get_plot_instance(field)
-                x, y = obj.ds.coordinates.pixelize_line(
-                    field, line.start_point, line.end_point, line.npoints)
-                finfo = obj.ds.field_info[field]
-                dimensions = Unit(finfo.units,
-                                  registry=obj.ds.unit_registry).dimensions
-                if dimensions_counter[dimensions] > 1:
-                    legend_label = r"$%s;$ %s" % (line.label, finfo.get_latex_display_name())
-                else:
-                    legend_label = r"$%s$" % line.label
-                obj._plot_xy(field, plot, x, y, dimensions_counter, legend_label=legend_label)
-                plot.axes.legend()
-        obj._plot_valid = True
+        obj.lines = lines
+        cls._initialize_instance(obj, ds, fields, figure_size, font_size, field_labels)
+        obj._setup_plots()
         return obj
 
     def _get_plot_instance(self, field):
@@ -305,75 +287,89 @@ class LinePlot(PlotContainer):
             self.plots[field] = plot
         return plot
 
-    def _plot_xy(self, field, plot, x, y, dimensions_counter, legend_label=None):
-        if self._x_unit is None:
-            unit_x = x.units
-        else:
-            unit_x = self._x_unit
-
-        if field in self._y_units:
-            unit_y = self._y_units[field]
-        else:
-            unit_y = y.units
-
-        x = x.to(unit_x)
-        y = y.to(unit_y)
-
-        plot.axes.plot(x, y, label=legend_label)
-
-        if self._field_transform[field] != linear_transform:
-            if (y < 0).any():
-                plot.axes.set_yscale('symlog')
-            else:
-                plot.axes.set_yscale('log')
-
-        plot._set_font_properties(self._font_properties, None)
-
-        axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
-
-        finfo = self.ds.field_info[field]
-
-        x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
-
-        finfo = self.ds.field_info[field]
-        dimensions = Unit(finfo.units,
-                          registry=self.ds.unit_registry).dimensions
-        if dimensions_counter[dimensions] > 1:
-            y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
-                       axes_unit_labels[1]+'}$')
-        else:
-            y_label = (finfo.get_latex_display_name() + r'$\rm{' +
-                       axes_unit_labels[1]+'}$')
-
-        plot.axes.set_xlabel(x_label)
-        plot.axes.set_ylabel(y_label)
-
-        if field in self._titles:
-            plot.axes.set_title(self._titles[field])
-
-
     def _setup_plots(self):
         if self._plot_valid is True:
             return
         for plot in self.plots.values():
             plot.axes.cla()
-        dimensions_counter = defaultdict(int)
-        for field in self.fields:
-            finfo = self.ds.field_info[field]
-            dimensions = Unit(finfo.units,
-                              registry=self.ds.unit_registry).dimensions
-            dimensions_counter[dimensions] += 1
-        for field in self.fields:
-            plot = self._get_plot_instance(field)
+        for line in self.lines:
+            dimensions_counter = defaultdict(int)
+            for field in self.fields:
+                finfo = self.ds.field_info[field]
+                dimensions = Unit(finfo.units,
+                                  registry=self.ds.unit_registry).dimensions
+                dimensions_counter[dimensions] += 1
+            for field in self.fields:
+                # get plot instance
+                plot = self._get_plot_instance(field)
 
-            x, y = self.ds.coordinates.pixelize_line(
-                field, self.start_point, self.end_point, self.npoints)
+                # calculate x and y
+                x, y = self.ds.coordinates.pixelize_line(
+                    field, line.start_point, line.end_point, line.npoints)
 
-            self._plot_xy(field, plot, x, y, dimensions_counter,
-                          legend_label=self.labels[field])
+                # scale x and y to proper units
+                if self._x_unit is None:
+                    unit_x = x.units
+                else:
+                    unit_x = self._x_unit
 
-            if self.include_legend[field]:
-                plot.axes.legend()
+                if field in self._y_units:
+                    unit_y = self._y_units[field]
+                else:
+                    unit_y = y.units
+
+                x = x.to(unit_x)
+                y = y.to(unit_y)
+
+                # determine legend label
+                str_seq = []
+                str_seq.append(line.label)
+                str_seq.append(self.field_labels[field])
+                delim = "; "
+                legend_label = delim.join(filter(None, str_seq))
+
+                # apply plot to matplotlib axes
+                plot.axes.plot(x, y, label=legend_label)
+
+                # apply log transforms if requested
+                if self._field_transform[field] != linear_transform:
+                    if (y < 0).any():
+                        plot.axes.set_yscale('symlog')
+                    else:
+                        plot.axes.set_yscale('log')
+
+                # set font properties
+                plot._set_font_properties(self._font_properties, None)
+
+                # set x and y axis labels
+                axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
+
+                finfo = self.ds.field_info[field]
+
+                x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
+
+                finfo = self.ds.field_info[field]
+                dimensions = Unit(finfo.units,
+                                  registry=self.ds.unit_registry).dimensions
+                if dimensions_counter[dimensions] > 1:
+                    y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
+                               axes_unit_labels[1]+'}$')
+                else:
+                    y_label = (finfo.get_latex_display_name() + r'$\rm{' +
+                               axes_unit_labels[1]+'}$')
+
+                plot.axes.set_xlabel(x_label)
+                plot.axes.set_ylabel(y_label)
+
+                # apply title
+                if field in self._titles:
+                    plot.axes.set_title(self._titles[field])
+
+                # apply legend
+                if self.include_legend[field]:
+                    plot.axes.legend()
+
+                self._plot_valid = True
 
 
     @invalidate_plot
