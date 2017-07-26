@@ -33,6 +33,35 @@ from yt.visualization.plot_container import \
     invalidate_plot
 
 class LineBuffer(object):
+    r"""
+    LineBuffer(ds, start_point, end_point, npoints, label = None)
+
+    This takes a data source and implements a protocol for generating a
+    'pixelized', fixed-resolution line buffer. In other words, LineBuffer
+    takes a starting point, ending point, and number of sampling points and
+    can subsequently generate YTArrays of field values along the sample points.
+
+    Parameters
+    ----------
+    ds : :class:`yt.data_objects.static_output.Dataset`
+        This is the dataset object holding the data that can be sampled by the
+        LineBuffer
+    start_point : n-element list, tuple, ndarray, or YTArray
+        Contains the coordinates of the first point for constructing the LineBuffer.
+        Must contain n elements where n is the dimensionality of the dataset.
+    end_point : n-element list, tuple, ndarray, or YTArray
+        Contains the coordinates of the first point for constructing the LineBuffer.
+        Must contain n elements where n is the dimensionality of the dataset.
+    npoints : int
+        How many points to sample between start_point and end_point
+
+    Examples
+    --------
+    >>> lb = yt.LineBuffer(ds, (.25, 0, 0), (.25, 1, 0), 100)
+    >>> lb[('all', 'u')].max()
+    0.11562424257143075 dimensionless
+
+    """
     def __init__(self, ds, start_point, end_point, npoints, label=None):
         self.ds = ds
         self.start_point = _validate_point(start_point, ds, start=True)
@@ -193,12 +222,25 @@ class LinePlot(PlotContainer):
             simulation output to be plotted.
         fields : string / tuple, or list of strings / tuples
             The name(s) of the field(s) to be plotted.
+        lines : a list of :class:`yt.visualization.line_plot.LineBuffer`s
+            The lines from which to sample data
         figure_size : int or two-element iterable of ints
             Size in inches of the image.
             Default: 5 (5x5)
         fontsize : int
             Font size for all text in the plot.
             Default: 14
+
+        Example
+        --------
+        >>> ds = yt.load('SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e', step=-1)
+        >>> fields = [field for field in ds.field_list if field[0] == 'all']
+        >>> lines = []
+        >>> lines.append(yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'))
+        >>> lines.append(yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5'))
+        >>> plot = yt.LinePlot.from_lines(ds, fields, lines)
+        >>> plot.save()
+
         """
         obj = cls.__new__(cls)
         cls._initialize_instance(obj, ds, fields, figure_size, font_size)
