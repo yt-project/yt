@@ -233,10 +233,10 @@ def test_particle_phase_plot_semantics():
     p = plot.profile
 
     # bin extrema are field extrema
-    assert dens_ex[0] == p.x_bins[0]
-    assert dens_ex[-1] == p.x_bins[-1]
-    assert temp_ex[0] == p.y_bins[0]
-    assert temp_ex[-1] == p.y_bins[-1]
+    assert dens_ex[0] - np.spacing(dens_ex[0]) == p.x_bins[0]
+    assert dens_ex[-1] + np.spacing(dens_ex[-1]) == p.x_bins[-1]
+    assert temp_ex[0] - np.spacing(temp_ex[0]) == p.y_bins[0]
+    assert temp_ex[-1] + np.spacing(temp_ex[-1]) == p.y_bins[-1]
 
     # bins are evenly spaced in log space
     logxbins = np.log10(p.x_bins)
@@ -252,10 +252,10 @@ def test_particle_phase_plot_semantics():
     p = plot.profile
 
     # bin extrema are field extrema
-    assert dens_ex[0] == p.x_bins[0]
-    assert dens_ex[-1] == p.x_bins[-1]
-    assert temp_ex[0] == p.y_bins[0]
-    assert temp_ex[-1] == p.y_bins[-1]
+    assert dens_ex[0] - np.spacing(dens_ex[0]) == p.x_bins[0]
+    assert dens_ex[-1] + np.spacing(dens_ex[-1]) == p.x_bins[-1]
+    assert temp_ex[0] - np.spacing(temp_ex[0]) == p.y_bins[0]
+    assert temp_ex[-1] + np.spacing(temp_ex[-1]) == p.y_bins[-1]
 
     # bins are evenly spaced in log space
     dxbins = p.x_bins[1:] - p.x_bins[:-1]

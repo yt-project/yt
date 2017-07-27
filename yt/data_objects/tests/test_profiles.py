@@ -127,14 +127,14 @@ def test_profiles():
         p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
                              weight_field=('gas', 'cell_mass'),
                              extrema={'density': (None, rma*e2)})
-        assert_equal(p2d.x_bins[0], rmi)
+        assert_equal(p2d.x_bins[0], rmi - np.spacing(rmi))
         assert_equal(p2d.x_bins[-1], rma*e2)
 
         p2d = create_profile(dd, ('gas', 'density'), ('gas', 'temperature'),
                              weight_field=('gas', 'cell_mass'),
                              extrema={'density': (rmi*e2, None)})
         assert_equal(p2d.x_bins[0], rmi*e2)
-        assert_equal(p2d.x_bins[-1], rma)
+        assert_equal(p2d.x_bins[-1], rma + np.spacing(rma))
 
 
 extrema_s = {'particle_position_x': (0, 1)}
