@@ -347,7 +347,8 @@ been deprecated, use profile.standard_deviation instead."""
         extra_attrs = {"data_type": "yt_profile",
                        "profile_dimensions": self.size,
                        "weight_field": self.weight_field,
-                       "fractional": self.fractional}
+                       "fractional": self.fractional,
+                       "accumulation": self.accumulation}
         data = {}
         data.update(self.field_data)
         data["weight"] = self.weight
@@ -386,6 +387,7 @@ class ProfileNDFromDataset(ProfileND):
     def __init__(self, ds):
         ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
         self.fractional = ds.parameters["fractional"]
+        self.accumulation = ds.parameters["accumulation"]
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
@@ -1047,7 +1049,13 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
             if any([exi is None for exi in field_ex]):
-                ds_extrema = data_source.quantities.extrema(bin_field)
+                try:
+                    ds_extrema = data_source.quantities.extrema(bin_field)
+                except AttributeError:
+                    # ytdata profile datasets don't have data_source.quantities
+                    bf_vals = data_source[bin_field]
+                    ds_extrema = data_source.ds.arr(
+                        [bf_vals.min(), bf_vals.max()])
                 for i, exi in enumerate(field_ex):
                     if exi is None:
                         field_ex[i] = ds_extrema[i]
