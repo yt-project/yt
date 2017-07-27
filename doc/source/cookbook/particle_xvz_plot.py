@@ -11,9 +11,5 @@ p.set_unit('particle_position_x', 'Mpc')
 p.set_unit('particle_velocity_z', 'km/s')
 p.set_unit('particle_mass', 'Msun')
 
-# We want to plot position and velocity in linear scale
-p.set_log('particle_position_x', False)
-p.set_log('particle_velocity_z', False)
-
 # save result
 p.save()

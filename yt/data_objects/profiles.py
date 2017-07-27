@@ -997,15 +997,14 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                     raise RuntimeError(
                         "CIC deposition is only implemented for linear-scaled "
                         "axes")
-                else:
-                    logs[bin_fields[0]] = False
-                    logs[bin_fields[1]] = False
             else:
                 logs = {bin_fields[0]: False, bin_fields[1]: False}
             if any(accumulation) or fractional:
                 raise RuntimeError(
                     'The accumulation and fractional keyword arguments must be '
                     'False for CIC deposition')
+        elif logs is None:
+            logs = {bin_fields[0]: False, bin_fields[1]: False}
         cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
