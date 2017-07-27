@@ -1058,6 +1058,9 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 for i, exi in enumerate(field_ex):
                     if exi is None:
                         field_ex[i] = ds_extrema[i]
+                        # pad extrema by epsilon so cells at bin edges are
+                        # not excluded
+                        field_ex[i] -= (-1)**i*np.spacing(field_ex[i])
             if units is not None and bin_field in units:
                 for i, exi in enumerate(field_ex):
                     if hasattr(exi, 'units'):
