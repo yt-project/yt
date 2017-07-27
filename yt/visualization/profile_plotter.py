@@ -776,6 +776,7 @@ class PhasePlot(ImagePlotContainer):
         obj._text_ypos = {}
         obj._text_kwargs = {}
         obj._profile = profile
+        obj._profile_valid = True
         obj._xlim = (None, None)
         obj._ylim = (None, None)
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
@@ -1180,7 +1181,7 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.annotate_title("This is a phase plot")
 
         """
-        for f in self.profile.field_data:
+        for f in self._profile.field_data:
             if isinstance(f, tuple):
                 f = f[1]
             self.plot_title[self.data_source._determine_fields(f)[0]] = title
@@ -1202,21 +1203,22 @@ class PhasePlot(ImagePlotContainer):
         log : boolean
             Log on/off.
         """
+        p = self._profile
         if field == "all":
             self.x_log = log
             self.y_log = log
-            for field in self.profile.field_data:
+            for field in p.field_data:
                 self.z_log[field] = log
             self._profile_valid = False
         else:
-            if field == self.profile.x_field[1]:
+            if field == p.x_field[1]:
                 self.x_log = log
                 self._profile_valid = False
-            elif field == self.profile.y_field[1]:
+            elif field == p.y_field[1]:
                 self.y_log = log
                 self._profile_valid = False
-            elif field in self.profile.field_map:
-                self.z_log[self.profile.field_map[field]] = log
+            elif field in p.field_map:
+                self.z_log[p.field_map[field]] = log
             else:
                 raise KeyError("Field %s not in phase plot!" % (field))
         return self
@@ -1271,15 +1273,15 @@ class PhasePlot(ImagePlotContainer):
         >>> pp.save()
 
         """
-        p = self.profile
+        p = self._profile
         if xmin is None:
             xmin = p.x_bins.min()
         elif not hasattr(xmin, 'units'):
-            xmin = self.ds.quan(xmin, p.y_bins.units)
+            xmin = self.ds.quan(xmin, p.x_bins.units)
         if xmax is None:
             xmax = p.x_bins.max()
         elif not hasattr(xmax, 'units'):
-            xmax = self.ds.quan(xmax, p.y_bins.units)
+            xmax = self.ds.quan(xmax, p.x_bins.units)
         self._xlim = (xmin, xmax)
         return self
 
@@ -1309,7 +1311,7 @@ class PhasePlot(ImagePlotContainer):
         >>> pp.save()
 
         """
-        p = self.profile
+        p = self._profile
         if ymin is None:
             ymin = p.y_bins.min()
         elif not hasattr(ymin, 'units'):
@@ -1351,7 +1353,7 @@ class PhasePlot(ImagePlotContainer):
             **additional_kwargs)
         for field in zunits:
             self._profile.set_field_unit(field, zunits[field])
-
+        self._profile_valid = True
 
 
 class PhasePlotMPL(ImagePlotMPL):
