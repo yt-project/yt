@@ -1046,7 +1046,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex = list(extrema[bin_field])
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]
-            if any([ex is None for ex in field_ex]):
+            if any([exi is None for exi in field_ex]):
                 ds_extrema = data_source.quantities.extrema(bin_field)
                 for i, exi in enumerate(field_ex):
                     if exi is None:
