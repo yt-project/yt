@@ -257,7 +257,7 @@ been deprecated, use profile.standard_deviation instead."""
             units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
-            weight_data = np.ones(filter.size, dtype="float64")
+            weight_data = np.ones(filter.shape, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into
         return arr, weight_data, bin_fields
