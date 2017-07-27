@@ -74,8 +74,8 @@ def test_line_plot_methods():
 def test_line_buffer():
     ds = fake_random_ds(32)
     lb = yt.LineBuffer(ds, (0, 0, 0), (1, 1, 1), 512, label='diag')
-    density = lb['density']
+    lb['density']
     lb['density'] = 0
-    vx = lb['velocity_x']
-    keys = lb.keys()
+    lb['velocity_x']
+    lb.keys()
     del lb['velocity_x']

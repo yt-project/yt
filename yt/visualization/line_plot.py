@@ -344,19 +344,23 @@ class LinePlot(PlotContainer):
                 # set x and y axis labels
                 axes_unit_labels = self._get_axes_unit_labels(unit_x, unit_y)
 
-                finfo = self.ds.field_info[field]
-
-                x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
-
-                finfo = self.ds.field_info[field]
-                dimensions = Unit(finfo.units,
-                                  registry=self.ds.unit_registry).dimensions
-                if dimensions_counter[dimensions] > 1:
-                    y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
-                               axes_unit_labels[1]+'}$')
+                if self._xlabel is not None:
+                    x_label = self._xlabel
                 else:
-                    y_label = (finfo.get_latex_display_name() + r'$\rm{' +
-                               axes_unit_labels[1]+'}$')
+                    x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
+
+                if self._ylabel is not None:
+                    y_label = self._ylabel
+                else:
+                    finfo = self.ds.field_info[field]
+                    dimensions = Unit(finfo.units,
+                                      registry=self.ds.unit_registry).dimensions
+                    if dimensions_counter[dimensions] > 1:
+                        y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
+                                   axes_unit_labels[1]+'}$')
+                    else:
+                        y_label = (finfo.get_latex_display_name() + r'$\rm{' +
+                                   axes_unit_labels[1]+'}$')
 
                 plot.axes.set_xlabel(x_label)
                 plot.axes.set_ylabel(y_label)
