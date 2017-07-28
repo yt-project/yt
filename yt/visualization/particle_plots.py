@@ -175,6 +175,11 @@ class ParticleProjectionPlot(PWViewerMPL):
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
          fields.
+    window_size : float
+        The size of the window on the longest axis (in units of inches),
+        including the margins but not the colorbar.
+    aspect : float
+         The aspect ratio of the plot.  Set to None for 1.
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults to a region covering
          the entire simulation.
