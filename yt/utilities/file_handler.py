@@ -99,7 +99,12 @@ def valid_netcdf_classic_signature(filename):
 
 
 def warn_netcdf(fn):
-    needs_netcdf = valid_netcdf_classic_signature(fn)
+    # There are a few variants of the netCDF format.
+    classic = valid_netcdf_classic_signature(fn)
+    # NetCDF-4 Classic files are HDF5 files constrained to the Classic
+    # data model used by netCDF-3.
+    netcdf4_classic = valid_hdf5_signature(fn) and fn.endswith('.nc')
+    needs_netcdf = classic or netcdf4_classic
     from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
     if needs_netcdf and isinstance(netCDF4.Dataset, NotAModule):
         raise RuntimeError("This appears to be a netCDF file, but the "
