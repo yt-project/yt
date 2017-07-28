@@ -370,16 +370,22 @@ class LinePlot(PlotContainer):
                     plot.axes.set_title(self._titles[field])
 
                 # apply legend
-                if self.include_legend[field]:
+                dim_field = self.plots._sanitize_dimensions(field)
+                if self.include_legend[dim_field]:
                     plot.axes.legend()
 
-                self._plot_valid = True
+        self._plot_valid = True
 
 
     @invalidate_plot
     def annotate_legend(self, field):
-        """Adds a legend to the `LinePlot` instance"""
-        self.include_legend[field] = True
+        """
+        Adds a legend to the `LinePlot` instance. The `_sanitize_dimensions`
+        call ensures that a legend label will be added for every field of
+        a multi-field plot
+        """
+        dim_field = self.plots._sanitize_dimensions(field)
+        self.include_legend[dim_field] = True
 
     @invalidate_plot
     def set_x_unit(self, unit_name):
