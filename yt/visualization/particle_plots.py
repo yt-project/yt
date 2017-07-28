@@ -498,10 +498,11 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
     ...                     color='g')
 
     """
-
-    ad = ds.all_data()
-    x_field = ad._determine_fields(x_field)[0]
-    y_field = ad._determine_fields(y_field)[0]
+    dd = kwargs.get('data_source', None)
+    if dd is None:
+        dd = ds.all_data()
+    x_field = dd._determine_fields(x_field)[0]
+    y_field = dd._determine_fields(y_field)[0]
 
     direction = 3
     # try potential axes for a ParticleProjectionPlot:
@@ -523,5 +524,5 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color='b', *args,
     # Does not correspond to any valid PlotWindow-style plot,
     # use ParticlePhasePlot instead
     else:
-        return ParticlePhasePlot(ad, x_field, y_field,
+        return ParticlePhasePlot(dd, x_field, y_field,
                                  z_fields, color, *args, **kwargs)
