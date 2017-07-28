@@ -17,6 +17,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.on_demand_imports import NotAModule
 from contextlib import contextmanager
 
+
 def valid_hdf5_signature(fn):
     signature = b'\x89HDF\r\n\x1a\n'
     try:
@@ -62,6 +63,7 @@ class HDF5FileHandler(object):
     def close(self):
         if self.handle is not None:
             self.handle.close()
+
 
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):
