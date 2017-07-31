@@ -157,7 +157,8 @@ class RegionExpression(object):
         start_point = [self._spec_to_value(v) for v in ray_slice.start]
         end_point = [self._spec_to_value(v) for v in ray_slice.stop]
         if getattr(ray_slice.step, "imag", 0.0) != 0.0:
-            return LineBuffer(self.ds, start_point, end_point, ray_slice.step)
+            return LineBuffer(self.ds, start_point, end_point, 
+                              int(ray_slice.step.imag))
         else:
             return self.ds.ray(start_point, end_point)
 
