@@ -1177,12 +1177,16 @@ class Dataset(object):
            Describes the dimensionality of the field.  Currently unused.
         display_name : str
            A name used in the plots
+        force_override : bool
+           Whether to override an existing derived field. Does not work with
+           on-disk fields.
 
         """
         self.index
         override = kwargs.get("force_override", False)
         if override and name in self.index.field_list:
-            self.index.field_list.remove(name)
+            raise RuntimeError("force_override is only meant to be used with "
+                               "derived fields, not on-disk fields.")
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
             mylog.warning("Field %s already exists. To override use " +
