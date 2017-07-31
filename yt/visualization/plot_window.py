@@ -124,6 +124,11 @@ def get_axes_unit(width, ds):
     return axes_unit
 
 def validate_mesh_fields(data_source, fields):
+    # this check doesn't make sense for ytdata plot datasets, which
+    # load mesh data as a particle field but nonetheless can still
+    # make plots with it
+    if isinstance(data_source.ds, YTSpatialPlotDataset):
+        return
     canonical_fields = data_source._determine_fields(fields)
     invalid_fields = []
     for field in canonical_fields:
@@ -1438,7 +1443,10 @@ class ProjectionPlot(PWViewerMPL):
             if proj.axis != ds.parameters["axis"]:
                 raise RuntimeError("Original projection axis is %s." %
                                    ds.parameters["axis"])
-            proj.weight_field = proj._determine_fields(weight_field)[0]
+            if weight_field is not None:
+                proj.weight_field = proj._determine_fields(weight_field)[0]
+            else:
+                proj.weight_field = weight_field
         else:
             proj = ds.proj(fields, axis, weight_field=weight_field,
                            center=center, data_source=data_source,
