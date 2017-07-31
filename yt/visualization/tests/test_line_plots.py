@@ -25,14 +25,12 @@ def setup():
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
 
-def compare(ds, fields, point1, point2, resolution, test_prefix, decimals=12):
-    def line_plot(filename_prefix):
-        ln = yt.LinePlot(ds, fields, point1, point2, resolution)
-        image_file = ln.save(filename_prefix)
-        return image_file
+def compare(ds, plot, test_prefix, decimals=12):
+    def image_from_plot(filename_prefix):
+        return plot.save(filename_prefix)
 
-    line_plot.__name__ = "line_{}".format(test_prefix)
-    test = GenericImageTest(ds, line_plot, decimals)
+    image_from_plot.__name__ = "line_{}".format(test_prefix)
+    test = GenericImageTest(ds, image_from_plot, decimals)
     test.prefix = test_prefix
     return test
 
@@ -42,7 +40,18 @@ tri2 = "SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e"
 def test_line_plot():
     ds = data_dir_load(tri2, kwargs={'step':-1})
     fields = [field for field in ds.field_list if field[0] == 'all']
-    yield compare(ds, fields, (0, 0, 0), (1, 1, 0), 1000, "answers_line_plot")
+    plot = yt.LinePlot(ds, fields, (0, 0, 0), (1, 1, 0), 1000)
+    yield compare(ds, plot, "answers_line_plot")
+
+@requires_ds(tri2)
+def test_multi_line_plot():
+    ds = data_dir_load(tri2, kwargs={'step':-1})
+    fields = [field for field in ds.field_list if field[0] == 'all']
+    lines = []
+    lines.append(yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'))
+    lines.append(yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5'))
+    plot = yt.LinePlot.from_lines(ds, fields, lines)
+    yield compare(ds, plot, "answers_multi_line_plot")
 
 def test_line_plot_methods():
     # Perform I/O in safe place instead of yt main dir
@@ -53,7 +62,7 @@ def test_line_plot_methods():
     ds = fake_random_ds(32)
 
     plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
-    plot.add_legend('density')
+    plot.annotate_legend('density')
     plot.set_x_unit('cm')
     plot.set_unit('density', 'kg/cm**3')
     plot.save()
@@ -61,3 +70,12 @@ def test_line_plot_methods():
     os.chdir(curdir)
     # clean up
     shutil.rmtree(tmpdir)
+
+def test_line_buffer():
+    ds = fake_random_ds(32)
+    lb = yt.LineBuffer(ds, (0, 0, 0), (1, 1, 1), 512, label='diag')
+    lb['density']
+    lb['density'] = 0
+    lb['velocity_x']
+    lb.keys()
+    del lb['velocity_x']

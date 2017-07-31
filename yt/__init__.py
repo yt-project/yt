@@ -104,7 +104,7 @@ from yt.visualization.api import \
     write_bitmap, write_image, \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
-    ProjectionPlot, OffAxisProjectionPlot, \
+    LineBuffer, ProjectionPlot, OffAxisProjectionPlot, \
     show_colormaps, add_cmap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \

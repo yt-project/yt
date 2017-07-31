@@ -208,7 +208,7 @@ full class description.
 Plots of 2D Datasets
 ~~~~~~~~~~~~~~~~~~~~
 
-If you have a two-dimensional cartesian, cylindrical, or polar dataset, 
+If you have a two-dimensional cartesian, cylindrical, or polar dataset,
 :func:`~yt.visualization.plot_window.plot_2d` is a way to make a plot
 within the dataset's plane without having to specify the axis, which
 in this case is redundant. Otherwise, ``plot_2d`` accepts the same
@@ -1114,7 +1114,7 @@ You can can add a legend to a 1D sampling plot. The legend process takes two ste
 
 1. When instantiating the ``LinePlot``, pass a dictionary of
    labels with keys corresponding to the field names
-2. Call the ``LinePlot`` ``add_legend`` method
+2. Call the ``LinePlot`` ``annotate_legend`` method
 
 X- and Y- axis units can be set with ``set_x_unit`` and ``set_unit`` methods
 respectively. The below code snippet combines all the features we've discussed:
@@ -1126,7 +1126,7 @@ respectively. The below code snippet combines all the features we've discussed:
    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
 
    plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
-   plot.add_legend('density')
+   plot.annotate_legend('density')
    plot.set_x_unit('cm')
    plot.set_unit('density', 'kg/cm**3')
    plot.save()
@@ -1136,7 +1136,7 @@ individual figures equal to the number of different dimensional
 quantities. E.g. if ``LinePlot`` receives two fields with units of "length/time"
 and a field with units of "temperature", two different figures will be created,
 one with plots of the "length/time" fields and another with the plot of the
-"temperature" field. It is only necessary to call ``add_legend``
+"temperature" field. It is only necessary to call ``annotate_legend``
 for one field of a multi-field plot to produce a legend containing all the
 labels passed in the initial construction of the ``LinePlot`` instance. Example:
 
@@ -1147,7 +1147,7 @@ labels passed in the initial construction of the ``LinePlot`` instance. Example:
    ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
    plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], [0, 0, 0], [0, 1, 0],
                       100, labels={('all', 'u') : r"v$_x$", ('all', 'v') : r"v$_y$"})
-   plot.add_legend(('all', 'u'))
+   plot.annotate_legend(('all', 'u'))
    plot.save()
 
 ``LinePlot`` is a bit different from yt ray objects which are data
