@@ -178,7 +178,7 @@ class RegionExpression(object):
             else:
                 if axis is not None: raise RuntimeError
                 if getattr(v.step, "imag", 0.0) != 0.0:
-                    npoints = new_slice[axis].step
+                    npoints = int(v.step.imag)
                     xi = self._spec_to_value(v.start)
                     xf = self._spec_to_value(v.stop)
                     dx = (xf-xi)/npoints
