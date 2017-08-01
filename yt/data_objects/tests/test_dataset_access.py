@@ -8,6 +8,8 @@ from yt.testing import \
     requires_file
 from yt.utilities.answer_testing.framework import \
     data_dir_load
+from yt.visualization.line_plot import \
+    LineBuffer
 
 # This will test the "dataset access" method.
 
@@ -111,6 +113,10 @@ def test_ray_from_r():
     ray6 = ds.ray(start_arr, end_arr)
     assert_equal(ray5["density"], ray6["density"])
 
+    ray7 = ds.r[start:end:500j]
+    ray8 = LineBuffer(ds, [0.1, 0.2, 0.3], [0.5, 0.4, 0.6], 500)
+    assert_equal(ray7["density"], ray8["density"])
+
 def test_ortho_ray_from_r():
     ds = fake_amr_ds(fields = ["density"])
     ray1 = ds.r[:,0.3,0.2]
@@ -127,6 +133,11 @@ def test_ortho_ray_from_r():
     ray5 = ds.r[0.25:0.75,0.3,0.2]
     ray6 = ds.ortho_ray("x", [0.3, 0.2], data_source=box)
     assert_equal(ray5["density"], ray6["density"])
+
+    # Test fixed-resolution rays
+    ray7 = ds.r[0.25:0.75:100j,0.3,0.2]
+    ray8 = LineBuffer(ds, [0.2525,0.3,0.2], [0.7475,0.3,0.2], 100)
+    assert_equal(ray7["density"], ray8["density"])
 
 def test_particle_counts():
     ds = fake_random_ds(16, particles=100)
