@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from yt.config import ytcfg
 from yt.data_objects.time_series import \
     DatasetSeries
+from yt.extern import \
+    six
 from yt.funcs import \
     is_root, mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -325,7 +327,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
         else:
             restart_num = 0
-        self.handler.setup_rockstar(self.server_address, self.port,
+        self.handler.setup_rockstar(
+                    six.b(self.server_address),
+                    six.b(self.port),
                     num_outputs, self.total_particles, 
                     self.particle_type,
                     particle_mass = self.particle_mass,
@@ -334,7 +338,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     num_writers = self.num_writers,
                     writing_port = -1,
                     block_ratio = block_ratio,
-                    outbase = self.outbase,
+                    outbase = six.b(self.outbase),
                     force_res = self.force_res,
                     callbacks = callbacks,
                     restart_num = restart_num,
