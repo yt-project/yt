@@ -37,7 +37,8 @@ from yt.utilities.cosmology import \
 from yt.utilities.exceptions import \
     YTObjectNotImplemented, \
     YTFieldNotFound, \
-    YTGeometryNotSupported
+    YTGeometryNotSupported, \
+    YTIllDefinedParticleFilter
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -675,7 +676,8 @@ class Dataset(object):
 
     def _setup_filtered_type(self, filter):
         if not filter.available(self.derived_field_list):
-            return False
+            raise YTIllDefinedParticleFilter(
+                filter, filter.missing(self.derived_field_list))
         fi = self.field_info
         fd = self.field_dependencies
         available = False
