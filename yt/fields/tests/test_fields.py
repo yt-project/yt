@@ -358,13 +358,3 @@ def test_deposit_amr():
         gpm = g['particle_mass'].sum()
         dpm = g['deposit', 'all_mass'].sum()
         assert_allclose_units(gpm, dpm)
-
-def test_on_disk_override():
-    def _test(field, data):
-        return data[('stream', 'velocity_x')]
-
-    ds = fake_random_ds(16)
-    ds.add_field(('stream', 'density'), function=_test, units='cm/s', force_override=True)
-    density = ds.all_data()[('stream', 'density')]
-    vel_x = ds.all_data()[('stream', 'velocity_x')]
-    assert_equal(density, vel_x)
