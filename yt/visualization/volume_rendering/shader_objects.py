@@ -14,6 +14,7 @@ in Interactive Data Visualization
 
 # This is a part of the experimental Interactive Data Visualization 
 
+import yaml
 import os
 import OpenGL.GL as GL
 import contextlib
@@ -61,10 +62,10 @@ class ShaderProgram(object):
     def link(self, vertex_shader, fragment_shader):
         # There are more types of shaders, but for now we only allow v&f.
         self.program = GL.glCreateProgram()
-        if not isinstance(vertex_shader, VertexShader):
-            vertex_shader = VertexShader(vertex_shader)
-        if not isinstance(fragment_shader, FragmentShader):
-            fragment_shader = FragmentShader(fragment_shader)
+        if not isinstance(vertex_shader, Shader):
+            vertex_shader = Shader(source = vertex_shader)
+        if not isinstance(fragment_shader, Shader):
+            fragment_shader = Shader(source = fragment_shader)
         self.vertex_shader = vertex_shader
         self.fragment_shader = fragment_shader
         GL.glAttachShader(self.program, vertex_shader.shader)
@@ -181,12 +182,10 @@ class Shader(traitlets.HasTraits):
     '''
 
     _shader = None
-    _source = None
-    _shader_name = None
-
-    def __init__(self, source=None):
-        if source:
-            self.compile(source)
+    source = traitlets.Any()
+    shader_name = traitlets.CUnicode()
+    info = traitlets.CUnicode()
+    shader_type = traitlets.CaselessStrEnum(("vertex", "fragment"))
 
     def _get_source(self, source):
         if ";" in source:
@@ -197,7 +196,7 @@ class Shader(traitlets.HasTraits):
         # functions that get called at each step in a ray tracing process, for
         # instance, that can still share ray tracing code between multiple
         # files.
-        if not isinstance(source, tuple):
+        if not isinstance(source, (tuple, list)):
             source = (source, )
         full_source = []
         for fn in source:
@@ -213,7 +212,7 @@ class Shader(traitlets.HasTraits):
 
     def compile(self, source = None, parameters = None):
         if source is None:
-            source = self._source
+            source = self.source
             if source is None: raise RuntimeError
         if parameters is not None:
             raise NotImplementedError
@@ -250,14 +249,11 @@ class ShaderTrait(traitlets.TraitType):
     info_text = "A shader (vertex or fragment)"
 
     def validate(self, obj, value):
-        known_shaders = {}
-        known_shaders.update((_._shader_name, _) for _ in
-                VertexShader.__class__.__subclasses__(VertexShader))
-        known_shaders.update((_._shader_name, _) for _ in
-                FragmentShader.__class__.__subclasses__(FragmentShader))
         if isinstance(value, str):
             try:
-                shader = known_shaders[value]()
+                shader_type = self.metadata.get("shader_type", "vertex")
+                shader_info = known_shaders[shader_type][value]
+                shader = Shader(**shader_info, shader_type = shader_type)
                 return shader
             except KeyError:
                 self.error(obj, value)
@@ -265,87 +261,10 @@ class ShaderTrait(traitlets.TraitType):
             return value
         self.error(obj, value)
 
-class FragmentShader(Shader):
-    '''Wrapper class for fragment shaders'''
-    shader_type = "fragment"
-    intra_blend = GLValue("func add")
-
-class VertexShader(Shader):
-    '''Wrapper class for vertex shaders'''
-    shader_type = "vertex"
-
-class ApplyColormapFragmentShader(FragmentShader):
-    '''A second pass fragment shader used to apply a colormap to the result of
-    the first pass rendering'''
-    _source = "apply_colormap.fragmentshader"
-    _shader_name = "apply_colormap.f"
-
-class MaxIntensityFragmentShader(FragmentShader):
-    '''A first pass fragment shader that computes Maximum Intensity Projection
-    of the data. See :ref:`projection-types` for more information.'''
-    _source = ("ray_tracing.fragmentshader", "max_intensity.fragmentshader")
-    _shader_name = "max_intensity.f"
-
-class NoOpFragmentShader(FragmentShader):
-    '''A second pass fragment shader that performs no operation. Usually used if
-    the first pass already took care of applying proper color to the data'''
-    _source = "noop.fragmentshader"
-    _shader_name = "noop.f"
-
-class PassthroughFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs no operation. Used for debug
-    puproses. It's distinct from NoOpFragmentShader, because of the number of
-    uniforms'''
-    _source = "passthrough.fragmentshader"
-    _shader_name = "passthrough.f"
-
-class ProjectionFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs unweighted integration of the
-    data along the line of sight. See :ref:`projection-types` for more
-    information.'''
-    _source = ("ray_tracing.fragmentshader", "projection.fragmentshader")
-    _shader_name = "projection.f"
-
-class TransferFunctionFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs ray casting using transfer
-    function. See :ref:`volume-rendering-method` for more details.'''
-    _source = "transfer_function.fragmentshader"
-    _shader_name = "transfer_function.f"
-
-class TransferFunctionFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs ray casting using transfer
-    function. See :ref:`volume-rendering-method` for more details.'''
-    _source = "box_outline.fragmentshader"
-    _shader_name = "drawlines.f"
-
-class DefaultVertexShader(VertexShader):
-    '''A first pass vertex shader that tranlates the location of vertices from
-    the world coordinates to the viewing plane coordinates'''
-    _source = "default.vertexshader"
-    _shader_name = "default.v"
-
-class PassthroughVertexShader(VertexShader):
-    '''A second pass vertex shader that performs no operations on vertices'''
-    _source = "passthrough.vertexshader"
-    _shader_name = "passthrough.v"
-
-class MeshVertexShader(VertexShader):
-    '''A vertex shader used for unstructured mesh rendering.'''
-    _source = "mesh.vertexshader"
-    _shader_name = "mesh.v"
-
-class MeshFragmentShader(FragmentShader):
-    '''A vertex shader used for unstructured mesh rendering.'''
-    _source = "mesh.fragmentshader"
-    _shader_name = "mesh.f"
-
-class TextOverlayVertexShader(VertexShader):
-    '''A simple text overlay shader'''
-    _source = "textoverlay.vertexshader"
-    _shader_name = "text_overlay.v"
-
-class TextOverlayFragmentShader(FragmentShader):
-    '''A simple text overlay shader'''
-    _source = "textoverlay.fragmentshader"
-    _shader_name = "text_overlay.f"
-
+# We'll load our shaders here from shaderlist.yaml
+_shlist_fn = os.path.join(os.path.dirname(__file__),
+                         "shaders",
+                         "shaderlist.yaml")
+if os.path.exists(_shlist_fn):
+    with open(_shlist_fn, "r") as f:
+        known_shaders = yaml.load(f)

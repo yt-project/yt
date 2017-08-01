@@ -130,7 +130,6 @@ class GLValue(traitlets.TraitType):
             if not value.startswith("GL"):
                 value = "GL_%s" % value
             value = getattr(GL, value.upper().replace(" ", "_"), None)
-            print("Getting", value)
             if value is None:
                 self.error(obj, value)
         return value

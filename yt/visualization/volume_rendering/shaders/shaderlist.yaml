@@ -1,0 +1,57 @@
+fragment:
+  apply_colormap:
+    info: A second pass fragment shader used to apply a colormap to the result of
+      the first pass rendering
+    source: apply_colormap.fragmentshader
+  drawlines:
+    info: A first pass fragment shader that performs ray casting using transfer function.
+      See :ref:`volume-rendering-method` for more details.
+    source:
+    - ray_tracing.fragmentshader
+    - box_outline.fragmentshader
+  max_intensity:
+    info: A first pass fragment shader that computes Maximum Intensity Projection
+      of the data. See :ref:`projection-types` for more information.
+    source:
+    - ray_tracing.fragmentshader
+    - max_intensity.fragmentshader
+  mesh:
+    info: A vertex shader used for unstructured mesh rendering.
+    source: mesh.fragmentshader
+  noop:
+    info: A second pass fragment shader that performs no operation.  Usually used
+      if the first pass already took care of applying proper color to the data
+    source: noop.fragmentshader
+  passthrough:
+    info: A first pass fragment shader that performs no operation. Used for debug
+      puproses. It's distinct from NoOpFragmentShader, because of the number of uniforms
+    source: passthrough.fragmentshader
+  projection:
+    info: A first pass fragment shader that performs unweighted integration of the
+      data along the line of sight. See :ref:`projection-types` for more information.
+    source:
+    - ray_tracing.fragmentshader
+    - projection.fragmentshader
+  text_overlay:
+    info: A simple text overlay shader
+    source: textoverlay.fragmentshader
+  transfer_function:
+    info: A first pass fragment shader that performs ray casting using transfer function.
+      See :ref:`volume-rendering-method` for more details.
+    source:
+    - ray_tracing.fragmentshader
+    - transfer_function.fragmentshader
+vertex:
+  default:
+    info: A first pass vertex shader that tranlates the location of vertices from
+      the world coordinates to the viewing plane coordinates
+    source: default.vertexshader
+  mesh:
+    info: A vertex shader used for unstructured mesh rendering.
+    source: mesh.vertexshader
+  passthrough:
+    info: A second pass vertex shader that performs no operations on vertices
+    source: passthrough.vertexshader
+  text_overlay:
+    info: A simple text overlay shader
+    source: textoverlay.vertexshader
