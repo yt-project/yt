@@ -186,6 +186,8 @@ class Shader(traitlets.HasTraits):
     shader_name = traitlets.CUnicode()
     info = traitlets.CUnicode()
     shader_type = traitlets.CaselessStrEnum(("vertex", "fragment"))
+    blend_func = tuple((GLValue(), GLValue()))
+    blend_equation = GLValue()
 
     def _get_source(self, source):
         if ";" in source:
