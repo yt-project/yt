@@ -186,8 +186,12 @@ class Shader(traitlets.HasTraits):
     shader_name = traitlets.CUnicode()
     info = traitlets.CUnicode()
     shader_type = traitlets.CaselessStrEnum(("vertex", "fragment"))
-    blend_func = tuple((GLValue(), GLValue()))
+    blend_func = traitlets.Tuple((GLValue(), GLValue()))
     blend_equation = GLValue()
+
+    blend_equation_separate = traitlets.Tuple((GLValue(), GLValue()), allow_none = True)
+    blend_func_separate = traitlets.Tuple((GLValue(), GLValue(), GLValue(), GLValue()),
+            allow_none = True)
 
     def _get_source(self, source):
         if ";" in source:
@@ -230,6 +234,14 @@ class Shader(traitlets.HasTraits):
         if not(result):
             raise RuntimeError(GL.glGetShaderInfoLog(shader))
         self._shader = shader
+
+    def setup_blend(self):
+        if self.blend_equation_separate is not None:
+            GL.glBlendEquationSeparate(*self.blend_equation_separate)
+            GL.glBlendFuncSeparate(*self.blend_func_separate)
+        else:
+            GL.glBlendEquation(self.blend_equation)
+            GL.glBlendFunc(*self.blend_func)
 
     @property
     def shader(self):

@@ -135,6 +135,11 @@ def register_event(name):
         return func
     return _f
 
+def filter_comp(scene, comp_types):
+    if not isinstance(comp_types, (list, tuple)):
+        comp_types = (comp_types,)
+    return (_ for _ in scene.components if _.name in comp_types)
+
 @register_event("prev_component")
 def prev_component(event_coll, event):
     ac = event_coll.active_component 
@@ -198,77 +203,48 @@ def camera_proj(event_coll, event):
     camera.fov = np.degrees(np.arctan(camera.fov) * 2.0)
     return True
 
-
 @register_event("shader_max")
 def shader_max(event_coll, event):
     '''Use maximum intensity shader'''
     print("Changing shader to max(intensity)")
     scene = event_coll.scene
-    for coll in scene.collections:
-        coll.set_shader("default.v")
-        coll.set_shader("max_intensity.f")
-    scene.set_shader("passthrough.v")
-    scene.set_shader("apply_colormap.f")
-    for collection in scene.collections:
-        collection.set_fields_log(True)
-    scene.update_minmax()
-    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
-    GL.glBlendEquation(GL.GL_MAX)
+    for comp in filter_comp(event_coll.scene, "block_rendering"):
+        comp.fragment_shader = "max_intensity"
+        comp.vertex_shader = "default"
+        comp.colormap_vertex = "passthrough"
+        comp.colormap_fragment = "apply_colormap"
     return True
 
 @register_event("shader_proj")
 def shader_proj(event_coll, event):
     '''Use projection shader'''
     print("Changing shader to projection")
-    scene = event_coll.scene
-    for coll in scene.collections:
-        coll.set_shader("default.v")
-        coll.set_shader("projection.f")
-    scene.set_shader("passthrough.v")
-    scene.set_shader("apply_colormap.f")
-    for collection in scene.collections:
-        collection.set_fields_log(False)
-    scene.update_minmax()
-    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
-    GL.glBlendEquation(GL.GL_FUNC_ADD)
+    for comp in filter_comp(event_coll.scene, "block_rendering"):
+        comp.fragment_shader = "projection"
+        comp.vertex_shader = "default"
+        comp.colormap_vertex = "passthrough"
+        comp.colormap_fragment = "apply_colormap"
     return True
 
 @register_event("shader_test")
 def shader_test(event_coll, event):
     """Use transfer function shader"""
     print("Changing shader to projection")
-    scene = event_coll.scene
-    for coll in scene.collections:
-        coll.set_shader("default.v")
-        coll.set_shader("transfer_function.f")
-    scene.set_shader("passthrough.v")
-    scene.set_shader("noop.f")
-    for collection in scene.collections:
-        collection.set_fields_log(True)
-    #scene.update_minmax()
-    # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
-    GL.glBlendEquationSeparate(GL.GL_FUNC_ADD, GL.GL_FUNC_ADD)
-    GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE, GL.GL_ZERO)
+    for comp in filter_comp(event_coll.scene, "block_rendering"):
+        comp.vertex_shader = "default"
+        comp.fragment_shader = "transfer_function"
+        comp.colormap_vertex = "passthrough"
+        comp.colormap_fragment = "passthrough"
     return True
 
 @register_event("shader_lines")
 def shader_lines(event_coll, event):
     print("Changing shader to lines")
-    scene = event_coll.scene
-    for coll in scene.collections:
-        coll.set_shader("default.v")
-        coll.set_shader("drawlines.f")
-    scene.set_shader("passthrough.v")
-    scene.set_shader("noop.f")
-    for collection in scene.collections:
-        collection.set_fields_log(True)
-    #scene.update_minmax()
-    # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
-    #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
-    #GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    #GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_SRC_ALPHA)
-    GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
-    GL.glBlendEquation(GL.GL_MAX)
+    for comp in filter_comp(event_coll.scene, "block_rendering"):
+        comp.vertex_shader = "default"
+        comp.fragment_shader = "drawlines"
+        comp.colormap_vertex = "passthrough"
+        comp.colormap_fragment = "passthrough"
     return True
 
 

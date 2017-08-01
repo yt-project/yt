@@ -50,6 +50,8 @@ from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
     VertexArray, VertexAttribute, ColormapTexture, \
     Framebuffer, Texture3DIterator
+from .input_events import \
+    EventCollection
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],
@@ -289,6 +291,9 @@ class SceneData(traitlets.HasTraits):
 class SceneComponent(traitlets.HasTraits):
     data = traitlets.Instance(SceneData)
     base_quad = traitlets.Instance(SceneData)
+    events = traitlets.Instance(EventCollection)
+    name = "undefined"
+
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
     vertex_shader = ShaderTrait(allow_none = True).tag(shader_type = "vertex")
     fb = traitlets.Instance(Framebuffer)
@@ -645,6 +650,7 @@ class BlockRendering(SceneComponent):
     blocks multiple times in a single scene and to separate out the memory
     handling from the display.
     '''
+    name = "block_rendering"
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
 
@@ -723,6 +729,7 @@ class MeshData(SceneData):
         return VertexArray(name = "mesh_info", each = 0)
 
 class MeshRendering(SceneComponent):
+    name = "mesh_rendering"
     data = traitlets.Instance(MeshData)
 
     def draw(self, scene, program):

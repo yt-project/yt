@@ -4,10 +4,10 @@ fragment:
       the first pass rendering
     source: apply_colormap.fragmentshader
     blend_func:
-      - src alpha
-      - dst alpha
+    - src alpha
+    - dst alpha
     blend_equation:
-      - func add
+    - func add
   drawlines:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
@@ -21,10 +21,10 @@ fragment:
     - ray_tracing.fragmentshader
     - max_intensity.fragmentshader
     blend_func:
-      - one
-      - one
+    - one
+    - one
     blend_equation:
-      - max
+    - max
   mesh:
     info: A vertex shader used for unstructured mesh rendering.
     source: mesh.fragmentshader
@@ -37,10 +37,10 @@ fragment:
       puproses. It's distinct from NoOpFragmentShader, because of the number of uniforms
     source: passthrough.fragmentshader
     blend_func:
-      - src alpha
-      - dst alpha
+    - src alpha
+    - dst alpha
     blend_equation:
-      - func add
+    - func add
   projection:
     info: A first pass fragment shader that performs unweighted integration of the
       data along the line of sight. See :ref:`projection-types` for more information.
@@ -48,24 +48,32 @@ fragment:
     - ray_tracing.fragmentshader
     - projection.fragmentshader
     blend_func:
-      - one
-      - one
+    - one
+    - one
     blend_equation:
-      - func add
+    - func add
   text_overlay:
     info: A simple text overlay shader
     source: textoverlay.fragmentshader
     blend_func:
-      - src alpha
-      - one minus src alpha
+    - src alpha
+    - one minus src alpha
     blend_equation:
-      - func add
+    - func add
   transfer_function:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
     source:
     - ray_tracing.fragmentshader
     - transfer_function.fragmentshader
+    blend_func_separate:
+    - one
+    - one minus src alpha
+    - one
+    - zero
+    blend_equation_separate:
+    - func add
+    - func add
 vertex:
   default:
     info: A first pass vertex shader that tranlates the location of vertices from
