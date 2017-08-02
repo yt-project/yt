@@ -392,6 +392,17 @@ class YTIllDefinedFilter(YTException):
         return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
             self.filter, self.s1, self.s2)
 
+class YTIllDefinedParticleFilter(YTException):
+    def __init__(self, filter, missing):
+        self.filter = filter
+        self.missing = missing
+
+    def __str__(self):
+        msg = ("\nThe fields\n\t{},\nrequired by the \"{}\" particle filter, "
+               "are not defined for this dataset.")
+        f = self.filter
+        return msg.format("\n".join([str(m) for m in self.missing]), f.name)
+
 class YTIllDefinedBounds(YTException):
     def __init__(self, lb, ub):
         self.lb = lb
