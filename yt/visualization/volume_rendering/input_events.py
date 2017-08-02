@@ -213,6 +213,7 @@ def shader_max(event_coll, event):
         comp.vertex_shader = "default"
         comp.colormap_vertex = "passthrough"
         comp.colormap_fragment = "apply_colormap"
+        comp.cmap_min = comp.cmap_max = None
     return True
 
 @register_event("shader_proj")
@@ -224,6 +225,7 @@ def shader_proj(event_coll, event):
         comp.vertex_shader = "default"
         comp.colormap_vertex = "passthrough"
         comp.colormap_fragment = "apply_colormap"
+        comp.cmap_min = comp.cmap_max = None
     return True
 
 @register_event("shader_test")
@@ -298,17 +300,10 @@ def cmap_min_down(event_coll, event):
 @register_event("cmap_toggle_log")
 def cmap_toggle_log(event_coll, event):
     """Switch between linear and logarithmic scales"""
-    if event_coll.scene.data_logged:
-        print("Data is logged already, can't toggle scale to linear")
-        return False
-
-    if not event_coll.camera.cmap_log:
-        event_coll.camera.cmap_max = np.log10(event_coll.camera.cmap_max)
-        event_coll.camera.cmap_min = np.log10(event_coll.camera.cmap_min)
-    else:
-        event_coll.camera.cmap_max = 10.0 ** event_coll.camera.cmap_max
-        event_coll.camera.cmap_min = 10.0 ** event_coll.camera.cmap_min
-    event_coll.camera.cmap_log = not event_coll.camera.cmap_log
+    for comp in event_coll.scene.components:
+        comp.cmap_log = not comp.cmap_log
+        comp.cmap_min = comp.cmap_max = None
+        print("Switching ", comp, "to", comp.cmap_log)
     return True
 
 @register_event("closeup")

@@ -139,11 +139,6 @@ class IDVCamera(object):
         # set cmap
         cmap = cm.get_cmap(ytcfg.get("yt", "default_colormap"))
         self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
-        self.cmap_min = 1e55
-        self.cmap_max = -1e55
-        self.cmap_log = True
-        self.cmap_new = True
-
         self.view_matrix = np.zeros((4, 4), dtype=np.float32)
         self.projection_matrix = np.zeros((4, 4), dtype=np.float32)
         self.orientation = np.zeros((4, 4), dtype=np.float32)
@@ -288,6 +283,9 @@ class SceneData(traitlets.HasTraits):
     vertex_array = traitlets.Instance(VertexArray)
     textures = traitlets.List(trait = traitlets.Instance(Texture))
 
+    min_val = traitlets.CFloat(0.0)
+    max_val = traitlets.CFloat(1.0)
+
 class SceneComponent(traitlets.HasTraits):
     data = traitlets.Instance(SceneData)
     base_quad = traitlets.Instance(SceneData)
@@ -306,10 +304,9 @@ class SceneComponent(traitlets.HasTraits):
     _program2_invalid = True
 
     # These attributes are 
-    min_val = traitlets.CFloat(0.0)
-    cmin = traitlets.CFloat(0.0)
-    cmax = traitlets.CFloat(1.0)
-    cmap_log = traitlets.Bool(False)
+    cmap_min = traitlets.CFloat(None, allow_none = True)
+    cmap_max = traitlets.CFloat(None, allow_none = True)
+    cmap_log = traitlets.Bool(True)
     scale = traitlets.CFloat(1.0)
 
     @traitlets.default("fb")
@@ -382,16 +379,22 @@ class SceneComponent(traitlets.HasTraits):
                 self._set_uniforms(scene, p)
                 with self.data.vertex_array.bind(p):
                     self.draw(scene, p)
+        if self.cmap_min is None or self.cmap_max is None:
+            data = self.fb.data
+            data = data[data[:,:,3] > 0][:,0]
+            if self.cmap_min is None:
+                self.cmap_min = data.min()
+            if self.cmap_max is None:
+                self.cmap_max = data.max()
         with self.colormap.bind(0):
             with self.fb.input_bind(1, 2):
+                    
                 with self.program2.enable() as p2:
                     p2._set_uniform("cmap", 0)
                     p2._set_uniform("fb_texture", 1)
                     p2._set_uniform("db_texture", 2)
-                    p2._set_uniform("min_val", self.min_val)
-                    p2._set_uniform("scale", self.scale)
-                    p2._set_uniform("cmap_min", self.cmin)
-                    p2._set_uniform("cmap_max", self.cmax)
+                    p2._set_uniform("cmap_min", self.cmap_min)
+                    p2._set_uniform("cmap_max", self.cmap_max)
                     p2._set_uniform("cmap_log", float(self.cmap_log))
                     with self.base_quad.vertex_array.bind(p2):
                         GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
@@ -517,23 +520,11 @@ class BlockCollection(SceneData):
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)
 
-    def set_fields_log(self, log_field):
-        """Switch between a logarithmic and a linear scale for the data.
-
-        Parameters
-        ----------
-
-        log_field : boolean
-            If set to True log10 will be applied to data before passing it to GPU.
-
-        """
-        self.add_data(self.data_source, self.data_source.tiles.fields[0], log_field)
-
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
         return VertexArray(name = "block_info", each = 36)
 
-    def add_data(self, field, log_field=True):
+    def add_data(self, field, no_ghost = False):
         r"""Adds a source of data for the block collection.
 
         Given a `data_source` and a `field` to populate from, adds the data
@@ -545,16 +536,15 @@ class BlockCollection(SceneData):
             A YTRegion object to use as a data source.
         field : string
             A field to populate from.
-        log_field : boolean, optional
-            If set to True log10 will be applied to data before passing it to GPU.
+        no_ghost : bool (False)
+            Should we speed things up by skipping ghost zone generation?
         """
-        self.data_source.tiles.set_fields([field], [log_field], no_ghost=False)
-        self.data_logged = log_field
+        self.data_source.tiles.set_fields([field], [False], no_ghost=no_ghost)
         # Every time we change our data source, we wipe all existing ones.
         # We now set up our vertices into our current data source.
         vert, dx, le, re = [], [], [], []
-        self.min_val = 1e60
-        self.max_val = -1e60
+        self.min_val = +np.inf
+        self.max_val = -np.inf
         if self.scale:
             left_min = np.ones(3, "f8") * np.inf
             right_max = np.ones(3, "f8") * -np.inf
@@ -577,6 +567,11 @@ class BlockCollection(SceneData):
             dx.append([dds.astype('f4') for _ in range(n)])
             le.append([block.LeftEdge.astype('f4') for _ in range(n)])
             re.append([block.RightEdge.astype('f4') for _ in range(n)])
+
+        if hasattr(self.min_val, "in_units"):
+            self.min_val = self.min_val.d
+        if hasattr(self.max_val, "in_units"):
+            self.max_val = self.max_val.d
 
         LE = np.array([b.LeftEdge
                        for i, b in self.blocks.values()]).min(axis=0)
@@ -617,7 +612,7 @@ class BlockCollection(SceneData):
     def _load_textures(self):
         for block_id in sorted(self.blocks):
             vbo_i, block = self.blocks[block_id]
-            n_data = block.my_data[0].copy(order="F").astype("float32")
+            n_data = block.my_data[0].copy(order="F").astype("float32").d
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
             tex = Texture3D(data = n_data)
             self.texture_objects[vbo_i] = tex
