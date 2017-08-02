@@ -920,15 +920,12 @@ cdef class RegionSelector(SelectorObject):
             return 0
         if level == self.max_level:
             this_level = 1
-        cdef int si[3]
-        cdef int ei[3]
-        #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
-        #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
-        #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
+        cdef np.int64_t si[3]
+        cdef np.int64_t ei[3]
         if not self.check_period:
             for i in range(3):
-                si[i] = <int> ((self.left_edge[i] - left_edge[i])/dds[i])
-                ei[i] = <int> ((self.right_edge[i] - left_edge[i])/dds[i])
+                si[i] = <np.int64_t> ((self.left_edge[i] - left_edge[i])/dds[i])
+                ei[i] = <np.int64_t> ((self.right_edge[i] - left_edge[i])/dds[i])
                 si[i] = iclip(si[i] - 1, 0, dim[i])
                 ei[i] = iclip(ei[i] + 1, 0, dim[i])
         else:
