@@ -6,8 +6,7 @@ fragment:
     blend_func:
     - src alpha
     - dst alpha
-    blend_equation:
-    - func add
+    blend_equation: func add
   drawlines:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
@@ -23,8 +22,7 @@ fragment:
     blend_func:
     - one
     - one
-    blend_equation:
-    - max
+    blend_equation: max
   mesh:
     info: A vertex shader used for unstructured mesh rendering.
     source: mesh.fragmentshader
@@ -39,8 +37,7 @@ fragment:
     blend_func:
     - src alpha
     - dst alpha
-    blend_equation:
-    - func add
+    blend_equation: func add
   projection:
     info: A first pass fragment shader that performs unweighted integration of the
       data along the line of sight. See :ref:`projection-types` for more information.
@@ -50,16 +47,14 @@ fragment:
     blend_func:
     - one
     - one
-    blend_equation:
-    - func add
+    blend_equation: func add
   text_overlay:
     info: A simple text overlay shader
     source: textoverlay.fragmentshader
     blend_func:
     - src alpha
     - one minus src alpha
-    blend_equation:
-    - func add
+    blend_equation: func add
   transfer_function:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.

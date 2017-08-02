@@ -164,6 +164,8 @@ class ShaderProgram(object):
     @contextlib.contextmanager
     def enable(self):
         GL.glUseProgram(self.program)
+        self.vertex_shader.setup_blend()
+        self.fragment_shader.setup_blend()
         yield self
         GL.glUseProgram(0)
 
@@ -186,12 +188,16 @@ class Shader(traitlets.HasTraits):
     shader_name = traitlets.CUnicode()
     info = traitlets.CUnicode()
     shader_type = traitlets.CaselessStrEnum(("vertex", "fragment"))
-    blend_func = traitlets.Tuple((GLValue(), GLValue()))
-    blend_equation = GLValue()
+    blend_func = traitlets.Tuple(GLValue(), GLValue(),
+            default_value = ("src alpha", "dst alpha"))
+    blend_equation = GLValue("func add")
 
-    blend_equation_separate = traitlets.Tuple((GLValue(), GLValue()), allow_none = True)
-    blend_func_separate = traitlets.Tuple((GLValue(), GLValue(), GLValue(), GLValue()),
-            allow_none = True)
+    use_separate_blend = traitlets.Bool(False)
+    blend_equation_separate = traitlets.Tuple(GLValue(), GLValue(),
+            default_value = ("none", "none"))
+    blend_func_separate = traitlets.Tuple(GLValue(), GLValue(),
+                                           GLValue(), GLValue(),
+            default_value = ("none", "none", "none", "none"))
 
     def _get_source(self, source):
         if ";" in source:
@@ -236,7 +242,8 @@ class Shader(traitlets.HasTraits):
         self._shader = shader
 
     def setup_blend(self):
-        if self.blend_equation_separate is not None:
+        GL.glEnable(GL.GL_BLEND)
+        if self.use_separate_blend:
             GL.glBlendEquationSeparate(*self.blend_equation_separate)
             GL.glBlendFuncSeparate(*self.blend_func_separate)
         else:
@@ -267,7 +274,10 @@ class ShaderTrait(traitlets.TraitType):
             try:
                 shader_type = self.metadata.get("shader_type", "vertex")
                 shader_info = known_shaders[shader_type][value]
-                shader = Shader(**shader_info, shader_type = shader_type)
+                shader_info.setdefault("shader_type", shader_type)
+                shader_info["use_separate_blend"] = bool(
+                        "blend_function_separate" in shader_info)
+                shader = Shader(**shader_info)
                 return shader
             except KeyError:
                 self.error(obj, value)

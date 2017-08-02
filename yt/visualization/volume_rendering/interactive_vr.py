@@ -377,13 +377,11 @@ class SceneComponent(traitlets.HasTraits):
         return self._program2
 
     def run_program(self, scene):
-        self.init_draw(scene)
         with self.fb.bind(True):
             with self.program1.enable() as p:
                 self._set_uniforms(scene, p)
                 with self.data.vertex_array.bind(p):
                     self.draw(scene, p)
-        self.init_fb_draw(scene)
         with self.colormap.bind(0):
             with self.fb.input_bind(1, 2):
                 with self.program2.enable() as p2:
@@ -400,16 +398,6 @@ class SceneComponent(traitlets.HasTraits):
                 
     def draw(self, scene, program):
         raise NotImplementedError
-
-    def init_draw(self, scene):
-        return
-
-    def init_fb_draw(self, scene):
-        GL.glDisable(GL.GL_DEPTH_TEST)
-        GL.glEnable(GL.GL_BLEND)
-        GL.glBlendEquation(GL.GL_FUNC_ADD)
-        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_DST_ALPHA)
-        return
 
 class SceneAnnotation(SceneComponent):
     pass
@@ -521,15 +509,6 @@ class TextAnnotation(SceneAnnotation):
                 program._set_uniform("y_origin", self.origin[1])
                 program._set_uniform("scale", self.scale)
                 GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*each, each)
-
-    def init_draw(self, scene):
-        GL.glDisable(GL.GL_BLEND)
-
-    def init_fb_draw(self, scene):
-        GL.glDisable(GL.GL_DEPTH_TEST)
-        GL.glDepthMask(GL.GL_TRUE)
-        GL.glEnable(GL.GL_BLEND)
-        GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
 
 class BlockCollection(SceneData):
     name = "block_collection"
@@ -671,14 +650,6 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("camera_pos",
                 cam.position)
         shader_program._set_uniform("box_width", self.box_width)
-
-    def init_draw(self, scene):
-        GL.glDisable(GL.GL_DEPTH_TEST)
-        GL.glEnable(GL.GL_CULL_FACE)
-        GL.glCullFace(GL.GL_BACK)
-        GL.glEnable(GL.GL_BLEND)
-        GL.glBlendEquation(GL.GL_MAX)
-        GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
 
 class MeshData(SceneData):
     name = "mesh"
