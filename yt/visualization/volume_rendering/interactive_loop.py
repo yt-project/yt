@@ -20,6 +20,7 @@ import cyglfw3 as glfw
 import numpy as np
 import OpenGL.GL as GL
 from .input_events import EventCollection, MouseRotation, JoystickAction
+from .glfw_inputhook import InputHookGLFW
 
 from yt import write_bitmap
 
@@ -221,6 +222,17 @@ class RenderingContext(object):
         callbacks.draw = True
         return callbacks
 
+    def start_shell(self, scene, camera): 
+        from IPython.terminal.pt_inputhooks import register
+        from IPython.terminal.embed import InteractiveShellEmbed
+        callbacks = self.setup_loop(scene, camera)
+        rl = self(scene, camera, callbacks)
+        hook = InputHookGLFW(rl)
+        register("glfw", hook)
+        shell = InteractiveShellEmbed()
+        shell.enable_gui('glfw')
+        return shell
+
     def start_loop(self, scene, camera):
         callbacks = self.setup_loop(scene, camera)
         for i in self(scene, camera, callbacks):
@@ -238,3 +250,4 @@ class RenderingContext(object):
             glfw.PollEvents()
             yield self
         glfw.Terminate()
+

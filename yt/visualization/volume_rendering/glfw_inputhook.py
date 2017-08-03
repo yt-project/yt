@@ -1,110 +1,55 @@
 # encoding: utf-8
 """
-Enable pyglet to be used interacive by setting PyOS_InputHook.
-
-Authors
--------
-
-* Nicolas P. Rougier
-* Fernando Perez
+GLFW-based input hook, inspired by the IPython pyglet inputhook.
 """
 
-#-----------------------------------------------------------------------------
-#  Copyright (C) 2008-2011  The IPython Development Team
+# ----------------------------------------------------------------------------
+# Copyright (c) 2017, yt Development Team.
 #
-#  Distributed under the terms of the BSD License.  The full license is in
-#  the file COPYING, distributed as part of this software.
-#-----------------------------------------------------------------------------
+# Distributed under the terms of the Modified BSD License.
+#
+# The full license is in the file COPYING.txt, distributed with this software.
+# ----------------------------------------------------------------------------
 
-# This has been modified from the Pyglet and GLUT event hooks to work with
-# glfw.
+# This is a part of the experimental Interactive Data Visualization 
 
-#-----------------------------------------------------------------------------
-# Imports
-#-----------------------------------------------------------------------------
+import cyglfw3 as glfw
+from IPython.terminal.pt_inputhooks import register
 
-import os
-import sys
-import time
+class InputHookGLFW:
+    def __init__(self, rendering_context, long_used_time = 10.0,
+                 used_time = 0.1, sleep_time = 1.0, short_sleep = 0.05,
+                 long_sleep = 0.001):
+        self.rendering_context = rendering_context
+        self.used_time = used_time
+        self.sleep_time = sleep_time
+        self.short_sleep = short_sleep
+        self.long_sleep = long_sleep
 
-#-----------------------------------------------------------------------------
-# Platform-dependent imports and functions
-#-----------------------------------------------------------------------------
-
-if os.name == 'posix':
-    import select
-
-    def stdin_ready():
-        infds, outfds, erfds = select.select([sys.stdin],[],[],0)
-        if infds:
-            return True
-        else:
-            return False
-
-elif sys.platform == 'win32':
-    import msvcrt
-
-    def stdin_ready():
-        return msvcrt.kbhit()
-
-#-----------------------------------------------------------------------------
-# Code
-#-----------------------------------------------------------------------------
-
-def create_inputhook_glfw(mgr, render_loop):
-    """Run the GLFW event loop by processing pending events only.
-
-    This keeps processing pending events until stdin is ready.  After
-    processing all pending events, a call to time.sleep is inserted.  This is
-    needed, otherwise, CPU usage is at 100%.  This sleep time should be tuned
-    though for best performance.
-    """
-    def inputhook_glfw():
+    def __call__(self, context):
         # We need to protect against a user pressing Control-C when IPython is
         # idle and this is running. We trap KeyboardInterrupt and pass.
-        import cyglfw3 as glfw
+        rc = self.rendering_context
         try:
             t = glfw.GetTime()
-            while not stdin_ready():
-                render_loop.next()
+            while not context.input_is_ready():
+                next(self.rendering_context)
 
                 used_time = glfw.GetTime() - t
-                if used_time > 10.0:
+                if 1:
+                    pass
+                elif used_time > self.long_used_time:
                     # print 'Sleep for 1 s'  # dbg
-                    time.sleep(1.0)
-                elif used_time > 0.1:
+                    time.sleep(self.sleep_time)
+                    # Update our sleep times, in case they changed
+                elif used_time > self.used_time:
                     # Few GUI events coming in, so we can sleep longer
                     # print 'Sleep for 0.05 s'  # dbg
-                    time.sleep(0.05)
+                    time.sleep(self.long_sleep)
                 else:
                     # Many GUI events coming in, so sleep only very little
-                    time.sleep(0.001)
+                    time.sleep(self.short_sleep)
         except KeyboardInterrupt:
             pass
         return 0
-    return inputhook_glfw
 
-from IPython.lib.inputhook import inputhook_manager, InputHookBase
-
-@inputhook_manager.register('glfw')
-class GLFWInputHook(InputHookBase):
-    def enable(self, app=None):
-        """Enable event loop integration with GLFW.
-
-        Parameters
-        ----------
-        app : ignored
-           Ignored, it's only a placeholder to keep the call signature of all
-           gui activation methods consistent, which simplifies the logic of
-           supporting magics.
-
-        Notes
-        -----
-        This methods sets the ``PyOS_InputHook`` for GLFW, which allows
-        GLFW to integrate with terminal based applications like
-        IPython.
-
-        """
-        inputhook_glfw = create_inputhook_glfw(self.manager, app)
-        self.manager.set_inputhook(inputhook_glfw)
-        return
