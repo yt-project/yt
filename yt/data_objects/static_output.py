@@ -677,6 +677,15 @@ class Dataset(object):
         return True
 
     def _setup_filtered_type(self, filter):
+        # Check if the filtered_type of this filter is known, 
+        # otherwise add it first if it is in the filter_registry
+        if filter.filtered_type not in self.known_filters.keys():
+            if filter.filtered_type in filter_registry:
+                add_success = self.add_particle_filter(filter.filtered_type)
+                if add_success:
+                    mylog.info("Added filter dependency '%s' for '%s'",
+                       filter.filtered_type, filter.name)
+
         if not filter.available(self.derived_field_list):
             raise YTIllDefinedParticleFilter(
                 filter, filter.missing(self.derived_field_list))
