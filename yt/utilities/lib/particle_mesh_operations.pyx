@@ -97,8 +97,8 @@ def CICDeposit_2(np.float64_t[:] posx,
     cdef np.float64_t edgex, edgey
     cdef np.float64_t dx, dy, ddx, ddy, ddx2, ddy2
 
-    edgex = (<np.float64_t> x_bin_edges.shape[0]) + 0.5001
-    edgey = (<np.float64_t> y_bin_edges.shape[0]) + 0.5001
+    edgex = (<np.float64_t> x_bin_edges.shape[0] - 1) + 0.5001
+    edgey = (<np.float64_t> y_bin_edges.shape[0] - 1) + 0.5001
 
     # We are always dealing with uniformly spaced bins for CiC
     dx = x_bin_edges[1] - x_bin_edges[0]
