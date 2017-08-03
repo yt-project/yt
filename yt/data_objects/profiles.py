@@ -674,8 +674,8 @@ class ParticleProfile(Profile2D):
         if deposition not in ['ngp', 'cic']:
             raise NotImplementedError(deposition)
         elif (x_log or y_log) and deposition != 'ngp':
-            mylog.info('cic deposition is only supported for linear axis '
-                       'scales, falling back to ngp deposition')
+            mylog.warning('cic deposition is only supported for linear axis '
+                          'scales, falling back to ngp deposition')
             deposition = 'ngp'
 
         self.deposition = deposition
