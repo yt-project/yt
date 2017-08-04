@@ -286,13 +286,20 @@ class FITSImageData(object):
             the FITSImageData info.  Writes to ``sys.stdout`` by default.
         """
         hinfo = self.hdulist.info(output=False)
-        format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
+        num_cols = len(hinfo[0])
+        if output is None:
+            output = sys.stdout
+        if num_cols == 8:
+            header = 'No.    Name      Ver    Type      Cards   Dimensions   Format     Units'
+            format = '{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}'
+        else:
+            header = 'No.    Name         Type      Cards   Dimensions   Format     Units'
+            format = '{:3d}  {:10}  {:11}  {:5d}   {}   {}   {}'
         if self.hdulist._file is None:
             name = '(No file associated with this FITSImageData)'
         else:
             name = self.hdulist._file.name
-        results = ['Filename: {}'.format(name),
-                   'No.    Name         Type      Cards   Dimensions   Format     Units']
+        results = ['Filename: {}'.format(name), header]
         for line in hinfo:
             units = self.field_units[self.hdulist[line[0]].header['btype']]
             summary = tuple(list(line[:-1]) + [units])
@@ -300,8 +307,7 @@ class FITSImageData(object):
                 results.append(format.format(*summary))
             else:
                 results.append(summary)
-        if output is None:
-            output = sys.stdout
+
         if output:
             output.write('\n'.join(results))
             output.write('\n')
