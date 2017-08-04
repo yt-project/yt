@@ -201,6 +201,7 @@ class RenderingContext(object):
         callbacks.add_key_callback("cmap_max_down", "left_bracket")
         callbacks.add_key_callback("cmap_min_up", "semicolon")
         callbacks.add_key_callback("cmap_min_down", "apostrophe")
+        callbacks.add_key_callback("cmap_autoscale", "a")
         callbacks.add_key_callback("cmap_toggle_log", "l")
         callbacks.add_key_callback("screenshot", "f")
         callbacks.add_key_callback("prev_component", "minus")

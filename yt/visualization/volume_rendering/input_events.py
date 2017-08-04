@@ -140,6 +140,15 @@ def filter_comp(scene, comp_types):
         comp_types = (comp_types,)
     return (_ for _ in scene.components if _.name in comp_types)
 
+@register_event("cmap_autoscale")
+def cmap_autoscale(event_coll, event):
+    for comp in event_coll.scene.components:
+        if hasattr(comp, "cmap_min"):
+            comp.cmap_min = None
+        if hasattr(comp, "cmap_max"):
+            comp.cmap_max = None
+    return True
+
 @register_event("prev_component")
 def prev_component(event_coll, event):
     ac = event_coll.active_component 
