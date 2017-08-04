@@ -127,12 +127,14 @@ class RenderingContext(object):
     '''
     should_quit = False
     def __init__(self, width=1024, height=1024, title="vol_render",
-                 always_on_top = False, decorated = True, position = None):
+                 always_on_top = False, decorated = True, position = None,
+                 visible = True):
         curdir = os.getcwd()
         glfw.Init()
         # glfw sometimes changes the current working directory, see
         # https://github.com/adamlwgriffiths/cyglfw3/issues/21
         os.chdir(curdir)
+        glfw.WindowHint(glfw.VISIBLE, visible)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MAJOR, 3)
         glfw.WindowHint(glfw.CONTEXT_VERSION_MINOR, 3)
         glfw.WindowHint(glfw.OPENGL_FORWARD_COMPAT, True)

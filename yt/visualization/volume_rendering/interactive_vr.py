@@ -26,6 +26,7 @@ import ctypes
 import time
 import traitlets
 import string
+import contextlib
 
 from yt import write_bitmap
 from yt.config import \
@@ -388,16 +389,16 @@ class SceneComponent(traitlets.HasTraits):
                 self.cmap_max = data.max()
         with self.colormap.bind(0):
             with self.fb.input_bind(1, 2):
-                    
                 with self.program2.enable() as p2:
-                    p2._set_uniform("cmap", 0)
-                    p2._set_uniform("fb_texture", 1)
-                    p2._set_uniform("db_texture", 2)
-                    p2._set_uniform("cmap_min", self.cmap_min)
-                    p2._set_uniform("cmap_max", self.cmap_max)
-                    p2._set_uniform("cmap_log", float(self.cmap_log))
-                    with self.base_quad.vertex_array.bind(p2):
-                        GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
+                    with scene.bind_buffer():
+                        p2._set_uniform("cmap", 0)
+                        p2._set_uniform("fb_texture", 1)
+                        p2._set_uniform("db_texture", 2)
+                        p2._set_uniform("cmap_min", self.cmap_min)
+                        p2._set_uniform("cmap_max", self.cmap_max)
+                        p2._set_uniform("cmap_log", float(self.cmap_log))
+                        with self.base_quad.vertex_array.bind(p2):
+                            GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
                 
     def draw(self, scene, program):
         raise NotImplementedError
@@ -723,16 +724,38 @@ class SceneGraph(traitlets.HasTraits):
             default_value = [])
     camera = traitlets.Instance(IDVCamera)
     ds = traitlets.Instance(Dataset)
+    fb = traitlets.Instance(Framebuffer, allow_none = True)
 
     def render(self):
-        GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+        with self.bind_buffer():
+            GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         for component in self.components:
             component.run_program(self)
         for annotation in self.annotations:
             annotation.run_program(self)
+
+    @contextlib.contextmanager
+    def bind_buffer(self):
+        if self.fb is not None:
+            with self.fb.bind(clear = False):
+                yield
+        else:
+            yield
 
     def set_camera(self, camera):
         self.camera = camera
 
     def update_minmax(self):
         pass
+
+    @property
+    def image(self):
+        if self.fb is not None:
+            arr = self.fb.data[::-1,:,:]
+            arr.swapaxes(0, 1)
+            return arr
+        _, _, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
+        arr = GL.glReadPixels(0, 0, width, height, GL.GL_RGBA,
+                GL.GL_FLOAT)[::-1,:,:]
+        arr.swapaxes(0, 1)
+        return arr

@@ -344,7 +344,7 @@ def debug_buffer(event_coll, event):
 @register_event("screenshot")
 def screenshot(event_coll, event):
     """Save a copy of the displayed image"""
-    buffer = event_coll.scene._retrieve_framebuffer()
+    buffer = event_coll.scene.image[:]
     n = 0
     base = "yt_vr_%04i.png"
     while os.path.exists(base % n):
