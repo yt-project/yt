@@ -941,7 +941,7 @@ Version 2.2
  * An order of magnitude speed improvement in the RAMSES support
  * Quad-tree projections, speeding up the process of projecting by up to an
    order of magnitude and providing better load balancing
- * “mapserver” for in-browser, Google Maps-style slice and projection
+ * "mapserver" for in-browser, Google Maps-style slice and projection
    visualization (see :ref:`mapserver`)
  * Many bug fixes and performance improvements
  * Halo loader
