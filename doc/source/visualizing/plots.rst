@@ -1146,7 +1146,8 @@ labels passed in the initial construction of the ``LinePlot`` instance. Example:
 
    ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
    plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], [0, 0, 0], [0, 1, 0],
-                      100, labels={('all', 'u') : r"v$_x$", ('all', 'v') : r"v$_y$"})
+                      100, field_labels={('all', 'u') : r"v$_x$",
+                                         ('all', 'v') : r"v$_y$"})
    plot.annotate_legend(('all', 'u'))
    plot.save()
 
