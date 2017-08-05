@@ -886,7 +886,7 @@ class YTArray(np.ndarray):
             d = g[dataset_name]
             # Overwrite without deleting if we can get away with it.
             if d.shape == self.shape and d.dtype == self.dtype:
-                d[:] = self
+                d[...] = self
                 for k in d.attrs.keys():
                     del d.attrs[k]
             else:
