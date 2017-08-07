@@ -145,12 +145,12 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
     if vmin > 0 or vmax < 0:
         return get_log_minorticks(vmin, vmax)
     elif vmin == 0:
-        return np.hstack( (0, get_log_minorticks(linthresh, vmax)) )
+        return np.hstack((0, get_log_minorticks(linthresh, vmax)))
     elif vmax == 0:
-        return np.hstack( (-get_log_minorticks(linthresh,-vim)[::-1], 0) )
+        return np.hstack((-get_log_minorticks(linthresh,-vmin)[::-1], 0) )
     else:
-        return np.hstack( (-get_log_minorticks(linthresh,-vmin)[::-1], 0,
-                            get_log_minorticks(linthresh, vmax)) )
+        return np.hstack((-get_log_minorticks(linthresh,-vmin)[::-1], 0,
+                          get_log_minorticks(linthresh, vmax)))
 
 field_transforms = {}
 
