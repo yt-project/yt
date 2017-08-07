@@ -21,6 +21,7 @@ from cython cimport floating
 from libc.stdlib cimport malloc, free
 from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
+from yt.utilities.lib.geometry_utils cimport position_to_morton, ORDER_MAX
 from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
@@ -463,18 +464,15 @@ cdef class SelectorObject:
         if level == self.max_level:
             this_level = 1
         with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
             for i in range(dim[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
+                pos[0] = ((i + 0.5) * dds[0] + left_edge[0])
                 for j in range(dim[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
+                    pos[1] = ((j + 0.5) * dds[1] + left_edge[1])
                     for k in range(dim[2]):
                         if child_mask[i, j, k] == 1 or this_level == 1:
+                            pos[2] = ((k + 0.5) * dds[2] + left_edge[2])
                             mask[i, j, k] = self.select_cell(pos, dds)
                             total += mask[i, j, k]
-                        pos[2] += dds[2]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
         return total
 
     @cython.boundscheck(False)
@@ -959,21 +957,40 @@ cdef class RegionSelector(SelectorObject):
 region_selector = RegionSelector
 
 cdef class CutRegionSelector(SelectorObject):
-    cdef set _positions
+    cdef set _morton_indices
+    cdef np.float64_t[:] _left_edge
+    cdef np.float64_t[:] _right_edge
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['x'], dobj['y'], dobj['z']]).T
+        self._morton_indices = set(
+            np.array(dobj['morton_index'].view('uint64')))
+        self._left_edge = dobj.ds.domain_left_edge.to('code_length')
+        self._left_edge = np.array(self._left_edge) - np.finfo('f8').eps
+        self._right_edge = dobj.ds.domain_right_edge.to('code_length')
+        self._right_edge = np.array(self._right_edge) + np.finfo('f8').eps
         self._conditionals = tuple(dobj.conditionals)
-        self._positions = set(tuple(position) for position in positions)
 
     cdef int select_bbox(self,  np.float64_t left_edge[3],
                      np.float64_t right_edge[3]) nogil:
         return 1
 
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    @cython.initializedcheck(False)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef np.uint64_t morton_index
+        cdef np.float64_t dd[3]
+        cdef np.uint64_t ind
+        cdef int i
+        for i in range(3):
+            dd[i] = (
+                (self._right_edge[i] - self._left_edge[i]) / (1 << ORDER_MAX))
+        ind = position_to_morton(
+            pos[0], pos[1], pos[2], dd, self._left_edge, self._right_edge)
         with gil:
-            if (pos[0], pos[1], pos[2]) in self._positions:
+            if ind in self._morton_indices:
                 return 1
             else:
                 return 0
