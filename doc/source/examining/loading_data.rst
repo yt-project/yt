@@ -1627,7 +1627,7 @@ Gadget outputs.  See :ref:`loading-gadget-data` for more information.
 Halo Catalog Data
 -----------------
 
-yt has support for reading halo catalogs produced by Rockstar and the inline
+yt has support for reading halo catalogs produced by AHF, Rockstar and the inline
 FOF/SUBFIND halo finders of Gadget and OWLS.  The halo catalogs are treated as
 particle datasets where each particle represents a single halo.  For example,
 this means that the `particle_mass` field refers to the mass of the halos.  For
@@ -1639,6 +1639,49 @@ If you have access to both the halo catalog and the simulation snapshot from
 the same redshift, additional analysis can be performed for each halo using
 :ref:`halo_catalog`.  The resulting product can be reloaded in a similar manner
 to the other halo catalogs shown here.
+
+.. _ahf:
+
+AHF
+^^^
+
+AHF halo catalogs are loaded by providing the path to the .parameter files.
+The corresponding .log and .AHF_halos files must exist for data loading to
+succeed. The field type for all fields is "halos". Some fields of note avaible
+from AHF are:
+
++----------------+---------------------------+
+| AHF field      | yt field name             |
++================+===========================+
+| ID             | particle_identifier       |
++----------------+---------------------------+
+| Mvir           | particle_mass             |
++----------------+---------------------------+
+| Rvir           | virial_radius             |
++----------------+---------------------------+
+| (X,Y,Z)c       | particle_position_(x,y,z) |
++----------------+---------------------------+
+| V(X,Y,Z)c      | particle_velocity_(x,y,z) |
++----------------+---------------------------+
+
+Numerous other AHF fields exist.  To see them, check the field list by typing
+`ds.field_list` for a dataset loaded as `ds`.  Like all other datasets, fields
+must be accessed through :ref:`Data-objects`.
+
+.. code-block:: python
+
+   import yt
+   ds = yt.load("ahf_halos/snap_N64L16_135.parameter", hubble_constant=0.7)
+   ad = ds.all_data()
+   # halo masses
+   print(ad["halos", "particle_mass"])
+   # halo radii
+   print(ad["halos", "virial_radius"])
+
+.. note::
+
+  Currently the dimensionless Hubble parameter that yt needs is not provided in
+  AHF outputs. So users need to provide the `hubble_constant` (default to 1.0) while loading datasets, as shown above.
 
 .. _rockstar:
 
