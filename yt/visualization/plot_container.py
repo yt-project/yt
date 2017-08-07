@@ -85,6 +85,9 @@ def validate_plot(f):
         if hasattr(args[0], '_data_valid'):
             if not args[0]._data_valid:
                 args[0]._recreate_frb()
+        if hasattr(args[0], '_profile_valid'):
+            if not args[0]._profile_valid:
+                args[0]._recreate_profile()
         if not args[0]._plot_valid:
             # it is the responsibility of _setup_plots to
             # call args[0].run_callbacks()

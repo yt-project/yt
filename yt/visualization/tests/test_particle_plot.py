@@ -16,13 +16,19 @@ import os
 import tempfile
 import shutil
 import unittest
+
+import numpy as np
+
 from yt.data_objects.profiles import create_profile
 from yt.visualization.tests.test_plotwindow import \
     WIDTH_SPECS, ATTR_ARGS
+from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \
     fake_particle_ds, \
     assert_array_almost_equal, \
+    requires_file, \
+    assert_allclose, \
     assert_fname
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
@@ -30,7 +36,9 @@ from yt.utilities.answer_testing.framework import \
     PlotWindowAttributeTest, \
     PhasePlotAttributeTest
 from yt.visualization.api import \
-    ParticleProjectionPlot, ParticlePhasePlot
+    ParticlePlot, \
+    ParticleProjectionPlot, \
+    ParticlePhasePlot
 from yt.units.yt_array import YTArray
 
 
@@ -209,6 +217,52 @@ class TestParticlePhasePlotSave(unittest.TestCase):
             for fname in TEST_FLNMS:
                 assert assert_fname(p.save(fname)[0])
 
+tgal = 'TipsyGalaxy/galaxy.00300'
+@requires_file(tgal)
+def test_particle_phase_plot_semantics():
+    ds = load(tgal)
+    ad = ds.all_data()
+    dens_ex = ad.quantities.extrema(('Gas', 'density'))
+    temp_ex = ad.quantities.extrema(('Gas', 'temperature'))
+    plot = ParticlePlot(ds,
+                        ('Gas', 'density'),
+                        ('Gas', 'temperature'),
+                        ('Gas', 'particle_mass'))
+    plot.set_log('density', True)
+    plot.set_log('temperature', True)
+    p = plot.profile
+
+    # bin extrema are field extrema
+    assert dens_ex[0] - np.spacing(dens_ex[0]) == p.x_bins[0]
+    assert dens_ex[-1] + np.spacing(dens_ex[-1]) == p.x_bins[-1]
+    assert temp_ex[0] - np.spacing(temp_ex[0]) == p.y_bins[0]
+    assert temp_ex[-1] + np.spacing(temp_ex[-1]) == p.y_bins[-1]
+
+    # bins are evenly spaced in log space
+    logxbins = np.log10(p.x_bins)
+    dxlogxbins = logxbins[1:] - logxbins[:-1]
+    assert_allclose(dxlogxbins, dxlogxbins[0])
+
+    logybins = np.log10(p.y_bins)
+    dylogybins = logybins[1:] - logybins[:-1]
+    assert_allclose(dylogybins, dylogybins[0])
+
+    plot.set_log('density', False)
+    plot.set_log('temperature', False)
+    p = plot.profile
+
+    # bin extrema are field extrema
+    assert dens_ex[0] - np.spacing(dens_ex[0]) == p.x_bins[0]
+    assert dens_ex[-1] + np.spacing(dens_ex[-1]) == p.x_bins[-1]
+    assert temp_ex[0] - np.spacing(temp_ex[0]) == p.y_bins[0]
+    assert temp_ex[-1] + np.spacing(temp_ex[-1]) == p.y_bins[-1]
+
+    # bins are evenly spaced in log space
+    dxbins = p.x_bins[1:] - p.x_bins[:-1]
+    assert_allclose(dxbins, dxbins[0])
+
+    dybins = p.y_bins[1:] - p.y_bins[:-1]
+    assert_allclose(dybins, dybins[0])
 
 class TestParticleProjectionPlotSave(unittest.TestCase):
 
