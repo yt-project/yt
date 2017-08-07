@@ -525,3 +525,26 @@ def test_plot_2d():
     slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
     slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
     assert_array_equal(slc.frb['density'], slc2.frb['density'])
+
+def test_symlog_colorbar():
+    ds = fake_random_ds(16)
+
+    def _thresh_density(field, data):
+        wh = data['density'] < 0.5
+        ret = data['density']
+        ret[wh] = 0
+        return ret
+
+    def _neg_density(field, data):
+        return -data['threshold_density']
+
+    ds.add_field('threshold_density', function=_thresh_density,
+                 units='g/cm**3', sampling_type='cell')
+    ds.add_field('negative_density', function=_neg_density, units='g/cm**3',
+                 sampling_type='cell')
+
+    for field in ['density', 'threshold_density', 'negative_density']:
+        plot = SlicePlot(ds, 2, field)
+        plot.set_log(field, True, linthresh=0.1)
+        with tempfile.NamedTemporaryFile(suffix='png') as f:
+            plot.save(f.name)
