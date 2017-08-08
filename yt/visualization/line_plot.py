@@ -219,9 +219,9 @@ class LinePlot(PlotContainer):
         ds : :class:`yt.data_objects.static_output.Dataset`
             This is the dataset object corresponding to the
             simulation output to be plotted.
-        fields : string / tuple, or list of strings / tuples
+        fields : field name or list of field names
             The name(s) of the field(s) to be plotted.
-        lines : a list of :class:`yt.visualization.line_plot.LineBuffer`s
+        lines : list of :class:`yt.visualization.line_plot.LineBuffer` instances
             The lines from which to sample data
         figure_size : int or two-element iterable of ints
             Size in inches of the image.
