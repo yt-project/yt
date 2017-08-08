@@ -507,10 +507,10 @@ Mesh fields are fully supported for 1, 2, and 3D datasets.
 
 .. rubric:: Caveats
 
-   * The Enzo-P output format is still evolving somewhat as the code is being
-     actively developed. This frontend will be updated as development continues.
-   * Units are currently assumed to be in CGS.
-   * Particles are not yet supported.
+* The Enzo-P output format is still evolving somewhat as the code is being
+  actively developed. This frontend will be updated as development continues.
+* Units are currently assumed to be in CGS.
+* Particles are not yet supported.
 
 .. _loading-exodusii-data:
 
