@@ -848,6 +848,8 @@ class YTArbitraryGrid(YTCoveringGrid):
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
+        # It may be faster to adapt fill_region_float to fill multiple fields
+        # instead of looping here
         for field in fields:
             dest = np.zeros(self.ActiveDimensions, dtype="float64")
             for chunk in self._data_source.chunks(fields, "io"):
