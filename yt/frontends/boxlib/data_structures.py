@@ -1353,32 +1353,44 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    header_file = raw_file + field + "_H"
-    with open(header_file, "r") as f:
+    level_files = glob.glob(raw_file + 'Level_*')
+    level_files.sort()
+
+    all_boxes = []
+    all_file_names = []
+    all_offsets = []
+
+    for level_file in level_files:
+        header_file = level_file + "/" + field + "_H"
+        with open(header_file, "r") as f:
         
-        # skip the first five lines
-        for _ in range(5):
-            f.readline()
+            # skip the first five lines
+            for _ in range(5):
+                f.readline()
 
-        # read boxes
-        boxes = []
-        for line in f:
-            clean_line = line.strip().split()
-            if clean_line == [')']:
-                break
-            lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
-            boxes.append((lo_corner, hi_corner, node_type))
-
-        # read the file and offset position for the corresponding box
-        file_names = []
-        offsets = []
-        for line in f:
-            if line.startswith("FabOnDisk:"):
+            # read boxes
+            boxes = []
+            for line in f:
                 clean_line = line.strip().split()
-                file_names.append(clean_line[1])
-                offsets.append(int(clean_line[2]))
+                if clean_line == [')']:
+                    break
+                lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
+                boxes.append((lo_corner, hi_corner, node_type))
 
-    return boxes, file_names, offsets
+            # read the file and offset position for the corresponding box
+            file_names = []
+            offsets = []
+            for line in f:
+                if line.startswith("FabOnDisk:"):
+                    clean_line = line.strip().split()
+                    file_names.append(clean_line[1])
+                    offsets.append(int(clean_line[2]))
+
+            all_boxes += boxes
+            all_file_names += file_names
+            all_offsets += offsets
+
+    return all_boxes, all_file_names, all_offsets
 
 
 class WarpXHeader(object):
@@ -1448,9 +1460,9 @@ class WarpXHierarchy(BoxlibHierarchy):
         super(WarpXHierarchy, self)._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
-        self.raw_file = self.ds.output_dir + "/raw_fields/Level_0/"
+        self.raw_file = self.ds.output_dir + "/raw_fields/"
         self.ds.fluid_types += ("raw",)
-        self.raw_fields = _read_raw_field_names(self.raw_file)
+        self.raw_fields = _read_raw_field_names(self.raw_file + 'Level_0/')
         self.field_list += [('raw', f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
