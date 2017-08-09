@@ -156,3 +156,7 @@ class AHFHalosDataset(Dataset):
                     except:
                         pass
         return param
+
+    @property
+    def _skip_cache(self):
+        return True
