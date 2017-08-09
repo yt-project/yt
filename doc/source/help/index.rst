@@ -69,7 +69,7 @@ execute these commands:
 
 .. code-block:: bash
 
-  $ python setup.py develop
+  $ pip install -e .
 
 Now try running yt again with:
 
@@ -122,7 +122,7 @@ of the yt git repository and make it the 'active' installation by doing
 
 .. code-block:: bash
 
-  python setup.py develop
+   $ pip install -e .
 
 in the root directory of the yt git repository.
 

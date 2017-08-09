@@ -52,7 +52,7 @@ install like this:
 ```
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
-python setup.py develop
+pip install -e .
 ```
 
 To set up yt in a virtualenv (and there are [many good

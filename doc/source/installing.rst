@@ -286,13 +286,13 @@ Clone the yt repository with:
   $ git clone https://github.com/yt-project/yt
 
 Once inside the yt directory, update to the appropriate branch and
-run ``setup.py develop``. For example, the following commands will allow you
+run ``pip install -e .``. For example, the following commands will allow you
 to see the tip of the development branch.
 
 .. code-block:: bash
 
   $ git checkout master
-  $ python setup.py develop
+  $ pip install -e .
 
 This will make sure you are running a version of yt corresponding to the
 most up-to-date source code.
@@ -327,7 +327,7 @@ to a clone that you have already made, and do the following:
   $ cd /path/to/yt-git
   $ ./clean.sh
   $ echo /path/to/rockstar > rockstar.cfg
-  $ python setup.py develop
+  $ pip install -e .
 
 Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
 and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
@@ -407,7 +407,7 @@ development version of yt instead of the latest stable release, you will need
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ python setup.py install --user --prefix=
+  $ pip install -e . --user --prefix=
 
 .. note::
 
@@ -439,7 +439,7 @@ repository the "active" installed copy:
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ python setup.py develop --user --prefix=
+  $ pip install -e . --user --prefix=
 
 As above, you can leave off ``--user --prefix=`` if you want to install yt into
 the default package install path.  If you do not have write access for this
@@ -569,7 +569,7 @@ C code requires a compilation step for big changes like this):
 
   $ cd yt-<machine>/src/yt-git
   $ git checkout <desired version>
-  $ python setup.py develop
+  $ pip install -e .
 
 Valid versions to jump to are described in :ref:`branches-of-yt`.
 
@@ -595,7 +595,7 @@ repository. Use git to update to the appropriate version and recompile.
 
   $ cd yt
   $ git checkout <desired-version>
-  $ python setup.py install --user --prefix=
+  $ pip install -e . --user --prefix=
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).
 
