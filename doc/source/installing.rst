@@ -407,7 +407,7 @@ development version of yt instead of the latest stable release, you will need
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ pip install -e . --user --prefix=
+  $ pip install . --user --prefix=
 
 .. note::
 
@@ -595,7 +595,7 @@ repository. Use git to update to the appropriate version and recompile.
 
   $ cd yt
   $ git checkout <desired-version>
-  $ pip install -e . --user --prefix=
+  $ pip install . --user --prefix=
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).
 
