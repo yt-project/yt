@@ -38,7 +38,7 @@ def test_fields_ahf_halos():
     ds = load(ahf_halos)
     assert_equal(str(ds), os.path.basename(ahf_halos))
     for field in _fields:
-        yield FieldValuesTest(ahf_halos, field, particle_type=True)
+        yield FieldValuesTest(ds, field, particle_type=True)
 
 
 @requires_file(ahf_halos)
