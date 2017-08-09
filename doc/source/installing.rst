@@ -407,16 +407,16 @@ development version of yt instead of the latest stable release, you will need
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ pip install . --user --prefix=
+  $ pip install . --user --install-option="--prefix="
 
 .. note::
 
   If you maintain your own user-level python installation separate from the
-  OS-level python installation, you can leave off ``--user --prefix=``, although
+  OS-level python installation, you can leave off ``--user --install-option="--prefix="``, although
   you might need ``sudo`` depending on where python is installed. See `This
   StackOverflow discussion
   <http://stackoverflow.com/questions/4495120/combine-user-with-prefix-error-with-setup-py-install>`_
-  if you are curious why ``--prefix=`` is neccessary on some systems.
+  if you are curious why ``--install-option="--prefix="`` is neccessary on some systems.
 
 This will install yt into a folder in your home directory
 (``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
@@ -439,9 +439,9 @@ repository the "active" installed copy:
   $ git clone https://github.com/yt-project/yt
   $ cd yt
   $ git checkout master
-  $ pip install -e . --user --prefix=
+  $ pip install -e . --user --install-option="--prefix="
 
-As above, you can leave off ``--user --prefix=`` if you want to install yt into
+As above, you can leave off ``--user --install-option="--prefix="`` if you want to install yt into
 the default package install path.  If you do not have write access for this
 location, you might need to use ``sudo``.
 
@@ -595,7 +595,7 @@ repository. Use git to update to the appropriate version and recompile.
 
   $ cd yt
   $ git checkout <desired-version>
-  $ pip install . --user --prefix=
+  $ pip install . --user --install-option="--prefix="
 
 Valid versions to jump to are described in :ref:`branches-of-yt`).
 
