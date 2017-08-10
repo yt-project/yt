@@ -30,7 +30,7 @@ def test_hubble_time():
         co = Cosmology()
         # random sample over interval (-1,100]
         z = -101 * np.random.random() + 100
-        yield assert_rel_equal, co.hubble_time(z), co.t_from_z(z), 5
+        assert_rel_equal(co.hubble_time(z), co.t_from_z(z), 5)
 
 def test_z_t_conversion():
     """
@@ -44,4 +44,4 @@ def test_z_t_conversion():
         z1 = -101 * np.random.random() + 100
         t = co.t_from_z(z1)
         z2 = co.z_from_t(t)
-        yield assert_rel_equal, z1, z2, 10
+        assert_rel_equal(z1, z2, 10)

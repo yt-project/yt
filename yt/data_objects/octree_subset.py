@@ -17,8 +17,9 @@ Subsets of octrees
 import numpy as np
 
 from yt.data_objects.data_containers import \
-    YTFieldData, \
     YTSelectionContainer
+from yt.data_objects.field_data import \
+    YTFieldData
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 
@@ -444,7 +445,7 @@ class OctreeSubsetBlockSlicePosition(object):
 
     def __getitem__(self, key):
         bs = self.block_slice
-        rv = bs.octree_subset[key][:,:,:,self.ind]
+        rv = bs.octree_subset[key][:,:,:,self.ind].T
         if bs.octree_subset._block_reorder:
             rv = rv.copy(order=bs.octree_subset._block_reorder)
         return rv

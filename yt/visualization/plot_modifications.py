@@ -21,7 +21,6 @@ import matplotlib
 import numpy as np
 import re
 
-from distutils.version import LooseVersion
 from functools import wraps
 
 from yt.funcs import \
@@ -152,11 +151,11 @@ class PlotCallback(object):
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return (np.mod((ccoord[0]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
+            return ((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)
         else:
-            return (np.mod((ccoord[0][:]-x0)/(x1-x0), 1.0)*(xx1-xx0) + xx0,
-                    np.mod((ccoord[1][:]-y0)/(y1-y0), 1.0)*(yy1-yy0) + yy0)
+            return ((ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
+                    (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0)
 
     def sanitize_coord_system(self, plot, coord, coord_system):
         """
@@ -277,8 +276,6 @@ class PlotCallback(object):
 
 class VelocityCallback(PlotCallback):
     """
-    annotate_velocity(factor=16, scale=None, scale_units=None, normalize=False):
-
     Adds a 'quiver' plot of velocity to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
     length unit using *scale_units* (see
@@ -326,8 +323,6 @@ class VelocityCallback(PlotCallback):
 
 class MagFieldCallback(PlotCallback):
     """
-    annotate_magnetic_field(factor=16, scale=None, scale_units=None, normalize=False):
-
     Adds a 'quiver' plot of magnetic field to the plot, skipping all but
     every *factor* datapoint. *scale* is the data units per arrow
     length unit using *scale_units* (see
@@ -364,9 +359,6 @@ class MagFieldCallback(PlotCallback):
 
 class QuiverCallback(PlotCallback):
     """
-    annotate_quiver(field_x, field_y, factor=16, scale=None, scale_units=None,
-                    normalize=False, bv_x=0, bv_y=0):
-
     Adds a 'quiver' plot to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints
     *scale* is the data units per arrow length unit using *scale_units*
@@ -391,8 +383,10 @@ class QuiverCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        nx = plot.image._A.shape[0] / self.factor
-        ny = plot.image._A.shape[1] / self.factor
+        # See the note about rows/columns in the pixelizer for more information
+        # on why we choose the bounds we do
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
         # periodicity
         ax = plot.data.axis
         ds = plot.data.ds
@@ -409,18 +403,18 @@ class QuiverCallback(PlotCallback):
         if self.bv_y != 0.0:
             # Workaround for 0.0 without units
             fv_y -= self.bv_y
-        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+        pixX = np.zeros((ny, nx), dtype="f8")
+        pixY = np.zeros((ny, nx), dtype="f8")
+        pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
-                                  fv_x, int(nx), int(ny),
+                                  fv_x,
                                   (x0, x1, y0, y1), 0, # bounds, antialias
-                                  (period_x, period_y), periodic,
-                                  ).transpose()
-        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  (period_x, period_y), periodic)
+        pixelize_cartesian(pixY, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
-                                  fv_y, int(nx), int(ny),
+                                  fv_y,
                                   (x0, x1, y0, y1), 0, # bounds, antialias
-                                  (period_x, period_y), periodic,
-                                  ).transpose()
+                                  (period_x, period_y), periodic)
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
         if self.normalize:
@@ -433,10 +427,6 @@ class QuiverCallback(PlotCallback):
 
 class ContourCallback(PlotCallback):
     """
-    annotate_contour(field, ncont=5, factor=4, take_log=None, clim=None,
-                     plot_args=None, label=False, text_args=None,
-                     data_source=None):
-
     Add contours in *field* to the plot.  *ncont* governs the number of
     contours generated, *factor* governs the number of points used in the
     interpolation, *take_log* governs how it is contoured and *clim* gives
@@ -469,6 +459,8 @@ class ContourCallback(PlotCallback):
         self.data_source = data_source
 
     def __call__(self, plot):
+        from matplotlib.tri import Triangulation, LinearTriInterpolator
+
         # These need to be in code_length
         x0, x1 = (v.in_units("code_length") for v in plot.xlim)
         y0, y1 = (v.in_units("code_length") for v in plot.ylim)
@@ -477,8 +469,10 @@ class ContourCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
 
-        numPoints_x = plot.image._A.shape[0]
-        numPoints_y = plot.image._A.shape[1]
+        # See the note about rows/columns in the pixelizer for more information
+        # on why we choose the bounds we do
+        numPoints_x = plot.image._A.shape[1]
+        numPoints_y = plot.image._A.shape[0]
 
         # Multiply by dx and dy to go from data->plot
         dx = (xx1 - xx0) / (x1-x0)
@@ -524,14 +518,8 @@ class ContourCallback(PlotCallback):
 
             # Both the input and output from the triangulator are in plot
             # coordinates
-            if LooseVersion(matplotlib.__version__) < LooseVersion("1.4.0"):
-                from matplotlib.delaunay.triangulate import Triangulation as \
-                    triang
-                zi = triang(x,y).nn_interpolator(z)(xi,yi)
-            else:
-                from matplotlib.tri import Triangulation, LinearTriInterpolator
-                triangulation = Triangulation(x, y)
-                zi = LinearTriInterpolator(triangulation, z)(xi,yi)
+            triangulation = Triangulation(x, y)
+            zi = LinearTriInterpolator(triangulation, z)(xi,yi)
         elif plot._type_name == 'OffAxisProjection':
             zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
 
@@ -557,10 +545,6 @@ class ContourCallback(PlotCallback):
 
 class GridBoundaryCallback(PlotCallback):
     """
-    annotate_grids(alpha=0.7, min_pix=1, min_pix_ids=20, draw_ids=False,
-                   periodic=True, min_level=None, max_level=None,
-                   cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
-
     Draws grids on an existing PlotWindow object.  Adds grid boundaries to a
     plot, optionally with alpha-blending. By default, colors different levels of
     grids with different colors going from white to black, but you can change to
@@ -601,7 +585,7 @@ class GridBoundaryCallback(PlotCallback):
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
         (dx, dy) = self.pixel_scale(plot)
-        (xpix, ypix) = plot.image._A.shape
+        (ypix, xpix) = plot.image._A.shape
         ax = plot.data.axis
         px_index = plot.data.ds.coordinates.x_axis[ax]
         py_index = plot.data.ds.coordinates.y_axis[ax]
@@ -681,9 +665,6 @@ class GridBoundaryCallback(PlotCallback):
 
 class StreamlineCallback(PlotCallback):
     """
-    annotate_streamlines(field_x, field_y, factor=16,
-                         density=1, plot_args=None):
-
     Add streamlines to any plot, using the *field_x* and *field_y*
     from the associated data, skipping every *factor* datapoints like
     'quiver'. *density* is the index of the amount of the streamlines.
@@ -708,29 +689,33 @@ class StreamlineCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        nx = plot.image._A.shape[0] / self.factor
-        ny = plot.image._A.shape[1] / self.factor
-        pixX = pixelize_cartesian(plot.data['px'], plot.data['py'],
+        # See the note about rows/columns in the pixelizer for more information
+        # on why we choose the bounds we do
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
+        pixX = np.zeros((ny, nx), dtype="f8")
+        pixY = np.zeros((ny, nx), dtype="f8")
+        pixelize_cartesian(pixX, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
                                   plot.data[self.field_x],
-                                  int(nx), int(ny),
-                                  (x0, x1, y0, y1),).transpose()
-        pixY = pixelize_cartesian(plot.data['px'], plot.data['py'],
+                                  (x0, x1, y0, y1))
+        pixelize_cartesian(pixY, plot.data['px'], plot.data['py'],
                                   plot.data['pdx'], plot.data['pdy'],
                                   plot.data[self.field_y],
-                                  int(nx), int(ny),
-                                  (x0, x1, y0, y1),).transpose()
+                                  (x0, x1, y0, y1))
         if self.field_color:
-            self.field_color = pixelize_cartesian(
+            field_colors = np.zeros((ny, nx), dtype="f8")
+            pixelize_cartesian(field_colors,
                         plot.data['px'], plot.data['py'],
                         plot.data['pdx'], plot.data['pdy'],
-                        plot.data[self.field_color], int(nx), int(ny),
-                        (x0, x1, y0, y1),).transpose()
-
+                        plot.data[self.field_color],
+                        (x0, x1, y0, y1))
+        else:
+            field_colors = None
         X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
                np.linspace(yy0,yy1,ny,endpoint=True))
         streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
-                           'density': self.dens, 'color':self.field_color}
+                           'density': self.dens, 'color':field_colors}
         streamplot_args.update(self.plot_args)
         plot._axes.streamplot(**streamplot_args)
         plot._axes.set_xlim(xx0,xx1)
@@ -738,8 +723,6 @@ class StreamlineCallback(PlotCallback):
 
 class LinePlotCallback(PlotCallback):
     """
-    annotate_line(p1, p2, coord_system="data", plot_args=None):
-
     Overplot a line with endpoints at p1 and p2.  p1 and p2
     should be 2D or 3D coordinates consistent with the coordinate
     system denoted in the "coord_system" keyword.
@@ -819,8 +802,6 @@ class LinePlotCallback(PlotCallback):
 
 class ImageLineCallback(LinePlotCallback):
     """
-    annotate_image_line(p1, p2, coord_system="axis", plot_args=None):
-
     This callback is deprecated, as it is simply a wrapper around
     the LinePlotCallback (ie annotate_image()).  The only difference is
     that it uses coord_system="axis" by default. Please see LinePlotCallback
@@ -842,8 +823,6 @@ class ImageLineCallback(LinePlotCallback):
 
 class CuttingQuiverCallback(PlotCallback):
     """
-    annotate_cquiver(field_x, field_y, factor)
-
     Get a quiver plot on top of a cutting plane, using *field_x* and
     *field_y*, skipping every *factor* datapoint in the discretization.
     """
@@ -865,26 +844,26 @@ class CuttingQuiverCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        nx = plot.image._A.shape[0] / self.factor
-        ny = plot.image._A.shape[1] / self.factor
-        indices = np.argsort(plot.data['dx'])[::-1]
+        nx = plot.image._A.shape[1] // self.factor
+        ny = plot.image._A.shape[0] // self.factor
+        indices = np.argsort(plot.data['dx'])[::-1].astype(np.int_)
 
-        pixX = pixelize_off_axis_cartesian(
+        pixX = np.zeros((ny, nx), dtype="f8")
+        pixY = np.zeros((ny, nx), dtype="f8")
+        pixelize_off_axis_cartesian(pixX,
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_x],
-                               int(nx), int(ny),
-                               (x0, x1, y0, y1)).transpose()
-        pixY = pixelize_off_axis_cartesian(
+                               (x0, x1, y0, y1))
+        pixelize_off_axis_cartesian(pixY,
                                plot.data['x'], plot.data['y'], plot.data['z'],
                                plot.data['px'], plot.data['py'],
                                plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
                                plot.data.center, plot.data._inv_mat, indices,
                                plot.data[self.field_y],
-                               int(nx), int(ny),
-                               (x0, x1, y0, y1)).transpose()
+                               (x0, x1, y0, y1))
         X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
                           np.linspace(yy0,yy1,ny,endpoint=True))
 
@@ -899,8 +878,6 @@ class CuttingQuiverCallback(PlotCallback):
 
 class ClumpContourCallback(PlotCallback):
     """
-    annotate_clumps(clumps, plot_args=None)
-
     Take a list of *clumps* and plot them as a set of contours.
     """
     _type_name = "clumps"
@@ -927,7 +904,7 @@ class ClumpContourCallback(PlotCallback):
         dxf = "d%s" % xf
         dyf = "d%s" % yf
 
-        nx, ny = plot.image._A.shape
+        ny, nx = plot.image._A.shape
         buff = np.zeros((nx,ny),dtype='float64')
         for i,clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
@@ -935,22 +912,18 @@ class ClumpContourCallback(PlotCallback):
             xf_copy = clump[xf].copy().in_units("code_length")
             yf_copy = clump[yf].copy().in_units("code_length")
 
-            temp = pixelize_cartesian(xf_copy, yf_copy,
+            temp = np.zeros((ny, nx), dtype="f8")
+            pixelize_cartesian(temp, xf_copy, yf_copy,
                                  clump[dxf].in_units("code_length")/2.0,
                                  clump[dyf].in_units("code_length")/2.0,
                                  clump[dxf].d*0.0+i+1, # inits inside Pixelize
-                                 int(nx), int(ny),
-                             (x0, x1, y0, y1), 0).transpose()
+                             (x0, x1, y0, y1), 0)
             buff = np.maximum(temp, buff)
         self.rv = plot._axes.contour(buff, np.unique(buff),
                                      extent=extent, **self.plot_args)
 
 class ArrowCallback(PlotCallback):
     """
-    annotate_arrow(pos, length=0.03, width=0.003, head_length=None,
-                   head_width=0.02, starting_pos=None,
-                   coord_system='data', plot_args=None):
-
     Overplot an arrow pointing at a position for highlighting a specific
     feature.  By default, arrow points from lower left to the designated
     position "pos" with arrow length "length".  Alternatively, if
@@ -1092,8 +1065,6 @@ class ArrowCallback(PlotCallback):
 
 class MarkerAnnotateCallback(PlotCallback):
     """
-    annotate_marker(pos, marker='x', coord_system="data", plot_args=None):
-
     Overplot a marker on a position for highlighting specific features.
 
     Parameters
@@ -1166,9 +1137,6 @@ class MarkerAnnotateCallback(PlotCallback):
 
 class SphereCallback(PlotCallback):
     """
-    annotate_sphere(center, radius, circle_args=None,
-                    coord_system='data', text=None, text_args=None):
-
     Overplot a circle with designated center and radius with optional text.
 
     Parameters
@@ -1268,9 +1236,6 @@ class SphereCallback(PlotCallback):
 
 class TextLabelCallback(PlotCallback):
     """
-    annotate_text(pos, text, coord_system='data', text_args=None,
-                  inset_box_args=None):
-
     Overplot text on the plot at a specified position. If you desire an inset
     box around your text, set one with the inset_box_args dictionary
     keyword.
@@ -1364,9 +1329,6 @@ class TextLabelCallback(PlotCallback):
 
 class PointAnnotateCallback(TextLabelCallback):
     """
-    annotate_point(pos, text, coord_system='data', text_args=None,
-                   inset_box_args=None)
-
     This callback is deprecated, as it is simply a wrapper around
     the TextLabelCallback (ie annotate_text()).  Please see TextLabelCallback
     for more information.
@@ -1388,10 +1350,6 @@ class PointAnnotateCallback(TextLabelCallback):
 
 class HaloCatalogCallback(PlotCallback):
     """
-    annotate_halos(halo_catalog, circle_args=None,
-        width=None, annotate_field=None,
-        text_args=None, factor=1.0)
-
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
     virial radius of each halo.
@@ -1406,6 +1364,15 @@ class HaloCatalogCallback(PlotCallback):
         halo catalog to add text to the plot near the halo.
         Example: annotate_field = 'particle_mass' will
         write the halo mass next to each halo.
+    radius_field: Accepts a field contained in the halo
+        catalog to set the radius of the circle which will
+        surround each halo.
+    center_field_prefix: Accepts a field prefix which will
+        be used to find the fields containing the coordinates
+        of the center of each halo. Ex: 'particle_position'
+        will result in the fields 'particle_position_x' for x
+        'particle_position_y' for y, and 'particle_position_z' 
+        for z.
     text_args: Contains the arguments controlling the text
         appearance of the annotated field.
     factor: A number the virial radius is multiplied by for
@@ -1419,14 +1386,17 @@ class HaloCatalogCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
-                 width=None, annotate_field=None, text_args=None,
-                 font_kwargs=None, factor=1.0):
+                 width=None, annotate_field=None, radius_field='virial_radius',
+                 center_field_prefix="particle_position",
+                 text_args=None, font_kwargs=None, factor=1.0):
 
         PlotCallback.__init__(self)
         def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
         def_text_args = {'color':'white'}
         self.halo_catalog = halo_catalog
         self.width = width
+        self.radius_field = radius_field
+        self.center_field_prefix = center_field_prefix
         self.annotate_field = annotate_field
         if circle_kwargs is not None:
             circle_args = circle_kwargs
@@ -1454,9 +1424,9 @@ class HaloCatalogCallback(PlotCallback):
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
         yax = plot.data.ds.coordinates.y_axis[data.axis]
-        field_x = "particle_position_%s" % axis_names[xax]
-        field_y = "particle_position_%s" % axis_names[yax]
-        field_z = "particle_position_%s" % axis_names[data.axis]
+        field_x = "%s_%s" % (self.center_field_prefix, axis_names[xax])
+        field_y = "%s_%s" % (self.center_field_prefix, axis_names[yax])
+        field_z = "%s_%s" % (self.center_field_prefix, axis_names[data.axis])
 
         # Set up scales for pixel size and original data
         pixel_scale = self.pixel_scale(plot)[0]
@@ -1467,10 +1437,28 @@ class HaloCatalogCallback(PlotCallback):
         px = halo_data[field_x][:].in_units(units)
         py = halo_data[field_y][:].in_units(units)
 
-        px, py = self.convert_to_plot(plot,[px,py])
+        xplotcenter = (plot.xlim[0] + plot.xlim[1])/2
+        yplotcenter = (plot.ylim[0] + plot.ylim[1])/2
+
+        xdomaincenter = plot.ds.domain_center[xax]
+        ydomaincenter = plot.ds.domain_center[yax]
+
+        xoffset = xplotcenter - xdomaincenter
+        yoffset = yplotcenter - ydomaincenter
+
+        xdw = plot.ds.domain_width[xax].to(units)
+        ydw = plot.ds.domain_width[yax].to(units)
+
+        modpx = np.mod(px - xoffset, xdw) + xoffset
+        modpy = np.mod(py - yoffset, ydw) + yoffset
+
+        px[modpx != px] = modpx[modpx != px]
+        py[modpy != py] = modpy[modpy != py]
+
+        px, py = self.convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data['virial_radius'][:].in_units(units)
+        radius = halo_data[self.radius_field][:].in_units(units)
         radius = np.array(radius*pixel_scale*self.factor)
 
         if self.width:
@@ -1507,9 +1495,6 @@ class HaloCatalogCallback(PlotCallback):
 
 class ParticleCallback(PlotCallback):
     """
-    annotate_particles(width, p_size=1.0, col='k', marker='o', stride=1.0,
-                       ptype=None, minimum_mass=None, alpha=1.0)
-
     Adds particle positions, based on a thick slab along *axis* with a
     *width* along the line of sight.  *p_size* controls the number of
     pixels per particle, and *col* governs the color.  *ptype* will
@@ -1522,7 +1507,7 @@ class ParticleCallback(PlotCallback):
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube")
-    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1.0,
+    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
                  ptype='all', minimum_mass=None, alpha=1.0):
         PlotCallback.__init__(self)
         self.width = width
@@ -1619,8 +1604,6 @@ class ParticleCallback(PlotCallback):
 
 class TitleCallback(PlotCallback):
     """
-    annotate_title(title)
-
     Accepts a *title* and adds it to the plot
     """
     _type_name = "title"
@@ -1638,8 +1621,6 @@ class TitleCallback(PlotCallback):
 
 class MeshLinesCallback(PlotCallback):
     """
-    annotate_mesh_lines()
-
     Adds mesh lines to the plot. Only works for unstructured or 
     semi-structured mesh data. For structured grid data, see
     GridBoundaryCallback or CellEdgesCallback.
@@ -1705,7 +1686,7 @@ class MeshLinesCallback(PlotCallback):
             elif num_dims == 2 and num_verts == 4:
                 coords, indices = self.promote_2d_to_3d(coords, indices, plot)
 
-            tri_indices = triangulate_indices(indices)
+            tri_indices = triangulate_indices(indices.astype(np.int_))
             points = coords[tri_indices]
         
             tfc = TriangleFacetsCallback(points, plot_args=self.plot_args)
@@ -1714,8 +1695,6 @@ class MeshLinesCallback(PlotCallback):
 
 class TriangleFacetsCallback(PlotCallback):
     """
-    annotate_triangle_facets(triangle_vertices, plot_args=None )
-
     Intended for representing a slice of a triangular faceted
     geometry in a slice plot.
 
@@ -1757,12 +1736,6 @@ class TriangleFacetsCallback(PlotCallback):
 
 class TimestampCallback(PlotCallback):
     """
-    annotate_timestamp(x_pos=None, y_pos=None, corner='lower_left', time=True,
-                       redshift=False, time_format="t = {time:.0f} {units}",
-                       time_unit=None, redshift_format="z = {redshift:.2f}",
-                       draw_inset_box=False, coord_system='axis',
-                       text_args=None, inset_box_args=None)
-
     Annotates the timestamp and/or redshift of the data output at a specified
     location in the image (either in a present corner, or by specifying (x,y)
     image coordinates with the x_pos, y_pos arguments.  If no time_units are
@@ -1941,11 +1914,6 @@ class TimestampCallback(PlotCallback):
 
 class ScaleCallback(PlotCallback):
     """
-    annotate_scale(corner='lower_right', coeff=None, unit=None, pos=None,
-                   max_frac=0.16, min_frac=0.015, coord_system='axis',
-                   text_args=None, size_bar_args=None, draw_inset_box=False,
-                   inset_box_args=None)
-
     Annotates the scale of the plot at a specified location in the image
     (either in a preset corner, or by specifying (x,y) image coordinates with
     the pos argument.  Coeff and units (e.g. 1 Mpc or 100 kpc) refer to the
@@ -2078,10 +2046,6 @@ class ScaleCallback(PlotCallback):
 
         # Callback only works for plots with axis ratios of 1
         xsize = plot.xlim[1] - plot.xlim[0]
-        if plot.aspect != 1.0:
-            raise NotImplementedError(
-                "Scale callback has only been implemented for plots with no "
-                "aspect ratio scaling. (aspect = {%s})".format(plot._aspect))
 
         # Setting pos overrides corner argument
         if self.pos is None:
@@ -2121,8 +2085,8 @@ class ScaleCallback(PlotCallback):
         text = "{scale} {units}".format(scale=int(self.coeff), units=self.unit)
         image_scale = (plot.frb.convert_distance_x(self.scale) /
                        plot.frb.convert_distance_x(xsize)).v
-
-        size_vertical = self.size_bar_args.pop('size_vertical', .005)
+        size_vertical = self.size_bar_args.pop(
+            'size_vertical', .005 * plot.aspect)
         fontproperties = self.size_bar_args.pop(
             'fontproperties', plot.font_properties.copy())
         frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
@@ -2155,8 +2119,6 @@ class ScaleCallback(PlotCallback):
 
 class RayCallback(PlotCallback):
     """
-    annotate_ray(ray, plot_args=None)
-
     Adds a line representing the projected path of a ray across the plot.
     The ray can be either a YTOrthoRay, YTRay, or a LightRay object.
     annotate_ray() will properly account for periodic rays across the volume.
@@ -2307,11 +2269,6 @@ class RayCallback(PlotCallback):
 
 class LineIntegralConvolutionCallback(PlotCallback):
     """
-    annotate_line_integral_convolution(field_x, field_y, texture=None,
-                                       kernellen=50., lim=(0.5,0.6),
-                                       cmap='binary', alpha=0.8,
-                                       const_alpha=False):
-
     Add the line integral convolution to the plot for vector fields
     visualization. Two component of vector fields needed to be provided
     (i.e., velocity_x and velocity_y, magentic_field_x and magnetic_field_y).
@@ -2380,18 +2337,20 @@ class LineIntegralConvolutionCallback(PlotCallback):
         bounds = [x0,x1,y0,y1]
         extent = [xx0,xx1,yy0,yy1]
 
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
+        # We are feeding this size into the pixelizer, where it will properly
+        # set it in reverse order
+        nx = plot.image._A.shape[1]
+        ny = plot.image._A.shape[0]
         pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
                                                  self.field_x,
                                                  bounds,
-                                                 (nx,ny))
+                                                 (ny,nx))
         pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
                                                  plot.data,
                                                  self.field_y,
                                                  bounds,
-                                                 (nx,ny))
+                                                 (ny,nx))
 
         vectors = np.concatenate((pixX[...,np.newaxis],
                                   pixY[...,np.newaxis]),axis=2)
@@ -2406,26 +2365,25 @@ class LineIntegralConvolutionCallback(PlotCallback):
         kernel = kernel.astype(np.double)
 
         lic_data = line_integral_convolution_2d(vectors,self.texture,kernel)
-        lic_data = np.flipud(lic_data / lic_data.max())
+        lic_data = lic_data / lic_data.max()
         lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
 
         if self.const_alpha:
             plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
-                              alpha=self.alpha)
+                              alpha=self.alpha, origin='lower', aspect="auto")
         else:
             lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
                             to_rgba(lic_data_clip)
             lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
                                     / (self.lim[1] - self.lim[0])
             lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
-            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap)
+            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap,
+                              origin='lower', aspect="auto")
 
         return plot
 
 class CellEdgesCallback(PlotCallback):
     """
-    annotate_cell_edges(line_width=0.002, alpha = 1.0, color = 'black')
-
     Annotate cell edges.  This is done through a second call to pixelize, where
     the distance from a pixel to a cell boundary in pixels is compared against
     the `line_width` argument.  The secondary image is colored as `color` and
@@ -2467,8 +2425,8 @@ class CellEdgesCallback(PlotCallback):
         y0, y1 = plot.ylim
         xx0, xx1 = plot._axes.get_xlim()
         yy0, yy1 = plot._axes.get_ylim()
-        nx = plot.image._A.shape[0]
-        ny = plot.image._A.shape[1]
+        nx = plot.image._A.shape[1]
+        ny = plot.image._A.shape[0]
         aspect = float((y1 - y0) / (x1 - x0))
         pixel_aspect = float(ny)/nx
         relative_aspect = pixel_aspect / aspect
@@ -2487,16 +2445,17 @@ class CellEdgesCallback(PlotCallback):
                 ny = 1600
             long_axis = nx
         line_width = max(self.line_width*long_axis, 1.0)
-        im = pixelize_cartesian(plot.data['px'],
+        im = np.zeros((ny, nx), dtype="f8")
+        pixelize_cartesian(im,
+                                plot.data['px'],
                                 plot.data['py'],
                                 plot.data['pdx'],
                                 plot.data['pdy'],
                                 plot.data['px'], # dummy field
-                                int(nx), int(ny),
                                 (x0, x1, y0, y1),
-                                line_width=line_width).transpose()
+                                line_width=line_width)
         # New image:
-        im_buffer = np.zeros((nx, ny, 4), dtype="uint8")
+        im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
         im_buffer[im > 0, 3] = 255
         im_buffer[im > 0, :3] = self.color
         plot._axes.imshow(im_buffer, origin='lower',

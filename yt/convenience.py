@@ -32,9 +32,9 @@ def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
     other set of arguments by calling
-    :meth:`yt.data_objects.api.Dataset._is_valid` until it finds a
+    :meth:`yt.data_objects.static_output.Dataset._is_valid` until it finds a
     match, at which point it returns an instance of the appropriate
-    :class:`yt.data_objects.api.Dataset` subclass.
+    :class:`yt.data_objects.static_output.Dataset` subclass.
     """
     candidates = []
     args = [os.path.expanduser(arg) if isinstance(arg, string_types)
@@ -127,4 +127,3 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
 
     return simulation_time_series_registry[simulation_type](parameter_filename,
                                                             find_outputs=find_outputs)
-

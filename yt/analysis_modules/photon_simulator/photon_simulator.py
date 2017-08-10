@@ -31,7 +31,7 @@ from yt.funcs import mylog, get_pbar, iterable, ensure_list
 from yt.utilities.physical_constants import clight
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import assert_same_wcs
+from yt.visualization.fits_image import assert_same_wcs
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     communication_system, parallel_root_only, get_mpi_type, \
     parallel_capable
@@ -678,9 +678,9 @@ class PhotonList(object):
             x *= delta
             y *= delta
             z *= delta
-            x += self.photons["x"][obs_cells]
-            y += self.photons["y"][obs_cells]
-            z += self.photons["z"][obs_cells]
+            x += self.photons["x"][obs_cells].d
+            y += self.photons["y"][obs_cells].d
+            z += self.photons["z"][obs_cells].d
 
             xsky = x*x_hat[0] + y*x_hat[1] + z*x_hat[2]
             ysky = x*y_hat[0] + y*y_hat[1] + z*y_hat[2]

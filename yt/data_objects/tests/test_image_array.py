@@ -5,7 +5,8 @@ import shutil
 import unittest
 from yt.data_objects.image_array import ImageArray
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    requires_module
 
 
 def setup():
@@ -26,14 +27,14 @@ def test_rgba_rescale():
     im_arr = ImageArray(dummy_image(10.0, 4))
 
     new_im = im_arr.rescale(inline=False)
-    yield assert_equal, im_arr[:, :, :3].max(), 2 * 10.
-    yield assert_equal, im_arr[:, :, 3].max(), 3 * 10.
-    yield assert_equal, new_im[:, :, :3].sum(axis=2).max(), 1.0
-    yield assert_equal, new_im[:, :, 3].max(), 1.0
+    assert_equal(im_arr[:, :, :3].max(), 2 * 10.)
+    assert_equal(im_arr[:, :, 3].max(), 3 * 10.)
+    assert_equal(new_im[:, :, :3].sum(axis=2).max(), 1.0)
+    assert_equal(new_im[:, :, 3].max(), 1.0)
 
     im_arr.rescale()
-    yield assert_equal, im_arr[:, :, :3].sum(axis=2).max(), 1.0
-    yield assert_equal, im_arr[:, :, 3].max(), 1.0
+    assert_equal(im_arr[:, :, :3].sum(axis=2).max(), 1.0)
+    assert_equal(im_arr[:, :, 3].max(), 1.0)
 
 
 class TestImageArray(unittest.TestCase):
@@ -55,6 +56,7 @@ class TestImageArray(unittest.TestCase):
 
         assert str(new_im.units) == 'km'
 
+    @requires_module('h5py')
     def test_image_array_hdf5(self):
         myinfo = {'field': 'dinosaurs', 'east_vector': np.array([1., 0., 0.]),
                   'north_vector': np.array([0., 0., 1.]),

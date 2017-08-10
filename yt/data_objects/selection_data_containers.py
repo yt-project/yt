@@ -23,11 +23,13 @@ from yt.funcs import \
     ensure_list, \
     iterable, \
     validate_width_tuple, \
-    fix_length
+    fix_length, \
+    fix_axis
 from yt.geometry.selection_routines import \
     points_in_cells
 from yt.units.yt_array import \
-    YTArray
+    YTArray, \
+    YTQuantity
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
@@ -49,7 +51,7 @@ class YTPoint(YTSelectionContainer0D):
         periodic its position will be corrected to lie inside
         the range [DLE,DRE) to ensure one and only one cell may
         match that point
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
         A dictionary of field parameters than can be accessed by derived
@@ -88,14 +90,14 @@ class YTOrthoRay(YTSelectionContainer1D):
 
     Parameters
     ----------
-    axis : int
-        The axis along which to cast the ray.  Can be 0, 1, or 2 for x, y, z.
+    axis : int or char
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
     coords : tuple of floats
         The (plane_x, plane_y) coordinates at which to cast the ray.  Note
         that this is in the plane coordinates: so if you are casting along
         x, this will be (y, z).  If you are casting along y, this will be
         (z, x).  If you are casting along z, this will be (x, y).
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -129,7 +131,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     def __init__(self, axis, coords, ds=None, 
                  field_parameters=None, data_source=None):
         super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
-        self.axis = axis
+        self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
         self.px_ax = xax
@@ -137,7 +139,15 @@ class YTOrthoRay(YTSelectionContainer1D):
         # Even though we may not be using x,y,z we use them here.
         self.px_dx = 'd%s'%('xyz'[self.px_ax])
         self.py_dx = 'd%s'%('xyz'[self.py_ax])
-        self.px, self.py = coords
+        # Convert coordinates to code length.
+        if isinstance(coords[0], YTQuantity):
+            self.px = self.ds.quan(coords[0]).to("code_length")
+        else:
+            self.px = self.ds.quan(coords[0], "code_length")
+        if isinstance(coords[1], YTQuantity):
+            self.py = self.ds.quan(coords[1]).to("code_length")
+        else:
+            self.py = self.ds.quan(coords[1], "code_length")
         self.sort_by = 'xyz'[self.axis]
 
     @property
@@ -162,7 +172,7 @@ class YTRay(YTSelectionContainer1D):
         The place where the ray starts.
     end_point : array-like set of 3 floats
         The place where the ray ends.
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -248,7 +258,7 @@ class YTSlice(YTSelectionContainer2D):
     center : array_like, optional
         The 'center' supplied to fields that use it.  Note that this does
         not have to have `coord` as one value.  optional.
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -268,7 +278,7 @@ class YTSlice(YTSelectionContainer2D):
     _top_node = "/Slices"
     _type_name = "slice"
     _con_args = ('axis', 'coord')
-    _container_fields = ("px", "py", "pdx", "pdy")
+    _container_fields = ("px", "py", "pz", "pdx", "pdy", "pdz")
     def __init__(self, axis, coord, center=None, ds=None,
                  field_parameters=None, data_source=None):
         YTSelectionContainer2D.__init__(self, axis, ds,
@@ -285,10 +295,14 @@ class YTSlice(YTSelectionContainer2D):
             return self._current_chunk.fcoords[:,xax]
         elif field == "py":
             return self._current_chunk.fcoords[:,yax]
+        elif field == "pz":
+            return self._current_chunk.fcoords[:,self.axis]
         elif field == "pdx":
             return self._current_chunk.fwidth[:,xax] * 0.5
         elif field == "pdy":
             return self._current_chunk.fwidth[:,yax] * 0.5
+        elif field == "pdz":
+            return self._current_chunk.fwidth[:,self.axis] * 0.5            
         else:
             raise KeyError(field)
 
@@ -351,7 +365,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
     north_vector: array_like, optional
         An optional vector to describe the north-facing direction in the resulting
         plane.
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -463,12 +477,12 @@ class YTCuttingPlane(YTSelectionContainer2D):
         self.fields = ensure_list(fields) + [k for k in self.field_data.keys()
                                              if k not in self._key_fields]
         from yt.visualization.plot_window import get_oblique_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         (bounds, center_rot) = get_oblique_window_parameters(normal, center, width, self.ds)
         pw = PWViewerMPL(
             self, bounds, fields=self.fields, origin='center-window', 
             periodic=False, oblique=True,
-            frb_generator=ObliqueFixedResolutionBuffer, 
+            frb_generator=FixedResolutionBuffer, 
             plot_type='OffAxisSlice')
         if axes_unit is not None:
             pw.set_axes_unit(axes_unit)
@@ -476,8 +490,8 @@ class YTCuttingPlane(YTSelectionContainer2D):
         return pw
 
     def to_frb(self, width, resolution, height=None, periodic=False):
-        r"""This function returns an ObliqueFixedResolutionBuffer generated
-        from this object.
+        r"""This function returns a FixedResolutionBuffer generated from this
+        object.
 
         An ObliqueFixedResolutionBuffer is an object that accepts a
         variable-resolution 2D object and transforms it into an NxM bitmap that
@@ -526,9 +540,9 @@ class YTCuttingPlane(YTSelectionContainer2D):
             height = self.ds.quan(height[0], height[1])
         if not iterable(resolution):
             resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import ObliqueFixedResolutionBuffer
+        from yt.visualization.fixed_resolution import FixedResolutionBuffer
         bounds = (-width/2.0, width/2.0, -height/2.0, height/2.0)
-        frb = ObliqueFixedResolutionBuffer(self, bounds, resolution,
+        frb = FixedResolutionBuffer(self, bounds, resolution,
                                            periodic=periodic)
         return frb
 
@@ -552,7 +566,7 @@ class YTDisk(YTSelectionContainer3D):
         bottom planes
     fields : array of fields, optional
         any fields to be pre-loaded in the cylinder object
-    ds: Dataset, optional
+    ds: ~yt.data_objects.static_output.Dataset, optional
         An optional dataset to use rather than self.ds
     field_parameters : dictionary
          A dictionary of field parameters than can be accessed by derived
@@ -785,6 +799,7 @@ class YTCutRegion(YTSelectionContainer3D):
         self.conditionals = ensure_list(conditionals)
         self.base_object = data_source
         self._selector = None
+        self._particle_mask = {}
         # Need to interpose for __getitem__, fwidth, fcoords, icoords, iwidth,
         # ires and get_data
 
@@ -807,7 +822,8 @@ class YTCutRegion(YTSelectionContainer3D):
             f = self.base_object[field]
             if f.shape != ind.shape:
                 parent = getattr(self, "parent", self.base_object)
-                self.field_data[field] = parent[field][self._part_ind]
+                self.field_data[field] = \
+                  parent[field][self._part_ind(field[0])]
             else:
                 self.field_data[field] = self.base_object[field][ind]
 
@@ -837,21 +853,22 @@ class YTCutRegion(YTSelectionContainer3D):
                 np.logical_and(res, ind, ind)
         return ind
 
-    _particle_mask = None
-    @property
-    def _part_ind(self):
-        if self._particle_mask is None:
+    def _part_ind(self, ptype):
+        if self._particle_mask.get(ptype) is None:
             parent = getattr(self, "parent", self.base_object)
             units = "code_length"
             mask = points_in_cells(
-                self["x"].to(units), self["y"].to(units),
-                self["z"].to(units), self["dx"].to(units),
-                self["dy"].to(units), self["dz"].to(units),
-                parent["particle_position_x"].to(units),
-                parent["particle_position_y"].to(units),
-                parent["particle_position_z"].to(units))
-            self._particle_mask = mask
-        return self._particle_mask
+                self[("index", "x")].to(units),
+                self[("index", "y")].to(units),
+                self[("index", "z")].to(units),
+                self[("index", "dx")].to(units),
+                self[("index", "dy")].to(units),
+                self[("index", "dz")].to(units),
+                parent[(ptype, "particle_position_x")].to(units),
+                parent[(ptype, "particle_position_y")].to(units),
+                parent[(ptype, "particle_position_z")].to(units))
+            self._particle_mask[ptype] = mask
+        return self._particle_mask[ptype]
 
     @property
     def icoords(self):
@@ -868,3 +885,75 @@ class YTCutRegion(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
+
+class YTIntersectionContainer3D(YTSelectionContainer3D):
+    """
+    This is a more efficient method of selecting the intersection of multiple
+    data selection objects.
+
+    Creating one of these objects returns the intersection of all of the
+    sub-objects; it is designed to be a faster method than chaining & ("and")
+    operations to create a single, large intersection.
+
+    Parameters
+    ----------
+    data_objects : Iterable of YTSelectionContainer3D
+        The data objects to intersect
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("RedshiftOutput0005")
+    >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.15)
+    >>> sp2 = ds.sphere((0.38, 0.51, 0.55), 0.1)
+    >>> sp3 = ds.sphere((0.35, 0.5, 0.6), 0.15)
+    >>> new_obj = ds.intersection((sp1, sp2, sp3))
+    >>> print(new_obj.sum("cell_volume"))
+    """
+    _type_name = "intersection"
+    _con_args = ("data_objects",)
+    def __init__(self, data_objects, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        # ensure_list doesn't check for tuples
+        if isinstance(data_objects, tuple):
+            data_objects = list(data_objects)
+        self.data_objects = ensure_list(data_objects)
+
+class YTDataObjectUnion(YTSelectionContainer3D):
+    """
+    This is a more efficient method of selecting the union of multiple
+    data selection objects.
+
+    Creating one of these objects returns the union of all of the sub-objects;
+    it is designed to be a faster method than chaining | (or) operations to
+    create a single, large union.
+
+    Parameters
+    ----------
+    data_objects : Iterable of YTSelectionContainer3D
+        The data objects to union
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> sp1 = ds.sphere((0.4, 0.5, 0.6), 0.1)
+    >>> sp2 = ds.sphere((0.3, 0.5, 0.15), 0.1)
+    >>> sp3 = ds.sphere((0.5, 0.5, 0.9), 0.1)
+    >>> new_obj = ds.union((sp1, sp2, sp3))
+    >>> print(new_obj.sum("cell_volume"))
+    """
+    _type_name = "union"
+    _con_args = ("data_objects",)
+    def __init__(self, data_objects, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        # ensure_list doesn't check for tuples
+        if isinstance(data_objects, tuple):
+            data_objects = list(data_objects)
+        self.data_objects = ensure_list(data_objects)

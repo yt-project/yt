@@ -13,7 +13,7 @@ Generating PPV FITS cubes
 import numpy as np
 from yt.utilities.on_demand_imports import _astropy
 from yt.utilities.orientation import Orientation
-from yt.utilities.fits_image import FITSImageData, sanitize_fits_unit
+from yt.visualization.fits_image import FITSImageData, sanitize_fits_unit
 from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 from yt.funcs import get_pbar
 from yt.utilities.physical_constants import clight, mh
@@ -172,10 +172,12 @@ class PPVCube(object):
         self.current_v = 0.0
 
         _vlos = create_vlos(normal, self.no_shifting)
-        self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s")
+        self.ds.add_field(("gas","v_los"), function=_vlos, units="cm/s",
+                          sampling_type='cell')
 
         _intensity = self._create_intensity()
-        self.ds.add_field(("gas","intensity"), function=_intensity, units=self.field_units)
+        self.ds.add_field(("gas","intensity"), function=_intensity,
+                          units=self.field_units, sampling_type='cell')
 
         if method == "integrate" and weight_field is None:
             self.proj_units = str(ds.quan(1.0, self.field_units+"*cm").units)

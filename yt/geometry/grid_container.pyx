@@ -16,7 +16,6 @@ Matching points on the grid to specific grids
 import numpy as np
 cimport numpy as np
 cimport cython
-from libc.math cimport rint
 from yt.utilities.lib.bitarray cimport bitarray
 
 @cython.boundscheck(False)
@@ -63,9 +62,9 @@ cdef class GridTree:
                   np.ndarray[np.int64_t, ndim=1] num_children):
 
         cdef int i, j, k
-        cdef np.ndarray[np.int64_t, ndim=1] child_ptr
+        cdef np.ndarray[np.int_t, ndim=1] child_ptr
 
-        child_ptr = np.zeros(num_grids, dtype='int64')
+        child_ptr = np.zeros(num_grids, dtype='int')
 
         self.num_grids = num_grids
         self.num_root_grids = 0

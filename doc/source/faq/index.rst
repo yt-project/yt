@@ -28,25 +28,16 @@ To reveal this, go to a command line and type:
     $ yt version
 
     yt module located at:
-        /Users/username/src/yt-x86_64/src/yt-hg
-    The supplemental repositories are located at:
-        /Users/username/src/yt-x86_64/src/yt-supplemental
+        /Users/username/src/yt-conda/src/yt-git
 
-    The current version and changeset for the code is:
+    The current version of yt is:
 
     ---
-    Version = 2.7-dev
-    Changeset = 6bffc737a67a
+    Version = 3.4-dev
+    Changeset = 94033fca00e5
     ---
 
     This installation CAN be automatically updated.
-    yt dependencies were last updated on
-    Wed Dec  4 15:47:40 MST 2013
-
-    To update all dependencies, run "yt update --all".
-
-If the changeset is displayed followed by a "+", it means you have made
-modifications to the code since the last changeset.
 
 For more information on this topic, see :ref:`updating-yt`.
 
@@ -76,7 +67,7 @@ you need to rebuild the source.  You can do this automatically by running:
 .. code-block:: bash
 
     cd $YT_GIT
-    python setup.py develop
+    pip install -e .
 
 where ``$YT_GIT`` is the path to the yt git repository.
 
@@ -388,10 +379,10 @@ unfamiliar, please visit :ref:`loading-data`.
 To make things easier to load these sample datasets, you can add the parent
 directory to your downloaded sample data to your *yt path*.
 If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.yt/config``, yt will search this path for them.
+in ``~/.config/yt/ytrc``, yt will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
-the appropriate item to ``~/.yt/config``, and no matter which directory you are
+the appropriate item to ``~/.config/yt/ytrc``, and no matter which directory you are
 in when running yt, it will also check in *that* directory.
 
 
@@ -437,12 +428,11 @@ if you are in an IPython notebook or running a long or parallel script. On the o
 hand, you may want it to output a lot more, since you can't figure out exactly what's going
 wrong, and you want to output some debugging information. The yt log level can be
 changed using the :ref:`configuration-file`, either by setting it in the
-``$HOME/.yt/config`` file:
+``$HOME/.config/yt/ytrc`` file:
 
 .. code-block:: bash
 
-   [yt]
-   loglevel = 10 # This sets the log level to "DEBUG"
+   $ yt config set yt loglevel 10  # This sets the log level to "DEBUG"
 
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 

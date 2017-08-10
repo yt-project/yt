@@ -20,7 +20,8 @@ from yt.testing import \
     assert_equal, \
     requires_file, \
     units_override_check, \
-    assert_array_equal
+    assert_array_equal, \
+    assert_allclose_units
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
@@ -28,7 +29,10 @@ from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     AnalyticHaloMassFunctionTest, \
     SimulatedHaloMassFunctionTest
+from yt.visualization.plot_window import \
+    SlicePlot
 from yt.frontends.enzo.api import EnzoDataset
+from yt.frontends.enzo.fields import NODAL_FLAGS
 
 _fields = ("temperature", "density", "velocity_magnitude",
            "velocity_divergence")
@@ -40,6 +44,8 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 toro1d = "ToroShockTube/DD0001/data0001"
 kh2d = "EnzoKelvinHelmholtz/DD0011/DD0011"
+mhdctot = "MHDCTOrszagTang/DD0004/data0004"
+dnz = "DeeplyNestedZoom/DD0025/data0025"
 
 def check_color_conservation(ds):
     species_names = ds.field_info.species_names
@@ -71,7 +77,7 @@ m7 = "DD0010/moving7_0010"
 @requires_ds(m7)
 def test_moving7():
     ds = data_dir_load(m7)
-    yield assert_equal, str(ds), "moving7_0010"
+    assert_equal(str(ds), "moving7_0010")
     for test in small_patch_amr(m7, _fields):
         test_moving7.__name__ = test.description
         yield test
@@ -80,7 +86,7 @@ def test_moving7():
 def test_galaxy0030():
     ds = data_dir_load(g30)
     yield check_color_conservation(ds)
-    yield assert_equal, str(ds), "galaxy0030"
+    assert_equal(str(ds), "galaxy0030")
     for test in big_patch_amr(ds, _fields):
         test_galaxy0030.__name__ = test.description
         yield test
@@ -122,18 +128,17 @@ def test_ecp():
 
 @requires_file(enzotiny)
 def test_units_override():
-    for test in units_override_check(enzotiny):
-        yield test
+    units_override_check(enzotiny)
 
 @requires_ds(ecp, big_data=True)
 def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
     ad = ds.all_data()
-    yield assert_array_equal, ad["H_nuclei_density"], \
-      (ad["H_number_density"] + ad["H_p1_number_density"])
-    yield assert_array_equal, ad["He_nuclei_density"], \
-      (ad["He_number_density"] + ad["He_p1_number_density"] +
-       ad["He_p2_number_density"])
+    assert_array_equal(ad["H_nuclei_density"],
+                       (ad["H_number_density"] + ad["H_p1_number_density"]))
+    assert_array_equal(ad["He_nuclei_density"],
+        (ad["He_number_density"] +
+         ad["He_p1_number_density"] + ad["He_p2_number_density"]))
 
 @requires_file(enzotiny)
 def test_EnzoDataset():
@@ -173,3 +178,44 @@ def test_active_particle_datasets():
 
     assert_equal(apcos.particle_type_counts,
                  {'CenOstriker': 899755, 'DarkMatter': 32768})
+
+@requires_file(mhdctot)
+def test_face_centered_mhdct_fields():
+    ds = data_dir_load(mhdctot)
+
+    ad = ds.all_data()
+    grid = ds.index.grids[0]
+
+    for field, flag in NODAL_FLAGS.items():
+        dims = ds.domain_dimensions
+        assert_equal(ad[field].shape, (dims.prod(), 2*sum(flag)))
+        assert_equal(grid[field].shape, tuple(dims) + (2*sum(flag),))
+
+    # Average of face-centered fields should be the same as cell-centered field
+    assert (ad['BxF'].sum(axis=-1)/2 == ad['Bx']).all()
+    assert (ad['ByF'].sum(axis=-1)/2 == ad['By']).all()
+    assert (ad['BzF'].sum(axis=-1)/2 == ad['Bz']).all()
+
+@requires_file(dnz)
+def test_deeply_nested_zoom():
+    ds = data_dir_load(dnz)
+
+    # carefully chosen to just barely miss a grid in the middle of the image
+    center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
+    
+    plot = SlicePlot(ds, 'z', 'density', width=(0.001, 'pc'),
+                     center=center)
+
+    image = plot.frb['density']
+
+    assert (image > 0).all()
+
+    v, c = ds.find_max('density')
+
+    assert_allclose_units(v, ds.quan(0.005879315652144976, 'g/cm**3'))
+
+    c_actual = [0.49150732540021, 0.505260532936791, 0.49058055816398]
+    c_actual = ds.arr(c_actual, 'code_length')
+    assert_allclose_units(c, c_actual)
+
+    assert_equal(max([g['density'].max() for g in ds.index.grids]), v)

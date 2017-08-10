@@ -40,8 +40,8 @@ def write_to_gdf(ds, gdf_path, fields=None,
         The yt data to write out.
     gdf_path : string
         The path of the file to output.
-    fields : field or list of fields
-        The fields(s) to write out. If None, defaults to 
+    fields
+        The field or list of fields to write out. If None, defaults to
         ds.field_list.
     data_author : string, optional
         The name of the author who wrote the data. Default: None.
@@ -50,11 +50,13 @@ def write_to_gdf(ds, gdf_path, fields=None,
     dataset_units : dictionary, optional
         A dictionary of (value, unit) tuples to set the default units
         of the dataset. Keys can be:
-            "length_unit"
-            "time_unit"
-            "mass_unit"
-            "velocity_unit"
-            "magnetic_unit"
+
+        * "length_unit"
+        * "time_unit"
+        * "mass_unit"
+        * "velocity_unit"
+        * "magnetic_unit"
+
         If not specified, these will carry over from the parent
         dataset.
     particle_type_name : string, optional

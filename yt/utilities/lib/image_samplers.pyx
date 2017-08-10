@@ -51,7 +51,6 @@ cdef struct VolumeRenderAccumulator:
     np.float64_t star_coeff
     np.float64_t star_er
     np.float64_t star_sigma_num
-    kdtree_utils.kdtree *star_list
     np.float64_t *light_dir
     np.float64_t *light_rgba
     int grey_opacity
@@ -68,16 +67,11 @@ cdef class ImageSampler:
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   *args, **kwargs):
-        self.image = <ImageContainer *> calloc(sizeof(ImageContainer), 1)
-        cdef np.float64_t[:,:] zbuffer
-        cdef np.int64_t[:,:] image_used
-        cdef np.int64_t[:,:] mesh_lines
-        cdef np.float64_t[:,:] camera_data
         cdef int i
 
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:
-            self.image.camera_data = camera_data
+            self.camera_data = camera_data
 
         zbuffer = kwargs.pop("zbuffer", None)
         if zbuffer is None:
@@ -110,23 +104,26 @@ cdef class ImageSampler:
         # de-allocation from reference counts.  Note that we do this to the
         # "atleast_3d" versions.  Also, note that we re-assign the input
         # arguments.
-        self.image.vp_pos = vp_pos
-        self.image.vp_dir = vp_dir
-        self.image.image = self.aimage = image
+        self.vp_pos = vp_pos
+        self.vp_dir = vp_dir
+        self.image = self.aimage = image
         self.acenter = center
-        self.image.center = <np.float64_t *> center.data
+        self.center = <np.float64_t *> center.data
         self.ax_vec = x_vec
-        self.image.x_vec = <np.float64_t *> x_vec.data
+        self.x_vec = <np.float64_t *> x_vec.data
         self.ay_vec = y_vec
-        self.image.y_vec = <np.float64_t *> y_vec.data
-        self.image.zbuffer = self.azbuffer = zbuffer
-        self.image.image_used = self.aimage_used = image_used
-        self.image.mesh_lines = self.amesh_lines = mesh_lines
-        self.image.nv[0] = image.shape[0]
-        self.image.nv[1] = image.shape[1]
-        for i in range(4): self.image.bounds[i] = bounds[i]
-        self.image.pdx = (bounds[1] - bounds[0])/self.image.nv[0]
-        self.image.pdy = (bounds[3] - bounds[2])/self.image.nv[1]
+        self.y_vec = <np.float64_t *> y_vec.data
+        self.zbuffer = zbuffer
+        self.azbuffer = np.asarray(zbuffer)
+        self.image_used = image_used
+        self.aimage_used = np.asarray(image_used)
+        self.mesh_lines = mesh_lines
+        self.amesh_lines = np.asarray(mesh_lines)
+        self.nv[0] = image.shape[0]
+        self.nv[1] = image.shape[1]
+        for i in range(4): self.bounds[i] = bounds[i]
+        self.pdx = (bounds[1] - bounds[0])/self.nv[0]
+        self.pdy = (bounds[3] - bounds[2])/self.nv[1]
         for i in range(3):
             self.width[i] = width[i]
 
@@ -140,18 +137,17 @@ cdef class ImageSampler:
         cdef int vi, vj, hit, i, j
         cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
-        cdef ImageContainer *im = self.image
         self.setup(pg)
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
-        self.extent_function(self.image, vc, iter)
-        iter[0] = i64clip(iter[0]-1, 0, im.nv[0])
-        iter[1] = i64clip(iter[1]+1, 0, im.nv[0])
-        iter[2] = i64clip(iter[2]-1, 0, im.nv[1])
-        iter[3] = i64clip(iter[3]+1, 0, im.nv[1])
+        self.extent_function(self, vc, iter)
+        iter[0] = i64clip(iter[0]-1, 0, self.nv[0])
+        iter[1] = i64clip(iter[1]+1, 0, self.nv[0])
+        iter[2] = i64clip(iter[2]-1, 0, self.nv[1])
+        iter[3] = i64clip(iter[3]+1, 0, self.nv[1])
         nx = (iter[1] - iter[0])
         ny = (iter[3] - iter[2])
         size = nx * ny
@@ -170,17 +166,18 @@ cdef class ImageSampler:
                 vi = (j - vj) / ny + iter[0]
                 vj = vj + iter[2]
                 # Dynamically calculate the position
-                self.vector_function(im, vi, vj, width, v_dir, v_pos)
+                self.vector_function(self, vi, vj, width, v_dir, v_pos)
                 for i in range(Nch):
-                    idata.rgba[i] = im.image[vi, vj, i]
-                max_t = fclip(im.zbuffer[vi, vj], 0.0, 1.0)
+                    idata.rgba[i] = self.image[vi, vj, i]
+                max_t = fclip(self.zbuffer[vi, vj], 0.0, 1.0)
                 walk_volume(vc, v_pos, v_dir, self.sample,
                             (<void *> idata), NULL, max_t)
                 if (j % (10*chunksize)) == 0:
                     with gil:
                         PyErr_CheckSignals()
                 for i in range(Nch):
-                    im.image[vi, vj, i] = idata.rgba[i]
+                    self.image[vi, vj, i] = idata.rgba[i]
+            idata.supp_data = NULL
             free(idata)
             free(v_pos)
             free(v_dir)
@@ -210,15 +207,6 @@ cdef class ImageSampler:
             params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
 
         return params
-
-    def __dealloc__(self):
-        self.image.image = None
-        self.image.vp_pos = None
-        self.image.vp_dir = None
-        self.image.zbuffer = None
-        self.image.camera_data = None
-        self.image.image_used = None
-        free(self.image)
 
 cdef class ProjectionSampler(ImageSampler):
 
@@ -306,7 +294,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
                   tf_obj, n_samples = 10,
-                  star_list = None, **kwargs):
+                  **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width, **kwargs)
         cdef int i
@@ -412,7 +400,9 @@ cdef class LightSourceRenderSampler(ImageSampler):
         self.vra.n_samples = n_samples
         self.vra.light_dir = <np.float64_t *> malloc(sizeof(np.float64_t) * 3)
         self.vra.light_rgba = <np.float64_t *> malloc(sizeof(np.float64_t) * 4)
-        light_dir /= np.sqrt(light_dir[0]**2 + light_dir[1]**2 + light_dir[2]**2)
+        light_dir /= np.sqrt(light_dir[0] * light_dir[0] +
+                             light_dir[1] * light_dir[1] +
+                             light_dir[2] * light_dir[2])
         for i in range(3):
             self.vra.light_dir[i] = light_dir[i]
         for i in range(4):

@@ -20,6 +20,7 @@ import numpy as np
 import os
 import time
 import weakref
+import warnings
 
 from collections import defaultdict
 from yt.extern.six import add_metaclass, string_types
@@ -36,7 +37,8 @@ from yt.utilities.cosmology import \
 from yt.utilities.exceptions import \
     YTObjectNotImplemented, \
     YTFieldNotFound, \
-    YTGeometryNotSupported
+    YTGeometryNotSupported, \
+    YTIllDefinedParticleFilter
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.parameter_file_storage import \
@@ -44,7 +46,8 @@ from yt.utilities.parameter_file_storage import \
     NoParameterShelf, \
     output_type_registry
 from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, unit_system_registry
+from yt.units.unit_object import Unit, unit_system_registry, \
+    _define_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.fields.derived_field import \
     ValidateSpatial
@@ -105,8 +108,32 @@ class FieldTypeContainer(object):
             return self.__getattribute__(attr)
         return fnc
 
+    _field_types = None
+    @property
+    def field_types(self):
+        if self._field_types is None:
+            self._field_types = set(t for t, n in self.ds.field_info)
+        return self._field_types
+
     def __dir__(self):
-        return list(set(t for t, n in self.ds.field_info))
+        return list(self.field_types)
+
+    def __iter__(self):
+        for ft in self.field_types:
+            fnc = FieldNameContainer(self.ds, ft)
+            if len(dir(fnc)) == 0:
+                yield self.__getattribute__(ft)
+            else:
+                yield fnc
+
+    def __contains__(self, obj):
+        ob = None
+        if isinstance(obj, FieldNameContainer):
+            ob = obj.field_type
+        elif isinstance(obj, string_types):
+            ob = obj
+
+        return ob in self.field_types
 
 class FieldNameContainer(object):
     def __init__(self, ds, field_type):
@@ -123,6 +150,26 @@ class FieldNameContainer(object):
     def __dir__(self):
         return [n for t, n in self.ds.field_info
                 if t == self.field_type]
+
+    def __iter__(self):
+        for t, n in self.ds.field_info:
+            if t == self.field_type:
+                yield self.ds.field_info[t, n]
+
+    def __contains__(self, obj):
+        if isinstance(obj, DerivedField):
+            if self.field_type == obj.name[0] and obj.name in self.ds.field_info:
+                # e.g. from a completely different dataset
+                if self.ds.field_info[obj.name] is not obj:
+                    return False
+                return True
+        elif isinstance(obj, tuple):
+            if self.field_type == obj[0] and obj in self.ds.field_info:
+                return True
+        elif isinstance(obj, string_types):
+            if (self.field_type, obj) in self.ds.field_info:
+                return True
+        return False
 
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
@@ -148,6 +195,8 @@ class MutableAttribute(object):
         self.data = weakref.WeakKeyDictionary()
 
     def __get__(self, instance, owner):
+        if not instance:
+            return None
         ret = self.data.get(instance, None)
         try:
             ret = ret.copy()
@@ -182,7 +231,6 @@ class Dataset(object):
     particle_types_raw = ("io",)
     geometry = "cartesian"
     coordinates = None
-    max_level = 99
     storage_filename = None
     particle_unions = None
     known_filters = None
@@ -214,7 +262,7 @@ class Dataset(object):
             obj = _cached_datasets[apath]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None, 
+    def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs"):
         """
         Base class for generating new output types.  Principally consists of
@@ -255,16 +303,9 @@ class Dataset(object):
 
         self._create_unit_registry()
 
-        create_code_unit_system(self)
-        if unit_system == "code":
-            unit_system = str(self)
-        else:
-            unit_system = str(unit_system).lower()
-
-        self.unit_system = unit_system_registry[unit_system]
-
         self._parse_parameter_file()
         self.set_units()
+        self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
 
         # Because we need an instantiated class to check the ds's existence in
@@ -291,8 +332,9 @@ class Dataset(object):
         for attr in ("center", "width", "left_edge", "right_edge"):
             n = "domain_%s" % attr
             v = getattr(self, n)
-            v = self.arr(v, "code_length")
-            setattr(self, n, v)
+            if not isinstance(v, YTArray):
+                v = self.arr(v, "code_length")
+                setattr(self, n, v)
 
     def __reduce__(self):
         args = (self._hash(),)
@@ -309,6 +351,49 @@ class Dataset(object):
             return hashlib.md5(s.encode('utf-8')).hexdigest()
         except ImportError:
             return s.replace(";", "*")
+   
+    _checksum = None
+    @property
+    def checksum(self):
+        '''
+        Computes md5 sum of a dataset.
+
+        Note: Currently this property is unable to determine a complete set of
+        files that are a part of a given dataset. As a first approximation, the
+        checksum of :py:attr:`~parameter_file` is calculated. In case
+        :py:attr:`~parameter_file` is a directory, checksum of all files inside
+        the directory is calculated.
+        '''
+        if self._checksum is None:
+            try:
+                import hashlib
+            except ImportError:
+                self._checksum = 'nohashlib'
+                return self._checksum
+
+            def generate_file_md5(m, filename, blocksize=2**20):
+                with open(filename , "rb") as f:
+                    while True:
+                        buf = f.read(blocksize)
+                        if not buf:
+                            break
+                        m.update(buf)
+
+            m = hashlib.md5()
+            if os.path.isdir(self.parameter_filename):
+                for root, _, files in os.walk(self.parameter_filename):
+                    for fname in files:
+                        fname = os.path.join(root, fname)
+                        generate_file_md5(m, fname)
+            elif os.path.isfile(self.parameter_filename):
+                generate_file_md5(m, self.parameter_filename)
+            else:
+                m = 'notafile'
+
+            if hasattr(m, 'hexdigest'):
+                m = m.hexdigest()
+            self._checksum = m
+        return self._checksum
 
     domain_left_edge = MutableAttribute()
     domain_right_edge = MutableAttribute()
@@ -338,7 +423,7 @@ class Dataset(object):
         in that directory, and a list of subdirectories.  It should return a
         list of filenames (defined relative to the supplied directory) and a
         boolean as to whether or not further directories should be recursed.
-        
+
         This function doesn't need to catch all possibilities, nor does it need
         to filter possibilities.
         """
@@ -483,6 +568,7 @@ class Dataset(object):
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
         self.index.field_list = sorted(self.field_list)
+        self._last_freq = (None, None)
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
@@ -590,7 +676,8 @@ class Dataset(object):
 
     def _setup_filtered_type(self, filter):
         if not filter.available(self.derived_field_list):
-            return False
+            raise YTIllDefinedParticleFilter(
+                filter, filter.missing(self.derived_field_list))
         fi = self.field_info
         fd = self.field_dependencies
         available = False
@@ -678,7 +765,7 @@ class Dataset(object):
             cname = cls.__name__
             if cname.endswith("Base"): cname = cname[:-4]
             self._add_object_class(name, cls)
-        if self.refine_by != 2 and hasattr(self, 'proj') and \
+        if not np.all(self.refine_by == 2) and hasattr(self, 'proj') and \
             hasattr(self, 'overlap_proj'):
             mylog.warning("Refine by something other than two: reverting to"
                         + " overlap_proj")
@@ -835,6 +922,29 @@ class Dataset(object):
     def relative_refinement(self, l0, l1):
         return self.refine_by**(l1-l0)
 
+    def _assign_unit_system(self, unit_system):
+        current_mks_unit = None
+        magnetic_unit = getattr(self, 'magnetic_unit', None)
+        if magnetic_unit is not None:
+            # if the magnetic unit is in T, we need to create the code unit
+            # system as an MKS-like system
+            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
+                if unit_system == "code":
+                    current_mks_unit = 'A'
+                elif unit_system == 'mks':
+                    pass
+                else:
+                    self.magnetic_unit = \
+                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
+            self.unit_registry.modify("code_magnetic", self.magnetic_unit)
+        create_code_unit_system(self.unit_registry, 
+                                current_mks_unit=current_mks_unit)
+        if unit_system == "code":
+            unit_system = self.unit_registry.unit_system_id
+        else:
+            unit_system = str(unit_system).lower()
+        self.unit_system = unit_system_registry[unit_system]
+
     def _create_unit_registry(self):
         self.unit_registry = UnitRegistry()
         import yt.units.dimensions as dimensions
@@ -871,10 +981,18 @@ class Dataset(object):
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, add a cosmology object
+
+            # Set dynamical dark energy parameters
+            use_dark_factor = getattr(self, 'use_dark_factor', False)
+            w_0 = getattr(self, 'w_0', -1.0)
+            w_a = getattr(self, 'w_a', 0.0)
+
             self.cosmology = \
                     Cosmology(hubble_constant=self.hubble_constant,
                               omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda)
+                              omega_lambda=self.omega_lambda,
+                              use_dark_factor = use_dark_factor,
+                              w_0 = w_0, w_a = w_a)
             self.critical_density = \
                     self.cosmology.critical_density(self.current_redshift)
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
@@ -903,21 +1021,6 @@ class Dataset(object):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        if hasattr(self, 'magnetic_unit'):
-            # if the magnetic unit is in T, we need to recreate the code unit
-            # system as an MKS-like system
-            if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-
-                if self.unit_system == unit_system_registry[str(self)]:
-                    unit_system_registry.pop(str(self))
-                    create_code_unit_system(self, current_mks_unit='A')
-                    self.unit_system = unit_system_registry[str(self)]
-                elif str(self.unit_system) == 'mks':
-                    pass
-                else:
-                    self.magnetic_unit = \
-                        self.magnetic_unit.to_equivalent('gauss', 'CGS')
-            self.unit_registry.modify("code_magnetic", self.magnetic_unit)
         vel_unit = getattr(
             self, "velocity_unit", self.length_unit / self.time_unit)
         pressure_unit = getattr(
@@ -940,11 +1043,10 @@ class Dataset(object):
         if len(self.units_override) == 0:
             return
         mylog.warning(
-            "Overriding code units. This is an experimental and potentially "
-            "dangerous option that may yield inconsistent results, and must be "
-            "used very carefully, and only if you know what you want from it.")
+            "Overriding code units: Use this option only if you know that the "
+            "dataset doesn't define the units correctly or at all.")
         for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
-                          ("velocity","cm/s"), ("magnetic","gauss"), 
+                          ("velocity","cm/s"), ("magnetic","gauss"),
                           ("temperature","K")]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
@@ -966,7 +1068,7 @@ class Dataset(object):
         Parameters
         ----------
 
-        input_array : iterable
+        input_array : Iterable
             A tuple, list, or array to attach units to
         input_units : String unit specification, unit symbol or astropy object
             The units of the array. Powers must be specified using python syntax
@@ -1047,7 +1149,7 @@ class Dataset(object):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function=None, **kwargs):
+    def add_field(self, name, function=None, sampling_type=None, **kwargs):
         """
         Dataset-specific call to add_field
 
@@ -1077,15 +1179,32 @@ class Dataset(object):
            Describes the dimensionality of the field.  Currently unused.
         display_name : str
            A name used in the plots
+        force_override : bool
+           Whether to override an existing derived field. Does not work with
+           on-disk fields.
 
         """
         self.index
         override = kwargs.get("force_override", False)
+        if override and name in self.index.field_list:
+            raise RuntimeError("force_override is only meant to be used with "
+                               "derived fields, not on-disk fields.")
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
             mylog.warning("Field %s already exists. To override use " +
                           "force_override=True.", name)
-        self.field_info.add_field(name, function=function, **kwargs)
+        if kwargs.setdefault('particle_type', False):
+            if sampling_type is not None and sampling_type != "particle":
+                raise RuntimeError("Clashing definition of 'sampling_type' and "
+                               "'particle_type'. Note that 'particle_type' is "
+                               "deprecated. Please just use 'sampling_type'.")
+            else:
+                sampling_type = "particle"
+        if sampling_type is None:
+            warnings.warn("Because 'sampling_type' not specified, yt will "
+                          "assume a cell 'sampling_type'", stacklevel=2)
+            sampling_type = "cell"
+        self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
@@ -1162,13 +1281,15 @@ class Dataset(object):
         self.add_field(
             ("deposit", field_name),
             function=_deposit_field,
+            sampling_type="cell",
             units=units,
             take_log=take_log,
             validators=[ValidateSpatial()])
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(self, smooth_field, method="volume_weighted",
-                                    nneighbors=64, kernel_name="cubic"):
+    def add_smoothed_particle_field(self, smooth_field,
+                                    method="volume_weighted", nneighbors=64,
+                                    kernel_name="cubic"):
         """Add a new smoothed particle field
 
         Creates a new smoothed field based on the particle *smooth_field*.
@@ -1185,7 +1306,7 @@ class Dataset(object):
            for now.
         nneighbors : int, default 64
             The number of neighbors to examine during the process.
-        kernel_name : string, default 'cubic'
+        kernel_name : string, default `cubic`
             This is the name of the smoothing kernel to use. Current supported
             kernel names include `cubic`, `quartic`, `quintic`, `wendland2`,
             `wendland4`, and `wendland6`.
@@ -1195,7 +1316,10 @@ class Dataset(object):
 
         The field name tuple for the newly created field.
         """
+        # The magical step
         self.index
+
+        # Parse arguments
         if isinstance(smooth_field, tuple):
             ptype, smooth_field = smooth_field[0], smooth_field[1]
         else:
@@ -1204,6 +1328,7 @@ class Dataset(object):
         if method != "volume_weighted":
             raise NotImplementedError("method must be 'volume_weighted'")
 
+        # Prepare field names and registry to be used later
         coord_name = "particle_position"
         mass_name = "particle_mass"
         smoothing_length_name = "smoothing_length"
@@ -1213,6 +1338,7 @@ class Dataset(object):
         density_name = "density"
         registry = self.field_info
 
+        # Do the actual work
         return add_volume_weighted_smoothed_field(ptype, coord_name, mass_name,
                    smoothing_length_name, density_name, smooth_field, registry,
                    nneighbors=nneighbors, kernel_name=kernel_name)[0]
@@ -1261,6 +1387,46 @@ class Dataset(object):
         self.field_dependencies.update(deps)
         return grad_fields
 
+    _max_level = None
+    @property
+    def max_level(self):
+        if self._max_level is None:
+            self._max_level = self.index.max_level
+
+        return self._max_level
+
+    @max_level.setter
+    def max_level(self, value):
+        self._max_level = value
+
+    def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):
+        """
+        Define a new unit and add it to the dataset's unit registry.
+
+        Parameters
+        ----------
+        symbol : string
+            The symbol for the new unit.
+        value : tuple or ~yt.units.yt_array.YTQuantity
+            The definition of the new unit in terms of some other units. For example,
+            one would define a new "mph" unit with (1.0, "mile/hr") 
+        tex_repr : string, optional
+            The LaTeX representation of the new unit. If one is not supplied, it will
+            be generated automatically based on the symbol string.
+        offset : float, optional
+            The default offset for the unit. If not set, an offset of 0 is assumed.
+        prefixable : bool, optional
+            Whether or not the new unit can use SI prefixes. Default: False
+
+        Examples
+        --------
+        >>> ds.define_unit("mph", (1.0, "mile/hr"))
+        >>> two_weeks = YTQuantity(14.0, "days")
+        >>> ds.define_unit("fortnight", two_weeks)
+        """
+        _define_unit(self.unit_registry, symbol, value, tex_repr=tex_repr, 
+                     offset=offset, prefixable=prefixable)
+
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
     ds = datasets.get_ds_hash(*args)
@@ -1285,3 +1451,17 @@ class ParticleFile(object):
 
     def __lt__(self, other):
         return self.filename < other.filename
+
+
+class ParticleDataset(Dataset):
+    _unit_base = None
+    filter_bbox = False
+
+    def __init__(self, filename, dataset_type=None, file_style=None,
+                 units_override=None, unit_system="cgs",
+                 n_ref=64, over_refine_factor=1):
+        self.n_ref = n_ref
+        self.over_refine_factor = over_refine_factor
+        super(ParticleDataset, self).__init__(
+            filename, dataset_type=dataset_type, file_style=file_style,
+            units_override=units_override, unit_system=unit_system)

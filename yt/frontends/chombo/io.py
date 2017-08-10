@@ -15,8 +15,10 @@ The data-file handling functions
 
 import re
 import numpy as np
-from yt.utilities.logger import ytLogger as mylog
-
+from yt.geometry.selection_routines import \
+    GridSelector
+from yt.utilities.logger import \
+    ytLogger as mylog
 from yt.utilities.io_handler import \
     BaseIOHandler
 
@@ -116,7 +118,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         rv = {}
         chunks = list(chunks)
         fields.sort(key=lambda a: self.field_dict[a[1]])
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]
@@ -149,7 +151,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         rv = {}
         chunks = list(chunks)
 
-        if selector.__class__.__name__ == "GridSelector":
+        if isinstance(selector, GridSelector):
 
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
@@ -199,11 +201,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
 def parse_orion_sinks(fn):
     '''
-
     Orion sink particles are stored in text files. This function
     is for figuring what particle fields are present based on the
-    number of entries per line in the *.sink file.
-
+    number of entries per line in the \*.sink file.
     '''
 
     # Figure out the format of the particle file

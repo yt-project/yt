@@ -21,12 +21,14 @@ from yt.frontends.ytdata.utilities import \
 from yt.funcs import \
     get_output_filename, \
     ensure_list, \
-    iterable
+    iterable, \
+    issue_deprecation_warning, \
+    mylog
 from yt.units.yt_array import \
     array_like_field, \
     YTQuantity
 from yt.units.unit_object import Unit
-from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.field_data import YTFieldData
 from yt.utilities.exceptions import \
     YTIllDefinedProfile
 from yt.utilities.lib.misc_utilities import \
@@ -91,11 +93,21 @@ class ProfileND(ParallelAnalysisInterface):
         self.field_info = {}
         self.field_data = YTFieldData()
         if weight_field is not None:
-            self.variance = YTFieldData()
+            self.standard_deviation = YTFieldData()
             weight_field = self.data_source._determine_fields(weight_field)[0]
+        else:
+            self.standard_deviation = None
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
+
+    @property
+    def variance(self):
+        issue_deprecation_warning("""
+profile.variance incorrectly returns the profile standard deviation and has 
+been deprecated, use profile.standard_deviation instead."""
+        )
+        return self.standard_deviation
 
     def add_fields(self, fields):
         """Add fields to profile
@@ -153,13 +165,13 @@ class ProfileND(ParallelAnalysisInterface):
 
         all_val = np.zeros_like(temp_storage.values)
         all_mean = np.zeros_like(temp_storage.mvalues)
-        all_var = np.zeros_like(temp_storage.qvalues)
+        all_std = np.zeros_like(temp_storage.qvalues)
         all_weight = np.zeros_like(temp_storage.weight_values)
         all_used = np.zeros_like(temp_storage.used, dtype="bool")
 
-        # Combine the weighted mean and variance from each processor.
-        # For two samples with total weight, mean, and variance 
-        # given by w, m, and s, their combined mean and variance are:
+        # Combine the weighted mean and standard deviation from each processor.
+        # For two samples with total weight, mean, and standard deviation 
+        # given by w, m, and s, their combined mean and standard deviation are:
         # m12 = (m1 * w1 + m2 * w2) / (w1 + w2)
         # s12 = (m1 * (s1**2 + (m1 - m12)**2) + 
         #        m2 * (s2**2 + (m2 - m12)**2)) / (w1 + w2)
@@ -180,8 +192,8 @@ class ProfileND(ParallelAnalysisInterface):
                    all_store[p].weight_values)[all_store[p].used] / \
                    all_weight[all_store[p].used]
 
-                all_var[..., i][all_store[p].used] = \
-                  (old_weight * (all_var[..., i] +
+                all_std[..., i][all_store[p].used] = \
+                  (old_weight * (all_std[..., i] +
                                  (old_mean[..., i] - all_mean[..., i])**2) +
                    all_store[p].weight_values *
                    (all_store[p].qvalues[..., i] + 
@@ -189,7 +201,7 @@ class ProfileND(ParallelAnalysisInterface):
                      all_mean[..., i])**2))[all_store[p].used] / \
                     all_weight[all_store[p].used]
 
-        all_var = np.sqrt(all_var)
+        all_std = np.sqrt(all_std)
         del all_store
         self.used = all_used
         blank = ~all_used
@@ -206,10 +218,10 @@ class ProfileND(ParallelAnalysisInterface):
                 self.field_data[field] = \
                   array_like_field(self.data_source, 
                                    all_mean[...,i], field)
-                self.variance[field] = \
+                self.standard_deviation[field] = \
                   array_like_field(self.data_source,
-                                   all_var[...,i], field)
-                self.variance[field][blank] = 0.0
+                                   all_std[...,i], field)
+                self.standard_deviation[field][blank] = 0.0
             self.field_data[field][blank] = 0.0
             self.field_units[field] = self.field_data[field].units
             if isinstance(field, tuple):
@@ -245,7 +257,7 @@ class ProfileND(ParallelAnalysisInterface):
             units = chunk.ds.field_info[self.weight_field].output_units
             weight_data = chunk[self.weight_field].in_units(units)
         else:
-            weight_data = np.ones(filter.size, dtype="float64")
+            weight_data = np.ones(filter.shape, dtype="float64")
         weight_data = weight_data[filter]
         # So that we can pass these into
         return arr, weight_data, bin_fields
@@ -335,7 +347,8 @@ class ProfileND(ParallelAnalysisInterface):
         extra_attrs = {"data_type": "yt_profile",
                        "profile_dimensions": self.size,
                        "weight_field": self.weight_field,
-                       "fractional": self.fractional}
+                       "fractional": self.fractional,
+                       "accumulation": self.accumulation}
         data = {}
         data.update(self.field_data)
         data["weight"] = self.weight
@@ -374,6 +387,7 @@ class ProfileNDFromDataset(ProfileND):
     def __init__(self, ds):
         ProfileND.__init__(self, ds.data, ds.parameters["weight_field"])
         self.fractional = ds.parameters["fractional"]
+        self.accumulation = ds.parameters["accumulation"]
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[:ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
@@ -462,6 +476,14 @@ class Profile1D(ProfileND):
     @property
     def bounds(self):
         return ((self.x_bins[0], self.x_bins[-1]),)
+
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.ProfilePlot
+        with the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import ProfilePlot
+        return ProfilePlot.from_profiles(self)
 
 class Profile1DFromDataset(ProfileNDFromDataset, Profile1D):
     """
@@ -582,6 +604,14 @@ class Profile2D(ProfileND):
         return ((self.x_bins[0], self.x_bins[-1]),
                 (self.y_bins[0], self.y_bins[-1]))
 
+    def plot(self):
+        r"""
+        This returns a :class:~yt.visualization.profile_plotter.PhasePlot with
+        the fields that have been added to this object.
+        """
+        from yt.visualization.profile_plotter import PhasePlot
+        return PhasePlot.from_profile(self)
+
 class Profile2DFromDataset(ProfileNDFromDataset, Profile2D):
     """
     A 2D profile object loaded from a ytdata dataset.
@@ -634,32 +664,30 @@ class ParticleProfile(Profile2D):
     fractional = False
 
     def __init__(self, data_source,
-                 x_field, x_n, x_min, x_max,
-                 y_field, y_n, y_min, y_max,
+                 x_field, x_n, x_min, x_max, x_log,
+                 y_field, y_n, y_min, y_max, y_log,
                  weight_field=None, deposition="ngp"):
 
         x_field = data_source._determine_fields(x_field)[0]
         y_field = data_source._determine_fields(y_field)[0]
 
+        if deposition not in ['ngp', 'cic']:
+            raise NotImplementedError(deposition)
+        elif (x_log or y_log) and deposition != 'ngp':
+            mylog.warning('cic deposition is only supported for linear axis '
+                          'scales, falling back to ngp deposition')
+            deposition = 'ngp'
+
+        self.deposition = deposition
+
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
         super(ParticleProfile, self).__init__(data_source,
                                               x_field,
-                                              x_n, x_min, x_max, False,
+                                              x_n, x_min, x_max, x_log,
                                               y_field,
-                                              y_n, y_min, y_max, False,
+                                              y_n, y_min, y_max, y_log,
                                               weight_field=weight_field)
-
-        self.LeftEdge = [self.x_bins[0], self.y_bins[0]]
-        self.dx = (self.x_bins[-1] - self.x_bins[0]) / x_n
-        self.dy = (self.y_bins[-1] - self.y_bins[0]) / y_n
-        self.CellSize = [self.dx, self.dy]
-        self.CellVolume = np.product(self.CellSize)
-        self.GridDimensions = np.array([x_n, y_n], dtype=np.int32)
-        self.known_styles = ["ngp", "cic"]
-        if deposition not in self.known_styles:
-            raise NotImplementedError(deposition)
-        self.deposition = deposition
 
     # Either stick the particle field in the nearest bin,
     # or spread it out using the 2D CIC deposition function
@@ -669,42 +697,31 @@ class ParticleProfile(Profile2D):
         fdata, wdata, (bf_x, bf_y) = rv
         # make sure everything has the same units before deposition.
         # the units will be scaled to the correct values later.
-        LE = np.array([self.LeftEdge[0].in_units(bf_x.units),
-                       self.LeftEdge[1].in_units(bf_y.units)])
-        cell_size = np.array([self.CellSize[0].in_units(bf_x.units),
-                              self.CellSize[1].in_units(bf_y.units)])
+
+        if self.deposition == "ngp":
+            func = NGPDeposit_2
+        elif self.deposition == "cic":
+            func = CICDeposit_2
+
         for fi, field in enumerate(fields):
-            Np = fdata[:, fi].size
-
-            if self.deposition == "ngp":
-                func = NGPDeposit_2
-            elif self.deposition == 'cic':
-                func = CICDeposit_2
-
             if self.weight_field is None:
                 deposit_vals = fdata[:, fi]
             else:
                 deposit_vals = wdata*fdata[:, fi]
 
-            func(bf_x, bf_y, deposit_vals, Np,
-                 storage.values[:, :, fi],
-                 LE,
-                 self.GridDimensions,
-                 cell_size)
+            func(bf_x, bf_y, deposit_vals, fdata[:, fi].size,
+                 storage.values[:, :, fi], self.x_bins, self.y_bins)
 
-            locs = storage.values[:, :, fi] > 0.0
+            locs = storage.values[:, :, fi] != 0.0
             storage.used[locs] = True
 
             if self.weight_field is not None:
-                func(bf_x, bf_y, wdata, Np,
-                     storage.weight_values,
-                     LE,
-                     self.GridDimensions,
-                     cell_size)
+                func(bf_x, bf_y, wdata, fdata[:, fi].size,
+                     storage.weight_values, self.x_bins, self.y_bins)
             else:
                 storage.weight_values[locs] = 1.0
-            storage.mvalues[locs, fi] = storage.values[locs, fi] \
-                                        / storage.weight_values[locs]
+            storage.mvalues[locs, fi] = \
+                storage.values[locs, fi] / storage.weight_values[locs]
         # We've binned it!
 
 
@@ -923,10 +940,12 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         to n.  If the profile is 2D or 3D, a list of values can be given to
         control the summation in each dimension independently.
         Default: False.
-    fractional : If True the profile values are divided by the sum of all
+    fractional : bool
+        If True the profile values are divided by the sum of all
         the profile data such that the profile represents a probability
         distribution function.
-    deposition : Controls the type of deposition used for ParticlePhasePlots.
+    deposition : strings
+        Controls the type of deposition used for ParticlePhasePlots.
         Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
         ignored the if the input fields are not of particle type.
 
@@ -938,7 +957,7 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
     data from profile[<field_name>].
 
     >>> ds = load("DD0046/DD0046")
-    >>> ad = ds.h.all_data()
+    >>> ad = ds.all_data()
     >>> profile = create_profile(ad, [("gas", "density")],
     ...                              [("gas", "temperature"),
     ...                               ("gas", "velocity_x")])
@@ -956,18 +975,36 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         is_pfield.append(wf.particle_type)
         wf = wf.name
 
+    if len(bin_fields) > 1 and isinstance(accumulation, bool):
+        accumulation = [accumulation for _ in range(len(bin_fields))]
+
+    bin_fields = data_source._determine_fields(bin_fields)
+    fields = data_source._determine_fields(fields)
+    units = sanitize_field_tuple_keys(units, data_source)
+    extrema = sanitize_field_tuple_keys(extrema, data_source)
+    logs = sanitize_field_tuple_keys(logs, data_source)
+
     if any(is_pfield) and not all(is_pfield):
         raise YTIllDefinedProfile(
             bin_fields, data_source._determine_fields(fields), wf, is_pfield)
     elif len(bin_fields) == 1:
         cls = Profile1D
     elif len(bin_fields) == 2 and all(is_pfield):
-        # log bin_fields set to False for Particle Profiles.
-        # doesn't make much sense for CIC deposition.
-        # accumulation and fractional set to False as well.
-        logs = {bin_fields[0]: False, bin_fields[1]: False}
-        accumulation = False
-        fractional = False
+        if deposition == 'cic':
+            if logs is not None:
+                if ((bin_fields[0] in logs and logs[bin_fields[0]]) or
+                    (bin_fields[1] in logs and logs[bin_fields[1]])):
+                    raise RuntimeError(
+                        "CIC deposition is only implemented for linear-scaled "
+                        "axes")
+            else:
+                logs = {bin_fields[0]: False, bin_fields[1]: False}
+            if any(accumulation) or fractional:
+                raise RuntimeError(
+                    'The accumulation and fractional keyword arguments must be '
+                    'False for CIC deposition')
+        elif logs is None:
+            logs = {bin_fields[0]: False, bin_fields[1]: False}
         cls = ParticleProfile
     elif len(bin_fields) == 2:
         cls = Profile2D
@@ -975,11 +1012,6 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
         cls = Profile3D
     else:
         raise NotImplementedError
-    bin_fields = data_source._determine_fields(bin_fields)
-    fields = data_source._determine_fields(fields)
-    units = sanitize_field_tuple_keys(units, data_source)
-    extrema = sanitize_field_tuple_keys(extrema, data_source)
-    logs = sanitize_field_tuple_keys(logs, data_source)
     if weight_field is not None and cls == ParticleProfile:
         weight_field, = data_source._determine_fields([weight_field])
         if not data_source.ds._get_field_info(weight_field).particle_type:
@@ -1013,12 +1045,36 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex = list(extrema[bin_field[-1]])
             except KeyError:
                 field_ex = list(extrema[bin_field])
+            if isinstance(field_ex[0], tuple):
+                field_ex = [data_source.ds.quan(*f) for f in field_ex]
+            if any([exi is None for exi in field_ex]):
+                try:
+                    ds_extrema = data_source.quantities.extrema(bin_field)
+                except AttributeError:
+                    # ytdata profile datasets don't have data_source.quantities
+                    bf_vals = data_source[bin_field]
+                    ds_extrema = data_source.ds.arr(
+                        [bf_vals.min(), bf_vals.max()])
+                for i, exi in enumerate(field_ex):
+                    if exi is None:
+                        field_ex[i] = ds_extrema[i]
+                        # pad extrema by epsilon so cells at bin edges are
+                        # not excluded
+                        field_ex[i] -= (-1)**i*np.spacing(field_ex[i])
             if units is not None and bin_field in units:
-                if isinstance(field_ex[0], tuple):
-                    field_ex = [data_source.ds.quan(*f) for f in field_ex]
-                fe = data_source.ds.arr(field_ex, units[bin_field])
-                fe.convert_to_units(bf_units)
-                field_ex = [fe[0].v, fe[1].v]
+                for i, exi in enumerate(field_ex):
+                    if hasattr(exi, 'units'):
+                        field_ex[i] = exi.to(units[bin_field])
+                    else:
+                        field_ex[i] = data_source.ds.quan(exi, units[bin_field])
+                fe = data_source.ds.arr(field_ex)
+            else:
+                if hasattr(field_ex, 'units'):
+                    fe = field_ex.to(bf_units)
+                else:
+                    fe = data_source.ds.arr(field_ex, bf_units)
+            fe.convert_to_units(bf_units)
+            field_ex = [fe[0].v, fe[1].v]
             if iterable(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
@@ -1026,18 +1082,15 @@ def create_profile(data_source, bin_fields, fields, n_bins=64,
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)
+    args = [data_source]
+    for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
+        args += [f, n, mi, ma, l]
+    kwargs = dict(weight_field=weight_field)
     if cls is ParticleProfile:
-        args = [data_source]
-        for f, n, (mi, ma) in zip(bin_fields, n_bins, ex):
-            args += [f, n, mi, ma]
-        obj = cls(*args, weight_field=weight_field, deposition=deposition)
-    else:
-        args = [data_source]
-        for f, n, (mi, ma), l in zip(bin_fields, n_bins, ex, logs):
-            args += [f, n, mi, ma, l]
-        obj = cls(*args, weight_field = weight_field)
-        setattr(obj, "accumulation", accumulation)
-        setattr(obj, "fractional", fractional)
+        kwargs['deposition'] = deposition
+    obj = cls(*args, **kwargs)
+    setattr(obj, "accumulation", accumulation)
+    setattr(obj, "fractional", fractional)
     if fields is not None:
         obj.add_fields([field for field in fields])
     for field in fields:

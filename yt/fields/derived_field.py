@@ -13,6 +13,8 @@ Derived field base class.
 
 import contextlib
 import inspect
+import re
+import warnings
 
 from yt.extern.six import string_types, PY2
 from yt.funcs import \
@@ -66,8 +68,14 @@ class DerivedField(object):
        Describes whether the field should be logged
     validators : list
        A list of :class:`FieldValidator` objects
+    sampling_type : string, default = "cell"
+        How is the field sampled?  This can be one of the following options at
+        present: "cell" (cell-centered), "discrete" (or "particle") for
+        discretely sampled data.
     particle_type : bool
-       Is this a particle (1D) field?
+       (Deprecated) Is this a particle (1D) field?  This is deprecated. Use
+       sampling_type = "discrete" or sampling_type = "particle".  This will
+       *override* sampling_type.
     vector_field : bool
        Describes the dimensionality of the field.  Currently unused.
     display_field : bool
@@ -83,20 +91,39 @@ class DerivedField(object):
     dimensions : str or object from yt.units.dimensions
        The dimensions of the field, only needed if units="auto" and only used
        for error checking.
+    nodal_flag : array-like with three components
+       This describes how the field is centered within a cell. If nodal_flag
+       is [0, 0, 0], then the field is cell-centered. If any of the components
+       of nodal_flag are 1, then the field is nodal in that direction, meaning
+       it is defined at the lo and hi sides of the cell rather than at the center.
+       For example, a field with nodal_flag = [1, 0, 0] would be defined at the
+       middle of the 2 x-faces of each cell. nodal_flag = [0, 1, 1] would mean the
+       that the field defined at the centers of the 4 edges that are normal to the
+       x axis, while nodal_flag = [1, 1, 1] would be defined at the 8 cell corners.
     """
-    def __init__(self, name, function, units=None,
+    def __init__(self, name, sampling_type, function, units=None,
                  take_log=True, validators=None,
-                 particle_type=False, vector_field=False, display_field=True,
+                 particle_type=None, vector_field=False, display_field=True,
                  not_in_all=False, display_name=None, output_units=None,
-                 dimensions=None, ds=None):
+                 dimensions=None, ds=None, nodal_flag=None):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        self.particle_type = particle_type
+        if particle_type is True:
+            warnings.warn("particle_type for derived fields "
+                          "has been replaced with sampling_type = 'particle'",
+                          DeprecationWarning)
+            sampling_type = "particle"
+        self.sampling_type = sampling_type
         self.vector_field = vector_field
         self.ds = ds
+
+        if nodal_flag is None:
+            self.nodal_flag = [0, 0, 0]
+        else:
+            self.nodal_flag = nodal_flag
 
         self._function = function
 
@@ -118,6 +145,8 @@ class DerivedField(object):
                 self.units = units
         elif isinstance(units, Unit):
             self.units = str(units)
+        elif isinstance(units, bytes):
+            self.units = units.decode("utf-8")
         else:
             raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
                                   "Please provide a string or Unit " \
@@ -136,12 +165,16 @@ class DerivedField(object):
         dd['units'] = self.units
         dd['take_log'] = self.take_log
         dd['validators'] = list(self.validators)
-        dd['particle_type'] = self.particle_type
+        dd['sampling_type'] = self.sampling_type
         dd['vector_field'] = self.vector_field
         dd['display_field'] = True
         dd['not_in_all'] = self.not_in_all
         dd['display_name'] = self.display_name
         return dd
+
+    @property
+    def particle_type(self):
+        return self.sampling_type in ("discrete", "particle")
 
     def get_units(self):
         if self.ds is not None:
@@ -262,6 +295,51 @@ class DerivedField(object):
         s += ")"
         return s
 
+    def _is_ion(self):
+        p = re.compile("_p[0-9]+_")
+        result = False
+        if p.search(self.name[1]) is not None:
+            result = True
+        return result
+
+    def _ion_to_label(self):
+        pnum2rom = {
+            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
+            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
+            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
+            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+
+        p = re.compile("_p[0-9]+_")
+        m = p.search(self.name[1])
+        if m is not None:
+            pstr = m.string[m.start()+1:m.end()-1]
+            segments = self.name[1].split("_")
+            for i,s in enumerate(segments):
+                segments[i] = s.capitalize()
+                if s == pstr:
+                    ipstr = i
+            element = segments[ipstr-1]
+            roman = pnum2rom[pstr[1:]]
+            label = element + '\ ' + roman + '\ ' + \
+                '\ '.join(segments[ipstr+1:])
+        else:
+            label = self.name[1]
+        return label
+
+    def get_latex_display_name(self):
+        label = self.display_name
+        if label is None:
+            if self._is_ion():
+                fname = self._ion_to_label()
+                label = r'$\rm{'+fname.replace('_','\ ')+r'}$'
+            else:
+                label = r'$\rm{'+self.name[1].replace('_','\ ').title()+r'}$'
+        elif label.find('$') == -1:
+            label = label.replace(' ','\ ')
+            label = r'$\rm{'+label+r'}$'
+        return label
+
+
 class FieldValidator(object):
     pass
 
@@ -331,6 +409,7 @@ class ValidateSpatial(FieldValidator):
         FieldValidator.__init__(self)
         self.ghost_zones = ghost_zones
         self.fields = fields
+
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure

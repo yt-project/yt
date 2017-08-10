@@ -13,6 +13,7 @@ RAMSES-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+import glob
 import os
 import numpy as np
 
@@ -67,8 +68,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-velocity", (vel_units, ["velocity_x"], None)),
         ("y-velocity", (vel_units, ["velocity_y"], None)),
         ("z-velocity", (vel_units, ["velocity_z"], None)),
+        ("Pres_IR", (pressure_units, ["pres_IR"], None)),
         ("Pressure", (pressure_units, ["pressure"], None)),
         ("Metallicity", ("", ["metallicity"], None)),
+        ("HII",  ("", ["H_p1_fraction"], None)),
+        ("HeII", ("", ["He_p1_fraction"], None)),
+        ("HeIII",("", ["He_p2_fraction"], None)),
     )
     known_particle_fields = (
         ("particle_position_x", ("code_length", [], None)),
@@ -89,9 +94,36 @@ class RAMSESFieldInfo(FieldInfoContainer):
             rv = data["gas", "pressure"]/data["gas", "density"]
             rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
             return rv
-        self.add_field(("gas", "temperature"), function=_temperature,
+        self.add_field(("gas", "temperature"), sampling_type="cell",  function=_temperature,
                         units=self.ds.unit_system["temperature"])
         self.create_cooling_fields()
+        # See if we need to load the rt fields
+        foldername  = os.path.abspath(os.path.dirname(self.ds.parameter_filename))
+        rt_flag = any(glob.glob(os.sep.join([foldername, 'info_rt_*.txt'])))
+        if rt_flag: # rt run
+            self.setup_rt_fields()
+
+    def setup_rt_fields(self):
+        def _temp_IR(field, data):
+            rv = data["gas", "pres_IR"]/data["gas", "density"]
+            rv *= mass_hydrogen_cgs/boltzmann_constant_cgs
+            return rv
+        self.add_field(("gas", "temp_IR"), sampling_type="cell",
+                       function=_temp_IR,
+                       units=self.ds.unit_system["temperature"])
+        for species in ['H_p1', 'He_p1', 'He_p2']:
+            def _species_density(field, data):
+                return data['gas', species+'_fraction']*data['gas', 'density']
+            self.add_field(('gas', species+'_density'), sampling_type='cell',
+                           function=_species_density,
+                           units=self.ds.unit_system['density'])
+            def _species_mass(field, data):
+                return (data['gas', species+'_density']*
+                        data['index', 'cell_volume'])
+            self.add_field(('gas', species+'_mass'), sampling_type='cell',
+                           function=_species_mass,
+                           units=self.ds.unit_system['mass'])
+
 
     def create_cooling_fields(self):
         num = os.path.basename(self.ds.parameter_filename).split("."
@@ -107,9 +139,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
                      'logT' : np.log10(data["temperature"]).ravel()}
                 rv = 10**interp_object(d).reshape(shape)
                 # Return array in unit 'per volume' consistently with line below
-                return rv.in_units('code_length**-3')
-            self.add_field(name = name, function=_func,
-                           units = "code_length**-3")
+                return data.ds.arr(rv, 'code_length**-3')
+            self.add_field(name = name, sampling_type="cell", function=_func,
+                                 units = "code_length**-3")
         avals = {}
         tvals = {}
         with open(filename, "rb") as f:
@@ -125,7 +157,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     var = var.reshape((n1, n2, var.size // (n1*n2)), order='F')
                     for i in range(var.shape[-1]):
                         tvals[_cool_species[i]] = var[:,:,i]
-        
+
         for n in tvals:
             interp = BilinearFieldInterpolator(tvals[n],
                         (avals["lognH"], avals["logT"]),

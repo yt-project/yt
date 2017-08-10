@@ -69,9 +69,13 @@ class ParticleFilter(object):
         # fields are implicitly "all" or something.
         return all((self.filtered_type, field) in field_list for field in self.requires)
 
+    def missing(self, field_list):
+        return list((self.filtered_type, field) for field in self.requires if
+                    (self.filtered_type, field) not in field_list)
+
     def wrap_func(self, field_name, old_fi):
         new_fi = copy.copy(old_fi)
-        new_fi.name = (self.filtered_type, field_name[1])
+        new_fi.name = (self.name, field_name[1])
         if old_fi._function == NullFunc:
             new_fi._function = TranslationFunc(old_fi.name)
         return new_fi

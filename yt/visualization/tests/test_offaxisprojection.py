@@ -75,7 +75,7 @@ def test_oap(tmpdir=True):
         image = off_axis_projection(*oap_args, **oap_kwargs)
         for wp_kwargs in wp_kwargs_list:
             write_projection(image, fn % i, **wp_kwargs)
-            yield assert_equal, os.path.exists(fn % i), True
+            assert_equal(os.path.exists(fn % i), True)
 
     if tmpdir:
         os.chdir(curdir)

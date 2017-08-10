@@ -138,10 +138,11 @@ class GadgetFOFDataset(Dataset):
     _field_info_class = GadgetFOFFieldInfo
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
-                 n_ref=16, over_refine_factor=1,
+                 n_ref=16, over_refine_factor=1, index_ptype="all",
                  unit_base=None, units_override=None, unit_system="cgs"):
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
+        self.index_ptype = index_ptype
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
@@ -461,8 +462,8 @@ class GadgetFOFHaloDataset(Dataset):
 class GagdetFOFHaloContainer(YTSelectionContainer):
     """
     Create a data container to get member particles and individual
-    values from halos and subhalos.  Halo mass, position, and
-    velocity are set as attributes.  Halo IDs are accessible
+    values from halos and subhalos. Halo mass, position, and
+    velocity are set as attributes. Halo IDs are accessible
     through the field, "member_ids".  Other fields that are one
     value per halo are accessible as normal.  The field list for
     halo objects can be seen in `ds.halos_field_list`.
@@ -472,13 +473,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     ptype : string
         The type of halo, either "Group" for the main halo or
         "Subhalo" for subhalos.
-    particle_identifier : int or tuple of (int, int)
+    particle_identifier : int or tuple of ints
         The halo or subhalo id.  If requesting a subhalo, the id
         can also be given as a tuple of the main halo id and
         subgroup id, such as (1, 4) for subgroup 4 of halo 1.
 
-    Halo Container Attributes
-    -------------------------
+    Attributes
+    ----------
     particle_identifier : int
         The id of the halo or subhalo.
     group_identifier : int
@@ -495,14 +496,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     velocity : array of floats
         Halo velocity.
 
-    Relevant Fields
-    ---------------
-    particle_number :
-        number of particles
-    subhalo_number :
-        number of subhalos
-    group_identifier :
-        id of parent group for subhalos
+    Note
+    ----
+    Relevant Fields:
+
+     * particle_number - number of particles
+     * subhalo_number - number of subhalos
+     * group_identifier - id of parent group for subhalos
 
     Examples
     --------

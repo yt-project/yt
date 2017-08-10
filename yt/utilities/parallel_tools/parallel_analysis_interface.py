@@ -434,7 +434,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
 
     Parameters
     ----------
-    objects : iterable
+    objects : Iterable
         The list of objects to dispatch to different processors.
     njobs : int
         How many jobs to spawn.  By default, one job will be dispatched for
@@ -540,7 +540,7 @@ def parallel_ring(objects, generator_func, mutable = False):
 
     Parameters
     ----------
-    objects : iterable
+    objects : Iterable
         The list of objects to operate on.
     generator_func : callable
         This function will be called on each object, and the results yielded.
@@ -676,7 +676,8 @@ class Communicator(object):
         self._distributed = comm is not None and self.comm.size > 1
 
     def __del__(self):
-        self.comm.Free()
+        if self.comm is not None:
+            self.comm.Free()
     """
     This is an interface specification providing several useful utility
     functions for analyzing something in parallel.

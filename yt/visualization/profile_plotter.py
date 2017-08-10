@@ -20,10 +20,10 @@ from yt.extern.six import string_types, iteritems
 from collections import OrderedDict
 import base64
 import os
+from functools import wraps
 
 import matplotlib
 import numpy as np
-
 
 from .base_plot_types import \
     PlotMPL, ImagePlotMPL
@@ -41,8 +41,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.funcs import \
     ensure_list, \
     get_image_suffix, \
-    get_ipython_api_version, \
-    matplotlib_style_context
+    matplotlib_style_context, \
+    iterable
 
 def get_canvas(name):
     from . import _mpl_imports as mpl
@@ -61,7 +61,15 @@ def get_canvas(name):
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
-class PlotContainer(OrderedDict):
+def invalidate_profile(f):
+    @wraps(f)
+    def newfunc(*args, **kwargs):
+        rv = f(*args, **kwargs)
+        args[0]._profile_valid = False
+        return rv
+    return newfunc
+
+class PlotContainerDict(OrderedDict):
     def __missing__(self, key):
         plot = PlotMPL((10, 8), [0.1, 0.1, 0.8, 0.8], None, None)
         self[key] = plot
@@ -84,6 +92,7 @@ class AxesContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
         self.ylim = {}
+        self.xlim = (None, None)
         super(AxesContainer, self).__init__()
 
     def __missing__(self, key):
@@ -234,7 +243,7 @@ class ProfilePlot(object):
             plot_spec = [plot_spec.copy() for p in profiles]
 
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
-        
+
     @validate_plot
     def save(self, name=None, suffix=None, mpl_kwargs=None):
         r"""
@@ -312,12 +321,8 @@ class ProfilePlot(object):
 
         """
         if "__IPYTHON__" in dir(builtins):
-            api_version = get_ipython_api_version()
-            if api_version in ('0.10', '0.11'):
-                self._send_zmq()
-            else:
-                from IPython.display import display
-                display(self)
+            from IPython.display import display
+            display(self)
         else:
             raise YTNotInsideNotebook
 
@@ -349,16 +354,19 @@ class ProfilePlot(object):
                 self.axes[field].plot(np.array(profile.x), np.array(field_data),
                                       label=self.label[i], **self.plot_spec[i])
 
-        for (fname, axes), profile in zip(self.axes.items(), self.profiles):
-            xscale, yscale = self._get_field_log(fname, profile)
-            xtitle, ytitle = self._get_field_title(fname, profile)
-            axes.set_xscale(xscale)
-            axes.set_yscale(yscale)
-            axes.set_xlabel(xtitle)
-            axes.set_ylabel(ytitle)
-            axes.set_ylim(*self.axes.ylim[fname])
-            if any(self.label):
-                axes.legend(loc="best")
+        for profile in self.profiles:
+            for fname in profile.keys():
+                axes = self.axes[fname]
+                xscale, yscale = self._get_field_log(fname, profile)
+                xtitle, ytitle = self._get_field_title(fname, profile)
+                axes.set_xscale(xscale)
+                axes.set_yscale(yscale)
+                axes.set_xlabel(xtitle)
+                axes.set_ylabel(ytitle)
+                axes.set_ylim(*self.axes.ylim[fname])
+                axes.set_xlim(*self.axes.xlim)
+                if any(self.label):
+                    axes.legend(loc="best")
         self._set_font_properties()
         self._plot_valid = True
 
@@ -379,7 +387,7 @@ class ProfilePlot(object):
         if plot_specs is None:
             plot_specs = [dict() for p in obj.profiles]
         obj.plot_spec = plot_specs
-        obj.plots = PlotContainer()
+        obj.plots = PlotContainerDict()
         obj.figures = FigureContainer(obj.plots)
         obj.axes = AxesContainer(obj.plots)
         obj._setup_plots()
@@ -539,6 +547,7 @@ class ProfilePlot(object):
         >>> pp.save()
 
         """
+        self.axes.xlim = (xmin, xmax)
         for i, p in enumerate(self.profiles):
             if xmin is None:
                 xmi = p.x_bins.min()
@@ -728,6 +737,7 @@ class PhasePlot(ImagePlotContainer):
     y_log = None
     plot_title = None
     _plot_valid = False
+    _profile_valid = False
     _plot_type = 'Phase'
     _xlim = (None, None)
     _ylim = (None, None)
@@ -765,7 +775,10 @@ class PhasePlot(ImagePlotContainer):
         obj._text_xpos = {}
         obj._text_ypos = {}
         obj._text_kwargs = {}
-        obj.profile = profile
+        obj._profile = profile
+        obj._profile_valid = True
+        obj._xlim = (None, None)
+        obj._ylim = (None, None)
         super(PhasePlot, obj).__init__(data_source, figure_size, fontsize)
         obj._setup_plots()
         obj._initfinished = True
@@ -826,6 +839,12 @@ class PhasePlot(ImagePlotContainer):
     def _recreate_frb(self):
         # needed for API compatibility with PlotWindow
         pass
+
+    @property
+    def profile(self):
+        if not self._profile_valid:
+            self._recreate_profile()
+        return self._profile
 
     def _setup_plots(self):
         if self._plot_valid:
@@ -1162,7 +1181,7 @@ class PhasePlot(ImagePlotContainer):
         >>> plot.annotate_title("This is a phase plot")
 
         """
-        for f in self.profile.field_data:
+        for f in self._profile.field_data:
             if isinstance(f, tuple):
                 f = f[1]
             self.plot_title[self.data_source._determine_fields(f)[0]] = title
@@ -1184,18 +1203,22 @@ class PhasePlot(ImagePlotContainer):
         log : boolean
             Log on/off.
         """
+        p = self._profile
         if field == "all":
             self.x_log = log
             self.y_log = log
-            for field in self.profile.field_data:
+            for field in p.field_data:
                 self.z_log[field] = log
+            self._profile_valid = False
         else:
-            if field == self.profile.x_field[1]:
+            if field == p.x_field[1]:
                 self.x_log = log
-            elif field == self.profile.y_field[1]:
+                self._profile_valid = False
+            elif field == p.y_field[1]:
                 self.y_log = log
-            elif field in self.profile.field_map:
-                self.z_log[self.profile.field_map[field]] = log
+                self._profile_valid = False
+            elif field in p.field_map:
+                self.z_log[p.field_map[field]] = log
             else:
                 raise KeyError("Field %s not in phase plot!" % (field))
         return self
@@ -1225,6 +1248,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @invalidate_plot
+    @invalidate_profile
     def set_xlim(self, xmin=None, xmax=None):
         """Sets the limits of the x bin field
 
@@ -1232,12 +1256,12 @@ class PhasePlot(ImagePlotContainer):
         ----------
 
         xmin : float or None
-          The new x minimum.  Defaults to None, which leaves the xmin
-          unchanged.
+          The new x minimum in the current x-axis units.  Defaults to None,
+          which leaves the xmin unchanged.
 
         xmax : float or None
-          The new x maximum.  Defaults to None, which leaves the xmax
-          unchanged.
+          The new x maximum in the current x-axis units.  Defaults to None,
+          which leaves the xmax unchanged.
 
         Examples
         --------
@@ -1249,47 +1273,20 @@ class PhasePlot(ImagePlotContainer):
         >>> pp.save()
 
         """
-        p = self.profile
+        p = self._profile
         if xmin is None:
             xmin = p.x_bins.min()
+        elif not hasattr(xmin, 'units'):
+            xmin = self.ds.quan(xmin, p.x_bins.units)
         if xmax is None:
             xmax = p.x_bins.max()
-        units = {p.x_field: str(p.x.units),
-                 p.y_field: str(p.y.units)}
-        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
-        extrema = {p.x_field: ((xmin, str(p.x.units)), (xmax, str(p.x.units))),
-                   p.y_field: ((p.y_bins.min(), str(p.y.units)),
-                               (p.y_bins.max(), str(p.y.units)))}
-        if self.x_log is not None or self.y_log is not None:
-            logs = {}
-        else:
-            logs = None
-        if self.x_log is not None:
-            logs[p.x_field] = self.x_log
-        if self.y_log is not None:
-            logs[p.y_field] = self.y_log
-        deposition = getattr(self.profile, "deposition", None)
-        if deposition is None:
-            additional_kwargs = {'accumulation': p.accumulation,
-                                 'fractional': p.fractional}
-        else:
-            additional_kwargs = {'deposition': p.deposition}
-        self.profile = create_profile(
-            p.data_source,
-            [p.x_field, p.y_field],
-            list(p.field_map.values()),
-            n_bins=[len(p.x_bins)-1, len(p.y_bins)-1],
-            weight_field=p.weight_field,
-            units=units,
-            extrema=extrema,
-            logs=logs,
-            **additional_kwargs)
-        for field in zunits:
-            self.profile.set_field_unit(field, zunits[field])
+        elif not hasattr(xmax, 'units'):
+            xmax = self.ds.quan(xmax, p.x_bins.units)
         self._xlim = (xmin, xmax)
         return self
 
     @invalidate_plot
+    @invalidate_profile
     def set_ylim(self, ymin=None, ymax=None):
         """Sets the plot limits for the y bin field.
 
@@ -1297,12 +1294,12 @@ class PhasePlot(ImagePlotContainer):
         ----------
 
         ymin : float or None
-          The new y minimum.  Defaults to None, which leaves the ymin
-          unchanged.
+          The new y minimum in the current y-axis units.  Defaults to None,
+          which leaves the ymin unchanged.
 
         ymax : float or None
-          The new y maximum.  Defaults to None, which leaves the ymax
-          unchanged.
+          The new y maximum in the current y-axis units.  Defaults to None,
+          which leaves the ymax unchanged.
 
         Examples
         --------
@@ -1314,17 +1311,24 @@ class PhasePlot(ImagePlotContainer):
         >>> pp.save()
 
         """
-        p = self.profile
+        p = self._profile
         if ymin is None:
             ymin = p.y_bins.min()
+        elif not hasattr(ymin, 'units'):
+            ymin = self.ds.quan(ymin, p.y_bins.units)
         if ymax is None:
             ymax = p.y_bins.max()
+        elif not hasattr(ymax, 'units'):
+            ymax = self.ds.quan(ymax, p.y_bins.units)
+        self._ylim = (ymin, ymax)
+        return self
+
+    def _recreate_profile(self):
+        p = self._profile
         units = {p.x_field: str(p.x.units),
                  p.y_field: str(p.y.units)}
         zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
-        extrema = {p.x_field: ((p.x_bins.min(), str(p.x.units)),
-                               (p.x_bins.max(), str(p.x.units))),
-                   p.y_field: ((ymin, str(p.y.units)), (ymax, str(p.y.units)))}
+        extrema = {p.x_field: self._xlim, p.y_field: self._ylim}
         if self.x_log is not None or self.y_log is not None:
             logs = {}
         else:
@@ -1333,13 +1337,11 @@ class PhasePlot(ImagePlotContainer):
             logs[p.x_field] = self.x_log
         if self.y_log is not None:
             logs[p.y_field] = self.y_log
-        deposition = getattr(self.profile, "deposition", None)
-        if deposition is None:
-            additional_kwargs = {'accumulation': p.accumulation,
-                                 'fractional': p.fractional}
-        else:
-            additional_kwargs = {'deposition': p.deposition}
-        self.profile = create_profile(
+        deposition = getattr(p, "deposition", None)
+        additional_kwargs = {'accumulation': p.accumulation,
+                             'fractional': p.fractional,
+                             'deposition': deposition}
+        self._profile = create_profile(
             p.data_source,
             [p.x_field, p.y_field],
             list(p.field_map.values()),
@@ -1350,9 +1352,8 @@ class PhasePlot(ImagePlotContainer):
             logs=logs,
             **additional_kwargs)
         for field in zunits:
-            self.profile.set_field_unit(field, zunits[field])
-        self._ylim = (ymin, ymax)
-        return self
+            self._profile.set_field_unit(field, zunits[field])
+        self._profile_valid = True
 
 
 class PhasePlotMPL(ImagePlotMPL):
@@ -1370,7 +1371,10 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        self._cb_size = 0.0375*figure_size
+        if iterable(figure_size):
+            self._cb_size = 0.0375*figure_size[0]
+        else:
+            self._cb_size = 0.0375*figure_size
         self._ax_text_size = [1.1*fontscale, 0.9*fontscale]
         self._top_buff_size = 0.30*fontscale
         self._aspect = 1.0

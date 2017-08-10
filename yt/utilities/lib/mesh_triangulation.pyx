@@ -33,6 +33,7 @@ cdef extern from "mesh_triangulation.h":
     int triangulate_tetra[MAX_NUM_TRI][3]
     int triangulate_wedge[MAX_NUM_TRI][3]
     int hex20_faces[6][8]
+    int tet10_faces[4][6]
 
 cdef struct TriNode:
     np.uint64_t key
@@ -50,7 +51,7 @@ cdef np.int64_t triangles_are_equal(np.int64_t tri1[3], np.int64_t tri2[3]) nogi
         if not found:
             return 0
     return 1
-    
+
 cdef np.uint64_t triangle_hash(np.int64_t tri[3]) nogil:
     # http://stackoverflow.com/questions/1536393/good-hash-function-for-permutations
     cdef np.uint64_t h = 1
@@ -73,13 +74,13 @@ cdef class TriSet:
 
     cdef TriNode **table
     cdef np.uint64_t num_items
-    
+
     def __cinit__(self):
         self.table = <TriNode**> malloc(TABLE_SIZE * sizeof(TriNode*))
         for i in range(TABLE_SIZE):
             self.table[i] = NULL
         self.num_items = 0
-        
+
     def __dealloc__(self):
         cdef np.int64_t i
         cdef TriNode *node
@@ -92,7 +93,7 @@ cdef class TriSet:
                 free(delete_node)
             self.table[i] = NULL
         free(self.table)
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     def get_exterior_tris(self):
@@ -117,7 +118,7 @@ cdef class TriSet:
                 element_map[counter] = node.elem
                 counter += 1
                 node = node.next_node
-                
+
         return tri_indices, element_map
 
     cdef TriNode* _allocate_new_node(self,
@@ -133,13 +134,13 @@ cdef class TriSet:
         new_node.next_node = NULL
         self.num_items += 1
         return new_node
-        
+
     @cython.cdivision(True)
     cdef void update(self, np.int64_t tri[3], np.int64_t elem) nogil:
         cdef np.uint64_t key = triangle_hash(tri)
         cdef np.uint64_t index = key % TABLE_SIZE
         cdef TriNode *node = self.table[index]
-        
+
         if node == NULL:
             self.table[index] = self._allocate_new_node(tri, key, elem)
             return
@@ -154,7 +155,7 @@ cdef class TriSet:
         elif node.next_node == NULL:
             node.next_node = self._allocate_new_node(tri, key, elem)
             return
-    
+
         # walk through node list
         cdef TriNode* prev = node
         node = node.next_node
@@ -180,8 +181,8 @@ cdef class MeshInfoHolder:
     cdef np.int64_t VPE  # num verts per element
     cdef np.int64_t TPE  # num tris per element
     cdef int[MAX_NUM_TRI][3] tri_array
-    
-    def __cinit__(self, np.int64_t[:, ::1] indices):
+
+    def __cinit__(self, np.int_t[:, ::1] indices):
         '''
 
         This class is used to store metadata about the type of mesh being used.
@@ -194,7 +195,7 @@ cdef class MeshInfoHolder:
         if (self.VPE == 8 or self.VPE == 20 or self.VPE == 27):
             self.TPE = HEX_NT
             self.tri_array = triangulate_hex
-        elif self.VPE == 4:
+        elif (self.VPE == 4 or self.VPE == 10):
             self.TPE = TETRA_NT
             self.tri_array = triangulate_tetra
         elif self.VPE == 6:
@@ -205,7 +206,7 @@ cdef class MeshInfoHolder:
 
         self.num_tri = self.TPE * self.num_elem
         self.num_verts = self.num_tri * 3
-        
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cull_interior_triangles(np.int64_t[:, ::1] indices):
@@ -228,7 +229,7 @@ def cull_interior_triangles(np.int64_t[:, ::1] indices):
             s.update(tri, i)
 
     return s.get_exterior_tris()
-    
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def get_vertex_data(np.float64_t[:, ::1] coords,
@@ -245,7 +246,7 @@ def get_vertex_data(np.float64_t[:, ::1] coords,
     cdef MeshInfoHolder m = MeshInfoHolder(indices)
     cdef np.int64_t num_verts = coords.shape[0]
     cdef np.float32_t[:] vertex_data = np.zeros(num_verts, dtype="float32")
-        
+
     cdef np.int64_t i, j
     for i in range(m.num_elem):
         for j in range(m.VPE):
@@ -271,17 +272,17 @@ def triangulate_mesh(np.float64_t[:, ::1] coords,
     cdef np.int64_t num_tri = exterior_tris.shape[0]
     cdef np.int64_t num_verts = 3 * num_tri
     cdef np.int64_t num_coords = 3 * num_verts
-    
+
     cdef np.float32_t[:] vertex_data
     if data.ndim == 2:
         vertex_data = get_vertex_data(coords, data, indices)
     else:
         vertex_data = data.astype("float32")
-    
+
     cdef np.int32_t[:] tri_indices = np.empty(num_verts, dtype=np.int32)
     cdef np.float32_t[:] tri_data = np.empty(num_verts, dtype=np.float32)
     cdef np.float32_t[:] tri_coords = np.empty(num_coords, dtype=np.float32)
-        
+
     cdef np.int64_t vert_index, i, j, k
     for i in range(num_tri):
         for j in range(3):
@@ -293,12 +294,12 @@ def triangulate_mesh(np.float64_t[:, ::1] coords,
             tri_indices[vert_index] = vert_index
             for k in range(3):
                 tri_coords[vert_index*3 + k] = coords[exterior_tris[i, j], k]
-                
+
     return np.array(tri_coords), np.array(tri_data), np.array(tri_indices)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def triangulate_indices(np.int64_t[:, ::1] indices):
+def triangulate_indices(np.int_t[:, ::1] indices):
     '''
 
     This is like triangulate_mesh, except it only considers the
@@ -306,11 +307,11 @@ def triangulate_indices(np.int64_t[:, ::1] indices):
     coordinates and the data values.
 
     '''
-    
+
     cdef MeshInfoHolder m = MeshInfoHolder(indices)
-    cdef np.int64_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.int64)
-    
-    cdef np.int64_t i, j, k
+    cdef np.int_t[:, ::1] tri_indices = np.empty((m.num_tri, 3), dtype=np.int_)
+
+    cdef np.int_t i, j, k
     for i in range(m.num_elem):
         for j in range(m.TPE):
             for k in range(3):

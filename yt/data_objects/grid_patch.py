@@ -18,16 +18,26 @@ import weakref
 import numpy as np
 from six import string_types
 
+from yt.config import ytcfg
 from yt.data_objects.data_containers import \
-    YTFieldData, \
     YTSelectionContainer
+from yt.data_objects.field_data import \
+    YTFieldData
+from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 import yt.geometry.particle_deposit as particle_deposit
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTParticleDepositionNotImplemented
 from yt.utilities.lib.interpolators import \
     ghost_zone_interpolate
+from yt.utilities.lib.mesh_utilities import \
+    clamp_edges
+from yt.utilities.nodal_data_utils import \
+    get_nodal_slices
+
+RECONSTRUCT_INDEX = bool(ytcfg.get('yt', 'reconstruct_index'))
 
 class AMRGridPatch(YTSelectionContainer):
     _spatial = True
@@ -89,7 +99,9 @@ class AMRGridPatch(YTSelectionContainer):
             return tr
         finfo = self.ds._get_field_info(*fields[0])
         if not finfo.particle_type:
-            return tr.reshape(self.ActiveDimensions)
+            num_nodes = 2**sum(finfo.nodal_flag)
+            new_shape = list(self.ActiveDimensions) + [num_nodes]
+            return np.squeeze(tr.reshape(new_shape))
         return tr
 
     def convert(self, datatype):
@@ -129,19 +141,22 @@ class AMRGridPatch(YTSelectionContainer):
         # So first we figure out what the index is.  We don't assume
         # that dx=dy=dz, at least here.  We probably do elsewhere.
         id = self.id - self._id_offset
+        ds = self.ds
+        index = self.index
         if self.Parent is not None:
             if not hasattr(self.Parent, 'dds'):
                 self.Parent._setup_dx()
-            self.dds = self.Parent.dds.ndarray_view() / self.ds.refine_by
+            self.dds = self.Parent.dds.d / self.ds.refine_by
         else:
-            LE, RE = self.index.grid_left_edge[id,:], \
-                     self.index.grid_right_edge[id,:]
+            LE, RE = (index.grid_left_edge[id, :].d,
+                      index.grid_right_edge[id, :].d)
             self.dds = (RE - LE) / self.ActiveDimensions
-        if self.ds.dimensionality < 2:
-            self.dds[1] = self.ds.domain_right_edge[1] - self.ds.domain_left_edge[1]
         if self.ds.dimensionality < 3:
-            self.dds[2] = self.ds.domain_right_edge[2] - self.ds.domain_left_edge[2]
-        self.dds = self.ds.arr(self.dds, "code_length")
+            self.dds[2] = ds.domain_right_edge[2] - ds.domain_left_edge[2]
+        elif self.ds.dimensionality < 2:
+            self.dds[1] = ds.domain_right_edge[1] - ds.domain_left_edge[1]
+        self.dds = self.dds.view(YTArray)
+        self.dds.units = self.index.grid_left_edge.units
 
     def __repr__(self):
         return "AMRGridPatch_%04i" % (self.id)
@@ -168,6 +183,18 @@ class AMRGridPatch(YTSelectionContainer):
         self.ActiveDimensions = h.grid_dimensions[my_ind]
         self.LeftEdge = h.grid_left_edge[my_ind]
         self.RightEdge = h.grid_right_edge[my_ind]
+        # This can be expensive so we allow people to disable this behavior
+        # via a config option
+        if RECONSTRUCT_INDEX:
+            if iterable(self.Parent) and len(self.Parent) > 0:
+                p = self.Parent[0]
+            else:
+                p = self.Parent
+            if p is not None and p != []:
+                # clamp grid edges to an integer multiple of the parent cell
+                # width
+                clamp_edges(self.LeftEdge, p.LeftEdge, p.dds)
+                clamp_edges(self.RightEdge, p.RightEdge, p.dds)
         h.grid_levels[my_ind, 0] = self.Level
         # This might be needed for streaming formats
         #self.Time = h.gridTimes[my_ind,0]
@@ -267,8 +294,9 @@ class AMRGridPatch(YTSelectionContainer):
         fields = list(set(fields))
         new_fields = {}
         for field in fields:
-            new_fields[field] = np.zeros(self.ActiveDimensions + 1, dtype='float64')
-
+            finfo = self.ds._get_field_info(field)
+            new_fields[field] = self.ds.arr(
+                np.zeros(self.ActiveDimensions + 1), finfo.output_units)
         if no_ghost:
             for field in fields:
                 # Ensure we have the native endianness in this array.  Avoid making
@@ -345,14 +373,16 @@ class AMRGridPatch(YTSelectionContainer):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs
-        # Everything inside this is fortran ordered, so we reverse it here.
-        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
+        # We allocate number of zones, not number of octs. Everything inside
+        # this is Fortran ordered because of the ordering in the octree deposit
+        # routines, so we reverse it here to match the convention there
+        op = cls(tuple(self.ActiveDimensions[::-1]), kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None: return
-        return vals.transpose() # Fortran-ordered, so transpose.
+        # Fortran-ordered, so transpose.
+        return vals.transpose()
 
     def select_blocks(self, selector):
         mask = self._get_selector_mask(selector)
@@ -376,7 +406,13 @@ class AMRGridPatch(YTSelectionContainer):
         mask = self._get_selector_mask(selector)
         count = self.count(selector)
         if count == 0: return 0
-        dest[offset:offset+count] = source[mask]
+        nodal_flag = source.shape - self.ActiveDimensions
+        if sum(nodal_flag) == 0:
+            dest[offset:offset+count] = source[mask]
+        else:
+            slices = get_nodal_slices(source.shape, nodal_flag)
+            for i , sl in enumerate(slices):
+                dest[offset:offset+count, i] = source[sl][mask]
         return count
 
     def count(self, selector):

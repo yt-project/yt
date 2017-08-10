@@ -14,8 +14,26 @@ many example scripts in :ref:`cookbook`.
 
 The :class:`~yt.visualization.plot_window.PlotWindow` interface is useful for
 taking a quick look at simulation outputs.  Simple mechanisms exist for making
-plots of slices, projections, 1D profiles, and 2D profiles (phase plots), all of
-which are described below.
+plots of slices, projections, 1D spatial line plots, 1D profiles, and 2D
+profiles (phase plots), all of which are described below.
+
+.. _viewing-plots:
+
+Viewing Plots
+-------------
+
+YT uses an environment neutral plotting mechanism that detects the appropriate
+matplotlib configuration for a given environment, however it defaults to a basic
+renderer. To utilize interactive plots in matplotlib supported
+environments (Qt, GTK, WX, etc.) simply call the ``toggle_interactivity()`` function. Below is an
+example in a jupyter notebook environment, but the same command should work
+in other environments as well:
+
+.. code-block:: python
+
+   %matplotlib notebook
+   import yt
+   yt.toggle_interactivity()
 
 .. _simple-inspection:
 
@@ -184,6 +202,30 @@ or a :ref:`cut region <cut-regions>`.
 
 See :class:`~yt.visualization.plot_window.AxisAlignedSlicePlot` for the
 full class description.
+
+.. _plot-2d:
+
+Plots of 2D Datasets
+~~~~~~~~~~~~~~~~~~~~
+
+If you have a two-dimensional cartesian, cylindrical, or polar dataset,
+:func:`~yt.visualization.plot_window.plot_2d` is a way to make a plot
+within the dataset's plane without having to specify the axis, which
+in this case is redundant. Otherwise, ``plot_2d`` accepts the same
+arguments as ``SlicePlot``. The one other difference is that the
+``center`` keyword argument can be a two-dimensional coordinate instead
+of a three-dimensional one:
+
+.. python-script::
+
+    import yt
+    ds = yt.load("WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030")
+    p = yt.plot_2d(ds, "density", center=[1.0, 0.4])
+    p.set_log("density", False)
+    p.save()
+
+See :func:`~yt.visualization.plot_window.plot_2d` for the full description
+of the function and its keywords.
 
 .. _off-axis-slices:
 
@@ -423,7 +465,7 @@ a dataset that uses 6-node wedge elements:
    sl = yt.SlicePlot(ds, 2, ('connect2', 'diffused'))
    sl.save()
 
-Finally, slices can also be used to examine 2D unstructured mesh datasets, but the
+Slices can also be used to examine 2D unstructured mesh datasets, but the
 slices must be taken to be normal to the ``'z'`` axis, or you'll get an error. Here is
 an example using another MOOSE dataset that uses triangular mesh elements:
 
@@ -432,6 +474,17 @@ an example using another MOOSE dataset that uses triangular mesh elements:
    import yt
    ds = yt.load('MOOSE_sample_data/out.e')
    sl = yt.SlicePlot(ds, 2, ('connect1', 'nodal_aux'))
+   sl.save()
+
+You may run into situations where you have a variable you want to visualize that
+exists on multiple mesh blocks. To view the variable on ``all`` mesh blocks,
+simply pass ``all`` as the first argument of the field tuple:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("MultiRegion/two_region_example_out.e", step=-1)
+   sl = yt.SlicePlot(ds, 'z', ('all', 'diffused'))
    sl.save()
 
 
@@ -504,6 +557,33 @@ the axes unit labels.
 The same result could have been accomplished by explicitly setting the ``width``
 to ``(.01, 'Mpc')``.
 
+Set image units
+~~~~~~~~~~~~~~~
+
+:meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_axes_unit` allows
+the customization of the units used for the image and colorbar.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
+   slc.set_unit('density', 'Msun/pc**3')
+   slc.save()
+
+If the unit you would like to convert to needs an equivalency, this can be
+specified via the ``equivalency`` keyword argument of ``set_unit``. For
+example, let's make a plot of the temperature field, but present it using
+an energy unit instead of a temperature unit:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'temperature', width=(10,'kpc'))
+   slc.set_unit('temperature', 'keV', equivalency='thermal')
+   slc.save()
+
 Set the plot center
 ~~~~~~~~~~~~~~~~~~~
 
@@ -519,6 +599,27 @@ two element tuples.
    slc.set_center((0.5, 0.503))
    slc.save()
 
+Flipping the plot view axes
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+By default, all :class:`~yt.visualization.plot_window.PlotWindow` objects plot
+with the assumption that the eastern direction on the plot forms a right handed
+coordinate system with the ``normal`` and ``north_vector`` for the system, whether
+explicitly or implicitly defined. This setting can be toggled or explicitly defined
+by the user at initialization:
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   #slicing with non right-handed coordinates
+   slc = yt.SlicePlot(ds, 'x', 'velocity_x', right_handed=False)
+   slc.annotate_title('Not Right Handed')
+   slc.save("NotRightHanded.png")
+
+   #switching to right-handed coordinates
+   slc.toggle_right_handed()
+   slc.annotate_title('Right Handed')
+   slc.save("Standard.png")
 
 .. _hiding-colorbar-and-axes:
 
@@ -604,6 +705,21 @@ under symlog scale with the linear range of ``(0, linthresh)``.
    slc.set_log('x-velocity', True, linthresh=1.e1)
    slc.save()
 
+The :meth:`~yt.visualization.plot_container.ImagePlotContainer.set_background_color`
+function accepts a field name and a color (optional). If color is given, the function
+will set the plot's background color to that. If not, it will set it to the bottom
+value of the color map.
+
+.. python-script::
+
+   import yt
+   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+   slc = yt.SlicePlot(ds, 'z', 'density', width=(1.5, 'Mpc'))
+   slc.set_background_color('density')
+   slc.save('bottom_colormap_background')
+   slc.set_background_color('density', color='black')
+   slc.save('black_background')
+
 Lastly, the :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_zlim`
 function makes it possible to set a custom colormap range.
 
@@ -685,6 +801,7 @@ function for the colorbar axis.
    slc.set_minorticks('all', 'off')
    slc.set_cbar_minorticks('all', 'off')
    slc.save()
+
 
 .. _matplotlib-customization:
 
@@ -850,6 +967,7 @@ method and then given to the ProfilePlot object.
    # Save the image.
    plot.save()
 
+
 Customizing axis limits
 ~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -960,6 +1078,88 @@ change the property of a single line, give also the index of the profile.
 
     # change only the first line
     plot.set_line_property("linestyle", "--", 0)
+
+.. _how-to-1d-unstructured-mesh:
+
+1D Line Sampling
+----------------
+
+YT has the ability to sample datasets along arbitrary lines
+and plot the result. You must supply five arguments to the ``LinePlot``
+class. They are enumerated below:
+
+1. Dataset
+2. A list of fields or a single field you wish to plot
+3. The starting point of the sampling line. This should be an n-element list, tuple,
+   ndarray, or YTArray with the elements corresponding to the coordinates of the
+   starting point. (n should equal the dimension of the dataset)
+4. The ending point of the sampling line. This should also be an n-element list, tuple,
+   ndarray, or YTArray with the elements corresponding to the coordinates of the
+   ending point.
+5. The number of sampling points along the line, e.g. if 1000 is specified, then
+   data will be sampled at 1000 points evenly spaced between the starting and
+   ending points.
+
+The below code snippet illustrates how this is done:
+
+.. code-block:: python
+
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], (0, 0, 0), (0, 1, 0), 1000)
+   plot.save()
+
+If working in a Jupyter Notebook, ``LinePlot`` also has the ``show()`` method.
+
+You can can add a legend to a 1D sampling plot. The legend process takes two steps:
+
+1. When instantiating the ``LinePlot``, pass a dictionary of
+   labels with keys corresponding to the field names
+2. Call the ``LinePlot`` ``annotate_legend`` method
+
+X- and Y- axis units can be set with ``set_x_unit`` and ``set_unit`` methods
+respectively. The below code snippet combines all the features we've discussed:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+
+   plot = yt.LinePlot(ds, 'density', [0, 0, 0], [1, 1, 1], 512)
+   plot.annotate_legend('density')
+   plot.set_x_unit('cm')
+   plot.set_unit('density', 'kg/cm**3')
+   plot.save()
+
+If a list of fields is passed to ``LinePlot``, yt will create a number of
+individual figures equal to the number of different dimensional
+quantities. E.g. if ``LinePlot`` receives two fields with units of "length/time"
+and a field with units of "temperature", two different figures will be created,
+one with plots of the "length/time" fields and another with the plot of the
+"temperature" field. It is only necessary to call ``annotate_legend``
+for one field of a multi-field plot to produce a legend containing all the
+labels passed in the initial construction of the ``LinePlot`` instance. Example:
+
+.. python-script::
+
+   import yt
+
+   ds = yt.load("SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e", step=-1)
+   plot = yt.LinePlot(ds, [('all', 'v'), ('all', 'u')], [0, 0, 0], [0, 1, 0],
+                      100, field_labels={('all', 'u') : r"v$_x$",
+                                         ('all', 'v') : r"v$_y$"})
+   plot.annotate_legend(('all', 'u'))
+   plot.save()
+
+``LinePlot`` is a bit different from yt ray objects which are data
+containers. ``LinePlot`` is a plotting class that may use yt ray objects to
+supply field plotting information. However, perhaps the most important
+difference to highlight between rays and ``LinePlot`` is that rays return data
+elements that intersect with the ray and make no guarantee about the spacing
+between data elements. ``LinePlot`` sampling points are guaranteed to be evenly
+spaced. In the case of cell data where multiple points fall within the same
+cell, the ``LinePlot`` object will show the same field value for each sampling
+point that falls within the same cell.
 
 .. _how-to-make-2d-profiles:
 

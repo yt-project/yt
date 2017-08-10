@@ -30,6 +30,23 @@ class NotAModule(object):
     def __call__(self, *args, **kwargs):
         raise self.error
 
+class netCDF4_imports(object):
+    _name = "netCDF4"
+    _Dataset = None
+    @property
+    def Dataset(self):
+        if self._Dataset is None:
+            try:
+                from netCDF4 import Dataset
+            except ImportError:
+                Dataset = NotAModule(self._name)
+            self._Dataset = Dataset
+        return self._Dataset
+
+
+_netCDF4 = netCDF4_imports()
+
+
 class astropy_imports(object):
     _name = "astropy"
     _pyfits = None
@@ -229,6 +246,19 @@ class h5py_imports(object):
                 Group = NotAModule(self._name)
             self._Group = Group
         return self._Group
+
+    _Dataset = None
+    @property
+    def Dataset(self):
+        if self._err:
+            raise self._err
+        if self._Dataset is None:
+            try:
+                from h5py import Dataset
+            except ImportError:
+                Dataset = NotAModule(self._name)
+            self._Dataset = Dataset
+        return self._Dataset
 
     ___version__ = None
     @property

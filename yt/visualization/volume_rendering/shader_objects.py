@@ -23,6 +23,7 @@ from yt.utilities.exceptions import \
     YTInvalidShaderType, \
     YTUnknownUniformKind, \
     YTUnknownUniformSize
+from yt.units.yt_array import YTQuantity
 
 known_shaders = {}
 
@@ -83,7 +84,7 @@ class ShaderProgram(object):
         # but we will not be using that here.
         if isinstance(value, int):
             return GL.glUniform1i
-        elif isinstance(value, float):
+        elif isinstance(value, (YTQuantity, float)):
             return GL.glUniform1f
         else:
             kind = value.dtype.kind

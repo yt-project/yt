@@ -32,6 +32,8 @@ from yt.data_objects.analyzer_objects import \
     create_quantity_proxy, \
     analysis_task_registry, \
     AnalysisTask
+from yt.data_objects.particle_trajectories import \
+    ParticleTrajectories
 from yt.funcs import \
     iterable, \
     ensure_list, \
@@ -398,6 +400,41 @@ class DatasetSeries(object):
         ds = load(output_fn, **kwargs)
         self._dataset_cls = ds.__class__
         return ds
+
+    def particle_trajectories(self, indices, fields=None, suppress_logging=False):
+        r"""Create a collection of particle trajectories in time over a series of
+        datasets.
+
+        Parameters
+        ----------
+        indices : array_like
+            An integer array of particle indices whose trajectories we
+            want to track. If they are not sorted they will be sorted.
+        fields : list of strings, optional
+            A set of fields that is retrieved when the trajectory
+            collection is instantiated. Default: None (will default
+            to the fields 'particle_position_x', 'particle_position_y',
+            'particle_position_z')
+        suppress_logging : boolean
+            Suppress yt's logging when iterating over the simulation time
+            series. Default: False
+
+        Examples
+        --------
+        >>> my_fns = glob.glob("orbit_hdf5_chk_00[0-9][0-9]")
+        >>> my_fns.sort()
+        >>> fields = ["particle_position_x", "particle_position_y",
+        >>>           "particle_position_z", "particle_velocity_x",
+        >>>           "particle_velocity_y", "particle_velocity_z"]
+        >>> ds = load(my_fns[0])
+        >>> init_sphere = ds.sphere(ds.domain_center, (.5, "unitary"))
+        >>> indices = init_sphere["particle_index"].astype("int")
+        >>> ts = DatasetSeries(my_fns)
+        >>> trajs = ts.particle_trajectories(indices, fields=fields)
+        >>> for t in trajs :
+        >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+        """
+        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging)
 
 class TimeSeriesQuantitiesContainer(object):
     def __init__(self, data_object, quantities):

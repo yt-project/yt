@@ -708,12 +708,12 @@ class LoadedHalo(Halo):
         -------
         tuple : (cm, mag_A, mag_B, mag_C, e0_vector, tilt)
             The 6-tuple has in order:
-              #. The center of mass as an array.
-              #. mag_A as a float.
-              #. mag_B as a float.
-              #. mag_C as a float.
-              #. e0_vector as an array.
-              #. tilt as a float.
+            #. The center of mass as an array.
+            #. mag_A as a float.
+            #. mag_B as a float.
+            #. mag_C as a float.
+            #. e0_vector as an array.
+            #. tilt as a float.
 
         Examples
         --------
@@ -1281,7 +1281,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
 
         def haloCmp(h1, h2):
             def cmp(a, b):
-                return (a > b) - (a < b)
+                return (a > b) ^ (a < b)
             c = cmp(h1.total_mass(), h2.total_mass())
             if c != 0:
                 return -1 * c

@@ -71,6 +71,13 @@ See :ref:`slice-plots` and :ref:`projection-plots` for more information.
 
 .. yt_cookbook:: multi_plot_3x2_FRB.py
 
+Time Series Movie
+~~~~~~~~~~~~~~~~~
+
+This shows how to use matplotlib's animation framework with yt plots.
+
+.. yt_cookbook:: matplotlib-animation.py
+
 .. _cookbook-offaxis_projection:
 
 Off-Axis Projection (an alternate method)
@@ -267,6 +274,14 @@ rendering you want.
 See :ref:`opaque_rendering` for more information.
 
 .. yt_cookbook:: opaque_rendering.py
+
+Volume Rendering Multiple Fields
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can render multiple fields by adding new ``VolumeSource`` objects to the
+scene for each field you want to render.
+
+.. yt_cookbook:: render_two_fields.py
 
 .. _cookbook-amrkdtree_downsampling:
 

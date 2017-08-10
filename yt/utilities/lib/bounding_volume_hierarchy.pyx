@@ -4,8 +4,8 @@ cimport numpy as np
 from libc.math cimport fabs
 from libc.stdlib cimport malloc, free
 from cython.parallel import parallel, prange
-from grid_traversal cimport ImageSampler, \
-    ImageContainer
+from .image_samplers cimport ImageSampler
+
 
 from yt.utilities.lib.primitives cimport \
     BBox, \
@@ -18,19 +18,27 @@ from yt.utilities.lib.primitives cimport \
     Patch, \
     ray_patch_intersect, \
     patch_centroid, \
-    patch_bbox
+    patch_bbox, \
+    TetPatch, \
+    ray_tet_patch_intersect, \
+    tet_patch_centroid, \
+    tet_patch_bbox
+
 from yt.utilities.lib.element_mappings cimport \
     ElementSampler, \
     Q1Sampler3D, \
     P1Sampler3D, \
     W1Sampler3D, \
-    S2Sampler3D
+    S2Sampler3D, \
+    Tet2Sampler3D
+
 from yt.utilities.lib.vec3_ops cimport L2_norm
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()
 cdef ElementSampler W1Sampler = W1Sampler3D()
 cdef ElementSampler S2Sampler = S2Sampler3D()
+cdef ElementSampler Tet2Sampler = Tet2Sampler3D()
 
 cdef extern from "platform_dep.h" nogil:
     double fmax(double x, double y)
@@ -45,11 +53,11 @@ cdef class BVH:
     '''
 
     This class implements a bounding volume hierarchy (BVH), a spatial acceleration
-    structure for fast ray-tracing. A BVH is like a kd-tree, except that instead of 
-    partitioning the *volume* of the parent to create the children, we partition the 
+    structure for fast ray-tracing. A BVH is like a kd-tree, except that instead of
+    partitioning the *volume* of the parent to create the children, we partition the
     primitives themselves into 'left' or 'right' sub-trees. The bounding volume for a
     node is then determined by computing the bounding volume of the primitives that
-    belong to it. This allows us to quickly discard primitives that are not close 
+    belong to it. This allows us to quickly discard primitives that are not close
     to intersecting a given ray.
 
     This class is currently used to provide software 3D rendering support for
@@ -96,6 +104,9 @@ cdef class BVH:
         elif self.num_verts_per_elem == 20:
             self.num_prim_per_elem = 6
             self.sampler = S2Sampler
+        elif self.num_verts_per_elem == 10:
+            self.num_prim_per_elem = 4
+            self.sampler = Tet2Sampler
         else:
             raise NotImplementedError("Could not determine element type for "
                                       "nverts = %d. " % self.num_verts_per_elem)
@@ -123,7 +134,7 @@ cdef class BVH:
                     self.vertices[vertex_offset + k] = vertices[indices[i,j]][k]
             field_offset = i*self.num_field_per_elem
             for j in range(self.num_field_per_elem):
-                self.field_data[field_offset + j] = field_data[i][j]                
+                self.field_data[field_offset + j] = field_data[i][j]
 
         # set up primitives
         if self.num_verts_per_elem == 20:
@@ -132,13 +143,19 @@ cdef class BVH:
             self.get_bbox = patch_bbox
             self.get_intersect = ray_patch_intersect
             self._set_up_patches(vertices, indices)
+        elif self.num_verts_per_elem == 10:
+            self.primitives = malloc(self.num_prim * sizeof(TetPatch))
+            self.get_centroid = tet_patch_centroid
+            self.get_bbox = tet_patch_bbox
+            self.get_intersect = ray_tet_patch_intersect
+            self._set_up_tet_patches(vertices, indices)
         else:
             self.primitives = malloc(self.num_prim * sizeof(Triangle))
             self.get_centroid = triangle_centroid
             self.get_bbox = triangle_bbox
             self.get_intersect = ray_triangle_intersect
             self._set_up_triangles(vertices, indices)
-        
+
         self.root = self._recursive_build(0, self.num_prim)
 
     @cython.boundscheck(False)
@@ -160,6 +177,32 @@ cdef class BVH:
                     ind = hex20_faces[j][k]
                     for idim in range(3):  # for each spatial dimension (yikes)
                         patch.v[k][idim] = vertices[indices[i, ind]][idim]
+                self.get_centroid(self.primitives,
+                                  prim_index,
+                                  self.centroids[prim_index])
+                self.get_bbox(self.primitives,
+                              prim_index,
+                              &(self.bboxes[prim_index]))
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    cdef void _set_up_tet_patches(self, np.float64_t[:, :] vertices,
+                              np.int64_t[:, :] indices) nogil:
+        cdef TetPatch* tet_patch
+        cdef np.int64_t i, j, k, ind, idim
+        cdef np.int64_t offset, prim_index
+        for i in range(self.num_elem):
+            offset = self.num_prim_per_elem*i
+            for j in range(self.num_prim_per_elem):  # for each face
+                prim_index = offset + j
+                tet_patch = &( <TetPatch*> self.primitives)[prim_index]
+                self.prim_ids[prim_index] = prim_index
+                tet_patch.elem_id = i
+                for k in range(6):  # for each vertex
+                    ind = tet10_faces[j][k]
+                    for idim in range(3):  # for each spatial dimension (yikes)
+                        tet_patch.v[k][idim] = vertices[indices[i, ind]][idim]
                 self.get_centroid(self.primitives,
                                   prim_index,
                                   self.centroids[prim_index])
@@ -195,7 +238,7 @@ cdef class BVH:
                                   tri_index,
                                   self.centroids[tri_index])
                 self.get_bbox(self.primitives,
-                              tri_index, 
+                              tri_index,
                               &(self.bboxes[tri_index]))
 
     cdef void _recursive_free(self, BVHNode* node) nogil:
@@ -205,6 +248,8 @@ cdef class BVH:
         free(node)
 
     def __dealloc__(self):
+        if self.root == NULL:
+            return
         self._recursive_free(self.root)
         free(self.primitives)
         free(self.prim_ids)
@@ -238,11 +283,11 @@ cdef class BVH:
                 mid += 1
             begin += 1
         return mid
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void _get_node_bbox(self, BVHNode* node, 
+    cdef void _get_node_bbox(self, BVHNode* node,
                              np.int64_t begin, np.int64_t end) nogil:
         cdef np.int64_t i, j
         cdef BBox box = self.bboxes[begin]
@@ -250,7 +295,7 @@ cdef class BVH:
             for j in range(3):
                 box.left_edge[j] = fmin(box.left_edge[j],
                                         self.bboxes[i].left_edge[j])
-                box.right_edge[j] = fmax(box.right_edge[j], 
+                box.right_edge[j] = fmax(box.right_edge[j],
                                          self.bboxes[i].right_edge[j])
         node.bbox = box
 
@@ -259,7 +304,7 @@ cdef class BVH:
     @cython.cdivision(True)
     cdef void intersect(self, Ray* ray) nogil:
         self._recursive_intersect(ray, self.root)
-        
+
         if ray.elem_id < 0:
             return
 
@@ -267,7 +312,7 @@ cdef class BVH:
         cdef np.int64_t i
         for i in range(3):
             position[i] = ray.origin[i] + ray.t_far*ray.direction[i]
-            
+
         cdef np.float64_t* vertex_ptr
         cdef np.float64_t* field_ptr
         vertex_ptr = self.vertices + ray.elem_id*self.num_verts_per_elem*3
@@ -311,17 +356,17 @@ cdef class BVH:
         node.end = end
 
         self._get_node_bbox(node, begin, end)
-        
+
         # check for leaf
         if (end - begin) <= LEAF_SIZE:
             return node
-        
+
         # we use the "split in the middle of the longest axis approach"
         # see: http://www.vadimkravcenko.com/bvh-tree-building/
 
         # compute longest dimension
         cdef np.int64_t ax = 0
-        cdef np.float64_t d = fabs(node.bbox.right_edge[0] - 
+        cdef np.float64_t d = fabs(node.bbox.right_edge[0] -
                                    node.bbox.left_edge[0])
         if fabs(node.bbox.right_edge[1] - node.bbox.left_edge[1]) > d:
             ax = 1
@@ -337,7 +382,7 @@ cdef class BVH:
 
         if(mid == begin or mid == end):
             mid = begin + (end-begin)/2
-        
+
         # recursively build sub-trees
         node.left = self._recursive_build(begin, mid)
         node.right = self._recursive_build(mid, end)
@@ -351,16 +396,16 @@ cdef class BVH:
 cdef void cast_rays(np.float64_t* image,
                     const np.float64_t* origins,
                     const np.float64_t* direction,
-                    const int N, 
+                    const int N,
                     BVH bvh) nogil:
 
-    cdef Ray* ray 
+    cdef Ray* ray
     cdef int i, j, k
-    
+
     with nogil, parallel():
-       
+
         ray = <Ray *> malloc(sizeof(Ray))
-    
+
         for k in range(3):
             ray.direction[k] = direction[k]
             ray.inv_dir[k] = 1.0 / direction[k]
@@ -380,11 +425,11 @@ cdef void cast_rays(np.float64_t* image,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def test_ray_trace(np.ndarray[np.float64_t, ndim=1] image, 
+def test_ray_trace(np.ndarray[np.float64_t, ndim=1] image,
                    np.ndarray[np.float64_t, ndim=2] origins,
                    np.ndarray[np.float64_t, ndim=1] direction,
                    BVH bvh):
-    
+
     cdef int N = origins.shape[0]
     cast_rays(&image[0], &origins[0, 0], &direction[0], N, bvh)
 
@@ -404,15 +449,14 @@ cdef class BVHMeshSampler(ImageSampler):
         '''
 
         cdef int vi, vj, i, j
-        cdef ImageContainer *im = self.image
         cdef np.float64_t *v_pos
         cdef np.float64_t *v_dir
         cdef np.int64_t nx, ny, size
         cdef np.float64_t width[3]
         for i in range(3):
             width[i] = self.width[i]
-        nx = im.nv[0]
-        ny = im.nv[1]
+        nx = self.nv[0]
+        ny = self.nv[1]
         size = nx * ny
         cdef Ray* ray
         with nogil, parallel():
@@ -423,7 +467,7 @@ cdef class BVHMeshSampler(ImageSampler):
                 vj = j % ny
                 vi = (j - vj) / ny
                 vj = vj
-                self.vector_function(im, vi, vj, width, v_dir, v_pos)
+                self.vector_function(self, vi, vj, width, v_dir, v_pos)
                 for i in range(3):
                     ray.origin[i] = v_pos[i]
                     ray.direction[i] = v_dir[i]
@@ -433,10 +477,10 @@ cdef class BVHMeshSampler(ImageSampler):
                 ray.data_val = 0
                 ray.elem_id = -1
                 bvh.intersect(ray)
-                im.image[vi, vj, 0] = ray.data_val
-                im.image_used[vi, vj] = ray.elem_id
-                im.mesh_lines[vi, vj] = ray.near_boundary
-                im.zbuffer[vi, vj] = ray.t_far
+                self.image[vi, vj, 0] = ray.data_val
+                self.image_used[vi, vj] = ray.elem_id
+                self.mesh_lines[vi, vj] = ray.near_boundary
+                self.zbuffer[vi, vj] = ray.t_far
             free(v_pos)
             free(v_dir)
             free(ray)

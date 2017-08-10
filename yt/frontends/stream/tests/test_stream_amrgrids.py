@@ -1,5 +1,7 @@
 import numpy as np
-from yt.utilities.exceptions import YTIntDomainOverflow
+from yt.utilities.exceptions import \
+    YTIllDefinedAMR, \
+    YTIntDomainOverflow
 
 from yt import load_amr_grids, ProjectionPlot
 
@@ -26,7 +28,7 @@ def test_qt_overflow():
     def make_proj():
         p = ProjectionPlot(spf, 'x', ["density"], center='c', origin='native')
         return p
-    yield assert_raises, YTIntDomainOverflow, make_proj
+    assert_raises(YTIntDomainOverflow, make_proj)
 
 def test_refine_by():
     grid_data = []
@@ -49,3 +51,21 @@ def test_refine_by():
     domain_dimensions = np.array([8, 8, 8])
 
     load_amr_grids(grid_data, domain_dimensions, refine_by=ref_by)
+
+def test_validation():
+    dims = np.array([4, 2, 4])
+    grid_data = [
+        dict(left_edge = [0.0, 0.0, 0.0],
+             right_edge = [1.0, 1.0, 1.0],
+             level = 0,
+             dimensions = dims),
+        dict(left_edge = [0.25, 0.25, 0.25],
+             right_edge = [0.75, 0.75, 0.75],
+             level = 1,
+             dimensions = dims),
+       ]
+    bbox = np.array([[0, 1], [0, 1], [0, 1]])
+    def load_grids():
+        load_amr_grids(grid_data, dims, bbox=bbox, periodicity=(0, 0, 0),
+                       length_unit=1.0, refine_by=2)
+    assert_raises(YTIllDefinedAMR, load_grids)

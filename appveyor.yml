@@ -4,23 +4,24 @@
 environment:
 
   global:
-      PYTHON: "C:\\Miniconda-x64"
+      PYTHON: "C:\\Miniconda3-x64"
 
   matrix:
-
       - PYTHON_VERSION: "2.7"
-
-      - PYTHON_VERSION: "3.5"
-
+      - PYTHON_VERSION: "3.6"
 
 platform:
     -x64
 
 install:
+    - "if not exist \"%userprofile%\\.config\\yt\" mkdir %userprofile%\\.config\\yt"
+    - "echo [yt] > %userprofile%\\.config\\yt\\ytrc"
+    - "echo suppressStreamLogging = True >> %userprofile%\\.config\\yt\\ytrc"
     - "SET PATH=%PYTHON%;%PYTHON%\\Scripts;%PATH%"
 
     # Install the build and runtime dependencies of the project.
     # Create a conda environment
+    - "conda update -q --yes conda"
     - "conda create -q --yes -n test python=%PYTHON_VERSION%"
     - "activate test"
 
@@ -28,11 +29,17 @@ install:
     - "python --version"
 
     # Install specified version of numpy and dependencies
-    - "conda install -q --yes numpy nose setuptools ipython Cython sympy h5py matplotlib"
-    - "python setup.py develop"
+    - "conda install --yes -c conda-forge numpy scipy nose setuptools ipython Cython sympy fastcache h5py matplotlib flake8 mock"
+    - "pip install -e ."
 
 # Not a .NET project
 build: false
 
 test_script:
-  - "nosetests -e test_all_fields ."
+  - "nosetests --nologcapture -sv yt"
+
+# Enable this to be able to login to the build worker. You can use the
+# `remmina` program in Ubuntu, use the login information that the line below
+# prints into the log.
+#on_finish:
+#- ps: $blockRdp = $true; iex ((new-object net.webclient).DownloadString('https://raw.githubusercontent.com/appveyor/ci/master/scripts/enable-rdp.ps1'))

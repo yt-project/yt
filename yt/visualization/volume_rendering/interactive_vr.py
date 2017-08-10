@@ -86,11 +86,11 @@ class IDVCamera(object):
     Parameters
     ----------
 
-    position : iterable, or 3 element array in code_length
+    position : :obj:`!iterable`, or 3 element array in code_length
         The initial position of the camera.
-    focus : iterable, or 3 element array in code_length
+    focus : :obj:`!iterable`, or 3 element array in code_length
         A point in space that the camera is looking at.
-    up : iterable, or 3 element array in code_length
+    up : :obj:`!iterable`, or 3 element array in code_length
         The 'up' direction for the camera.
     fov : float, optional
         An angle defining field of view in degrees.
@@ -455,7 +455,7 @@ class BlockCollection(SceneComponent):
 
         Parameters
         ----------
-        camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
             A simple camera object.
 
         """
@@ -620,7 +620,7 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
 
         """
         self.camera = camera
@@ -836,7 +836,7 @@ class SceneGraph(ColorBarSceneComponent):
 
         Parameters
         ----------
-        camera : Camera
+        camera : :class:`~yt.visualization.volume_rendering.interactive_vr.IDVCamera`
 
         """
         self.camera = camera

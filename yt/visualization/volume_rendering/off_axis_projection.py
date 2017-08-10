@@ -38,7 +38,7 @@ def off_axis_projection(data_source, center, normal_vector,
 
     Parameters
     ----------
-    data_source : `~yt.data_objects.static_output.Dataset` or `~yt.data_objects.data_containers.YTSelectionDataContainer`
+    data_source : ~yt.data_objects.static_output.Dataset or ~yt.data_objects.data_containers.YTSelectionDataContainer
         This is the dataset or data object to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
@@ -137,7 +137,7 @@ def off_axis_projection(data_source, center, normal_vector,
                 tr = b[f].astype("float64") * b[w]
                 return b.apply_units(tr, a.units)
             return temp_weightfield
-        data_source.ds.field_info.add_field(weightfield,
+        data_source.ds.field_info.add_field(weightfield, sampling_type="cell",
             function=_make_wf(item, weight))
         # Now we have to tell the dataset to add it and to calculate
         # its dependencies..

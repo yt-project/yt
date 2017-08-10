@@ -15,7 +15,8 @@ from yt.units.unit_object import Unit, unit_system_registry
 from yt.units.unit_systems import UnitSystem
 from yt.units import dimensions
 from yt.convenience import load
-from yt.testing import assert_almost_equal, assert_allclose, requires_file
+from yt.testing import assert_almost_equal, assert_allclose, requires_file, \
+    fake_random_ds
 from yt.config import ytcfg
 
 def test_unit_systems():
@@ -69,11 +70,7 @@ def test_fields_diff_systems_sloshing():
         ds = load(gslr, unit_system=us)
         dd = ds.sphere("c", (15.,"kpc"))
         for field in test_fields:
-            if us == "code":
-                # For this dataset code units are cgs
-                v1 = dd_cgs[field]
-            else:
-                v1 = dd_cgs[field].in_base(us)
+            v1 = dd_cgs[field].in_base(us)
             v2 = dd[field]
             assert_almost_equal(v1.v, v2.v)
             assert str(v2.units) == test_units[us][field]
@@ -88,7 +85,7 @@ def test_fields_diff_systems_etc():
 
     for us in test_units:
         ds = load(etc, unit_system=us)
-        dd = ds.sphere("max", (500.,"kpc"))
+        dd = ds.sphere("max", (500., "kpc"))
         for field in test_fields:
             if us == "code":
                 v1 = dd_cgs[field].in_units(test_units["code"][field])
@@ -108,7 +105,7 @@ def test_tesla_magnetic_unit():
         ad = ds.all_data()
         dens = ad['density']
         magx = ad['magx']
-        magnetic_field_x = ad['magnetic_field_x']
+        magnetic_field_x = ad['magnetic_field_r']
 
         if us == 'cgs':
             assert str(dens.units) == 'g/cm**3'
@@ -137,3 +134,14 @@ def test_tesla_magnetic_unit():
             assert_allclose(magx.value, magnetic_field_x.value)
             assert_allclose(magnetic_field_x.to_equivalent('G', 'CGS').value,
                             magnetic_field_x.value*1e4)
+
+def test_code_unit_system_uniqueness():
+    ds1 = fake_random_ds(64)
+    ds2 = fake_random_ds(64, length_unit=2.0)
+    ds3 = fake_random_ds(64)
+
+    assert ds1.unit_registry.unit_system_id != ds2.unit_registry.unit_system_id
+    assert ds1.unit_registry.unit_system_id == ds3.unit_registry.unit_system_id
+
+    assert ds1.unit_registry.unit_system_id in unit_system_registry.keys()
+    assert ds2.unit_registry.unit_system_id in unit_system_registry.keys()

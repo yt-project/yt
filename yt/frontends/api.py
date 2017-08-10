@@ -17,13 +17,16 @@ import sys, types, os, glob, time, importlib
 from yt.extern.six.moves import cPickle as pickle
 
 _frontends = [
+    'ahf',
     'art',
     'artio',
     'athena',
+    'athena_pp',
     'boxlib',
     'chombo',
     'eagle',
     'enzo',
+    'enzo_p',
     'exodus_ii',
     'fits',
     'flash',
@@ -35,6 +38,7 @@ _frontends = [
     'halo_catalog',
     'http_stream',
     'moab',
+    'open_pmd',
     'owls',
     'owls_subfind',
     'ramses',

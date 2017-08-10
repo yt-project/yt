@@ -22,7 +22,7 @@ import glob
 import os
 
 from yt.frontends.sph.data_structures import \
-    ParticleDataset
+    SPHDataset
 from yt.funcs import deprecate
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
@@ -54,7 +54,7 @@ class TipsyFile(ParticleFile):
     def _calculate_offsets(self, field_list):
         self.field_offsets = self.io._calculate_particle_offsets(self)
 
-class TipsyDataset(ParticleDataset):
+class TipsyDataset(SPHDataset):
     _index_class = ParticleIndex
     _file_class = TipsyFile
     _field_info_class = TipsyFieldInfo
@@ -74,6 +74,7 @@ class TipsyDataset(ParticleDataset):
                  parameter_file=None,
                  cosmology_parameters=None,
                  n_ref=64, over_refine_factor=1,
+                 kernel_name=None,
                  bounding_box=None,
                  units_override=None,
                  unit_system="cgs"):
@@ -82,8 +83,6 @@ class TipsyDataset(ParticleDataset):
         # and domain_right_edge
         self.bounding_box = bounding_box
         self.filter_bbox = (bounding_box is not None)
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
         if field_dtypes is None:
             field_dtypes = {}
         success, self.endian = self._validate_header(filename)
@@ -113,8 +112,10 @@ class TipsyDataset(ParticleDataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for TipsyDataset. "+
                                "Use unit_base instead.")
-        super(TipsyDataset, self).__init__(filename, dataset_type,
-                                           unit_system=unit_system)
+        super(TipsyDataset, self).__init__(
+            filename, dataset_type=dataset_type, unit_system=unit_system,
+            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            kernel_name=kernel_name)
 
     def __repr__(self):
         return os.path.basename(self.parameter_filename)

@@ -25,27 +25,33 @@ import subprocess
 import tempfile
 import json
 import pprint
+import textwrap
 
-from yt.config import ytcfg
+from yt.config import ytcfg, CURRENT_CONFIG_FILE
 ytcfg["yt","__command_line"] = "True"
 from yt.startup_tasks import parser, subparsers
 from yt.funcs import \
+    ensure_dir, \
     ensure_list, \
     get_hg_or_git_version, \
     get_yt_version, \
     mylog, \
     ensure_dir_exists, \
     update_hg_or_git, \
-    enable_plugins
+    enable_plugins, \
+    download_file
 from yt.extern.six import add_metaclass, string_types
 from yt.extern.six.moves import urllib, input
+from yt.extern.six.moves.urllib.parse import urlparse
+from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
     SlicePlot, \
     ProjectionPlot
 from yt.utilities.metadata import get_metadata
+from yt.utilities.configure import set_config
 from yt.utilities.exceptions import \
-    YTOutputNotIdentified, YTFieldNotParseable
+    YTOutputNotIdentified, YTFieldNotParseable, YTCommandRequiresModule
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -124,16 +130,70 @@ def _print_installation_information(path):
         print("Changeset = %s" % vstring.strip())
     print("---")
     return vstring
+    
 
+def _get_girder_client():
+    try:
+        import girder_client
+    except ImportError:
+        raise YTCommandRequiresModule('girder_client')
+    if not ytcfg.get("yt", "hub_api_key"):
+        print("Before you can access the yt Hub you need an API key")
+        print("In order to obtain one, either register by typing:")
+        print("  yt hub register")
+        print("or follow the instruction on:")
+        print("  http://yt-project.org/docs/dev/sharing_data.html#obtaining-an-api-key")
+        sys.exit()
+    hub_url = urlparse(ytcfg.get("yt", "hub_url"))
+    gc = girder_client.GirderClient(apiUrl=hub_url.geturl())
+    gc.authenticate(apiKey=ytcfg.get("yt", "hub_api_key"))
+    return gc
+
+
+class FileStreamer:
+    final_size = None
+    next_sent = 0
+    chunksize = 100*1024
+
+    def __init__(self, f, final_size = None):
+        location = f.tell()
+        f.seek(0, os.SEEK_END)
+        self.final_size = f.tell() - location
+        f.seek(location)
+        self.f = f
+
+    def __iter__(self):
+        with tqdm(total=self.final_size, desc='Uploading file',
+                  unit='B', unit_scale=True) as pbar:
+            while self.f.tell() < self.final_size:
+                yield self.f.read(self.chunksize)
+                pbar.update(self.chunksize)
+
+_subparsers = {None: subparsers}
+_subparsers_description = {
+    'config': 'Get and set configuration values for yt',
+    'hub': 'Interact with the yt Hub'
+}
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if cls.name is not None:
             names = ensure_list(cls.name)
+            if cls.subparser not in _subparsers:
+                try:
+                    description = _subparsers_description[cls.subparser]
+                except KeyError:
+                    description = cls.subparser
+                parent_parser = argparse.ArgumentParser(add_help=False)
+                p = subparsers.add_parser(cls.subparser, help=description,
+                                          description=description,
+                                          parents=[parent_parser])
+                _subparsers[cls.subparser] = p.add_subparsers(
+                    title=cls.subparser, dest=cls.subparser)
+            sp = _subparsers[cls.subparser]
             for name in names:
-                sc = subparsers.add_parser(name,
-                    description = cls.description,
-                    help = cls.description)
+                sc = sp.add_parser(name, description=cls.description, 
+                                   help=cls.description)
                 sc.set_defaults(func=cls.run)
                 for arg in cls.args:
                     _add_arg(sc, arg)
@@ -145,6 +205,7 @@ class YTCommand(object):
     description = ""
     aliases = ()
     ndatasets = 1
+    subparser = None
 
     @classmethod
     def run(cls, args):
@@ -193,8 +254,8 @@ _common_options = dict(
     all     = dict(longname="--all", dest="reinstall",
                    default=False, action="store_true",
                    help=("Reinstall the full yt stack in the current location."
-                         "  This option has been deprecated and may not work "
-                         "correctly."),),
+                         "This option has been deprecated and will not have any"
+                         "effect."),),
     ds      = dict(short="ds", action=GetParameterFiles,
                    nargs="+", help="datasets to run on"),
     ods     = dict(action=GetParameterFiles, dest="ds",
@@ -246,7 +307,7 @@ _common_options = dict(
     unit    = dict(short="-u", longname="--unit",
                    action="store", type=str,
                    dest="unit", default='1',
-                   help="Desired units"),
+                   help="Desired axes units"),
     center  = dict(short="-c", longname="--center",
                    action="store", type=float,
                    dest="center", default=None,
@@ -385,53 +446,6 @@ _common_options = dict(
 
     )
 
-def _get_yt_stack_date():
-    if "YT_DEST" not in os.environ:
-        return
-    date_file = os.path.join(os.environ["YT_DEST"], ".yt_update")
-    if not os.path.exists(date_file):
-        print("Could not determine when yt stack was last updated.")
-        return
-    print("".join(open(date_file, 'r').readlines()))
-    print("To update all dependencies, run \"yt update --all\".")
-
-def _update_yt_stack(path):
-    "Rerun the install script to updated all dependencies."
-
-    if "YT_DEST" not in os.environ:
-        print()
-        print("This yt installation does not appear to be managed by the")
-        print("source-based install script, but 'update --all' was specified.")
-        print("You will need to update your dependencies manually.")
-        return
-
-    install_script = os.path.join(path, "doc/install_script.sh")
-    if not os.path.exists(install_script):
-        print()
-        print("Install script not found!")
-        print("The install script should be here: %s," % install_script)
-        print("but it was not.")
-        return
-
-    print()
-    print("We will now attempt to update the yt stack located at:")
-    print("    %s." % os.environ["YT_DEST"])
-    print()
-    print("[hit enter to continue or Ctrl-C to stop]")
-    try:
-        input()
-    except:
-        sys.exit(0)
-    os.environ["REINST_YT"] = "1"
-    ret = subprocess.call(["bash", install_script])
-    print()
-    if ret:
-        print("The install script seems to have failed.")
-        print("Check the output above.")
-    else:
-        print("The yt stack has been updated successfully.")
-        print("Now get back to work!")
-
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass = True):
     uri = 'https://api.bitbucket.org/1.0/%s/' % endpoint
@@ -565,25 +579,24 @@ class YTBugreportCmd(YTCommand):
 
 
 class YTHubRegisterCmd(YTCommand):
-    name = "hub_register"
+    subparser = "hub"
+    name = "register"
     description = \
         """
-        Register a user on the Hub: http://hub.yt-project.org/
+        Register a user on the yt Hub: http://hub.yt/
         """
     def __call__(self, args):
-        # We need these pieces of information:
-        #   1. Name
-        #   2. Email
-        #   3. Username
-        #   4. Password (and password2)
-        #   5. (optional) URL
-        #   6. "Secret" key to make it epsilon harder for spammers
-        if ytcfg.get("yt","hub_api_key") != "":
+        try:
+            import requests
+        except ImportError:
+            raise YTCommandRequiresModule('requests')
+        if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
-            print("~/.yt/config .  Delete this if you want to force a")
+            print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
             print("new user registration.")
+            sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")
-        print("Here's the URL, for reference: http://hub.yt-project.org/ ")
+        print("Here's the URL, for reference: http://hub.yt/ ")
         print()
         print("As always, bail out with Ctrl-C at any time.")
         print()
@@ -594,8 +607,11 @@ class YTHubRegisterCmd(YTCommand):
         print()
         print("To start out, what's your name?")
         print()
-        name = input("Name? ")
-        if len(name) == 0: sys.exit(1)
+        first_name = input("First Name? ")
+        if len(first_name) == 0: sys.exit(1)
+        print()
+        last_name = input("Last Name? ")
+        if len(last_name) == 0: sys.exit(1)
         print()
         print("And your email address?")
         print()
@@ -612,33 +628,32 @@ class YTHubRegisterCmd(YTCommand):
             print("Sorry, they didn't match!  Let's try again.")
             print()
         print()
-        print("Would you like a URL displayed for your user?")
-        print("Leave blank if no.")
-        print()
-        url = input("URL? ")
-        print()
         print("Okay, press enter to register.  You should receive a welcome")
         print("message at %s when this is complete." % email)
         print()
         input()
-        data = dict(name = name, email = email, username = username,
-                    password = password1, password2 = password2,
-                    url = url, zap = "rowsdower")
-        data = urllib.parse.urlencode(data)
-        hub_url = "https://hub.yt-project.org/create_user"
-        req = urllib.request.Request(hub_url, data)
-        try:
-            urllib.request.urlopen(req).read()
-        except urllib.error.HTTPError as exc:
-            if exc.code == 400:
-                print("Sorry, the Hub couldn't create your user.")
-                print("You can't register duplicate users, which is the most")
-                print("common cause of this error.  All values for username,")
-                print("name, and email must be unique in our system.")
-                sys.exit(1)
-        except urllib.URLError as exc:
-            print("Something has gone wrong.  Here's the error message.")
-            raise exc
+
+        data = dict(firstName=first_name, email=email, login=username,
+                    password=password1, lastName=last_name, admin=False)
+        hub_url = ytcfg.get("yt", "hub_url")
+        req = requests.post(hub_url + "/user", data=data)
+      
+        if req.ok:
+            headers = {'Girder-Token': req.json()['authToken']['token']}
+        else:
+            if req.status_code == 400:
+                print("Registration failed with 'Bad request':")
+                print(req.json()["message"])
+            exit(1)
+        print("User registration successful")
+        print("Obtaining API key...")
+        req = requests.post(hub_url + "/api_key", headers=headers,
+                            data={'name': 'ytcmd', 'active': True})
+        apiKey = req.json()["key"]
+
+        print("Storing API key in configuration file")
+        set_config("yt", "hub_api_key", apiKey)
+        
         print()
         print("SUCCESS!")
         print()
@@ -670,7 +685,6 @@ class YTInstInfoCmd(YTCommand):
             print("This installation CAN be automatically updated.")
             if opts.update_source:
                 update_hg_or_git(path)
-                _get_yt_stack_date()
         elif opts.update_source:
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
@@ -694,33 +708,21 @@ class YTLoadCmd(YTCommand):
         import yt
 
         import IPython
-        from distutils import version
-        if version.LooseVersion(IPython.__version__) <= version.LooseVersion('0.10'):
-            api_version = '0.10'
-        else:
-            api_version = '0.11'
 
         local_ns = yt.mods.__dict__.copy()
         local_ns['ds'] = args.ds
         local_ns['pf'] = args.ds
         local_ns['yt'] = yt
 
-        if api_version == '0.10':
-            shell = IPython.Shell.IPShellEmbed()
-            shell(local_ns = local_ns,
-                  header =
-                  "\nHi there!  Welcome to yt.\n\nWe've loaded your dataset as 'ds'.  Enjoy!"
-                  )
-        else:
-            try:
-                from traitlets.config.loader import Config
-            except ImportError:
-                from IPython.config.loader import Config
-            import sys
-            cfg = Config()
-            # prepend sys.path with current working directory
-            sys.path.insert(0,'')
-            IPython.embed(config=cfg,user_ns=local_ns)
+        try:
+            from traitlets.config.loader import Config
+        except ImportError:
+            from IPython.config.loader import Config
+        import sys
+        cfg = Config()
+        # prepend sys.path with current working directory
+        sys.path.insert(0,'')
+        IPython.embed(config=cfg,user_ns=local_ns)
 
 class YTMapserverCmd(YTCommand):
     args = ("proj", "field", "weight",
@@ -817,46 +819,70 @@ class YTPastebinGrabCmd(YTCommand):
         import yt.utilities.lodgeit as lo
         lo.main( None, download=args.number )
 
+class YTHubStartNotebook(YTCommand):
+    args = (
+        dict(dest="folderId", default=ytcfg.get("yt", "hub_sandbox"),
+             nargs="?", 
+             help="(Optional) Hub folder to mount inside the Notebook"),
+    )
+    description = \
+        """
+        Start the Jupyter Notebook on the yt Hub.
+        """
+    subparser = "hub"
+    name = "start"
+    def __call__(self, args):
+        gc = _get_girder_client()
+
+        # TODO: should happen server-side
+        _id = gc._checkResourcePath(args.folderId)
+
+        resp = gc.post("/notebook/{}".format(_id))
+        try:
+            print("Launched! Please visit this URL:")
+            print("    https://tmpnb.hub.yt" + resp['url'])
+            print()
+        except (KeyError, TypeError):
+            print("Something went wrong. The yt Hub responded with : ")
+            print(resp)
+
 class YTNotebookUploadCmd(YTCommand):
     args = (dict(short="file", type=str),)
     description = \
         """
-        Upload an IPython notebook to hub.yt-project.org.
+        Upload an IPython Notebook to the yt Hub.
         """
 
     name = "upload_notebook"
     def __call__(self, args):
-        filename = args.file
-        if not os.path.isfile(filename):
-            raise IOError(filename)
-        if not filename.endswith(".ipynb"):
-            print("File must be an IPython notebook!")
-            return 1
-        import json
-        try:
-            t = json.loads(open(filename).read())['metadata']['name']
-        except (ValueError, KeyError):
-            print("File does not appear to be an IPython notebook.")
-        if len(t) == 0:
-            t = filename.strip(".ipynb")
-        from yt.utilities.minimal_representation import MinimalNotebook
-        mn = MinimalNotebook(filename, t)
-        rv = mn.upload()
+        gc = _get_girder_client()
+        username = gc.get("/user/me")["login"]
+        gc.upload(args.file, "/user/{}/Public".format(username))
+
+        _id = gc.resourceLookup(
+            "/user/{}/Public/{}".format(username, args.file))["_id"]
+        _fid = next(gc.listFile(_id))["_id"]
+        hub_url = urlparse(ytcfg.get("yt", "hub_url"))
         print("Upload successful!")
         print()
         print("To access your raw notebook go here:")
         print()
-        print("  %s" % (rv['url']))
+        print("  {}://{}/#item/{}".format(hub_url.scheme, hub_url.netloc, _id))
         print()
         print("To view your notebook go here:")
         print()
-        print("  %s" % (rv['url'].replace("/go/", "/nb/")))
+        print("  http://nbviewer.jupyter.org/urls/{}/file/{}/download".format(
+            hub_url.netloc + hub_url.path, _fid))
         print()
 
 class YTPlotCmd(YTCommand):
     args = ("width", "unit", "bn", "proj", "center", "zlim", "axis", "field",
             "weight", "skip", "cmap", "output", "grids", "time", "ds", "max",
-            "log", "linear")
+            "log", "linear",
+            dict(short="-fu", longname="--field-unit",
+                 action="store", type=str,
+                 dest="field_unit", default=None,
+                 help="Desired field units"))
 
     name = "plot"
 
@@ -905,8 +931,10 @@ class YTPlotCmd(YTCommand):
             if args.grids:
                 plt.annotate_grids()
             if args.time:
-                time = ds.current_time.in_units("yr")
-                plt.annotate_text((0.2,0.8), 't = %5.2e yr'%time)
+                plt.annotate_timestamp()
+
+            if args.field_unit:
+                plt.set_unit(args.field, args.field_unit)
 
             plt.set_cmap(args.field, args.cmap)
             plt.set_log(args.field, args.takelog)
@@ -954,7 +982,7 @@ class YTNotebookCmd(YTCommand):
             )
     description = \
         """
-        Run the IPython Notebook
+        Start the Jupyter Notebook locally. 
         """
     def __call__(self, args):
         kwargs = {}
@@ -972,7 +1000,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.yt/config")
+            print("yt configuration file at ~/.config/yt/ytrc")
             print()
             print("notebook_password = %s" % pw)
             print()
@@ -1065,9 +1093,6 @@ class YTUpdateCmd(YTCommand):
             print()
             print("This installation CAN be automatically updated.")
             update_hg_or_git(path)
-            _get_yt_stack_date()
-            if opts.reinstall:
-                _update_yt_stack(path)
         else:
             _print_failed_source_update(opts.reinstall)
 
@@ -1147,6 +1172,84 @@ class YTUploadImageCmd(YTCommand):
             print()
             pprint.pprint(rv)
 
+
+class YTUploadFileCmd(YTCommand):
+    args = (dict(short="file", type=str),)
+    description = \
+        """
+        Upload a file to yt's curldrop.
+
+        """
+    name = "upload"
+
+    def __call__(self, args):
+        try:
+            import requests
+        except ImportError:
+            raise YTCommandRequiresModule('requests')
+
+        fs = iter(FileStreamer(open(args.file, 'rb')))
+        upload_url = ytcfg.get("yt", "curldrop_upload_url")
+        r = requests.put(upload_url + "/" + os.path.basename(args.file),
+                         data=fs)
+        print()
+        print(r.text)
+
+
+class YTConfigGetCmd(YTCommand):
+    subparser = 'config'
+    name = 'get'
+    description = 'get a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to retrieve.'))
+    def __call__(self, args):
+        from yt.utilities.configure import get_config
+        print(get_config(args.section, args.option))
+
+
+class YTConfigSetCmd(YTCommand):
+    subparser = 'config'
+    name = 'set'
+    description = 'set a config value'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to set.'),
+            dict(short='value', help='The value to set the option to.'))
+    def __call__(self, args):
+        from yt.utilities.configure import set_config
+        set_config(args.section, args.option, args.value)
+
+
+class YTConfigRemoveCmd(YTCommand):
+    subparser = 'config'
+    name = 'rm'
+    description = 'remove a config option'
+    args = (dict(short='section', help='The section containing the option.'),
+            dict(short='option', help='The option to remove.'))
+    def __call__(self, args):
+        from yt.utilities.configure import rm_config
+        rm_config(args.section, args.option)
+
+
+class YTConfigListCmd(YTCommand):
+    subparser = 'config'
+    name = 'list'
+    description = 'show the config content'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import write_config
+        write_config(sys.stdout)
+
+
+class YTConfigMigrateCmd(YTCommand):
+    subparser = 'config'
+    name = 'migrate'
+    description = 'migrate old config file'
+    args = ()
+    def __call__(self, args):
+        from yt.utilities.configure import migrate_config
+        migrate_config()
+
+
 class YTSearchCmd(YTCommand):
     args = (dict(short="-o", longname="--output",
                  action="store", type=str,
@@ -1196,6 +1299,76 @@ class YTSearchCmd(YTCommand):
         print("Identified %s records output to %s" % (
               len(records), args.output))
 
+class YTDownloadData(YTCommand):
+
+    args = (
+        dict(short="filename", action="store", type=str,
+             help="The name of the file to download", nargs='?',
+             default=''), 
+        dict(short="location", action="store", type=str, nargs='?',
+             help="The location in which to place the file, can be "
+                  "\"supp_data_dir\", \"test_data_dir\", or any valid "
+                  "path on disk. ", default=''),
+        dict(longname="--overwrite", short="-c",
+             help="Overwrite existing file.",
+             action="store_true", default=False),
+        dict(longname="--list", short="-l",
+             help="Display all available files.",
+             action="store_true", default=False),
+    )
+    description = \
+        """
+        Download a file from http://yt-project.org/data and save it to a 
+        particular location. Files can be saved to the locations provided 
+        by the "test_data_dir" or "supp_data_dir" configuration entries, or
+        any valid path to a location on disk.
+        """
+    name = "download"
+
+    def __call__(self, args):
+        if args.list:
+            self.get_list()
+            return
+        if not args.filename:
+            raise RuntimeError('You need to provide a filename. See --help '
+                               'for details or use --list to get available '
+                               'datasets.')
+        elif not args.location:
+            raise RuntimeError('You need to specify download location. See '
+                               '--help for details.')
+        data_url = "http://yt-project.org/data/%s" % args.filename
+        if args.location in ["test_data_dir", "supp_data_dir"]:
+            data_dir = ytcfg.get("yt", args.location)
+            if data_dir == "/does/not/exist":
+                raise RuntimeError("'%s' is not configured!" % args.location)
+        else:
+            data_dir = args.location
+        if not os.path.exists(data_dir):
+            print("The directory '%s' does not exist. Creating..." % data_dir)
+            ensure_dir(data_dir)
+        data_file = os.path.join(data_dir, args.filename)
+        if os.path.exists(data_file) and not args.overwrite:
+            raise IOError("File '%s' exists and overwrite=False!" % data_file)
+        print("Attempting to download file: %s" % args.filename)
+        fn = download_file(data_url, data_file)
+
+        if not os.path.exists(fn):
+            raise IOError("The file '%s' did not download!!" % args.filename)
+        print("File: %s downloaded successfully to %s" %
+              (args.filename, data_file))
+
+    def get_list(self):
+        data = urllib.request.urlopen(
+            'http://yt-project.org/data/datafiles.json').read().decode('utf8')
+        data = json.loads(data)
+        for key in data:
+            for ds in data[key]:
+                ds['fullname'] = ds['url'].replace(
+                    'http://yt-project.org/data/', '')
+                print('{fullname} ({size}) type: {code}'.format(**ds))
+                for line in textwrap.wrap(ds['description']):
+                    print('\t', line)
+
 def run_main():
     args = parser.parse_args()
     # The following is a workaround for a nasty Python 3 bug:
@@ -1206,7 +1379,7 @@ def run_main():
     except AttributeError:
         parser.print_help()
         sys.exit(0)
-        
+
     args.func(args)
 
 if __name__ == "__main__": run_main()

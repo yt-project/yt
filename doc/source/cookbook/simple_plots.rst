@@ -43,6 +43,14 @@ See :ref:`how-to-make-2d-profiles` for more information.
 
 .. yt_cookbook:: simple_phase.py
 
+Simple 1D Line Plotting
+~~~~~~~~~~~~~~~~~~~~~~~
+
+This script shows how to make a ``LinePlot`` through a dataset.
+See :ref:`how-to-1d-line-plot` for more information.
+
+.. yt_cookbook:: simple_1d_line_plot.py
+
 Simple Probability Distribution Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -80,17 +88,17 @@ See :ref:`how-to-make-1d-profiles` for more information.
 
 .. yt_cookbook:: time_series_profiles.py
 
-.. _cookbook-profile-variance:
+.. _cookbook-profile-stddev:
 
-Profiles with Variance Values
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Profiles with Standard Deviation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-This shows how to plot the variance for a 1D profile.  In this example, we
-manually create a 1D profile object, which gives us access to the variance
-data.
-See :ref:`how-to-make-1d-profiles` for more information.
+This shows how to plot a 1D profile with error bars indicating the standard
+deviation of the field values in each profile bin.  In this example, we manually
+create a 1D profile object, which gives us access to the standard deviation
+data.  See :ref:`how-to-make-1d-profiles` for more information.
 
-.. yt_cookbook:: profile_with_variance.py
+.. yt_cookbook:: profile_with_standard_deviation.py
 
 Making Plots of Multiple Fields Simultaneously
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

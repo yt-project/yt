@@ -95,7 +95,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         indexes into the grid cells which the ray crosses in order.
 
     """
-    cdef int i, I
+    cdef np.int_t i, I
     cdef np.float64_t a, b, bsqrd, twoa
     cdef np.ndarray[np.float64_t, ndim=1] p1cart, p2cart, dpcart, t, s, \
                                           rleft, rright, zleft, zright, \
@@ -117,12 +117,12 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     zleft = left_edges[:,1]
     zright = right_edges[:,1]
 
-    a = (dpcart[0]**2) + (dpcart[1]**2)
-    b = (2*dpcart[0]*p1cart[0]) + (2*dpcart[1]*p1cart[1])
-    cleft = ((p1cart[0]**2) + (p1cart[1]**2)) - rleft**2
-    cright = ((p1cart[0]**2) + (p1cart[1]**2)) - rright**2
-    twoa = 2*a
-    bsqrd = b**2
+    a = dpcart[0] * dpcart[0] + dpcart[1] * dpcart[1]
+    b = 2 * dpcart[0] * p1cart[0] + 2 * dpcart[1] * p1cart[1]
+    cleft = p1cart[0] * p1cart[0] + p1cart[1] * p1cart[1] - rleft * rleft
+    cright = p1cart[0] * p1cart[0] + p1cart[1] * p1cart[1] - rright * rright
+    twoa = 2 * a
+    bsqrd = b * b
 
     # Compute positive and negative times and associated masks
     I = np.intp(left_edges.shape[0])
@@ -155,7 +155,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         thetaleft = np.empty(I)
         thetaleft.fill(p1[2])
         thetaright = np.empty(I)
-        thetaleft.fill(p2[2])
+        thetaright.fill(p2[2])
     else:
         rleft = rleft[inds]
         rright = rright[inds]
@@ -200,20 +200,22 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     # find intersections and compute return values
     tsect, dsect = _cart_intersect(p1cart, p2cart, _cyl2cart(b1), _cyl2cart(b2))
     tmask = np.logical_and(0.0<=tsect, tsect<=1.0)
-    tsect, tinds = np.unique(tsect[tmask], return_index=True)
+    ret = np.unique(tsect[tmask], return_index=True)
+    tsect, tinds = ret[0], ret[1].astype('int64')
     inds = inds[tmask][tinds]
     xyz = dsect[tmask][tinds]
-    s = np.sqrt(((xyz - p1cart)**2).sum(axis=1))
-    s, sinds = np.unique(s, return_index=True)
+    s = np.sqrt(((xyz - p1cart) * (xyz - p1cart)).sum(axis=1))
+    ret = np.unique(s, return_index=True)
+    s, sinds = ret[0], ret[1].astype('int64')
     inds = inds[sinds]
     xyz = xyz[sinds]
-    t = s/np.sqrt((dpcart**2).sum())
+    t = s/np.sqrt((dpcart*dpcart).sum())
     sinds = s.argsort()
     s = s[sinds]
     t = t[sinds]
     inds = inds[sinds]
     xyz = xyz[sinds]
-    rztheta = np.concatenate([np.sqrt(xyz[:,0]**2 + xyz[:,1]**2)[:,np.newaxis], 
+    rztheta = np.concatenate([np.sqrt(xyz[:,0] * xyz[:,0] + xyz[:,1] * xyz[:,1])[:,np.newaxis], 
                               xyz[:,2:3],
                               np.arctan2(xyz[:,1], xyz[:,0])[:,np.newaxis]], axis=1)
     return t, s, rztheta, inds

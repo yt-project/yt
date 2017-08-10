@@ -2,6 +2,8 @@ import os
 import sys
 
 from yt.convenience import load
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogDataset
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds
@@ -30,6 +32,7 @@ def test_halo_finders():
                           "halo_catalogs", method,
                           "%s.0.h5" % method)
         ds = load(fn)
+        assert isinstance(ds, HaloCatalogDataset)
         for field in _fields:
             yield FieldValuesTest(ds, field, particle_type=True,
                                   decimals=decimals[method])

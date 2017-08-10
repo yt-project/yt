@@ -309,7 +309,7 @@ Quantities
 ^^^^^^^^^^
 
 A quantity is a call back that returns a value or values. The return values
-are stored within the halo object in a dictionary called “quantities.” At
+are stored within the halo object in a dictionary called "quantities." At
 the end of the analysis, all of these quantities will be written to disk as
 the final form of the generated halo catalog.
 
@@ -481,7 +481,9 @@ Saving and Reloading Halo Catalogs
 
 A :class:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog`
 saved to disk can be reloaded as a yt dataset with the
-standard call to ``yt.load``. Any side data, such as profiles, can be reloaded
+standard call to ``yt.load``.  See :ref:`halocatalog` for a demonstration
+of loading and working only with the catalog.
+Any side data, such as profiles, can be reloaded
 with a ``load_profiles`` callback and a call to
 :func:`~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog.load`.
 

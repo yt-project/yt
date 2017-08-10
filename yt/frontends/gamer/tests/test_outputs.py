@@ -34,7 +34,7 @@ jet_units   = {"length_unit":(1.0,"kpc"),
 @requires_ds(jet, big_data=True)
 def test_jet():
     ds = data_dir_load(jet, kwargs={"units_override":jet_units})
-    yield assert_equal, str(ds), "jet_000002"
+    assert_equal(str(ds), "jet_000002")
     for test in small_patch_amr(ds, _fields_jet):
         test_jet.__name__ = test.description
         yield test
@@ -46,9 +46,21 @@ _fields_psiDM = ("Dens", "Real", "Imag")
 @requires_ds(psiDM, big_data=True)
 def test_psiDM():
     ds = data_dir_load(psiDM)
-    yield assert_equal, str(ds), "psiDM_000020"
+    assert_equal(str(ds), "psiDM_000020")
     for test in small_patch_amr(ds, _fields_psiDM):
         test_psiDM.__name__ = test.description
+        yield test
+
+
+plummer         = "Plummer/plummer_000000"
+_fields_plummer = ( ("gamer","ParDens"), ("deposit","io_cic") )
+
+@requires_ds(plummer, big_data=True)
+def test_plummer():
+    ds = data_dir_load(plummer)
+    assert_equal(str(ds), "plummer_000000")
+    for test in small_patch_amr(ds, _fields_plummer):
+        test_plummer.__name__ = test.description
         yield test
 
 
@@ -59,5 +71,4 @@ def test_GAMERDataset():
 
 @requires_file(jet)
 def test_units_override():
-    for test in units_override_check(jet):
-        yield test
+    units_override_check(jet)

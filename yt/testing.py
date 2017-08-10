@@ -32,6 +32,7 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA
 from numpy.testing import assert_string_equal  # NOQA
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA
 from numpy.testing import assert_allclose, assert_raises  # NOQA
+from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTUnitOperationError
@@ -180,6 +181,7 @@ def fake_random_ds(
         negative = False, nprocs = 1, particles = 0, length_unit=1.0,
         unit_system="cgs", bbox=None):
     from yt.frontends.stream.api import load_uniform_grid
+    prng = RandomState(0x4d3d3d3)
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
     else:
@@ -195,7 +197,7 @@ def fake_random_ds(
             offsets.append(0.0)
     data = {}
     for field, offset, u in zip(fields, offsets, units):
-        v = (np.random.random(ndims) - offset) * peak_value
+        v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
             data['number_of_particles'] = v.size
             v = v.ravel()
@@ -204,15 +206,17 @@ def fake_random_ds(
         if particle_fields is not None:
             for field, unit in zip(particle_fields, particle_field_units):
                 if field in ('particle_position', 'particle_velocity'):
-                    data['io', field] = (np.random.random((particles, 3)), unit)
+                    data['io', field] = (
+                        prng.random_sample((int(particles), 3)), unit)
                 else:
-                    data['io', field] = (np.random.random(size=particles), unit)
+                    data['io', field] = (
+                        prng.random_sample(size=int(particles)), unit)
         else:
             for f in ('particle_position_%s' % ax for ax in 'xyz'):
-                data['io', f] = (np.random.random(size=particles), 'code_length')
+                data['io', f] = (prng.random_sample(size=particles), 'code_length')
             for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-                data['io', f] = (np.random.random(size=particles) - 0.5, 'cm/s')
-            data['io', 'particle_mass'] = (np.random.random(particles), 'g')
+                data['io', f] = (prng.random_sample(size=particles) - 0.5, 'cm/s')
+            data['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
         data['number_of_particles'] = particles
     ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
                            unit_system=unit_system, bbox=bbox)
@@ -229,8 +233,9 @@ _geom_transforms = {
                    ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlondep
 }
 
-def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
+def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0):
     from yt.frontends.stream.api import load_amr_grids
+    prng = RandomState(0x4d3d3d3)
     LE, RE = _geom_transforms[geometry]
     LE = np.array(LE)
     RE = np.array(RE)
@@ -244,7 +249,17 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian"):
                      right_edge = right_edge,
                      dimensions = dims)
         for f in fields:
-            gdata[f] = np.random.random(dims)
+            gdata[f] = prng.random_sample(dims)
+        if particles:
+            for i, f in enumerate('particle_position_%s' % ax for ax in 'xyz'):
+                pdata = prng.random_sample(particles)
+                pdata /= (right_edge[i] - left_edge[i])
+                pdata += left_edge[i]
+                gdata['io', f] = (pdata, 'code_length')
+            for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
+                gdata['io', f] = (prng.random_sample(particles) - 0.5, 'cm/s')
+            gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
+            gdata['number_of_particles'] = particles
         data.append(gdata)
     bbox = np.array([LE, RE]).T
     return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox)
@@ -261,6 +276,8 @@ def fake_particle_ds(
         negative = (False, False, False, False, True, True, True),
         npart = 16**3, length_unit=1.0):
     from yt.frontends.stream.api import load_particles
+
+    prng = RandomState(0x4d3d3d3)
     if not iterable(negative):
         negative = [negative for f in fields]
     assert(len(fields) == len(negative))
@@ -273,9 +290,9 @@ def fake_particle_ds(
     data = {}
     for field, offset, u in zip(fields, offsets, units):
         if "position" in field:
-            v = np.random.normal(loc=0.5, scale=0.25, size=npart)
+            v = prng.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
-        v = (np.random.random(npart) - offset)
+        v = (prng.random_sample(npart) - offset)
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
     ds = load_particles(data, 1.0, bbox=bbox)
@@ -287,6 +304,8 @@ def fake_tetrahedral_ds():
     from yt.frontends.stream.sample_data.tetrahedral_mesh import \
         _connectivity, _coordinates
 
+    prng = RandomState(0x4d3d3d3)
+
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
@@ -294,7 +313,7 @@ def fake_tetrahedral_ds():
 
     # each element gets a random number
     elem_data = {}
-    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+    elem_data[('connect1', 'elem')] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(_connectivity,
                                 _coordinates,
@@ -308,6 +327,7 @@ def fake_hexahedral_ds():
     from yt.frontends.stream.sample_data.hexahedral_mesh import \
         _connectivity, _coordinates
 
+    prng = RandomState(0x4d3d3d3)
     # the distance from the origin
     node_data = {}
     dist = np.sum(_coordinates**2, 1)
@@ -315,13 +335,37 @@ def fake_hexahedral_ds():
 
     # each element gets a random number
     elem_data = {}
-    elem_data[('connect1', 'elem')] = np.random.rand(_connectivity.shape[0])
+    elem_data[('connect1', 'elem')] = prng.rand(_connectivity.shape[0])
 
     ds = load_unstructured_mesh(_connectivity-1,
                                 _coordinates,
                                 node_data=node_data,
                                 elem_data=elem_data)
     return ds
+
+def small_fake_hexahedral_ds():
+    from yt.frontends.stream.api import load_unstructured_mesh
+
+    _coordinates = np.array([[-1., -1., -1.],
+                              [ 0., -1., -1.],
+                              [ -0.,  0., -1.],
+                              [-1.,  -0., -1.],
+                              [-1., -1.,  0.],
+                              [ -0., -1.,  0.],
+                              [ -0.,  0.,  -0.],
+                              [-1.,  0.,  -0.]])
+    _connectivity = np.array([[1, 2, 3, 4, 5, 6, 7, 8]])
+
+    # the distance from the origin
+    node_data = {}
+    dist = np.sum(_coordinates**2, 1)
+    node_data[('connect1', 'test')] = dist[_connectivity-1]
+
+    ds = load_unstructured_mesh(_connectivity-1,
+                                _coordinates,
+                                node_data=node_data)
+    return ds
+
 
 
 def fake_vr_orientation_test_ds(N = 96, scale=1):
@@ -335,13 +379,13 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     This dataset allows you to easily explore orientations and
     handiness in VR and other renderings
 
-    Parameters:
-    -----------
+    Parameters
+    ----------
 
-    N: integer
+    N : integer
        The number of cells along each direction
 
-    scale: float
+    scale : float
        A spatial scale, the domain boundaries will be multiplied by scale to
        test datasets that have spatial different scales (e.g. data in CGS units)
 
@@ -558,7 +602,7 @@ def units_override_check(fn):
         unit_attr = getattr(ds2, "%s_unit" % u, None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
-    yield assert_equal, attrs1, attrs2
+    assert_equal(attrs1, attrs2)
 
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
@@ -793,17 +837,17 @@ def check_results(func):
     Examples
     --------
 
-    @check_results
-    def my_func(ds):
-        return ds.domain_width
+    >>> @check_results
+    ... def my_func(ds):
+    ...     return ds.domain_width
 
-    my_func(ds)
+    >>> my_func(ds)
 
-    @check_results
-    def field_checker(dd, field_name):
-        return dd[field_name]
+    >>> @check_results
+    ... def field_checker(dd, field_name):
+    ...     return dd[field_name]
 
-    field_cheker(ds.all_data(), 'density', result_basename='density')
+    >>> field_cheker(ds.all_data(), 'density', result_basename='density')
 
     """
     def compute_results(func):
@@ -875,7 +919,7 @@ def periodicity_cases(ds):
                 yield center
 
 def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
-             call_pdb = False):
+             call_pdb=False, module=None):
     from yt.utilities.on_demand_imports import _nose
     import sys
     from yt.utilities.logger import ytLogger as mylog
@@ -891,6 +935,8 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
         nose_argv.append('--with-answer-testing')
     if answer_big_data:
         nose_argv.append('--answer-big-data')
+    if module:
+        nose_argv.append(module)
     initial_dir = os.getcwd()
     yt_file = os.path.abspath(__file__)
     yt_dir = os.path.dirname(yt_file)
@@ -934,9 +980,12 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
         with the units of ``actual`` and ``desired``. If no units are attached,
         assumes the same units as ``desired``. Defaults to zero.
 
+    Notes
+    -----
     Also accepts additional keyword arguments accepted by
     :func:`numpy.testing.assert_allclose`, see the documentation of that
     function for details.
+
     """
     # Create a copy to ensure this function does not alter input arrays
     act = YTArray(actual)
@@ -970,3 +1019,30 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
     at = at.value
 
     return assert_allclose(act, des, rt, at, **kwargs)
+
+def assert_fname(fname):
+    """Function that checks file type using libmagic"""
+    if fname is None:
+        return
+
+    with open(fname, 'rb') as fimg:
+        data = fimg.read()
+    image_type = ''
+
+    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
+    if data.startswith(b'\211PNG\r\n\032\n'):
+        image_type = '.png'
+    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
+    elif data.startswith(b'\377\330'):
+        image_type = '.jpeg'
+    elif data.startswith(b'%!PS-Adobe'):
+        data_str = data.decode("utf-8", "ignore")
+        if 'EPSF' in data_str[:data_str.index('\n')]:
+            image_type = '.eps'
+        else:
+            image_type = '.ps'
+    elif data.startswith(b'%PDF'):
+        image_type = '.pdf'
+
+    return image_type == os.path.splitext(fname)[1]
+

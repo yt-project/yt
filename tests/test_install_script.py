@@ -1,6 +1,7 @@
 import contextlib
 import glob
 import os
+import platform
 import shutil
 import subprocess
 import sys
@@ -8,7 +9,7 @@ import tempfile
 
 # dependencies that are always installed
 REQUIRED_DEPS = [
-    'mercurial',
+    'git',
     'jupyter',
     'numpy',
     'matplotlib',
@@ -17,12 +18,11 @@ REQUIRED_DEPS = [
     'nose',
     'sympy',
     'setuptools',
-    'hglib'
 ]
 
 # dependencies that aren't installed by default
 OPTIONAL_DEPS = [
-    'unstructured',
+    'embree',
     'pyx',
     'rockstar',
     'scipy',
@@ -31,17 +31,12 @@ OPTIONAL_DEPS = [
 
 # dependencies that are only installable when yt is built from source
 YT_SOURCE_ONLY_DEPS = [
-    'unstructured',
+    'embree',
     'rockstar'
 ]
 
-# dependencies that are only installable when yt is built from source under conda
-YT_SOURCE_CONDA_ONLY_DEPS = [
-    'unstructured'
-]
-
 DEPENDENCY_IMPORT_TESTS = {
-    'unstructured': "from yt.utilities.lib import mesh_traversal",
+    'embree': "from yt.utilities.lib import mesh_traversal",
     'rockstar': ("from yt.analysis_modules.halo_finding.rockstar "
                  "import rockstar_interface")
 }
@@ -56,11 +51,11 @@ def call_unix_command(command):
     except subprocess.CalledProcessError as er:
         raise RuntimeError(
             'Command \'%s\' failed with return code \'%s\' and error:\n\n%s' %
-            (command, er.returncode, er.output))
+            (command, er.returncode, er.output.decode('utf-8')))
     finally:
         if len(output.splitlines()) > 25:
             print ('truncated output:')
-            print ('\n'.join((output.splitlines())[-25:]))
+            print ('\n'.join((output.decode().splitlines())[-25:]))
         else:
             print (output)
 
@@ -80,10 +75,9 @@ def working_directory(path):
         shutil.rmtree(path)
 
 
-def run_install_script(install_script_path, inst_py3,
-                       conda=False, binary_yt=False):
-    msg = 'Testing installation with conda={}, inst_py3={}, and binary_yt={}'
-    print (msg.format(conda, inst_py3, binary_yt))
+def run_install_script(install_script_path, inst_py3, binary_yt=False):
+    msg = 'Testing installation with inst_py3={} and binary_yt={}'
+    print (msg.format(inst_py3, binary_yt))
     shutil.copy(install_script_path, os.curdir)
     with open('install_script.sh', 'r') as source:
         with open('install_script_edited.sh', 'w') as target:
@@ -91,14 +85,14 @@ def run_install_script(install_script_path, inst_py3,
             for dep in OPTIONAL_DEPS:
                 if binary_yt is True and dep in YT_SOURCE_ONLY_DEPS:
                     continue
-                if conda is False and dep in YT_SOURCE_CONDA_ONLY_DEPS:
-                    continue
+                if dep == 'rockstar':
+                    # compiling rockstar is broken on newer MacOS releases
+                    if platform.mac_ver()[0].startswith(('10.12', '10.13')):
+                        continue
                 dname = 'INST_%s' % dep.upper()
                 data = data.replace(dname + '=0', dname + '=1')
             if inst_py3 is True:
                 data = data.replace('INST_PY3=0', 'INST_PY3=1')
-            if conda is False:
-                data = data.replace('INST_CONDA=1', 'INST_CONDA=0')
             if binary_yt is False:
                 data = data.replace('INST_YT_SOURCE=0', 'INST_YT_SOURCE=1')
             target.write(data)
@@ -106,7 +100,7 @@ def run_install_script(install_script_path, inst_py3,
     call_unix_command('bash install_script.sh --yes')
 
 
-def verify_yt_installation(binary_yt, conda):
+def verify_yt_installation(binary_yt):
     yt_dir = glob.glob('yt-*')
     ndirs = len(yt_dir)
     if ndirs != 1:
@@ -117,14 +111,15 @@ def verify_yt_installation(binary_yt, conda):
     for dep in OPTIONAL_DEPS + REQUIRED_DEPS:
         if binary_yt is True and dep in YT_SOURCE_ONLY_DEPS:
             continue
-        if conda is False and dep in YT_SOURCE_CONDA_ONLY_DEPS:
-            continue
-        elif dep == 'mercurial':
-            hg_path = os.sep.join([yt_dir, 'bin', 'hg'])
-            call_unix_command('{} --version'.format(hg_path))
-        elif dep in DEPENDENCY_IMPORT_TESTS:
+        if dep == 'git':
+            git_path = os.sep.join([yt_dir, 'bin', 'git'])
+            call_unix_command('{} --version'.format(git_path))
+        if dep in DEPENDENCY_IMPORT_TESTS:
             cmd = "{} -c '{}'"
             if dep == 'rockstar':
+                # compiling rockstar is broken on newer MacOS releases
+                if platform.mac_ver()[0].startswith(('10.12', '10.13')):
+                    continue
                 cmd = 'LD_LIBRARY_PATH={} '.format(
                     os.sep.join([os.curdir, yt_dir, 'lib'])) + cmd
                 if sys.platform == 'darwin':
@@ -142,20 +137,10 @@ if __name__ == '__main__':
     for inst_py3 in [False, True]:
         tmpdir = tempfile.mkdtemp()
         with working_directory(tmpdir):
-            run_install_script(
-                install_script_path, inst_py3, conda=True, binary_yt=True)
-            conda_binary_path = verify_yt_installation(
-                binary_yt=True, conda=True)
+            run_install_script(install_script_path, inst_py3, binary_yt=True)
+            conda_binary_path = verify_yt_installation(binary_yt=True)
             shutil.rmtree(conda_binary_path)
 
-            run_install_script(
-                install_script_path, inst_py3, conda=True, binary_yt=False)
-            conda_source_path = verify_yt_installation(
-                binary_yt=False, conda=True)
+            run_install_script(install_script_path, inst_py3, binary_yt=False)
+            conda_source_path = verify_yt_installation(binary_yt=False)
             shutil.rmtree(conda_source_path)
-
-            run_install_script(
-                install_script_path, inst_py3, conda=False, binary_yt=False)
-            source_path = verify_yt_installation(
-                binary_yt=False, conda=False)
-            shutil.rmtree(source_path)

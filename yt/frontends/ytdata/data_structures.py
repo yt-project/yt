@@ -41,11 +41,16 @@ from yt.data_objects.static_output import \
 from yt.extern.six import \
     string_types
 from yt.funcs import \
-    is_root
+    is_root, \
+    parse_h5_attr
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
+from yt.units import \
+    dimensions
+from yt.units.unit_registry import \
+    UnitRegistry
 from yt.units.yt_array import \
     YTQuantity
 from yt.utilities.logger import \
@@ -56,6 +61,8 @@ from yt.utilities.on_demand_imports import \
     _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
+from yt.utilities.tree_container import \
+    TreeContainer
 from yt.fields.field_exceptions import \
     NeedsGridType
 from yt.data_objects.data_containers import \
@@ -65,15 +72,12 @@ _grid_data_containers = ["abritrary_grid",
                          "covering_grid",
                          "smoothed_covering_grid"]
 
-def parse_h5_attr(f, attr):
-    val = f.attrs.get(attr, None)
-    if isinstance(val, bytes):
-        return val.decode('utf8')
-    else:
-        return val
+class SavedDataset(Dataset):
+    """
+    Base dataset class for products of calling save_as_dataset.
+    """
+    _con_attrs = ()
 
-class YTDataset(Dataset):
-    """Base dataset class for all ytdata datasets."""
     def _parse_parameter_file(self):
         self.refine_by = 2
         with h5py.File(self.parameter_filename, "r") as f:
@@ -82,17 +86,108 @@ class YTDataset(Dataset):
                 if key == "con_args":
                     v = v.astype("str")
                 self.parameters[key] = v
-            self.num_particles = \
-              dict([(group, parse_h5_attr(f[group], "num_elements"))
-                    for group in f if group != self.default_fluid_type])
-        for attr in ["cosmological_simulation", "current_time", "current_redshift",
-                     "hubble_constant", "omega_matter", "omega_lambda",
-                     "dimensionality", "domain_dimensions", "periodicity",
-                     "domain_left_edge", "domain_right_edge",
-                     "container_type", "data_type"]:
+            self._with_parameter_file_open(f)
+
+        # if saved, restore unit registry from the json string
+        if "unit_registry_json" in self.parameters:
+            self.unit_registry = UnitRegistry.from_json(
+                self.parameters["unit_registry_json"])
+            # reset self.arr and self.quan to use new unit_registry
+            self._arr = None
+            self._quan = None
+            for dim in ["length", "mass", "pressure",
+                        "temperature", "time", "velocity"]:
+                cu = "code_" + dim
+                if cu not in self.unit_registry:
+                    self.unit_registry.add(
+                        cu, 1.0, getattr(dimensions, dim))
+            if "code_magnetic" not in self.unit_registry:
+                self.unit_registry.add("code_magnetic", 1.0,
+                                       dimensions.magnetic_field)
+
+        # if saved, set unit system
+        if "unit_system_name" in self.parameters:
+            unit_system = self.parameters["unit_system_name"]
+            del self.parameters["unit_system_name"]
+        else:
+            unit_system = "cgs"
+        # reset unit system since we may have a new unit registry
+        self._assign_unit_system(unit_system)
+
+        # assign units to parameters that have associated unit string
+        del_pars = []
+        for par in self.parameters:
+            ustr = "%s_units" % par
+            if ustr in self.parameters:
+                if isinstance(self.parameters[par], np.ndarray):
+                    to_u = self.arr
+                else:
+                    to_u = self.quan
+                self.parameters[par] = to_u(
+                    self.parameters[par], self.parameters[ustr])
+                del_pars.append(ustr)
+        for par in del_pars:
+            del self.parameters[par]
+
+        for attr in self._con_attrs:
             setattr(self, attr, self.parameters.get(attr))
         self.unique_identifier = \
           int(os.stat(self.parameter_filename)[stat.ST_CTIME])
+
+    def _with_parameter_file_open(self, f):
+        # This allows subclasses to access the parameter file
+        # while it's still open to get additional information.
+        pass
+
+    def set_units(self):
+        if "unit_registry_json" in self.parameters:
+            self._set_code_unit_attributes()
+            del self.parameters["unit_registry_json"]
+        else:
+            super(SavedDataset, self).set_units()
+
+    def _set_code_unit_attributes(self):
+        attrs = ('length_unit', 'mass_unit', 'time_unit',
+                 'velocity_unit', 'magnetic_unit')
+        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
+        base_units = np.ones(len(attrs))
+        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
+            if attr in self.parameters and \
+              isinstance(self.parameters[attr], YTQuantity):
+                uq = self.parameters[attr]
+            elif attr in self.parameters and \
+              "%s_units" % attr in self.parameters:
+                uq = self.quan(self.parameters[attr],
+                               self.parameters["%s_units" % attr])
+                del self.parameters[attr]
+                del self.parameters["%s_units" % attr]
+            elif isinstance(unit, string_types):
+                uq = self.quan(1.0, unit)
+            elif isinstance(unit, numeric_type):
+                uq = self.quan(unit, cgs_unit)
+            elif isinstance(unit, YTQuantity):
+                uq = unit
+            elif isinstance(unit, tuple):
+                uq = self.quan(unit[0], unit[1])
+            else:
+                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+            setattr(self, attr, uq)
+
+class YTDataset(SavedDataset):
+    """Base dataset class for all ytdata datasets."""
+
+    _con_attrs = ("cosmological_simulation", "current_time",
+                  "current_redshift", "hubble_constant",
+                  "omega_matter", "omega_lambda",
+                  "dimensionality", "domain_dimensions",
+                  "periodicity",
+                  "domain_left_edge", "domain_right_edge",
+                  "container_type", "data_type")
+
+    def _with_parameter_file_open(self, f):
+        self.num_particles = \
+          dict([(group, parse_h5_attr(f[group], "num_elements"))
+                for group in f if group != self.default_fluid_type])
 
     def create_field_info(self):
         self.field_dependencies = {}
@@ -122,24 +217,6 @@ class YTDataset(Dataset):
 
     def _setup_override_fields(self):
         pass
-
-    def _set_code_unit_attributes(self):
-        attrs = ('length_unit', 'mass_unit', 'time_unit',
-                 'velocity_unit', 'magnetic_unit')
-        cgs_units = ('cm', 'g', 's', 'cm/s', 'gauss')
-        base_units = np.ones(len(attrs))
-        for unit, attr, cgs_unit in zip(base_units, attrs, cgs_units):
-            if isinstance(unit, string_types):
-                uq = self.quan(1.0, unit)
-            elif isinstance(unit, numeric_type):
-                uq = self.quan(unit, cgs_unit)
-            elif isinstance(unit, YTQuantity):
-                uq = unit
-            elif isinstance(unit, tuple):
-                uq = self.quan(unit[0], unit[1])
-            else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
-            setattr(self, attr, uq)
 
 class YTDataHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
@@ -185,6 +262,7 @@ class YTDataContainerDataset(YTDataset):
         # cover the field_list.
         self.field_info.alias(("gas", "cell_volume"), ("grid", "cell_volume"))
 
+    _data_obj = None
     @property
     def data(self):
         """
@@ -192,27 +270,21 @@ class YTDataContainerDataset(YTDataset):
         create this dataset.
         """
 
-        # Some data containers can't be recontructed in the same way
-        # since this is now particle-like data.
-        data_type = self.parameters["data_type"]
-        container_type = self.parameters["container_type"]
-        ex_container_type = ["cutting", "proj", "ray", "slice"]
-        if data_type == "yt_light_ray" or container_type in ex_container_type:
-            mylog.info("Returning an all_data data container.")
-            return self.all_data()
+        if self._data_obj is None:
+            # Some data containers can't be recontructed in the same way
+            # since this is now particle-like data.
+            data_type = self.parameters.get("data_type")
+            container_type = self.parameters.get("container_type")
+            ex_container_type = ["cutting", "proj", "ray", "slice", "cut_region"]
+            if data_type == "yt_light_ray" or container_type in ex_container_type:
+                mylog.info("Returning an all_data data container.")
+                return self.all_data()
 
-        my_obj = getattr(self, self.parameters["container_type"])
-        my_args = []
-        for con_arg in self.parameters["con_args"]:
-            my_arg = self.parameters[con_arg]
-            my_units = self.parameters.get("%s_units" % con_arg)
-            if my_units is not None:
-                if isinstance(my_arg, np.ndarray):
-                    my_arg = self.arr(my_arg, my_units)
-                else:
-                    my_arg = self.quan(my_arg, my_units)
-            my_args.append(my_arg)
-        return my_obj(*my_args)
+            my_obj = getattr(self, self.parameters["container_type"])
+            my_args = [self.parameters[con_arg]
+                       for con_arg in self.parameters["con_args"]]
+            self._data_obj = my_obj(*my_args)
+        return self._data_obj
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -255,15 +327,8 @@ class YTDataLightRayDataset(YTDataContainerDataset):
         for field in lrs_fields:
             field_name = field[len(key)+1:]
             for i in range(self.parameters[field].shape[0]):
-                self.light_ray_solution[i][field_name] = self.parameters[field][i]
-                if "%s_units" % field in self.parameters:
-                    if len(self.parameters[field].shape) > 1:
-                        to_val = self.arr
-                    else:
-                        to_val = self.quan
-                    self.light_ray_solution[i][field_name] = \
-                      to_val(self.light_ray_solution[i][field_name],
-                             self.parameters["%s_units" % field])
+                self.light_ray_solution[i][field_name] = \
+                  self.parameters[field][i]
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -525,20 +590,37 @@ class YTNonspatialGrid(AMRGridPatch):
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
+
         # The _read method will figure out which fields it needs to get from
         # disk, and return a dict of those fields along with the fields that
         # need to be generated.
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            convert = True
+            if v.dtype != np.float64:
+                if finfos[f].units == "":
+                    self.field_data[f] = v
+                    convert = False
+                else:
+                    v = v.astype(np.float64)
+            if convert:
+                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f].convert_to_units(finfos[f].output_units)
 
-        read_particles, gen_particles = self.index._read_particle_fields(
+        read_particles, gen_particles = self.index._read_fluid_fields(
                                         particles, self, self._current_chunk)
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
+            convert = True
+            if v.dtype != np.float64:
+                if finfos[f].units == "":
+                    self.field_data[f] = v
+                    convert = False
+                else:
+                    v = v.astype(np.float64)
+            if convert:
+                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
         self._generate_fields(fields_to_generate)
@@ -607,7 +689,7 @@ class YTNonspatialDataset(YTGridDataset):
 
     def _setup_classes(self):
         # We don't allow geometric selection for non-spatial datasets
-        pass
+        self.objects = []
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -681,9 +763,7 @@ class YTProfileDataset(YTNonspatialDataset):
                 my_range = np.log10(my_range)
             domain_left_edge[i] = my_range[0]
             domain_right_edge[i] = my_range[1]
-            setattr(self, range_name,
-                    self.arr(self.parameters[range_name],
-                             self.parameters[range_name+"_units"]))
+            setattr(self, range_name, self.parameters[range_name])
 
             bin_field = "%s_field" % ax
             if isinstance(self.parameters[bin_field], string_types) and \
@@ -731,5 +811,80 @@ class YTProfileDataset(YTNonspatialDataset):
         with h5py.File(args[0], "r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
+                return True
+        return False
+
+class YTClumpContainer(TreeContainer):
+    def __init__(self, clump_id, global_id, parent_id,
+                 contour_key, contour_id, ds=None):
+        self.clump_id = clump_id
+        self.global_id = global_id
+        self.parent_id = parent_id
+        self.contour_key = contour_key
+        self.contour_id = contour_id
+        self.parent = None
+        self.ds = ds
+        TreeContainer.__init__(self)
+
+    def add_child(self, child):
+        if self.children is None:
+            self.children = []
+        self.children.append(child)
+        child.parent = self
+
+    def __repr__(self):
+        return "Clump[%d]" % self.clump_id
+
+    def __getitem__(self, field):
+        g = self.ds.data
+        f = g._determine_fields(field)[0]
+        if f[0] == "clump":
+            return g[f][self.global_id]
+        if self.contour_id == -1:
+            return g[f]
+        cfield = (f[0], "contours_%s" % self.contour_key.decode('utf-8'))
+        if f[0] == "grid":
+            return g[f][g[cfield] == self.contour_id]
+        return self.parent[f][g[cfield] == self.contour_id]
+
+class YTClumpTreeDataset(YTNonspatialDataset):
+    """Dataset for saved clump-finder data."""
+    def __init__(self, filename, unit_system="cgs"):
+        super(YTClumpTreeDataset, self).__init__(filename,
+                                                 unit_system=unit_system)
+        self._load_tree()
+
+    def _load_tree(self):
+        my_tree = {}
+        for i, clump_id in enumerate(self.data[("clump", "clump_id")]):
+            my_tree[clump_id] = YTClumpContainer(
+                clump_id, i, self.data["clump", "parent_id"][i],
+                self.data["clump", "contour_key"][i],
+                self.data["clump", "contour_id"][i], self)
+        for clump in my_tree.values():
+            if clump.parent_id == -1:
+                self.tree = clump
+            else:
+                parent = my_tree[clump.parent_id]
+                parent.add_child(clump)
+
+    _leaves = None
+    @property
+    def leaves(self):
+        if self._leaves is None:
+            self._leaves = []
+            for clump in self.tree:
+                if clump.children is None:
+                    self._leaves.append(clump)
+        return self._leaves
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        if not args[0].endswith(".h5"): return False
+        with h5py.File(args[0], "r") as f:
+            data_type = parse_h5_attr(f, "data_type")
+            if data_type is None:
+                return False
+            if data_type == "yt_clump_tree":
                 return True
         return False

@@ -11,6 +11,295 @@ Contributors
 The `CREDITS file <http://bitbucket.org/yt_analysis/yt/src/yt/CREDITS>`_ contains the
 most up-to-date list of everyone who has contributed to the yt source code.
 
+Version 3.4
+-----------
+
+Version 3.4 is the first major release of yt since July 2016. It includes 450
+pull requests from 44 contributors including 18 new contributors.
+
+-  yt now supports displaying plots using the interactive matplotlib
+   backends. To enable this functionality call
+   ``yt.toggle_interactivity()``. This is currently supported at an
+   experimental level, please let us know if you come across issues
+   using it. See `Bitbucket PR
+   2294 <https://bitbucket.org/yt_analysis/yt/pull-requests/2294>`__.
+-  The yt configuration file should now be located in a location
+   following the XDG\_CONFIG convention (usually ``~/.config/yt/ytrc``)
+   rather than the old default location (usually ``~/.yt/config``). You
+   can use ``yt config migrate`` at the bash command line to migrate
+   your configuration file to the new location. See `Bitbucket PR
+   2343 <https://bitbucket.org/yt_analysis/yt/pull-requests/2343>`__.
+-  Added ``yt.LinePlot``, a new plotting class for creating 1D plots
+   along lines through a dataset. See `Github PR
+   1509 <https://github.com/yt-project/yt/pull/1509>`__ and `Github PR
+   1440 <https://github.com/yt-project/yt/pull/1440>`__.
+-  Added ``yt.define_unit`` to easily define new units in yt's unit
+   system. See `Bitbucket PR
+   2485 <https://bitbucket.org/yt_analysis/yt/pull-requests/2485>`__.
+-  Added ``yt.plot_2d``, a wrapper around SlicePlot for plotting 2D
+   datasets. See `Github PR
+   1476 <https://github.com/yt-project/yt/pull/1476>`__.
+-  We have restored support for boolean data objects. Boolean objects
+   are data objects that are defined in terms of boolean operations on
+   other data objects. See `Bitbucket PR
+   2257 <https://bitbucket.org/yt_analysis/yt/pull-requests/2257>`__.
+-  Datasets now have a ``fields`` attribute that allows access to fields
+   via a python object. For example, instead of using a tuple field name
+   like ``('gas', 'density')``, one can now use
+   ``ds.fields.gas.density``. See `Bitbucket PR
+   2459 <https://bitbucket.org/yt_analysis/yt/pull-requests/2459>`__.
+-  It is now possible to create a wider variety of data objects via
+   ``ds.r``, including rays, fixed resolution rays, points, and images.
+   See `Github PR 1518 <https://github.com/yt-project/yt/pull/1518>`__
+   and `Github PR 1393 <https://github.com/yt-project/yt/pull/1393>`__.
+-  ``add_field`` and ``ds.add_field`` must now be called with a
+   ``sampling_type`` keyword argument. Possible values are currently
+   ``cell`` and ``particle``. We have also deprecated the
+   ``particle_type`` keyword argument in favor of
+   ``sampling_type='cell'``. For now a ``'cell'`` ``sampling_type`` is
+   assumed if ``sampling_type`` is not specified but in the future
+   ``sampling_type`` will always need to be specified.
+-  Added support for the ``Athena++`` code. See `Bitbucket PR
+   2149 <https://bitbucket.org/yt_analysis/yt/pull-requests/2149>`__.
+-  Added support for the ``Enzo-p`` code. See `Github PR
+   1447 <https://github.com/yt-project/yt/pull/1447>`__, `Github PR
+   1443 <https://github.com/yt-project/yt/pull/1443>`__ and `Github PR
+   1439 <https://github.com/yt-project/yt/pull/1439>`__.
+-  Added support for the ``AMReX`` code. See `Bitbucket PR
+   2530 <https://bitbucket.org/yt_analysis/yt/pull-requests/2530>`__.
+-  Added support for the ``openPMD`` output format. See `Bitbucket PR
+   2376 <https://bitbucket.org/yt_analysis/yt/pull-requests/2376>`__.
+-  Added support for reading face-centered and vertex-centered fields
+   for block AMR codes. See `Bitbucket PR
+   2575 <https://bitbucket.org/yt_analysis/yt/pull-requests/2575>`__.
+-  Added support for loading outputs from the Amiga Halo Finder. See
+   `Github PR 1477 <https://github.com/yt-project/yt/pull/1477>`__.
+-  Added support for particle fields for Boxlib data. See `Bitbucket PR
+   2510 <https://bitbucket.org/yt_analysis/yt/pull-requests/2510>`__ and
+   `Bitbucket PR
+   2497 <https://bitbucket.org/yt_analysis/yt/pull-requests/2497>`__.
+-  Added support for custom RAMSES particle fields. See `Github PR
+   1470 <https://github.com/yt-project/yt/pull/1470>`__.
+-  Added support for RAMSES-RT data. See `Github PR
+   1456 <https://github.com/yt-project/yt/pull/1456>`__ and `Github PR
+   1449 <https://github.com/yt-project/yt/pull/1449>`__.
+-  Added support for Enzo MHDCT fields. See `Github PR
+   1438 <https://github.com/yt-project/yt/pull/1438>`__.
+-  Added support for units and particle fields to the GAMER frontend.
+   See `Bitbucket PR
+   2366 <https://bitbucket.org/yt_analysis/yt/pull-requests/2366>`__ and
+   `Bitbucket PR
+   2408 <https://bitbucket.org/yt_analysis/yt/pull-requests/2408>`__.
+-  Added support for type 2 Gadget binary outputs. See `Bitbucket PR
+   2355 <https://bitbucket.org/yt_analysis/yt/pull-requests/2355>`__.
+-  Added the ability to detect and read double precision Gadget data.
+   See `Bitbucket PR
+   2537 <https://bitbucket.org/yt_analysis/yt/pull-requests/2537>`__.
+-  Added the ability to detect and read in big endian Gadget data. See
+   `Github PR 1353 <https://github.com/yt-project/yt/pull/1353>`__.
+-  Added support for Nyx datasets that do not contain particles. See
+   `Bitbucket PR
+   2571 <https://bitbucket.org/yt_analysis/yt/pull-requests/2571>`__
+-  A number of untested and unmaintained modules have been deprecated
+   and moved to the `yt attic
+   repository <https://github.com/yt-project/yt_attic>`__. This includes
+   the functionality for calculating two point functions, the Sunrise
+   exporter, the star analysis module, and the functionality for
+   calculating halo mass functions. If you are interested in working on
+   restoring the functionality in these modules, we welcome
+   contributions. Please contact us on the mailing list or by opening an
+   issue on GitHub if you have questions.
+-  The particle trajectories functionality has been removed from the
+   analysis modules API and added as a method of the ``DatasetSeries``
+   object. You can now create a ``ParticleTrajectories`` object using
+   ``ts.particle_trajectories()`` where ``ts`` is a time series of
+   datasets.
+-  The ``spectral_integrator`` analysis module is now available via
+   ``yt.fields.xray_emission_fields``. See `Bitbucket PR
+   2465 <https://bitbucket.org/yt_analysis/yt/pull-requests/2465>`__.
+-  The ``photon_simulator`` analysis module has been deprecated in favor
+   of the ``pyXSIM`` package, available separately from ``yt``. See
+   `Bitbucket PR
+   2441 <https://bitbucket.org/yt_analysis/yt/pull-requests/2441>`__.
+-  ``yt.utilities.fits_image`` is now available as
+   ``yt.visualization.fits_image``. In addition classes that were in the
+   ``yt.utilities.fits_image`` namespace are now available in the main
+   ``yt`` namespace.
+-  The ``profile.variance`` attribute has been deprecated in favor of
+   ``profile.standard_deviation``.
+-  The ``number_of_particles`` key no longer needs to be defined when
+   loading data via the stream frontend. See `Github PR
+   1428 <https://github.com/yt-project/yt/pull/1428>`__.
+-  The install script now only supports installing via miniconda. We
+   have removed support for compiling python and yt's dependencies from
+   source. See `Github PR
+   1459 <https://github.com/yt-project/yt/pull/1459>`__.
+-  Added ``plot.set_background_color`` for ``PlotWindow`` and
+   ``PhasePlot`` plots. This lets users specify a color to fill in the
+   background of a plot instead of the default color, white. See
+   `Bitbucket PR
+   2513 <https://bitbucket.org/yt_analysis/yt/pull-requests/2513>`__.
+-  ``PlotWindow`` plots can now optionally use a right-handed coordinate
+   system. See `Bitbucket PR
+   2318 <https://bitbucket.org/yt_analysis/yt/pull-requests/2318>`__.
+-  The isocontour API has been overhauled to make use of units. See
+   `Bitbucket PR
+   2453 <https://bitbucket.org/yt_analysis/yt/pull-requests/2453>`__.
+-  ``Dataset`` instances now have a ``checksum`` property, which can be
+   accessed via ``ds.checksum``. This provides a unique identifier that
+   is guaranteed to be the same from session to session. See `Bitbucket
+   PR 2503 <https://bitbucket.org/yt_analysis/yt/pull-requests/2503>`__.
+-  Added a ``data_source`` keyword argument to
+   ``OffAxisProjectionPlot``. See `Bitbucket PR
+   2490 <https://bitbucket.org/yt_analysis/yt/pull-requests/2490>`__.
+-  Added a ``yt download`` command-line helper to download test data
+   from http://yt-project.org/data. For more information see
+   ``yt download --help`` at the bash command line. See `Bitbucket PR
+   2495 <https://bitbucket.org/yt_analysis/yt/pull-requests/2495>`__ and
+   `Bitbucket PR
+   2471 <https://bitbucket.org/yt_analysis/yt/pull-requests/2471>`__.
+-  Added a ``yt upload`` command-line helper to upload files to the `yt
+   curldrop <https://docs.hub.yt/services.html#curldrop>`__ at the bash
+   command line. See `Github PR
+   1471 <https://github.com/yt-project/yt/pull/1471>`__.
+-  If it's installed, colormaps from the `cmocean
+   package <http://matplotlib.org/cmocean/>`__ will be made available as
+   yt colormaps. See `Bitbucket PR
+   2439 <https://bitbucket.org/yt_analysis/yt/pull-requests/2439>`__.
+-  It is now possible to visualize unstructured mesh fields defined on
+   multiple mesh blocks. See `Bitbucket PR
+   2487 <https://bitbucket.org/yt_analysis/yt/pull-requests/2487>`__.
+-  Add support for second-order interpolation when slicing tetrahedral
+   unstructured meshes. See `Bitbucket PR
+   2550 <https://bitbucket.org/yt_analysis/yt/pull-requests/2550>`__.
+-  Add support for volume rendering second-order tetrahedral meshes. See
+   `Bitbucket PR
+   2401 <https://bitbucket.org/yt_analysis/yt/pull-requests/2401>`__.
+-  Add support for QUAD9 mesh elements. See `Bitbucket PR
+   2549 <https://bitbucket.org/yt_analysis/yt/pull-requests/2549>`__.
+-  Add support for second-order triangle mesh elements. See `Bitbucket
+   PR 2378 <https://bitbucket.org/yt_analysis/yt/pull-requests/2378>`__.
+-  Added support for dynamical dark energy parameterizations to the
+   ``Cosmology`` object. See `Bitbucket PR
+   2572 <https://bitbucket.org/yt_analysis/yt/pull-requests/2572>`__.
+-  ``ParticleProfile`` can now handle log-scaled bins and data with
+   negative values. See `Bitbucket PR
+   2564 <https://bitbucket.org/yt_analysis/yt/pull-requests/2564>`__ and
+   `Github PR 1510 <https://github.com/yt-project/yt/pull/1510>`__.
+-  Cut region data objects can now be saved as reloadable datasets using
+   ``save_as_dataset``. See `Bitbucket PR
+   2541 <https://bitbucket.org/yt_analysis/yt/pull-requests/2541>`__.
+-  Clump objects can now be saved as reloadable datasets using
+   ``save_as_dataset``. See `Bitbucket PR
+   2326 <https://bitbucket.org/yt_analysis/yt/pull-requests/2326>`__.
+-  It is now possible to specify the field to use for the size of the
+   circles in the ``annotate_halos`` plot modifying function. See
+   `Bitbucket PR
+   2493 <https://bitbucket.org/yt_analysis/yt/pull-requests/2493>`__.
+-  The ``ds.max_level`` attribute is now a property that is computed on
+   demand. The more verbose ``ds.index.max_level`` will continue to
+   work. See `Bitbucket PR
+   2461 <https://bitbucket.org/yt_analysis/yt/pull-requests/2461>`__.
+-  The ``PointSource`` volume rendering source now optionally accepts a
+   ``radius`` keyword argument to draw spatially extended points. See
+   `Bitbucket PR
+   2404 <https://bitbucket.org/yt_analysis/yt/pull-requests/2404>`__.
+-  It is now possible to save volume rendering images in eps, ps, and
+   pdf format. See `Github PR
+   1504 <https://github.com/yt-project/yt/pull/1504>`__.
+
+Minor Enhancements and Bugfixes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+-  Fixed issue selecting and visualizing data at very high AMR levels.
+   See `Github PR 1521 <https://github.com/yt-project/yt/pulls/1521>`__
+   and `Github PR 1433 <https://github.com/yt-project/yt/pull/1433>`__.
+-  Print a more descriptive error message when defining a particle
+   filter fails with missing fields See `Github PR
+   1517 <https://github.com/yt-project/yt/pull/1517>`__.
+-  Removed grid edge rounding from the FLASH frontend. This fixes a
+   number of pernicious visualization artifacts for FLASH data. See
+   `Github PR 1493 <https://github.com/yt-project/yt/pull/1493>`__.
+-  Parallel projections no longer error if there are less io chunks than
+   MPI tasks. See `Github PR
+   1488 <https://github.com/yt-project/yt/pull/1488>`__.
+-  A memory leak in the volume renderer has been fixed. See `Github PR
+   1485 <https://github.com/yt-project/yt/pull/1485>`__ and `Github PR
+   1435 <https://github.com/yt-project/yt/pull/1435>`__.
+-  The ``force_override`` keyword argument now raises an error when used
+   with on-disk fields. See `Github PR
+   1516 <https://github.com/yt-project/yt/pull/1516>`__.
+-  Restore support for making plots from reloaded plots. See `Github PR
+   1514 <https://github.com/yt-project/yt/pull/1514>`__
+-  Don't ever try to read inputs or probin files for Castro and Maestro.
+   See `Github PR 1445 <https://github.com/yt-project/yt/pull/1445>`__.
+-  Fixed issue that caused visualization artifacts when creating an
+   off-axis projection for particle or octree AMR data. See `Github PR
+   1434 <https://github.com/yt-project/yt/pull/1434>`__.
+-  Fix i/o for the Enzo ``'Dark_Matter_Density'`` field. See `Github PR
+   1360 <https://github.com/yt-project/yt/pull/1360>`__.
+-  Create the ``'particle_ones'`` field even if we don't have a particle
+   mass field. See `Github PR
+   1424 <https://github.com/yt-project/yt/pull/1424>`__.
+-  Fixed issues with minor colorbar ticks with symlog colorbar scaling.
+   See `Github PR 1423 <https://github.com/yt-project/yt/pull/1423>`__.
+-  Using the rockstar halo finder is now supported under Python3. See
+   `Github PR 1414 <https://github.com/yt-project/yt/pull/1414>`__.
+-  Fixed issues with orientations of volume renderings when compositing
+   multiple sources. See `Github PR
+   1411 <https://github.com/yt-project/yt/pull/1411>`__.
+-  Added a check for valid AMR structure in ``load_amr_grids``. See
+   `Github PR 1408 <https://github.com/yt-project/yt/pull/1408>`__.
+-  Fix bug in handling of periodic boundary conditions in the
+   ``annotate_halos`` plot modifying function. See `Github PR
+   1351 <https://github.com/yt-project/yt/pull/1351>`__.
+-  Add support for plots with non-unit aspect ratios to the
+   ``annotate_scale`` plot modifying function. See `Bitbucket PR
+   2551 <https://bitbucket.org/yt_analysis/yt/pull-requests/2551>`__.
+-  Fixed issue with saving light ray datasets. See `Bitbucket PR
+   2589 <https://bitbucket.org/yt_analysis/yt/pull-requests/2589>`__.
+-  Added support for 2D WarpX data. ee `Bitbucket PR
+   2583 <https://bitbucket.org/yt_analysis/yt/pull-requests/2583>`__.
+-  Ensure the ``particle_radius`` field is always accessed with the
+   correct field type. See `Bitbucket PR
+   2562 <https://bitbucket.org/yt_analysis/yt/pull-requests/2562>`__.
+-  It is now possible to use a covering grid to access particle filter
+   fields. See `Bitbucket PR
+   2569 <https://bitbucket.org/yt_analysis/yt/pull-requests/2569>`__.
+-  The x limits of a ``ProfilePlot`` will now snap exactly to the limits
+   specified in calls to ``ProfilePlot.set_xlim``. See `Bitbucket PR
+   2546 <https://bitbucket.org/yt_analysis/yt/pull-requests/2546>`__.
+-  Added a cookbook example showing how to make movies using
+   matplotlib's animation framework. See `Bitbucket PR
+   2544 <https://bitbucket.org/yt_analysis/yt/pull-requests/2544>`__.
+-  Use a parallel-safe wrapper around mkdir when creating new
+   directories. See `Bitbucket PR
+   2570 <https://bitbucket.org/yt_analysis/yt/pull-requests/2570>`__.
+-  Removed ``yt.utilities.spatial``. This was a forked version of
+   ``scipy.spatial`` with support for a periodic KD-tree. Scipy now has
+   a periodic KD-tree, so we have removed the forked version from yt.
+   Please use ``scipy.spatial`` if you were relying on
+   ``yt.utilities.spatial``. See `Bitbucket PR
+   2576 <https://bitbucket.org/yt_analysis/yt/pull-requests/2576>`__.
+-  Improvements for the ``HaloCatalog``. See `Bitbucket PR
+   2536 <https://bitbucket.org/yt_analysis/yt/pull-requests/2536>`__ and
+   `Bitbucket PR
+   2535 <https://bitbucket.org/yt_analysis/yt/pull-requests/2535>`__.
+-  Removed ``'log'`` in colorbar label in annotated volume rendering.
+   See `Bitbucket PR
+   2548 <https://bitbucket.org/yt_analysis/yt/pull-requests/2548>`__
+-  Fixed a crash triggered by depositing particle data onto a covering
+   grid. See `Bitbucket PR
+   2545 <https://bitbucket.org/yt_analysis/yt/pull-requests/2545>`__.
+-  Ensure field type guessing is deterministic on Python3. See
+   `Bitbucket PR
+   2559 <https://bitbucket.org/yt_analysis/yt/pull-requests/2559>`__.
+-  Removed unused yt.utilities.exodusII\_reader module. See `Bitbucket
+   PR 2533 <https://bitbucket.org/yt_analysis/yt/pull-requests/2533>`__.
+-  The ``cell_volume`` field in curvilinear coordinates now uses an
+   exact rather than an approximate definition. See `Bitbucket PR
+   2466 <https://bitbucket.org/yt_analysis/yt/pull-requests/2466>`__.
+
 Version 3.3
 -----------
 
@@ -921,7 +1210,7 @@ Version 2.3
  * WebGL interface for isocontours and a pannable map widget added to Reason
  * Performance improvements for volume rendering
  * Adaptive HEALPix support
- * Column density calculations (see :ref:`radial-column-density`)
+ * Column density calculations
  * Massive speedup for 1D profiles
  * Lots more, bug fixes etc.
  * Substantial improvements to the documentation, including
@@ -941,7 +1230,7 @@ Version 2.2
  * An order of magnitude speed improvement in the RAMSES support
  * Quad-tree projections, speeding up the process of projecting by up to an
    order of magnitude and providing better load balancing
- * “mapserver” for in-browser, Google Maps-style slice and projection
+ * "mapserver" for in-browser, Google Maps-style slice and projection
    visualization (see :ref:`mapserver`)
  * Many bug fixes and performance improvements
  * Halo loader
@@ -1043,9 +1332,9 @@ Version 1.6
 -----------
 
 Version 1.6 is a point release, primarily notable for the new parallel halo
-finder (see :ref:`halo_finding`)
+finder (see :ref:`halo-analysis`)
 
- * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo_finding` )
+ * (New) Parallel HOP ( http://arxiv.org/abs/1001.3411 , :ref:`halo-analysis` )
  * (Beta) Software ray casting and volume rendering
    (see :ref:`volume_rendering`)
  * Rewritten, faster and better contouring engine for clump identification

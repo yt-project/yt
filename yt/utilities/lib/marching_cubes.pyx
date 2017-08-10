@@ -18,11 +18,14 @@ cimport cython
 import numpy as np
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
 from libc.stdlib cimport malloc, free, abs
+from libc.math cimport sqrt
 from fixed_interpolator cimport \
     eval_gradient, \
     offset_fill, \
     offset_interpolate, \
     vertex_interp
+
+from yt.units.yt_array import YTArray
 
 cdef extern from "marching_cubes.h":
     int tri_table[256][16]
@@ -264,6 +267,8 @@ def march_cubes_grid(np.float64_t isovalue,
     sampled = np.zeros(triangles.count * nskip, dtype='float64')
     FillTriangleValues(sampled, triangles.first, nskip)
     FillAndWipeTriangles(vertices, triangles.first)
+    if hasattr(obj_sample, 'units'):
+        sampled = YTArray(sampled, obj_sample.units)
     return vertices, sampled
 
 @cython.boundscheck(False)
@@ -361,7 +366,7 @@ def march_cubes_grid_flux(
                         for n in range(3):
                             temp += normal[n]*normal[n]
                         # Take the negative, to ensure it points inwardly
-                        temp = -(temp**0.5)
+                        temp = -sqrt(temp)
                         # Dump this somewhere for now
                         temp = wval * (fv[0] * normal[0] +
                                        fv[1] * normal[1] +
@@ -372,15 +377,15 @@ def march_cubes_grid_flux(
                         for n in range(3):
                             fv[n] = 0.0
                         for n in range(3):
-                            fv[0] += (current.p[0][n] - current.p[2][n])**2.0
-                            fv[1] += (current.p[1][n] - current.p[0][n])**2.0
-                            fv[2] += (current.p[2][n] - current.p[1][n])**2.0
+                            fv[0] += (current.p[0][n] - current.p[2][n]) * (current.p[0][n] - current.p[2][n])
+                            fv[1] += (current.p[1][n] - current.p[0][n]) * (current.p[1][n] - current.p[0][n])
+                            fv[2] += (current.p[2][n] - current.p[1][n]) * (current.p[2][n] - current.p[1][n])
                         s = 0.0
                         for n in range(3):
-                            fv[n] = fv[n]**0.5
+                            fv[n] = sqrt(fv[n])
                             s += 0.5 * fv[n]
                         area = (s*(s-fv[0])*(s-fv[1])*(s-fv[2]))
-                        area = area**0.5
+                        area = sqrt(area)
                         flux += temp*area
                         last = current
                         if current.next == NULL: break

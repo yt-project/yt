@@ -19,10 +19,6 @@ from oct_visitors cimport Oct, OctVisitor
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
 
-ctypedef fused anyfloat:
-    np.float32_t
-    np.float64_t
-
 cdef inline _ensure_code(arr):
     if hasattr(arr, "units"):
         if "code_length" == str(arr.units):
@@ -74,6 +70,10 @@ cdef class AlwaysSelector(SelectorObject):
 cdef class OctreeSubsetSelector(SelectorObject):
     cdef SelectorObject base_selector
     cdef public np.int64_t domain_id
+
+cdef class BooleanSelector(SelectorObject):
+    cdef public SelectorObject sel1
+    cdef public SelectorObject sel2
 
 cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
                                         np.float64_t dw, bint periodic) nogil:

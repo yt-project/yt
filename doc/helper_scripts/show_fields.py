@@ -1,17 +1,14 @@
 import inspect
-from yt.mods import *
-from yt.testing import *
+from yt.testing import fake_random_ds
 import numpy as np
 from yt.utilities.cosmology import \
      Cosmology
-from yt.utilities.definitions import \
-    mpc_conversion, sec_conversion
 from yt.frontends.stream.fields import \
     StreamFieldInfo
 from yt.frontends.api import _frontends
 from yt.fields.derived_field import NullFunc
 import yt.frontends as frontends_module
-from yt.units.yt_array import YTArray, Unit
+from yt.units.yt_array import Unit
 from yt.units import dimensions
 
 fields, units = [], []
@@ -35,10 +32,11 @@ def _strip_ftype(field):
         return field
     return field[1]
 
+
 np.random.seed(int(0x4d3d3d3))
 units = [base_ds._get_field_info(*f).units for f in fields]
 fields = [_strip_ftype(f) for f in fields]
-ds = fake_random_ds(16, fields=fields, units=units, particles=True)
+ds = fake_random_ds(16, fields=fields, units=units, particles=1)
 ds.parameters["HydroMethod"] = "streaming"
 ds.parameters["EOSType"] = 1.0
 ds.parameters["EOSSoundSpeed"] = 1.0
@@ -160,6 +158,7 @@ def print_all_fields(fl):
                 print("  " + line)
             print()
 
+
 ds.index
 print_all_fields(ds.field_info)
 
@@ -172,7 +171,7 @@ class FieldInfo:
         u = field[1][0]
         if len(u) > 0:
             self.units = ":math:`\mathrm{%s}`" % fix_units(u)
-        a = ["``%s``" % f for f in field[1][1]]
+        a = ["``%s``" % f for f in field[1][1] if f]
         self.aliases = " ".join(a)
         self.dname = ""
         if field[1][2] is not None:
@@ -182,6 +181,7 @@ class FieldInfo:
             ftype = "'"+ftype+"'"
         self.name = "(%s, '%s')" % (ftype, name)
         self.ptype = ptype
+
 
 current_frontends = [f for f in _frontends if f not in ["stream"]]
 
@@ -194,7 +194,7 @@ for frontend in current_frontends:
         # Drop duplicate entry for GadgetHDF5, add special case for FieldInfo
         # entry
         dataset_names = ['GadgetDataset']
-        field_info_names = ['SPHFieldInfo']
+        field_info_names = ['GadgetFieldInfo']
     elif frontend == "boxlib":
         field_info_names = []
         for d in dataset_names:

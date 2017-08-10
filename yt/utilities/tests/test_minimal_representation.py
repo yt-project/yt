@@ -1,3 +1,4 @@
+import numpy as np
 import os.path
 import yt
 from yt.config import ytcfg
@@ -29,18 +30,18 @@ def test_store():
     proj2 = ds.proj(field, "z", data_source=sp)
 
     proj1_c = ds.proj(field, "z")
-    yield assert_equal, proj1[field], proj1_c[field]
+    assert_equal(proj1[field], proj1_c[field])
 
     proj2_c = ds.proj(field, "z", data_source=sp)
-    yield assert_equal, proj2[field], proj2_c[field]
+    assert_equal(proj2[field], proj2_c[field])
 
     def fail_for_different_method():
         proj2_c = ds.proj(field, "z", data_source=sp, method="mip")
-        return (proj2[field] == proj2_c[field]).all()
-    yield assert_raises, YTUnitOperationError, fail_for_different_method
+        return np.equal(proj2[field], proj2_c[field]).all()
+    assert_raises(YTUnitOperationError, fail_for_different_method)
 
     def fail_for_different_source():
         sp = ds.sphere(ds.domain_center, (2, 'kpc'))
         proj2_c = ds.proj(field, "z", data_source=sp, method="integrate")
         return assert_equal(proj2_c[field], proj2[field])
-    yield assert_raises, AssertionError, fail_for_different_source
+    assert_raises(AssertionError, fail_for_different_source)

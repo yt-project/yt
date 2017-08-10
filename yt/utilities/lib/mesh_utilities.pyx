@@ -18,6 +18,10 @@ cimport numpy as np
 cimport cython
 from libc.stdlib cimport malloc, free, abs
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
+from yt.units.yt_array import YTArray
+
+cdef extern from "platform_dep.h":
+    double rint(double x)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -98,3 +102,19 @@ def smallest_fwidth(np.ndarray[np.float64_t, ndim=2] coords,
             fwidth = fmin(fwidth, RE[j] - LE[j])
     return fwidth
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def clamp_edges(np.float64_t[:] edge, np.float64_t[:] pleft,
+                np.float64_t[:] pdx):
+    """Clamp edge to pleft + pdx*n where n is the closest integer
+
+    Note that edge is modified in-place.
+    """
+    cdef np.float64_t start_index
+    cdef np.float64_t integer_index
+    cdef np.intp_t shape = edge.shape[0]
+    for i in range(shape):
+        start_index = (edge[i] - pleft[i]) / pdx[i]
+        integer_index = rint(start_index)
+        edge[i] = integer_index * pdx[i] + pleft[i]

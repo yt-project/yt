@@ -17,7 +17,7 @@ def test_linear_interpolator_1d():
     fv = {'x': np.mgrid[0.0:1.0:64j]}
     # evenly spaced bins
     ufi = lin.UnilinearFieldInterpolator(random_data, (0.0, 1.0), "x", True)
-    yield assert_array_equal, ufi(fv), random_data
+    assert_array_equal(ufi(fv), random_data)
     
     # randomly spaced bins
     size = 64
@@ -26,7 +26,7 @@ def test_linear_interpolator_1d():
     ufi = lin.UnilinearFieldInterpolator(random_data, 
                                          np.linspace(0.0, 1.0, size) + shift, 
                                          "x", True)
-    yield assert_array_almost_equal, ufi(fv), random_data, 15
+    assert_array_almost_equal(ufi(fv), random_data, 15)
 
 def test_linear_interpolator_2d():
     random_data = np.random.random((64, 64))
@@ -35,7 +35,7 @@ def test_linear_interpolator_2d():
                np.mgrid[0.0:1.0:64j, 0.0:1.0:64j]))
     bfi = lin.BilinearFieldInterpolator(random_data,
             (0.0, 1.0, 0.0, 1.0), "xy", True)
-    yield assert_array_equal, bfi(fv), random_data
+    assert_array_equal(bfi(fv), random_data)
 
     # randomly spaced bins
     size = 64
@@ -46,7 +46,7 @@ def test_linear_interpolator_2d():
     fv["y"] += shifts["y"]
     bfi = lin.BilinearFieldInterpolator(random_data,
             (bins + shifts["x"], bins + shifts["y"]), "xy", True)
-    yield assert_array_almost_equal, bfi(fv), random_data, 15
+    assert_array_almost_equal(bfi(fv), random_data, 15)
 
 def test_linear_interpolator_3d():
     random_data = np.random.random((64, 64, 64))
@@ -55,7 +55,7 @@ def test_linear_interpolator_3d():
                np.mgrid[0.0:1.0:64j, 0.0:1.0:64j, 0.0:1.0:64j]))
     tfi = lin.TrilinearFieldInterpolator(random_data,
             (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), "xyz", True)
-    yield assert_array_almost_equal, tfi(fv), random_data
+    assert_array_almost_equal(tfi(fv), random_data)
 
     # randomly spaced bins
     size = 64
@@ -68,7 +68,7 @@ def test_linear_interpolator_3d():
     tfi = lin.TrilinearFieldInterpolator(random_data,
             (bins + shifts["x"], bins + shifts["y"], 
              bins + shifts["z"]), "xyz", True)
-    yield assert_array_almost_equal, tfi(fv), random_data, 15
+    assert_array_almost_equal(tfi(fv), random_data, 15)
     
 
 def test_ghost_zone_extrapolation():
@@ -98,9 +98,9 @@ def test_ghost_zone_extrapolation():
                                   xz, np.array([0.0, 0.0, 0.0], dtype="f8"))
 
         ii = (lx, ly, lz)[i]
-        yield assert_array_equal, ii, vec[ax]
-        yield assert_array_equal, ii, xi
-        yield assert_array_equal, ii, xz
+        assert_array_equal(ii, vec[ax])
+        assert_array_equal(ii, xi)
+        assert_array_equal(ii, xz)
 
 
 def test_get_vertex_centered_data():

@@ -12,25 +12,33 @@ Test suite for Particle Plots
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import itertools
 import os
 import tempfile
 import shutil
 import unittest
+
+import numpy as np
+
 from yt.data_objects.profiles import create_profile
-from yt.extern.parameterized import parameterized, param
 from yt.visualization.tests.test_plotwindow import \
-    assert_fname, WIDTH_SPECS, ATTR_ARGS
+    WIDTH_SPECS, ATTR_ARGS
+from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.testing import \
-    fake_particle_ds, assert_array_almost_equal
+    fake_particle_ds, \
+    assert_array_almost_equal, \
+    requires_file, \
+    assert_allclose, \
+    assert_fname
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     PlotWindowAttributeTest, \
     PhasePlotAttributeTest
 from yt.visualization.api import \
-    ParticleProjectionPlot, ParticlePhasePlot
+    ParticlePlot, \
+    ParticleProjectionPlot, \
+    ParticlePhasePlot
 from yt.units.yt_array import YTArray
 
 
@@ -167,8 +175,16 @@ def test_particle_phase_answers():
 
 class TestParticlePhasePlotSave(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp()
+        self.curdir = os.getcwd()
+        os.chdir(self.tmpdir)
+
+    def tearDown(self):
+        os.chdir(self.curdir)
+        shutil.rmtree(self.tmpdir)
+
+    def test_particle_phase_plot(self):
         test_ds = fake_particle_ds()
         data_sources = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3),
                         test_ds.all_data()]
@@ -196,68 +212,60 @@ class TestParticlePhasePlotSave(unittest.TestCase):
                                     n_bins=[16, 16])
 
                 particle_phases.append(ParticlePhasePlot.from_profile(pp))
+        particle_phases[0]._repr_html_()
+        for p in particle_phases:
+            for fname in TEST_FLNMS:
+                assert assert_fname(p.save(fname)[0])
 
-        cls.particle_phases = particle_phases
-        cls.ds = test_ds
+tgal = 'TipsyGalaxy/galaxy.00300'
+@requires_file(tgal)
+def test_particle_phase_plot_semantics():
+    ds = load(tgal)
+    ad = ds.all_data()
+    dens_ex = ad.quantities.extrema(('Gas', 'density'))
+    temp_ex = ad.quantities.extrema(('Gas', 'temperature'))
+    plot = ParticlePlot(ds,
+                        ('Gas', 'density'),
+                        ('Gas', 'temperature'),
+                        ('Gas', 'particle_mass'))
+    plot.set_log('density', True)
+    plot.set_log('temperature', True)
+    p = plot.profile
 
-    def setUp(self):
-        self.tmpdir = tempfile.mkdtemp()
-        self.curdir = os.getcwd()
-        os.chdir(self.tmpdir)
+    # bin extrema are field extrema
+    assert dens_ex[0] - np.spacing(dens_ex[0]) == p.x_bins[0]
+    assert dens_ex[-1] + np.spacing(dens_ex[-1]) == p.x_bins[-1]
+    assert temp_ex[0] - np.spacing(temp_ex[0]) == p.y_bins[0]
+    assert temp_ex[-1] + np.spacing(temp_ex[-1]) == p.y_bins[-1]
 
-    def tearDown(self):
-        os.chdir(self.curdir)
-        shutil.rmtree(self.tmpdir)
+    # bins are evenly spaced in log space
+    logxbins = np.log10(p.x_bins)
+    dxlogxbins = logxbins[1:] - logxbins[:-1]
+    assert_allclose(dxlogxbins, dxlogxbins[0])
 
-    @parameterized.expand(param.explicit((fname, )) for fname in TEST_FLNMS)
-    def test_particle_phase_plot(self, fname):
-        for p in self.particle_phases:
-            assert assert_fname(p.save(fname)[0])
+    logybins = np.log10(p.y_bins)
+    dylogybins = logybins[1:] - logybins[:-1]
+    assert_allclose(dylogybins, dylogybins[0])
 
-    def test_ipython_repr(self):
-        self.particle_phases[0]._repr_html_()
+    plot.set_log('density', False)
+    plot.set_log('temperature', False)
+    p = plot.profile
 
+    # bin extrema are field extrema
+    assert dens_ex[0] - np.spacing(dens_ex[0]) == p.x_bins[0]
+    assert dens_ex[-1] + np.spacing(dens_ex[-1]) == p.x_bins[-1]
+    assert temp_ex[0] - np.spacing(temp_ex[0]) == p.y_bins[0]
+    assert temp_ex[-1] + np.spacing(temp_ex[-1]) == p.y_bins[-1]
+
+    # bins are evenly spaced in log space
+    dxbins = p.x_bins[1:] - p.x_bins[:-1]
+    assert_allclose(dxbins, dxbins[0])
+
+    dybins = p.y_bins[1:] - p.y_bins[:-1]
+    assert_allclose(dybins, dybins[0])
 
 class TestParticleProjectionPlotSave(unittest.TestCase):
 
-    @classmethod
-    def setUpClass(cls):
-        test_ds = fake_particle_ds()
-        ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
-        pplots = []
-        pplots_ds = []
-        pplots_c = []
-        pplots_wf = []
-        pplots_w = {}
-        pplots_m = []
-        for dim in range(3):
-            pplots.append(ParticleProjectionPlot(test_ds, dim,
-                                                 "particle_mass"))
-
-            pplots_ds.append(ParticleProjectionPlot(test_ds, dim,
-                                                    "particle_mass",
-                                                    data_source=ds_region))
-
-        for center in CENTER_SPECS:
-            pplots_c.append(ParticleProjectionPlot(test_ds, dim,
-                                                   "particle_mass",
-                                                    center=center))
-
-        for width in WIDTH_SPECS:
-            pplots_w[width] = ParticleProjectionPlot(test_ds, dim,
-                                                     'particle_mass',
-                                                     width=width)
-        for wf in WEIGHT_FIELDS:
-            pplots_wf.append(ParticleProjectionPlot(test_ds, dim,
-                                                    "particle_mass",
-                                                    weight_field=wf))
-        cls.pplots = pplots
-        cls.pplots_ds = pplots_ds
-        cls.pplots_c = pplots_c
-        cls.pplots_wf = pplots_wf
-        cls.pplots_w = pplots_w
-        cls.pplots_m = pplots_m
-
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()
@@ -267,35 +275,47 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
-    @parameterized.expand(
-        param.explicit(item)
-        for item in itertools.product(range(3), TEST_FLNMS))
-    def test_particle_plot(self, dim, fname):
-        assert assert_fname(self.pplots[dim].save(fname)[0])
+    def test_particle_plot(self):
+        test_ds = fake_particle_ds()
+        for dim in range(3):
+            pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
+            for fname in TEST_FLNMS:
+                assert assert_fname(pplot.save(fname)[0])
 
-    @parameterized.expand([(0, ), (1, ), (2, )])
-    def test_particle_plot_ds(self, dim):
-        self.pplots_ds[dim].save()
+    def test_particle_plot_ds(self):
+        test_ds = fake_particle_ds()
+        ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+        for dim in range(3):
+            pplot_ds = ParticleProjectionPlot(
+                test_ds, dim, "particle_mass", data_source=ds_region)
+            pplot_ds.save()
 
-    @parameterized.expand([(i, ) for i in range(len(CENTER_SPECS))])
-    def test_particle_plot_c(self, dim):
-        self.pplots_c[dim].save()
+    def test_particle_plot_c(self):
+        test_ds = fake_particle_ds()
+        for center in CENTER_SPECS:
+            for dim in range(3):
+                pplot_c = ParticleProjectionPlot(
+                    test_ds, dim, "particle_mass", center=center)
+                pplot_c.save()
 
-    @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
-    def test_particle_plot_wf(self, dim):
-        self.pplots_wf[dim].save()
+    def test_particle_plot_wf(self):
+        test_ds = fake_particle_ds()
+        for dim in range(3):
+            for weight_field in WEIGHT_FIELDS:
+                pplot_wf = ParticleProjectionPlot(
+                    test_ds, dim, "particle_mass", weight_field=weight_field)
+                pplot_wf.save()
 
-    @parameterized.expand(
-        param.explicit((width, ))
-        for width in WIDTH_SPECS)
-    def test_creation_with_width(self, width):
-        xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
-        plot = self.pplots_w[width]
+    def test_creation_with_width(self):
+        test_ds = fake_particle_ds()
+        for width, (xlim, ylim, pwidth, aun) in WIDTH_SPECS.items():
+            plot = ParticleProjectionPlot(
+                test_ds, 0, 'particle_mass', width=width)
 
-        xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
-        ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
-        pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
+            xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
+            ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
+            pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-        [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-        [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-        [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
+            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
+            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]

@@ -49,7 +49,9 @@ from yt.utilities.exceptions import \
     YTFieldNotFound, \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
-    YTDimensionalityError
+    YTDimensionalityError, \
+    YTBooleanObjectError, \
+    YTBooleanObjectsWrongDataset
 from yt.utilities.lib.marching_cubes import \
     march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -65,6 +67,8 @@ import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
 from yt.extern.six import add_metaclass, string_types
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.profiles import create_profile
 
 data_object_registry = {}
 
@@ -91,11 +95,16 @@ def restore_field_information_state(func):
         return tr
     return save_state
 
-class YTFieldData(dict):
-    """
-    A Container object for field data, instead of just having it be a dict.
-    """
-    pass
+def sanitize_weight_field(ds, field, weight):
+    field_object = ds._get_field_info(field)
+    if weight is None:
+        if field_object.particle_type is True:
+            weight_field = (field_object.name[0], 'particle_ones')
+        else:
+            weight_field = ('index', 'ones')
+    else:
+        weight_field = weight
+    return weight_field
 
 class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
@@ -123,7 +132,7 @@ class YTDataContainer(object):
     def __init__(self, ds, field_parameters):
         """
         Typically this is never called directly, but only due to inheritance.
-        It associates a :class:`~yt.data_objects.api.Dataset` with the class,
+        It associates a :class:`~yt.data_objects.static_output.Dataset` with the class,
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
@@ -303,7 +312,7 @@ class YTDataContainer(object):
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
-            if finfo.particle_type:
+            if finfo.particle_type: # This is a property now
                 tr = self._generate_particle_field(field)
             else:
                 tr = self._generate_fluid_field(field)
@@ -455,7 +464,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        fields : list of strings or tuples, default None
+        fields : list of strings or tuple field names, default None
             If this is supplied, it is the list of fields to be exported into
             the data frame.  If not supplied, whatever fields presently exist
             will be used.
@@ -486,18 +495,18 @@ class YTDataContainer(object):
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export a data object to a reloadable yt dataset.
 
-        This function will take a data object and output a dataset 
-        containing either the fields presently existing or fields 
+        This function will take a data object and output a dataset
+        containing either the fields presently existing or fields
         given in the ``fields`` list.  The resulting dataset can be
         reloaded as a yt dataset.
 
         Parameters
         ----------
         filename : str, optional
-            The name of the file to be written.  If None, the name 
-            will be a combination of the original dataset and the type 
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset and the type
             of data container.
-        fields : list of strings or tuples, optional
+        fields : list of string or tuple field names, optional
             If this is supplied, it is the list of fields to be saved to
             disk.  If not supplied, all the fields that have been queried
             will be saved.
@@ -627,7 +636,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to maximize.
         axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
@@ -669,7 +678,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to minimize.
         axis : string or list of strings, optional
             If supplied, the fields to sample along; if not supplied, defaults
@@ -720,7 +729,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to maximize.
         axis : string, optional
             If supplied, the axis to project the maximum along.
@@ -759,7 +768,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to minimize.
         axis : string, optional
             If supplied, the axis to compute the minimum along.
@@ -790,7 +799,25 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
 
     def std(self, field, weight=None):
-        raise NotImplementedError
+        """Compute the variance of a field.
+
+        This will, in a parallel-ware fashion, compute the variance of
+        the given field.
+
+        Parameters
+        ----------
+        field : string or tuple field name
+            The field to calculate the variance of
+        weight : string or tuple field name
+            The field to weight the variance calculation by. Defaults to
+            unweighted if unset.
+
+        Returns
+        -------
+        Scalar
+        """
+        weight_field = sanitize_weight_field(self.ds, field, weight)
+        return self.quantities.weighted_variance(field, weight_field)[0]
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
@@ -800,7 +827,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to average.
 
         Returns
@@ -815,21 +842,91 @@ class YTDataContainer(object):
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
 
-    def hist(self, field, weight = None, bins = None):
-        raise NotImplementedError
+    def profile(self, bin_fields, fields, n_bins=64,
+                extrema=None, logs=None, units=None,
+                weight_field="cell_mass",
+                accumulation=False, fractional=False,
+                deposition='ngp'):
+        r"""
+        Create a 1, 2, or 3D profile object from this data_source.
 
-    def mean(self, field, axis=None, weight='ones'):
+        The dimensionality of the profile object is chosen by the number of
+        fields given in the bin_fields argument.  This simply calls
+        :func:`yt.data_objects.profiles.create_profile`.
+
+        Parameters
+        ----------
+        bin_fields : list of strings
+            List of the binning fields for profiling.
+        fields : list of strings
+            The fields to be profiled.
+        n_bins : int or list of ints
+            The number of bins in each dimension.  If None, 64 bins for
+            each bin are used for each bin field.
+            Default: 64.
+        extrema : dict of min, max tuples
+            Minimum and maximum values of the bin_fields for the profiles.
+            The keys correspond to the field names. Defaults to the extrema
+            of the bin_fields of the dataset. If a units dict is provided, extrema
+            are understood to be in the units specified in the dictionary.
+        logs : dict of boolean values
+            Whether or not to log the bin_fields for the profiles.
+            The keys correspond to the field names. Defaults to the take_log
+            attribute of the field.
+        units : dict of strings
+            The units of the fields in the profiles, including the bin_fields.
+        weight_field : str or tuple field identifier
+            The weight field for computing weighted average for the profile
+            values.  If None, the profile values are sums of the data in
+            each bin.
+        accumulation : bool or list of bools
+            If True, the profile values for a bin n are the cumulative sum of
+            all the values from bin 0 to n.  If -True, the sum is reversed so
+            that the value for bin n is the cumulative sum from bin N (total bins)
+            to n.  If the profile is 2D or 3D, a list of values can be given to
+            control the summation in each dimension independently.
+            Default: False.
+        fractional : If True the profile values are divided by the sum of all
+            the profile data such that the profile represents a probability
+            distribution function.
+        deposition : Controls the type of deposition used for ParticlePhasePlots.
+            Valid choices are 'ngp' and 'cic'. Default is 'ngp'. This parameter is
+            ignored the if the input fields are not of particle type.
+
+
+        Examples
+        --------
+
+        Create a 1d profile.  Access bin field from profile.x and field
+        data from profile[<field_name>].
+
+        >>> ds = load("DD0046/DD0046")
+        >>> ad = ds.all_data()
+        >>> profile = ad.profile(ad, [("gas", "density")],
+        ...                          [("gas", "temperature"),
+        ...                          ("gas", "velocity_x")])
+        >>> print (profile.x)
+        >>> print (profile["gas", "temperature"])
+        >>> plot = profile.plot()
+        """
+        p = create_profile(self, bin_fields, fields, n_bins,
+                   extrema, logs, units, weight_field, accumulation,
+                   fractional, deposition)
+        return p
+
+    def mean(self, field, axis=None, weight=None):
         r"""Compute the mean of a field, optionally along an axis, with a
         weight.
 
         This will, in a parallel-aware fashion, compute the mean of the
         given field.  If an axis is supplied, it will return a projection,
-        where the weight is also supplied.  By default the weight is "ones",
-        resulting in a strict average.
+        where the weight is also supplied.  By default the weight field will be
+        "ones" or "particle_ones", depending on the field being averaged,
+        resulting in an unweighted average.
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to average.
         axis : string, optional
             If supplied, the axis to compute the mean along (i.e., to project
@@ -847,13 +944,12 @@ class YTDataContainer(object):
         >>> avg_rho = reg.mean("density", weight="cell_volume")
         >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
         """
+        weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight)
+            r = self.ds.proj(field, axis, data_source=self,
+                             weight_field=weight_field)
         elif axis is None:
-            if weight is None:
-                r = self.quantities.total_quantity(field)
-            else:
-                r = self.quantities.weighted_average_quantity(field, weight)
+            r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
@@ -868,7 +964,7 @@ class YTDataContainer(object):
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to sum.
         axis : string, optional
             If supplied, the axis to sum along.
@@ -895,15 +991,17 @@ class YTDataContainer(object):
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
 
-    def integrate(self, field, axis=None):
+    def integrate(self, field, weight=None, axis=None):
         r"""Compute the integral (projection) of a field along an axis.
 
         This projects a field along an axis.
 
         Parameters
         ----------
-        field : string or tuple of strings
+        field : string or tuple field name
             The field to project.
+        weight: string or tuple field name
+            The field to weight the projection by
         axis : string
             The axis to project along.
 
@@ -916,8 +1014,13 @@ class YTDataContainer(object):
 
         >>> column_density = reg.integrate("density", axis="z")
         """
+        if weight is not None:
+            weight_field = sanitize_weight_field(self.ds, field, weight)
+        else:
+            weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self)
+            r = self.ds.proj(field, axis, data_source=self,
+                             weight_field=weight_field)
         else:
             raise NotImplementedError("Unknown axis %s" % axis)
         return r
@@ -936,6 +1039,35 @@ class YTDataContainer(object):
                      [getattr(self, n) for n in self._con_args] +
                      [self.field_parameters])
         return (_reconstruct_object, args)
+
+    def clone(self):
+        r"""Clone a data object.
+
+        This will make a duplicate of a data object; note that the
+        `field_parameters` may not necessarily be deeply-copied.  If you modify
+        the field parameters in-place, it may or may not be shared between the
+        objects, depending on the type of object that that particular field
+        parameter is.
+
+        Notes
+        -----
+        One use case for this is to have multiple identical data objects that
+        are being chunked over in different orders.
+
+        Examples
+        --------
+
+        >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+        >>> sp = ds.sphere("c", 0.1)
+        >>> sp_clone = sp.clone()
+        >>> sp["density"]
+        >>> print sp.field_data.keys()
+        [("gas", "density")]
+        >>> print sp_clone.field_data.keys()
+        []
+        """
+        args = self.__reduce__()
+        return args[0](self.ds, *args[1][1:])[1]
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
@@ -1034,9 +1166,12 @@ class YTDataContainer(object):
                 # For grids this will be a grid object, and for octrees it will
                 # be an OctreeSubset.  Note that we delegate to the sub-object.
                 o = self._current_chunk.objs[0]
+                cache_fp = o.field_parameters.copy()
+                o.field_parameters.update(self.field_parameters)
                 for b, m in o.select_blocks(self.selector):
                     if m is None: continue
                     yield b, m
+                o.field_parameters = cache_fp
 
 class GenerationInProgress(Exception):
     def __init__(self, fields):
@@ -1086,7 +1221,16 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # This is an iterator that will yield the necessary chunks.
         self.get_data() # Ensure we have built ourselves
         if fields is None: fields = []
-        for chunk in self.index._chunk(self, chunking_style, **kwargs):
+        # chunk_ind can be supplied in the keyword arguments.  If it's a
+        # scalar, that'll be the only chunk that gets returned; if it's a list,
+        # those are the ones that will be.
+        chunk_ind = kwargs.pop("chunk_ind", None)
+        if chunk_ind is not None:
+            chunk_ind = ensure_list(chunk_ind)
+        for ci, chunk in enumerate(self.index._chunk(self, chunking_style,
+                                   **kwargs)):
+            if chunk_ind is not None and ci not in chunk_ind:
+                continue
             with self._chunked_read(chunk):
                 self.get_data(fields)
                 # NOTE: we yield before releasing the context
@@ -1249,6 +1393,43 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)
 
+    def __or__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        # Should maybe do something with field parameters here
+        return YTBooleanContainer("OR", self, other, ds = self.ds)
+
+    def __invert__(self):
+        # ~obj
+        asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
+        return YTBooleanContainer("NOT", self, asel, ds = self.ds)
+
+    def __xor__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("XOR", self, other, ds = self.ds)
+
+    def __and__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("AND", self, other, ds = self.ds)
+
+    def __add__(self, other):
+        return self.__or__(other)
+
+    def __sub__(self, other):
+        if not isinstance(other, YTSelectionContainer):
+            raise YTBooleanObjectError(other)
+        if self.ds is not other.ds:
+            raise YTBooleanObjectsWrongDataset()
+        return YTBooleanContainer("NEG", self, other, ds = self.ds)
+
     @contextmanager
     def _field_lock(self):
         self._locked = True
@@ -1315,7 +1496,6 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.fcoords_vertex
-
 
 class YTSelectionContainer0D(YTSelectionContainer):
     _spatial = False
@@ -1451,6 +1631,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         elif iterable(height):
             h, u = height
             height = self.ds.quan(h, input_units = u)
+        elif not isinstance(height, YTArray):
+            height = self.ds.quan(height, 'code_length')
         if not iterable(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
@@ -1680,7 +1862,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
     def _calculate_flux_in_grid(self, grid, mask, field, value,
                     field_x, field_y, field_z, fluxing_field = None):
-        
+
         vc_fields = [field, field_x, field_y, field_z]
         if fluxing_field is not None:
             vc_fields.append(fluxing_field)
@@ -1773,6 +1955,50 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         return self.quantities.total_quantity(("index", "cell_volume"))
 
+
+class YTBooleanContainer(YTSelectionContainer3D):
+    """
+    This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
+    multiple data objects.
+
+    This object is not designed to be created directly; it is designed to be
+    created implicitly by using one of the bitwise operations (&, \|, ^, \~) on
+    one or two other data objects.  These correspond to the appropriate boolean
+    operations, and the resultant object can be nested.
+
+    Parameters
+    ----------
+    op : string
+        Can be AND, OR, XOR, NOT or NEG.
+    dobj1 : YTSelectionContainer
+        The first selection object
+    dobj2 : YTSelectionContainer
+        The second object
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    >>> sp = ds.sphere("c", 0.1)
+    >>> dd = ds.r[:,:,:]
+    >>> new_obj = sp ^ dd
+    >>> print(new_obj.sum("cell_volume"), dd.sum("cell_volume") -
+    ...    sp.sum("cell_volume"))
+    """
+    _type_name = "bool"
+    _con_args = ("op", "dobj1", "dobj2")
+    def __init__(self, op, dobj1, dobj2, ds = None, field_parameters = None,
+                 data_source = None):
+        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
+                data_source)
+        self.op = op.upper()
+        self.dobj1 = dobj1
+        self.dobj2 = dobj2
+        name = "Boolean%sSelector" % (self.op,)
+        sel_cls = getattr(yt.geometry.selection_routines, name)
+        self._selector = sel_cls(self)
+
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the
 # _reconstruct_object and that we cannot mandate any additional arguments to
@@ -1796,6 +2022,9 @@ def _check_nested_args(arg, ref_ds):
     return narg
 
 def _get_ds_by_hash(hash):
+    from yt.data_objects.static_output import Dataset
+    if isinstance(hash, Dataset):
+        return hash
     from yt.data_objects.static_output import _cached_datasets
     for ds in _cached_datasets.values():
         if ds._hash() == hash: return ds

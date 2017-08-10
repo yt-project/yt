@@ -53,7 +53,7 @@ class LightRay(CosmologySplice):
 
     Parameters
     ----------
-    parameter_filename : string or :class:`yt.data_objects.static_output.Dataset`
+    parameter_filename : string or :class:`~yt.data_objects.static_output.Dataset`
         For simple rays, one may pass either a loaded dataset object or
         the filename of a dataset.
         For compound rays, one must pass the filename of the simulation
@@ -655,33 +655,32 @@ class LightRay(CosmologySplice):
 
         Write light ray data to hdf5 file.
         """
+
+        extra_attrs = {"data_type": "yt_light_ray"}
         if self.simulation_type is None:
             ds = self.ds
         else:
             ds = {}
-            ds["dimensionality"] = self.simulation.dimensionality
-            ds["domain_left_edge"] = self.simulation.domain_left_edge
-            ds["domain_right_edge"] = self.simulation.domain_right_edge
-            ds["cosmological_simulation"] = self.simulation.cosmological_simulation
             ds["periodicity"] = (True, True, True)
             ds["current_redshift"] = self.near_redshift
-            for attr in ["omega_lambda", "omega_matter", "hubble_constant"]:
-                ds[attr] = getattr(self.cosmology, attr)
+            for attr in ["dimensionality", "cosmological_simulation",
+                         "domain_left_edge", "domain_right_edge",
+                         "length_unit", "time_unit"]:
+                ds[attr] = getattr(self.simulation, attr)
+            if self.simulation.cosmological_simulation:
+                for attr in ["omega_lambda", "omega_matter",
+                             "hubble_constant"]:
+                    ds[attr] = getattr(self.cosmology, attr)
             ds["current_time"] = \
               self.cosmology.t_from_z(ds["current_redshift"])
             if isinstance(ds["hubble_constant"], YTArray):
                 ds["hubble_constant"] = \
                   ds["hubble_constant"].to("100*km/(Mpc*s)").d
-        extra_attrs = {"data_type": "yt_light_ray"}
+            extra_attrs["unit_registry_json"] = \
+              self.simulation.unit_registry.to_json()
 
         # save the light ray solution
         if len(self.light_ray_solution) > 0:
-            # Convert everything to base unit system now to avoid
-            # problems with different units for each ds.
-            for s in self.light_ray_solution:
-                for f in s:
-                    if isinstance(s[f], YTArray):
-                        s[f].convert_to_base()
             for key in self.light_ray_solution[0]:
                 if key in ["next", "previous", "index"]:
                     continue
@@ -690,7 +689,12 @@ class LightRay(CosmologySplice):
                     to_arr = YTArray
                 else:
                     to_arr = np.array
-                extra_attrs["light_ray_solution_%s" % key] = to_arr(lrsa)
+                arr = to_arr(lrsa)
+                # If we somehow create an object array, convert it to a string
+                # to avoid errors later
+                if arr.dtype == 'O':
+                    arr = arr.astype(str)
+                extra_attrs["light_ray_solution_%s" % key] = arr
 
         field_types = dict([(field, "grid") for field in data.keys()])
 

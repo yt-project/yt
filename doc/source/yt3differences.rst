@@ -24,7 +24,7 @@ command:
 
 .. code-block:: bash
 
-    $ yt update --all
+    $ yt update
 
 This will update yt to the most recent version and rebuild the source base.
 If you installed using the installer script, it will assure you have all of the

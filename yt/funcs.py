@@ -16,7 +16,7 @@ from __future__ import print_function
 
 import errno
 from yt.extern.six import string_types
-from yt.extern.six.moves import input
+from yt.extern.six.moves import input, builtins
 import time
 import inspect
 import traceback
@@ -34,7 +34,6 @@ import base64
 import numpy
 import matplotlib
 import getpass
-from distutils.version import LooseVersion
 from math import floor, ceil
 from numbers import Number as numeric_type
 
@@ -286,17 +285,6 @@ __header = """
      %(filename)s:%(lineno)s
 """
 
-def get_ipython_api_version():
-    import IPython
-    if LooseVersion(IPython.__version__) <= LooseVersion('0.10'):
-        api_version = '0.10'
-    elif LooseVersion(IPython.__version__) <= LooseVersion('1.0'):
-        api_version = '0.11'
-    else:
-        api_version = '1.0'
-
-    return api_version
-
 def insert_ipython(num_up=1):
     """
     Placed inside a function, this will insert an IPython interpreter at that
@@ -306,31 +294,22 @@ def insert_ipython(num_up=1):
     defaults to 1 so that this function itself is stripped off.
     """
     import IPython
-    api_version = get_ipython_api_version()
+    from IPython.terminal.embed import InteractiveShellEmbed
+    try:
+        from traitlets.config.loader import Config
+    except ImportError:
+        from IPython.config.loader import Config
 
     frame = inspect.stack()[num_up]
     loc = frame[0].f_locals.copy()
     glo = frame[0].f_globals
     dd = dict(fname = frame[3], filename = frame[1],
               lineno = frame[2])
-    if api_version == '0.10':
-        ipshell = IPython.Shell.IPShellEmbed()
-        ipshell(header = __header % dd,
-                local_ns = loc, global_ns = glo)
-    else:
-        try:
-            from traitlets.config.loader import Config
-        except ImportError:
-            from IPython.config.loader import Config
-        cfg = Config()
-        cfg.InteractiveShellEmbed.local_ns = loc
-        cfg.InteractiveShellEmbed.global_ns = glo
-        IPython.embed(config=cfg, banner2 = __header % dd)
-        if api_version == '0.11':
-            from IPython.frontend.terminal.embed import InteractiveShellEmbed
-        else:
-            from IPython.terminal.embed import InteractiveShellEmbed
-        ipshell = InteractiveShellEmbed(config=cfg)
+    cfg = Config()
+    cfg.InteractiveShellEmbed.local_ns = loc
+    cfg.InteractiveShellEmbed.global_ns = glo
+    IPython.embed(config=cfg, banner2 = __header % dd)
+    ipshell = InteractiveShellEmbed(config=cfg)
 
     del ipshell
 
@@ -400,7 +379,8 @@ def get_pbar(title, maxval, parallel=False):
     maxval = max(maxval, 1)
     from yt.config import ytcfg
     if ytcfg.getboolean("yt", "suppressStreamLogging") or \
-       ytcfg.getboolean("yt", "__withintesting"):
+       ytcfg.getboolean("yt", "__withintesting") or \
+       maxval == 1: \
         return DummyProgressBar()
     elif ytcfg.getboolean("yt", "__parallel"):
         # If parallel is True, update progress on root only.
@@ -526,47 +506,47 @@ def update_git(path):
         print("Try: pip install gitpython")
         return -1
     with open(os.path.join(path, "yt_updater.log"), "a") as f:
-        with git.Repo(path) as repo:
-            if repo.is_dirty(untracked_files=True):
-                print("Changes have been made to the yt source code so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git stash")
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ git stash pop")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            if repo.active_branch.name != 'master':
-                print("yt repository is not tracking the master branch so I won't ")
-                print("update the code. You will have to do this yourself.")
-                print("Here's a set of sample commands:")
-                print("")
-                print("    $ cd %s" % (path))
-                print("    $ git checkout master")
-                print("    $ git pull")
-                print("    $ %s setup.py develop" % (sys.executable))
-                print("")
-                return 1
-            print("Updating the repository")
-            f.write("Updating the repository\n\n")
-            old_version = repo.git.rev_parse('HEAD', short=12)
-            try:
-                remote = repo.remotes.yt_upstream
-            except AttributeError:
-                remote = repo.create_remote(
-                    'yt_upstream', url='https://github.com/yt-project/yt')
-                remote.fetch()
-            master = repo.heads.master
-            master.set_tracking_branch(remote.refs.master)
-            master.checkout()
-            remote.pull()
-            new_version = repo.git.rev_parse('HEAD', short=12)
-            f.write('Updated from %s to %s\n\n' % (old_version, new_version))
-            rebuild_modules(path, f)
+        repo = git.Repo(path)
+        if repo.is_dirty(untracked_files=True):
+            print("Changes have been made to the yt source code so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git stash")
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ git stash pop")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        if repo.active_branch.name != 'master':
+            print("yt repository is not tracking the master branch so I won't ")
+            print("update the code. You will have to do this yourself.")
+            print("Here's a set of sample commands:")
+            print("")
+            print("    $ cd %s" % (path))
+            print("    $ git checkout master")
+            print("    $ git pull")
+            print("    $ %s setup.py develop" % (sys.executable))
+            print("")
+            return 1
+        print("Updating the repository")
+        f.write("Updating the repository\n\n")
+        old_version = repo.git.rev_parse('HEAD', short=12)
+        try:
+            remote = repo.remotes.yt_upstream
+        except AttributeError:
+            remote = repo.create_remote(
+                'yt_upstream', url='https://github.com/yt-project/yt')
+            remote.fetch()
+        master = repo.heads.master
+        master.set_tracking_branch(remote.refs.master)
+        master.checkout()
+        remote.pull()
+        new_version = repo.git.rev_parse('HEAD', short=12)
+        f.write('Updated from %s to %s\n\n' % (old_version, new_version))
+        rebuild_modules(path, f)
     print('Updated successfully')
 
 def update_hg(path):
@@ -632,8 +612,8 @@ def get_git_version(path):
         print("Try: pip install gitpython")
         return None
     try:
-        with git.Repo(path) as repo:
-            return repo.git.rev_parse('HEAD', short=12)
+        repo = git.Repo(path)
+        return repo.git.rev_parse('HEAD', short=12)
     except git.InvalidGitRepositoryError:
         # path is not a git repository
         return None
@@ -687,6 +667,35 @@ def get_script_contents():
     return contents
 
 def download_file(url, filename):
+    requests = get_requests()
+    if requests is None:
+        return simple_download_file(url, filename)
+    else:
+        return fancy_download_file(url, filename, requests)
+
+def fancy_download_file(url, filename, requests=None):
+    response = requests.get(url, stream=True)
+    total_length = response.headers.get('content-length')
+
+    with open(filename, 'wb') as fh:
+        if total_length is None:
+            fh.write(response.content)
+        else:
+            blocksize = 4 * 1024 ** 2
+            iterations = int(float(total_length)/float(blocksize))
+
+            pbar = get_pbar(
+                'Downloading %s to %s ' % os.path.split(filename)[::-1],
+                iterations)
+            iteration = 0
+            for chunk in response.iter_content(chunk_size=blocksize):
+                fh.write(chunk)
+                iteration += 1
+                pbar.update(iteration)
+            pbar.finish()
+    return filename
+
+def simple_download_file(url, filename):
     class MyURLopener(urllib.request.FancyURLopener):
         def http_error_default(self, url, fp, errcode, errmsg, headers):
             raise RuntimeError("Attempt to download file from %s failed with error %s: %s." % \
@@ -807,6 +816,7 @@ def get_output_filename(name, keyword, suffix):
 
     With a name provided by the user, this will decide how to 
     appropriately name the output file by the following rules:
+
     1. if name is None, the filename will be the keyword plus 
        the suffix.
     2. if name ends with "/", assume name is a directory and 
@@ -840,13 +850,7 @@ def get_output_filename(name, keyword, suffix):
         name = keyword
     name = os.path.expanduser(name)
     if name[-1] == os.sep and not os.path.isdir(name):
-        try:
-            os.mkdir(name)
-        except OSError as e:
-            if e.errno == errno.EEXIST:
-                pass
-            else:
-                raise
+        ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
     if not name.endswith(suffix):
@@ -856,15 +860,20 @@ def get_output_filename(name, keyword, suffix):
 def ensure_dir_exists(path):
     r"""Create all directories in path recursively in a parallel safe manner"""
     my_dir = os.path.dirname(path)
-    if not my_dir:
-        return
-    if not os.path.exists(my_dir):
-        only_on_root(os.makedirs, my_dir)
+    ensure_dir(my_dir)
 
 def ensure_dir(path):
     r"""Parallel safe directory maker."""
-    if not os.path.exists(path):
-        only_on_root(os.makedirs, path)
+    if os.path.exists(path):
+        return path
+
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            pass
+        else:
+            raise
     return path
 
 def validate_width_tuple(width):
@@ -945,21 +954,32 @@ def enable_plugins():
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    The file must be located at ``$HOME/.yt/my_plugins.py``.
+    The file must be located at ``$HOME/.config/yt/my_plugins.py``.
 
     Warning: when you use this function, your script will only be reproducible
     if you also provide the ``my_plugins.py`` file.
     """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
-    from yt.config import ytcfg
-    my_plugin_name = ytcfg.get("yt","pluginfilename")
-    # We assume that it is with respect to the $HOME/.yt directory
-    if os.path.isfile(my_plugin_name):
-        _fn = my_plugin_name
-    else:
-        _fn = os.path.expanduser("~/.yt/%s" % my_plugin_name)
-    if os.path.isfile(_fn):
+    from yt.config import ytcfg, CONFIG_DIR
+    my_plugin_name = ytcfg.get("yt", "pluginfilename")
+
+    # In the following order if pluginfilename is: an absolute path, located in
+    # the CONFIG_DIR, located in an obsolete config dir.
+    _fn = None
+    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
+    for base_prefix in ('', CONFIG_DIR, old_config_dir):
+        if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
+            _fn = os.path.join(base_prefix, my_plugin_name)
+            break
+
+    if _fn is not None and os.path.isfile(_fn):
+        if _fn.startswith(old_config_dir):
+            mylog.warn(
+                'Your plugin file is located in a deprecated directory. '
+                'Please move it from %s to %s',
+                os.path.join(old_config_dir, my_plugin_name),
+                os.path.join(CONFIG_DIR, my_plugin_name))
         mylog.info("Loading plugins from %s", _fn)
         execdict = yt.__dict__.copy()
         execdict['add_field'] = my_plugins_fields.add_field
@@ -1059,7 +1079,7 @@ def get_requests():
 def dummy_context_manager(*args, **kwargs):
     yield
 
-def matplotlib_style_context(style_name=None, after_reset=True):
+def matplotlib_style_context(style_name=None, after_reset=False):
     """Returns a context manager for controlling matplotlib style.
 
     Arguments are passed to matplotlib.style.context() if specified. Defaults
@@ -1069,14 +1089,34 @@ def matplotlib_style_context(style_name=None, after_reset=True):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = 'classic'
+        style_name = {
+            'mathtext.fontset': 'cm',
+            'mathtext.fallback_to_cm': True,
+        }
     try:
         import matplotlib.style
-        if style_name in matplotlib.style.available:
-            return matplotlib.style.context(style_name, after_reset=after_reset)
+        return matplotlib.style.context(style_name, after_reset=after_reset)
     except ImportError:
         pass
     return dummy_context_manager()
+
+interactivity = False
+
+"""Sets the condition that interactive backends can be used."""
+def toggle_interactivity():
+    global interactivity
+    interactivity = not interactivity
+    if interactivity is True:
+        if '__IPYTHON__' in dir(builtins):
+            import IPython
+            shell = IPython.get_ipython()
+            shell.magic('matplotlib')
+        else:
+            import matplotlib
+            matplotlib.interactive(True)
+
+def get_interactivity():
+    return interactivity
 
 def setdefaultattr(obj, name, value):
     """Set attribute with *name* on *obj* with *value* if it doesn't exist yet
@@ -1086,3 +1126,26 @@ def setdefaultattr(obj, name, value):
     if not hasattr(obj, name):
         setattr(obj, name, value)
     return getattr(obj, name)
+
+def parse_h5_attr(f, attr):
+    """A Python3-safe function for getting hdf5 attributes.
+
+    If an attribute is supposed to be a string, this will return it as such.
+    """
+    val = f.attrs.get(attr, None)
+    if isinstance(val, bytes):
+        return val.decode('utf8')
+    else:
+        return val
+
+def issue_deprecation_warning(msg):
+    from numpy import VisibleDeprecationWarning
+    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=3)
+
+def obj_length(v):
+    if iterable(v):
+        return len(v)
+    else:
+        # If something isn't iterable, we return 0 
+        # to signify zero length (aka a scalar).
+        return 0

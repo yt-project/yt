@@ -216,6 +216,17 @@ class Unit(Expr):
         elif isinstance(unit_expr, Unit):
             # grab the unit object's sympy expression.
             unit_expr = unit_expr.expr
+        elif hasattr(unit_expr, 'units') and hasattr(unit_expr, 'value'):
+            # something that looks like a YTArray, grab the unit and value
+            if unit_expr.shape != ():
+                raise UnitParseError(
+                    'Cannot create a unit from a non-scalar YTArray, received: '
+                    '%s' % (unit_expr, ))
+            value = unit_expr.value
+            if value == 1:
+                unit_expr = unit_expr.units.expr
+            else:
+                unit_expr = unit_expr.value*unit_expr.units.expr
         # Make sure we have an Expr at this point.
         if not isinstance(unit_expr, Expr):
             raise UnitParseError("Unit representation must be a string or " \
@@ -475,10 +486,10 @@ class Unit(Expr):
                 raise YTUnitsNotReducible(self, "cgs")
             return yt_base_unit
         else:
-            if unit_system == "code":
-                raise RuntimeError(r'You must refer to a dataset instance to convert to a '
-                                   r'code unit system. Try again with unit_system=ds instead, '
-                                   r'where \'ds\' is your dataset.')
+            if hasattr(unit_system, "unit_registry"):
+                unit_system = unit_system.unit_registry.unit_system_id
+            elif unit_system == "code":
+                unit_system = self.registry.unit_system_id
             unit_system = unit_system_registry[str(unit_system)]
             units_string = _get_system_unit_string(self.dimensions, unit_system.base_units)
             u = Unit(units_string, registry=self.registry)
@@ -694,3 +705,46 @@ def _get_system_unit_string(dimensions, base_units):
             power_string = ""
         units.append("(%s)%s" % (unit_string, power_string))
     return " * ".join(units)
+
+def _define_unit(registry, symbol, value, tex_repr=None, offset=None, prefixable=False):
+    from yt.units.yt_array import YTQuantity, iterable
+    if symbol in registry:
+        raise RuntimeError("The symbol \"%s\" is already in the unit registry!" % symbol)
+    if not isinstance(value, YTQuantity):
+        if iterable(value) and len(value) == 2:
+            value = YTQuantity(value[0], value[1])
+        else:
+            raise RuntimeError("\"value\" needs to be a (value, unit) tuple!")
+    base_value = float(value.in_base(unit_system='cgs-ampere'))
+    dimensions = value.units.dimensions
+    registry.add(symbol, base_value, dimensions, tex_repr=tex_repr, offset=offset)
+    if prefixable:
+        prefixable_units.append(symbol)
+
+def define_unit(symbol, value, tex_repr=None, offset=None, prefixable=False):
+    """
+    Define a new unit and add it to the default unit registry.
+
+    Parameters
+    ----------
+    symbol : string
+        The symbol for the new unit.
+    value : tuple or ~yt.units.yt_array.YTQuantity
+        The definition of the new unit in terms of some other units. For example,
+        one would define a new "mph" unit with (1.0, "mile/hr") 
+    tex_repr : string, optional
+        The LaTeX representation of the new unit. If one is not supplied, it will
+        be generated automatically based on the symbol string.
+    offset : float, optional
+        The default offset for the unit. If not set, an offset of 0 is assumed.
+    prefixable : boolean, optional
+        Whether or not the new unit can use SI prefixes. Default: False
+
+    Examples
+    --------
+    >>> yt.define_unit("mph", (1.0, "mile/hr"))
+    >>> two_weeks = YTQuantity(14.0, "days")
+    >>> yt.define_unit("fortnight", two_weeks)
+    """
+    _define_unit(default_unit_registry, symbol, value, tex_repr=tex_repr, 
+                 offset=offset, prefixable=prefixable)

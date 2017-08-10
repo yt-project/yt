@@ -53,6 +53,7 @@ outdated section, contributing typo or grammatical fixes, adding a FAQ, or
 increasing coverage of functionality, it would be very helpful if you wanted to
 help out.
 
+The easiest way to help out is to fork the main yt repository (where the
 documentation lives in the ``doc`` directory in the root of the yt git
 repository) and then make your changes in your own fork.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
@@ -292,7 +293,7 @@ it locally you must clone it onto your machine from the command line:
 
 .. code-block:: bash
 
-   $ git clone https://github.com/<USER>/yt
+   $ git clone https://github.com/<USER>/yt ./yt-git
 
 This downloads that new forked repository to your local machine, so that you
 can access it, read it, make modifications, etc.  It will put the repository in
@@ -301,7 +302,7 @@ directory.
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
+   $ cd yt-git
 
 Verify that you are on the master branch of yt by running:
 
@@ -333,8 +334,7 @@ repository directory.
 
 .. code-block:: bash
 
-   $ cd <REPOSITORY_NAME>
-   $ python2.7 setup.py develop
+   $ python setup.py develop
 
 This will rebuild all C modules as well.
 
@@ -351,7 +351,7 @@ script.
 
 The root directory of the yt git repository contains a number of
 subdirectories with different components of the code.  Most of the yt source
-code is contained in the yt subdirectory.  This directory its self contains
+code is contained in the yt subdirectory.  This directory itself contains
 the following subdirectories:
 
 ``frontends``
@@ -430,48 +430,30 @@ If you have made changes to any C or Cython (``.pyx``) modules, you have to
 rebuild yt.  If your changes have exclusively been to Python modules, you will
 not need to re-build, but (see below) you may need to re-install.
 
+Note that you will need a functioning compilation environment to build yt. On
+linux this typically means installing the package that sets up a basic build
+environment (e.g. ``build-essential`` on Debian and Ubuntu). On MacOS this means
+installing the XCode command line tools. On Windows this means installing the
+version of the Microsoft Visual C++ compiler that is appropriate for your
+version of Python. See `the Python wiki
+<https://wiki.python.org/moin/WindowsCompilers>`_ for more details.
+
 If you are running from a clone that is executable in-place (i.e., has been
 installed via the installation script or you have run ``setup.py develop``) you
 can rebuild these modules by executing:
 
 .. code-block:: bash
 
-  $ python2.7 setup.py develop
+  $ python setup.py develop
 
 If you have previously "installed" via ``setup.py install`` you have to
 re-install:
 
 .. code-block:: bash
 
-  $ python2.7 setup.py install
+  $ python setup.py install
 
 Only one of these two options is needed.
-
-.. _windows-developing:
-
-Developing yt on Windows
-------------------------
-
-If you plan to develop yt on Windows, it is necessary to use the `MinGW
-<http://www.mingw.org/>`_ gcc compiler that can be installed using the `Anaconda
-Python Distribution <https://store.continuum.io/cshop/anaconda/>`_. The libpython package must be
-installed from Anaconda as well. These can both be installed with a single command:
-
-.. code-block:: bash
-
-  $ conda install libpython mingw
-
-Additionally, the syntax for the setup command is slightly different; you must type:
-
-.. code-block:: bash
-
-  $ python2.7 setup.py build --compiler=mingw32 develop
-
-or
-
-.. code-block:: bash
-
-  $ python2.7 setup.py build --compiler=mingw32 install
 
 .. _requirements-for-code-submission:
 
@@ -584,16 +566,21 @@ The simplest way to submit changes to yt is to do the following:
 
 Here's a more detailed flowchart of how to submit changes.
 
+#. Fork yt on GitHub.  (This step only has to be done once.)  You can do
+   this at: https://github.com/yt-project/yt/fork.
 #. If you have used the installation script, the source code for yt can be
    found in ``$YT_DEST/src/yt-git``.  Alternatively see
    :ref:`source-installation` for instructions on how to build yt from the
    git repository. (Below, in :ref:`reading-source`, we describe how to
-   find items of interest.)
+   find items of interest.) If you have already forked the repository then
+   you can clone your fork locally::
+
+     git clone https://github.com/<USER>/yt ./yt-git
+
+   This will create a local clone of your fork of yt in a folder named
+   ``yt-git``.
 #. Edit the source file you are interested in and
    test your changes.  (See :ref:`testing` for more information.)
-#. Fork yt on GitHub.  (This step only has to be done once.)  You can do
-   this at: https://github.com/yt-project/yt/fork.  Call this repository
-   yt.
 #. Create a uniquely named branch to track your work. For example: ``git
    checkout -b my-first-pull-request``
 #. Stage your changes using ``git add <paths>``.  This command take an argument
@@ -612,15 +599,32 @@ Here's a more detailed flowchart of how to submit changes.
 #. If your changes include new functionality or cover an untested area of the
    code, add a test.  (See :ref:`testing` for more information.)  Commit
    these changes as well.
-#. Add your remote repository with a unique name identifier. It can be anything;
-   your GitHub user name is one possible choice::
+#. Add your remote repository with a unique name identifier. It can be anything
+   but it is conventional to call it ``origin``.  You can see names and URLs of
+   all the remotes you currently have configured with::
 
-      git remote add <YourUniqueIdentifier> https://github.com/YourUsername/yt/
-  
+     git remote -v
+
+   If you already have an ``origin`` remote, you can set it to your fork with::
+
+     git remote set-url origin https://github.com/<USER>/yt
+
+   If you do not have an ``origin`` remote you will need to add it::
+
+     git remote add origin https://github.com/<USER>/yt
+
+   In addition, it is also useful to add a remote for the main yt repository.
+   By convention we name this remote ``upstream``::
+
+     git remote add upstream https://github.com/yt-project/yt
+
+   Note that if you forked the yt repository on GitHub and then cloned from
+   there you will not need to add the ``origin`` remote.
+
 #. Push your changes to your remote fork using the unique identifier you just
    created and the command::
 
-      git push <YourUniqueIdentifier> my-first-pull-request
+      git push origin my-first-pull-request
 
    Where you should substitute the name of the feature branch you are working on for
    ``my-first-pull-request``.
@@ -630,20 +634,18 @@ Here's a more detailed flowchart of how to submit changes.
      between your machine and GitHub.  If you prefer to use SSH - or
      perhaps you're behind a proxy that doesn't play well with SSL via
      HTTPS - you may want to set up an `SSH key`_ on GitHub.  Then, you use
-     the syntax ``ssh://git@github.com/YourUsername/yt``, or equivalent, in
-     place of ``https://github.com/YourUsername/yt`` in git commands.
+     the syntax ``ssh://git@github.com/<USER>/yt``, or equivalent, in
+     place of ``https://github.com/<USER>/yt`` in git commands.
      For consistency, all commands we list in this document will use the HTTPS
      protocol.
 
      .. _SSH key: https://help.github.com/articles/connecting-to-github-with-ssh/
-
-#. Issue a pull request at
-   https://github.com/yt-project/yt/pull/new/master
-   A pull request is essentially just asking people to review and accept the
+#. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
+   pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
 
 During the course of your pull request you may be asked to make changes.  These
-changes may be related to style issues, correctness issues, or even requesting
+changes may be related to style issues, correctness issues, or requesting
 tests.  The process for responding to pull request code review is relatively
 straightforward.
 
@@ -651,10 +653,30 @@ straightforward.
    they should be made.
 #. Commit those changes to your local repository.
 #. Push the changes to your fork::
-
-      git push <YourRemoteIdentifier> <YourBranchName>
-
+      git push origin my-first-pull-request
 #. Your pull request will be automatically updated.
+
+Once your pull request is merged, sync up with the main yt repository by pulling
+from the ``upstream`` remote::
+
+     git checkout master
+     git pull upstream master
+
+You might also want to sync your fork of yt on GitHub::
+
+     # sync my fork of yt with upstream
+     git push origin master
+
+And delete the branch for the merged pull request::
+
+     # delete branch for merged pull request
+     git branch -d my-first-pull-request
+     git push origin --delete my-first-pull-request
+
+These commands are optional but are nice for keeping your branch list
+manageable. You can also delete the branch on your fork of yt on GitHub by
+clicking the "delete branch" button on the page for the merged pull request on
+GitHub.
 
 .. _multiple-PRs:
 
@@ -688,11 +710,11 @@ need to install the ``flake8`` tool from ``pip``:
     $ pip install flake8
 
 And then navigate to the root of the yt repository and run ``flake8`` on the
-``yt`` folder:
+``yt`` subdirectory:
 
 .. code-block:: bash
 
-    $ cd $YT_HG
+    $ cd yt-git
     $ flake8 ./yt
 
 This will print out any ``flake8`` errors or warnings that your newly added code
@@ -700,7 +722,7 @@ triggers. The errors will be in your newly added code because we have already
 cleaned up the rest of the yt codebase of the errors and warnings detected by
 the `flake8` tool. Note that this will only trigger a subset of the `full flake8
 error and warning list
-<http://flake8.readthedocs.org/en/latest/warnings.html>`_, since we explicitly
+<http://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
 blacklist a large number of the full list of rules that are checked by
 ``flake8`` by default.
 
@@ -720,7 +742,7 @@ Source code style guide
    (something_else))`` should be rewritten as
    ``if something and something_else``. Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do
-   ``a = a.reshape(3,4)`` when ``a.shape = (3,4)`` will do, and ``a = a * 3``
+   ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
    should be ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
@@ -866,13 +888,13 @@ written in `Sphinx restructured text format <http://sphinx-doc.org/rest.html>`_.
     use the function.  Use the variables 'ds' for the dataset, 'pc' for
     a plot collection, 'c' for a center, and 'L' for a vector.
 
-    >>> a=[1,2,3]
-    >>> print [x + 3 for x in a]
+    >>> a = [1, 2, 3]
+    >>> print([x + 3 for x in a])
     [4, 5, 6]
-    >>> print "a\n\nb"
+    >>> print("a\n\nb")
     a
-    b
 
+    b
     """
 
 Variable Names and Enzo-isms

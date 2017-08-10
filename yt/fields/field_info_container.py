@@ -21,6 +21,7 @@ from numbers import Number as numeric_type
 from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.units.unit_object import Unit
+from yt.units.dimensions import dimensionless
 from .derived_field import \
     DerivedField, \
     NullFunc, \
@@ -86,20 +87,20 @@ class FieldInfoContainer(dict):
                 self[(ftype, f)].units = self["index", f].units
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
-        skip_output_units = ("code_length",)
+        skip_output_units = ("code_length")
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
+            output_units = units
             if (f in aliases or ptype not in self.ds.particle_types_raw) and \
                 units not in skip_output_units:
                 u = Unit(units, registry = self.ds.unit_registry)
-                output_units = str(self.ds.unit_system[u.dimensions])
-            else:
-                output_units = units
+                if u.dimensions is not dimensionless:
+                    output_units = str(self.ds.unit_system[u.dimensions])
             if (ptype, f) not in self.field_list:
                 continue
-            self.add_output_field((ptype, f),
-                units = units, particle_type = True,
-                display_name = dn, output_units = output_units)
+            self.add_output_field((ptype, f), sampling_type="particle",
+                units = units, display_name = dn, 
+                output_units = output_units)
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units = output_units)
 
@@ -134,9 +135,8 @@ class FieldInfoContainer(dict):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
-            self.add_output_field(field, 
-                                  units = self.ds.field_units.get(field, ""),
-                                  particle_type = True)
+            self.add_output_field(field, sampling_type="particle",
+                                  units = self.ds.field_units.get(field, ""))
         self.setup_smoothed_fields(ptype, 
                                    num_neighbors=num_neighbors,
                                    ftype=ftype)
@@ -196,12 +196,12 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, units = units,
+            self.add_output_field(field, sampling_type="cell", units = units,
                                   display_name = display_name)
             for alias in aliases:
                 self.alias(("gas", alias), field)
 
-    def add_field(self, name, function=None, **kwargs):
+    def add_field(self, name, sampling_type, function=None, **kwargs):
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -250,25 +250,26 @@ class FieldInfoContainer(dict):
         kwargs.setdefault('ds', self.ds)
         if function is None:
             def create_function(f):
-                self[name] = DerivedField(name, f, **kwargs)
+                self[name] = DerivedField(name, sampling_type, f, **kwargs)
                 return f
             return create_function
 
         if isinstance(name, tuple):
-            self[name] = DerivedField(name, function, **kwargs)
+            self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        if kwargs.get("particle_type", False):
+        if sampling_type == 'particle':
             ftype = 'all'
         else:
             ftype = self.ds.default_fluid_type
 
         if (ftype, name) not in self:
             tuple_name = (ftype, name)
-            self[tuple_name] = DerivedField(tuple_name, function, **kwargs)
+            self[tuple_name] = DerivedField(tuple_name, sampling_type, function,
+                                            **kwargs)
             self.alias(name, tuple_name)
         else:
-            self[name] = DerivedField(name, function, **kwargs)
+            self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
     def load_all_plugins(self, ftype="gas"):
         loaded = []
@@ -296,9 +297,9 @@ class FieldInfoContainer(dict):
         self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return loaded, unavailable
 
-    def add_output_field(self, name, **kwargs):
+    def add_output_field(self, name, sampling_type, **kwargs):
         kwargs.setdefault('ds', self.ds)
-        self[name] = DerivedField(name, NullFunc, **kwargs)
+        self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
     def alias(self, alias_name, original_name, units = None):
         if original_name not in self: return
@@ -307,11 +308,14 @@ class FieldInfoContainer(dict):
             # as well.
             u = Unit(self[original_name].units,
                       registry = self.ds.unit_registry)
-            units = str(self.ds.unit_system[u.dimensions])
+            if u.dimensions is not dimensionless:
+                units = str(self.ds.unit_system[u.dimensions])
+            else:
+                units = self[original_name].units
         self.field_aliases[alias_name] = original_name
         self.add_field(alias_name,
             function = TranslationFunc(original_name),
-            particle_type = self[original_name].particle_type,
+            sampling_type = self[original_name].sampling_type,
             display_name = self[original_name].display_name,
             units = units)
 
@@ -364,6 +368,10 @@ class FieldInfoContainer(dict):
                 if field in self._show_field_errors:
                     raise
                 if type(e) != YTFieldNotFound:
+                    # if we're doing field tests, raise an error
+                    # see yt.fields.tests.test_fields
+                    if hasattr(self.ds, '_field_test_dataset'):
+                        raise
                     mylog.debug("Raises %s during field %s detection.",
                                 str(type(e)), field)
                 self.pop(field)

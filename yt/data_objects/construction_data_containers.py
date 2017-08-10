@@ -28,7 +28,8 @@ from yt.config import ytcfg
 from yt.data_objects.data_containers import \
     YTSelectionContainer1D, \
     YTSelectionContainer2D, \
-    YTSelectionContainer3D, \
+    YTSelectionContainer3D
+from yt.data_objects.field_data import \
     YTFieldData
 from yt.funcs import \
     ensure_list, \
@@ -55,11 +56,13 @@ from yt.utilities.minimal_representation import \
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, parallel_root_only, communication_system
 from yt.units.unit_object import Unit
+from yt.units.yt_array import uconcatenate
 import yt.geometry.particle_deposit as particle_deposit
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
+from yt.units.yt_array import YTArray
 import yt.extern.six as six
 
 class YTStreamline(YTSelectionContainer1D):
@@ -258,6 +261,11 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         field = field or []
         field = self._determine_fields(ensure_list(field))
 
+        for f in field:
+            nodal_flag = self.ds._get_field_info(f).nodal_flag
+            if any(nodal_flag):
+                raise RuntimeError("Nodal fields are currently not supported for projections.")
+
         if not self.deserialize(field):
             self.get_data(field)
             self.serialize()
@@ -334,6 +342,10 @@ class YTQuadTreeProj(YTSelectionContainer2D):
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
+        # if there's less than nprocs chunks, units won't be initialized
+        # on all processors, so sync with _projected_units on rank 0
+        projected_units = self.comm.mpi_bcast(self._projected_units)
+        self._projected_units = projected_units
         # Note that this will briefly double RAM usage
         if self.method == "mip":
             merge_style = -1
@@ -346,8 +358,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         # TODO: Add the combine operation
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
-        ox = self.ds.domain_left_edge[xax]
-        oy = self.ds.domain_left_edge[yax]
+        ox = self.ds.domain_left_edge[xax].v
+        oy = self.ds.domain_left_edge[yax].v
         px, py, pdx, pdy, nvals, nwvals = tree.get_all(False, merge_style)
         nvals = self.comm.mpi_allreduce(nvals, op=op)
         nwvals = self.comm.mpi_allreduce(nwvals, op=op)
@@ -628,9 +640,23 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if len(part) > 0: self._fill_particles(part)
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            self[a] = f(self)
+            if f.particle_type:
+                self[a] = self._data_source[f]
+            else:
+                self[a] = f(self)
             self.field_data[a].convert_to_units(f.output_units)
-        if len(gen) > 0: self._generate_fields(gen)
+        if len(gen) > 0:
+            part_gen = []
+            cell_gen = []
+            for field in gen:
+                finfo = self.ds.field_info[field]
+                if finfo.particle_type:
+                    part_gen.append(field)
+                else:
+                    cell_gen.append(field)
+            self._generate_fields(cell_gen)
+            for p in part_gen:
+                self[p] = self._data_source[p]
 
     def _split_fields(self, fields_to_get):
         fill, gen = self.index._split_fields(fields_to_get)
@@ -664,13 +690,17 @@ class YTCoveringGrid(YTSelectionContainer3D):
                          for field in fields]
         domain_dims = self.ds.domain_dimensions.astype("int64") \
                     * self.ds.relative_refinement(0, self.level)
+        refine_by = self.ds.refine_by
+        if not iterable(self.ds.refine_by):
+            refine_by = [refine_by, refine_by, refine_by]
+        refine_by = np.array(refine_by, dtype="i8")
         for chunk in self._data_source.chunks(fields, "io"):
             input_fields = [chunk[field] for field in fields]
             # NOTE: This usage of "refine_by" is actually *okay*, because it's
             # being used with respect to iref, which is *already* scaled!
             fill_region(input_fields, output_fields, self.level,
                         self.global_startindex, chunk.icoords, chunk.ires,
-                        domain_dims, self.ds.refine_by)
+                        domain_dims, refine_by)
         for name, v in zip(fields, output_fields):
             fi = self.ds._get_field_info(*name)
             self[name] = self.ds.arr(v, fi.units)
@@ -716,12 +746,15 @@ class YTCoveringGrid(YTSelectionContainer3D):
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
-        # We allocate number of zones, not number of octs
-        op = cls(self.ActiveDimensions, kernel_name)
+        # We allocate number of zones, not number of octs. Everything inside
+        # this is fortran ordered because of the ordering in the octree deposit
+        # routines, so we reverse it here to match the convention there
+        op = cls(tuple(self.ActiveDimensions)[::-1], kernel_name)
         op.initialize()
         op.process_grid(self, positions, fields)
         vals = op.finalize()
-        return vals.copy(order="C")
+        # Fortran-ordered, so transpose.
+        return vals.transpose()
 
     def write_to_gdf(self, gdf_path, fields, nprocs=1, field_units=None,
                      **kwargs):
@@ -815,16 +848,17 @@ class YTArbitraryGrid(YTCoveringGrid):
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
         if len(fields) == 0: return
-        assert(len(fields) == 1)
-        field = fields[0]
-        dest = np.zeros(self.ActiveDimensions, dtype="float64")
-        for chunk in self._data_source.chunks(fields, "io"):
-            fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
-                              self.left_edge, self.right_edge, dest, 1,
-                              self.ds.domain_width,
-                              int(any(self.ds.periodicity)))
-        fi = self.ds._get_field_info(field)
-        self[field] = self.ds.arr(dest, fi.units)
+        # It may be faster to adapt fill_region_float to fill multiple fields
+        # instead of looping here
+        for field in fields:
+            dest = np.zeros(self.ActiveDimensions, dtype="float64")
+            for chunk in self._data_source.chunks(fields, "io"):
+                fill_region_float(chunk.fcoords, chunk.fwidth, chunk[field],
+                                  self.left_edge, self.right_edge, dest, 1,
+                                  self.ds.domain_width,
+                                  int(any(self.ds.periodicity)))
+            fi = self.ds._get_field_info(field)
+            self[field] = self.ds.arr(dest, fi.units)
 
 
 class LevelState(object):
@@ -938,6 +972,12 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if len(fields) == 0: return
         ls = self._initialize_level_state(fields)
         min_level = self._compute_minimum_level()
+        # NOTE: This usage of "refine_by" is actually *okay*, because it's
+        # being used with respect to iref, which is *already* scaled!
+        refine_by = self.ds.refine_by
+        if not iterable(self.ds.refine_by):
+            refine_by = [refine_by, refine_by, refine_by]
+        refine_by = np.array(refine_by, dtype="i8")
         for level in range(self.level + 1):
             if level < min_level:
                 self._update_level_state(ls)
@@ -952,11 +992,9 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
             for chunk in ls.data_source.chunks(fields, "io"):
                 chunk[fields[0]]
                 input_fields = [chunk[field] for field in fields]
-                # NOTE: This usage of "refine_by" is actually *okay*, because it's
-                # being used with respect to iref, which is *already* scaled!
                 tot -= fill_region(input_fields, ls.fields, ls.current_level,
                             ls.global_startindex, chunk.icoords,
-                            chunk.ires, domain_dims, self.ds.refine_by)
+                            chunk.ires, domain_dims, refine_by)
             if level == 0 and tot != 0:
                 raise RuntimeError
             self._update_level_state(ls)
@@ -1060,7 +1098,7 @@ class YTSurface(YTSelectionContainer3D):
     surface_field : string
         Any field that can be obtained in a data object.  This is the field
         which will be isocontoured.
-    field_value : float
+    field_value : float, YTQuantity, or unit tuple
         The value at which the isocontour should be calculated.
 
     Examples
@@ -1085,14 +1123,21 @@ class YTSurface(YTSelectionContainer3D):
                          ("index", "x"),
                          ("index", "y"),
                          ("index", "z"))
-    vertices = None
     def __init__(self, data_source, surface_field, field_value, ds=None):
         self.data_source = data_source
-        self.surface_field = surface_field
-        self.field_value = field_value
+        self.surface_field = data_source._determine_fields(surface_field)[0]
+        finfo = data_source.ds.field_info[self.surface_field]
+        try:
+            self.field_value = field_value.to(finfo.units)
+        except AttributeError:
+            if isinstance(field_value, tuple):
+                self.field_value = data_source.ds.quan(*field_value)
+                self.field_value = self.field_value.to(finfo.units)
+            else:
+                self.field_value = data_source.ds.quan(field_value, finfo.units)
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurface, self).__init__(center = center, ds=ds)
+        super(YTSurface, self).__init__(center=center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)
@@ -1105,7 +1150,8 @@ class YTSurface(YTSelectionContainer3D):
         elif isinstance(fields, list):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
-        mylog.info("Extracting (sampling: %s)" % (fields,))
+        if fields is not None:
+            mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
         for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
@@ -1119,9 +1165,11 @@ class YTSurface(YTSelectionContainer3D):
                 verts.append(my_verts)
         verts = np.concatenate(verts).transpose()
         verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
-        self.vertices = verts
+        # verts is an ndarray here and will always be in code units, so we
+        # expose it in the public API as a YTArray
+        self._vertices = self.ds.arr(verts, 'code_length')
         if fields is not None:
-            samples = np.concatenate(samples)
+            samples = uconcatenate(samples)
             samples = self.comm.par_combine_object(samples, op='cat',
                                 datatype='array')
             if sample_type == "face":
@@ -1223,21 +1271,49 @@ class YTSurface(YTSelectionContainer3D):
             ff = np.ones_like(vc_data[self.surface_field], dtype="float64")
         else:
             ff = vc_data[fluxing_field]
+        surf_vals = vc_data[self.surface_field]
+        field_x_vals = vc_data[field_x]
+        field_y_vals = vc_data[field_y]
+        field_z_vals = vc_data[field_z]
+        ret = march_cubes_grid_flux(
+            self.field_value, surf_vals, field_x_vals, field_y_vals, field_z_vals,
+            ff, mask, grid.LeftEdge, grid.dds)
+        # assumes all the fluxing fields have the same units
+        ret_units = field_x_vals.units * ff.units * grid.dds.units**2
+        ret = self.ds.arr(ret, ret_units)
+        ret.convert_to_units(self.ds.unit_system[ret_units.dimensions])
+        return ret
 
-        return march_cubes_grid_flux(
-            self.field_value, vc_data[self.surface_field], vc_data[field_x],
-            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
-            grid.dds)
+    _vertices = None
+    @property
+    def vertices(self):
+        if self._vertices is None:
+            self.get_data()
+        return self._vertices
 
     @property
     def triangles(self):
-        if self.vertices is None:
-            self.get_data()
-        vv = np.empty((self.vertices.shape[1]/3, 3, 3), dtype="float64")
+        vv = np.empty((self.vertices.shape[1]//3, 3, 3), dtype="float64")
+        vv = self.ds.arr(vv, self.vertices.units)
         for i in range(3):
             for j in range(3):
                 vv[:,i,j] = self.vertices[j,i::3]
         return vv
+
+    _surface_area = None
+    @property
+    def surface_area(self):
+        if self._surface_area is not None:
+            return self._surface_area
+        tris = self.triangles
+        x = tris[:, 1, :] - tris[:, 0, :]
+        y = tris[:, 2, :] - tris[:, 0, :]
+        areas = (x[:, 1]*y[:, 2] - x[:, 2]*y[:, 1])**2
+        np.add(areas, (x[:, 2]*y[:, 0] - x[:, 0]*y[:, 2])**2, out=areas)
+        np.add(areas, (x[:, 0]*y[:, 1] - x[:, 1]*y[:, 0])**2, out=areas)
+        np.sqrt(areas, out=areas)
+        self._surface_area = 0.5*areas.sum()
+        return self._surface_area
 
     def export_obj(self, filename, transparency = 1.0, dist_fac = None,
                    color_field = None, emit_field = None, color_map = None,
@@ -1292,36 +1368,34 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+        >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
-        >>> mi, ma = sp.quantities.extrema('temperature')[0]
+        >>> mi, ma = sp.quantities.extrema('temperature')
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', dist_fac = distf,
+        ...                      color_field='temperature'
         ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
         ...     return (data['density']*data['density'] *
         ...             np.sqrt(data['temperature']))
-        >>> ds.add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
+        >>> ds.add_field("emissivity", function=_Emissivity,
+        ...              sampling_type='cell', units=r"g**2*sqrt(K)/cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
         ...                      color_field='temperature',
         ...                      emit_field='emissivity',
-        ...                      dist_fac = distf, plot_index = i)
+        ...                      plot_index = i)
 
         """
         if color_map is None:
@@ -1430,22 +1504,22 @@ class YTSurface(YTSelectionContainer3D):
         vtype = [("x","float"),("y","float"), ("z","float")]
         if plot_index == 0:
             fobj.write("# yt OBJ file\n")
-            fobj.write("# www.yt-project.com\n")
+            fobj.write("# www.yt-project.org\n")
             fobj.write("mtllib " + filename + '.mtl\n\n')  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
-            fmtl.write("# www.yt-project.com\n\n")
+            fmtl.write("# www.yt-project.org\n\n")
         #(0) formulate vertices
         nv = self.vertices.shape[1] # number of groups of vertices
-        f = np.empty(nv/self.vertices.shape[0], dtype=ftype) # store sets of face colors
+        f = np.empty(nv//self.vertices.shape[0], dtype=ftype) # store sets of face colors
         v = np.empty(nv, dtype=vtype) # stores vertices
         if color_field is not None:
             cs = self[color_field]
         else:
-            cs = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+            cs = np.empty(self.vertices.shape[1]//self.vertices.shape[0])
         if emit_field is not None:
             em = self[emit_field]
         else:
-            em = np.empty(self.vertices.shape[1]/self.vertices.shape[0])
+            em = np.empty(self.vertices.shape[1]//self.vertices.shape[0])
         self._color_samples_obj(cs, em, color_log, emit_log, color_map, f,
                                 color_field_max, color_field_min,  color_field,
                                 emit_field_max, emit_field_min, emit_field) # map color values to color scheme
@@ -1546,26 +1620,23 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> surf.export_obj("my_galaxy", transparency=trans, dist_fac = distf)
+        >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> mi, ma = sp.quantities.extrema('temperature')[0]
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
-        ...                      color_field='temperature', dist_fac = distf,
+        ...                      color_field='temperature',
         ...                      plot_index = i, color_field_max = ma,
         ...                      color_field_min = mi)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
-        >>> distf = 3.1e18*1e3 # distances into kpc
         >>> def _Emissivity(field, data):
         ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
         >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
@@ -1573,7 +1644,7 @@ class YTSurface(YTSelectionContainer3D):
         ...     surf = ds.surface(sp,'density',r)
         ...     surf.export_obj("my_galaxy", transparency=trans[i],
         ...                      color_field='temperature', emit_field = 'emissivity',
-        ...                      dist_fac = distf, plot_index = i)
+        ...                      plot_index = i)
 
         """
         if color_map is None:
@@ -1716,6 +1787,11 @@ class YTSurface(YTSelectionContainer3D):
             DLE = self.ds.domain_left_edge
             DRE = self.ds.domain_right_edge
             bounds = [(DLE[i], DRE[i]) for i in range(3)]
+        elif any([not all([isinstance(be, YTArray) for be in b])
+                  for b in bounds]):
+            bounds = [tuple(be if isinstance(be, YTArray) else
+                            self.ds.quan(be, 'code_length') for be in b)
+                      for b in bounds]
         nv = self.vertices.shape[1]
         vs = [("x", "<f"), ("y", "<f"), ("z", "<f"),
               ("red", "uint8"), ("green", "uint8"), ("blue", "uint8") ]
@@ -1749,7 +1825,7 @@ class YTSurface(YTSelectionContainer3D):
             arr = np.empty(cs.shape[0], dtype=np.dtype(fs))
             self._color_samples(cs, color_log, color_map, arr)
         else:
-            arr = np.empty(nv/3, np.dtype(fs[:-3]))
+            arr = np.empty(nv//3, np.dtype(fs[:-3]))
         for i, ax in enumerate("xyz"):
             # Do the bounds first since we cast to f32
             tmp = self.vertices[i,:]
@@ -1762,7 +1838,7 @@ class YTSurface(YTSelectionContainer3D):
         v.tofile(f)
         arr["ni"][:] = 3
         vi = np.arange(nv, dtype="<i")
-        vi.shape = (nv/3, 3)
+        vi.shape = (nv//3, 3)
         arr["v1"][:] = vi[:,0]
         arr["v2"][:] = vi[:,1]
         arr["v3"][:] = vi[:,2]
@@ -1783,7 +1859,7 @@ class YTSurface(YTSelectionContainer3D):
         SketchFab.com.  It requires an API key, which can be found on your
         SketchFab.com dashboard.  You can either supply the API key to this
         routine directly or you can place it in the variable
-        "sketchfab_api_key" in your ~/.yt/config file.  This function is
+        "sketchfab_api_key" in your ~/.config/yt/ytrc file.  This function is
         parallel-safe.
 
         Parameters

@@ -19,20 +19,12 @@ cimport cython
 #cimport healpix_interface
 from libc.stdlib cimport malloc, calloc, free, abs
 from libc.math cimport exp, floor, log2, \
-    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
+    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI, sqrt
 from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
 from field_interpolation_tables cimport \
     FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
     FIT_eval_transfer_with_light
 from fixed_interpolator cimport *
-
-from cython.parallel import prange, parallel, threadid
-from cpython.exc cimport PyErr_CheckSignals
-
-from .image_samplers cimport \
-    ImageSampler, \
-    ImageContainer, \
-    VolumeRenderAccumulator
 
 DEF Nch = 4
 
@@ -317,7 +309,7 @@ def healpix_aitoff_proj(np.ndarray[np.float64_t, ndim=1] pix_image,
     #         zb = (x*x/8.0 + y*y/2.0 - 1.0)
     #         if zb > 0: continue
     #         z = (1.0 - (x/4.0)**2.0 - (y/2.0)**2.0)
-    #         z = z**0.5
+    #         z = sqrt(z)
     #         # Longitude
     #         phi = (2.0*atan(z*x/(2.0 * (2.0*z*z-1.0))) + pi)
     #         # Latitude
@@ -352,7 +344,7 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
         px = (2.0 * (nimi*nx + i)) / resolution - 1.0
         for j in range(ny):
             py = (2.0 * (nimj*ny + j)) / resolution - 1.0
-            r = (px*px + py*py)**0.5
+            r = sqrt(px*px + py*py)
             if r > 1.01:
                 vp[i,j,0] = vp[i,j,1] = vp[i,j,2] = 0.0
                 continue

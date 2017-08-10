@@ -17,6 +17,8 @@ from __future__ import absolute_import
 from yt.config import ytcfg
 from yt.data_objects.time_series import \
     DatasetSeries
+from yt.extern import \
+    six
 from yt.funcs import \
     is_root, mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -114,29 +116,29 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
 
     Parameters
     ----------
-    ts: DatasetSeries, Dataset
+    ts : DatasetSeries, ~yt.data_objects.static_output.Dataset
         This is the data source containing the DM particles. Because 
         halo IDs may change from one snapshot to the next, the only
         way to keep a consistent halo ID across time is to feed 
         Rockstar a set of snapshots, ie, via DatasetSeries.
-    num_readers: int
+    num_readers : int
         The number of reader can be increased from the default
         of 1 in the event that a single snapshot is split among
         many files. This can help in cases where performance is
         IO-limited. Default is 1. If run inline, it is
         equal to the number of MPI threads.
-    num_writers: int
+    num_writers : int
         The number of writers determines the number of processing threads
         as well as the number of threads writing output data.
         The default is set to comm.size-num_readers-1. If run inline,
         the default is equal to the number of MPI threads.
-    outbase: str
+    outbase : str
         This is where the out*list files that Rockstar makes should be
         placed. Default is 'rockstar_halos'.
-    particle_type: str
+    particle_type : str
         This is the "particle type" that can be found in the data.  This can be
         a filtered particle or an inherent type.
-    force_res: float
+    force_res : float
         This parameter specifies the force resolution that Rockstar uses
         in units of Mpc/h.
         If no value is provided, this parameter is automatically set to
@@ -325,7 +327,9 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
             self.ts._pre_outputs = self.ts._pre_outputs[restart_num:]
         else:
             restart_num = 0
-        self.handler.setup_rockstar(self.server_address, self.port,
+        self.handler.setup_rockstar(
+                    six.b(self.server_address),
+                    six.b(self.port),
                     num_outputs, self.total_particles, 
                     self.particle_type,
                     particle_mass = self.particle_mass,
@@ -334,7 +338,7 @@ class RockstarHaloFinder(ParallelAnalysisInterface):
                     num_writers = self.num_writers,
                     writing_port = -1,
                     block_ratio = block_ratio,
-                    outbase = self.outbase,
+                    outbase = six.b(self.outbase),
                     force_res = self.force_res,
                     callbacks = callbacks,
                     restart_num = restart_num,

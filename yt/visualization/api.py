@@ -51,7 +51,12 @@ from .plot_window import \
     AxisAlignedSlicePlot, \
     OffAxisSlicePlot, \
     ProjectionPlot, \
-    OffAxisProjectionPlot
+    OffAxisProjectionPlot, \
+    plot_2d
+
+from .line_plot import \
+    LinePlot, \
+    LineBuffer
 
 from .profile_plotter import \
     ProfilePlot, \
@@ -59,3 +64,10 @@ from .profile_plotter import \
 
 from .base_plot_types import \
     get_multi_plot
+
+from .fits_image import \
+    FITSImageData, \
+    FITSSlice, \
+    FITSOffAxisSlice, \
+    FITSProjection, \
+    FITSOffAxisProjection

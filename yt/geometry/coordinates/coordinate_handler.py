@@ -72,7 +72,7 @@ def validate_iterable_width(width, ds, unit=None):
 
 class CoordinateHandler(object):
     name = None
-    
+
     def __init__(self, ds, ordering):
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
@@ -84,6 +84,9 @@ class CoordinateHandler(object):
     def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
+        raise NotImplementedError
+
+    def pixelize_line(self, field, start_point, end_point, npoints):
         raise NotImplementedError
 
     def distance(self, start, end):
@@ -265,4 +268,3 @@ def cylindrical_to_cartesian(coord, center = (0,0,0)):
     c2[...,1] = np.sin(coord[...,0]) * coord[...,1] + center[1]
     c2[...,2] = coord[...,2]
     return c2
-

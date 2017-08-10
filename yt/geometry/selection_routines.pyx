@@ -17,9 +17,11 @@ Geometry selection routines.
 import numpy as np
 cimport numpy as np
 cimport cython
+from cython cimport floating
 from libc.stdlib cimport malloc, free
+from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
 from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
-from .oct_container cimport OctreeContainer, OctAllocationContainer, Oct
+from .oct_container cimport OctreeContainer, Oct
 cimport oct_visitors
 from .oct_visitors cimport cind
 from yt.utilities.lib.volume_container cimport \
@@ -43,16 +45,6 @@ cdef extern from "math.h":
 # define here to avoid the gil later
 cdef np.float64_t grid_eps = np.finfo(np.float64).eps
 grid_eps = 0.0
-
-cdef np.int64_t fnv_hash(unsigned char[:] octets):
-    # https://bitbucket.org/yt_analysis/yt/issues/1052/field-access-tests-fail-under-python3
-    # FNV hash cf. http://www.isthe.com/chongo/tech/comp/fnv/index.html
-    cdef np.int64_t hash_val = 2166136261
-    cdef char octet
-    for octet in octets:
-        hash_val = hash_val ^ octet
-        hash_val = hash_val * 16777619
-    return hash_val
 
 # These routines are separated into a couple different categories:
 #
@@ -96,7 +88,7 @@ def convert_mask_to_indices(np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
 cdef _mask_fill(np.ndarray[np.float64_t, ndim=1] out,
                 np.int64_t offset,
                 np.ndarray[np.uint8_t, ndim=3, cast=True] mask,
-                np.ndarray[anyfloat, ndim=3] vals):
+                np.ndarray[floating, ndim=3] vals):
     cdef np.int64_t count = 0
     cdef int i, j, k
     for i in range(mask.shape[0]):
@@ -550,9 +542,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def count_points(self, np.ndarray[anyfloat, ndim=1] x,
-                           np.ndarray[anyfloat, ndim=1] y,
-                           np.ndarray[anyfloat, ndim=1] z,
+    def count_points(self, np.ndarray[floating, ndim=1] x,
+                           np.ndarray[floating, ndim=1] y,
+                           np.ndarray[floating, ndim=1] z,
                            np.float64_t radius):
         cdef int count = 0
         cdef int i
@@ -578,9 +570,9 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def select_points(self, np.ndarray[anyfloat, ndim=1] x,
-                            np.ndarray[anyfloat, ndim=1] y,
-                            np.ndarray[anyfloat, ndim=1] z,
+    def select_points(self, np.ndarray[floating, ndim=1] x,
+                            np.ndarray[floating, ndim=1] y,
+                            np.ndarray[floating, ndim=1] z,
                             np.float64_t radius):
         cdef int count = 0
         cdef int i
@@ -928,15 +920,12 @@ cdef class RegionSelector(SelectorObject):
             return 0
         if level == self.max_level:
             this_level = 1
-        cdef int si[3]
-        cdef int ei[3]
-        #print self.left_edge[0], self.left_edge[1], self.left_edge[2],
-        #print self.right_edge[0], self.right_edge[1], self.right_edge[2],
-        #print self.right_edge_shift[0], self.right_edge_shift[1], self.right_edge_shift[2]
+        cdef np.int64_t si[3]
+        cdef np.int64_t ei[3]
         if not self.check_period:
             for i in range(3):
-                si[i] = <int> ((self.left_edge[i] - left_edge[i])/dds[i])
-                ei[i] = <int> ((self.right_edge[i] - left_edge[i])/dds[i])
+                si[i] = <np.int64_t> ((self.left_edge[i] - left_edge[i])/dds[i])
+                ei[i] = <np.int64_t> ((self.right_edge[i] - left_edge[i])/dds[i])
                 si[i] = iclip(si[i] - 1, 0, dim[i])
                 ei[i] = iclip(ei[i] + 1, 0, dim[i])
         else:
@@ -1434,7 +1423,8 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i
         cdef int total = 0
-        cdef IntegrationAccumulator ia
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef VolumeContainer vc
         mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
@@ -1453,13 +1443,14 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
                     if dt[i, j, k] >= 0:
                         mask[i, j, k] = 1
                         total += 1
+        free(ia)
         if total == 0: return None
         return mask.astype("bool")
 
@@ -1471,7 +1462,8 @@ cdef class RaySelector(SelectorObject):
         cdef np.ndarray[np.float64_t, ndim=1] tr, dtr
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i, j, k, ni
-        cdef IntegrationAccumulator ia
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef VolumeContainer vc
         t = np.zeros(gobj.ActiveDimensions, dtype="float64")
         dt = np.zeros(gobj.ActiveDimensions, dtype="float64") - 1
@@ -1489,7 +1481,7 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
         tr = np.zeros(ia.hits, dtype="float64")
         dtr = np.zeros(ia.hits, dtype="float64")
         ni = 0
@@ -1502,6 +1494,7 @@ cdef class RaySelector(SelectorObject):
                         ni += 1
         if not (ni == ia.hits):
             print ni, ia.hits
+        free(ia)
         return dtr, tr
 
     @cython.boundscheck(False)
@@ -1515,7 +1508,8 @@ cdef class RaySelector(SelectorObject):
         cdef np.float64_t LE[3]
         cdef np.float64_t RE[3]
         cdef np.float64_t pos
-        cdef IntegrationAccumulator ia
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
         cdef np.ndarray[np.float64_t, ndim=2] coords
         cdef np.ndarray[np.int64_t, ndim=2] indices
         indices = mesh.connectivity_indices
@@ -1551,11 +1545,12 @@ cdef class RaySelector(SelectorObject):
                 vc.idds[j] = 1.0/vc.dds[j]
                 vc.dims[j] = 1
             t[0,0,0] = dt[0,0,0] = -1
-            walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+            walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
             if dt[0,0,0] >= 0:
                 tr[ni] = t[0,0,0]
                 dtr[ni] = dt[0,0,0]
                 ni += 1
+        free(ia)
         return dtr, tr
 
     cdef int select_point(self, np.float64_t pos[3]) nogil:
@@ -1571,26 +1566,31 @@ cdef class RaySelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
-        cdef int i
-        cdef np.uint8_t cm = 1
+        cdef int i, rv
         cdef VolumeContainer vc
-        cdef IntegrationAccumulator ia
-        cdef np.float64_t dt, t
+        cdef IntegrationAccumulator *ia
+        ia = <IntegrationAccumulator *> malloc(sizeof(IntegrationAccumulator))
+        cdef np.float64_t dt[1]
+        cdef np.float64_t t[1]
+        cdef np.uint8_t cm[1]
         for i in range(3):
             vc.left_edge[i] = left_edge[i]
             vc.right_edge[i] = right_edge[i]
             vc.dds[i] = right_edge[i] - left_edge[i]
             vc.idds[i] = 1.0/vc.dds[i]
             vc.dims[i] = 1
-        t = dt = 0.0
-        ia.t = &t
-        ia.dt = &dt
-        ia.child_mask = &cm
+        t[0] = dt[0] = 0.0
+        cm[0] = 1
+        ia.t = t
+        ia.dt = dt
+        ia.child_mask = cm
         ia.hits = 0
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        rv = 0
         if ia.hits > 0:
-            return 1
-        return 0
+            rv = 1
+        free(ia)
+        return rv
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1711,10 +1711,13 @@ cdef class EllipsoidSelector(SelectorObject):
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
         # this is the sphere selection
         cdef int i
-        cdef np.float64_t dist2 = 0
+        cdef np.float64_t dist, dist2_max, dist2 = 0
         for i in range(3):
-            dist2 += self.difference(pos[i], self.center[i], i)**2
-        if dist2 <= (self.mag[0]+radius)**2: return 1
+            dist = self.difference(pos[i], self.center[i], i)
+            dist2 += dist * dist
+        dist2_max = (self.mag[0] + radius) * (self.mag[0] + radius)
+        if dist2 <= dist2_max:
+            return 1
         return 0
 
     @cython.boundscheck(False)
@@ -1724,7 +1727,7 @@ cdef class EllipsoidSelector(SelectorObject):
                                np.float64_t right_edge[3]) nogil:
         # This is the sphere selection
         cdef int i
-        cdef np.float64_t box_center, relcenter, closest, dist, edge
+        cdef np.float64_t box_center, relcenter, closest, dist, edge, dist_max
         if left_edge[0] <= self.center[0] <= right_edge[0] and \
            left_edge[1] <= self.center[1] <= right_edge[1] and \
            left_edge[2] <= self.center[2] <= right_edge[2]:
@@ -1737,7 +1740,9 @@ cdef class EllipsoidSelector(SelectorObject):
             edge = right_edge[i] - left_edge[i]
             closest = relcenter - fclip(relcenter, -edge/2.0, edge/2.0)
             dist += closest * closest
-        if dist <= self.mag[0]**2: return 1
+        dist_max = self.mag[0] * self.mag[0]
+        if dist <= dist_max:
+            return 1
         return 0
 
     def _hash_vals(self):
@@ -2091,3 +2096,354 @@ def points_in_cells(
             if mask[p]: break
 
     return mask
+
+cdef class BooleanSelector(SelectorObject):
+
+    def __init__(self, dobj):
+        # Note that this has a different API than the other selector objects,
+        # so will not work as a traditional data selector.
+        if not hasattr(dobj.dobj1, "selector"):
+            self.sel1 = dobj.dobj1
+        else:
+            self.sel1 = dobj.dobj1.selector
+        if not hasattr(dobj.dobj2, "selector"):
+            self.sel2 = dobj.dobj2
+        else:
+            self.sel2 = dobj.dobj2.selector
+
+cdef class BooleanANDSelector(BooleanSelector):
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_grid(left_edge, right_edge, level, o)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_point(pos)
+        if rv2 == 0: return 0
+        return 1
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        if rv2 == 0: return 0
+        return 1
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("and",) +
+                self.sel2._hash_vals())
+
+cdef class BooleanORSelector(BooleanSelector):
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        cdef int rv1 = self.sel1.select_bbox(left_edge, right_edge)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_bbox(left_edge, right_edge)
+        if rv2 == 1: return 1
+        return 0
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        cdef int rv1 = self.sel1.select_grid(left_edge, right_edge, level, o)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_grid(left_edge, right_edge, level, o)
+        if rv2 == 1: return 1
+        return 0
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        if rv2 == 1: return 1
+        return 0
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_point(pos)
+        if rv2 == 1: return 1
+        return 0
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 1: return 1
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        if rv2 == 1: return 1
+        return 0
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("or",) +
+                self.sel2._hash_vals())
+
+cdef class BooleanNOTSelector(BooleanSelector):
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # We always return True here, because we don't have a "fully included"
+        # check anywhere else.
+        return 1
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        return 1
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 0: return 1
+        return 0
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 0: return 1
+        return 0
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 0: return 1
+        return 0
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("not",))
+
+cdef class BooleanXORSelector(BooleanSelector):
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # We always return True here, because we don't have a "fully included"
+        # check anywhere else.
+        return 1
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        return 1
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        if rv1 == rv2: return 0
+        return 1
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        cdef int rv2 = self.sel2.select_point(pos)
+        if rv1 == rv2: return 0
+        return 1
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        if rv1 == rv2: return 0
+        return 1
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("xor",) +
+                self.sel2._hash_vals())
+
+cdef class BooleanNEGSelector(BooleanSelector):
+
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                               np.float64_t right_edge[3]) nogil:
+        # We always return True here, because we don't have a "fully included"
+        # check anywhere else.
+        return self.sel1.select_bbox(left_edge, right_edge)
+
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        return self.sel1.select_grid(left_edge, right_edge, level, o)
+
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        cdef int rv1 = self.sel1.select_cell(pos, dds)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_cell(pos, dds)
+        if rv2 == 1: return 0
+        return 1
+
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        cdef int rv1 = self.sel1.select_point(pos)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_point(pos)
+        if rv2 == 1: return 0
+        return 1
+
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        cdef int rv1 = self.sel1.select_sphere(pos, radius)
+        if rv1 == 0: return 0
+        cdef int rv2 = self.sel2.select_sphere(pos, radius)
+        if rv2 == 1: return 0
+        return 1
+
+    def _hash_vals(self):
+        return (self.sel1._hash_vals() +
+                ("neg",) +
+                self.sel2._hash_vals())
+
+cdef class ChainedBooleanSelector(SelectorObject):
+    cdef int n_obj
+    cdef np.ndarray selectors
+    def __init__(self, dobj):
+        # These are data objects, not selectors
+        self.n_obj = len(dobj.data_objects)
+        self.selectors = np.empty(self.n_obj, dtype="object")
+        for i in range(self.n_obj):
+            self.selectors[i] = dobj.data_objects[i].selector
+
+cdef class ChainedBooleanANDSelector(ChainedBooleanSelector):
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3]) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_bbox(
+                        left_edge, right_edge) == 0:
+                    return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_grid(
+                        left_edge, right_edge, level, o) == 0:
+                    return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_cell(
+                        pos, dds) == 0:
+                    return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_point(pos) == 0:
+                    return 0
+        return 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_sphere(
+                        pos, radius) == 0:
+                    return 0
+        return 1
+
+    def _hash_vals(self):
+        v = ("chained_and",)
+        for s in self.selectors:
+            v += s._hash_vals()
+        return v
+
+intersection_selector = ChainedBooleanANDSelector
+
+cdef class ChainedBooleanORSelector(ChainedBooleanSelector):
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_bbox(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3]) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_bbox(
+                        left_edge, right_edge) == 1:
+                    return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_grid(self, np.float64_t left_edge[3],
+                         np.float64_t right_edge[3], np.int32_t level,
+                         Oct *o = NULL) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_grid(
+                        left_edge, right_edge, level, o) == 1:
+                    return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_cell(
+                        pos, dds) == 1:
+                    return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_point(self, np.float64_t pos[3]) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_point(pos) == 1:
+                    return 1
+        return 0
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        with gil:
+            for i in range(self.n_obj):
+                if (<SelectorObject>self.selectors[i]).select_sphere(
+                        pos, radius) == 1:
+                    return 1
+        return 0
+
+    def _hash_vals(self):
+        v = ("chained_or",)
+        for s in self.selectors:
+            v += s._hash_vals()
+        return v
+
+union_selector = ChainedBooleanORSelector
+

@@ -12,7 +12,6 @@ Testsuite for PlotWindow class
 #
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
-import itertools
 import matplotlib
 import numpy as np
 import os
@@ -23,17 +22,18 @@ import unittest
 from distutils.version import LooseVersion
 from nose.tools import assert_true
 
-from yt.extern.parameterized import parameterized, param
 from yt.testing import \
     fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal, assert_raises
+    assert_array_almost_equal, assert_raises, assert_fname
 from yt.utilities.answer_testing.framework import \
     requires_ds, data_dir_load, PlotWindowAttributeTest
 from yt.utilities.exceptions import \
     YTInvalidFieldType
 from yt.visualization.api import \
-    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot
+    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot, \
+    plot_2d
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
 from collections import OrderedDict
 
@@ -41,33 +41,6 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
     ytcfg["yt", "__withintesting"] = "True"
-
-
-def assert_fname(fname):
-    """Function that checks file type using libmagic"""
-    if fname is None:
-        return
-
-    with open(fname, 'rb') as fimg:
-        data = fimg.read()
-    image_type = ''
-
-    # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith(b'\211PNG\r\n\032\n'):
-        image_type = '.png'
-    # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith(b'\377\330'):
-        image_type = '.jpeg'
-    elif data.startswith(b'%!PS-Adobe'):
-        data_str = data.decode("utf-8", "ignore")
-        if 'EPSF' in data_str[:data_str.index('\n')]:
-            image_type = '.eps'
-        else:
-            image_type = '.ps'
-    elif data.startswith(b'%PDF'):
-        image_type = '.pdf'
-
-    return image_type == os.path.splitext(fname)[1]
 
 
 TEST_FLNMS = [None, 'test', 'test.png', 'test.eps',
@@ -95,7 +68,8 @@ ATTR_ARGS = {"pan": [(((0.1, 0.1), ), {})],
              "set_window_size": [((7.0, ), {})],
              "set_zlim": [(('density', 1e-25, 1e-23), {}),
                           (('density', 1e-25, None), {'dynamic_range': 4})],
-             "zoom": [((10, ), {})]}
+             "zoom": [((10, ), {})],
+             "toggle_right_handed": [((),{})]}
 
 
 CENTER_SPECS = (
@@ -235,6 +209,8 @@ class TestHideAxesColorbar(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+        del self.ds
+        del self.slc
 
     def test_hide_show_axes(self):
         self.slc.hide_axes()
@@ -261,6 +237,10 @@ class TestSetWidth(unittest.TestCase):
         if self.ds is None:
             self.ds = fake_random_ds(64)
             self.slc = SlicePlot(self.ds, 0, "density")
+
+    def tearDown(self):
+        del self.ds
+        del self.slc
 
     def _assert_05cm(self):
         assert_array_equal([self.slc.xlim, self.slc.ylim, self.slc.width],
@@ -302,45 +282,7 @@ class TestSetWidth(unittest.TestCase):
 
 
 class TestPlotWindowSave(unittest.TestCase):
-
-    @classmethod
-    def setUpClass(cls):
-        test_ds = fake_random_ds(64)
-        normal = [1, 1, 1]
-        ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
-        projections = []
-        projections_ds = []
-        projections_c = []
-        projections_wf = []
-        projections_w = {}
-        projections_m = []
-        for dim in range(3):
-            projections.append(ProjectionPlot(test_ds, dim, "density"))
-            projections_ds.append(ProjectionPlot(test_ds, dim, "density",
-                                                 data_source=ds_region))
-        for center in CENTER_SPECS:
-            projections_c.append(ProjectionPlot(test_ds, dim, "density",
-                                                center=center))
-        for width in WIDTH_SPECS:
-            projections_w[width] = ProjectionPlot(test_ds, dim, 'density',
-                                                  width=width)
-        for wf in WEIGHT_FIELDS:
-            projections_wf.append(ProjectionPlot(test_ds, dim, "density",
-                                                 weight_field=wf))
-        for m in PROJECTION_METHODS:
-            projections_m.append(ProjectionPlot(test_ds, dim, "density",
-                                                 method=m))
-
-        cls.slices = [SlicePlot(test_ds, dim, "density") for dim in range(3)]
-        cls.projections = projections
-        cls.projections_ds = projections_ds
-        cls.projections_c = projections_c
-        cls.projections_wf = projections_wf
-        cls.projections_w = projections_w
-        cls.projections_m = projections_m
-        cls.offaxis_slice = OffAxisSlicePlot(test_ds, normal, "density")
-        cls.offaxis_proj = OffAxisProjectionPlot(test_ds, normal, "density")
-
+        
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()
@@ -350,64 +292,76 @@ class TestPlotWindowSave(unittest.TestCase):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
 
-    @parameterized.expand(
-        param.explicit(item)
-        for item in itertools.product(range(3), TEST_FLNMS))
-    def test_slice_plot(self, dim, fname):
-        assert assert_fname(self.slices[dim].save(fname)[0])
+    def test_slice_plot(self):
+        test_ds = fake_random_ds(16)
+        for dim in range(3):
+            slc = SlicePlot(test_ds, dim, 'density')
+            for fname in TEST_FLNMS:
+                assert assert_fname(slc.save(fname)[0])
 
-    @parameterized.expand(
-        param.explicit(item)
-        for item in itertools.product(range(3), TEST_FLNMS))
-    def test_projection_plot(self, dim, fname):
-        assert assert_fname(self.projections[dim].save(fname)[0])
+    def test_repr_html(self):
+        test_ds = fake_random_ds(16)
+        slc = SlicePlot(test_ds, 0, 'density')
+        slc._repr_html_()
 
-    @parameterized.expand([(0, ), (1, ), (2, )])
-    def test_projection_plot_ds(self, dim):
-        self.projections_ds[dim].save()
+    def test_projection_plot(self):
+        test_ds = fake_random_ds(16)
+        for dim in range(3):
+            proj = ProjectionPlot(test_ds, dim, 'density')
+            for fname in TEST_FLNMS:
+                assert assert_fname(proj.save(fname)[0])
 
-    @parameterized.expand([(i, ) for i in range(len(CENTER_SPECS))])
-    def test_projection_plot_c(self, dim):
-        self.projections_c[dim].save()
+    def test_projection_plot_ds(self):
+        test_ds = fake_random_ds(16)
+        reg = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
+        for dim in range(3):
+            proj = ProjectionPlot(test_ds, dim, 'density', data_source=reg)
+            proj.save()
 
-    @parameterized.expand([(i, ) for i in range(len(WEIGHT_FIELDS))])
-    def test_projection_plot_wf(self, dim):
-        self.projections_wf[dim].save()
+    def test_projection_plot_c(self):
+        test_ds = fake_random_ds(16)
+        for center in CENTER_SPECS:
+            proj = ProjectionPlot(test_ds, 0, 'density', center=center)
+            proj.save()
 
-    @parameterized.expand([(i, ) for i in range(len(PROJECTION_METHODS))])
-    def test_projection_plot_m(self, dim):
-        self.projections_m[dim].save()
+    def test_projection_plot_wf(self):
+        test_ds = fake_random_ds(16)
+        for wf in WEIGHT_FIELDS:
+            proj = ProjectionPlot(test_ds, 0, 'density', weight_field=wf)
+            proj.save()
 
-    @parameterized.expand(
-        param.explicit((fname, ))
-        for fname in TEST_FLNMS)
-    def test_offaxis_slice_plot(self, fname):
-        assert assert_fname(self.offaxis_slice.save(fname)[0])
+    def test_projection_plot_m(self):
+        test_ds = fake_random_ds(16)
+        for method in PROJECTION_METHODS:
+            proj = ProjectionPlot(test_ds, 0, 'density', method=method)
+            proj.save()
 
-    @parameterized.expand(
-        param.explicit((fname, ))
-        for fname in TEST_FLNMS)
-    def test_offaxis_projection_plot(self, fname):
-        assert assert_fname(self.offaxis_proj.save(fname)[0])
+    def test_offaxis_slice_plot(self):
+        test_ds = fake_random_ds(16)
+        slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
+        for fname in TEST_FLNMS:
+            assert assert_fname(slc.save(fname)[0])
 
-    def test_ipython_repr(self):
-        self.slices[0]._repr_html_()
+    def test_offaxis_projection_plot(self):
+        test_ds = fake_random_ds(16)
+        prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
+        for fname in TEST_FLNMS:
+            assert assert_fname(prj.save(fname)[0])
 
-    @parameterized.expand(
-        param.explicit((width, ))
-        for width in WIDTH_SPECS)
-    def test_creation_with_width(self, width):
-        xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
-        plot = self.projections_w[width]
+    def test_creation_with_width(self):
+        test_ds = fake_random_ds(16)
+        for width in WIDTH_SPECS:
+            xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
+            plot = ProjectionPlot(test_ds, 0, 'density', width=width)
 
-        xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
-        ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
-        pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
+            xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
+            ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
+            pwidth = [plot.ds.quan(el[0], el[1]) for el in pwidth]
 
-        [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
-        [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
-        [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-        assert_true(aun == plot._axes_unit_names)
+            [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
+            [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
+            [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
+            assert_true(aun == plot._axes_unit_names)
 
 def test_on_off_compare():
     # fake density field that varies in the x-direction only
@@ -423,6 +377,13 @@ def test_on_off_compare():
     L = [0, 0, 1]
     north_vector = [0, 1, 0]
     sl_off = OffAxisSlicePlot(ds, L, 'density', center=[0,0,0], north_vector=north_vector)
+
+    assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
+
+    sl_on.set_buff_size((800, 400))
+    sl_on._recreate_frb()
+    sl_off.set_buff_size((800, 400))
+    sl_off._recreate_frb()
 
     assert_array_almost_equal(sl_on.frb['density'], sl_off.frb['density'])
 
@@ -447,9 +408,143 @@ def test_plot_particle_field_error():
             assert_raises(
                 YTInvalidFieldType, object, ds, normal, field_name_list)
 
+def test_setup_origin():
+    origin_inputs = ('domain',
+                     'left-window',
+                     'center-domain',
+                     'lower-right-window',
+                     ('window',),
+                     ('right', 'domain'),
+                     ('lower', 'window'),
+                     ('lower', 'right', 'window'),
+                     (0.5, 0.5, 'domain'),
+                     ((50, 'cm'), (50, 'cm'), 'domain'))
+    w=(10, 'cm')
+
+    ds = fake_random_ds(32, length_unit=100.0)
+    generated_limits = []
+    #lower limit -> llim
+    #upper limit -> ulim
+    #                 xllim xulim yllim yulim
+    correct_limits = [45.0, 55.0, 45.0, 55.0,
+                      0.0, 10.0, 0.0, 10.0,
+                      -5.0, 5.0, -5.0, 5.0,
+                      -10.0, 0, 0, 10.0,
+                      0.0, 10.0, 0.0, 10.0,
+                      -55.0, -45.0, -55.0, -45.0,
+                      -5.0, 5.0, 0.0, 10.0,
+                      -10.0, 0, 0, 10.0,
+                      -5.0, 5.0, -5.0, 5.0,
+                      -5.0, 5.0, -5.0, 5.0
+                      ]
+    for o in origin_inputs:
+        slc = SlicePlot(ds, 2, 'density', width=w, origin=o)
+        ax = slc.plots['density'].axes
+        xlims = ax.get_xlim()
+        ylims = ax.get_ylim()
+        lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
+        for l in lims:
+            generated_limits.append(l)
+    assert_array_almost_equal(correct_limits, generated_limits)
 
 def test_frb_regen():
     ds = fake_random_ds(32)
     slc = SlicePlot(ds, 2, 'density')
     slc.set_buff_size(1200)
     assert_equal(slc.frb['density'].shape, (1200, 1200))
+
+def test_set_background_color():
+    ds = fake_random_ds(32)
+    plot = SlicePlot(ds, 2, 'density')
+    for field in ['density', ('gas', 'density')]:
+        plot.set_background_color(field, 'red')
+        ax = plot.plots[field].axes
+        if LooseVersion(matplotlib.__version__) < LooseVersion('2.0.0'):
+            assert_equal(ax.get_axis_bgcolor(), 'red')
+        else:
+            assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
+
+def test_set_unit():
+    ds = fake_random_ds(32, fields=('temperature',), units=('K',))
+    slc = SlicePlot(ds, 2, 'temperature')
+
+    orig_array = slc.frb['gas', 'temperature'].copy()
+
+    slc.set_unit('temperature', 'degF')
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert_array_almost_equal(np.array(slc.frb['gas', 'temperature']),
+                              np.array(orig_array)*1.8 - 459.67)
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+
+    slc.set_buff_size(800)
+
+    slc.set_unit('temperature', 'K')
+    assert str(slc.frb['gas', 'temperature'].units) == 'K'
+    assert_array_almost_equal(slc.frb['gas', 'temperature'], orig_array)
+
+    slc.set_unit('temperature', 'keV', equivalency='thermal')
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+    assert_array_almost_equal(slc.frb['gas', 'temperature'],
+                              (orig_array*kboltz).to('keV'))
+
+    # test that a plot modifying function that destroys the frb preserves the
+    # new unit with an equivalency
+    slc.set_buff_size(1000)
+
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+
+    # test that destroying the FRB then changing the unit using an equivalency
+    # doesn't error out, see issue #1316
+    slc = SlicePlot(ds, 2, 'temperature')
+    slc.set_buff_size(1000)
+    slc.set_unit('temperature', 'keV', equivalency='thermal')
+    assert str(slc.frb['gas', 'temperature'].units) == 'keV'
+
+WD = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
+
+@requires_ds(WD)
+def test_plot_2d():
+    # Cartesian
+    ds = fake_random_ds((32,32,1), fields=('temperature',), units=('K',))
+    slc = SlicePlot(ds, "z", ["temperature"], width=(0.2,"unitary"),
+                    center=[0.4, 0.3, 0.5])
+    slc2 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=[0.4, 0.3])
+    slc3 = plot_2d(ds, "temperature", width=(0.2,"unitary"),
+                   center=ds.arr([0.4, 0.3], "cm"))
+    assert_array_equal(slc.frb['temperature'], slc2.frb['temperature'])
+    assert_array_equal(slc.frb['temperature'], slc3.frb['temperature'])
+    # Cylindrical
+    ds = data_dir_load(WD)
+    slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
+    slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
+    assert_array_equal(slc.frb['density'], slc2.frb['density'])
+
+def test_symlog_colorbar():
+    ds = fake_random_ds(16)
+
+    def _thresh_density(field, data):
+        wh = data['density'] < 0.5
+        ret = data['density']
+        ret[wh] = 0
+        return ret
+
+    def _neg_density(field, data):
+        return -data['threshold_density']
+
+    ds.add_field('threshold_density', function=_thresh_density,
+                 units='g/cm**3', sampling_type='cell')
+    ds.add_field('negative_density', function=_neg_density, units='g/cm**3',
+                 sampling_type='cell')
+
+    for field in ['density', 'threshold_density', 'negative_density']:
+        plot = SlicePlot(ds, 2, field)
+        plot.set_log(field, True, linthresh=0.1)
+        with tempfile.NamedTemporaryFile(suffix='png') as f:
+            plot.save(f.name)
