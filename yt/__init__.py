@@ -16,7 +16,7 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-__version__ = "3.4-dev"
+__version__ = "3.4.0"
 
 # First module imports
 import numpy as np # For modern purposes
