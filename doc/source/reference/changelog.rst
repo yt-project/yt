@@ -209,7 +209,7 @@ pull requests from 44 contributors including 18 new contributors.
    1504 <https://github.com/yt-project/yt/pull/1504>`__.
 
 Minor Enhancements and Bugfixes
-===============================
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 -  Fixed issue selecting and visualizing data at very high AMR levels.
    See `Github PR 1521 <https://github.com/yt-project/yt/pulls/1521>`__
