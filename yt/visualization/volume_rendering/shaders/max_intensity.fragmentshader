@@ -2,7 +2,8 @@ void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
                     float t, vec3 dir)
 {
     vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
-    if (length(curr_color.rgb) < length(tex_sample)) {
+    bool map_sample = (texture(bitmap_tex, tex_curr_pos).r > 0);
+    if ((map_sample) && (length(curr_color.rgb) < length(tex_sample))) {
         curr_color = vec4(tex_sample.rgb, 1.0);
     }
 }

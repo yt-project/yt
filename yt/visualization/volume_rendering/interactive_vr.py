@@ -518,6 +518,7 @@ class BlockCollection(SceneData):
     name = "block_collection"
     data_source = traitlets.Instance(YTDataContainer)
     texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
+    bitmap_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)
 
@@ -600,7 +601,8 @@ class BlockCollection(SceneData):
     def viewpoint_iter(self, camera):
         for block in self.data_source.tiles.traverse(viewpoint = camera.position):
             vbo_i, _ = self.blocks[id(block)]
-            yield vbo_i, self.texture_objects[vbo_i]
+            yield (vbo_i, self.texture_objects[vbo_i],
+                   self.bitmap_objects[vbo_i])
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
@@ -615,8 +617,11 @@ class BlockCollection(SceneData):
             vbo_i, block = self.blocks[block_id]
             n_data = block.my_data[0].copy(order="F").astype("float32").d
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
-            tex = Texture3D(data = n_data)
-            self.texture_objects[vbo_i] = tex
+            data_tex = Texture3D(data = n_data)
+            bitmap_tex = Texture3D(data = block.source_mask * 255,
+                    min_filter = "linear", mag_filter = "linear")
+            self.texture_objects[vbo_i] = data_tex
+            self.bitmap_objects[vbo_i] = bitmap_tex
 
 class BlockRendering(SceneComponent):
     '''
@@ -631,9 +636,10 @@ class BlockRendering(SceneComponent):
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        for tex_ind, texture in self.data.viewpoint_iter(scene.camera):
-            with texture.bind(target = 0):
-                GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+        for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
+            with tex.bind(target = 0):
+                with bitmap_tex.bind(target = 1):
+                    GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
@@ -646,10 +652,13 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("camera_pos",
                 cam.position)
         shader_program._set_uniform("box_width", self.box_width)
+        shader_program._set_uniform("ds_tex", 0)
+        shader_program._set_uniform("bitmap_tex", 1)
 
 class MeshData(SceneData):
     name = "mesh"
     data_source = traitlets.Instance(YTDataContainer)
+    texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
     texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
     blocks = traitlets.Dict(default_value = ())
     scale = traitlets.Bool(False)

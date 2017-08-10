@@ -76,7 +76,28 @@ gl_to_np = {
 
 np_to_gl = {
         'float32': GL.GL_FLOAT,
-        'uint32' : GL.GL_UNSIGNED_INT
+        'uint32' : GL.GL_UNSIGNED_INT,
+        'uint8'  : GL.GL_UNSIGNED_BYTE
+}
+
+TEX_CHANNELS = { 'float32': {
+                    1: (GL.GL_FLOAT, GL.GL_R32F, GL.GL_RED),
+                    2: (GL.GL_FLOAT, GL.GL_RG32F, GL.GL_RG),
+                    3: (GL.GL_FLOAT, GL.GL_RGB32F, GL.GL_RGB),
+                    4: (GL.GL_FLOAT, GL.GL_RGBA32F, GL.GL_RGBA)
+                 },
+                 'uint8': {
+                    1: (GL.GL_UNSIGNED_BYTE, GL.GL_R8, GL.GL_RED),
+                    2: (GL.GL_UNSIGNED_BYTE, GL.GL_RG8, GL.GL_RG),
+                    3: (GL.GL_UNSIGNED_BYTE, GL.GL_RGB8, GL.GL_RGB),
+                    4: (GL.GL_UNSIGNED_BYTE, GL.GL_RGBA8, GL.GL_RGBA)
+                 },
+                 'uint32': {
+                    1: (GL.GL_UNSIGNED_INT, GL.GL_R32UI, GL.GL_RED),
+                    2: (GL.GL_UNSIGNED_INT, GL.GL_RG32UI, GL.GL_RG),
+                    3: (GL.GL_UNSIGNED_INT, GL.GL_RGB32UI, GL.GL_RGB),
+                    4: (GL.GL_UNSIGNED_INT, GL.GL_RGBA32UI, GL.GL_RGBA)
+                 }
 }
 
 def coerce_uniform_type(val, gl_type):
@@ -134,18 +155,14 @@ class GLValue(traitlets.TraitType):
                 self.error(obj, value)
         return value
 
-TEX_CHANNELS = {
-        1: (GL.GL_R32F, GL.GL_RED),
-        2: (GL.GL_RG32F, GL.GL_RG),
-        3: (GL.GL_RGB32F, GL.GL_RGB),
-        4: (GL.GL_RGBA32F, GL.GL_RGBA)
-}
-
 TEX_TARGETS = {i: getattr(GL, "GL_TEXTURE%s" % i) for i in range(10)}
 
 class Texture(traitlets.HasTraits):
     texture_name = traitlets.CInt(-1)
     data = traitlets.Instance(np.ndarray)
+    channels = GLValue("r32f")
+    min_filter = GLValue("linear")
+    mag_filter = GLValue("linear")
 
     @traitlets.default('texture_name')
     def _default_texture_name(self):
@@ -173,13 +190,17 @@ class Texture1D(Texture):
             else:
                 channels = 1
             dx = data.shape[0]
-            type1, type2 = TEX_CHANNELS[channels]
+            gl_type, type1, type2 = TEX_CHANNELS[data.dtype.name][channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, type1, dx)
             GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, dx,
-                        type2, GL.GL_FLOAT, data)
+                        type2, gl_type, data)
             GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
+            GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER,
+                    self.min_filter)
+            GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER,
+                    self.mag_filter)
             GL.glGenerateMipmap(GL.GL_TEXTURE_1D)
 
 class ColormapTexture(Texture1D):
@@ -219,15 +240,19 @@ class Texture2D(Texture):
             else:
                 channels = 1
             dx, dy = data.shape[:2]
-            type1, type2 = TEX_CHANNELS[channels]
+            gl_type, type1, type2 = TEX_CHANNELS[data.dtype.name][channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
             GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
-                        type2, GL.GL_FLOAT, data.T)
+                        type2, gl_type, data.T)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,
                     self.boundary_y)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MIN_FILTER,
+                    self.min_filter)
+            GL.glTexParameteri(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_MAG_FILTER,
+                    self.mag_filter)
             GL.glGenerateMipmap(GL.GL_TEXTURE_2D)
 
 class DepthBuffer(Texture2D):
@@ -257,7 +282,7 @@ class Texture3D(Texture):
             else:
                 channels = 1
             dx, dy, dz = data.shape[:3]
-            type1, type2 = TEX_CHANNELS[channels]
+            gl_type, type1, type2 = TEX_CHANNELS[data.dtype.name][channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
@@ -265,11 +290,14 @@ class Texture3D(Texture):
                     self.boundary_y)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R,
                     self.boundary_z)
-            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F, dx, dy, dz)
+            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, type1, dx, dy, dz)
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
-                        type2, GL.GL_FLOAT, data.T)
+                        type2, gl_type, data.T)
+            GL.glTexParameteri(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER,
+                    self.min_filter)
+            GL.glTexParameteri(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MAG_FILTER,
+                    self.mag_filter)
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
-
 
 class VertexAttribute(traitlets.HasTraits):
     name = traitlets.CUnicode("attr")
