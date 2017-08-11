@@ -1188,7 +1188,7 @@ class ParallelAnalysisInterface(object):
             return True, LE, RE, self.ds.region(self.center, LE, RE)
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
-        mi = self.comm.rank % (self.comm.size / rank_ratio)
+        mi = self.comm.rank % (self.comm.size // rank_ratio)
         cx, cy, cz = np.unravel_index(mi, cc)
         x = np.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
@@ -1216,7 +1216,7 @@ class ParallelAnalysisInterface(object):
             return LE, RE #, re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
-        mi = self.comm.rank % (self.comm.size / rank_ratio)
+        mi = self.comm.rank % (self.comm.size // rank_ratio)
         cx, cy, cz = np.unravel_index(mi, cc)
         x = np.mgrid[LE[0]:RE[0]:(cc[0]+1)*1j][cx:cx+2]
         y = np.mgrid[LE[1]:RE[1]:(cc[1]+1)*1j][cy:cy+2]
