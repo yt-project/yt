@@ -25,12 +25,17 @@ class FITSFieldInfo(FieldInfoContainer):
 class WCSFITSFieldInfo(FITSFieldInfo):
 
     def setup_fluid_fields(self):
+        if hasattr(self.ds, "wcs_2d"):
+            wcs_2d = self.ds.wcs_2d
+        else:
+            wcs_2d = self.ds.wcs
+
         def _pixel(field, data):
             return data.ds.arr(data["ones"], "pixel")
         self.add_field(("fits", "pixel"), sampling_type="cell", function=_pixel, units="pixel")
 
         def _get_2d_wcs(data, axis):
-            w_coords = data.ds.wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
+            w_coords = wcs_2d.wcs_pix2world(data["x"], data["y"], 1)
             return w_coords[axis]
 
         def world_f(axis, unit):
@@ -40,7 +45,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
 
         for (i, axis), name in zip(enumerate([self.ds.lon_axis, self.ds.lat_axis]),
                                    [self.ds.lon_name, self.ds.lat_name]):
-            unit = str(self.ds.wcs_2d.wcs.cunit[i])
+            unit = str(wcs_2d.wcs.cunit[i])
             if unit.lower() == "deg":
                 unit = "degree"
             if unit.lower() == "rad":

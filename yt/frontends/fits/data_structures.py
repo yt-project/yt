@@ -20,7 +20,6 @@ import uuid
 import weakref
 import warnings
 
-
 from collections import defaultdict
 
 from yt.config import ytcfg
@@ -44,6 +43,7 @@ from .fields import FITSFieldInfo, \
     WCSFITSFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
+from yt.funcs import issue_deprecation_warning
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
     prefixable_units, \
@@ -252,14 +252,6 @@ class FITSHierarchy(GridIndex):
             self.grid_right_edge[0,:] = ds.domain_right_edge
             self.grid_dimensions[0] = ds.domain_dimensions
 
-        if ds.events_data:
-            try:
-                self.grid_particle_count[:] = ds.primary_header["naxis2"]
-            except KeyError:
-                self.grid_particle_count[:] = 0.0
-            self._particle_indices = np.zeros(self.num_grids + 1, dtype='int64')
-            self._particle_indices[1] = self.grid_particle_count.squeeze()
-
         self.grid_levels.flat[:] = 0
         self.grids = np.empty(self.num_grids, dtype='object')
         for i in range(self.num_grids):
@@ -299,6 +291,28 @@ class FITSHierarchy(GridIndex):
             gs = gfiles[fn]
             yield YTDataChunk(dobj, "io", gs, self._count_selection(dobj, gs),
                               cache = cache)
+
+def check_fits_valid(args):
+    ext = args[0].rsplit(".", 1)[-1]
+    if ext.upper() in ("GZ", "FZ"):
+        # We don't know for sure that there will be > 1
+        ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
+    if ext.upper() not in ("FITS", "FTS"):
+        return False
+    elif isinstance(_astropy.pyfits, NotAModule):
+        raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
+    try:
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=UserWarning, append=True)
+            fileh = _astropy.pyfits.open(args[0])
+        valid = fileh[0].header["naxis"] >= 2
+        if len(fileh) > 1:
+            valid = fileh[1].header["naxis"] >= 2 or valid
+        fileh.close()
+        return valid
+    except:
+        pass
+    return False
 
 class FITSDataset(Dataset):
     _index_class = FITSHierarchy
@@ -413,7 +427,7 @@ class FITSDataset(Dataset):
 
         self._determine_structure()
         self._determine_wcs()
-        self._determine_wcs2d()
+        self._determine_axes()
 
         if self.parameter_filename.startswith("InMemory"):
             self.unique_identifier = time.time()
@@ -463,8 +477,6 @@ class FITSDataset(Dataset):
 
         # Check to see if this data is in some kind of (Lat,Lon,Vel) format
         """
-        self.spec_cube = False
-        self.wcs_2d = None
         x = 0
         for p in lon_prefixes+lat_prefixes+list(spec_names.keys()):
             y = np_char.startswith(self.axis_names[:self.dimensionality], p)
@@ -519,16 +531,37 @@ class FITSDataset(Dataset):
         else:
             self.wcs = wcs
 
-    def _determine_wcs2d(self):
-        self.wcs_2d = self.wcs
+    def _determine_axes(self):
         self.lat_axis = 1
         self.lon_axis = 0
         self.lat_name = "Y"
         self.lon_name = "X"
 
-    def _setup_spec_cube(self):
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        return check_fits_valid(args)
 
-        self.geometry = "spectral_cube"
+    @classmethod
+    def _guess_candidates(cls, base, directories, files):
+        candidates = []
+        for fn, fnl in ((_, _.lower()) for _ in files):
+            if fnl.endswith(".fits") or \
+               fnl.endswith(".fits.gz") or \
+               fnl.endswith(".fits.fz"):
+                candidates.append(fn)
+        # FITS files don't preclude subdirectories
+        return candidates, True
+
+    def close(self):
+        self._handle.close()
+
+class SkyDataFITSDataset(FITSDataset):
+    _field_info_class = WCSFITSFieldInfo
+
+    def _parse_parameter_file(self):
+        super(SkyDataFITSDataset, self)._parse_parameter_file()
+
+        self.geometry = "sky_coord"
 
         end = min(self.dimensionality+1,4)
         if self.events_data:
@@ -558,91 +591,26 @@ class FITSDataset(Dataset):
             self.lat_name = "Y"
             self.lon_name = "X"
 
-        if self.wcs.naxis > 2:
-
-            self.spec_axis = np.zeros((end-1), dtype="bool")
-            for p in spec_names.keys():
-                self.spec_axis += np_char.startswith(ctypes, p)
-            self.spec_axis = np.where(self.spec_axis)[0][0]
-            self.spec_name = spec_names[ctypes[self.spec_axis].split("-")[0][0]]
-
-            self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
-            self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
-            self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
-            self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
-            self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
-                                     str(self.wcs.wcs.cunit[self.lat_axis])]
-            self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
-                                     self.wcs.wcs.ctype[self.lat_axis]]
-
-            self._p0 = self.wcs.wcs.crpix[self.spec_axis]
-            self._dz = self.wcs.wcs.cdelt[self.spec_axis]
-            self._z0 = self.wcs.wcs.crval[self.spec_axis]
-            self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
-
-            if self.spectral_factor == "auto":
-                self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
-                                                                         self.lat_axis]]))
-                self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-                mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
-            Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
-            dre = self.domain_right_edge
-            dre[self.spec_axis] = (self.domain_left_edge[self.spec_axis] +
-                                   self.spectral_factor*Dz)
-            self.domain_right_edge = dre
-            self._dz /= self.spectral_factor
-            self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
-
-        else:
-
-            self.wcs_2d = self.wcs
-            self.spec_axis = 2
-            self.spec_name = "z"
-            self.spec_unit = "code_length"
-
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        ext = args[0].rsplit(".", 1)[-1]
-        if ext.upper() in ("GZ", "FZ"):
-            # We don't know for sure that there will be > 1
-            ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
-        if ext.upper() not in ("FITS", "FTS"):
-            return False
-        elif isinstance(_astropy.pyfits, NotAModule):
-            raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
-        try:
+        if check_fits_valid(args):
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore', category=UserWarning, append=True)
                 fileh = _astropy.pyfits.open(args[0])
-            valid = fileh[0].header["naxis"] >= 2
-            if len(fileh) > 1:
-                valid = fileh[1].header["naxis"] >= 2 or valid
+            try:
+            self.primary_header = self._handle[self.first_image].header
+            self.naxis = self.primary_header["naxis"]
+            self.axis_names = [self.primary_header.get("ctype%d" % (i + 1), "LINEAR")
+                               for i in range(self.naxis)]
+
+            x = 0
+            for p in lon_prefixes + lat_prefixes + list(spec_names.keys()):
+                y = np_char.startswith(self.axis_names[:self.dimensionality], p)
+                x += np.any(y)
+
             fileh.close()
-            return valid
-        except:
-            pass
-        return False
 
-    @classmethod
-    def _guess_candidates(cls, base, directories, files):
-        candidates = []
-        for fn, fnl in ((_, _.lower()) for _ in files):
-            if fnl.endswith(".fits") or \
-               fnl.endswith(".fits.gz") or \
-               fnl.endswith(".fits.fz"):
-                candidates.append(fn)
-        # FITS files don't preclude subdirectories
-        return candidates, True
 
-    def close(self):
-        self._handle.close()
-
-class SkyDataFITSDataset(FITSDataset):
-    _field_info_class = WCSFITSFieldInfo
-
-    def _parse_parameter_file(self):
-        super(SkyDataFITSDataset, self)._parse_parameter_file()
-        
 class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def __init__(self, filename,
                  auxiliary_files=[],
@@ -663,6 +631,47 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
 
         self.spectral_factor = spectral_factor
         self.z_axis_decomp = z_axis_decomp
+
+    def _parse_parameter_file(self):
+        super(SpectralCubeFITSDataset, self)._parse_parameter_file()
+
+        self.geometry = "spectral_cube"
+
+        end = min(self.dimensionality+1,4)
+        ctypes = np.array([self.primary_header["CTYPE%d" % (i)] for i in range(1,end)])
+
+        self.spec_axis = np.zeros((end-1), dtype="bool")
+        for p in spec_names.keys():
+            self.spec_axis += np_char.startswith(ctypes, p)
+        self.spec_axis = np.where(self.spec_axis)[0][0]
+        self.spec_name = spec_names[ctypes[self.spec_axis].split("-")[0][0]]
+
+        self.wcs_2d = _astropy.pywcs.WCS(naxis=2)
+        self.wcs_2d.wcs.crpix = self.wcs.wcs.crpix[[self.lon_axis, self.lat_axis]]
+        self.wcs_2d.wcs.cdelt = self.wcs.wcs.cdelt[[self.lon_axis, self.lat_axis]]
+        self.wcs_2d.wcs.crval = self.wcs.wcs.crval[[self.lon_axis, self.lat_axis]]
+        self.wcs_2d.wcs.cunit = [str(self.wcs.wcs.cunit[self.lon_axis]),
+                                 str(self.wcs.wcs.cunit[self.lat_axis])]
+        self.wcs_2d.wcs.ctype = [self.wcs.wcs.ctype[self.lon_axis],
+                                 self.wcs.wcs.ctype[self.lat_axis]]
+
+        self._p0 = self.wcs.wcs.crpix[self.spec_axis]
+        self._dz = self.wcs.wcs.cdelt[self.spec_axis]
+        self._z0 = self.wcs.wcs.crval[self.spec_axis]
+        self.spec_unit = str(self.wcs.wcs.cunit[self.spec_axis])
+
+        if self.spectral_factor == "auto":
+            self.spectral_factor = float(max(self.domain_dimensions[[self.lon_axis,
+                                                                     self.lat_axis]]))
+            self.spectral_factor /= self.domain_dimensions[self.spec_axis]
+            mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+        Dz = self.domain_right_edge[self.spec_axis]-self.domain_left_edge[self.spec_axis]
+        dre = self.domain_right_edge
+        dre[self.spec_axis] = (self.domain_left_edge[self.spec_axis] +
+                               self.spectral_factor*Dz)
+        self.domain_right_edge = dre
+        self._dz /= self.spectral_factor
+        self._p0 = (self._p0-0.5)*self.spectral_factor + 0.5
 
     def _determine_nprocs(self):
         # If nprocs is None, do some automatic decomposition of the domain
@@ -702,6 +711,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
                  nprocs=None,
                  storage_filename=None,
                  suppress_astropy_warnings=True,
+                 reblock=1,
                  parameters=None,
                  units_override=None,
                  unit_system="cgs"):
@@ -709,6 +719,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
             storage_filename=storage_filename, parameters=parameters,
             suppress_astropy_warnings=suppress_astropy_warnings,
             units_override=units_override, unit_system=unit_system)
+        self.reblock = reblock
 
     def _determine_structure(self):
         self.first_image = 1
@@ -734,8 +745,10 @@ class EventsFITSDataset(SkyDataFITSDataset):
                     if unit.endswith("ev"): unit = unit.replace("ev", "eV")
                     self.events_info[v.lower()] = unit
         self.axis_names = [self.events_info[ax][2] for ax in ["x", "y"]]
-        self.reblock = 1
         if "reblock" in self.specified_parameters:
+            issue_deprecation_warning("'reblock' is now a keyword argument that "
+                                      "can be passed to 'yt.load'. This behavior "
+                                      "is deprecated.")
             self.reblock = self.specified_parameters["reblock"]
         self.wcs.wcs.cdelt = [self.events_info["x"][4] * self.reblock,
                               self.events_info["y"][4] * self.reblock]
@@ -746,3 +759,17 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs.wcs.crval = [self.events_info["x"][3], self.events_info["y"][3]]
         self.dims = [(self.events_info["x"][1] - self.events_info["x"][0]) / self.reblock,
                      (self.events_info["y"][1] - self.events_info["y"][0]) / self.reblock]
+
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        if check_fits_valid(args):
+            try:
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore', category=UserWarning, append=True)
+                    fileh = _astropy.pyfits.open(args[0])
+                valid = fileh[1].name == "EVENTS"
+                fileh.close()
+                return valid
+            except:
+                pass
+        return False
