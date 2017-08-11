@@ -340,6 +340,22 @@ class SceneComponent(traitlets.HasTraits):
         cm.colormap_name = "arbre"
         return cm
 
+    @traitlets.default("vertex_shader")
+    def _vertex_shader_default(self):
+        return self.default_shaders[0]
+
+    @traitlets.default("fragment_shader")
+    def _fragment_shader_default(self):
+        return self.default_shaders[1]
+
+    @traitlets.default("colormap_vertex")
+    def _colormap_vertex_default(self):
+        return self.default_shaders[2]
+
+    @traitlets.default("colormap_fragment")
+    def _colormap_fragment_default(self):
+        return self.default_shaders[3]
+
     @traitlets.default("base_quad")
     def _default_base_quad(self):
         bq = SceneData(name = "fullscreen_quad", 
@@ -487,22 +503,8 @@ class TextAnnotation(SceneAnnotation):
     origin = traitlets.Tuple(traitlets.CFloat(), traitlets.CFloat(),
             default_value = (-1, -1))
     scale = traitlets.CFloat(1.0)
-
-    @traitlets.default("vertex_shader")
-    def _vertex_shader_default(self):
-        return "text_overlay"
-
-    @traitlets.default("fragment_shader")
-    def _fragment_shader_default(self):
-        return "text_overlay"
-
-    @traitlets.default("colormap_vertex")
-    def _colormap_vertex_default(self):
-        return "passthrough"
-
-    @traitlets.default("colormap_fragment")
-    def _colormap_fragment_default(self):
-        return "passthrough"
+    default_shaders = ("text_overlay", "text_overlay",
+                       "passthrough", "passthrough")
 
     @traitlets.observe("text")
     def _observe_text(self, change):
@@ -657,22 +659,8 @@ class BlockRendering(SceneComponent):
     name = "block_rendering"
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
-
-    @traitlets.default("vertex_shader")
-    def _vertex_shader_default(self):
-        return "default"
-
-    @traitlets.default("fragment_shader")
-    def _fragment_shader_default(self):
-        return "max_intensity"
-
-    @traitlets.default("colormap_vertex")
-    def _colormap_vertex_default(self):
-        return "passthrough"
-
-    @traitlets.default("colormap_fragment")
-    def _colormap_fragment_default(self):
-        return "apply_colormap"
+    default_shaders = ("default", "max_intensity",
+                       "passthrough", "apply_colormap")
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
@@ -703,22 +691,8 @@ class BlockOutline(SceneAnnotation):
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
     box_alpha = traitlets.CFloat(1.0)
-
-    @traitlets.default("vertex_shader")
-    def _vertex_shader_default(self):
-        return "default"
-
-    @traitlets.default("fragment_shader")
-    def _fragment_shader_default(self):
-        return "drawlines"
-
-    @traitlets.default("colormap_vertex")
-    def _colormap_vertex_default(self):
-        return "passthrough"
-
-    @traitlets.default("colormap_fragment")
-    def _colormap_fragment_default(self):
-        return "passthrough"
+    default_shaders = ("default", "drawlines",
+                       "passthrough", "passthrough")
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
@@ -790,6 +764,7 @@ class MeshData(SceneData):
 class MeshRendering(SceneComponent):
     name = "mesh_rendering"
     data = traitlets.Instance(MeshData)
+    default_shaders = ("mesh", "mesh", "passthrough", "apply_colormap")
 
     def draw(self, scene, program):
         GL.glDrawElements(GL.GL_TRIANGLES, self.data.size, 
