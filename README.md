@@ -27,7 +27,8 @@ it.
 ## Code of Conduct
 
 yt abides by a code of conduct partially modified from the PSF code of conduct,
-and is found [in our contributing guide](CONTRIBUTING.rst).
+and is found [in our contributing
+guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-code-of-conduct).
 
 ## Installation
 
