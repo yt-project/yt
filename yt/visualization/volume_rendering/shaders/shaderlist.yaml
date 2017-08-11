@@ -10,9 +10,7 @@ fragment:
   drawlines:
     info: A first pass fragment shader that performs ray casting using transfer function.
       See :ref:`volume-rendering-method` for more details.
-    source:
-    - ray_tracing.fragmentshader
-    - box_outline.fragmentshader
+    source: box_outline.fragmentshader
   max_intensity:
     info: A first pass fragment shader that computes Maximum Intensity Projection
       of the data. See :ref:`projection-types` for more information.

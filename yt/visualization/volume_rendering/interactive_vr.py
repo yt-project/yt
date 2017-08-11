@@ -488,6 +488,22 @@ class TextAnnotation(SceneAnnotation):
             default_value = (-1, -1))
     scale = traitlets.CFloat(1.0)
 
+    @traitlets.default("vertex_shader")
+    def _vertex_shader_default(self):
+        return "text_overlay"
+
+    @traitlets.default("fragment_shader")
+    def _fragment_shader_default(self):
+        return "text_overlay"
+
+    @traitlets.default("colormap_vertex")
+    def _colormap_vertex_default(self):
+        return "passthrough"
+
+    @traitlets.default("colormap_fragment")
+    def _colormap_fragment_default(self):
+        return "passthrough"
+
     @traitlets.observe("text")
     def _observe_text(self, change):
         text = change['new']
@@ -642,6 +658,22 @@ class BlockRendering(SceneComponent):
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
 
+    @traitlets.default("vertex_shader")
+    def _vertex_shader_default(self):
+        return "default"
+
+    @traitlets.default("fragment_shader")
+    def _fragment_shader_default(self):
+        return "max_intensity"
+
+    @traitlets.default("colormap_vertex")
+    def _colormap_vertex_default(self):
+        return "passthrough"
+
+    @traitlets.default("colormap_fragment")
+    def _colormap_fragment_default(self):
+        return "apply_colormap"
+
     def draw(self, scene, program):
         each = self.data.vertex_array.each
         for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
@@ -662,6 +694,49 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("box_width", self.box_width)
         shader_program._set_uniform("ds_tex", 0)
         shader_program._set_uniform("bitmap_tex", 1)
+
+class BlockOutline(SceneAnnotation):
+    '''
+    A class that renders outlines of block data.  
+    '''
+    name = "block_outline"
+    data = traitlets.Instance(BlockCollection)
+    box_width = traitlets.CFloat(0.1)
+    box_alpha = traitlets.CFloat(1.0)
+
+    @traitlets.default("vertex_shader")
+    def _vertex_shader_default(self):
+        return "default"
+
+    @traitlets.default("fragment_shader")
+    def _fragment_shader_default(self):
+        return "drawlines"
+
+    @traitlets.default("colormap_vertex")
+    def _colormap_vertex_default(self):
+        return "passthrough"
+
+    @traitlets.default("colormap_fragment")
+    def _colormap_fragment_default(self):
+        return "passthrough"
+
+    def draw(self, scene, program):
+        each = self.data.vertex_array.each
+        for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
+            GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+
+    def _set_uniforms(self, scene, shader_program):
+        cam = scene.camera
+        shader_program._set_uniform("projection",
+                cam.get_projection_matrix())
+        shader_program._set_uniform("modelview",
+                cam.get_view_matrix())
+        shader_program._set_uniform("viewport",
+                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
+        shader_program._set_uniform("camera_pos",
+                cam.position)
+        shader_program._set_uniform("box_width", self.box_width)
+        shader_program._set_uniform("box_alpha", self.box_alpha)
 
 class MeshData(SceneData):
     name = "mesh"
