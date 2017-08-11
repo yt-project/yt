@@ -192,7 +192,8 @@ class Texture1D(Texture):
             dx = data.shape[0]
             gl_type, type1, type2 = TEX_CHANNELS[data.dtype.name][channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-            GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, type1, dx)
+            if not isinstance(change['old'], np.ndarray):
+                GL.glTexStorage1D(GL.GL_TEXTURE_1D, 1, type1, dx)
             GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, dx,
                         type2, gl_type, data)
             GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S,
@@ -242,7 +243,8 @@ class Texture2D(Texture):
             dx, dy = data.shape[:2]
             gl_type, type1, type2 = TEX_CHANNELS[data.dtype.name][channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
-            GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
+            if not isinstance(change['old'], np.ndarray):
+                GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
             GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
                         type2, gl_type, data.T)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
@@ -290,7 +292,8 @@ class Texture3D(Texture):
                     self.boundary_y)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R,
                     self.boundary_z)
-            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, type1, dx, dy, dz)
+            if not isinstance(change['old'], np.ndarray):
+                GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, type1, dx, dy, dz)
             GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
                         type2, gl_type, data.T)
             GL.glTexParameteri(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER,

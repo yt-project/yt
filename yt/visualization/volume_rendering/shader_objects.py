@@ -127,7 +127,9 @@ class ShaderProgram(object):
             kind = value.dtype.kind
         if kind not in 'if':
             raise YTUnknownUniformKind(kind)
-        if len(value.shape) == 1:
+        if len(value.shape) == 0:
+            return {'f': GL.glUniform1f, 'i': GL.glUniform1i}[kind]
+        elif len(value.shape) == 1:
             if value.size > 4:
                 raise YTUnknownUniformSize(value.size)
             func = self._set_scalar_uniform(kind, value.size)

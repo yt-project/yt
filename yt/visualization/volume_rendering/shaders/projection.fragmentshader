@@ -2,12 +2,14 @@ void sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
                     float t, vec3 dir) {
 
     vec3 tex_sample = texture(ds_tex, tex_curr_pos).rgb;
-    bool map_sample = texture(bitmap_tex, tex_curr_pos).r;
-    float val = float(map_sample > 0) * length(tdelta * dir) * tex_sample.r + curr_color.r;
-    curr_color = vec4(val, val, val, 1.0);
+    float map_sample = texture(bitmap_tex, tex_curr_pos).r;
+    if (map_sample > 0.0) {
+        float val = length(tdelta * dir) * tex_sample.r + curr_color.r;
+        curr_color = vec4(val, val, val, 1.0);
+    }
 }
 
 vec4 cleanup_phase(in vec4 curr_color) 
 {
-  return vec4(curr_color.rgb, 1.0);
+  return vec4(curr_color);
 }

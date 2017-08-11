@@ -383,10 +383,16 @@ class SceneComponent(traitlets.HasTraits):
         if self.cmap_min is None or self.cmap_max is None:
             data = self.fb.data
             data = data[data[:,:,3] > 0][:,0]
-            if self.cmap_min is None:
-                self.cmap_min = data.min()
-            if self.cmap_max is None:
-                self.cmap_max = data.max()
+            if self.cmap_min is None and data.size > 0:
+                self.cmap_min = cmap_min = data.min()
+            if self.cmap_max is None and data.size > 0:
+                self.cmap_max = cmap_max = data.max()
+            if data.size == 0:
+                cmap_min = 0.0
+                cmap_max = 1.0
+        else:
+            cmap_min = float(self.cmap_min)
+            cmap_max = float(self.cmap_max)
         with self.colormap.bind(0):
             with self.fb.input_bind(1, 2):
                 with self.program2.enable() as p2:
@@ -394,8 +400,10 @@ class SceneComponent(traitlets.HasTraits):
                         p2._set_uniform("cmap", 0)
                         p2._set_uniform("fb_texture", 1)
                         p2._set_uniform("db_texture", 2)
-                        p2._set_uniform("cmap_min", self.cmap_min)
-                        p2._set_uniform("cmap_max", self.cmap_max)
+                        # Note that we use cmap_min/cmap_max, not
+                        # self.cmap_min/self.cmap_max.
+                        p2._set_uniform("cmap_min", cmap_min)
+                        p2._set_uniform("cmap_max", cmap_max)
                         p2._set_uniform("cmap_log", float(self.cmap_log))
                         with self.base_quad.vertex_array.bind(p2):
                             GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
@@ -619,7 +627,7 @@ class BlockCollection(SceneData):
             n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
             data_tex = Texture3D(data = n_data)
             bitmap_tex = Texture3D(data = block.source_mask * 255,
-                    min_filter = "linear", mag_filter = "linear")
+                    min_filter = "nearest", mag_filter = "nearest")
             self.texture_objects[vbo_i] = data_tex
             self.bitmap_objects[vbo_i] = bitmap_tex
 
