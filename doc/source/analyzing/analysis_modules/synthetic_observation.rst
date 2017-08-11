@@ -16,5 +16,4 @@ from simulation data.
    star_analysis
    xray_emission_fields
    sunyaev_zeldovich
-   photon_simulator
    ppv_cubes
